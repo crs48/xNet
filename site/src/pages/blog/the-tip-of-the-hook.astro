@@ -187,7 +187,7 @@ const trustFlow = `sequenceDiagram
         the data changes. Only <em>then</em> do you get to render a list.
       </p>
       <p>
-        In xNet you write this instead — and you&rsquo;re done:
+        In xNet you write this instead, and you&rsquo;re done:
       </p>
 
       <CodeFigure
@@ -204,20 +204,20 @@ const trustFlow = `sequenceDiagram
       </p>
       <p>
         This essay is a tour of the hooks on the surface and a dive into
-        everything that one <code>useQuery</code> quietly stands on — a signed
+        everything that one <code>useQuery</code> quietly stands on: a signed
         change log, a real SQL database running in a background thread, a
         scheduler, a sync engine. It&rsquo;s the tip of an iceberg, and the whole
         point of the tour is that you&rsquo;re allowed to look under the waterline.
         There&rsquo;s code along the way; every grey panel is skippable and the
-        story still holds — but being able to show you the machine is half the
+        story still holds, but being able to show you the machine is half the
         argument.
       </p>
 
       <h2>One: there is no API</h2>
       <p>
         Start with the thing that&rsquo;s missing. In the usual architecture
-        there is a tier in the middle — the endpoints, the request handlers, the
-        serialisers — whose entire job is to stand between your component and the
+        there is a tier in the middle (the endpoints, the request handlers, the
+        serialisers) whose entire job is to stand between your component and the
         data and mediate every conversation. You design it, version it, secure
         it, deploy it, and pay for it to be awake at 3am.
       </p>
@@ -234,8 +234,8 @@ const trustFlow = `sequenceDiagram
       />
 
       <p>
-        It sounds reckless the first time you hear it — <em>the client talks
-        straight to the database?</em> — and it would be, on the old web, where
+        It sounds reckless the first time you hear it. <em>The client talks
+        straight to the database?</em> And it would be, on the old web, where
         &ldquo;trust the client&rdquo; is a punchline. The rest of this piece is
         really one long answer to why it&rsquo;s safe here. But first, the tour.
       </p>
@@ -244,14 +244,14 @@ const trustFlow = `sequenceDiagram
       <p>
         There are only a handful, and they read like the data tools you already
         know. <code>useQuery</code> reads. Hand it a schema for the whole set, a
-        schema and an id for one, or a schema and a filter for a slice —
+        schema and an id for one, or a schema and a filter for a slice:
         <code>where</code>, <code>orderBy</code>, <code>limit</code>, and for the
         ambitious, full-text <code>search</code> and <code>spatial</code> windows
         for canvases. What comes back is already live; you don&rsquo;t poll and
         you don&rsquo;t re-fetch.
       </p>
       <p>
-        <code>useMutate</code> writes — <code>create</code>, <code>update</code>,
+        <code>useMutate</code> writes: <code>create</code>, <code>update</code>,
         <code>remove</code>, or several at once in a single atomic
         <code>mutate</code>. The change lands in your local database first, so
         the UI updates on the same tick; the network catches up afterwards, if
@@ -259,37 +259,37 @@ const trustFlow = `sequenceDiagram
         depth: it hands you the node <em>and</em> a collaborative document with
         live cursors and presence, for when two people are in the same paragraph.
         And <code>useInfiniteQuery</code> grows a window rather than freezing
-        pages — load more and the earlier rows stay live instead of going stale.
+        pages, so load more and the earlier rows stay live instead of going stale.
       </p>
       <p>
         Notice what the surface snippet didn&rsquo;t contain: no <code>fetch</code>,
         no query keys to invalidate, no loading spinner plumbing beyond a single
         boolean, no websocket. The ergonomics are deliberately the ones a React
-        developer already has in their fingers — the backend behind them is just
+        developer already has in their fingers; the backend behind them is just
         no longer someone else&rsquo;s server.
       </p>
 
-      <h2>Three: the schema is the API — authorisation included</h2>
+      <h2>Three: the schema is the API, authorisation included</h2>
       <p>
         If the hooks are how you read and write, the <strong>schema</strong> is
-        where you say what a thing <em>is</em> and who may touch it — and both
+        where you say what a thing <em>is</em> and who may touch it, and both
         halves live in the same small object. Here is a task whose editors are
         named in a property, whose owner is whoever created it, and whose rules
         are stated right next to its fields.
       </p>
 
-      <Peek label="Open the panel — a schema with its authorisation">
+      <Peek label="Open the panel: a schema with its authorisation">
         <CodeFigure
           code={schemaCode}
           filename="packages/data/src/auth/builders.ts (shape)"
-          caption="Roles are resolved from the data itself — the creator, the DIDs listed in a property, a role inherited from a related node or a Space. Actions name which roles they admit. This block is the access-control policy; there is no second copy on a server."
+          caption="Roles are resolved from the data itself: the creator, the DIDs listed in a property, a role inherited from a related node or a Space. Actions name which roles they admit. This block is the access-control policy; there is no second copy on a server."
         />
       </Peek>
 
       <p>
         This is worth dwelling on, because it&rsquo;s where most systems quietly
         split in two. Usually your client has an <em>opinion</em> about
-        permissions — it greys out a button — and the server holds the
+        permissions (it greys out a button) and the server holds the
         <em>truth</em>, re-checking everything because the client can&rsquo;t be
         trusted. Two implementations of the same rules, forever drifting apart.
         In xNet there is one declaration. It&rsquo;s what greys out the button
@@ -310,7 +310,7 @@ const trustFlow = `sequenceDiagram
         the rules can safely live.
       </p>
       <p>
-        Every write becomes a small, signed record — a <strong>change</strong> —
+        Every write becomes a small, signed record, a <strong>change</strong>,
         sealed with a key only you hold (Ed25519) and fingerprinted so the whole
         history forms a tamper-evident chain (BLAKE3). Your identity isn&rsquo;t
         an account some company can switch off; it&rsquo;s a key pair, and your
@@ -318,15 +318,15 @@ const trustFlow = `sequenceDiagram
         <a href="/blog/the-loom-you-can-read">The Loom You Can Read</a>, follows
         a single change through that machinery in detail.) The consequence that
         matters here: any device can check, on its own, that a change really came
-        from who it claims and wasn&rsquo;t altered — and can run the schema&rsquo;s
-        rules against it — <em>before</em> letting it touch the database.
+        from who it claims and wasn&rsquo;t altered, and can run the schema&rsquo;s
+        rules against it, <em>before</em> letting it touch the database.
       </p>
 
-      <Peek label="Open the panel — the gate every change passes through">
+      <Peek label="Open the panel: the gate every change passes through">
         <CodeFigure
           code={verifyCode}
           filename="packages/sync/src/integrity.ts · packages/data/src/auth/evaluator.ts"
-          caption="Verify the fingerprint, verify the signature, then evaluate the very rules you declared in the schema. Only a change that survives all three is applied — so the policy you wrote on the client is enforced by maths, not by trusting the wire."
+          caption="Verify the fingerprint, verify the signature, then evaluate the very rules you declared in the schema. Only a change that survives all three is applied, so the policy you wrote on the client is enforced by maths, not by trusting the wire."
         />
       </Peek>
 
@@ -346,18 +346,19 @@ const trustFlow = `sequenceDiagram
       <h2>Five: how a view materialises</h2>
       <p>
         Back to that live list. When you call <code>useQuery</code>, it
-        doesn&rsquo;t hand React an array; it hands React a <em>subscription</em>
-        — a way to read the current answer synchronously, and a way to be told
+        doesn&rsquo;t hand React an array; it hands React a
+        <em>subscription</em>: a way to read the current answer synchronously,
+        and a way to be told
         when the answer changes. That&rsquo;s the exact shape React 18&rsquo;s
         <code>useSyncExternalStore</code> wants, which is why the result stays
         tear-free under concurrent rendering without any effort from you.
       </p>
 
-      <Peek label="Open the panel — the contract behind a live query">
+      <Peek label="Open the panel: the contract behind a live query">
         <CodeFigure
           code={subscriptionCode}
           filename="packages/data-bridge/src/types.ts"
-          caption="Two methods: read now, and tell me when it changes. Everything else — the cache, the worker, the database — sits behind this tiny interface."
+          caption="Two methods: read now, and tell me when it changes. Everything else (the cache, the worker, the database) sits behind this tiny interface."
         />
       </Peek>
 
@@ -365,23 +366,23 @@ const trustFlow = `sequenceDiagram
         Behind that interface, a cache keeps the materialised result. When data
         changes, the bridge doesn&rsquo;t re-run your query from scratch; it keeps
         a small buffer of spare rows around the edge of your window and applies
-        the change <em>in place</em> — slot a new row into its sorted position,
-        update one, drop one — only falling back to a full reload when a burst of
+        the change <em>in place</em>, slotting a new row into its sorted position,
+        updating one, dropping one, only falling back to a full reload when a burst of
         changes is too large to patch. Unchanged rows keep their identity, so the
         components rendering them simply don&rsquo;t re-render.
       </p>
 
       <Mermaid
         code={materialise}
-        caption="First call reads from the database once. After that, edits — yours, or ones that just synced in from someone else — arrive as small deltas, and only the rows that actually changed re-render."
+        caption="First call reads from the database once. After that, edits (yours, or ones that just synced in from someone else) arrive as small deltas, and only the rows that actually changed re-render."
       />
 
       <p>
         A precise word on &ldquo;live,&rdquo; because honesty is the house style.
         Your queries are live with respect to your <em>local</em> database: any
         change written there flows into the view, and that includes changes that
-        arrive from a peer and get merged in locally. A pushier mode — the hub
-        streaming results to you as they happen — is designed and named in the
+        arrive from a peer and get merged in locally. A pushier mode, with the hub
+        streaming results to you as they happen, is designed and named in the
         code but not switched on yet. When it is, it&rsquo;ll slot in behind this
         same subscription, and your <code>useQuery</code> won&rsquo;t change a
         character.
@@ -390,18 +391,18 @@ const trustFlow = `sequenceDiagram
       <h2>Six: the layer beneath the waterline</h2>
       <p>
         Now the dive. &ldquo;Reads from a local database&rdquo; is doing a lot of
-        quiet work in the sentences above. That database is real SQLite — the
-        same engine in your phone — compiled to WebAssembly and run inside a
+        quiet work in the sentences above. That database is real SQLite, the
+        same engine in your phone, compiled to WebAssembly and run inside a
         <strong>Web Worker</strong>, off the thread that paints your UI. It
         persists to a private corner of the browser called the Origin Private
         File System, so your data is still there tomorrow.
       </p>
 
-      <Peek label="Open the panel — a real database, tuned, on a background thread">
+      <Peek label="Open the panel: a real database, tuned, on a background thread">
         <CodeFigure
           code={sqliteCode}
           filename="packages/sqlite/src/adapters/web.ts"
-          caption="A genuine SQLite database, persisted to disk and tuned for large stores — a 256 MB page cache, memory-mapped reads, the fastest durable journal mode on OPFS. You didn&rsquo;t set any of it."
+          caption="A genuine SQLite database, persisted to disk and tuned for large stores: a 256 MB page cache, memory-mapped reads, the fastest durable journal mode on OPFS. You didn&rsquo;t set any of it."
         />
       </Peek>
 
@@ -411,11 +412,11 @@ const trustFlow = `sequenceDiagram
         store and the live subscriptions, the other owns SQLite. Signing and
         verifying happen out here too, so the cryptography never stutters a scroll.
         A single database connection can only do one thing at a time, so a small
-        <strong>scheduler</strong> decides the order — and it always lets an
+        <strong>scheduler</strong> decides the order, and it always lets an
         interactive read jump ahead of a background import.
       </p>
 
-      <Peek label="Open the panel — why a tap never waits behind an import">
+      <Peek label="Open the panel: why a tap never waits behind an import">
         <CodeFigure
           code={schedulerCode}
           filename="packages/sqlite/src/adapters/worker-scheduler.ts"
@@ -425,7 +426,7 @@ const trustFlow = `sequenceDiagram
 
       <Mermaid
         code={workerArch}
-        caption="The shape under the surface. Your hooks talk to a bridge; the bridge talks to a data worker; the data worker talks straight to the SQLite worker over a transferred channel. The heavy lifting — SQL, OPFS I/O, signing — happens where it can&rsquo;t freeze the interface."
+        caption="The shape under the surface. Your hooks talk to a bridge; the bridge talks to a data worker; the data worker talks straight to the SQLite worker over a transferred channel. The heavy lifting (SQL, OPFS I/O, signing) happens where it can&rsquo;t freeze the interface."
       />
 
       <p>
@@ -433,7 +434,7 @@ const trustFlow = `sequenceDiagram
         the database layer probes what the device can actually do and adapts. On
         a modern browser it takes fast, exclusive file handles. On an older one,
         or a locked-down webview, it falls back to a slower-but-durable mode, and
-        only as a last resort to an in-memory database — loudly, so it&rsquo;s
+        only as a last resort to an in-memory database, loudly, so it&rsquo;s
         never a silent surprise. The same <code>useQuery</code> runs on a
         flagship laptop and a three-year-old phone; the layer underneath quietly
         picks the best engine each one can offer.
@@ -442,17 +443,17 @@ const trustFlow = `sequenceDiagram
       <h2>Seven: local first, mirrored to remote</h2>
       <p>
         Because the real copy is on your device, a query is just a query against
-        your own SQLite — instant, offline, no permission to ask. For most
+        your own SQLite: instant, offline, no permission to ask. For most
         workspaces that&rsquo;s the whole story; everything you own fits happily
         on the device. When a dataset is large, or a request is one only the
-        fleet can answer — a full-text search across more than you hold, say — a
+        fleet can answer (a full-text search across more than you hold, say) a
         router decides to involve the hub, and can serve the local answer
         immediately while a fuller one refreshes in from the network behind it.
       </p>
       <p>
         New data doesn&rsquo;t arrive as a refetch. A peer&rsquo;s signed change
         comes in, gets verified and authorised, and merges into your local
-        database by a simple, deterministic rule — last edit wins, with a logical
+        database by a simple, deterministic rule: last edit wins, with a logical
         clock and the author&rsquo;s key breaking ties, so every device reaches
         the same answer with no server casting a deciding vote. The moment it
         lands locally, the live query from section five deltas it into your view.
@@ -470,7 +471,7 @@ const trustFlow = `sequenceDiagram
         client-side cache, the logic to invalidate it, a websocket, an
         offline queue, a background sync worker, a conflict resolver, and a
         connection pool. They&rsquo;re all present. You just didn&rsquo;t have to
-        assemble them, and — this is the part that matters — you&rsquo;re allowed
+        assemble them, and, this is the part that matters, you&rsquo;re allowed
         to open every one.
       </p>
       <p>
@@ -531,21 +532,21 @@ const trustFlow = `sequenceDiagram
       </div>
       <p>
         The family resemblance is real, and the borrowed ergonomics are on
-        purpose — if you&rsquo;ve used <code>useQuery</code> from one of these,
+        purpose. If you&rsquo;ve used <code>useQuery</code> from one of these,
         ours will feel like home. What&rsquo;s distinctly xNet&rsquo;s is the
         corner you&rsquo;ve been standing in this whole tour: the master copy is
         on the edge device, the authority is a key in your hands, and the network
-        is a convenience layered on top — not the place your work is kept.
+        is a convenience layered on top, not the place your work is kept.
       </p>
       <p>
         None of the machinery beneath the waterline is exotic. SQLite, a worker,
         a hash, a signature, a tiny merge rule, a subscription. It&rsquo;s plain
-        engineering, arranged so that the simple thing on top — a hook you can
-        read in one sitting — is also the correct thing, and the openable thing.
+        engineering, arranged so that the simple thing on top (a hook you can
+        read in one sitting) is also the correct thing, and the openable thing.
         So open it. <a href="/app">Use the app</a>, then read the source the
         excerpts above point at. <a href="/build-with">Build something</a> on the
         hooks and watch your &ldquo;whole API&rdquo; turn out to be a couple of
-        schemas and a component. The tip is small on purpose. The iceberg is
+        schemas and a component. The tip is small on purpose, and the iceberg is
         yours to inspect, all the way down.
       </p>
 

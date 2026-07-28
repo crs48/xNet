@@ -17,6 +17,7 @@ Invoke with the Skill tool. Repo-local skills live in `.claude/skills/`
 | `changeset`                      | You edited a publishable `packages/*` library       |
 | `electron-prototype`             | Building or testing anything in `apps/electron`     |
 | `explore`                        | Researching a topic into `docs/explorations/`       |
+| `humanize`                       | Prose reads as machine-written; editing blog essays |
 | `implement`                      | Executing an exploration's checklist                |
 | `mvp-followup`                   | Deciding what to close out after a feature pass     |
 | `verification-before-completion` | Before claiming done, or writing `[x]`              |

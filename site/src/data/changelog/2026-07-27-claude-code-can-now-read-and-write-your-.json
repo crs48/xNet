@@ -1,0 +1,17 @@
+{
+  "id": "2026-07-27-claude-code-can-now-read-and-write-your-",
+  "date": "July 27, 2026",
+  "title": "Claude Code can now read and write your xNet workspace",
+  "summary": "The desktop app's AI chat now hands your coding agent xNet's own tools, so it can search your workspace and create pages and tasks in it — not just talk about them.",
+  "highlights": [],
+  "tags": [
+    "ai"
+  ],
+  "pr": 638,
+  "mergedAt": "2026-07-28T05:53:27Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

@@ -22,6 +22,34 @@ export function mcpConfigFor(
   return { mcpServers: { [name]: { command: server.command, args: [...server.args] } } }
 }
 
+/**
+ * An already-running MCP server the agent connects to over Streamable HTTP,
+ * rather than one it spawns. This is how a *host application* hands the agent
+ * its tools: the xNet desktop app serves the workspace from its own process, so
+ * there is no CLI to spawn and no second copy of the store.
+ */
+export interface McpHttpServerSpec {
+  url: string
+  /** Sent on every request — carries the transport's `x-xnet-pairing` secret. */
+  headers?: Record<string, string>
+}
+
+/** The `mcpServers` config object pointing an agent at a running HTTP server. */
+export function mcpHttpConfigFor(
+  server: McpHttpServerSpec,
+  name = 'xnet'
+): { mcpServers: Record<string, McpHttpServerSpec & { type: 'http' }> } {
+  return {
+    mcpServers: {
+      [name]: {
+        type: 'http',
+        url: server.url,
+        ...(server.headers ? { headers: { ...server.headers } } : {})
+      }
+    }
+  }
+}
+
 export interface AgentLaunchOptions {
   /** Path to an MCP config JSON file — gives the agent xNet's workspace tools. */
   mcpConfigPath?: string

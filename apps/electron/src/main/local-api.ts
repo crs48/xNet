@@ -9,157 +9,22 @@
  */
 
 import crypto from 'node:crypto'
-import {
-  type LocalAPIServer,
-  createLocalAPI,
-  type NodeStoreAPI,
-  type SchemaRegistryAPI,
-  type NodeData
-} from '@xnetjs/plugins/node'
-import { ipcMain, BrowserWindow } from 'electron'
+import { type LocalAPIServer, createLocalAPI, type NodeStoreAPI } from '@xnetjs/plugins/node'
+import { ipcMain } from 'electron'
 import { DEFAULT_LOCAL_API_PORT, resolveLocalAPIPort } from './local-api-config'
+import {
+  createNodeStoreProxy,
+  createSchemaRegistryProxy,
+  setupStoreResponseHandler,
+  type SchemaRegistryProxy
+} from './renderer-store-proxy'
 
 // ─── Module State ────────────────────────────────────────────────────────────
 
 let apiServer: LocalAPIServer | null = null
 let nodeStoreProxy: NodeStoreAPI | null = null
-let schemaRegistryProxy: SchemaRegistryAPI | null = null
+let schemaRegistryProxy: SchemaRegistryProxy | null = null
 let configuredPort = DEFAULT_LOCAL_API_PORT
-
-// Pending request callbacks - used to receive responses from renderer
-let requestId = 0
-const pendingRequests = new Map<
-  number,
-  { resolve: (value: unknown) => void; reject: (error: Error) => void }
->()
-
-// ─── IPC-based Store Proxy ───────────────────────────────────────────────────
-
-/**
- * Send a request to the renderer and wait for response.
- * SEC-03: All parameters passed as structured data via IPC, no code injection possible.
- */
-async function sendStoreRequest<T>(operation: string, params: Record<string, unknown>): Promise<T> {
-  const win = BrowserWindow.getAllWindows()[0]
-  if (!win) {
-    throw new Error('No window available')
-  }
-
-  const id = ++requestId
-  return new Promise<T>((resolve, reject) => {
-    // Set timeout to avoid hanging forever
-    const timeout = setTimeout(() => {
-      pendingRequests.delete(id)
-      reject(new Error(`Store request timed out: ${operation}`))
-    }, 30000)
-
-    pendingRequests.set(id, {
-      resolve: (value) => {
-        clearTimeout(timeout)
-        pendingRequests.delete(id)
-        resolve(value as T)
-      },
-      reject: (error) => {
-        clearTimeout(timeout)
-        pendingRequests.delete(id)
-        reject(error)
-      }
-    })
-
-    // Send request to renderer via IPC
-    win.webContents.send('xnet:localapi:store-request', { id, operation, params })
-  })
-}
-
-/**
- * Creates a NodeStoreAPI that proxies calls to the renderer process via IPC.
- * SEC-03: Replaces executeJavaScript with structured IPC to prevent code injection.
- */
-function createNodeStoreProxy(): NodeStoreAPI {
-  // Listeners for store changes - will be populated by subscribe()
-  const listeners = new Set<
-    (event: { change: { type: string }; node: NodeData | null; isRemote: boolean }) => void
-  >()
-
-  return {
-    get: async (id: string) => {
-      return sendStoreRequest<NodeData | null>('get', { id })
-    },
-
-    list: async (options?: { schemaId?: string; limit?: number; offset?: number }) => {
-      return sendStoreRequest<NodeData[]>('list', {
-        schemaId: options?.schemaId,
-        limit: options?.limit ?? 50,
-        offset: options?.offset ?? 0
-      })
-    },
-
-    create: async (options: { schemaId: string; properties: Record<string, unknown> }) => {
-      return sendStoreRequest<NodeData>('create', {
-        schemaId: options.schemaId,
-        properties: options.properties
-      })
-    },
-
-    update: async (id: string, options: { properties: Record<string, unknown> }) => {
-      return sendStoreRequest<NodeData>('update', {
-        id,
-        properties: options.properties
-      })
-    },
-
-    delete: async (id: string) => {
-      await sendStoreRequest<void>('delete', { id })
-    },
-
-    subscribe: (
-      listener: (event: {
-        change: { type: string }
-        node: NodeData | null
-        isRemote: boolean
-      }) => void
-    ) => {
-      listeners.add(listener)
-      return () => listeners.delete(listener)
-    }
-  }
-}
-
-/**
- * Creates a SchemaRegistryAPI that returns core schemas.
- * In the future, this could also proxy to the renderer for dynamic schemas.
- */
-function createSchemaRegistryProxy(): SchemaRegistryAPI {
-  // Core schemas that are always available
-  const coreSchemas = new Map([
-    ['xnet://xnet.dev/Schema', { iri: 'xnet://xnet.dev/Schema', name: 'Schema', properties: {} }],
-    [
-      'xnet://xnet.dev/Task',
-      {
-        iri: 'xnet://xnet.dev/Task',
-        name: 'Task',
-        properties: { title: { type: 'text' }, done: { type: 'checkbox' } }
-      }
-    ],
-    [
-      'xnet://xnet.dev/Project',
-      { iri: 'xnet://xnet.dev/Project', name: 'Project', properties: { name: { type: 'text' } } }
-    ],
-    [
-      'xnet://xnet.dev/Note',
-      {
-        iri: 'xnet://xnet.dev/Note',
-        name: 'Note',
-        properties: { title: { type: 'text' }, content: { type: 'richtext' } }
-      }
-    ]
-  ])
-
-  return {
-    getAllIRIs: () => Array.from(coreSchemas.keys()),
-    get: async (iri: string) => coreSchemas.get(iri) ?? null
-  }
-}
 
 // ─── API Server Lifecycle ────────────────────────────────────────────────────
 
@@ -195,9 +60,12 @@ export async function startLocalAPI(): Promise<void> {
     return
   }
 
-  // Create proxies
+  // Create proxies over the renderer's real store and schema registry.
   nodeStoreProxy = createNodeStoreProxy()
   schemaRegistryProxy = createSchemaRegistryProxy()
+  // Not awaited: this runs before `createWindow()`, and priming needs the
+  // renderer. It retries in the background until the window answers.
+  void schemaRegistryProxy.ensurePrimed().catch(() => undefined)
 
   // SEC-04: Enable token authentication by default
   const token = getOrCreateApiToken()
@@ -286,17 +154,5 @@ export function setupLocalAPIIPC(): void {
 
   // SEC-03: Handle store operation responses from renderer
   // This replaces the vulnerable executeJavaScript approach
-  ipcMain.on(
-    'xnet:localapi:store-response',
-    (_, response: { id: number; result?: unknown; error?: string }) => {
-      const pending = pendingRequests.get(response.id)
-      if (!pending) return
-
-      if (response.error) {
-        pending.reject(new Error(response.error))
-      } else {
-        pending.resolve(response.result)
-      }
-    }
-  )
+  setupStoreResponseHandler()
 }
