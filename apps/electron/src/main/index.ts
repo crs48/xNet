@@ -225,6 +225,7 @@ async function createWindow() {
   })
 
   mainWindow.webContents.on('did-finish-load', () => {
+    bootTrace('renderer loaded')
     if (pendingSharePayload) {
       mainWindow?.webContents.send('xnet:share-payload', { payload: pendingSharePayload })
       pendingSharePayload = null
