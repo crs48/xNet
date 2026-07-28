@@ -9,11 +9,11 @@ or Expo.
 
 Pick by what the change touches, not by convenience.
 
-| Rung | Loop | Use when the change is… |
-| --- | --- | --- |
-| 1 — Storybook | `pnpm dev:stories` → `:6006` | pure UI: a component, a layout, a state |
-| 2 — CDP attach | `pnpm dev` → `:9223` → `playwright-electron` | anything touching `window.xnet*`, SQLite, native APIs |
-| 3 — `_electron.launch()` | `tests/e2e/src/electron-smoke.spec.ts` | restart durability, deep links, packaging, crash paths |
+| Rung                     | Loop                                         | Use when the change is…                                |
+| ------------------------ | -------------------------------------------- | ------------------------------------------------------ |
+| 1 — Storybook            | `pnpm dev:stories` → `:6006`                 | pure UI: a component, a layout, a state                |
+| 2 — CDP attach           | `pnpm dev` → `:9223` → `playwright-electron` | anything touching `window.xnet*`, SQLite, native APIs  |
+| 3 — `_electron.launch()` | `tests/e2e/src/electron-smoke.spec.ts`       | restart durability, deep links, packaging, crash paths |
 
 Never reach for rung 3 to check a layout.
 
@@ -23,12 +23,12 @@ CDP.
 
 ## Ports
 
-| Port | What |
-| --- | --- |
-| 5177 | renderer (Vite) — `electron.vite.config.ts` |
+| Port | What                                                               |
+| ---- | ------------------------------------------------------------------ |
+| 5177 | renderer (Vite) — `electron.vite.config.ts`                        |
 | 9223 | CDP, dev only — `src/main/index.ts` sets `--remote-debugging-port` |
-| 9224 | CDP for the `user2` profile |
-| 4444 | hub |
+| 9224 | CDP for the `user2` profile                                        |
+| 4444 | hub                                                                |
 
 ```bash
 pnpm dev        # hub + app

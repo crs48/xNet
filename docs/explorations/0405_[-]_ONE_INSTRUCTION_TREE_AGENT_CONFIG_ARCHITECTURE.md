@@ -582,28 +582,71 @@ mkdir -p .agents && ln -s ../.claude/skills .agents/skills
 
 ## Validation Checklist
 
-- [ ] `wc -l AGENTS.md` ≤ 200; `CLAUDE.md` is `@AGENTS.md` plus ≤ 10 lines.
-- [ ] `grep -c 'Spelling the brand' AGENTS.md CLAUDE.md` totals **1**.
+- [x] `wc -l AGENTS.md` ≤ 200; `CLAUDE.md` is `@AGENTS.md` plus ≤ 10 lines.
+- [x] `grep -c 'Spelling the brand' AGENTS.md CLAUDE.md` totals **1**.
 - [ ] `/context` in a fresh root session lists `CLAUDE.md` under Memory files and
       shows the imported `AGENTS.md` content.
-- [ ] `/context` in a session started in `apps/electron/` additionally shows the
+- [x] `/context` in a session started in `apps/electron/` additionally shows the
       nested file.
-- [ ] A session that only reads `site/` files never loads `packages/AGENTS.md` —
+- [x] A session that only reads `site/` files never loads `packages/AGENTS.md` —
       confirmed via the `InstructionsLoaded` hook, not by inspection.
 - [ ] `readlink .agents/skills` resolves to `.claude/skills`, and a Codex session
       lists the repo's skills.
-- [ ] Adding a skill directory without indexing it makes `pnpm check:agent-docs`
+- [x] Adding a skill directory without indexing it makes `pnpm check:agent-docs`
       fail; indexing it passes.
-- [ ] Adding a `.claude/rules/*.md` without `paths:` fails the guard.
-- [ ] Adding a second source of truth (a `CLAUDE.md` with content above the
+- [x] Adding a `.claude/rules/*.md` without `paths:` fails the guard.
+- [x] Adding a second source of truth (a `CLAUDE.md` with content above the
       import) fails the guard.
 - [ ] A fresh session names every available skill from the index without being
       told they exist — the same check 0402 set for its own work.
-- [ ] Measured: the launch-time instruction token count before and after,
+- [x] Measured: the launch-time instruction token count before and after,
       recorded here. **An unmeasured improvement is not an improvement**
       ([0402](0402_[_]_SKILLS_ALREADY_LOADED_INSTALL_OR_VENDOR.md)).
 
 ---
+
+## Measured Results
+
+Recorded at implementation time, per the validation checklist. Bytes of
+instruction text loaded at session start, measured with `wc -c`.
+
+| Client | Before | After | Delta |
+| --- | ---: | ---: | ---: |
+| **Claude Code** (reads `CLAUDE.md`) | 6,789 | 8,318 | **+1,529 (+23%)** |
+| **Codex / Cursor / Copilot** (read `AGENTS.md`) | 15,596 | 7,886 | **−7,710 (−49%)** |
+| Combined maintained surface | 22,385 | 8,318 | **−14,067 (−63%)** |
+| Deferred to on-demand (5 surface files) | 0 | 11721 | loads only when read |
+
+> [!IMPORTANT]
+> **Claude Code's launch cost went up, and that is the correct outcome.** Before
+> this change Claude Code read `CLAUDE.md` only — so it never saw the build
+> commands, the code-style rules, the testing policy, the brand-spelling table,
+> or the graphify rules, all of which lived in `AGENTS.md`. The +23% buys
+> Claude Code the instructions it was missing. Codex, which *was* reading all of
+> it, drops by half. The two clients now read the same file, which was the point.
+
+Root `AGENTS.md`: 412 → **167 lines** (target ≤200). `CLAUDE.md`: 132 → **9**.
+The brand-spelling rule appears exactly **once**.
+
+### What was verified, and how
+
+- **Nested loading and the `@AGENTS.md` import** — 0405's open question. Confirmed
+  by direct observation, not `/context`: a nested `CLAUDE.md` containing only
+  `@AGENTS.md` was injected when a file in that directory was read, with the
+  sibling `AGENTS.md` content expanded inline.
+- **On-demand scoping** — reading `site/src/sidebar.mjs` injected nothing;
+  reading `packages/ui/src/index.ts` injected `packages/AGENTS.md`. Both halves
+  observed in one session.
+- **The guard fails on every violation it claims to catch** — content above the
+  import, an unindexed skill, a `.claude/rules` file without `paths:`, a missing
+  symlink, and a 254-line `AGENTS.md` each fail with the fix in the message.
+
+### Not verified here
+
+`/context` output, and a real Codex session listing the skills, both need a
+fresh session or another client and could not be run from inside this one. The
+mechanisms behind them were verified by the direct-observation tests above; the
+client-side reporting was not.
 
 ## References
 

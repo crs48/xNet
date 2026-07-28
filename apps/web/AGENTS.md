@@ -55,7 +55,7 @@ How it works: the flag makes the identity manager create a deterministic test
 identity, so there is no WebAuthn prompt.
 
 **Then advance onboarding** if it appears (`Get started with Touch ID` →
-`Create your first page`). An assertion made before bypass *and* onboarding
+`Create your first page`). An assertion made before bypass _and_ onboarding
 complete is invalid for any auth-sensitive flow.
 
 ## Viewport
