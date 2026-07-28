@@ -5,9 +5,11 @@
  * it: M WebSocket clients each pushing K genuinely signed node changes
  * concurrently, paced under the hub's per-connection rate limit (the sync
  * provider's own throttle is 40 msg/s, so pacing is realistic too). Then a
- * verifier client pulls the room and the suite asserts correctness under
- * load — every change accepted exactly once, none dropped, none duplicated,
- * hashes intact — and reports throughput + sync-response latency.
+ * verifier client pulls the room — following the hub's node-sync paging
+ * (NODE_SYNC_PAGE_SIZE) via hasMore/highWaterMark like a real client — and
+ * the suite asserts correctness under load: every change accepted exactly
+ * once, none dropped, none duplicated, hashes intact — and reports
+ * throughput + full catch-up latency.
  *
  * The PR lane asserts correctness only. Wall-clock throughput floors bite in
  * the soak lane (XNET_SOAK=1) with deliberately generous bounds.
@@ -136,24 +138,47 @@ describe('hub ingest load smoke (0272)', () => {
     // Give the relay a moment to drain its ingest queue, then pull.
     await sleep(250)
     const verifier = await connect()
-    const syncT0 = performance.now()
-    verifier.send(JSON.stringify({ type: 'node-sync-request', room: ROOM, sinceLamport: 0 }))
-    const response = await new Promise<{ type: string; changes?: Array<{ hash: string }> }>(
-      (resolve, reject) => {
+
+    interface SyncPage {
+      changes?: Array<{ hash: string }>
+      highWaterMark: number
+      hasMore?: boolean
+    }
+    const syncPage = (sinceLamport: number): Promise<SyncPage> =>
+      new Promise((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('sync-response timeout')), 10_000)
-        verifier.on('message', (data) => {
-          const parsed = JSON.parse(data.toString())
+        const onMessage = (data: unknown) => {
+          const parsed = JSON.parse(String(data))
           if (parsed.type === 'node-sync-response') {
             clearTimeout(timeout)
+            verifier.off('message', onMessage)
             resolve(parsed)
           }
-        })
-      }
-    )
+        }
+        verifier.on('message', onMessage)
+        verifier.send(JSON.stringify({ type: 'node-sync-request', room: ROOM, sinceLamport }))
+      })
+
+    // The hub pages sync responses (NODE_SYNC_PAGE_SIZE = 1000, trimmed to a
+    // lamport boundary), so the soak-lane's 1200 changes span two pages —
+    // follow the cursor exactly the way the real sync provider does.
+    const syncT0 = performance.now()
+    const received: string[] = []
+    let cursor = 0
+    let pages = 0
+    for (;;) {
+      const page = await syncPage(cursor)
+      received.push(...(page.changes ?? []).map((c) => c.hash))
+      pages += 1
+      if (!page.hasMore) break
+      // A cursor that fails to advance would spin forever — fail loudly.
+      expect(page.highWaterMark).toBeGreaterThan(cursor)
+      cursor = page.highWaterMark
+    }
     const syncMs = performance.now() - syncT0
 
     const expected = clients.flatMap((c) => c.hashes).sort()
-    const received = (response.changes ?? []).map((c) => c.hash).sort()
+    received.sort()
 
     // Exactly once: nothing dropped, nothing duplicated, hashes intact.
     expect(received).toEqual(expected)
@@ -164,7 +189,7 @@ describe('hub ingest load smoke (0272)', () => {
     console.log(
       `[hub-load] ${total} changes from ${CLIENTS} clients: ` +
         `ingest ${Math.round(pushMs)}ms (~${throughput}/s offered), ` +
-        `full-room sync-response ${Math.round(syncMs)}ms`
+        `full-room catch-up ${Math.round(syncMs)}ms across ${pages} page(s)`
     )
     if (SOAK) {
       // Generous ceilings — catching collapse, not chasing microseconds.
