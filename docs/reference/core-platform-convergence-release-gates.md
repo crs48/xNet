@@ -34,8 +34,8 @@ Run the convergence gate in this order:
 7. Run Electron renderer/runtime proof: `pnpm --filter xnet-desktop exec vitest run src/main/local-api-config.test.ts src/renderer/lib/ipc-sync-manager.test.ts src/renderer/lib/ipc-node-storage.test.ts src/renderer/lib/database-yjs-undo.test.ts`
 8. Start Electron multi-profile proving:
    `pnpm --filter xnet-desktop run dev:hub`
-   `ELECTRON_CDP_PORT=9223 pnpm --filter xnet-desktop run dev:electron`
-   `XNET_PROFILE=user2 VITE_PORT=5174 ELECTRON_CDP_PORT=9224 pnpm --filter xnet-desktop run dev:user2`
+   `pnpm --filter xnet-desktop dev:both` (ports are set by the scripts —
+   9223 and 9224; see the `electron-prototype` skill)
 9. Confirm CDP endpoints and profile-specific Local API ports:
    `curl http://127.0.0.1:9223/json/version`
    `curl http://127.0.0.1:9224/json/version`

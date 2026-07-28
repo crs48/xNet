@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-27-faster-desktop-dev-startup",
+  "date": "July 27, 2026",
+  "title": "Faster desktop dev startup",
+  "summary": "The desktop app no longer rebuilds native modules on every start, only when they actually change.",
+  "highlights": ["Warm starts skip a ~20s rebuild"],
+  "tags": ["devtools"]
+}

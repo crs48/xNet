@@ -15,6 +15,7 @@ Invoke with the Skill tool. Repo-local skills live in `.claude/skills/`
 | `babysit-pr`                     | Driving a PR to green                               |
 | `changelog`                      | You shipped something a user would notice           |
 | `changeset`                      | You edited a publishable `packages/*` library       |
+| `electron-prototype`             | Building or testing anything in `apps/electron`     |
 | `explore`                        | Researching a topic into `docs/explorations/`       |
 | `implement`                      | Executing an exploration's checklist                |
 | `mvp-followup`                   | Deciding what to close out after a feature pass     |
