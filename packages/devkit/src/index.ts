@@ -139,8 +139,10 @@ export {
   buildAgentArgs,
   buildStreamingAgentArgs,
   mcpConfigFor,
+  mcpHttpConfigFor,
   DEFAULT_XNET_ALLOWED_TOOLS,
   XNET_READONLY_ALLOWED_TOOLS,
   type AgentLaunchOptions,
-  type McpServerSpec
+  type McpServerSpec,
+  type McpHttpServerSpec
 } from './agent-launch'

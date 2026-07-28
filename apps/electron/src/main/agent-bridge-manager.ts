@@ -21,13 +21,14 @@ import {
   cliChatAgent,
   cliStreamingChatAgent,
   createBridgeServer,
-  mcpConfigFor,
+  mcpHttpConfigFor,
   NodeCommandRunner,
   NodeLineRunner,
   type BridgeServerHandle,
   type ChatAgent
 } from '@xnetjs/devkit'
 import { app, ipcMain } from 'electron'
+import { startAgentMcpServer, stopAgentMcpServer } from './agent-mcp-server'
 
 export interface AgentBridgeStatus {
   running: boolean
@@ -40,6 +41,12 @@ export interface AgentBridgeStatus {
    * pairing code instead. Present only while `running`.
    */
   token?: string
+  /**
+   * Whether the agent has xNet's workspace tools this run. False means chat
+   * still works but the agent cannot read or write the workspace; `detail`
+   * says why.
+   */
+  workspaceTools?: boolean
   detail?: string
 }
 
@@ -66,20 +73,40 @@ export function resolveAllowedOrigins(): string[] {
 }
 
 /**
- * Opt-in: give the agent xNet's workspace tools by pointing its MCP config at a
- * resolvable `xnet mcp serve`. Requires `XNET_BRIDGE_MCP=1` and a CLI entry
- * (`XNET_BRIDGE_MCP_CLI`, run via this process's node), because in a packaged
- * app `xnet` isn't on PATH. Returns the written config path, or undefined.
+ * Give the agent xNet's workspace tools, so a chat turn can read the workspace
+ * and write to it rather than only talk about it.
+ *
+ * The server runs in this process (`agent-mcp-server.ts`) and the agent reaches
+ * it over Streamable HTTP. Set `XNET_BRIDGE_MCP=0` to withhold the tools and
+ * get a plain, workspace-blind chat agent.
+ *
+ * Returns the written config path, or undefined when the tools are withheld or
+ * the server could not start — in which case the bridge still serves chat, and
+ * the reason is surfaced in {@link AgentBridgeStatus.detail} rather than
+ * leaving the agent silently tool-less.
  */
-function resolveMcpConfigPath(): string | undefined {
-  if (!process.env.XNET_BRIDGE_MCP) return undefined
-  const cli = process.env.XNET_BRIDGE_MCP_CLI
-  if (!cli) return undefined
-  const apiUrl = process.env.XNET_BRIDGE_MCP_API_URL ?? 'http://127.0.0.1:31415'
-  const spec = { command: process.execPath, args: [cli, 'mcp', 'serve', '--api-url', apiUrl] }
-  const configPath = join(app.getPath('userData'), 'agent-bridge-mcp.json')
-  writeFileSync(configPath, JSON.stringify(mcpConfigFor(spec)))
-  return configPath
+async function resolveMcpConfigPath(): Promise<{ path?: string; detail?: string }> {
+  if (process.env.XNET_BRIDGE_MCP === '0') return {}
+  try {
+    const mcp = await startAgentMcpServer()
+    const configPath = join(app.getPath('userData'), 'agent-bridge-mcp.json')
+    writeFileSync(
+      configPath,
+      JSON.stringify(
+        mcpHttpConfigFor({
+          url: mcp.endpoint,
+          headers: { 'x-xnet-pairing': mcp.pairingToken }
+        })
+      )
+    )
+    return { path: configPath }
+  } catch (err) {
+    return { detail: `workspace tools unavailable: ${errorMessage(err)}` }
+  }
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }
 
 export function getAgentBridgeStatus(): AgentBridgeStatus {
@@ -104,7 +131,8 @@ export async function startAgentBridge(
     return status
   }
 
-  const mcpConfigPath = resolveMcpConfigPath()
+  const mcp = await resolveMcpConfigPath()
+  const mcpConfigPath = mcp.path
   let agent: ChatAgent
   if (agentCmd === 'claude') {
     // Streaming + session continuity (exploration 0391): live deltas over SSE,
@@ -135,13 +163,21 @@ export async function startAgentBridge(
     return status
   }
   handle = server
-  status = { running: true, agent: agentCmd, url: server.url, token: server.pairingToken }
+  status = {
+    running: true,
+    agent: agentCmd,
+    url: server.url,
+    token: server.pairingToken,
+    workspaceTools: mcpConfigPath !== undefined,
+    ...(mcp.detail ? { detail: mcp.detail } : {})
+  }
   return status
 }
 
 export async function stopAgentBridge(): Promise<void> {
   await handle?.stop()
   handle = undefined
+  await stopAgentMcpServer()
   status = { ...status, running: false }
 }
 

@@ -7,7 +7,7 @@ import {
   type CanvasHandle,
   type FrameStats
 } from '@xnetjs/canvas'
-import { BlobService, CanvasSchema, PageSchema } from '@xnetjs/data'
+import { BlobService, CanvasSchema, PageSchema, schemaRegistry, type SchemaIRI } from '@xnetjs/data'
 import { XNetDevToolsProvider, useDevTools } from '@xnetjs/devtools'
 import { BlobProvider } from '@xnetjs/editor/react'
 import { identityFromPrivateKey } from '@xnetjs/identity'
@@ -809,6 +809,37 @@ function LocalAPIStoreHandler() {
         case 'delete': {
           await store.delete(params.id as string)
           return undefined
+        }
+
+        // The main process has no registry of its own, so the local API and the
+        // agent MCP server read this one — the real thing, including schemas
+        // registered at runtime rather than a hardcoded core list.
+        case 'schemas.list': {
+          return schemaRegistry.getAllIRIs()
+        }
+
+        case 'schemas.get': {
+          // Async `get` (not `getSync`) so built-ins that haven't been touched
+          // yet are lazily loaded rather than reported as missing.
+          const defined = await schemaRegistry.get(params.iri as SchemaIRI)
+          if (!defined) return null
+          const { schema } = defined
+          return {
+            iri: schema['@id'],
+            name: schema.name,
+            // Keyed by property name: friendlier for a model to read than the
+            // positional JSON-LD array, and matches what SchemaData declares.
+            properties: Object.fromEntries(
+              schema.properties.map((property) => [
+                property.name,
+                {
+                  type: property.type,
+                  required: property.required,
+                  ...(property.config ? { config: property.config } : {})
+                }
+              ])
+            )
+          }
         }
 
         default:
