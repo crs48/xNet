@@ -1,6 +1,7 @@
 /**
  * Floating shell surfaces model + store actions (exploration 0286).
  */
+import type { NavTarget } from './platform'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useWorkbench } from './state'
 import {
@@ -76,22 +77,22 @@ describe('activateSurface (VS Code preview tabs, 0288)', () => {
   })
 
   it('opens a tab-backed route as a preview tab', () => {
-    const calls: Array<{ to: string }> = []
+    const calls: NavTarget[] = []
     activateSurface(surface('crm'), {
       navigate: (opts) => calls.push(opts),
       setActiveSurface: () => expect.unreachable('route surfaces do not touch the panel')
     })
-    expect(calls).toEqual([{ to: '/crm' }])
+    expect(calls).toEqual([{ kind: 'path', path: '/crm' }])
     expect(consumePreviewIntent()).toBe(true)
   })
 
   it('does NOT arm preview for an untabbed route (would leak onto the next open)', () => {
-    const calls: Array<{ to: string }> = []
+    const calls: NavTarget[] = []
     activateSurface(surface('discover'), {
       navigate: (opts) => calls.push(opts),
       setActiveSurface: () => expect.unreachable('route surfaces do not touch the panel')
     })
-    expect(calls).toEqual([{ to: '/discover' }])
+    expect(calls).toEqual([{ kind: 'path', path: '/discover' }])
     expect(consumePreviewIntent()).toBe(false)
   })
 
@@ -107,13 +108,13 @@ describe('activateSurface (VS Code preview tabs, 0288)', () => {
 
   it('drives the bottom island AND opens the board for the Tasks panel surface', () => {
     const activated: string[] = []
-    const calls: Array<{ to: string }> = []
+    const calls: NavTarget[] = []
     activateSurface(surface('tasks'), {
       navigate: (opts) => calls.push(opts),
       setActiveSurface: (id) => activated.push(id)
     })
     expect(activated).toEqual(['tasks'])
-    expect(calls).toEqual([{ to: '/tasks' }])
+    expect(calls).toEqual([{ kind: 'path', path: '/tasks' }])
     expect(consumePreviewIntent()).toBe(true) // /tasks is a singleton tab route
   })
 

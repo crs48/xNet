@@ -5,9 +5,9 @@
  * One grammar: a lens switches the tree below, a route navigates, a
  * pinned node opens. No panel/route fork, and no per-feature nav.
  */
-import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { useRequestCount } from '../../hooks/useRequestCount'
+import { useNavigateTo, usePathname } from '../platform'
 import { useWorkbench } from '../state'
 import { NavRow } from './NavRow'
 import { sidebarRegistry } from './registry'
@@ -33,21 +33,21 @@ export function useSections(): { pinned: SidebarSection[]; hidden: SidebarSectio
  * because a row that only re-filters the sidebar reads as a broken click.
  */
 export function useActivateSection(): (section: SidebarSection) => void {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const setActiveLens = useWorkbench((s) => s.setActiveLens)
 
   return useMemo(
     () => (section: SidebarSection) => {
       if (section.kind === 'lens') {
         setActiveLens(section.target)
-        void navigate({ to: sidebarRegistry.getLens(section.target)?.route ?? '/' })
+        navigate({ kind: 'path', path: sidebarRegistry.getLens(section.target)?.route ?? '/' })
         return
       }
       if (section.kind === 'route') {
-        void navigate({ to: section.target })
+        navigate({ kind: 'path', path: section.target })
         return
       }
-      void navigate({ to: '/doc/$docId', params: { docId: section.target } })
+      navigate({ kind: 'node', nodeType: 'page', nodeId: section.target, preview: false })
     },
     [navigate, setActiveLens]
   )
@@ -55,7 +55,7 @@ export function useActivateSection(): (section: SidebarSection) => void {
 
 /** Is this section the one currently open? Route-derived, so exactly one is. */
 export function useSectionActive(): (section: SidebarSection) => boolean {
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const pathname = usePathname()
   const activeLensId = useWorkbench((s) => s.activeLensId)
 
   return useMemo(

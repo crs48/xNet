@@ -71,14 +71,14 @@ export function routeForTarget(
   }
 }
 
-function hrefForTarget(target: NavTarget): string {
-  const route = routeForTarget(target)
-  if (!route) return '#'
-  if (!route.params) return route.to
-  return Object.entries(route.params).reduce(
-    (path, [key, value]) => path.replace(`$${key}`, encodeURIComponent(value)),
-    route.to
-  )
+/**
+ * Preview-tab intent (0284): a node open is a preview unless it says
+ * otherwise. Armed before navigating, since the route effect in EditorArea
+ * reconciles the store afterwards. Exported for its test — this used to live
+ * in `workbench/navigation.ts` and its semantics must not drift in the move.
+ */
+export function armPreviewIntent(target: NavTarget): void {
+  if (target.kind === 'node' && target.preview !== false) setPreviewIntent()
 }
 
 const WEB_CAPABILITIES: PlatformCapabilities = {
@@ -89,18 +89,38 @@ const WEB_CAPABILITIES: PlatformCapabilities = {
   urlAddressable: true
 }
 
-/** Hoisted so it is a hook in its own right, not one closed over inside a memo. */
+/** Hoisted so these are hooks in their own right, not ones closed over inside a memo. */
 function usePathname(): string {
   return useLocation({ select: (location) => location.pathname })
 }
 
-function WebLink({ target, children, className, title, onClick }: PlatformLinkProps) {
+function useSearch(): Readonly<Record<string, unknown>> {
+  return useLocation({ select: (location) => location.search as Record<string, unknown> })
+}
+
+function WebLink({
+  target,
+  search,
+  children,
+  className,
+  title,
+  onClick,
+  draggable,
+  onDragStart,
+  'data-testid': testId
+}: PlatformLinkProps) {
+  const route = routeForTarget(target)
   return (
     <RouterLink
-      to={hrefForTarget(target) as never}
+      to={(route?.to ?? '/') as never}
+      {...(route?.params ? { params: route.params as never } : {})}
+      {...(search ? { search: search as never } : {})}
       className={className}
       title={title}
       onClick={onClick}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      data-testid={testId}
     >
       {children}
     </RouterLink>
@@ -113,9 +133,7 @@ export function useWebPlatformPort(): PlatformPort {
 
   return useMemo<PlatformPort>(() => {
     const go = (target: NavTarget, options?: NavigateOptions): void => {
-      // Preview-tab intent (0284) is set before navigating, since the route
-      // effect in EditorArea reconciles the store afterwards.
-      if (target.kind === 'node' && target.preview !== false) setPreviewIntent()
+      armPreviewIntent(target)
 
       const route = routeForTarget(target)
       if (!route) {
@@ -125,6 +143,7 @@ export function useWebPlatformPort(): PlatformPort {
       void navigate({
         to: route.to as never,
         ...(route.params ? { params: route.params as never } : {}),
+        ...(options?.search ? { search: options.search as never } : {}),
         ...(options?.replace ? { replace: true } : {})
       })
     }
@@ -132,6 +151,7 @@ export function useWebPlatformPort(): PlatformPort {
     return {
       navigate: go,
       usePathname,
+      useSearch,
       Link: WebLink,
       capabilities: WEB_CAPABILITIES
     }

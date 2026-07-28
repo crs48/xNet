@@ -14,12 +14,12 @@
  */
 import type { CanvasNode } from '@xnetjs/canvas'
 import type * as Y from 'yjs'
-import { useNavigate } from '@tanstack/react-router'
 import { getCanvasObjectsMap } from '@xnetjs/canvas'
 import { Presence } from '@xnetjs/ui'
 import { ExternalLink, PanelRight, Trash2, type LucideIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { navigateToNode } from '../workbench/navigation'
+import { navigateToNode, type PlatformNavigate } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { useWorkbench } from '../workbench/state'
 import {
   deskCardMeta,
@@ -100,7 +100,7 @@ interface RadialRunContext {
   doc: Y.Doc
   objectId: string
   meta: ReturnType<typeof deskCardMeta>
-  navigate: ReturnType<typeof useNavigate>
+  navigate: PlatformNavigate
 }
 
 function runRadialOpen({ meta, navigate }: RadialRunContext): void {
@@ -140,7 +140,7 @@ function RadialRing({
   card: CanvasNode
   onClose: () => void
 }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const meta = deskCardMeta(card)
   const actions = radialActionsFor(meta)
 

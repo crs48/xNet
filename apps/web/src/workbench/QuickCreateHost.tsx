@@ -18,13 +18,13 @@
  * The in-panel creators stay exactly where they are; this is the global road,
  * not a replacement for the local ones.
  */
-import { useNavigate } from '@tanstack/react-router'
 import { createChannel } from '@xnetjs/comms'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { Hash, Layers } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSpaces } from '../hooks/useSpaces'
+import { useNavigateTo } from './platform'
 
 /** What the host is currently asking a name for (null = closed). */
 type Prompt = 'channel' | 'space'
@@ -48,7 +48,7 @@ async function runWhenRegistered(id: string, attempts = 20, stepMs = 50): Promis
 }
 
 export function QuickCreateHost() {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const bridge = useDataBridge()
   const { createSpace } = useSpaces()
   const [prompt, setPrompt] = useState<Prompt | null>(null)
@@ -77,14 +77,15 @@ export function QuickCreateHost() {
         id: 'tasks.new',
         title: 'New task',
         run: async () => {
-          deps.current.navigate({ to: '/tasks' })
+          deps.current.navigate({ kind: 'path', path: '/tasks' })
           await runWhenRegistered('tasks.quickCreate')
         }
       }),
       registry.register({
         id: 'meetings.record',
         title: 'New meeting',
-        run: () => deps.current.navigate({ to: '/meetings', search: { record: 1 } })
+        run: () =>
+          deps.current.navigate({ kind: 'path', path: '/meetings' }, { search: { record: 1 } })
       })
     ]
     return () => disposables.forEach((disposable) => disposable.dispose())
@@ -106,7 +107,12 @@ export function QuickCreateHost() {
         if (!store) return
         const channel = (await createChannel(store, { name: trimmed })) as { id?: string } | null
         if (channel?.id) {
-          deps.current.navigate({ to: '/channel/$channelId', params: { channelId: channel.id } })
+          deps.current.navigate({
+            kind: 'node',
+            nodeType: 'channel',
+            nodeId: channel.id,
+            preview: false
+          })
         }
       } else {
         await deps.current.createSpace({ name: trimmed })

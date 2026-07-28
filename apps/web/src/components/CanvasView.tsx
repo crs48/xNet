@@ -62,15 +62,15 @@ import {
   Table2
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCommentPeople } from '../hooks/useCommentPeople'
 import { DESK_TITLE, isDeskId, isDeskRadialEnabled } from '../lib/desk'
-import { nodePassportSection } from './NodePassport'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
 import { useIsCompact } from '../workbench/use-layout-mode'
-import { useCommentPeople } from '../hooks/useCommentPeople'
 import { DeskListProjection } from './DeskListProjection'
 import { DeskRadialMenu } from './DeskRadialMenu'
 import { ModeratedMedia } from './ModeratedMedia'
+import { nodePassportSection } from './NodePassport'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
 

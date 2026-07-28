@@ -17,8 +17,8 @@
  *    two independent flags is a recurring, reported bug class
  *    (Telegram's muted-chat-still-badges issue); one flag, one meaning.
  */
-import type { LucideIcon } from 'lucide-react'
 import type { TabNodeType } from '../state'
+import type { LucideIcon } from 'lucide-react'
 
 /**
  * How a row orders itself within its section. `recency` rows float to

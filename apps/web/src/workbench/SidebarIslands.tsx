@@ -9,7 +9,6 @@
  * instead, so the bottom island always shows a panel.
  */
 import type { FloatingMenuName } from './FloatingMenus'
-import { useRouterState } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { usePrefersReducedMotion, ISLAND_CHROME } from '@xnetjs/ui'
 import {
@@ -27,14 +26,14 @@ import { useLayoutEffect, useRef } from 'react'
 import { SelfAvatar } from '../components/SelfAvatar'
 import { useRequestCount } from '../hooks/useRequestCount'
 import { useSpaces } from '../hooks/useSpaces'
+import { usePathname } from './platform'
 import { SettingsSectionsNav } from './SettingsSectionsNav'
-import { getSlotView } from './slot-registry'
-import { SectionRow, useSections } from './sidebar/SectionRows'
 import { sidebarRegistry } from './sidebar/registry'
+import { SectionRow, useSections } from './sidebar/SectionRows'
 import { UnifiedTree } from './sidebar/UnifiedTree'
 import { useLensRouteSync } from './sidebar/use-lens-route-sync'
+import { getSlotView } from './slot-registry'
 import { useWorkbench } from './state'
-import { WorkingSet } from './WorkingSet'
 import {
   DEFAULT_SURFACE,
   SURFACES,
@@ -45,13 +44,14 @@ import {
   type SurfaceDef
 } from './surfaces'
 import { isRealSpace } from './views/explorer-scope'
+import { WorkingSet } from './WorkingSet'
 
 type OpenMenu = (name: FloatingMenuName) => (e: React.MouseEvent) => void
 
 const ISLAND = `flex flex-col ${ISLAND_CHROME}`
 
 function useRouteActive(): (to: string | undefined) => boolean {
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const pathname = usePathname()
   return (to) => Boolean(to) && (pathname === to || pathname.startsWith(`${to}/`))
 }
 
@@ -335,10 +335,8 @@ function BottomIsland() {
   // the same simplification, and shipping them apart would leave the
   // shell in a half-migrated grammar.
   const unifiedNav = useWorkbench((s) => !s.tabsEnabled)
-  const onSettings = useRouterState({
-    select: (s) =>
-      s.location.pathname === '/settings' || s.location.pathname.startsWith('/settings/')
-  })
+  const bottomPathname = usePathname()
+  const onSettings = bottomPathname === '/settings' || bottomPathname.startsWith('/settings/')
 
   // When Settings is open, the bottom island hosts its section nav (0288); the
   // section content renders in the main area via the `/settings` route.

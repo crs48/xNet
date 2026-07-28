@@ -4,20 +4,17 @@
  * drives the `/settings?section=…` URL; the section content renders in the main
  * area (settings route), keeping list-left / content-right consistent.
  */
-import { useNavigate, useRouterState } from '@tanstack/react-router'
 import {
   DEFAULT_SETTINGS_SECTION,
   SETTINGS_SECTIONS,
   type SettingsSection
 } from '../lib/settings-sections'
+import { useNavigateTo, useSearch } from './platform'
 import { NavRow } from './sidebar/NavRow'
 
 export function SettingsSectionsNav() {
-  const navigate = useNavigate()
-  const active =
-    useRouterState({
-      select: (state) => (state.location.search as { section?: SettingsSection }).section
-    }) ?? DEFAULT_SETTINGS_SECTION
+  const navigate = useNavigateTo()
+  const active = (useSearch() as { section?: SettingsSection }).section ?? DEFAULT_SETTINGS_SECTION
 
   return (
     <div className="flex flex-col gap-px overflow-y-auto px-2 py-1">
@@ -28,7 +25,9 @@ export function SettingsSectionsNav() {
           label={section.label}
           active={active === section.id}
           testId={`settings-${section.id}`}
-          onClick={() => void navigate({ to: '/settings', search: { section: section.id } })}
+          onClick={() =>
+            navigate({ kind: 'path', path: '/settings' }, { search: { section: section.id } })
+          }
         />
       ))}
     </div>

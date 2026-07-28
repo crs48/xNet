@@ -7,7 +7,6 @@
  * toggle, and carry the full verb set on right-click (or the hover "⋯"
  * kebab) — rename, move to workspace/folder, pin, delete.
  */
-import { useNavigate } from '@tanstack/react-router'
 import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
 import { useMutate } from '@xnetjs/react'
 import {
@@ -24,6 +23,7 @@ import { MoreHorizontal, Pin } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNodeActions } from '../../hooks/useNodeActions'
 import { navigateToNode } from '../navigation'
+import { useNavigateTo } from '../platform'
 import { tabIdFor, useWorkbench } from '../state'
 import { setPreviewIntent, TAB_VIEWS } from '../tabs'
 import { EXPLORER_SCHEMAS, SCHEMA_IDS, type ExplorerItem } from './explorer-items'
@@ -120,7 +120,7 @@ export function ExplorerRow({
   /** Tree rows accept drops to insert the dragged node before this one */
   onDropBefore?: (transfer: NodeTransfer) => void
 }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { update } = useMutate()
   const [dropping, setDropping] = useState(false)
   const [editing, setEditing] = useState(false)

@@ -3,16 +3,16 @@
  * across the loaded items; clicking opens the tag page.
  */
 import type { ExplorerItem } from './explorer-rows'
-import { useNavigate } from '@tanstack/react-router'
 import { Hash } from 'lucide-react'
 import { useMemo } from 'react'
 import { rankTagsByUsage } from '../../components/tag-view-data'
 import { useWorkspaceTags } from '../../hooks/useWorkspaceTags'
 import { navigateToNode } from '../navigation'
+import { useNavigateTo } from '../platform'
 import { setPreviewIntent } from '../tabs'
 
 export function ExplorerTagsSection({ items }: { items: ExplorerItem[] }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { allTags } = useWorkspaceTags()
 
   const ranked = useMemo(() => {

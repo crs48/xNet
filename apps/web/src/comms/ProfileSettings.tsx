@@ -9,11 +9,11 @@ import { useQuery, useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { DIDAvatar } from '@xnetjs/ui'
 import { useEffect, useRef, useState } from 'react'
+import { VerifiedHandle } from '../identity/VerifiedHandle'
+import { configuredHubUrl } from '../lib/hub-url'
 import { imageToAvatarDataUrl } from './avatar-image'
 import { isHandleTaken, normalizeHandle, profileFormValues, safeAvatarSrc } from './comms-utils'
 import { useProfiles } from './hooks'
-import { configuredHubUrl } from '../lib/hub-url'
-import { VerifiedHandle } from '../identity/VerifiedHandle'
 
 /** The hub's HTTPS base (the verifier endpoint), derived from the ws hub URL. */
 function atprotoHubHttpUrl(): string | undefined {

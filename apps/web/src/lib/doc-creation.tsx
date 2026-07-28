@@ -32,14 +32,6 @@ export function newDocId(): string {
   return Math.random().toString(36).substring(2, 15)
 }
 
-export type NavigateLike = (options: { to: string; params: Record<string, string> }) => void
-
-/** Generate an id for a new document and navigate to its surface. */
-export function navigateToNewDoc(navigate: NavigateLike, type: CreatableDocType): void {
-  const route = DOC_TYPE_ROUTES[type]
-  navigate({ to: route.to, params: { [route.paramKey]: newDocId() } })
-}
-
 /** The shared "New …" dropdown entries. */
 export function CreateDocMenuItems({
   types,

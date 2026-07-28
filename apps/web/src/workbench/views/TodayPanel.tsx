@@ -4,7 +4,6 @@
  * a value control for numeric/scale/mood metrics) plus a "track anytime"
  * section for continuous metrics, and an editor for configuring any metric.
  */
-import { Link } from '@tanstack/react-router'
 import { cn } from '@xnetjs/ui'
 import { ArrowUpRight, Check, Flame, FlaskConical, Pencil, Plus, StickyNote } from 'lucide-react'
 import { useState, type JSX } from 'react'
@@ -16,6 +15,7 @@ import {
 } from '../../components/experiments/habit-logic'
 import { MetricEditor } from '../../components/experiments/MetricEditor'
 import { useHabits } from '../../components/experiments/useHabits'
+import { PlatformLink } from '../platform'
 
 function metricKindOf(metric: MetricLike): string {
   return typeof metric.kind === 'string' ? metric.kind : 'boolean'
@@ -345,14 +345,14 @@ export function TodayPanel(): JSX.Element {
       </div>
 
       <div className="shrink-0 border-t border-hairline p-2">
-        <Link
-          to="/experiments"
+        <PlatformLink
+          target={{ kind: 'node', nodeType: 'experiments', nodeId: '', preview: false }}
           className="flex items-center gap-1.5 px-1 text-xs text-ink-2 no-underline transition-colors hover:text-ink-1 hover:no-underline"
         >
           <FlaskConical size={11} strokeWidth={1.5} />
           Experiments
           <ArrowUpRight size={11} strokeWidth={1.5} className="ml-auto" />
-        </Link>
+        </PlatformLink>
       </div>
 
       {editingId && (

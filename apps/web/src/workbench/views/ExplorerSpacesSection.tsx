@@ -4,7 +4,6 @@
  * ones inline (with a kind), opens a Space's home, sets the active scope, and
  * opens the share dialog to invite someone to a whole Space at once.
  */
-import { useNavigate } from '@tanstack/react-router'
 import { type SpaceKind, type SpaceTreeNode } from '@xnetjs/data'
 import {
   Building2,
@@ -22,6 +21,7 @@ import { useState } from 'react'
 import { ShareDialog } from '../../components/ShareDialog'
 import { useSpaces, type SpaceEntry } from '../../hooks/useSpaces'
 import { navigateToNode } from '../navigation'
+import { useNavigateTo } from '../platform'
 import { useWorkbench } from '../state'
 import { setPreviewIntent } from '../tabs'
 
@@ -43,7 +43,7 @@ const CREATE_KINDS: Array<{ id: SpaceKind; label: string }> = [
 ]
 
 export function ExplorerSpacesSection() {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { tree, createSpace } = useSpaces()
   const currentSpaceId = useWorkbench((s) => s.currentSpaceId)
   const setCurrentSpace = useWorkbench((s) => s.setCurrentSpace)

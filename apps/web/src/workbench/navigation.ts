@@ -1,7 +1,7 @@
 /**
- * Tab navigation helper — the router stays authoritative, so every
- * tab activation goes through navigate(); the route effect in
- * EditorArea reconciles the store afterwards.
+ * Tab navigation helpers, expressed against the {@link PlatformPort}
+ * (exploration 0406) — the host decides whether "open this node" means a URL
+ * (web) or a shell-state transition (desktop).
  *
  * VS Code-style preview tabs (0284): opening a node from a single click is
  * a *preview* by default — it renders italic and is replaced by the next
@@ -13,90 +13,28 @@
  * that deep links / back-forward / creation never route through here, so
  * they stay permanent.
  */
+import type { NavigateOptions, NavTarget } from './platform'
 import type { TabNodeType } from './state'
-import type { useNavigate } from '@tanstack/react-router'
-import { setPreviewIntent } from './tabs'
+import type { CreatableDocType } from '../lib/doc-creation'
+import { newDocId } from '../lib/doc-creation'
 
-type Navigate = ReturnType<typeof useNavigate>
+/** The port's navigate — what every helper here threads through. */
+export type PlatformNavigate = (target: NavTarget, options?: NavigateOptions) => void
 
 export function navigateToNode(
-  navigate: Navigate,
+  navigate: PlatformNavigate,
   nodeType: TabNodeType,
   nodeId: string,
   opts: { preview?: boolean } = {}
 ): void {
-  if (opts.preview !== false) setPreviewIntent()
-  switch (nodeType) {
-    case 'page':
-      void navigate({ to: '/doc/$docId', params: { docId: nodeId } })
-      break
-    case 'post':
-      void navigate({ to: '/post/$postId', params: { postId: nodeId } })
-      break
-    case 'database':
-      void navigate({ to: '/db/$dbId', params: { dbId: nodeId } })
-      break
-    case 'canvas':
-      void navigate({ to: '/canvas/$canvasId', params: { canvasId: nodeId } })
-      break
-    case 'dashboard':
-      void navigate({ to: '/dashboard/$dashboardId', params: { dashboardId: nodeId } })
-      break
-    case 'map':
-      void navigate({ to: '/map/$mapId' as never, params: { mapId: nodeId } as never })
-      break
-    case 'savedview':
-      void navigate({ to: '/view/$viewId' as never, params: { viewId: nodeId } as never })
-      break
-    case 'tasks':
-      void navigate({ to: '/tasks' })
-      break
-    case 'meetings':
-      void navigate({ to: '/meetings' })
-      break
-    case 'data':
-      void navigate({ to: '/data' })
-      break
-    case 'experiments':
-      void navigate({ to: '/experiments' as never })
-      break
-    case 'crm':
-      void navigate({ to: '/crm' as never })
-      break
-    case 'finance':
-      void navigate({ to: '/finance' as never })
-      break
-    case 'tag':
-      void navigate({ to: '/tag/$tagId' as never, params: { tagId: nodeId } as never })
-      break
-    case 'channel':
-      void navigate({ to: '/channel/$channelId', params: { channelId: nodeId } })
-      break
-    case 'person':
-      void navigate({ to: '/person/$did' as never, params: { did: nodeId } as never })
-      break
-    case 'lab':
-      void navigate({ to: '/lab/$labId' as never, params: { labId: nodeId } as never })
-      break
-    case 'space':
-      void navigate({ to: '/space/$spaceId' as never, params: { spaceId: nodeId } as never })
-      break
-    case 'settings':
-      void navigate({ to: '/settings' })
-      break
-    case 'frame':
-      void navigate({ to: '/frame/$frameSpec' as never, params: { frameSpec: nodeId } as never })
-      break
-    default:
-      // Exhaustiveness guard: a TabNodeType with no case here navigates
-      // nowhere, silently. Tabless (0353) that also strands the history
-      // chords, which resolve a remembered route through this switch.
-      assertNeverNodeType(nodeType)
-  }
-}
-
-function assertNeverNodeType(nodeType: never): void {
-  console.warn(`navigateToNode: unhandled node type ${String(nodeType)}`)
+  // Preview intent is applied by the host (it owns the tab store's latch);
+  // the shell only states whether this open is a preview.
+  navigate({
+    kind: 'node',
+    nodeType,
+    nodeId,
+    ...(opts.preview === false ? { preview: false } : {})
+  })
 }
 
 /**
@@ -107,7 +45,7 @@ function assertNeverNodeType(nodeType: never): void {
  * reachable behind the preference) keeps working.
  */
 export function navigateToFrame(
-  navigate: Navigate,
+  navigate: PlatformNavigate,
   viewType: string,
   nodeId: string,
   opts: { preview?: boolean } = {}
@@ -120,4 +58,15 @@ export function parseFrameSpec(frameSpec: string): { viewType: string; nodeId: s
   const idx = frameSpec.indexOf('~')
   if (idx <= 0 || idx === frameSpec.length - 1) return null
   return { viewType: frameSpec.slice(0, idx), nodeId: frameSpec.slice(idx + 1) }
+}
+
+/**
+ * Generate an id for a new document and open its surface — the port-shaped
+ * sibling of `lib/doc-creation`'s `navigateToNewDoc`. Every creatable doc
+ * type is a {@link TabNodeType}, which the signature relies on; the old call
+ * sites cast the router's navigate through `NavigateLike`, a hole the
+ * compiler could not see into.
+ */
+export function navigateToNewDoc(navigate: PlatformNavigate, type: CreatableDocType): void {
+  navigate({ kind: 'node', nodeType: type, nodeId: newDocId(), preview: false })
 }

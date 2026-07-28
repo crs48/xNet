@@ -7,7 +7,6 @@
  * through the universal commenting system.
  */
 
-import { useNavigate } from '@tanstack/react-router'
 import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
 import {
   type CellValue,
@@ -63,6 +62,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { navigateToFrame, navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { usePublishTitle } from '../workbench/route-title'
 import { useIsCompact } from '../workbench/use-layout-mode'
 import { FormShareBar } from './FormShareBar'
@@ -152,7 +152,7 @@ interface CommentPopoverState {
 
 export function DatabaseView({ docId }: DatabaseViewProps) {
   const { did } = useIdentity()
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
 
   // Database node: title + the Y.Doc awareness channel (presence only)
   const {

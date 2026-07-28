@@ -532,9 +532,9 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 ### Phase 1 — define the seam
 
 - [x] Add `PlatformPort` / `NavTarget` / `PlatformCapabilities` types
-- [ ] Replace direct `@tanstack/react-router` imports in `workbench/` with port calls
+- [x] Replace direct `@tanstack/react-router` imports in `workbench/` with port calls
 - [x] Add `WebPlatformPort` in `apps/web`; web behaviour unchanged
-- [ ] Add an ESLint rule banning `@tanstack/*` imports from workbench sources
+- [x] Add an ESLint rule banning `@tanstack/*` imports from workbench sources
 
 ### Phase 2 — extract the package
 
@@ -571,7 +571,7 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 - [x] `SystemMenu` opens with zero console errors; a thrown child shows the crash panel, not a blank window
 - [ ] A shell change made once appears on both surfaces with no second edit — **the user's actual acceptance criterion**
 - [ ] Desktop-only capabilities (native menus, meetings, agent bridge) still work
-- [ ] Web-only paths are unaffected: no URL/deep-link/back-button regressions
+- [x] Web-only paths are unaffected: no URL/deep-link/back-button regressions
 - [ ] `pnpm --filter @xnetjs/workbench test` and both app suites green
 - [ ] `electron-e2e` passes against the unified shell
 - [ ] Desktop cold-open time within 10% of the pre-unification baseline

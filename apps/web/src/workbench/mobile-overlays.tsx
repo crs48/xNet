@@ -17,7 +17,6 @@
  */
 import type { SurfaceDef } from './surfaces'
 import type { CreatableDocType } from '../lib/doc-creation'
-import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
 import { usePrefersReducedMotion, useTheme } from '@xnetjs/ui'
 import {
@@ -49,6 +48,7 @@ import { logout } from '../lib/identity'
 import { ContextPanel } from './ContextPanel'
 import { navigateToNode } from './navigation'
 import { useNewActions } from './new-actions'
+import { useNavigateTo, usePathname } from './platform'
 import { SettingsSectionsNav } from './SettingsSectionsNav'
 import { getSlotView } from './slot-registry'
 import { selectActiveTab, useWorkbench, type WorkbenchTab } from './state'
@@ -189,7 +189,7 @@ function useContextualView(): {
   Icon: LucideIcon
   Body: React.ComponentType | null
 } {
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const pathname = usePathname()
   const activeSurface = useWorkbench((s) => s.activeSurface)
   if (pathname === '/settings' || pathname.startsWith('/settings/')) {
     return { label: 'Settings', Icon: Settings, Body: SettingsSectionsNav }
@@ -303,7 +303,7 @@ function NavigatorSheet({
 }
 
 function OpenTabsList({ onClose, onNew }: { onClose: () => void; onNew: () => void }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const group = useWorkbench((s) => s.groups.find((g) => g.id === s.activeGroupId) ?? null)
   const tabs = group?.tabs ?? []
 
@@ -598,13 +598,13 @@ function WorkspaceSheet({ reduced, onClose }: { reduced: boolean; onClose: () =>
 }
 
 function ProfileSheet({ reduced, onClose }: { reduced: boolean; onClose: () => void }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { did } = useIdentity()
   const me = useCommsMaybe()?.me
   const { resolvedTheme, toggleTheme } = useTheme()
   const dark = resolvedTheme === 'dark'
   const go = (to: string) => {
-    void navigate({ to })
+    navigate({ kind: 'path', path: to })
     onClose()
   }
   return (

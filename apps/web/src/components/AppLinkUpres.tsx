@@ -9,7 +9,6 @@
  * rewritten, so titles stay live and old content up-reses retroactively.
  */
 import type { TabNodeType } from '../workbench/state'
-import { useNavigate } from '@tanstack/react-router'
 import { useXNet } from '@xnetjs/react'
 import { LinkUpresProvider, type LinkUpresRenderer } from '@xnetjs/ui'
 import { useCallback, useMemo, type ReactNode } from 'react'
@@ -18,6 +17,7 @@ import { useLinkTargets } from '../hooks/useLinkTargets'
 import { normalizeHubHttpUrl } from '../lib/share-links'
 import { classifyUrl, currentUrlEnv } from '../lib/url-upres'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { ShareLinkCard } from './ShareLinkCard'
 
 function NodeChip({ title, kind, onOpen }: { title: string; kind: string; onOpen: () => void }) {
@@ -38,7 +38,7 @@ function NodeChip({ title, kind, onOpen }: { title: string; kind: string; onOpen
 }
 
 export function AppLinkUpres({ children }: { children: ReactNode }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { hubUrl } = useXNet()
   const { linkTargets } = useLinkTargets()
   const env = useMemo(() => currentUrlEnv(hubUrl ? normalizeHubHttpUrl(hubUrl) : null), [hubUrl])

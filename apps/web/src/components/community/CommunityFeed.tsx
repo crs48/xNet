@@ -12,7 +12,6 @@
  *  3. **Topics** — pinned first, then newest. `comparePostsForFeed` is the
  *     only ordering, and it reads no engagement signal (Charter §3).
  */
-import { useNavigate } from '@tanstack/react-router'
 import { PostSchema, comparePostsForFeed, canManageSpace, type Post } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
 // Subpath, not the bare barrel: `@xnetjs/social` re-exports the Node-only
@@ -25,6 +24,7 @@ import { displayName as resolveName } from '../../comms/comms-utils'
 import { useEnsureProfiles, useProfiles } from '../../comms/hooks'
 import { useSpaceMembers } from '../../hooks/useSpaces'
 import { navigateToNode } from '../../workbench/navigation'
+import { useNavigateTo } from '../../workbench/platform'
 
 interface CommunityFeedProps {
   spaceId: string
@@ -37,7 +37,7 @@ const replyCountFor = (_postId: string, counts: Record<string, number>): number 
   counts[_postId] ?? 0
 
 export function CommunityFeed({ spaceId, viewerDid }: CommunityFeedProps): JSX.Element {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { create } = useMutate()
   const { data: posts } = useQuery(PostSchema, { where: { space: spaceId } })
   const { members } = useSpaceMembers(spaceId)

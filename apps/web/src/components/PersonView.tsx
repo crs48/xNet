@@ -9,7 +9,6 @@
  * per-author index. Renders from a bare DID even when no Profile node exists.
  */
 import type { TabNodeType } from '../workbench/state'
-import { useNavigate } from '@tanstack/react-router'
 import {
   CanvasSchema,
   ChannelSchema,
@@ -20,14 +19,15 @@ import {
   TaskSchema
 } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
-import { useDmOpen } from '../hooks/useDmOpen'
 import { DIDAvatar } from '@xnetjs/ui'
 import { MessageCircle } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { channelLabel, displayName as resolveName, type ProfileEntry } from '../comms/comms-utils'
 import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
+import { useDmOpen } from '../hooks/useDmOpen'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { usePublishTitle } from '../workbench/route-title'
 import { PersonActions } from './PersonActions'
 
@@ -145,7 +145,7 @@ function Section({
 }
 
 export function PersonView({ did }: { did: string }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { me } = useComms()
   const { openDm } = useDmOpen()
   const [requested, setRequested] = useState(false)

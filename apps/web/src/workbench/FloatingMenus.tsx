@@ -6,7 +6,6 @@
  * Notifications below-right, Profile below-left, Surfaces to the right. The
  * command palette is the app's existing GlobalSearch (⌘K), not one of these.
  */
-import { useNavigate } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
 import { useTheme } from '@xnetjs/ui'
 import {
@@ -31,6 +30,7 @@ import { useSpaces } from '../hooks/useSpaces'
 import { DOC_TYPE_ROUTES } from '../lib/doc-creation'
 import { logout } from '../lib/identity'
 import { useNewActions } from './new-actions'
+import { useNavigateTo } from './platform'
 import { useActivateSection, useSectionActive, useSections } from './sidebar/SectionRows'
 import { sectionIcon } from './sidebar/sections'
 import { useWorkbench } from './state'
@@ -186,7 +186,7 @@ function WorkspaceMenu({ close }: { close: () => void }) {
 }
 
 function NotifMenu({ close }: { close: () => void }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const requestCount = useRequestCount()
   return (
     <div className="w-[340px] overflow-hidden">
@@ -199,7 +199,7 @@ function NotifMenu({ close }: { close: () => void }) {
             type="button"
             className={item}
             onClick={() => {
-              void navigate({ to: '/requests' })
+              navigate({ kind: 'path', path: '/requests' })
               close()
             }}
           >
@@ -218,7 +218,7 @@ function NotifMenu({ close }: { close: () => void }) {
 }
 
 function ProfileMenu({ close }: { close: () => void }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { did } = useIdentity()
   const me = useCommsMaybe()?.me
   const { resolvedTheme, toggleTheme } = useTheme()
@@ -226,7 +226,7 @@ function ProfileMenu({ close }: { close: () => void }) {
   const go = (to: string) => {
     // Open as a preview tab (0288), same as clicking Settings anywhere else.
     setPreviewIntent()
-    void navigate({ to })
+    navigate({ kind: 'path', path: to })
     close()
   }
   return (

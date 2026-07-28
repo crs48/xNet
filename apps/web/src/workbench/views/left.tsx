@@ -2,8 +2,8 @@
  * Left Panel views beyond the Explorer (exploration 0166): Tasks
  * (personal dashboard) and Data (sources + saved views).
  */
-import { Link } from '@tanstack/react-router'
 import { ArrowUpRight, Table2 } from 'lucide-react'
+import { PlatformLink } from '../platform'
 import { TasksDashboard } from './TasksPanel'
 import { useSavedViews } from './tray'
 
@@ -34,34 +34,33 @@ export function DataPanelView() {
           <ul className="m-0 list-none p-0">
             {savedViews.map((view) => (
               <li key={view.id}>
-                <Link
-                  to="/view/$viewId"
-                  params={{ viewId: view.id }}
+                <PlatformLink
+                  target={{ kind: 'node', nodeType: 'savedview', nodeId: view.id, preview: false }}
                   className="flex h-[26px] items-center gap-2 rounded-sm px-2 text-xs text-ink-2 no-underline transition-colors hover:bg-accent hover:text-ink-1 hover:no-underline"
                 >
                   <Table2 size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
                   <span className="truncate">{view.title || 'Untitled view'}</span>
-                </Link>
+                </PlatformLink>
               </li>
             ))}
           </ul>
         )}
       </div>
       <div className="shrink-0 border-t border-hairline p-2">
-        <Link
-          to="/data"
+        <PlatformLink
+          target={{ kind: 'node', nodeType: 'data', nodeId: '', preview: false }}
           className="flex items-center gap-1.5 px-1 text-xs text-ink-2 no-underline transition-colors hover:text-ink-1 hover:no-underline"
         >
           Open data workspace
           <ArrowUpRight size={11} strokeWidth={1.5} />
-        </Link>
-        <Link
-          to="/social-import"
+        </PlatformLink>
+        <PlatformLink
+          target={{ kind: 'path', path: '/social-import' }}
           className="mt-1 flex items-center gap-1.5 px-1 text-xs text-ink-2 no-underline transition-colors hover:text-ink-1 hover:no-underline"
         >
           Social import
           <ArrowUpRight size={11} strokeWidth={1.5} />
-        </Link>
+        </PlatformLink>
       </div>
     </div>
   )

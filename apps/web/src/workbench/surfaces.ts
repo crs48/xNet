@@ -9,7 +9,6 @@
  * `navPinned` subset; the rest live in the "More" surfaces roll-out, where the
  * user pins/unpins to curate what stays visible.
  */
-import { useNavigate } from '@tanstack/react-router'
 import {
   BarChart3,
   CheckSquare2,
@@ -26,6 +25,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import { useCallback } from 'react'
+import { useNavigateTo, type NavTarget } from './platform'
 import { useWorkbench } from './state'
 import { setPreviewIntent, tabIdForRoute } from './tabs'
 
@@ -109,14 +109,14 @@ export function surfaceTabId(surface: SurfaceDef): string | null {
  */
 export function activateSurface(
   surface: SurfaceDef,
-  deps: { navigate: (opts: { to: string }) => void; setActiveSurface: (id: string) => void }
+  deps: { navigate: (target: NavTarget) => void; setActiveSurface: (id: string) => void }
 ): void {
   if (surface.kind === 'panel') deps.setActiveSurface(surface.id)
   if (surface.to) {
     // Only tab routes honour the preview latch; arming it for a non-tab route
     // (Discover, Analytics, Inbox) would leave it set for the next navigation.
     if (tabIdForRoute(surface.to)) setPreviewIntent()
-    deps.navigate({ to: surface.to })
+    deps.navigate({ kind: 'path', path: surface.to })
   }
 }
 
@@ -126,11 +126,11 @@ export function activateSurface(
  * render sites (they call {@link surfaceTabId} + the store's `promoteTab`).
  */
 export function useSurfaceActivation(): (surface: SurfaceDef) => void {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const setActiveSurface = useWorkbench((state) => state.setActiveSurface)
   return useCallback(
     (surface: SurfaceDef) => {
-      activateSurface(surface, { navigate: (opts) => void navigate(opts), setActiveSurface })
+      activateSurface(surface, { navigate, setActiveSurface })
     },
     [navigate, setActiveSurface]
   )

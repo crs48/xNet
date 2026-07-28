@@ -18,7 +18,6 @@
 import type { MobileOverlay } from './mobile-overlays'
 import type { ShareDocType } from '../hooks/useShareLinks'
 import type { ReactNode } from 'react'
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useDevTools } from '@xnetjs/devtools'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { DemoBanner, useDemoMode, useIdentity } from '@xnetjs/react'
@@ -46,10 +45,11 @@ import { EditorArea } from './EditorArea'
 import { useFocusRing } from './focus'
 import { DoubleStar, MobileOverlays } from './mobile-overlays'
 import { navigateToNode } from './navigation'
+import { useNavigateTo, usePathname } from './platform'
 import { QuickCreateHost } from './QuickCreateHost'
+import { useRouteTitle } from './route-title'
 import { selectActiveTab, useWorkbench, type WorkbenchTab } from './state'
 import { CHIP } from './SyncStatus'
-import { useRouteTitle } from './route-title'
 import { tabFromPathname, TAB_VIEWS } from './tabs'
 import { useSyncVitals } from './useSyncVitals'
 
@@ -131,7 +131,7 @@ function Header({
 
 /** Open-tabs strip — horizontal-scroll pills mirroring the active editor group. */
 function TabStrip() {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const group = useWorkbench((s) => s.groups.find((g) => g.id === s.activeGroupId) ?? null)
   const tabs = group?.tabs ?? []
   if (!group || tabs.length === 0) return null
@@ -149,7 +149,7 @@ function TabStrip() {
     const next = state.groups.find((g) => g.id === state.activeGroupId)
     const active = next?.tabs.find((t) => t.id === next.activeTabId)
     if (active) navigateToNode(navigate, active.nodeType, active.nodeId, { preview: false })
-    else void navigate({ to: '/' })
+    else navigate({ kind: 'home' })
   }
 
   return (
@@ -350,7 +350,7 @@ export function MobileShell({ children }: { children: ReactNode }) {
   useZenEscape()
   useFocusRing()
 
-  const { pathname } = useLocation()
+  const pathname = usePathname()
   const activeTab = useWorkbench(selectActiveTab)
   const tabsEnabled = useWorkbench((s) => s.tabsEnabled)
   const routeTitle = useRouteTitle()
