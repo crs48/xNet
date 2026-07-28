@@ -578,15 +578,15 @@ is that every click now runs through the real preload, the real IPC, and real
 
 ### Teach
 
-- [ ] Add `.claude/skills/electron-prototype/SKILL.md` (<500 lines) covering the
+- [x] Add `.claude/skills/electron-prototype/SKILL.md` (<500 lines) covering the
       three-rung ladder, the rung rule, the attach sequence, the auth bypass, and
       the two-instance recipe.
-- [ ] Correct AGENTS.md:182-184 so it describes the servers actually registered.
-- [ ] Promote the two-instance CDP recipe out of
+- [x] Correct AGENTS.md:182-184 so it describes the servers actually registered.
+- [x] Promote the two-instance CDP recipe out of
       `docs/reference/core-platform-convergence-release-gates.md` into the skill.
-- [ ] Document the embedded Storybook surface (`Open Stories`) in the skill as
+- [x] Document the embedded Storybook surface (`Open Stories`) in the skill as
       the desktop-faithful rung-1 option.
-- [ ] Add the Electron skill to the skills index proposed in
+- [x] Add the Electron skill to the skills index proposed in
       [0401](0401_[_]_AGENT_NATIVE_SKILLS_AUDIT.md).
 
 ### Prove
