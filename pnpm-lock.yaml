@@ -2393,6 +2393,9 @@ importers:
       '@xnetjs/react':
         specifier: workspace:*
         version: link:../react
+      '@xnetjs/social':
+        specifier: workspace:*
+        version: link:../social
       '@xnetjs/vectors':
         specifier: workspace:*
         version: link:../vectors

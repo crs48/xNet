@@ -14,9 +14,14 @@ import { useSharedRoomBootSync } from '../comms/hooks'
 import { RoomSection } from '../comms/RoomSection'
 import { FormInboxItem, InboxBellItem, PresenceStatusItem } from '../comms/StatusItems'
 import { AppLinkUpres } from '../components/AppLinkUpres'
+import { registerWebHostedViews } from '../platform/hosted-views'
 import { useWebPlatformPort } from '../platform/web-platform'
 import { PlatformProvider } from '../workbench/platform'
 import { Workbench } from '../workbench/Workbench'
+
+// The shell renders tab content through the view registry (0406); fill it
+// before anything under the root layout can render a ViewHost.
+registerWebHostedViews()
 
 export const Route = createRootRoute({
   component: RootLayout

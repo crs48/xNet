@@ -14,12 +14,18 @@
  */
 
 export * from './doc-id'
+export * from './inspect/source-stamp'
 export * from './layout-tree'
+export * from './lib/format-bytes'
+export * from './lib/saved-view-registry'
+export * from './lib/settings-sections'
 export * from './platform'
 export * from './state'
 export * from './tabs'
 export * from './navigation'
 export * from './surfaces'
+export * from './view-registry'
+export * from './views/tag-view-data'
 export * from './commands'
 export * from './focus'
 export * from './route-title'

@@ -28,6 +28,7 @@
     "@xnetjs/brain": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/react": "workspace:*",
+    "@xnetjs/social": "workspace:*",
     "@xnetjs/vectors": "workspace:*",
     "@mlc-ai/web-llm": "^0.2.84"
   },
