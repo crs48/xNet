@@ -19,7 +19,7 @@ tags: [ai, agents, tooling, skills, documentation, monorepo, dx]
 > `apps/expo`, and `packages/hub` — Claude Code loads nested files on demand,
 > Codex walks up from cwd, so both get the right context for free. **(3)** Skills
 > stay canonical in `.claude/skills/` and gain a **`.agents/skills` symlink** —
-> that direction, not the reverse, so a Windows checkout degrades the *secondary*
+> that direction, not the reverse, so a Windows checkout degrades the _secondary_
 > clients rather than the primary one. **(4)** One guard,
 > <mark>`check:agent-docs`</mark>, makes all of it decidable. The root
 > `AGENTS.md` is **412 lines against a documented 200-line target** — the pruning
@@ -30,12 +30,12 @@ tags: [ai, agents, tooling, skills, documentation, monorepo, dx]
 Explorations [0401](0401_[_]_AGENT_NATIVE_SKILLS_AUDIT.md)–[0404](0404_[_]_ELECTRON_PROTOTYPING_LOOP_FOR_AGENTS.md)
 each set out to answer a different question and each landed on the same finding:
 
-| Exploration | Question asked | Defect found |
-| --- | --- | --- |
-| 0401 | Which agent-native skills should we take? | Two instruction files, one rule written twice, **no skills index** |
-| 0402 | What other skills exist? | 51 skills loaded, 3 from this repo, **nothing tells the agent which** |
-| 0403 | How do we prototype visually? | Storybook running, `.mdx` globbed, **addon never installed** |
-| 0404 | How do we prototype in Electron? | CDP port open, **the MCP that uses it documented but not registered** |
+| Exploration | Question asked                            | Defect found                                                          |
+| ----------- | ----------------------------------------- | --------------------------------------------------------------------- |
+| 0401        | Which agent-native skills should we take? | Two instruction files, one rule written twice, **no skills index**    |
+| 0402        | What other skills exist?                  | 51 skills loaded, 3 from this repo, **nothing tells the agent which** |
+| 0403        | How do we prototype visually?             | Storybook running, `.mdx` globbed, **addon never installed**          |
+| 0404        | How do we prototype in Electron?          | CDP port open, **the MCP that uses it documented but not registered** |
 
 That is not four problems. It is one: **xNet's agent configuration has no
 architecture — it has accretion.** Rules land wherever someone was typing,
@@ -55,7 +55,7 @@ the four surfaces that actually exist: web, desktop, mobile, and the hub/API.
   two counts — it works on Windows without Administrator rights, and it lets
   Claude-only instructions sit below the shared content.
 - **Nested instruction files are the monorepo answer, and both clients already
-  support them.** Claude Code loads subdirectory `CLAUDE.md` *on demand* when it
+  support them.** Claude Code loads subdirectory `CLAUDE.md` _on demand_ when it
   reads files there; Codex "scans every directory from your current working
   directory up to the repository root."
 - **`.agents/skills/` is a real, primary-sourced convention** — the Agent Skills
@@ -78,18 +78,18 @@ the four surfaces that actually exist: web, desktop, mobile, and the hub/API.
 
 ### What exists today
 
-| Surface | State | Detail |
-| --- | --- | --- |
-| `AGENTS.md` | ⚠️ **412 lines** | 2× the documented target; 24 headings |
-| `CLAUDE.md` | ⚠️ 132 lines | Separate file; brand rule duplicated, defers to AGENTS.md |
-| `.claude/skills/` | 🚧 3 skills | `changeset`, `explore`, `implement` |
-| `.claude/rules/` | ❌ Absent | Path-scoped rules unused |
-| `.agents/` | ❌ Absent | Codex sees no repo skills |
-| `.claude/settings.json` | ✅ 2 Stop hooks | changeset + changelog coverage |
-| `.claude/launch.json` | 🚧 25 entries | 12 web, 9 site, 1 Storybook, 1 Electron (0404: wrong port) |
-| `apps/web/.claude/launch.json` | ✅ Tracked | **Directory-scoped config already in use** |
-| Nested `AGENTS.md`/`CLAUDE.md` | ❌ None | Zero under `apps/` or `packages/` |
-| Skills index anywhere | ❌ Absent | The 3 skills are found by luck |
+| Surface                        | State            | Detail                                                     |
+| ------------------------------ | ---------------- | ---------------------------------------------------------- |
+| `AGENTS.md`                    | ⚠️ **412 lines** | 2× the documented target; 24 headings                      |
+| `CLAUDE.md`                    | ⚠️ 132 lines     | Separate file; brand rule duplicated, defers to AGENTS.md  |
+| `.claude/skills/`              | 🚧 3 skills      | `changeset`, `explore`, `implement`                        |
+| `.claude/rules/`               | ❌ Absent        | Path-scoped rules unused                                   |
+| `.agents/`                     | ❌ Absent        | Codex sees no repo skills                                  |
+| `.claude/settings.json`        | ✅ 2 Stop hooks  | changeset + changelog coverage                             |
+| `.claude/launch.json`          | 🚧 25 entries    | 12 web, 9 site, 1 Storybook, 1 Electron (0404: wrong port) |
+| `apps/web/.claude/launch.json` | ✅ Tracked       | **Directory-scoped config already in use**                 |
+| Nested `AGENTS.md`/`CLAUDE.md` | ❌ None          | Zero under `apps/` or `packages/`                          |
+| Skills index anywhere          | ❌ Absent        | The 3 skills are found by luck                             |
 
 ### Where the 412 lines actually go
 
@@ -108,34 +108,33 @@ pie showData
 <details>
 <summary><b>The full migration table — every section, and where it goes</b></summary>
 
-| Current section | Lines | Destination | Why |
-| --- | ---: | --- | --- |
-| Build & Test Commands | ~30 | **Root** (trimmed) | True invariant; drop what `package.json` already says |
-| Project Structure | 17 | **Root** (trimmed) | `/doctor` explicitly proposes cutting directory layouts Claude can derive |
-| Code Style · Imports · Naming · TypeScript · Exports | ~40 | **Root** | Repo-wide, cross-client |
-| Comments | 25 | **Root** (trimmed) | Overlaps the harness prompt's "match surrounding code" |
-| Spelling the brand `xNet` | 19 | **Root — one copy** | Currently in *both* files, two wordings (0401) |
-| Testing | 22 | **Root** | Cross-cutting |
-| Playwright MCP Usage Guide | 9 | **Split** | Web half → `apps/web`; Electron half → `apps/electron` |
-| Codex + Playwright in OpenCode | 7 | `apps/web/AGENTS.md` | Web automation |
-| Test auth bypass requirements | 13 | `apps/web/AGENTS.md` | Web-only WebAuthn concern |
-| Test Authentication Bypass | 29 | `apps/web/AGENTS.md` | Same |
-| Workflow (navigate→snapshot→…) | ~6 | `apps/web/AGENTS.md` + `apps/electron/AGENTS.md` | Shape is shared, targets differ |
-| Git Hooks (4 subsections) | ~30 | **Skill** | Multi-step procedure, not an invariant |
-| Changelog Entries | 28 | **`changelog` skill** | 0401 wave 1 — the Stop hook already enforces it |
-| Key Constraints | 24 | **Root** | Load-bearing invariants |
-| Sync Architecture | 9 | **Root** | Orientation |
-| Package Dependencies | 9 | `packages/AGENTS.md` | Package-scoped |
-| graphify | 12 | **Delete** | Already in the user's `~/.claude/CLAUDE.md` — duplicated |
-| *(from `CLAUDE.md`)* Barrel exports, Changesets, CI lanes, TaggedError | ~90 | `packages/AGENTS.md` | Every one is a `packages/**` rule |
+| Current section                                                        | Lines | Destination                                      | Why                                                                       |
+| ---------------------------------------------------------------------- | ----: | ------------------------------------------------ | ------------------------------------------------------------------------- |
+| Build & Test Commands                                                  |   ~30 | **Root** (trimmed)                               | True invariant; drop what `package.json` already says                     |
+| Project Structure                                                      |    17 | **Root** (trimmed)                               | `/doctor` explicitly proposes cutting directory layouts Claude can derive |
+| Code Style · Imports · Naming · TypeScript · Exports                   |   ~40 | **Root**                                         | Repo-wide, cross-client                                                   |
+| Comments                                                               |    25 | **Root** (trimmed)                               | Overlaps the harness prompt's "match surrounding code"                    |
+| Spelling the brand `xNet`                                              |    19 | **Root — one copy**                              | Currently in _both_ files, two wordings (0401)                            |
+| Testing                                                                |    22 | **Root**                                         | Cross-cutting                                                             |
+| Playwright MCP Usage Guide                                             |     9 | **Split**                                        | Web half → `apps/web`; Electron half → `apps/electron`                    |
+| Codex + Playwright in OpenCode                                         |     7 | `apps/web/AGENTS.md`                             | Web automation                                                            |
+| Test auth bypass requirements                                          |    13 | `apps/web/AGENTS.md`                             | Web-only WebAuthn concern                                                 |
+| Test Authentication Bypass                                             |    29 | `apps/web/AGENTS.md`                             | Same                                                                      |
+| Workflow (navigate→snapshot→…)                                         |    ~6 | `apps/web/AGENTS.md` + `apps/electron/AGENTS.md` | Shape is shared, targets differ                                           |
+| Git Hooks (4 subsections)                                              |   ~30 | **Skill**                                        | Multi-step procedure, not an invariant                                    |
+| Changelog Entries                                                      |    28 | **`changelog` skill**                            | 0401 wave 1 — the Stop hook already enforces it                           |
+| Key Constraints                                                        |    24 | **Root**                                         | Load-bearing invariants                                                   |
+| Sync Architecture                                                      |     9 | **Root**                                         | Orientation                                                               |
+| Package Dependencies                                                   |     9 | `packages/AGENTS.md`                             | Package-scoped                                                            |
+| graphify                                                               |    12 | **Delete**                                       | Already in the user's `~/.claude/CLAUDE.md` — duplicated                  |
+| _(from `CLAUDE.md`)_ Barrel exports, Changesets, CI lanes, TaggedError |   ~90 | `packages/AGENTS.md`                             | Every one is a `packages/**` rule                                         |
 
 </details>
 
 > [!IMPORTANT]
-> **Six of those rows are `packages/**` rules living in a root file loaded on
-> every turn.** The sub-barrel policy, the changeset workflow, the release
-> cadence, and the `TaggedError` convention only ever apply when editing
-> `packages/*` — yet an agent fixing a typo in `site/` pays for all of them. That
+> **Six of those rows are `packages/**`rules living in a root file loaded on
+every turn.** The sub-barrel policy, the changeset workflow, the release
+cadence, and the`TaggedError`convention only ever apply when editing`packages/\*`— yet an agent fixing a typo in`site/` pays for all of them. That
 > is the single largest context saving available, and it needs no new mechanism.
 
 ---
@@ -166,20 +165,20 @@ A symlink is also documented — but with a caveat that decides it:
 <details>
 <summary><b>The full loading model — the facts that shape the design</b></summary>
 
-| Fact | Consequence for xNet |
-| --- | --- |
-| Target **under 200 lines** per CLAUDE.md; longer "reduce adherence" | 412 must come down |
-| Ancestor `CLAUDE.md` files load **in full at launch** | Root file cost is paid every session |
-| Subdirectory `CLAUDE.md` load **on demand** when Claude reads files there | Nested files are ~free until relevant |
-| Imports are **expanded at launch** — they organize, they don't save context | `@`-splitting the root file saves nothing |
-| `.claude/rules/*.md` with `paths:` load **only on matching file reads** | The real context saving |
-| Rules **without** `paths:` load at launch, same priority as `.claude/CLAUDE.md` | Easy to make things worse by accident |
-| Import depth max **4 hops**; code spans and fences are skipped | `` `@README` `` is literal, `@README` imports |
-| Block-level HTML comments are **stripped before injection** | Free maintainer notes |
-| `.claude/rules/` **supports symlinks** | Shared rule sets are possible |
-| Nested `CLAUDE.md` are **not re-injected after `/compact`** | ⚠️ See the warning below |
-| `claudeMdExcludes` skips ancestor files by glob | Monorepo escape hatch |
-| `/doctor` proposes trims, cutting what Claude can derive | Use it on the pruned file |
+| Fact                                                                            | Consequence for xNet                          |
+| ------------------------------------------------------------------------------- | --------------------------------------------- |
+| Target **under 200 lines** per CLAUDE.md; longer "reduce adherence"             | 412 must come down                            |
+| Ancestor `CLAUDE.md` files load **in full at launch**                           | Root file cost is paid every session          |
+| Subdirectory `CLAUDE.md` load **on demand** when Claude reads files there       | Nested files are ~free until relevant         |
+| Imports are **expanded at launch** — they organize, they don't save context     | `@`-splitting the root file saves nothing     |
+| `.claude/rules/*.md` with `paths:` load **only on matching file reads**         | The real context saving                       |
+| Rules **without** `paths:` load at launch, same priority as `.claude/CLAUDE.md` | Easy to make things worse by accident         |
+| Import depth max **4 hops**; code spans and fences are skipped                  | `` `@README` `` is literal, `@README` imports |
+| Block-level HTML comments are **stripped before injection**                     | Free maintainer notes                         |
+| `.claude/rules/` **supports symlinks**                                          | Shared rule sets are possible                 |
+| Nested `CLAUDE.md` are **not re-injected after `/compact`**                     | ⚠️ See the warning below                      |
+| `claudeMdExcludes` skips ancestor files by glob                                 | Monorepo escape hatch                         |
+| `/doctor` proposes trims, cutting what Claude can derive                        | Use it on the pruned file                     |
 
 </details>
 
@@ -197,19 +196,19 @@ A symlink is also documented — but with a caveat that decides it:
 
 From the Agent Skills client-implementation guide — the primary source:
 
-| Scope | Path | Purpose |
-| --- | --- | --- |
-| Project | `<project>/.<your-client>/skills/` | Client's native location |
-| Project | `<project>/.agents/skills/` | **Cross-client interoperability** |
-| User | `~/.<your-client>/skills/` | Client's native location |
-| User | `~/.agents/skills/` | Cross-client interoperability |
+| Scope   | Path                               | Purpose                           |
+| ------- | ---------------------------------- | --------------------------------- |
+| Project | `<project>/.<your-client>/skills/` | Client's native location          |
+| Project | `<project>/.agents/skills/`        | **Cross-client interoperability** |
+| User    | `~/.<your-client>/skills/`         | Client's native location          |
+| User    | `~/.agents/skills/`                | Cross-client interoperability     |
 
 > The `.agents/skills/` paths have emerged as a widely-adopted convention for
 > cross-client skill sharing … Some implementations also scan `.claude/skills/`
 > for pragmatic compatibility, since many existing skills are installed there.
 
-And Codex's own documentation: *"For repositories, Codex scans `.agents/skills` in
-every directory from your current working directory up to the repository root"* —
+And Codex's own documentation: _"For repositories, Codex scans `.agents/skills` in
+every directory from your current working directory up to the repository root"_ —
 plus `$HOME/.agents/skills` and `/etc/codex/skills`.
 
 The guide also fixes the collision rule: **project-level skills override
@@ -230,7 +229,7 @@ corroborated by the vendors' own docs.
 
 ## Key Findings
 
-### 1. The five mechanisms are not interchangeable — pick by *when it loads*
+### 1. The five mechanisms are not interchangeable — pick by _when it loads_
 
 This is the decision that makes everything else fall out:
 
@@ -251,19 +250,19 @@ flowchart TD
     style H fill:#ffd,stroke:#aa0
 ```
 
-| Mechanism | Loads | Cost | Owns |
-| --- | --- | --- | --- |
-| Root `AGENTS.md` | Every session, in full | High | Invariants, orientation, skills index |
-| Nested `AGENTS.md` | On demand (Claude) / on cwd (Codex) | ~0 until relevant | Surface conventions |
-| `.claude/rules/` **with** `paths:` | On matching file read | ~0 until relevant | Claude-only path rules |
-| `.claude/rules/` **without** `paths:` | Every session | High | ⚠️ Rarely correct |
-| Skills | On description match | ~80 tokens/skill | Multi-step workflows |
+| Mechanism                             | Loads                               | Cost              | Owns                                  |
+| ------------------------------------- | ----------------------------------- | ----------------- | ------------------------------------- |
+| Root `AGENTS.md`                      | Every session, in full              | High              | Invariants, orientation, skills index |
+| Nested `AGENTS.md`                    | On demand (Claude) / on cwd (Codex) | ~0 until relevant | Surface conventions                   |
+| `.claude/rules/` **with** `paths:`    | On matching file read               | ~0 until relevant | Claude-only path rules                |
+| `.claude/rules/` **without** `paths:` | Every session                       | High              | ⚠️ Rarely correct                     |
+| Skills                                | On description match                | ~80 tokens/skill  | Multi-step workflows                  |
 
 > [!CAUTION]
 > **A `.claude/rules/` file without `paths:` frontmatter loads at launch with the
 > same priority as `.claude/CLAUDE.md`.** It looks like a modular, lazy
 > improvement and is neither. Splitting a 412-line file into six rule files with
-> no `paths:` produces the *same* context cost plus six more places for a rule to
+> no `paths:` produces the _same_ context cost plus six more places for a rule to
 > drift. Every rule file this exploration proposes carries `paths:`, or it is not
 > a rule file.
 
@@ -288,19 +287,19 @@ Option B also requires **no migration** — the three existing skills stay put.
 
 This is why one flat file cannot serve them:
 
-| Surface | Files | Convention that is *only* true here |
-| --- | ---: | --- |
-| `apps/web` | 539 | WebAuthn bypass (`xnet:test:bypass`), auto-launching Playwright MCP, browser CSP |
-| `apps/electron` | 91 | CDP `:9223`, renderer `:5177`, 10 preload globals, native rebuild (0404) |
-| `apps/expo` + `apps/mobile` | 13 | Expo/EAS build, no Node APIs, different test story |
-| `packages/hub` | 218 | Wire format, roles, publish-wrapped node-changes, hub DID |
-| `packages/*` (49 pkgs) | — | Sub-barrel policy, changesets, `TaggedError` — currently in the **root** file |
+| Surface                     | Files | Convention that is _only_ true here                                              |
+| --------------------------- | ----: | -------------------------------------------------------------------------------- |
+| `apps/web`                  |   539 | WebAuthn bypass (`xnet:test:bypass`), auto-launching Playwright MCP, browser CSP |
+| `apps/electron`             |    91 | CDP `:9223`, renderer `:5177`, 10 preload globals, native rebuild (0404)         |
+| `apps/expo` + `apps/mobile` |    13 | Expo/EAS build, no Node APIs, different test story                               |
+| `packages/hub`              |   218 | Wire format, roles, publish-wrapped node-changes, hub DID                        |
+| `packages/*` (49 pkgs)      |     — | Sub-barrel policy, changesets, `TaggedError` — currently in the **root** file    |
 
 ### 4. Directory-scoped skills exist, and xNet should not use them yet
 
 Claude Code surfaces skills in a subdirectory `.claude/skills/` with a path
 prefix (`apps/web:deploy`), preferring the most specific match. That is the right
-tool once two surfaces need a skill with the *same name* — `run`, `test`,
+tool once two surfaces need a skill with the _same name_ — `run`, `test`,
 `deploy`. With ~12 skills across 4 surfaces and no collisions, scoping by
 **description** ("Use when working in `apps/electron`") is simpler and keeps every
 skill discoverable from one index. Revisit when the first collision appears.
@@ -309,13 +308,13 @@ skill discoverable from one index. Revisit when the first collision appears.
 
 ## Options And Tradeoffs
 
-| Option | Root file | Surface rules | Skills | Verdict |
-| --- | --- | --- | --- | --- |
-| **A. Status quo** | 412 + 132, drifting | none | 3, unindexed | ❌ The problem |
-| **B. Symlink `CLAUDE.md → AGENTS.md`** | one file, still 412 | none | unchanged | 🚧 Half-measure; breaks on Windows |
-| **C. Split into `.claude/rules/` only** | thin | Claude-only | unchanged | 🛑 Abandons Codex |
-| **D. Copy agent-native exactly** | `.agents/` canonical | none | migrate all | 🛑 Wrong symlink direction |
-| **E. Import + nested pairs + outward symlink + guard** | <200 | cross-client | indexed, guarded | ✅ **Recommended** |
+| Option                                                 | Root file            | Surface rules | Skills           | Verdict                            |
+| ------------------------------------------------------ | -------------------- | ------------- | ---------------- | ---------------------------------- |
+| **A. Status quo**                                      | 412 + 132, drifting  | none          | 3, unindexed     | ❌ The problem                     |
+| **B. Symlink `CLAUDE.md → AGENTS.md`**                 | one file, still 412  | none          | unchanged        | 🚧 Half-measure; breaks on Windows |
+| **C. Split into `.claude/rules/` only**                | thin                 | Claude-only   | unchanged        | 🛑 Abandons Codex                  |
+| **D. Copy agent-native exactly**                       | `.agents/` canonical | none          | migrate all      | 🛑 Wrong symlink direction         |
+| **E. Import + nested pairs + outward symlink + guard** | <200                 | cross-client  | indexed, guarded | ✅ **Recommended**                 |
 
 <details>
 <summary><b>Why not C — the pure <code>.claude/rules/</code> approach</b></summary>
@@ -324,12 +323,12 @@ Path-scoped rules are the most elegant mechanism available: `paths: ["apps/elect
 and the content loads only when Claude touches a desktop file. Zero cost
 otherwise, no nested-file sprawl, and no `/compact` reload subtlety.
 
-It is still wrong as the *primary* structure, for one reason: **`.claude/rules/`
+It is still wrong as the _primary_ structure, for one reason: **`.claude/rules/`
 is Claude Code only.** [AGENTS.md](../../AGENTS.md) already documents a
 Codex-in-OpenCode workflow, and the repo's own `check-electron-parity.mjs` and
 guard scripts assume multiple agents touch this code. Encoding surface
 conventions in a Claude-private format makes every other client worse, and it
-makes the *next* client migration a rewrite rather than a no-op.
+makes the _next_ client migration a rewrite rather than a no-op.
 
 Rules keep a real job — Claude-specific path behaviour, like "use plan mode under
 `packages/crypto/**`" — but they are the seasoning, not the structure.
@@ -380,22 +379,22 @@ short Claude-only section beneath it. There is exactly one place any rule is
 written.
 
 > [!IMPORTANT]
-> **The ordering matters and is not negotiable.** Prune the root file *first*,
+> **The ordering matters and is not negotiable.** Prune the root file _first_,
 > then add nested files. Adding surface files before pruning leaves every rule in
 > two places — which is the drift 0401 documented and this exploration exists to
 > end. If only one step ever ships, make it the prune.
 
 ### The workflow this produces
 
-| Task | Loads at launch | Loads on demand | Skill that fires |
-| --- | --- | --- | --- |
-| Fix a typo in `site/` | root only (~180 lines) | — | — |
-| Add a web component | root | `apps/web/CLAUDE.md` | `visual-exploration` |
-| Change desktop IPC | root | `apps/electron/CLAUDE.md` | `electron-prototype` |
-| Add a hub route | root | `packages/AGENTS.md`, `packages/hub/CLAUDE.md` | `changeset` |
-| Ship anything user-visible | root | — | `changelog` |
-| Drive a PR to green | root | — | `babysit-pr` |
-| Claim a checklist item done | root | — | `verification-before-completion` |
+| Task                        | Loads at launch        | Loads on demand                                | Skill that fires                 |
+| --------------------------- | ---------------------- | ---------------------------------------------- | -------------------------------- |
+| Fix a typo in `site/`       | root only (~180 lines) | —                                              | —                                |
+| Add a web component         | root                   | `apps/web/CLAUDE.md`                           | `visual-exploration`             |
+| Change desktop IPC          | root                   | `apps/electron/CLAUDE.md`                      | `electron-prototype`             |
+| Add a hub route             | root                   | `packages/AGENTS.md`, `packages/hub/CLAUDE.md` | `changeset`                      |
+| Ship anything user-visible  | root                   | —                                              | `changelog`                      |
+| Drive a PR to green         | root                   | —                                              | `babysit-pr`                     |
+| Claim a checklist item done | root                   | —                                              | `verification-before-completion` |
 
 Today, every row loads all 544 lines.
 
@@ -404,14 +403,14 @@ Today, every row loads all 544 lines.
 `check:agent-docs` — decidable, fast, one named consumer (every agent that reads
 these files):
 
-| Assertion | Why |
-| --- | --- |
-| Every `CLAUDE.md` is a symlink **or** its first non-blank line is `@AGENTS.md` | No second source, ever |
-| Every `AGENTS.md` ≤ 200 lines | The documented adherence threshold |
-| Every `.claude/rules/*.md` has `paths:` frontmatter | A rule without `paths:` is a root-file rule in disguise |
-| The skills index in root `AGENTS.md` lists exactly `.claude/skills/*/` | The index cannot rot |
-| `.agents/skills` resolves to `.claude/skills` | The symlink survives |
-| Every `SKILL.md` passes `skills-ref validate` (pinned) | 0402 |
+| Assertion                                                                      | Why                                                     |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| Every `CLAUDE.md` is a symlink **or** its first non-blank line is `@AGENTS.md` | No second source, ever                                  |
+| Every `AGENTS.md` ≤ 200 lines                                                  | The documented adherence threshold                      |
+| Every `.claude/rules/*.md` has `paths:` frontmatter                            | A rule without `paths:` is a root-file rule in disguise |
+| The skills index in root `AGENTS.md` lists exactly `.claude/skills/*/`         | The index cannot rot                                    |
+| `.agents/skills` resolves to `.claude/skills`                                  | The symlink survives                                    |
+| Every `SKILL.md` passes `skills-ref validate` (pinned)                         | 0402                                                    |
 
 ---
 
@@ -458,12 +457,12 @@ Pick by what the change touches, not by convenience. Never use rung 3 for layout
 
 ## Ports
 
-| Port | What |
-|---|---|
+| Port | What                                        |
+| ---- | ------------------------------------------- |
 | 5177 | renderer (Vite) — `electron.vite.config.ts` |
-| 9223 | CDP, dev only — `src/main/index.ts` |
-| 9224 | CDP for the `user2` profile |
-| 4444 | hub |
+| 9223 | CDP, dev only — `src/main/index.ts`         |
+| 9224 | CDP for the `user2` profile                 |
+| 4444 | hub                                         |
 
 ## Preload
 
@@ -476,8 +475,8 @@ A path-scoped Claude-only rule — the one legitimate use:
 ```markdown
 ---
 paths:
-  - "packages/crypto/**"
-  - "packages/identity/**"
+  - 'packages/crypto/**'
+  - 'packages/identity/**'
 ---
 
 # Crypto and identity
@@ -526,7 +525,7 @@ mkdir -p .agents && ln -s ../.claude/skills .agents/skills
   `packages/hub/` — and add only when a package's conventions genuinely differ.
 - **Open question: does `@AGENTS.md` compose with nested `AGENTS.md`?** Anthropic
   documents the root import and documents nested `CLAUDE.md` discovery separately.
-  Whether a nested `CLAUDE.md` containing `@AGENTS.md` resolves to the *sibling*
+  Whether a nested `CLAUDE.md` containing `@AGENTS.md` resolves to the _sibling_
   `AGENTS.md` (relative paths "resolve relative to the file containing the
   import") should hold — but **verify it with `/context` before building all
   five**, not after.
@@ -561,22 +560,22 @@ mkdir -p .agents && ln -s ../.claude/skills .agents/skills
 
 ### Phase 2 — surfaces
 
-- [ ] `apps/web/{AGENTS.md,CLAUDE.md}` — auth bypass, Playwright web, CSP.
-- [ ] `apps/electron/{AGENTS.md,CLAUDE.md}` — the 0404 ladder, ports, preload.
-- [ ] `apps/expo/{AGENTS.md,CLAUDE.md}` — Expo/EAS, no Node APIs.
-- [ ] `packages/{AGENTS.md,CLAUDE.md}` — barrels, changesets, `TaggedError`.
-- [ ] `packages/hub/{AGENTS.md,CLAUDE.md}` — wire format, roles, hub DID.
+- [x] `apps/web/{AGENTS.md,CLAUDE.md}` — auth bypass, Playwright web, CSP.
+- [x] `apps/electron/{AGENTS.md,CLAUDE.md}` — the 0404 ladder, ports, preload.
+- [x] `apps/expo/{AGENTS.md,CLAUDE.md}` — Expo/EAS, no Node APIs.
+- [x] `packages/{AGENTS.md,CLAUDE.md}` — barrels, changesets, `TaggedError`.
+- [x] `packages/hub/{AGENTS.md,CLAUDE.md}` — wire format, roles, hub DID.
 
 ### Phase 3 — skills and cross-client
 
-- [ ] `ln -s ../.claude/skills .agents/skills`; commit the symlink.
-- [ ] Land the 0401 wave-1 skills plus `verification-before-completion` (0402)
+- [x] `ln -s ../.claude/skills .agents/skills`; commit the symlink.
+- [x] Land the 0401 wave-1 skills plus `verification-before-completion` (0402)
       into `.claude/skills/` and list them in the index.
 
 ### Phase 4 — the guard
 
-- [ ] Add `scripts/check-agent-docs.mjs` implementing the six assertions.
-- [ ] Wire `check:agent-docs` into `package.json` and the existing check lane
+- [x] Add `scripts/check-agent-docs.mjs` implementing the six assertions.
+- [x] Wire `check:agent-docs` into `package.json` and the existing check lane
       with a named consumer, per §0294.
 
 ---

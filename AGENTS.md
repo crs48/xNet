@@ -10,22 +10,27 @@ there.
 Invoke with the Skill tool. Repo-local skills live in `.claude/skills/`
 (`.agents/skills` symlinks to it for Codex and Copilot).
 
-| Skill | Read it when |
-| --- | --- |
-| `explore` | Researching a topic into `docs/explorations/` |
-| `implement` | Executing an exploration's checklist |
-| `changeset` | You edited a publishable `packages/*` library |
-| `visual-exploration` | An exploration is about UI and prose cannot show it |
+| Skill                            | Read it when                                        |
+| -------------------------------- | --------------------------------------------------- |
+| `babysit-pr`                     | Driving a PR to green                               |
+| `changelog`                      | You shipped something a user would notice           |
+| `changeset`                      | You edited a publishable `packages/*` library       |
+| `explore`                        | Researching a topic into `docs/explorations/`       |
+| `implement`                      | Executing an exploration's checklist                |
+| `mvp-followup`                   | Deciding what to close out after a feature pass     |
+| `verification-before-completion` | Before claiming done, or writing `[x]`              |
+| `visual-exploration`             | An exploration is about UI and prose cannot show it |
+| `writing-agent-instructions`     | Editing any `AGENTS.md` or `SKILL.md`               |
 
 ## Nested instructions
 
-| Path | Covers |
-| --- | --- |
-| `apps/web/AGENTS.md` | Playwright, test auth bypass, viewport |
-| `apps/electron/AGENTS.md` | Prototyping ladder, ports, preload |
-| `apps/expo/AGENTS.md` | Expo/EAS, no Node APIs |
-| `packages/AGENTS.md` | Barrels, changesets, `TaggedError`, seed |
-| `packages/hub/AGENTS.md` | Roles, wire format, authorization |
+| Path                      | Covers                                   |
+| ------------------------- | ---------------------------------------- |
+| `apps/web/AGENTS.md`      | Playwright, test auth bypass, viewport   |
+| `apps/electron/AGENTS.md` | Prototyping ladder, ports, preload       |
+| `apps/expo/AGENTS.md`     | Expo/EAS, no Node APIs                   |
+| `packages/AGENTS.md`      | Barrels, changesets, `TaggedError`, seed |
+| `packages/hub/AGENTS.md`  | Roles, wire format, authorization        |
 
 <!-- Nested files are NOT re-injected after /compact; anything that must hold
      for a whole session belongs in this file, not a nested one. -->
@@ -61,12 +66,12 @@ sentence rather than capitalising the mark.
 Lowercase everywhere a machine reads: `@xnetjs/*`, the `xnet` bin, `xnet://`
 URIs, file and database names.
 
-| Where | Form |
-| --- | --- |
-| Prose, comments, UI strings, commits | `xNet` |
-| npm packages, bins, URLs, DB/file names, env prefixes | all lowercase |
-| Identifiers already named `XNet*` | leave as-is (`XNetProvider`, `useXNet`) |
-| Mermaid node ids, `SCREAMING_SNAKE` constants | leave as-is (`XNET_HUB_URL`) |
+| Where                                                 | Form                                    |
+| ----------------------------------------------------- | --------------------------------------- |
+| Prose, comments, UI strings, commits                  | `xNet`                                  |
+| npm packages, bins, URLs, DB/file names, env prefixes | all lowercase                           |
+| Identifiers already named `XNet*`                     | leave as-is (`XNetProvider`, `useXNet`) |
+| Mermaid node ids, `SCREAMING_SNAKE` constants         | leave as-is (`XNET_HUB_URL`)            |
 
 **Existing identifiers keep their casing** — renaming one is a breaking change,
 not a copy fix. The line is identifier vs copy, and it does not follow file
@@ -133,9 +138,9 @@ consumers.
 
 ## Sync architecture
 
-| Data type | Mechanism | Conflict resolution |
-| --- | --- | --- |
-| Rich text | Yjs CRDT | Character-level merge |
+| Data type  | Mechanism | Conflict resolution       |
+| ---------- | --------- | ------------------------- |
+| Rich text  | Yjs CRDT  | Character-level merge     |
 | Structured | NodeStore | Field-level LWW (Lamport) |
 
 ## Key constraints
