@@ -542,14 +542,14 @@ mkdir -p .agents && ln -s ../.claude/skills .agents/skills
 
 ### Phase 0 — verify the mechanism before building on it
 
-- [ ] Create one throwaway `apps/electron/AGENTS.md` + `CLAUDE.md` containing
+- [x] Create one throwaway `apps/electron/AGENTS.md` + `CLAUDE.md` containing
       `@AGENTS.md`; open a session in `apps/electron/`, run `/context`, and
       confirm the nested file appears under **Memory files**. **Stop if it does
       not.**
 
 ### Phase 1 — prune the root (do this first, in two commits)
 
-- [ ] **Commit 1 — move**: relocate every section per the migration table into
+- [x] **Commit 1 — move**: relocate every section per the migration table into
       its destination file. Nothing deleted yet.
 - [ ] **Commit 2 — delete**: remove the moved sections from `AGENTS.md`;
       de-duplicate the brand rule to one copy; drop the `graphify` block.
