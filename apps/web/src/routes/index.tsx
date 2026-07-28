@@ -10,16 +10,11 @@ import { HomeChats, homeHeading, lensShowsChats, lensShowsDocs } from '../compon
 import { RestoringNotice } from '../components/RestoringNotice'
 import { bootMark, logBootTimeline } from '../lib/boot-timeline'
 import { deskIdFor, isQuietDefaultEnabled } from '../lib/desk'
-import {
-  CreateDocMenuItems,
-  navigateToNewDoc,
-  type CreatableDocType,
-  type NavigateLike
-} from '../lib/doc-creation'
+import { CreateDocMenuItems, type CreatableDocType } from '../lib/doc-creation'
 import { useQueryTimer } from '../lib/read-path-probe'
 import { useInstantRows } from '../lib/use-instant-rows'
 import { useRestoringFromHub } from '../lib/use-restoring'
-import { navigateToNode } from '../workbench/navigation'
+import { navigateToNewDoc, navigateToNode } from '../workbench/navigation'
 import { useNavigateTo } from '../workbench/platform'
 import { tabIdFor, useWorkbench } from '../workbench/state'
 import { setPreviewIntent } from '../workbench/tabs'
@@ -146,7 +141,7 @@ function HomePage() {
 
   const handleCreate = (type: CreatableDocType) => {
     setShowCreateMenu(false)
-    navigateToNewDoc(navigate as unknown as NavigateLike, type)
+    navigateToNewDoc(navigate, type)
   }
 
   const getIcon = (type: DocType) => {
