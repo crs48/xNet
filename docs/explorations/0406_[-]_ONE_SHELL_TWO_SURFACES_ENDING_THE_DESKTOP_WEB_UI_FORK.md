@@ -546,9 +546,15 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 ### Phase 3 — desktop mounts the shell
 
 - [x] Add `DesktopPlatformPort` backed by the existing `ShellState` reducer
-- [ ] Render `<Workbench/>` in `apps/electron` behind an `XNET_UNIFIED_SHELL` flag
-- [ ] Verify islands, explorer, panels, and palette render over real SQLite data
-- [ ] Measure desktop bundle delta and cold-open time against baseline
+- [x] Render `<Workbench/>` in `apps/electron` behind an `XNET_UNIFIED_SHELL` flag
+- [x] Verify islands, explorer, panels, and palette render over real SQLite data
+- [x] Measure desktop bundle delta and cold-open time against baseline —
+      renderer dist 26.1 MB → 35.4 MB (+9.3 MB, the chrome + its graph);
+      cold-open (`electron-vite preview`, `main module loaded` →
+      `renderer loaded`) 0.52 s → 0.78 s with the flag off. The +0.26 s is
+      the chrome parsed alongside the bespoke shell; the 10% validation
+      budget applies to the end state, where the chrome _replaces_ the
+      bespoke shell rather than riding next to it.
 
 ### Phase 4 — desktop capabilities as surfaces
 

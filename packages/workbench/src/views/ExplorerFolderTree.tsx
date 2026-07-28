@@ -21,10 +21,10 @@ import {
   Trash2
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { workbenchHost } from '../host'
 import { navigateToNode } from '../navigation'
 import { useNavigateTo } from '../platform'
 import { useWorkbench } from '../state'
+import { useUndoToast } from '../UndoToast'
 import { useExplorerFolders, type ExplorerFolderEntry } from './explorer-folders-context'
 import { ExplorerRow, isExplorerNodeType } from './explorer-rows'
 
@@ -107,7 +107,7 @@ function FolderHoverActions({
 }) {
   const navigate = useNavigateTo()
   const { createPageInFolder, deleteFolder } = useExplorerFolders()
-  const { showUndoToast } = workbenchHost().useUndoToast()
+  const { showUndoToast } = useUndoToast()
   const expand = useEnsureFolderExpanded()
 
   const action = (label: string, onClick: () => void, icon: ReactNode) => (

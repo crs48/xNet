@@ -6,7 +6,7 @@
  * pinned node opens. No panel/route fork, and no per-feature nav.
  */
 import { useMemo } from 'react'
-import { workbenchHost } from '../host'
+import { useRequestCount } from '../hooks/useRequestCount'
 import { useNavigateTo, usePathname } from '../platform'
 import { useWorkbench } from '../state'
 import { NavRow } from './NavRow'
@@ -75,7 +75,7 @@ export function SectionRow({ section }: { section: SidebarSection }): React.JSX.
   // Active state is derived here from the route rather than passed in, so
   // there is exactly one answer to "where am I" (0388).
   const active = useSectionActive()(section)
-  const requestCount = workbenchHost().useRequestCount()
+  const requestCount = useRequestCount()
   const Icon = sectionIcon(section)
   const count = section.badge === 'requests' ? requestCount : undefined
 

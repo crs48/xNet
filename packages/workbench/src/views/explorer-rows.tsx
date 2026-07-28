@@ -21,7 +21,7 @@ import {
 } from '@xnetjs/ui'
 import { MoreHorizontal, Pin } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { workbenchHost } from '../host'
+import { useNodeActions } from '../hooks/useNodeActions'
 import { navigateToNode } from '../navigation'
 import { useNavigateTo } from '../platform'
 import { tabIdFor, useWorkbench } from '../state'
@@ -73,7 +73,7 @@ function NodeRowMenuBody({
   onOpen: () => void
   onRename: () => void
 }) {
-  const actions = workbenchHost().useNodeActions({ item, pinned, onOpen, onRename })
+  const actions = useNodeActions({ item, pinned, onOpen, onRename })
   return variant === 'context' ? (
     <ActionMenuList actions={actions} />
   ) : (

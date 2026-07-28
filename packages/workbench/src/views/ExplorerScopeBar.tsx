@@ -12,7 +12,7 @@
  */
 import { Check, ChevronDown, X } from 'lucide-react'
 import { useState } from 'react'
-import { workbenchHost, type SpaceEntry } from '../host'
+import { useSpaces, type SpaceEntry } from '../hooks/useSpaces'
 import { useWorkbench } from '../state'
 import { NO_SPACE, isRealSpace, toggleScopeSelection } from './explorer-scope'
 
@@ -132,7 +132,7 @@ function MoreMenu({
 }
 
 export function ExplorerScopeBar() {
-  const { spaces } = workbenchHost().useSpaces()
+  const { spaces } = useSpaces()
   const scope = useWorkbench((s) => s.currentSpaceId)
   const filter = useWorkbench((s) => s.spaceFilter)
   const apply = useWorkbench((s) => s.applyScopeSelection)

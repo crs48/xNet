@@ -22,6 +22,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import { useState } from 'react'
+import { useRequestCount } from './hooks/useRequestCount'
 import { workbenchHost } from './host'
 import { navigateToFrame, navigateToNode, parseFrameSpec } from './navigation'
 import { useNavigateTo, usePathname } from './platform'
@@ -95,7 +96,7 @@ export function EditorHeader({ onOpenNotif }: { onOpenNotif: (e: React.MouseEven
   const tabsEnabled = useWorkbench((s) => s.tabsEnabled)
   const activeTab = useWorkbench(selectActiveTab)
   const { identity } = useIdentity()
-  const requestCount = workbenchHost().useRequestCount()
+  const requestCount = useRequestCount()
   const [shareOpen, setShareOpen] = useState(false)
 
   // Tabless (0353): "what am I looking at" comes from the route + the

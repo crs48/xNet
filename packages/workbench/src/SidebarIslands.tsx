@@ -23,6 +23,8 @@ import {
   Settings
 } from 'lucide-react'
 import { useLayoutEffect, useRef } from 'react'
+import { useRequestCount } from './hooks/useRequestCount'
+import { useSpaces } from './hooks/useSpaces'
 import { workbenchHost } from './host'
 import { usePathname } from './platform'
 import { SettingsSectionsNav } from './SettingsSectionsNav'
@@ -63,7 +65,7 @@ function PrimaryRow({ surface }: { surface: SurfaceDef }) {
   const activeSurface = useWorkbench((s) => s.activeSurface)
   const activate = useSurfaceActivation()
   const routeActive = useRouteActive()
-  const requestCount = workbenchHost().useRequestCount()
+  const requestCount = useRequestCount()
   const Icon = surface.icon
   const active = surface.kind === 'route' ? routeActive(surface.to) : activeSurface === surface.id
   const count = surface.badge === 'requests' ? requestCount : undefined
@@ -98,7 +100,7 @@ function CompactSurfaceButton({ surface }: { surface: SurfaceDef }) {
   const activeSurface = useWorkbench((s) => s.activeSurface)
   const activate = useSurfaceActivation()
   const routeActive = useRouteActive()
-  const requestCount = workbenchHost().useRequestCount()
+  const requestCount = useRequestCount()
   const Icon = surface.icon
   const active = surface.kind === 'route' ? routeActive(surface.to) : activeSurface === surface.id
   const unread = surface.badge === 'requests' && requestCount > 0
@@ -146,7 +148,7 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
   const compact = useWorkbench((s) => s.sidebarCompact)
   const toggleCompact = useWorkbench((s) => s.toggleSidebarCompact)
   const { SelfAvatar } = workbenchHost()
-  const { getSpace } = workbenchHost().useSpaces()
+  const { getSpace } = useSpaces()
   const pinned = pinnedSurfaces(navPinned)
   const hiddenCount = unifiedNav ? hiddenSections.length : SURFACES.length - pinned.length
   const space = isRealSpace(currentSpaceId) ? getSpace(currentSpaceId) : null

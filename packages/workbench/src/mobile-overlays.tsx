@@ -42,6 +42,7 @@ import {
 import { useRef, useState } from 'react'
 import { ContextPanel } from './ContextPanel'
 import { DOC_TYPE_META } from './doc-id'
+import { useSpaces } from './hooks/useSpaces'
 import { workbenchHost } from './host'
 import { navigateToNode } from './navigation'
 import { useNewActions } from './new-actions'
@@ -537,7 +538,7 @@ function NewSheet({ reduced, onClose }: { reduced: boolean; onClose: () => void 
 function WorkspaceSheet({ reduced, onClose }: { reduced: boolean; onClose: () => void }) {
   const currentSpaceId = useWorkbench((s) => s.currentSpaceId)
   const setCurrentSpace = useWorkbench((s) => s.setCurrentSpace)
-  const { spaces } = workbenchHost().useSpaces()
+  const { spaces } = useSpaces()
   const pick = (id: string | null) => {
     setCurrentSpace(id)
     onClose()

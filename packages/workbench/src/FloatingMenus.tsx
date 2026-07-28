@@ -24,6 +24,8 @@ import {
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { DOC_TYPE_META } from './doc-id'
+import { useRequestCount } from './hooks/useRequestCount'
+import { useSpaces } from './hooks/useSpaces'
 import { workbenchHost } from './host'
 import { useNewActions } from './new-actions'
 import { useNavigateTo } from './platform'
@@ -125,7 +127,7 @@ function NewMenu({ close }: { close: () => void }) {
 function WorkspaceMenu({ close }: { close: () => void }) {
   const currentSpaceId = useWorkbench((s) => s.currentSpaceId)
   const setCurrentSpace = useWorkbench((s) => s.setCurrentSpace)
-  const { spaces } = workbenchHost().useSpaces()
+  const { spaces } = useSpaces()
   const pick = (id: string | null) => {
     setCurrentSpace(id)
     close()
@@ -183,7 +185,7 @@ function WorkspaceMenu({ close }: { close: () => void }) {
 
 function NotifMenu({ close }: { close: () => void }) {
   const navigate = useNavigateTo()
-  const requestCount = workbenchHost().useRequestCount()
+  const requestCount = useRequestCount()
   return (
     <div className="w-[340px] overflow-hidden">
       <div className="flex items-center justify-between px-3.5 pb-2 pt-3">

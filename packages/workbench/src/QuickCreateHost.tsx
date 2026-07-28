@@ -23,7 +23,7 @@ import { getCommandRegistry } from '@xnetjs/plugins'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { Hash, Layers } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { workbenchHost } from './host'
+import { useSpaces } from './hooks/useSpaces'
 import { useNavigateTo } from './platform'
 
 /** What the host is currently asking a name for (null = closed). */
@@ -50,7 +50,7 @@ async function runWhenRegistered(id: string, attempts = 20, stepMs = 50): Promis
 export function QuickCreateHost() {
   const navigate = useNavigateTo()
   const bridge = useDataBridge()
-  const { createSpace } = workbenchHost().useSpaces()
+  const { createSpace } = useSpaces()
   const [prompt, setPrompt] = useState<Prompt | null>(null)
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)

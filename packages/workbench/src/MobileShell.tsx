@@ -39,6 +39,7 @@ import { useLayoutEffect, useState } from 'react'
 import { useWorkbenchCommands, useZenEscape } from './commands'
 import { EditorArea } from './EditorArea'
 import { useFocusRing } from './focus'
+import { GlobalSearch } from './GlobalSearch'
 import { workbenchHost } from './host'
 import { DoubleStar, MobileOverlays } from './mobile-overlays'
 import { navigateToNode } from './navigation'
@@ -49,6 +50,7 @@ import { selectActiveTab, useWorkbench, type WorkbenchTab } from './state'
 import { CHIP } from './SyncStatus'
 import { tabFromPathname, TAB_VIEWS } from './tabs'
 import { useSyncVitals } from './useSyncVitals'
+import { WorkspaceCommands } from './WorkspaceCommands'
 
 const SHARE_TYPES: Partial<Record<WorkbenchTab['nodeType'], ShareDocType>> = {
   page: 'page',
@@ -344,7 +346,7 @@ function AssistantButton({ onOpen }: { onOpen: () => void }) {
 }
 
 export function MobileShell({ children }: { children: ReactNode }) {
-  const { GlobalSearch, ShareDialog, WorkspaceCommands } = workbenchHost()
+  const { ShareDialog } = workbenchHost()
   // Same command / escape / focus wiring as the desktop shell.
   useWorkbenchCommands()
   useZenEscape()

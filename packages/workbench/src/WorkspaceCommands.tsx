@@ -9,12 +9,12 @@
 import { getCommandRegistry, installCommandHandler } from '@xnetjs/plugins'
 import { useGlobalUndo, useIdentity } from '@xnetjs/react'
 import { useEffect, useRef, useState, type JSX } from 'react'
-import { deskIdFor } from '../lib/desk'
-import { navigateToNode } from '../workbench/navigation'
-import { useNavigateTo } from '../workbench/platform'
-import { selectActiveTab, useWorkbench } from '../workbench/state'
-import { setPreviewIntent } from '../workbench/tabs'
-import { SCHEMA_IDS, isExplorerNodeType } from '../workbench/views/explorer-items'
+import { deskIdFor } from './lib/desk'
+import { navigateToNode } from './navigation'
+import { useNavigateTo } from './platform'
+import { selectActiveTab, useWorkbench } from './state'
+import { setPreviewIntent } from './tabs'
+import { SCHEMA_IDS, isExplorerNodeType } from './views/explorer-items'
 
 export function WorkspaceCommands(): JSX.Element | null {
   const navigate = useNavigateTo()

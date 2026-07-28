@@ -2408,6 +2408,9 @@ importers:
       '@xnetjs/react':
         specifier: workspace:*
         version: link:../react
+      '@xnetjs/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@xnetjs/social':
         specifier: workspace:*
         version: link:../social
@@ -2429,6 +2432,9 @@ importers:
       react-resizable-panels:
         specifier: ^4.4.1
         version: 4.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      yjs:
+        specifier: ^13.6.24
+        version: 13.6.29
       zustand:
         specifier: ^5.0.14
         version: 5.0.14(@types/react@18.3.27)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))

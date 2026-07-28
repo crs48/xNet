@@ -22,11 +22,11 @@ import {
 } from '@xnetjs/ui'
 import { CheckSquare2, CornerDownLeft, FilePlus2, Terminal } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { usePageSearchSurface } from '../hooks/usePageSearchSurface'
-import { navigateToNode } from '../workbench/navigation'
-import { useNavigateTo } from '../workbench/platform'
-import { useWorkbench, type TabNodeType } from '../workbench/state'
-import { setPreviewIntent, TAB_VIEWS } from '../workbench/tabs'
+import { usePageSearchSurface } from './hooks/usePageSearchSurface'
+import { navigateToNode } from './navigation'
+import { useNavigateTo } from './platform'
+import { useWorkbench, type TabNodeType } from './state'
+import { setPreviewIntent, TAB_VIEWS } from './tabs'
 
 function generateTaskId(): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {

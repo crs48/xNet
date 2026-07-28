@@ -18,16 +18,10 @@ import { ErrorFallback } from '../components/ErrorFallback'
 import { isHabit, metricName } from '../components/experiments/habit-logic'
 import { MetricEditor } from '../components/experiments/MetricEditor'
 import { useHabits } from '../components/experiments/useHabits'
-import { GlobalSearch } from '../components/GlobalSearch'
 import { SelfAvatar } from '../components/SelfAvatar'
 import { ShareDialog } from '../components/ShareDialog'
-import { UndoToastProvider, useUndoToast } from '../components/UndoToast'
 import { WinddownOverlay } from '../components/WinddownOverlay'
-import { WorkspaceCommands } from '../components/WorkspaceCommands'
 import { useCreateInSpace } from '../hooks/useCreateInSpace'
-import { useNodeActions } from '../hooks/useNodeActions'
-import { useRequestCount } from '../hooks/useRequestCount'
-import { useSpaces } from '../hooks/useSpaces'
 import { useStorageStatus } from '../hooks/useStorageStatus'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { logout } from '../lib/identity'
@@ -36,12 +30,9 @@ import { WhatsNewButton } from '../whats-new/WhatsNewButton'
 const webWorkbenchHost: WorkbenchHost = {
   logout,
 
-  useSpaces,
-  useRequestCount,
   useStorageStatus,
   useCreateInSpace,
   useWorkspaceTags,
-  useNodeActions,
 
   comms: {
     useComms,
@@ -66,10 +57,6 @@ const webWorkbenchHost: WorkbenchHost = {
 
   SelfAvatar,
   ShareDialog,
-  GlobalSearch,
-  WorkspaceCommands,
-  UndoToastProvider,
-  useUndoToast,
   ErrorFallback,
   AddSharedDialog,
   WinddownOverlay,
