@@ -23,13 +23,13 @@ import {
   SquareCheck,
   Terminal
 } from 'lucide-react'
+import { lazy, Suspense } from 'react'
 import { Canvas } from './calm/Canvas'
 import { ContextPanel } from './ContextPanel'
 import { workbenchHost } from './host'
 import { UnifiedTree } from './sidebar/UnifiedTree'
 import { getSlotView, registerSlotView } from './slot-registry'
 import { StatusBar } from './StatusBar'
-import { AiChatPanel } from './views/AiChatPanel'
 import { Explorer } from './views/Explorer'
 import { DataPanelView, TasksPanelView } from './views/left'
 import { ShelfTray } from './views/Shelf'
@@ -48,6 +48,20 @@ function asComponent(Component: ComponentType): ComponentType {
 function ChatsPanel(): JSX.Element {
   const { comms } = workbenchHost()
   return <comms.ChatsPanel />
+}
+
+// Loaded on demand: the AI panel drags the brain/WebLLM stack, which must
+// stay off the core barrel's static graph (the reason the /ai subpath exists).
+const LazyAiChatPanel = lazy(() =>
+  import('./views/AiChatPanel').then((m) => ({ default: m.AiChatPanel }))
+)
+
+function AiChatPanel(): JSX.Element {
+  return (
+    <Suspense fallback={null}>
+      <LazyAiChatPanel />
+    </Suspense>
+  )
 }
 
 /**
