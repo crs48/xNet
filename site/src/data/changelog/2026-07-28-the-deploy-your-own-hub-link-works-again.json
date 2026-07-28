@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-28-the-deploy-your-own-hub-link-works-again",
+  "date": "July 28, 2026",
+  "title": "The Deploy your own hub link works again",
+  "summary": "The Railway deploy button and README link now point to Railway's new deploy URL; the old template URL had started returning 404.",
+  "highlights": [],
+  "tags": ["platform"]
+}
