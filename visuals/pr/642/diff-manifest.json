@@ -99,7 +99,7 @@
       "label": "CRM",
       "file": "routes/crm.png",
       "status": "changed",
-      "ssim": 0.979034,
+      "ssim": 0.979063,
       "before": "before/routes/crm.png",
       "after": "routes/crm.png",
       "diff": "diff/routes/crm.png"
@@ -109,7 +109,7 @@
       "label": "Discover",
       "file": "routes/discover.png",
       "status": "changed",
-      "ssim": 0.982216,
+      "ssim": 0.982245,
       "before": "before/routes/discover.png",
       "after": "routes/discover.png",
       "diff": "diff/routes/discover.png"
@@ -119,7 +119,7 @@
       "label": "Home",
       "file": "routes/home.png",
       "status": "changed",
-      "ssim": 0.981598,
+      "ssim": 0.981627,
       "before": "before/routes/home.png",
       "after": "routes/home.png",
       "diff": "diff/routes/home.png"
@@ -129,7 +129,7 @@
       "label": "Settings",
       "file": "routes/settings.png",
       "status": "changed",
-      "ssim": 0.965369,
+      "ssim": 0.9653,
       "before": "before/routes/settings.png",
       "after": "routes/settings.png",
       "diff": "diff/routes/settings.png"
@@ -145,6 +145,13 @@
       "poster": "flows/chat.poster.png"
     },
     {
+      "id": "create-page",
+      "label": "Create a page and use the editor",
+      "gif": "flows/create-page.gif",
+      "mp4": "flows/create-page.mp4",
+      "poster": "flows/create-page.poster.png"
+    },
+    {
       "id": "crm-quote",
       "label": "Build a CRM quote (product + line item)",
       "gif": "flows/crm-quote.gif",
@@ -152,5 +159,5 @@
       "poster": "flows/crm-quote.poster.png"
     }
   ],
-  "changedCount": 6
+  "changedCount": 7
 }

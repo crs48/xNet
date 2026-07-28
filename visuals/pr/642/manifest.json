@@ -98,6 +98,13 @@
       "poster": "flows/chat.poster.png"
     },
     {
+      "id": "create-page",
+      "label": "Create a page and use the editor",
+      "gif": "flows/create-page.gif",
+      "mp4": "flows/create-page.mp4",
+      "poster": "flows/create-page.poster.png"
+    },
+    {
       "id": "crm-quote",
       "label": "Build a CRM quote (product + line item)",
       "gif": "flows/crm-quote.gif",
