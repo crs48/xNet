@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Blog essays read more naturally</title>
+      <link>https://xnet.fyi/changelog#2026-07-27-blog-essays-read-more-naturally</link>
+      <guid isPermaLink="false">2026-07-27-blog-essays-read-more-naturally</guid>
+      <pubDate>Tue, 28 Jul 2026 05:55:48 GMT</pubDate>
+      <description>A copy-editing pass across all twenty essays cuts an overused em-dash habit and the mirrored sentence pairs that came with it. No facts, quotes, links or arguments changed.</description>
+    </item>
+    <item>
       <title>Claude Code can now read and write your xNet workspace</title>
       <link>https://xnet.fyi/changelog#2026-07-27-claude-code-can-now-read-and-write-your-</link>
       <guid isPermaLink="false">2026-07-27-claude-code-can-now-read-and-write-your-</guid>

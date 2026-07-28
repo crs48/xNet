@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-27-blog-essays-read-more-naturally",
+      "url": "https://xnet.fyi/changelog#2026-07-27-blog-essays-read-more-naturally",
+      "title": "Blog essays read more naturally",
+      "content_text": "A copy-editing pass across all twenty essays cuts an overused em-dash habit and the mirrored sentence pairs that came with it. No facts, quotes, links or arguments changed.\n",
+      "date_published": "2026-07-28T05:55:48Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "July 27, 2026",
+        "summary": "A copy-editing pass across all twenty essays cuts an overused em-dash habit and the mirrored sentence pairs that came with it. No facts, quotes, links or arguments changed.",
+        "highlights": [],
+        "mergedAt": "2026-07-28T05:55:48Z",
+        "pr": 639,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-27-claude-code-can-now-read-and-write-your-",
       "url": "https://xnet.fyi/changelog#2026-07-27-claude-code-can-now-read-and-write-your-",
       "title": "Claude Code can now read and write your xNet workspace",
