@@ -6,6 +6,14 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Faster desktop dev startup</title>
+      <link>https://xnet.fyi/changelog#2026-07-27-faster-desktop-dev-startup</link>
+      <guid isPermaLink="false">2026-07-27-faster-desktop-dev-startup</guid>
+      <pubDate>Tue, 28 Jul 2026 01:54:50 GMT</pubDate>
+      <description>The desktop app no longer rebuilds native modules on every start, only when they actually change.
+- Warm starts skip a ~20s rebuild</description>
+    </item>
+    <item>
       <title>Agent instructions are now one tree</title>
       <link>https://xnet.fyi/changelog#2026-07-27-agent-instructions-are-now-one-tree</link>
       <guid isPermaLink="false">2026-07-27-agent-instructions-are-now-one-tree</guid>
