@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "playwright-electron": {
+      "type": "stdio",
+      "command": "bunx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--cdp-endpoint",
+        "http://127.0.0.1:9223",
+        "--cdp-timeout",
+        "5000"
+      ]
+    }
+  }
+}

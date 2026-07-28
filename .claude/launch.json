@@ -74,10 +74,25 @@
       "port": 4444
     },
     {
-      "name": "electron (hub + app)",
+      "name": "electron app + hub (hub :4444)",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "xnet-desktop", "dev"],
       "port": 4444
+    },
+    {
+      "name": "electron-renderer (vite 5177)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "xnet-desktop", "dev:electron"],
+      "port": 5177
+    },
+    {
+      "name": "electron-renderer-worktree (vite 5178)",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "VITE_PORT=5178 ELECTRON_CDP_PORT=9225 exec pnpm --filter xnet-desktop dev:electron"
+      ],
+      "port": 5178
     },
     {
       "name": "expo (mobile)",

@@ -50,11 +50,11 @@ much of the fix already exists?**
 
 - **The CDP port is already open.** `apps/electron/src/main/index.ts:29-33` sets
   `remote-debugging-port` to `ELECTRON_CDP_PORT || '9223'` whenever
-  `NODE_ENV === 'development'`. The comment even says *"for Playwright/CDP
-  testing."*
+  `NODE_ENV === 'development'`. The comment even says _"for Playwright/CDP
+  testing."_
 - **The MCP server that would use it is documented but not installed.**
-  AGENTS.md describes `playwright-electron` (*"Launch Electron first with:
-  --remote-debugging-port=9223"*). The actual config registers one Playwright
+  AGENTS.md describes `playwright-electron` (_"Launch Electron first with:
+  --remote-debugging-port=9223"_). The actual config registers one Playwright
   server: `bunx @playwright/mcp@latest`, no `--cdp-endpoint`. The tool the
   instructions tell the agent to use does not exist.
 - **The launch entries are lopsided 12:1, and the one Electron entry is wrong.**
@@ -69,7 +69,7 @@ much of the fix already exists?**
   is paid whether or not anything changed.
 - **The renderer cannot run in a browser, by construction.** The preload exposes
   **10 `contextBridge.exposeInMainWorld` namespaces**; the renderer calls them at
-  ~76 sites and guards exactly **one** with optional chaining. This is a *correct*
+  ~76 sites and guards exactly **one** with optional chaining. This is a _correct_
   design for a native app — and the reason "just open it in a tab" was never
   going to work.
 - **The `_electron.launch()` harness already exists and is CI-gated.**
@@ -86,21 +86,21 @@ much of the fix already exists?**
 
 ### The loop, component by component
 
-| Piece | Status | Evidence |
-| --- | --- | --- |
-| CDP port in dev | ✅ **Shipped** | `apps/electron/src/main/index.ts:29-33`, default `9223` |
-| Renderer dev server | ✅ Shipped | `electron.vite.config.ts` → `VITE_PORT \|\| 5177` |
-| CSP stripped in dev "for browser testing" | ✅ Shipped | `stripCspInDev()` plugin, `electron.vite.config.ts` |
-| `_electron.launch()` e2e | ✅ Shipped | `tests/e2e/src/electron-smoke.spec.ts`, `packaged-smoke.spec.ts` |
-| Electron CI lane | ✅ Shipped | `ci.yml` → `electron-e2e` job, xvfb, `--fail-on-flaky-tests` |
-| Parity guard | ✅ Shipped | `scripts/check-electron-parity.mjs` (route parity, kernel pin, fork drift) |
-| Embedded Storybook | ✅ Shipped | `main/storybook-ipc.ts` + `xnetStorybook` preload global |
-| Agent bridge in main | ✅ Shipped | `main/agent-bridge-manager.ts` → `:31416` (0194/0391) |
-| **`playwright-electron` MCP** | ❌ **Documented, not installed** | AGENTS.md:182-184 vs. actual config |
-| **Renderer launch entry** | ❌ **Wrong port** | `launch.json` electron → 4444 (hub), renderer is 5177 |
-| **Rebuild caching** | ❌ **Absent** | `@electron/rebuild -f` on every `dev:electron` |
-| **Two-instance CDP ports** | ❌ **Collide** | `dev:both` sets `VITE_PORT` but never `ELECTRON_CDP_PORT` |
-| **Any Electron skill** | ❌ Absent | `.claude/skills/` has 3 skills, none Electron |
+| Piece                                     | Status                           | Evidence                                                                   |
+| ----------------------------------------- | -------------------------------- | -------------------------------------------------------------------------- |
+| CDP port in dev                           | ✅ **Shipped**                   | `apps/electron/src/main/index.ts:29-33`, default `9223`                    |
+| Renderer dev server                       | ✅ Shipped                       | `electron.vite.config.ts` → `VITE_PORT \|\| 5177`                          |
+| CSP stripped in dev "for browser testing" | ✅ Shipped                       | `stripCspInDev()` plugin, `electron.vite.config.ts`                        |
+| `_electron.launch()` e2e                  | ✅ Shipped                       | `tests/e2e/src/electron-smoke.spec.ts`, `packaged-smoke.spec.ts`           |
+| Electron CI lane                          | ✅ Shipped                       | `ci.yml` → `electron-e2e` job, xvfb, `--fail-on-flaky-tests`               |
+| Parity guard                              | ✅ Shipped                       | `scripts/check-electron-parity.mjs` (route parity, kernel pin, fork drift) |
+| Embedded Storybook                        | ✅ Shipped                       | `main/storybook-ipc.ts` + `xnetStorybook` preload global                   |
+| Agent bridge in main                      | ✅ Shipped                       | `main/agent-bridge-manager.ts` → `:31416` (0194/0391)                      |
+| **`playwright-electron` MCP**             | ❌ **Documented, not installed** | AGENTS.md:182-184 vs. actual config                                        |
+| **Renderer launch entry**                 | ❌ **Wrong port**                | `launch.json` electron → 4444 (hub), renderer is 5177                      |
+| **Rebuild caching**                       | ❌ **Absent**                    | `@electron/rebuild -f` on every `dev:electron`                             |
+| **Two-instance CDP ports**                | ❌ **Collide**                   | `dev:both` sets `VITE_PORT` but never `ELECTRON_CDP_PORT`                  |
+| **Any Electron skill**                    | ❌ Absent                        | `.claude/skills/` has 3 skills, none Electron                              |
 
 ### The four wiring defects, precisely
 
@@ -164,17 +164,17 @@ branch, yet the rebuild runs both times.
 The preload exposes ten separate global namespaces, and the renderer leans on
 them hard:
 
-| Global | Renderer call sites | Guarded? |
-| --- | ---: | --- |
-| `window.xnetBSM` | 31 | ❌ |
-| `window.xnetNodes` | 22 | ❌ |
-| `window.xnetSocialImport` | 8 | ❌ |
-| `window.xnet` | 6 | ❌ |
-| `window.xnetTunnel` | 4 | ❌ |
-| `window.xnetStorybook` | 2 | ❌ |
-| `window.xnetMeetings` | 2 | ❌ |
-| `window.xnetLocalAPI` | 1 | ✅ `?.` |
-| `window.xnetServices`, `window.xnetAgentBridge` | — | ❌ |
+| Global                                          | Renderer call sites | Guarded? |
+| ----------------------------------------------- | ------------------: | -------- |
+| `window.xnetBSM`                                |                  31 | ❌       |
+| `window.xnetNodes`                              |                  22 | ❌       |
+| `window.xnetSocialImport`                       |                   8 | ❌       |
+| `window.xnet`                                   |                   6 | ❌       |
+| `window.xnetTunnel`                             |                   4 | ❌       |
+| `window.xnetStorybook`                          |                   2 | ❌       |
+| `window.xnetMeetings`                           |                   2 | ❌       |
+| `window.xnetLocalAPI`                           |                   1 | ✅ `?.`  |
+| `window.xnetServices`, `window.xnetAgentBridge` |                   — | ❌       |
 
 `main.tsx:830` calls `await window.xnet.getProfile()` during boot with no guard.
 In a plain browser tab that is a `TypeError` before first paint.
@@ -183,7 +183,7 @@ In a plain browser tab that is a `TypeError` before first paint.
 > This is not a bug. A desktop app whose renderer depends on its preload is
 > correct. It just means the shortcut everyone reaches for — "serve the renderer
 > and point a browser at it" — is structurally unavailable, and the fix has to
-> come from driving the *real* app instead.
+> come from driving the _real_ app instead.
 
 ---
 
@@ -216,11 +216,11 @@ a bare `firstWindow` timeout.
 
 Verified via the GitHub API on **2026-07-27**:
 
-| Server | ⭐ | License | Last push | Verdict |
-| --- | ---: | --- | --- | --- |
-| [microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp) | 35,542 | Apache-2.0 | 2026-07-25 | ✅ **Use this** |
-| [kanishka-namdeo/electron-mcp](https://github.com/kanishka-namdeo/electron-mcp) | **1** | MIT | 2026-02-28 | 🛑 Reject |
-| [lazy-dinosaur/electron-test-mcp](https://github.com/lazy-dinosaur/electron-test-mcp) | **0** | **None** | 2026-02-01 | 🛑 Reject |
+| Server                                                                                |     ⭐ | License    | Last push  | Verdict         |
+| ------------------------------------------------------------------------------------- | -----: | ---------- | ---------- | --------------- |
+| [microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp)               | 35,542 | Apache-2.0 | 2026-07-25 | ✅ **Use this** |
+| [kanishka-namdeo/electron-mcp](https://github.com/kanishka-namdeo/electron-mcp)       |  **1** | MIT        | 2026-02-28 | 🛑 Reject       |
+| [lazy-dinosaur/electron-test-mcp](https://github.com/lazy-dinosaur/electron-test-mcp) |  **0** | **None**   | 2026-02-01 | 🛑 Reject       |
 
 > [!CAUTION]
 > **Do not install either dedicated "Electron MCP" server.** They advertise
@@ -233,12 +233,12 @@ Verified via the GitHub API on **2026-07-27**:
 
 Microsoft's `playwright-mcp` supports exactly what is needed:
 
-| Flag | Purpose |
-| --- | --- |
-| `--cdp-endpoint` | Connect to an existing Chromium over CDP |
-| `--cdp-timeout` | Connect timeout (default 30 000 ms) |
-| `--isolated` | Keep the profile in memory |
-| `--caps` | Opt into Vision / PDF / DevTools tool groups |
+| Flag             | Purpose                                      |
+| ---------------- | -------------------------------------------- |
+| `--cdp-endpoint` | Connect to an existing Chromium over CDP     |
+| `--cdp-timeout`  | Connect timeout (default 30 000 ms)          |
+| `--isolated`     | Keep the profile in memory                   |
+| `--caps`         | Opt into Vision / PDF / DevTools tool groups |
 
 Electron's renderer **is** Chromium, so `--cdp-endpoint http://127.0.0.1:9223`
 attaches to the running desktop app and every `browser_*` tool works against it —
@@ -278,13 +278,13 @@ Everything left of the dashed line already runs. The only missing element is the
 The mistake is treating "prototype in Electron" as one activity. It is three,
 with an order-of-magnitude cost difference:
 
-| Rung | Loop | Cost | Use when the change is… | Status |
-| --- | --- | --- | --- | --- |
-| **1 — Storybook** | `pnpm dev:stories` → `:6006` | seconds, HMR | pure UI: a component, a layout, a state | ✅ Exists (0403) |
-| **2 — CDP attach** | `pnpm dev` → `:9223` → MCP | one boot, then seconds | anything touching IPC, SQLite, native APIs, real data | 🚧 **Unwired** |
-| **3 — `_electron.launch()`** | Playwright spec, built app | minutes | restart durability, deep links, packaging, crash paths | ✅ Exists, CI-gated |
+| Rung                         | Loop                         | Cost                   | Use when the change is…                                | Status              |
+| ---------------------------- | ---------------------------- | ---------------------- | ------------------------------------------------------ | ------------------- |
+| **1 — Storybook**            | `pnpm dev:stories` → `:6006` | seconds, HMR           | pure UI: a component, a layout, a state                | ✅ Exists (0403)    |
+| **2 — CDP attach**           | `pnpm dev` → `:9223` → MCP   | one boot, then seconds | anything touching IPC, SQLite, native APIs, real data  | 🚧 **Unwired**      |
+| **3 — `_electron.launch()`** | Playwright spec, built app   | minutes                | restart durability, deep links, packaging, crash paths | ✅ Exists, CI-gated |
 
-Most desktop work is rung 1 or rung 2. Today the only *discoverable* option is
+Most desktop work is rung 1 or rung 2. Today the only _discoverable_ option is
 rung 3 — a full build plus a spec file — so the honest comparison an agent makes
 is "write a Playwright spec and rebuild the app" versus "open the web app," and
 the web app wins every time.
@@ -311,7 +311,7 @@ XNET_PROFILE=user2 VITE_PORT=5174 ELECTRON_CDP_PORT=9224 pnpm --filter xnet-desk
 
 Documented in a release-gates reference no agent loads, while the script an agent
 would actually reach for silently collides. Sync testing — the thing the desktop
-app is *for* — is the hardest loop to start.
+app is _for_ — is the hardest loop to start.
 
 ### 5. The embedded Storybook is an undiscovered asset
 
@@ -319,20 +319,20 @@ app is *for* — is the hardest loop to start.
 and reports `stopped | starting | ready | error` back to the renderer, which
 opens it as an in-app surface ("Open Stories" in the system menu). Combined with
 [0403](0403_[_]_MDX_VISUAL_EXPLORATIONS_ON_STORYBOOK.md)'s MDX proposal, the
-desktop app can host visual explorations *inside itself*, with the real design
+desktop app can host visual explorations _inside itself_, with the real design
 system, in the real shell. No skill mentions it exists.
 
 ---
 
 ## Options And Tradeoffs
 
-| Option | Cost | Fidelity | Verdict |
-| --- | --- | --- | --- |
-| **A. Wire CDP + fix launch.json + cache rebuild + one skill** | Small | ✅ Real app | ✅ **Recommended** |
-| **B. Browser-mode preload shim** | Medium | ⚠️ Fake | 🛑 Rejected — see below |
-| **C. Install a dedicated Electron MCP server** | Small | ✅ Real | 🛑 0★/1★, unvetted, privileged |
-| **D. Write more `_electron.launch()` specs** | High per change | ✅ Real | ➖ Right for rung 3 only |
-| **E. Keep prototyping on web, port later** | 0 | ❌ None | ➖ Today's default; the thing to fix |
+| Option                                                        | Cost            | Fidelity    | Verdict                              |
+| ------------------------------------------------------------- | --------------- | ----------- | ------------------------------------ |
+| **A. Wire CDP + fix launch.json + cache rebuild + one skill** | Small           | ✅ Real app | ✅ **Recommended**                   |
+| **B. Browser-mode preload shim**                              | Medium          | ⚠️ Fake     | 🛑 Rejected — see below              |
+| **C. Install a dedicated Electron MCP server**                | Small           | ✅ Real     | 🛑 0★/1★, unvetted, privileged       |
+| **D. Write more `_electron.launch()` specs**                  | High per change | ✅ Real     | ➖ Right for rung 3 only             |
+| **E. Keep prototyping on web, port later**                    | 0               | ❌ None     | ➖ Today's default; the thing to fix |
 
 <details>
 <summary><b>Why not B — the browser-mode preload shim</b></summary>
@@ -342,7 +342,7 @@ renderer boots in a plain tab, giving the agent its familiar browser loop.
 
 Reject it, for three reasons:
 
-1. **It recreates the web app, badly.** `apps/web` already *is* the
+1. **It recreates the web app, badly.** `apps/web` already _is_ the
    browser-native surface, and `check-electron-parity.mjs` already governs the
    relationship between them. A third surface — "the Electron renderer pretending
    to be a browser" — is a fork with no owner and no guard.
@@ -443,11 +443,7 @@ The MCP registration that unlocks rung 2 — note the existing web server stays:
     "playwright-electron": {
       "type": "stdio",
       "command": "bunx",
-      "args": [
-        "@playwright/mcp@latest",
-        "--cdp-endpoint",
-        "http://127.0.0.1:9223"
-      ]
+      "args": ["@playwright/mcp@latest", "--cdp-endpoint", "http://127.0.0.1:9223"]
     }
   }
 }
@@ -557,7 +553,7 @@ is that every click now runs through the real preload, the real IPC, and real
   desktop UI. Unknown whether the in-app surface is drivable over the same CDP
   connection.
 - **Unverified**: the actual cycle-time delta. Everything here says the loop
-  *should* get much cheaper; nothing here has measured it. Step ③ exists to make
+  _should_ get much cheaper; nothing here has measured it. Step ③ exists to make
   that claim falsifiable rather than assumed.
 
 ---
@@ -568,16 +564,16 @@ is that every click now runs through the real preload, the real IPC, and real
 
 ### Wire
 
-- [ ] Add a `playwright-electron` MCP entry with
+- [x] Add a `playwright-electron` MCP entry with
       `--cdp-endpoint http://127.0.0.1:9223`, leaving the existing `playwright`
       server untouched for web work.
-- [ ] Add `.claude/launch.json` entries for the renderer on **5177** plus a
+- [x] Add `.claude/launch.json` entries for the renderer on **5177** plus a
       worktree variant; rename the existing 4444 entry to name the hub explicitly.
-- [ ] Add `apps/electron/scripts/rebuild-if-stale.mjs` and point `dev:electron`
+- [x] Add `apps/electron/scripts/rebuild-if-stale.mjs` and point `dev:electron`
       at it; keep `deps:electron` as the forced escape hatch and keep CI forced.
-- [ ] Default `ELECTRON_CDP_PORT=9224` in `dev:user2` so `dev:both` no longer
+- [x] Default `ELECTRON_CDP_PORT=9224` in `dev:user2` so `dev:both` no longer
       collides.
-- [ ] Add a test asserting a production main bundle never calls
+- [x] Add a test asserting a production main bundle never calls
       `appendSwitch('remote-debugging-port', …)`.
 
 ### Teach
