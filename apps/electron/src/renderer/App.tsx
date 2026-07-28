@@ -10,7 +10,7 @@
 
 import type { ConnectHubRequest } from './components/ConnectHubDialog'
 import { useCommandPalette, CommandPalette } from '@xnetjs/ui'
-import { PlatformProvider } from '@xnetjs/workbench'
+import { PlatformProvider, setWorkbenchHost, Workbench } from '@xnetjs/workbench'
 import { AiChatPanel } from '@xnetjs/workbench/ai'
 import React, { useCallback, useEffect, useState } from 'react'
 import { ActionDock } from './components/ActionDock'
@@ -28,8 +28,10 @@ import { StorybookView } from './components/StorybookView'
 import { SystemMenu } from './components/SystemMenu'
 import { setPersistedHubUrl } from './lib/hub-url'
 import { useDesktopPlatformPort } from './shell/desktop-platform'
+import { registerDesktopHostedViews } from './shell/hosted-views'
 import { STORIES_ENABLED, useDocumentShell } from './shell/use-document-shell'
 import { useShellPaletteCommands } from './shell/use-shell-palette-commands'
+import { useDesktopWorkbenchHost } from './shell/workbench-host'
 
 export function App(): React.ReactElement {
   const {
@@ -105,6 +107,12 @@ export function App(): React.ReactElement {
     openMeetings: handleOpenMeetings,
     openDataWorkspace: handleOpenDataWorkspace
   })
+
+  // Unified shell (0406): mount the shared <Workbench/> chrome over the
+  // desktop host instead of the bespoke shell. Dev flag; flip with
+  //   localStorage.setItem('xnet:unified-shell', '1'); location.reload()
+  const unifiedShell = localStorage.getItem('xnet:unified-shell') === '1'
+  const desktopHost = useDesktopWorkbenchHost(platform.navigate)
 
   const paletteCommands = useShellPaletteCommands({
     canvasViewRef,
@@ -284,6 +292,30 @@ export function App(): React.ReactElement {
           <p className="text-muted-foreground">Loading xNet...</p>
         </div>
       </div>
+    )
+  }
+
+  if (unifiedShell) {
+    // Fill both registries before the first chrome render (same boot rule as
+    // web's __root): views + host, then the shared shell.
+    registerDesktopHostedViews()
+    setWorkbenchHost(desktopHost)
+    return (
+      <PlatformProvider value={platform}>
+        <div className="h-screen overflow-hidden bg-background">
+          <Workbench>
+            {shellState.kind === 'page-focus' ? (
+              <PageView docId={shellState.docId} minimalChrome />
+            ) : shellState.kind === 'database-focus' || shellState.kind === 'database-split' ? (
+              <DatabaseView docId={shellState.docId} minimalChrome />
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-ink-3">
+                Open a page or database from the explorer.
+              </div>
+            )}
+          </Workbench>
+        </div>
+      </PlatformProvider>
     )
   }
 

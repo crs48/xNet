@@ -78,12 +78,15 @@ function useChannelRows(): SidebarRowModel[] {
   const { comms } = workbenchHost()
   const { channelLabel } = comms
   const { channels } = comms.useChannels()
-  const { me } = comms.useComms()
+  // Maybe, not throw: a host without a comms layer (desktop today) still
+  // renders the sidebar — it just has no channel rows.
+  const me = comms.useCommsMaybe()?.me
   const profiles = comms.useProfiles()
   const { items, state } = comms.useInbox()
   const mutedRowIds = useWorkbench((s) => s.mutedRowIds)
 
   return useMemo(() => {
+    if (!me) return []
     // Same unread rule the ChatsPanel uses, so badge parity is exact.
     const now = Date.now()
     const unreadFor = (channelId: string) =>
@@ -100,7 +103,7 @@ function useChannelRows(): SidebarRowModel[] {
       updatedAt: channel.updatedAt ?? channel.createdAt ?? 0,
       muted: mutedRowIds.includes(channel.id)
     }))
-  }, [channels, me.did, profiles, items, state, mutedRowIds])
+  }, [channels, me, channelLabel, profiles, items, state, mutedRowIds])
 }
 
 /** Workspace people — manual (alphabetical) order. */
