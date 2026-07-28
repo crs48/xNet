@@ -592,7 +592,7 @@ is that every click now runs through the real preload, the real IPC, and real
 ### Prove
 
 - [ ] Pick one real desktop feature and build it rung-2-first, end to end.
-- [ ] Record `pnpm dev` wall-clock before and after the rebuild stamp, warm and
+- [x] Record `pnpm dev` wall-clock before and after the rebuild stamp, warm and
       cold.
 - [ ] Record the number of agent turns to a working prototype, desktop versus the
       last comparable web-first feature.
@@ -601,27 +601,87 @@ is that every click now runs through the real preload, the real IPC, and real
 
 ## Validation Checklist
 
-- [ ] With the app running, `browser_snapshot` through `playwright-electron`
+- [x] With the app running, `browser_snapshot` through `playwright-electron`
       returns the **desktop** accessibility tree, not a blank page.
-- [ ] A click driven over CDP creates a node that survives an app restart —
+- [x] A click driven over CDP creates a node that survives an app restart —
       proving the write went through real IPC to real `better-sqlite3`, not a
       renderer-only stub.
 - [ ] `preview_start {name: "electron-renderer (vite 5177)"}` opens the renderer
       in the Browser pane and the failure it shows is a **named preload error**,
       not an unexplained `TypeError` — confirming the honest-failure posture.
-- [ ] Second consecutive `pnpm dev` skips the native rebuild and prints what it
+- [x] Second consecutive `pnpm dev` skips the native rebuild and prints what it
       skipped; touching `pnpm-lock.yaml` makes it rebuild again.
-- [ ] `pnpm dev:both` brings up two instances on **9223 and 9224**, and the agent
+- [x] `pnpm dev:both` brings up two instances on **9223 and 9224**, and the agent
       can attach to each independently.
-- [ ] A production build contains no `remote-debugging-port` switch — asserted by
+- [x] A production build contains no `remote-debugging-port` switch — asserted by
       test, not by inspection.
-- [ ] `pnpm check:electron-parity` still passes; none of this changed the
+- [x] `pnpm check:electron-parity` still passes; none of this changed the
       web/desktop route contract.
-- [ ] The measured cycle-time delta is recorded in this document before it is
+- [x] The measured cycle-time delta is recorded in this document before it is
       checked off. **An unmeasured improvement is not an improvement**
       ([0402](0402_[_]_SKILLS_ALREADY_LOADED_INSTALL_OR_VENDOR.md)).
 
 ---
+
+## Measured Results
+
+Recorded at implementation time, per the validation checklist.
+
+### The rebuild tax
+
+| Path                    | Time                            |
+| ----------------------- | ------------------------------- |
+| Cold (no stamp)         | **20s**                         |
+| Warm (stamp matches)    | **0s**                          |
+| After a lockfile change | **17s** — correctly invalidated |
+
+The warm path is the common one, so the ~20s comes off every dev start after the
+first. Confirmed in a real `pnpm dev:electron` run, which printed
+`native modules current … — skipping rebuild`.
+
+### Rung 2, end to end
+
+Attached to the running app with Playwright's `connectOverCDP` — the same
+mechanism the `playwright-electron` MCP server uses — and drove it:
+
+| Check                    | Result                                                                                                                                                            |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CDP endpoint             | `Chrome/130.0.6723.191` (Electron 33 = Chromium 130)                                                                                                              |
+| Target list              | the real renderer at `http://localhost:5177/`                                                                                                                     |
+| Accessibility snapshot   | full desktop tree — canvas, dock, system menu                                                                                                                     |
+| `window.__xnetNodeStore` | wired                                                                                                                                                             |
+| Preload globals          | **all 10** — `xnet`, `xnetAgentBridge`, `xnetBSM`, `xnetLocalAPI`, `xnetMeetings`, `xnetNodes`, `xnetServices`, `xnetSocialImport`, `xnetStorybook`, `xnetTunnel` |
+
+**Durability.** A real UI click on `Page (P)` took the canvas from 1 page node to 2. After a full app restart, both node ids were still present — so the write went
+renderer → IPC → data-process → `better-sqlite3`, not a renderer-only stub.
+
+**Two instances.** `dev:electron` and `dev:user2` came up on **9223 and 9224**
+with renderers on 5177 and 5174, and **zero** `Address already in use` errors.
+
+`pnpm check:electron-parity` still passes (12 covered, 18 waived, 8 pre-existing
+warnings).
+
+### The stale-instance hazard, observed
+
+The risk section's warning — _"a stale Electron process may hold 9223 and the
+agent drives the wrong window without noticing"_ — happened during this work. A
+`pkill` that missed left the old app holding the port; the new one logged
+`bind() failed: Address already in use` and **the agent kept reading the old
+window's state**. Confirm which instance you are attached to, and check the log
+for a bind error after any restart.
+
+### Not done
+
+- **Validation: "the failure the Browser pane shows is a named preload error."**
+  It is not — the renderer at `:5177` loads, registers schemas, then stops with
+  an **empty root and no surfaced error**. The named-error stub belongs to
+  Option B, which this exploration _rejected_; it is not in the Implementation
+  Checklist. The validation item and the implementation checklist disagree, and
+  the checklist is the one that was built. Adding
+  `ElectronOnlyCapabilityError` stubs remains a defensible follow-up.
+- **"Build one real feature rung-2-first"** and **"record agent turns, desktop
+  versus web-first"** are follow-up activities, not changes this PR can contain.
+  The loop they would measure is now wired and proven.
 
 ## References
 

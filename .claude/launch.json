@@ -83,7 +83,8 @@
       "name": "electron-renderer (vite 5177)",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "xnet-desktop", "dev:electron"],
-      "port": 5177
+      "port": 5177,
+      "autoPort": false
     },
     {
       "name": "electron-renderer-worktree (vite 5178)",
@@ -92,7 +93,8 @@
         "-c",
         "VITE_PORT=5178 ELECTRON_CDP_PORT=9225 exec pnpm --filter xnet-desktop dev:electron"
       ],
-      "port": 5178
+      "port": 5178,
+      "autoPort": false
     },
     {
       "name": "expo (mobile)",
