@@ -551,13 +551,13 @@ mkdir -p .agents && ln -s ../.claude/skills .agents/skills
 
 - [x] **Commit 1 — move**: relocate every section per the migration table into
       its destination file. Nothing deleted yet.
-- [ ] **Commit 2 — delete**: remove the moved sections from `AGENTS.md`;
+- [x] **Commit 2 — delete**: remove the moved sections from `AGENTS.md`;
       de-duplicate the brand rule to one copy; drop the `graphify` block.
-- [ ] Replace `CLAUDE.md` with `@AGENTS.md` plus the Claude-only block.
-- [ ] Add the **Skills index** table near the top of `AGENTS.md` — second, right
+- [x] Replace `CLAUDE.md` with `@AGENTS.md` plus the Claude-only block.
+- [x] Add the **Skills index** table near the top of `AGENTS.md` — second, right
       after the purpose line.
 - [ ] Run `/doctor` on the pruned file and apply the trims it proposes.
-- [ ] Confirm root `AGENTS.md` ≤ 200 lines.
+- [x] Confirm root `AGENTS.md` ≤ 200 lines.
 
 ### Phase 2 — surfaces
 

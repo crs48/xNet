@@ -26,7 +26,7 @@ CDP.
 | Port | What |
 | --- | --- |
 | 5177 | renderer (Vite) — `electron.vite.config.ts` |
-| 9223 | CDP, dev only — `src/main/index.ts` |
+| 9223 | CDP, dev only — `src/main/index.ts` sets `--remote-debugging-port` |
 | 9224 | CDP for the `user2` profile |
 | 4444 | hub |
 

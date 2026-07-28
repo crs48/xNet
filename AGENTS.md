@@ -1,412 +1,162 @@
-# AGENTS.md - Coding Agent Guidelines
+# AGENTS.md — xNet coding agent guidelines
 
-Reference for AI coding agents working in the xNet monorepo.
+xNet is a local-first, CRDT-backed workspace: your data, synced everywhere,
+owned by you. This file is loaded every session — keep it small. Surface-specific
+conventions live in nested `AGENTS.md` files that load only when you read files
+there.
 
-## Build & Test Commands
+## Skills
+
+Invoke with the Skill tool. Repo-local skills live in `.claude/skills/`
+(`.agents/skills` symlinks to it for Codex and Copilot).
+
+| Skill | Read it when |
+| --- | --- |
+| `explore` | Researching a topic into `docs/explorations/` |
+| `implement` | Executing an exploration's checklist |
+| `changeset` | You edited a publishable `packages/*` library |
+| `visual-exploration` | An exploration is about UI and prose cannot show it |
+
+## Nested instructions
+
+| Path | Covers |
+| --- | --- |
+| `apps/web/AGENTS.md` | Playwright, test auth bypass, viewport |
+| `apps/electron/AGENTS.md` | Prototyping ladder, ports, preload |
+| `apps/expo/AGENTS.md` | Expo/EAS, no Node APIs |
+| `packages/AGENTS.md` | Barrels, changesets, `TaggedError`, seed |
+| `packages/hub/AGENTS.md` | Roles, wire format, authorization |
+
+<!-- Nested files are NOT re-injected after /compact; anything that must hold
+     for a whole session belongs in this file, not a nested one. -->
+
+## Build & test
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Run all tests (~2400 tests)
-pnpm test
-
-# Run tests for a single package
-pnpm --filter @xnetjs/sync test
-pnpm --filter @xnetjs/data test
-pnpm --filter @xnetjs/canvas test
-
-# Run a single test file
-pnpm --filter @xnetjs/sync vitest run src/clock.test.ts
-
-# Run tests matching a pattern
-pnpm --filter @xnetjs/data vitest run -t "NodeStore"
-
-# Watch mode for a package
-pnpm --filter @xnetjs/sync test:watch
-
-# Type checking
-pnpm typecheck
-
-# Lint
+pnpm install                      # install
+pnpm build                        # build all packages
+pnpm test                         # all tests (~2400)
+pnpm --filter @xnetjs/data test   # one package
+pnpm typecheck                    # turbo run typecheck
 pnpm lint
-
-# Run Electron app (starts signaling server + app)
-cd apps/electron && pnpm dev
-
-# Run two Electron instances for sync testing
-cd apps/electron && pnpm dev:both
 ```
 
-## Project Structure
+Vitest resolves the **root** config: `pnpm --filter <pkg> test` runs every
+project. Target one with `pnpm exec vitest run --project <name> <path>`.
 
-```
-packages/           # Core libraries (@xnetjs/*)
-  crypto/           # BLAKE3, Ed25519, XChaCha20
-  identity/         # DID:key, UCAN tokens
-  storage/          # SQLite adapter
-  sync/             # Lamport clocks, Change<T>, Yjs security
-  data/             # Schema system, NodeStore, 15 property types
-  react/            # useQuery, useMutate, useNode hooks
-  canvas/           # Infinite canvas with spatial indexing
-  editor/           # TipTap rich text editor
-  devtools/         # Debug panels (7 panels)
-apps/
-  electron/         # Desktop app (full features)
-  web/              # PWA (pages only)
-```
+## Project structure
 
-## Code Style
+`packages/*` are the libraries, `apps/*` the surfaces (`web`, `electron`,
+`expo`, `cloud`, `demos`), `site/` the Astro marketing + docs site, `tests/*`
+the e2e and reliability suites. `site/` installs with `--ignore-workspace` — it
+cannot import `@xnetjs/*`.
 
-### Imports
+## Spelling the brand: `xNet`
 
-1. Type-only imports first: `import type { Foo } from './types'`
-2. External packages: `import { useState } from 'react'`
-3. Internal packages: `import { hash } from '@xnetjs/crypto'`
-4. Local relative imports: `import { helper } from './utils'`
+Lowercase x, uppercase N — in **everything a human reads**: prose, doc titles,
+code comments, UI strings, CLI help, package descriptions, commit messages.
+Never `XNet`, `Xnet` or `XNET`. Sentence-initial is still `xNet`; recast the
+sentence rather than capitalising the mark.
 
-### Naming Conventions
+Lowercase everywhere a machine reads: `@xnetjs/*`, the `xnet` bin, `xnet://`
+URIs, file and database names.
 
-| Category      | Convention            | Example                          |
-| ------------- | --------------------- | -------------------------------- |
-| Functions     | camelCase, verb-first | `createNode`, `verifySignature`  |
-| Types         | PascalCase            | `NodeStore`, `SyncStatus`        |
-| Constants     | SCREAMING_SNAKE       | `MAX_UPDATE_SIZE`, `DEFAULT_TTL` |
-| Classes       | PascalCase            | `SpatialIndex`, `Viewport`       |
-| Type params   | Single uppercase      | `T`, `P`                         |
-| Unused params | Prefix with `_`       | `_event`, `_unused`              |
+| Where | Form |
+| --- | --- |
+| Prose, comments, UI strings, commits | `xNet` |
+| npm packages, bins, URLs, DB/file names, env prefixes | all lowercase |
+| Identifiers already named `XNet*` | leave as-is (`XNetProvider`, `useXNet`) |
+| Mermaid node ids, `SCREAMING_SNAKE` constants | leave as-is (`XNET_HUB_URL`) |
 
-### Spelling the brand: `xNet`
+**Existing identifiers keep their casing** — renaming one is a breaking change,
+not a copy fix. The line is identifier vs copy, and it does not follow file
+type: code samples inside markdown are code. When sweeping, match on a word
+boundary (`\bXNet\b`) and skip fenced code blocks — `docs/plans/` and
+`docs/explorations/` quote an `XNet` SDK class that an unbounded replace
+silently corrupts.
 
-The product is **xNet** — lowercase x, uppercase N. Never `XNet`, `Xnet` or
-`XNET` in anything a human reads.
+## Code style
 
-| Where                                                  | Form            | Example                                              |
-| ------------------------------------------------------ | --------------- | ---------------------------------------------------- |
-| Prose — docs, comments, UI strings, titles, commits     | `xNet`          | "xNet syncs save-file-grade data", `'xNet Cloud'`     |
-| npm packages, bins, URLs, DB/file names, env prefixes   | all lowercase   | `@xnetjs/data`, `xnet mcp serve`, `xnet://`, `xnet.db` |
-| TypeScript/Swift identifiers already named `XNet*`      | leave as-is     | `XNetProvider`, `useXNet`, `XNetKit`, `XNetClient`    |
-| Mermaid node ids, SCREAMING_SNAKE constants             | leave as-is     | `subgraph XNet["xNet Core"]`, `XNET_HUB_URL`         |
-
-Sentence-initial is still `xNet` — the lowercase x is part of the mark, so
-rewrite the sentence rather than capitalising it.
-
-The split is **identifier vs copy**, not file type: a code sample inside a
-markdown doc is still code. When renaming, only replace `XNet` on a word
-boundary (`\bXNet\b`) — an unbounded find-and-replace corrupts `XNetProvider`
-and the `XNet` SDK class quoted in `docs/plans/` and `docs/explorations/`.
-
-### TypeScript
-
-- Strict mode enabled
-- Prefer `type` over `interface` for object shapes
-- Use explicit return types on exported functions
-- Use template literal types: `namespace: \`xnet://${string}/\``
-- No `any` without justification (use `unknown` instead)
-
-### Exports
-
-- Named exports only (no default exports)
-- Barrel files (index.ts) re-export from internal modules
-- Export types inline: `export { fn, type FnResult }`
-- Factory functions for classes: `createFoo()` alongside `class Foo`
-
-### Comments
-
-File-level JSDoc at top:
-
-```typescript
-/**
- * @xnetjs/sync - Unified sync primitives for xNet
- */
-```
-
-Section dividers:
-
-```typescript
-// ─── Section Name ────────────────────────────────────────
-```
-
-Function docs with examples:
-
-```typescript
-/**
- * Create a signed envelope for a Yjs update.
- * @example
- * const envelope = signYjsUpdate(update, did, key, clientId)
- */
-```
-
-### Error Handling
-
-- Return `{ valid: boolean, errors: [] }` for validation (not exceptions)
-- Try-catch with type narrowing: `err instanceof Error ? err : new Error(String(err))`
-- Early returns for edge cases
-- Boolean returns for simple success/failure
-
-### React Patterns
-
-- Return typed objects from hooks (not tuples)
-- Use refs for values accessed in callbacks (avoid stale closures)
-- Cleanup functions in useEffect returns
-- Debug logging via localStorage flag: `localStorage.getItem('xnet:sync:debug')`
+- **Imports**: named over default; type-only imports use `import type`.
+- **Naming**: `camelCase` values, `PascalCase` types and components,
+  `SCREAMING_SNAKE` consts.
+- **TypeScript**: no `any` in new code; prefer inference over annotation.
+- **Exports**: see `packages/AGENTS.md` for the sub-barrel policy.
+- **Comments**: match the surrounding density. Explain _why_, not _what_.
+- **React**: hooks at the top, no conditional hooks, prefer composition.
+- **Styling**: prefer Tailwind over custom CSS.
+- **Errors**: a `catch`, default, or coercion that returns a value callers
+  cannot distinguish from success is a bug, not a guard. "Absent" and
+  "unreadable" must be different values; a truncated run is not a completed one.
+  Prefer a loud, typed failure over a plausible-looking normal state.
 
 ## Testing
 
-Tests use Vitest with this structure:
+Unit tests for core packages are required. Do not write UI tests — verify UI by
+driving the real app (see the surface files). Any new Playwright spec in
+`tests/e2e/src/` must be referenced by a workflow or a documented gate script;
+orphans rot silently.
 
-```typescript
-import { describe, it, expect } from 'vitest'
+Any new workflow, job, or advisory check needs a **named consumer** and a
+**decidable pass condition**. A gate that cannot go green teaches everyone to
+ignore red. Ratchet against a committed baseline instead of gating absolutes.
 
-describe('ModuleName', () => {
-  describe('functionName', () => {
-    it('should do expected behavior', () => {
-      // Arrange
-      const input = createTestData()
+## Commits
 
-      // Act
-      const result = functionName(input)
-
-      // Assert
-      expect(result).toBe(expected)
-    })
-  })
-})
-```
-
-# Playwright MCP Usage Guide
-
-- **playwright-electron**: Connects to existing Electron/Chromium instance via CDP.
-  Launch Electron first with: --remote-debugging-port=9223
-  Use when: Automating desktop Electron apps.
-
-- **playwright-web**: Auto-launches a new browser (default Chromium).
-  Use when: Web apps, websites.
-  Do NOT add --cdp-endpoint.
-
-### Key tools
-
-- `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_take_screenshot`
-- `browser_console_messages` - check for JS errors, React warnings, unhandled rejections
-
-### Codex + Playwright in OpenCode
-
-- Codex agents can use Playwright MCP directly via OpenCode tools (`playwright_browser_*` / `playwright-web_*`).
-- For web testing, prefer `playwright-web` and save screenshots/artifacts to `tmp/playwright/`.
-- Recommended sequence for Codex-driven checks: navigate -> snapshot -> interact -> screenshot -> console messages.
-- If MCP bridge is flaky in-session, use Playwright CLI as fallback for verification:
-
-```bash
-# Start app
-pnpm --filter xnet-web dev
-
-# Run focused e2e
-pnpm --filter @xnetjs/e2e-tests exec playwright test src/pages-crud.spec.ts
-```
-
-- Always apply test auth bypass for browser automation before asserting app flows.
-
-### Test auth bypass requirements
-
-- Browser automation cannot complete real WebAuthn/passkey prompts, so tests must opt into bypass mode first.
-- For Playwright test files, call `setupTestAuth(page)` before any app assertions or interactions.
-- For MCP/manual browser runs, set bypass before app initialization:
-
-```javascript
-localStorage.setItem('xnet:test:bypass', 'true')
-location.reload()
-```
-
-- After bypass is enabled, still advance onboarding UI if shown (`Get started with Touch ID` -> `Create your first page`) before asserting editor/page states.
-- Treat any assertion made before bypass/onboarding completion as invalid for auth-sensitive flows.
-
-### Workflow
-
-navigate → snapshot (accessibility tree) → interact → screenshot → check console.
-Enable sync debug logs: `localStorage.setItem('xnet:sync:debug', 'true')`
-
-### Test Authentication Bypass
-
-**CRITICAL: All Playwright tests MUST use test bypass mode.** The app requires WebAuthn/passkey authentication, which is not available in automated browsers.
-
-```typescript
-import { setupTestAuth } from '../helpers/test-auth'
-
-test('my test', async ({ page }) => {
-  await setupTestAuth(page) // Enables bypass and waits for auth
-  // Now interact with authenticated app
-})
-```
-
-**How it works:**
-
-1. Sets `localStorage.setItem('xnet:test:bypass', 'true')` before page load
-2. Identity manager detects flag and creates deterministic test identity
-3. No WebAuthn prompt, instant authentication
-
-**Manual testing with bypass:**
-
-```javascript
-// In browser console before loading app:
-localStorage.setItem('xnet:test:bypass', 'true')
-// Then reload page - app will skip Touch ID
-```
-
-**IMPORTANT: Always kill dev servers when done.** After finishing any Playwright testing or dev server usage, shut down ALL background processes before ending:
-
-```bash
-# Kill servers on known ports
-lsof -ti:5177,4444,3000,8080 2>/dev/null | xargs kill -9 2>/dev/null
-# Kill by process name
-pkill -f "vite" 2>/dev/null; pkill -f "electron" 2>/dev/null; pkill -f "signaling" 2>/dev/null
-# Verify nothing is left running
-lsof -ti:5177,4444,3000,8080 2>/dev/null || echo "All ports clear"
-```
-
-Never leave background servers running between tasks or at end of session.
-
-## Git Hooks (Pre-commit Quality Gates)
-
-This repo uses **husky** for git hooks. They run automatically on every commit/push.
-
-### What Runs on Every Commit (~10-15s)
-
-| Hook       | What Runs                                                               | Time   |
-| ---------- | ----------------------------------------------------------------------- | ------ |
-| Pre-commit | `graphify` refreshes and stages tracked graph artifacts when applicable | varies |
-| Pre-commit | `lint-staged` (eslint --fix + prettier + vitest related)                | 5-8s   |
-| Pre-commit | `turbo typecheck --affected`                                            | 3-5s   |
-| Pre-commit | `vitest run --changed HEAD --passWithNoTests`                           | 5-8s   |
-| Commit-msg | `commitlint` (conventional commits)                                     | <1s    |
-
-### What Runs on Every Push (~30s)
-
-| Hook     | What Runs                     | Time |
-| -------- | ----------------------------- | ---- |
-| Pre-push | `pnpm typecheck && pnpm test` | ~30s |
-
-### Commit Message Format
-
-Commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
+Conventional Commits, enforced by commitlint: `feat:` → minor, `fix:`/`perf:` →
+patch, `feat!:` / `BREAKING CHANGE:` → major.
 
 ```
-type(scope): description
-
-# Examples:
 feat(sync): add peer scoring for Yjs updates
 fix(data): handle null schema in NodeStore
-refactor(canvas): extract spatial index to separate module
-test(identity): add WebAuthn emulator tests
 docs(exploration): add pre-commit quality gates plan
-ci: harden CI with frozen-lockfile
-chore: update dependencies
 ```
 
-### Bypassing Hooks (Emergency Only)
+Hooks run `lint-staged`, `turbo typecheck --affected` and changed-file tests on
+commit, and `pnpm typecheck && pnpm test` on push. **Never use `--no-verify` to
+bypass a failure your change caused** — fix it. A known-unrelated flake is the
+only exception, and CI is still the real gate.
 
-```bash
-# Skip all hooks
-git commit --no-verify -m "fix: emergency hotfix"
-git push --no-verify
-```
+## Changelog
 
-Only use `--no-verify` when hooks are genuinely broken or blocking an emergency fix. CI will still catch issues.
-
-### If a Hook Fails
-
-- **ESLint error**: Fix the lint issue. The hook auto-fixes what it can.
-- **Type error**: Run `pnpm typecheck` to see full error. Fix the type issue.
-- **Test failure**: Run `pnpm test` to see which test failed. Fix or update the test.
-- **Commitlint error**: Reformat your commit message to `type(scope): description`.
-- **Lockfile drift**: Run `pnpm install` and stage `pnpm-lock.yaml`.
-
-## Changelog Entries (User-Facing Changes)
-
-xNet keeps a user-facing changelog (explorations 0195–0197). It surfaces on the
-website (`/changelog`), as JSON/RSS feeds, and inside the app's "What's New"
-panel.
-
-**Required — every PR must do one of two things, or it cannot merge.** A
-required CI check (`changelog-section`) fails the PR unless it either **adds a
-changelog fragment** or carries the `skip-changelog` label. The fragment is a
-small JSON file you commit in the PR (Changesets-style — it lands with the
-merge; nothing is written to `main` out of band). Add one with:
+Every PR must add a changelog fragment or carry the `skip-changelog` label — the
+`changelog-section` check enforces it. Write for end users: "Deals now sync
+after import," not `fix(schema): correct relation validation`.
 
 ```bash
 node scripts/changelog/new.mjs --title "Deals now sync after import" \
-  --summary "Importing contacts no longer creates duplicate deals." \
-  --tags crm,sync --highlight "Dedup on email"
+  --summary "Importing contacts no longer creates duplicate deals." --tags crm
 ```
 
-That writes `site/src/data/changelog/<date>-<slug>.json`; commit it. You don't
-provide the PR number — `deploy-site` fills it in from git history at deploy
-time (for the image gallery + PR link). You can also write the JSON by hand;
-`pnpm --filter site validate:changelog` enforces the shape.
+Separate from Changesets (`packages/AGENTS.md`), which targets library
+consumers.
 
-Write for end users, not engineers: "Deals now sync after import," not
-`fix(schema): correct relation validation`. For internal-only PRs (refactors,
-chores, CI), add the **`skip-changelog`** label instead — that satisfies the
-check. This is separate from the per-package Changesets developer changelog
-(`pnpm changeset`), which stays focused on library/API consumers.
+## Sync architecture
 
-## Key Constraints
+| Data type | Mechanism | Conflict resolution |
+| --- | --- | --- |
+| Rich text | Yjs CRDT | Character-level merge |
+| Structured | NodeStore | Field-level LWW (Lamport) |
 
-**DO:**
+## Key constraints
 
-- Read code before making assumptions (grep, don't guess)
-- Write unit tests for core packages
-- Use existing patterns from similar code
-- Keep changes minimal and focused
-- Prefer Tailwind over custom CSS
-- Integrate new features into the Electron app first, before bothering with Web or Expo
-- Test UI changes in Electron with Playwright after implementing (start dev server, verify it works)
-- Always kill dev servers when done testing — never leave background processes running
-- Use `Claude.json` and not any `claude.json` for config like MCP
-- Save Playwright screenshots to `tmp/playwright/` (e.g., `tmp/playwright/my-screenshot.png`)
+**Do:** read code before assuming (grep, don't guess); reuse existing patterns;
+keep changes minimal and focused; kill dev servers when done.
 
-**DON'T:**
-
-- Add features beyond what's requested
-- Write UI tests (manual testing only)
-- Use heavyweight frameworks
-- Store computed values (formula, rollup) - compute at read
-- Skip tests for core packages
-- Test electron in a browser. Only test electron with `playright-electron` MCP over CDP.
-- NEVER use `--no-verify` to bypass git hooks. If tests fail, fix them. Hooks exist to prevent broken code from being pushed.
-
-## Sync Architecture
-
-| Data Type  | Sync Mechanism | Conflict Resolution       |
-| ---------- | -------------- | ------------------------- |
-| Rich text  | Yjs CRDT       | Character-level merge     |
-| Structured | NodeStore      | Field-level LWW (Lamport) |
-
-Yjs updates are signed with Ed25519 and verified before applying.
-Rate limiting and peer scoring protect against abuse.
-
-## Package Dependencies
-
-```
-crypto → identity → storage → sync → data → react → sdk
-                                ↓
-                            network → query
-```
-
-Lower packages cannot import from higher ones.
+**Don't:** add features beyond what was requested; store computed values
+(formula, rollup — compute at read); skip tests for core packages; use
+heavyweight frameworks.
 
 ## graphify
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+This repo has a knowledge graph at `graphify-out/`.
 
-When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"` before doing anything else.
-
-Rules:
-
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- For codebase questions, run `graphify query "<question>"` when
+  `graphify-out/graph.json` exists. `graphify path "<A>" "<B>"` for
+  relationships, `graphify explain "<concept>"` for focused concepts — each
+  returns a scoped subgraph, usually much smaller than `GRAPH_REPORT.md` or raw
+  grep.
+- Dirty `graphify-out/` files are expected after hooks; not a reason to skip it.
+- Prefer `graphify-out/wiki/index.md` for broad navigation; read
+  `GRAPH_REPORT.md` only when query/path/explain don't surface enough.
+- After modifying code, run `graphify update .` (AST-only, no API cost).
