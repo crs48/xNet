@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-27-claude-code-can-now-read-and-write-your-",
+      "url": "https://xnet.fyi/changelog#2026-07-27-claude-code-can-now-read-and-write-your-",
+      "title": "Claude Code can now read and write your xNet workspace",
+      "content_text": "The desktop app's AI chat now hands your coding agent xNet's own tools, so it can search your workspace and create pages and tasks in it — not just talk about them.\n",
+      "date_published": "2026-07-28T05:53:27Z",
+      "tags": [
+        "ai"
+      ],
+      "_xnet": {
+        "date": "July 27, 2026",
+        "summary": "The desktop app's AI chat now hands your coding agent xNet's own tools, so it can search your workspace and create pages and tasks in it — not just talk about them.",
+        "highlights": [],
+        "mergedAt": "2026-07-28T05:53:27Z",
+        "pr": 638,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-27-agent-queries-return-only-the-type-you-a",
       "url": "https://xnet.fyi/changelog#2026-07-27-agent-queries-return-only-the-type-you-a",
       "title": "Agent queries return only the type you asked for",

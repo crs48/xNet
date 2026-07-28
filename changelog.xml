@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Claude Code can now read and write your xNet workspace</title>
+      <link>https://xnet.fyi/changelog#2026-07-27-claude-code-can-now-read-and-write-your-</link>
+      <guid isPermaLink="false">2026-07-27-claude-code-can-now-read-and-write-your-</guid>
+      <pubDate>Tue, 28 Jul 2026 05:53:27 GMT</pubDate>
+      <description>The desktop app's AI chat now hands your coding agent xNet's own tools, so it can search your workspace and create pages and tasks in it — not just talk about them.</description>
+    </item>
+    <item>
       <title>Agent queries return only the type you asked for</title>
       <link>https://xnet.fyi/changelog#2026-07-27-agent-queries-return-only-the-type-you-a</link>
       <guid isPermaLink="false">2026-07-27-agent-queries-return-only-the-type-you-a</guid>
