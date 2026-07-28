@@ -303,6 +303,9 @@ importers:
       '@xnetjs/views':
         specifier: workspace:*
         version: link:../../packages/views
+      '@xnetjs/workbench':
+        specifier: workspace:*
+        version: link:../../packages/workbench
       better-sqlite3:
         specifier: ^11.0.0
         version: 11.10.0
@@ -2375,9 +2378,24 @@ importers:
 
   packages/workbench:
     dependencies:
+      '@mlc-ai/web-llm':
+        specifier: ^0.2.84
+        version: 0.2.84
+      '@xnetjs/brain':
+        specifier: workspace:*
+        version: link:../brain
+      '@xnetjs/data':
+        specifier: workspace:*
+        version: link:../data
       '@xnetjs/plugins':
         specifier: workspace:*
         version: link:../plugins
+      '@xnetjs/react':
+        specifier: workspace:*
+        version: link:../react
+      '@xnetjs/vectors':
+        specifier: workspace:*
+        version: link:../vectors
       lucide-react:
         specifier: ^0.453.0
         version: 0.453.0(react@18.3.1)

@@ -47,6 +47,7 @@
     "@xnetjs/telemetry": "workspace:*",
     "@xnetjs/ui": "workspace:*",
     "@xnetjs/views": "workspace:*",
+    "@xnetjs/workbench": "workspace:*",
     "better-sqlite3": "^11.0.0",
     "electron-updater": "^6.3.0",
     "lucide-react": "^0.400.0",

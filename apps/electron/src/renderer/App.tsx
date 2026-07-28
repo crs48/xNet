@@ -10,6 +10,7 @@
 
 import type { ConnectHubRequest } from './components/ConnectHubDialog'
 import { useCommandPalette, CommandPalette } from '@xnetjs/ui'
+import { AiChatPanel } from '@xnetjs/workbench/ai'
 import React, { useCallback, useEffect, useState } from 'react'
 import { ActionDock } from './components/ActionDock'
 import { AddSharedDialog } from './components/AddSharedDialog'
@@ -55,6 +56,7 @@ export function App(): React.ReactElement {
     handleOpenDataWorkspace,
     handleOpenMeetings,
     handleOpenStories,
+    handleOpenAssistant,
     handleInsertSavedLensAsCanvasFrame,
     handleCommandStateChange,
     handlePendingInsertConsumed
@@ -102,7 +104,8 @@ export function App(): React.ReactElement {
     handleOpenSettings,
     handleOpenSocialImport,
     handleOpenDataWorkspace,
-    handleOpenStories
+    handleOpenStories,
+    handleOpenAssistant
   })
 
   const renderOverlay = () => {
@@ -130,6 +133,21 @@ export function App(): React.ReactElement {
         <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
           <div className={overlaySurfaceClassName}>
             <StorybookView />
+          </div>
+        </div>
+      )
+    }
+
+    if (shellState.kind === 'assistant') {
+      // The web workbench's AI chat, unchanged (0406): it detects the agent
+      // bridge through window.xnetAgentBridge (#638) and auto-pairs over IPC,
+      // so on desktop Claude Code arrives with the workspace tools attached.
+      return (
+        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
+          <div className={overlaySurfaceClassName}>
+            <div className="min-h-0 w-full flex-1 overflow-hidden">
+              <AiChatPanel />
+            </div>
           </div>
         </div>
       )
@@ -266,6 +284,7 @@ export function App(): React.ReactElement {
             onOpenSettings={handleOpenSettings}
             onOpenDataWorkspace={handleOpenDataWorkspace}
             onOpenMeetings={handleOpenMeetings}
+            onOpenAssistant={handleOpenAssistant}
             onOpenSocialImport={handleOpenSocialImport}
             onOpenStories={STORIES_ENABLED ? handleOpenStories : undefined}
             onAddShared={() => {
