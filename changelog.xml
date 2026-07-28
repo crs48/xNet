@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>The Deploy your own hub link works again</title>
+      <link>https://xnet.fyi/changelog#2026-07-28-the-deploy-your-own-hub-link-works-again</link>
+      <guid isPermaLink="false">2026-07-28-the-deploy-your-own-hub-link-works-again</guid>
+      <pubDate>Tue, 28 Jul 2026 19:06:21 GMT</pubDate>
+      <description>The Railway deploy button and README link now point to Railway's new deploy URL; the old template URL had started returning 404.</description>
+    </item>
+    <item>
       <title>A refined xNet mark, now in the site header</title>
       <link>https://xnet.fyi/changelog#2026-07-28-a-refined-xnet-mark-now-in-the-site-head</link>
       <guid isPermaLink="false">2026-07-28-a-refined-xnet-mark-now-in-the-site-head</guid>

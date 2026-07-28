@@ -7685,7 +7685,7 @@ flowchart LR
 
 The fastest way to get a Hub running. No Docker, no SSH, no TLS setup.
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/xnet-hub)
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/deploy/xnet-hub)
 
 **What happens:**
 
