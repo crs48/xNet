@@ -2,10 +2,10 @@
  * Shared document-creation affordances: the per-type route/icon/label table
  * and the "New …" dropdown items used by both the sidebar and the home page.
  */
+export { newDocId, type CreatableDocType } from '@xnetjs/workbench'
+import type { CreatableDocType } from '@xnetjs/workbench'
 import type { ComponentType } from 'react'
 import { Code2, Database, FileText, Layout, LayoutDashboard, MapPin } from 'lucide-react'
-
-export type CreatableDocType = 'page' | 'database' | 'canvas' | 'dashboard' | 'map' | 'lab'
 
 export interface DocTypeRoute {
   to: string
@@ -26,10 +26,6 @@ export const DOC_TYPE_ROUTES: Record<CreatableDocType, DocTypeRoute> = {
   },
   map: { to: '/map/$mapId', paramKey: 'mapId', label: 'Map', icon: MapPin },
   lab: { to: '/lab/$labId', paramKey: 'labId', label: 'Lab', icon: Code2 }
-}
-
-export function newDocId(): string {
-  return Math.random().toString(36).substring(2, 15)
 }
 
 /** The shared "New …" dropdown entries. */

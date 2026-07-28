@@ -587,6 +587,9 @@ importers:
       '@xnetjs/views':
         specifier: workspace:*
         version: link:../../packages/views
+      '@xnetjs/workbench':
+        specifier: workspace:*
+        version: link:../../packages/workbench
       fflate:
         specifier: 0.8.3
         version: 0.8.3
@@ -2354,6 +2357,40 @@ importers:
       jsdom:
         specifier: ^26.0.0
         version: 26.1.0
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(@microsoft/api-extractor@7.58.11(@types/node@20.19.30))(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.0
+        version: 4.0.18(@opentelemetry/api@1.9.1)(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.9.0)
+
+  packages/workbench:
+    dependencies:
+      '@xnetjs/plugins':
+        specifier: workspace:*
+        version: link:../plugins
+      lucide-react:
+        specifier: ^0.453.0
+        version: 0.453.0(react@18.3.1)
+      zustand:
+        specifier: ^5.0.14
+        version: 5.0.14(@types/react@18.3.27)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+    devDependencies:
+      '@testing-library/react':
+        specifier: ^16.0.0
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.27
       react:
         specifier: ^18.3.1
         version: 18.3.1

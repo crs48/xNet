@@ -67,7 +67,7 @@ module.exports = {
       // shared by web and desktop. The desktop renderer has no router, so the
       // shell reaches navigation only through the PlatformPort — a direct
       // router import here is the fork restarting inside shared code.
-      files: ['apps/web/src/workbench/**/*.{ts,tsx}'],
+      files: ['apps/web/src/workbench/**/*.{ts,tsx}', 'packages/workbench/src/**/*.{ts,tsx}'],
       rules: {
         'no-restricted-imports': [
           'error',
