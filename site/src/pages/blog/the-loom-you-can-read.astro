@@ -127,7 +127,7 @@ const mergeSeq = `sequenceDiagram
       <p>
         The Luddites have a bad reputation they didn&rsquo;t earn. We use their
         name for anyone who&rsquo;s afraid of technology, but the real weavers of
-        1811 weren&rsquo;t afraid of machines — they owned and ran complicated
+        1811 weren&rsquo;t afraid of machines; they owned and ran complicated
         ones every day. What they refused was a <em>particular</em> machine: the
         power loom installed by a factory owner, in a building they couldn&rsquo;t
         enter, running rules they weren&rsquo;t allowed to see, built to make their
@@ -139,13 +139,13 @@ const mergeSeq = `sequenceDiagram
         Two hundred years later you are the weaver, and almost every app you touch
         is that sealed loom. You can feed it and you can watch it run, but you may
         not open the cabinet, read the mechanism, or take the cloth and leave. This
-        essay is about a loom built the other way — one you&rsquo;re allowed to
+        essay is about a loom built the other way: one you&rsquo;re allowed to
         open. To show you it&rsquo;s real, we&rsquo;re going to follow a single,
         boring thing all the way through the machine: you sit down at your laptop
         and type a note that says <strong>Buy milk</strong>. By the end you&rsquo;ll
         have seen every place that note lives, and every place an ordinary app
-        would quietly betray it. There&rsquo;s a little code along the way — you can
-        skip every grey panel and the story still holds — but it&rsquo;s there
+        would quietly betray it. There&rsquo;s a little code along the way (you can
+        skip every grey panel and the story still holds) but it&rsquo;s there
         because <em>being able to show you the machine is the whole argument.</em>
       </p>
 
@@ -156,14 +156,14 @@ const mergeSeq = `sequenceDiagram
         Your keystrokes are sent off to a company&rsquo;s server, which holds the
         real copy and lends you a view of it. &ldquo;The cloud&rdquo; is just
         someone else&rsquo;s computer, and on that computer your note is a guest
-        that can be read, ranked, monetised, or locked out — and if the network
+        that can be read, ranked, monetised, or locked out, and if the network
         drops, so does your note.
       </p>
       <p>
         xNet starts at the opposite end. Your note is written first to a small
-        database — SQLite, the same engine inside your phone — that lives in a
+        database (SQLite, the same engine inside your phone) that lives in a
         private corner of your own browser called the Origin Private File System.
-        No server is consulted. No round-trip happens. The note is <em>yours,
+        No server is consulted and no round-trip happens. The note is <em>yours,
         locally and completely,</em> before the internet is even part of the
         story. The screen updates instantly because it&rsquo;s reading from a file
         a few millimetres away, not a data centre an ocean away. Turn off your
@@ -177,7 +177,7 @@ const mergeSeq = `sequenceDiagram
       />
 
       <p>
-        This one inversion — <em>your device holds the master copy</em> — is the
+        This one inversion, <em>your device holds the master copy</em>, is the
         foundation everything else is bolted onto. It&rsquo;s the difference between
         renting a seat in someone&rsquo;s building and owning the loom in your own
         front room. But a loom in your front room raises an obvious question: if
@@ -189,7 +189,7 @@ const mergeSeq = `sequenceDiagram
       <h2>Two: every edit is a little signed receipt</h2>
       <p>
         Here is the first idea worth slowing down for. xNet never stores your note
-        as a note. It stores the <em>history of edits</em> that produced it — and
+        as a note. It stores the <em>history of edits</em> that produced it, and
         each edit is a tiny, self-contained record called a <strong>change</strong>.
         If you&rsquo;ve ever used the version-control tool <code>git</code>, you
         already have the mental model: nothing is ever overwritten in place;
@@ -202,11 +202,11 @@ const mergeSeq = `sequenceDiagram
         in one sitting.
       </p>
 
-      <Peek label="Open the panel — what a single edit looks like">
+      <Peek label="Open the panel: what a single edit looks like">
         <CodeFigure
           code={changeCode}
           filename="packages/sync/src/change.ts"
-          caption="Every edit points at the one before it by fingerprint, and is signed by its author. So the whole history is a tamper-evident chain — exactly like git's commits, but for everything you make."
+          caption="Every edit points at the one before it by fingerprint, and is signed by its author. So the whole history is a tamper-evident chain, exactly like git's commits, but for everything you make."
         />
       </Peek>
 
@@ -223,7 +223,7 @@ const mergeSeq = `sequenceDiagram
 
       <Mermaid
         code={hashChain}
-        caption="Each edit names its parent by fingerprint. That single link is what makes the past tamper-evident — and it's the same trick that secures a git repository or a blockchain."
+        caption="Each edit names its parent by fingerprint. That single link is what makes the past tamper-evident, and it's the same trick that secures a git repository or a blockchain."
       />
 
       <p>
@@ -231,41 +231,41 @@ const mergeSeq = `sequenceDiagram
         stored, it&rsquo;s signed with a private key only you hold (using Ed25519,
         the same kind of signature that secures SSH and modern messaging apps).
         Anyone, anywhere, can later check that signature and know the edit really
-        came from you and wasn&rsquo;t altered in transit — without ever needing to
+        came from you and wasn&rsquo;t altered in transit, without ever needing to
         ask a server &ldquo;is this person who they say they are?&rdquo; The proof
         travels <em>with the data.</em>
       </p>
 
-      <Peek label="Open the panel — sealing the receipt">
+      <Peek label="Open the panel: sealing the receipt">
         <CodeFigure
           code={signCode}
           filename="signChange() — packages/sync/src/change.ts"
-          caption="Hash the contents, then sign the hash. Because the signature scheme is deterministic, the same edit produces byte-identical bytes on any device, in any language — which is what makes the next two sections possible."
+          caption="Hash the contents, then sign the hash. Because the signature scheme is deterministic, the same edit produces byte-identical bytes on any device, in any language, which is what makes the next two sections possible."
         />
       </Peek>
 
       <h2>Three: your name is a key, not an account</h2>
       <p>
         That signature only means something if &ldquo;you&rdquo; means something.
-        On the normal web, your identity is an <em>account</em> — a row in a
+        On the normal web, your identity is an <em>account</em>: a row in a
         company&rsquo;s database that they create, control, and can delete. Your
         name on their loom is theirs to switch off.
       </p>
       <p>
         xNet has no accounts. Your identity is a cryptographic key pair you
-        generate on your own device, and your public name — your
-        <strong>DID</strong>, or decentralised identifier — is literally your
+        generate on your own device, and your public name, your
+        <strong>DID</strong> or decentralised identifier, is literally your
         public key, written out as text. Nobody issues it. There&rsquo;s no
         registrar, no username server, nothing to revoke. It looks like
         <code>did:key:z6Mk…</code> and the recipe that produces it is small enough
         to print.
       </p>
 
-      <Peek label="Open the panel — minting a name nobody can revoke">
+      <Peek label="Open the panel: minting a name nobody can revoke">
         <CodeFigure
           code={didCode}
           filename="createDID() — packages/identity/src/did.ts"
-          caption="Your public key, tagged and text-encoded. That's the whole identity. Because it's self-certifying, any device can verify your signatures with nothing but the name itself — no central directory to phone home to."
+          caption="Your public key, tagged and text-encoded. That's the whole identity. Because it's self-certifying, any device can verify your signatures with nothing but the name itself, and no central directory to phone home to."
         />
       </Peek>
 
@@ -282,7 +282,7 @@ const mergeSeq = `sequenceDiagram
         Now we can answer the question from the start. Your laptop and your phone
         each hold a real copy of your note. Suppose you&rsquo;re on a train with no
         signal, and on your laptop you rename the note to
-        <strong>Groceries</strong> — while, in your pocket, your phone (also
+        <strong>Groceries</strong>, while, in your pocket, your phone (also
         offline) had already renamed the very same note to <strong>Shopping</strong>.
         Two edits, same field, no connection between them. When you get home and
         both reconnect, who wins?
@@ -290,7 +290,7 @@ const mergeSeq = `sequenceDiagram
       <p>
         In a cloud app the server decides, because the server is the boss. xNet has
         no boss. Instead, every device runs the <em>exact same rule</em> to pick a
-        winner — and because that rule is simple and deterministic, they all reach
+        winner, and because that rule is simple and deterministic, they all reach
         the same answer without anyone refereeing.
       </p>
 
@@ -305,22 +305,22 @@ const mergeSeq = `sequenceDiagram
         cause-and-effect); if those tie, compare wall-clock time; and if
         <em>those</em> somehow tie too, fall back to comparing the authors&rsquo;
         keys themselves. That last line looks almost silly, but it&rsquo;s the
-        point: there is always a deterministic answer, so every device — yours,
-        mine, one written in a different programming language entirely — lands on
+        point: there is always a deterministic answer, so every device (yours,
+        mine, one written in a different programming language entirely) lands on
         the same winner.
       </p>
 
-      <Peek label="Open the panel — the rule that decides, in full">
+      <Peek label="Open the panel: the rule that decides, in full">
         <CodeFigure
           code={lwwCode}
           filename="packages/data/src/store/store.ts"
-          caption="Three comparisons, no network, no authority. Because it's pure and total, running it anywhere gives the same result — that's the whole meaning of 'no referee'. (The loser isn't lost, either: it's still in the history, just not the current value.)"
+          caption="Three comparisons, no network, no authority. Because it's pure and total, running it anywhere gives the same result, which is the whole meaning of 'no referee'. (The loser isn't lost, either: it's still in the history, just not the current value.)"
         />
       </Peek>
 
       <p>
         Sit with how strange and good that is. The most contentious moment in any
-        shared system — <em>two people changed the same thing at once</em> — is
+        shared system, <em>two people changed the same thing at once</em>, is
         resolved here by a rule you can read in ten seconds, running independently
         on every device, owned by no one. There is no server in the middle adding
         its thumb to the scale. That&rsquo;s not a missing feature. It&rsquo;s the
@@ -339,7 +339,7 @@ const mergeSeq = `sequenceDiagram
       </p>
       <p>
         The difference is enforced by the machinery we&rsquo;ve already walked
-        through. The hub can&rsquo;t forge an edit, because it can&rsquo;t produce
+        through: the hub can&rsquo;t forge an edit, because it can&rsquo;t produce
         your signature. It can&rsquo;t secretly rewrite your history, because the
         fingerprint chain would break and every device would notice. And on the
         encrypted path, it can&rsquo;t even <em>read</em> your content, because the
@@ -351,7 +351,7 @@ const mergeSeq = `sequenceDiagram
       <TrustBoundary />
 
       <p>
-        We&rsquo;re going to be honest below about where that line sits today — the
+        We&rsquo;re going to be honest below about where that line sits today: the
         default path still relays values the hub can read, and only the encrypted
         path makes it fully blind. But the structure is the point: a hub is
         <em>replaceable.</em> Don&rsquo;t like yours? Move to another, or run your
@@ -365,21 +365,21 @@ const mergeSeq = `sequenceDiagram
         is they&rsquo;ll hand you a box of stuff in a format only they fully
         understand, and wish you luck. &ldquo;Exit&rdquo; on those terms is a
         courtesy they can withdraw. On xNet, exit isn&rsquo;t a feature that was
-        added — it&rsquo;s a property of the format itself, and you can prove it.
+        added; it&rsquo;s a property of the format itself, and you can prove it.
       </p>
       <p>
-        Because every step we&rsquo;ve described — the canonical fingerprint, the
-        deterministic signature, the three-line merge — is specified down to the
+        Because every step we&rsquo;ve described (the canonical fingerprint, the
+        deterministic signature, the three-line merge) is specified down to the
         byte, the protocol ships with <strong>golden vectors</strong>: frozen
         test cases that pin down the exact expected output. A given edit must
         produce this exact fingerprint and this exact signature, full stop.
       </p>
 
-      <Peek label="Open the panel — a fact you can re-derive">
+      <Peek label="Open the panel: a fact you can re-derive">
         <CodeFigure
           code={vectorCode}
           filename="conformance/vectors/change/0001-create-page.json"
-          caption="This exact case passes against xNet's implementations in TypeScript, Rust, Swift, and Python. The format isn't a vendor's blob you have to trust — it's a specification anyone can re-implement from the test vectors."
+          caption="This exact case passes against xNet's implementations in TypeScript, Rust, Swift, and Python. The format isn't a vendor's blob you have to trust; it's a specification anyone can re-implement from the test vectors."
         />
       </Peek>
 
@@ -395,11 +395,11 @@ const mergeSeq = `sequenceDiagram
       <h2>How this compares to the other escape routes</h2>
       <p>
         xNet isn&rsquo;t the only project trying to pry the web back open, and
-        it&rsquo;s worth being clear about how it differs — because mostly,
+        it&rsquo;s worth being clear about how it differs, because mostly,
         it&rsquo;s solving a different problem. The well-known decentralised
         networks (Mastodon, Bluesky, Nostr) are about one shared <em>social
         graph</em>: how servers pass public posts around. xNet is about
-        <em>storage for everything you make</em> — notes, tasks, a CRM, a wiki —
+        <em>storage for everything you make</em>: notes, tasks, a CRM, a wiki,
         with the master copy on your own device. They can happily coexist; they
         just answer different questions.
       </p>
@@ -448,12 +448,12 @@ const mergeSeq = `sequenceDiagram
         </table>
       </div>
       <p>
-        The family resemblance is real — Nostr&rsquo;s raw key pair is a cousin of
+        The family resemblance is real. Nostr&rsquo;s raw key pair is a cousin of
         xNet&rsquo;s <code>did:key</code>, and Bluesky&rsquo;s portable DID shares
         the instinct. The thing that&rsquo;s distinctly xNet&rsquo;s is the corner
         you&rsquo;ve been standing in this whole essay: the real copy is on the
-        edge device, in your hand, and the network is a convenience layered on top
-        — not the place your life is kept.
+        edge device, in your hand, and the network is a convenience layered on
+        top, not the place your life is kept.
       </p>
 
       <HonestMachine />
@@ -461,12 +461,12 @@ const mergeSeq = `sequenceDiagram
       <h2>The loom you can read</h2>
       <p>
         Come back to the weavers. The histories now agree that they weren&rsquo;t
-        wrong about machines and right about nothing — they were making a precise
+        wrong about machines and right about nothing. They were making a precise
         argument about power. A tool that the people using it can understand, own,
         and walk away from leaves them free. A tool that&rsquo;s sealed, rented,
         and built to make them dependent leaves them owned, however shiny it looks
         on the showroom floor. The weavers lost that argument to the factory, and
-        we&rsquo;ve been living in the factory&rsquo;s logic online ever since —
+        we&rsquo;ve been living in the factory&rsquo;s logic online ever since,
         feeding sealed looms our attention and our words and calling the cloth they
         sell back to us &ldquo;our&rdquo; feed.
       </p>
@@ -474,13 +474,13 @@ const mergeSeq = `sequenceDiagram
         None of what you just read is exotic. Hashes, signatures, a tiny merge
         rule, a key for a name, a file on your own disk. It&rsquo;s plain
         engineering, chosen specifically so that the machine can be opened and
-        understood — by a developer reading the source, and by you, reading this.
+        understood: by a developer reading the source, and by you, reading this.
         That openness <em>is</em> the politics. You can&rsquo;t be quietly trapped
         inside a loom whose every thread you&rsquo;re allowed to follow.
       </p>
       <p>
-        So follow them. <a href="/app">Use the app</a> — it&rsquo;s free, offline,
-        and private — and your &ldquo;Buy milk&rdquo; really will take the path you
+        So follow them. <a href="/app">Use the app</a>, free, offline,
+        and private, and your &ldquo;Buy milk&rdquo; really will take the path you
         just traced. <a href="/build-with">Build something of your own</a> on the
         open protocol, or read <a href="/commitments">the commitments</a> that say,
         in writing and with the receipts to back them, what this loom will and
