@@ -10,14 +10,14 @@
  * arriving there keeps whichever projection the user last chose rather than
  * resetting them to All.
  */
-import { useRouterState } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { usePathname } from '../platform'
 import { useWorkbench } from '../state'
 import { sidebarRegistry } from './registry'
 import { lensForRoute } from './sections'
 
 export function useLensRouteSync(): void {
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const pathname = usePathname()
 
   useEffect(() => {
     const lensId = lensForRoute(pathname, (id) => sidebarRegistry.getLens(id)?.route)

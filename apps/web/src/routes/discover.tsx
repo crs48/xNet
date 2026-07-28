@@ -6,8 +6,8 @@
  * only revealed when the other side waves back.
  */
 import { createFileRoute } from '@tanstack/react-router'
-import { DIDAvatar } from '@xnetjs/ui'
 import { connectionIntentKinds, type ConnectionIntentKind } from '@xnetjs/social/connect'
+import { DIDAvatar } from '@xnetjs/ui'
 import { useState } from 'react'
 import { ConnectableProfileEditor } from '../components/ConnectableProfileEditor'
 import { MatchCard } from '../components/MatchCard'

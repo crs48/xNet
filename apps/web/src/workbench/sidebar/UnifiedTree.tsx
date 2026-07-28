@@ -9,10 +9,10 @@
  * Only the active lens's sources are mounted, so an unselected lens
  * costs zero queries (the per-schema fan-out is real — 0317).
  */
-import { useNavigate } from '@tanstack/react-router'
 import { Bell, BellOff } from 'lucide-react'
 import { useMemo, useSyncExternalStore } from 'react'
 import { navigateToNode } from '../navigation'
+import { useNavigateTo } from '../platform'
 import { useWorkbench } from '../state'
 import { TAB_VIEWS } from '../tabs'
 import {
@@ -97,7 +97,7 @@ function LensChips({
 }
 
 function TreeRow({ row }: { row: SidebarRowModel }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const toggleRowMuted = useWorkbench((state) => state.toggleRowMuted)
   const Icon = row.icon ?? TAB_VIEWS[row.nodeType]?.icon
   const badge = effectiveBadge(row)

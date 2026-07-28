@@ -1,11 +1,12 @@
 /**
  * Home page - document list with all types
  */
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useIdentity, useQuery } from '@xnetjs/react'
 import { FileText, Database, Layout, Plus, ChevronDown, Network, Compass } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { HomeChats, homeHeading, lensShowsChats, lensShowsDocs } from '../components/HomeLens'
 import { RestoringNotice } from '../components/RestoringNotice'
 import { bootMark, logBootTimeline } from '../lib/boot-timeline'
 import { deskIdFor, isQuietDefaultEnabled } from '../lib/desk'
@@ -19,9 +20,9 @@ import { useQueryTimer } from '../lib/read-path-probe'
 import { useInstantRows } from '../lib/use-instant-rows'
 import { useRestoringFromHub } from '../lib/use-restoring'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { tabIdFor, useWorkbench } from '../workbench/state'
 import { setPreviewIntent } from '../workbench/tabs'
-import { HomeChats, homeHeading, lensShowsChats, lensShowsDocs } from '../components/HomeLens'
 import { hasOnboarded } from './welcome'
 
 export const Route = createFileRoute('/')({
@@ -44,7 +45,7 @@ interface DocInfo {
 let startupRedirectDone = false
 
 function HomePage() {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const [showCreateMenu, setShowCreateMenu] = useState(false)
 
   // Configurable startup tab (0166): '/' opens the chosen surface — but only

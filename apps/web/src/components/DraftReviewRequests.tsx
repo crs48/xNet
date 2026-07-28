@@ -7,12 +7,12 @@
  * device. Clicking opens the HOST node — review happens in the node's own
  * Drafts context tool, not on this page.
  */
-import { useNavigate } from '@tanstack/react-router'
 import { DRAFT_SCHEMA_IRI, TaskSchema, type NodeState } from '@xnetjs/data'
 import { useNodeStore } from '@xnetjs/react'
 import { GitBranch } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { NODE_TYPE_BY_SCHEMA } from './desk-cards'
 
 interface ReviewRequest {
@@ -61,7 +61,7 @@ function useDraftReviewRequests(): ReviewRequest[] {
 }
 
 export function DraftReviewRequests() {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const requests = useDraftReviewRequests()
 
   if (requests.length === 0) return null
@@ -70,7 +70,10 @@ export function DraftReviewRequests() {
     // Tasks open in the Tasks surface's inline editor; route-family nodes
     // (pages, databases, canvases, …) open their own surface.
     if (baseIRI(host.schemaId) === baseIRI(TaskSchema.schema['@id'])) {
-      void navigate({ to: '/tasks', search: { task: host.id } })
+      navigate(
+        { kind: 'node', nodeType: 'tasks', nodeId: '', preview: false },
+        { search: { task: host.id } }
+      )
       return
     }
     const nodeType =

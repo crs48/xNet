@@ -7,6 +7,8 @@
  * the design-system <Switch>; data atoms (DID, version, hub URL) read mono.
  */
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { sign } from '@xnetjs/crypto'
+import { DebugReportSchema, ProfileSchema, profileNodeId } from '@xnetjs/data'
 import {
   MIN_ESCROW_PIN_LENGTH,
   createUCAN,
@@ -15,9 +17,9 @@ import {
   serializeEscrow,
   serializeShare
 } from '@xnetjs/identity'
-import { DebugReportSchema, ProfileSchema, profileNodeId } from '@xnetjs/data'
 import { deleteDay, getCommandRegistry, leaveWithEverything } from '@xnetjs/plugins'
 import { useIdentity, useNodeStore, useQuery, useXNet } from '@xnetjs/react'
+import { useXNetInternal } from '@xnetjs/react/internal'
 import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle, useTheme } from '@xnetjs/ui'
 import { MeetingEngineSettings } from '@xnetjs/views'
 import {
@@ -37,15 +39,31 @@ import { useState, useCallback, useEffect } from 'react'
 import { resetCoachSession } from '../coachmarks'
 import { ProfileSettings } from '../comms/ProfileSettings'
 import { ContentSafetySettings } from '../components/ContentSafetySettings'
+import { EscalateReportDialog } from '../components/EscalateReportDialog'
 import { PluginsPanel } from '../components/PluginsPanel'
 import { ReportProblemDialog } from '../components/ReportProblemDialog'
 import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
+import { useDiagnosticsInbox } from '../hooks/useDiagnosticsInbox'
 import { isAnalyticsConfigured } from '../lib/analytics'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
+import {
+  downloadBytes,
+  exportXnetpack,
+  importXnetpackFile,
+  verifyXnetpackFile
+} from '../lib/bundle-export'
 import { useDerivedData } from '../lib/data-dignity'
-import { EscalateReportDialog } from '../components/EscalateReportDialog'
-import { useDiagnosticsInbox } from '../hooks/useDiagnosticsInbox'
 import { DIAGNOSTICS_CONSOLE_VIEW_ID } from '../lib/diagnostics-console'
+import { getTelemetryCollector, isDiagnosticsConfigured } from '../lib/error-reporter'
+import { configuredHubUrl, persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
+import { identityManager, logout } from '../lib/identity'
+import { isLabEnabled, LABS_FLAGS, setLabEnabled } from '../lib/labs'
+import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/leave'
+import {
+  DEFAULT_SETTINGS_SECTION,
+  asSettingsSection,
+  type SettingsSection
+} from '../lib/settings-sections'
 import { hubApiFetch, normalizeHubHttpUrl } from '../lib/share-links'
 import {
   getSupportAccess,
@@ -55,26 +73,8 @@ import {
   sweepExpiredSupportAccess,
   type SupportAccessState
 } from '../lib/support-access'
-import { getTelemetryCollector, isDiagnosticsConfigured } from '../lib/error-reporter'
-import { configuredHubUrl, persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
-import { identityManager, logout } from '../lib/identity'
-import { isLabEnabled, LABS_FLAGS, setLabEnabled } from '../lib/labs'
-import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/leave'
-import {
-  downloadBytes,
-  exportXnetpack,
-  importXnetpackFile,
-  verifyXnetpackFile
-} from '../lib/bundle-export'
-import { sign } from '@xnetjs/crypto'
-import { useXNetInternal } from '@xnetjs/react/internal'
-import { useReportBreadcrumbs } from '../lib/use-report-breadcrumbs'
-import {
-  DEFAULT_SETTINGS_SECTION,
-  asSettingsSection,
-  type SettingsSection
-} from '../lib/settings-sections'
 import { useConsent } from '../lib/use-consent'
+import { useReportBreadcrumbs } from '../lib/use-report-breadcrumbs'
 import { WINDDOWN_DURATION_CHOICES, useWinddownPreferences } from '../lib/winddown'
 import { useWorkbench } from '../workbench/state'
 

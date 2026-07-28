@@ -7,7 +7,7 @@
  * node. Nothing is "open" in the tab sense — closing the split leaves no
  * orphaned state, and durable side-by-side belongs on a page as frames.
  */
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigateTo } from './platform'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { EntangleProvider } from '@xnetjs/react'
 import { FrameHostProvider, FrameRenderer, type FrameDef } from '@xnetjs/views'
@@ -58,7 +58,7 @@ function useSplitCommands(): void {
 }
 
 export function SplitPane({ children }: { children: ReactNode }): React.JSX.Element {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const splitTarget = useWorkbench((state) => state.splitTarget)
   const setSplitTarget = useWorkbench((state) => state.setSplitTarget)
   useSplitCommands()
@@ -70,7 +70,7 @@ export function SplitPane({ children }: { children: ReactNode }): React.JSX.Elem
         navigateToNode(navigate, match[1] as TabNodeType, match[2])
         return
       }
-      void navigate({ to: '/doc/$docId', params: { docId: href } })
+      navigate({ kind: 'node', nodeType: 'page', nodeId: href, preview: false })
     },
     [navigate]
   )

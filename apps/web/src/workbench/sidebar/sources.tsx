@@ -7,6 +7,8 @@
  * the type-scoped sort defaults that make chat and docs coexist in one
  * list without either feeling wrong.
  */
+import type { SidebarRowModel, SidebarRowSource } from './contracts'
+import { isUnread } from '@xnetjs/comms'
 import {
   CanvasSchema,
   DashboardSchema,
@@ -15,14 +17,12 @@ import {
   PageSchema,
   SavedViewSchema
 } from '@xnetjs/data'
-import { isUnread } from '@xnetjs/comms'
 import { useQuery } from '@xnetjs/react'
 import { useMemo } from 'react'
 import { channelLabel } from '../../comms/comms-utils'
 import { useComms } from '../../comms/CommsContext'
 import { useChannels, useInbox, useProfiles, displayName } from '../../comms/hooks'
 import { useWorkbench, type TabNodeType } from '../state'
-import type { SidebarRowModel, SidebarRowSource } from './contracts'
 import { sidebarRegistry } from './registry'
 
 const QUERY = { orderBy: { updatedAt: 'desc' as const }, limit: 200 }

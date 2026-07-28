@@ -9,11 +9,11 @@
  */
 import type { CanvasNode } from '@xnetjs/canvas'
 import type * as Y from 'yjs'
-import { useNavigate } from '@tanstack/react-router'
 import { getCanvasObjectsMap } from '@xnetjs/canvas'
 import { FileText, StickyNote, type LucideIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { useWorkbench, type TabNodeType } from '../workbench/state'
 import { TAB_VIEWS } from '../workbench/tabs'
 import { deskCardMeta, orderDeskCards } from './desk-cards'
@@ -24,7 +24,7 @@ function iconFor(nodeType: TabNodeType | null, cardType: string): LucideIcon {
 }
 
 function DeskCardRow({ card }: { card: CanvasNode }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const meta = deskCardMeta(card)
   const Icon = iconFor(meta.nodeType, card.type)
   return (

@@ -7,14 +7,14 @@
  * correct) and lets pages run full-bleed while every other view gets the padded
  * scroll container — but there is no tab strip, no split groups, no bottom tray.
  */
-import { useLocation } from '@tanstack/react-router'
 import { ErrorBoundary } from '@xnetjs/react'
 import { useEffect, type ReactNode } from 'react'
 import { ErrorFallback } from '../../components/ErrorFallback'
+import { usePathname } from '../platform'
 import { syncRouteToTabs, tabFromPathname } from '../tabs'
 
 export function CalmSurface({ children }: { children: ReactNode }) {
-  const { pathname } = useLocation()
+  const pathname = usePathname()
 
   // Router → store reconciliation (open-or-activate the tab for this route),
   // identical to the workbench so selectActiveTab / recents stay honest.

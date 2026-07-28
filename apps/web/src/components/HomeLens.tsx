@@ -10,8 +10,8 @@
  * overlay and boot marks of 0212/0249 hang off it), so this module only adds
  * what the doc list can't express.
  */
-import { useNavigate } from '@tanstack/react-router'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { effectiveBadge, sortSidebarRows } from '../workbench/sidebar/contracts'
 import { channelsSource } from '../workbench/sidebar/sources'
 import { TAB_VIEWS } from '../workbench/tabs'
@@ -46,7 +46,7 @@ export function HomeChats({
   /** The only projection on screen — so it owns the empty state. */
   standalone?: boolean
 }): React.JSX.Element | null {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const rows = sortSidebarRows(channelsSource.useRows(), { sortPolicy: 'recency' })
 
   if (rows.length === 0) {

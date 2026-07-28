@@ -7,7 +7,7 @@
  * Preview tabs render italic; pinned tabs shrink to their icon and
  * lose the close button.
  */
-import { useNavigate } from '@tanstack/react-router'
+
 import { getCommandRegistry } from '@xnetjs/plugins'
 import {
   ActionMenuList,
@@ -30,11 +30,12 @@ import {
   XSquare
 } from 'lucide-react'
 import { createElement, useState } from 'react'
-import { navigateToNode } from './navigation'
+import { navigateToNode, type PlatformNavigate } from './navigation'
+import { useNavigateTo } from './platform'
 import { useWorkbench, type EditorGroup, type TabNodeType, type WorkbenchTab } from './state'
 import { TAB_VIEWS } from './tabs'
 
-type Navigate = ReturnType<typeof useNavigate>
+type Navigate = PlatformNavigate
 
 function tabDisplayTitle(tab: WorkbenchTab): string {
   return tab.title || TAB_VIEWS[tab.nodeType].label
@@ -52,7 +53,7 @@ function navigateToActiveTab(navigate: Navigate): void {
   if (tab) {
     navigateToNode(navigate, tab.nodeType, tab.nodeId, { preview: false })
   } else {
-    void navigate({ to: '/' })
+    navigate({ kind: 'home' })
   }
 }
 
@@ -146,7 +147,7 @@ function TabItem({
   routed: boolean
   variant: TabVariant
 }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const [dropEdge, setDropEdge] = useState<'before' | 'after' | null>(null)
   // Defensive: a tab persisted by a newer/other build must render, not crash.
   const Icon = TAB_VIEWS[tab.nodeType]?.icon ?? FileText
@@ -334,7 +335,7 @@ export function TabBar({
   routed: boolean
   variant?: TabVariant
 }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
 
   const containerClassName =
     variant === 'pill'

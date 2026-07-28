@@ -10,7 +10,6 @@
  * cascades.
  */
 import type { FolderTreeNode } from '@xnetjs/data'
-import { useNavigate } from '@tanstack/react-router'
 import { hasNodeTransfer, getNodeTransfer, setNodeTransfer, type NodeTransfer } from '@xnetjs/ui'
 import {
   ChevronDown,
@@ -24,6 +23,7 @@ import {
 import { useState, type ReactNode } from 'react'
 import { useUndoToast } from '../../components/UndoToast'
 import { navigateToNode } from '../navigation'
+import { useNavigateTo } from '../platform'
 import { useWorkbench } from '../state'
 import { useExplorerFolders, type ExplorerFolderEntry } from './explorer-folders-context'
 import { ExplorerRow, isExplorerNodeType } from './explorer-rows'
@@ -105,7 +105,7 @@ function FolderHoverActions({
   folder: ExplorerFolderEntry
   onRename: () => void
 }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { createPageInFolder, deleteFolder } = useExplorerFolders()
   const { showUndoToast } = useUndoToast()
   const expand = useEnsureFolderExpanded()

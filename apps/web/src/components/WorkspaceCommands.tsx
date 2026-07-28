@@ -6,18 +6,18 @@
  * the global layer and the shortcut-help overlay (exploration 0161,
  * phase 3).
  */
-import { useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry, installCommandHandler } from '@xnetjs/plugins'
 import { useGlobalUndo, useIdentity } from '@xnetjs/react'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { deskIdFor } from '../lib/desk'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { selectActiveTab, useWorkbench } from '../workbench/state'
 import { setPreviewIntent } from '../workbench/tabs'
 import { SCHEMA_IDS, isExplorerNodeType } from '../workbench/views/explorer-items'
 
 export function WorkspaceCommands(): JSX.Element | null {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const [helpOpen, setHelpOpen] = useState(false)
 
   // The Desk (0273): identity-derived id, held in a ref so the commands
@@ -62,7 +62,7 @@ export function WorkspaceCommands(): JSX.Element | null {
         id: 'nav.home',
         title: 'Go to home',
         key: 'g h',
-        run: () => void navigate({ to: '/' })
+        run: () => navigate({ kind: 'home' })
       }),
       registry.register({
         id: 'nav.tasks',
@@ -71,7 +71,7 @@ export function WorkspaceCommands(): JSX.Element | null {
         // Open as a preview tab (0288), same as clicking the surface.
         run: () => {
           setPreviewIntent()
-          void navigate({ to: '/tasks' })
+          navigate({ kind: 'node', nodeType: 'tasks', nodeId: '', preview: false })
         }
       }),
       registry.register({
@@ -80,7 +80,7 @@ export function WorkspaceCommands(): JSX.Element | null {
         key: 'g e',
         run: () => {
           setPreviewIntent()
-          void navigate({ to: '/meetings' })
+          navigate({ kind: 'node', nodeType: 'meetings', nodeId: '', preview: false })
         }
       }),
       registry.register({
@@ -89,7 +89,7 @@ export function WorkspaceCommands(): JSX.Element | null {
         key: 'g d',
         run: () => {
           setPreviewIntent()
-          void navigate({ to: '/data' })
+          navigate({ kind: 'node', nodeType: 'data', nodeId: '', preview: false })
         }
       }),
       registry.register({
@@ -98,14 +98,14 @@ export function WorkspaceCommands(): JSX.Element | null {
         key: 'g f',
         run: () => {
           setPreviewIntent()
-          void navigate({ to: '/finance' })
+          navigate({ kind: 'node', nodeType: 'finance', nodeId: '', preview: false })
         }
       }),
       registry.register({
         id: 'nav.discover',
         title: 'Discover people',
         key: 'g m',
-        run: () => void navigate({ to: '/discover' })
+        run: () => navigate({ kind: 'path', path: '/discover' })
       }),
       registry.register({
         id: 'nav.settings',
@@ -113,7 +113,7 @@ export function WorkspaceCommands(): JSX.Element | null {
         key: 'g s',
         run: () => {
           setPreviewIntent()
-          void navigate({ to: '/settings' })
+          navigate({ kind: 'node', nodeType: 'settings', nodeId: '', preview: false })
         }
       }),
       registry.register({
@@ -121,7 +121,7 @@ export function WorkspaceCommands(): JSX.Element | null {
         title: 'Content filters & safety',
         run: () => {
           setPreviewIntent()
-          void navigate({ to: '/settings' })
+          navigate({ kind: 'node', nodeType: 'settings', nodeId: '', preview: false })
         }
       }),
       // The Desk (0273): a per-identity home canvas. "Go to Desk" creates it

@@ -8,7 +8,6 @@
  * Escape restores the previously focused element.
  */
 import type { SearchResult } from '@xnetjs/sdk'
-import { useNavigate } from '@tanstack/react-router'
 import { CanvasSchema, DashboardSchema, DatabaseSchema, PageSchema, TaskSchema } from '@xnetjs/data'
 import { getCommandRegistry, type WorkspaceCommand } from '@xnetjs/plugins'
 import { useMutate, useQuery } from '@xnetjs/react'
@@ -25,6 +24,7 @@ import { CheckSquare2, CornerDownLeft, FilePlus2, Terminal } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePageSearchSurface } from '../hooks/usePageSearchSurface'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { useWorkbench, type TabNodeType } from '../workbench/state'
 import { setPreviewIntent, TAB_VIEWS } from '../workbench/tabs'
 
@@ -96,7 +96,7 @@ function PaletteSection({
  * index subscription cost nothing the rest of the time.
  */
 function PaletteResults({ query, onClose }: { query: string; onClose: () => void }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { create } = useMutate()
   const recents = useWorkbench((state) => state.recents)
   const { search } = usePageSearchSurface({ enabled: true })
@@ -177,7 +177,7 @@ function PaletteResults({ query, onClose }: { query: string; onClose: () => void
       TaskSchema,
       { title, completed: false, status: 'todo', source: 'api' },
       generateTaskId()
-    ).then(() => navigate({ to: '/tasks' }))
+    ).then(() => navigate({ kind: 'node', nodeType: 'tasks', nodeId: '', preview: false }))
   }
 
   const createPage = () => {
@@ -185,7 +185,7 @@ function PaletteResults({ query, onClose }: { query: string; onClose: () => void
     if (!title) return
     onClose()
     const newId = `default/${title.toLowerCase().replace(/\s+/g, '-')}`
-    void navigate({ to: '/doc/$docId', params: { docId: newId } })
+    navigate({ kind: 'node', nodeType: 'page', nodeId: newId, preview: false })
   }
 
   return (

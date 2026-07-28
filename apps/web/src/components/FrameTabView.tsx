@@ -4,19 +4,19 @@
  * route (`/frame/<viewType>~<nodeId>`) covers every registry and plugin
  * view without touching the closed TabNodeType machinery again.
  */
-import { useNavigate } from '@tanstack/react-router'
+import type { TabNodeType } from '../workbench/state'
 import { EntangleProvider } from '@xnetjs/react'
 import { FrameHostProvider, FrameRenderer, type FrameDef } from '@xnetjs/views'
 import { useCallback, useMemo, type JSX } from 'react'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../lib/saved-view-registry'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { navigateToNode, parseFrameSpec } from '../workbench/navigation'
-import type { TabNodeType } from '../workbench/state'
+import { useNavigateTo } from '../workbench/platform'
 import { nodePassportSection } from './NodePassport'
 import '../lib/frame-renderers'
 
 export function FrameTabView({ frameSpec }: { frameSpec: string }): JSX.Element {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const spec = parseFrameSpec(frameSpec)
 
   const handleNavigate = useCallback(
@@ -26,7 +26,7 @@ export function FrameTabView({ frameSpec }: { frameSpec: string }): JSX.Element 
         navigateToNode(navigate, match[1] as TabNodeType, match[2])
         return
       }
-      void navigate({ to: '/doc/$docId', params: { docId: href } })
+      navigate({ kind: 'node', nodeType: 'page', nodeId: href, preview: false })
     },
     [navigate]
   )

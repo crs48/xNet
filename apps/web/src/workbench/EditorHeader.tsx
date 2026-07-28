@@ -7,7 +7,6 @@
  * (EditorArea's `pill` variant); the document is the router outlet under that.
  */
 import type { ShareDocType } from '../hooks/useShareLinks'
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
 import { viewRegistry } from '@xnetjs/views'
 import {
@@ -27,6 +26,7 @@ import { SelfAvatar } from '../components/SelfAvatar'
 import { ShareDialog } from '../components/ShareDialog'
 import { useRequestCount } from '../hooks/useRequestCount'
 import { navigateToFrame, navigateToNode, parseFrameSpec } from './navigation'
+import { useNavigateTo, usePathname } from './platform'
 import { useRouteTitle } from './route-title'
 import { selectActiveTab, useWorkbench, type TabNodeType } from './state'
 import { tabFromPathname } from './tabs'
@@ -58,7 +58,7 @@ const iconBtn =
  * register; no app edits per view.
  */
 function OpenWithSelect({ nodeType, nodeId }: { nodeType: TabNodeType; nodeId: string }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const spec = nodeType === 'frame' ? parseFrameSpec(nodeId) : null
   const targetNodeId = nodeType === 'frame' ? spec?.nodeId : nodeId
   if (!targetNodeId) return null
@@ -101,7 +101,7 @@ export function EditorHeader({ onOpenNotif }: { onOpenNotif: (e: React.MouseEven
 
   // Tabless (0353): "what am I looking at" comes from the route + the
   // title the view published, not from an active tab.
-  const pathname = useLocation({ select: (location) => location.pathname })
+  const pathname = usePathname()
   const routeTitle = useRouteTitle()
   const routed = tabFromPathname(pathname)
   const current = tabsEnabled

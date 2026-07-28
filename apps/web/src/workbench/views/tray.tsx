@@ -3,7 +3,6 @@
  * notifications, sync activity, and the query console — the
  * "terminal" of a data workspace (run a QueryAST, get a table).
  */
-import { useNavigate } from '@tanstack/react-router'
 import { SavedViewSchema, TaskSchema, type SavedViewDescriptor } from '@xnetjs/data'
 import { SavedViewRunner, useHubStatus, useMutate, useQuery } from '@xnetjs/react'
 import { CheckSquare2, CornerDownLeft, FileText } from 'lucide-react'
@@ -11,6 +10,7 @@ import { useState } from 'react'
 import { InboxTray } from '../../comms/InboxTray'
 import { isWorkerRuntimeEnabled } from '../../lib/data-runtime'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../../lib/saved-view-registry'
+import { useNavigateTo } from '../platform'
 import { useWorkbenchStatus } from '../status'
 import { parseConsoleInput } from './console-input'
 
@@ -25,7 +25,7 @@ function generateId(prefix: string): string {
 
 export function QuickCaptureTray() {
   const { create } = useMutate()
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const [value, setValue] = useState('')
   const [captured, setCaptured] = useState<string[]>([])
 
@@ -46,7 +46,7 @@ export function QuickCaptureTray() {
     if (!title) return
     setValue('')
     const id = `default/${title.toLowerCase().replace(/\s+/g, '-')}`
-    void navigate({ to: '/doc/$docId', params: { docId: id } })
+    navigate({ kind: 'node', nodeType: 'page', nodeId: id, preview: false })
   }
 
   return (

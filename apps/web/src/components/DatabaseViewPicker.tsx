@@ -8,8 +8,8 @@
  */
 import { DatabaseSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
-import { registerBuiltinViews, viewRegistry } from '@xnetjs/views'
 import { Modal } from '@xnetjs/ui'
+import { registerBuiltinViews, viewRegistry } from '@xnetjs/views'
 import { Database } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState, type JSX } from 'react'
 

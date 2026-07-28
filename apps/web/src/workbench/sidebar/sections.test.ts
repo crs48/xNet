@@ -7,6 +7,7 @@
  * its `/crm` destination) that no test noticed.
  */
 import { describe, expect, it } from 'vitest'
+import { sidebarRegistry } from './registry'
 import {
   DEFAULT_SECTIONS,
   isSectionActive,
@@ -15,7 +16,6 @@ import {
   sectionDestination,
   type SidebarSection
 } from './sections'
-import { sidebarRegistry } from './registry'
 import { registerBuiltinSidebarSources } from './sources'
 
 registerBuiltinSidebarSources()

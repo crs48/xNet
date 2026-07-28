@@ -7,16 +7,15 @@
  * view through ViewHost. Background tabs are unmounted entirely — no
  * live Y.Doc subscriptions.
  */
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { ErrorBoundary } from '@xnetjs/react'
 import { getNodeTransfer, hasNodeTransfer } from '@xnetjs/ui'
 import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import { Group, Panel } from 'react-resizable-panels'
 import { ErrorFallback } from '../components/ErrorFallback'
-import { navigateToNewDoc, type NavigateLike } from '../lib/doc-creation'
 import { Hairline } from './Hairline'
-import { navigateToNode } from './navigation'
+import { navigateToNewDoc, navigateToNode, type PlatformNavigate } from './navigation'
+import { useNavigateTo, usePathname } from './platform'
 import { SplitPane } from './SplitPane'
 import {
   selectPreviousRoute,
@@ -31,7 +30,7 @@ import { TabBreadcrumb } from './TabBreadcrumb'
 import { syncRouteToTabs, tabFromPathname, trackRouteVisit, TAB_VIEWS } from './tabs'
 import { ViewHost } from './ViewHost'
 
-type Navigate = ReturnType<typeof useNavigate>
+type Navigate = PlatformNavigate
 
 /**
  * Reconcile the route into the working set. `trackRouteVisit` runs in
@@ -61,7 +60,7 @@ function navigateToPathname(navigate: Navigate, pathname: string): void {
     navigateToNode(navigate, descriptor.nodeType, descriptor.nodeId, { preview: false })
     return
   }
-  void navigate({ to: pathname })
+  navigate({ kind: 'path', path: pathname })
 }
 
 /**
@@ -79,7 +78,7 @@ function useTablessCommands(navigate: Navigate | null): void {
         title: 'New page',
         key: 'Mod-T',
         allowInInput: true,
-        run: () => navigateToNewDoc(navigate as unknown as NavigateLike, 'page')
+        run: () => navigateToNewDoc(navigate, 'page')
       }),
       registry.register({
         id: 'workbench.back',
@@ -110,7 +109,7 @@ function useTablessCommands(navigate: Navigate | null): void {
         title: 'Close view',
         key: 'Mod-W',
         allowInInput: true,
-        run: () => void navigate({ to: '/' })
+        run: () => navigate({ kind: 'home' })
       })
     ]
     return () => {
@@ -132,7 +131,7 @@ function useTabCommands(navigate: Navigate, enabled: boolean): void {
       if (tab) {
         navigateToNode(navigate, tab.nodeType, tab.nodeId)
       } else {
-        void navigate({ to: '/' })
+        navigate({ kind: 'home' })
       }
     }
 
@@ -150,7 +149,7 @@ function useTabCommands(navigate: Navigate, enabled: boolean): void {
         title: 'New page',
         key: 'Mod-T',
         allowInInput: true,
-        run: () => navigateToNewDoc(navigate as unknown as NavigateLike, 'page')
+        run: () => navigateToNewDoc(navigate, 'page')
       }),
       registry.register({
         id: 'workbench.closeTab',
@@ -302,7 +301,7 @@ function GroupPane({
   hideTabStrip: boolean
   children: ReactNode
 }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const mode = useWorkbench((state) => state.mode)
   const activeTab = group.tabs.find((tab) => tab.id === group.activeTabId) ?? null
 
@@ -377,14 +376,14 @@ export function EditorArea({
   /** Suppress the built-in tab strip — the mobile shell renders its own (0289). */
   hideTabStrip?: boolean
 }) {
-  const location = useLocation()
-  const navigate = useNavigate()
+  const pathname = usePathname()
+  const navigate = useNavigateTo()
   const groups = useWorkbench((state) => state.groups)
   const activeGroupId = useWorkbench((state) => state.activeGroupId)
   const tabsEnabled = useWorkbench((state) => state.tabsEnabled)
   const [dragDepth, setDragDepth] = useState(0)
 
-  useRouteTabSync(location.pathname)
+  useRouteTabSync(pathname)
   useTabCommands(navigate, tabsEnabled)
   useTablessCommands(tabsEnabled ? null : navigate)
 

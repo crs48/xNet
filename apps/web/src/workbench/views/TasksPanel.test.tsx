@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useWorkbench } from '../state'
+import { createTestPlatform, TestPlatformProvider } from '../test-platform'
 import { TasksDashboard } from './TasksPanel'
 
 const state = vi.hoisted(() => ({
@@ -15,17 +16,6 @@ vi.mock('@xnetjs/react', () => ({
   useIdentity: () => ({ did: state.me }),
   useTasks: () => ({ data: state.tasksData, tree: [], loading: false }),
   useQuery: () => ({ data: state.projectsData, loading: false })
-}))
-vi.mock('@tanstack/react-router', () => ({
-  Link: ({
-    children,
-    search,
-    ...rest
-  }: React.PropsWithChildren<{ search?: Record<string, string> }>) => (
-    <a data-search={JSON.stringify(search)} {...rest}>
-      {children}
-    </a>
-  )
 }))
 
 let nextId = 0
@@ -51,7 +41,11 @@ beforeEach(() => {
 
 describe('TasksDashboard', () => {
   it('renders the hint state when nothing is relevant', () => {
-    render(<TasksDashboard />)
+    render(
+      <TestPlatformProvider platform={createTestPlatform()}>
+        <TasksDashboard />
+      </TestPlatformProvider>
+    )
     expect(screen.getByTestId('tasks-panel-empty')).toBeTruthy()
   })
 
@@ -61,7 +55,11 @@ describe('TasksDashboard', () => {
     state.tasksData = [pinned, inFlight]
     useWorkbench.setState({ pinnedNodeIds: [pinned.id as string] })
 
-    render(<TasksDashboard />)
+    render(
+      <TestPlatformProvider platform={createTestPlatform()}>
+        <TasksDashboard />
+      </TestPlatformProvider>
+    )
 
     expect(screen.getByText('Pinned')).toBeTruthy()
     expect(screen.getByText('Pinned thing')).toBeTruthy()
@@ -72,7 +70,11 @@ describe('TasksDashboard', () => {
   it('paginates assignments and reveals more on demand', () => {
     state.tasksData = [task(), task(), task(), task(), task()]
 
-    render(<TasksDashboard />)
+    render(
+      <TestPlatformProvider platform={createTestPlatform()}>
+        <TasksDashboard />
+      </TestPlatformProvider>
+    )
 
     expect(screen.getAllByTestId('tasks-panel-row')).toHaveLength(3)
     const showMore = screen.getByTestId('tasks-panel-show-more')
@@ -86,7 +88,11 @@ describe('TasksDashboard', () => {
     state.projectsData = [{ id: 'proj_1', name: 'Skunkworks', lead: me }]
     state.tasksData = [task({ project: 'proj_1' }), task({ project: 'proj_1', assignees: [] })]
 
-    render(<TasksDashboard />)
+    render(
+      <TestPlatformProvider platform={createTestPlatform()}>
+        <TasksDashboard />
+      </TestPlatformProvider>
+    )
 
     const row = screen.getByTestId('tasks-panel-project')
     expect(row.textContent).toContain('Skunkworks')

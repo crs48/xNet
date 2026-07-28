@@ -7,7 +7,6 @@
  * once (a share link with `docType: 'space'`; the claim writes a membership
  * edge that the authorization cascade resolves against).
  */
-import { useNavigate } from '@tanstack/react-router'
 import {
   CanvasSchema,
   DatabaseSchema,
@@ -46,6 +45,7 @@ import { useProfiles } from '../comms/hooks'
 import { useCreateInSpace } from '../hooks/useCreateInSpace'
 import { useSpaceMembers, useSpaces } from '../hooks/useSpaces'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { usePublishTitle } from '../workbench/route-title'
 import { type TabNodeType } from '../workbench/state'
 import { CommunityFeed } from './community/CommunityFeed'
@@ -311,7 +311,7 @@ function SpaceSettingsForm({
 }
 
 export function SpaceHomeView({ spaceId }: { spaceId: string }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { me } = useComms()
   const profiles = useProfiles()
   const { tree, getSpace, setSpaceVisibility, updateSpace, renameSpace } = useSpaces()

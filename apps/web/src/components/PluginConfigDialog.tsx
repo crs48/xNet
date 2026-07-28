@@ -6,9 +6,9 @@
  * `plugins/plugin-config.ts` — they never leave this device.
  */
 
+import type { FirstPartyPlugin } from '../plugins/first-party-catalog'
 import { CheckCircle, KeyRound, Settings2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import type { FirstPartyPlugin } from '../plugins/first-party-catalog'
 import {
   isPluginConfigured,
   readPluginConfig,

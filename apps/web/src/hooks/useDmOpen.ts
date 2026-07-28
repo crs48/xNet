@@ -6,7 +6,6 @@
  * must accept. `useMessageRequests()` is the receiving side: pending requests
  * with accept/decline. Together these gate cold contact (the dating-safety core).
  */
-import { useNavigate } from '@tanstack/react-router'
 import { dmChannelId, ensureDmChannel } from '@xnetjs/comms'
 import { ChannelSchema, MessageRequestSchema, ProfileSchema } from '@xnetjs/data'
 import { useXNet, useQuery } from '@xnetjs/react'
@@ -15,6 +14,7 @@ import { ConnectionWaveSchema } from '@xnetjs/social/connect'
 import { useCallback, useMemo } from 'react'
 import { isFirstContact, type WaveEdge } from '../lib/first-contact'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 
 type Row = Record<string, unknown>
 
@@ -32,7 +32,7 @@ export function useDmOpen(): {
 } {
   const { authorDID } = useXNet()
   const bridge = useDataBridge()
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const me = authorDID ?? ''
   const { data: channels } = useQuery(ChannelSchema, {})
   const { data: waves } = useQuery(ConnectionWaveSchema, {})
@@ -97,7 +97,7 @@ export interface MessageRequestsController {
 export function useMessageRequests(): MessageRequestsController {
   const { authorDID } = useXNet()
   const bridge = useDataBridge()
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const me = authorDID ?? ''
   const { data: requests } = useQuery(MessageRequestSchema, {
     where: { recipient: me as `did:key:${string}`, status: 'pending' }

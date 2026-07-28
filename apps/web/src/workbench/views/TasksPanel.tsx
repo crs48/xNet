@@ -8,7 +8,6 @@
  * board) and stay draggable onto canvases.
  */
 import type { DragEvent, JSX, ReactNode } from 'react'
-import { Link } from '@tanstack/react-router'
 import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
 import { ProjectSchema, TaskSchema } from '@xnetjs/data'
 import { useIdentity, useQuery, useTasks } from '@xnetjs/react'
@@ -21,6 +20,7 @@ import {
 } from '@xnetjs/ui'
 import { Folder } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { PlatformLink } from '../platform'
 import { useWorkbench } from '../state'
 import {
   isDashboardEmpty,
@@ -83,8 +83,8 @@ function PanelTaskRow({ task }: { task: PanelTaskNode }) {
   const title = panelTitle(task.title, 'Untitled task')
 
   return (
-    <Link
-      to="/tasks"
+    <PlatformLink
+      target={{ kind: 'node', nodeType: 'tasks', nodeId: '', preview: false }}
       search={{ task: task.id }}
       draggable
       onDragStart={(event) => setTaskDragData(event, task)}
@@ -97,7 +97,7 @@ function PanelTaskRow({ task }: { task: PanelTaskNode }) {
         {title}
       </span>
       <PanelDueLabel task={task} />
-    </Link>
+    </PlatformLink>
   )
 }
 
@@ -159,8 +159,8 @@ function ProjectIcon({ icon }: { icon: unknown }) {
 
 function ProjectRow({ project, openCount }: FollowedProject<PanelProjectNode>) {
   return (
-    <Link
-      to="/tasks"
+    <PlatformLink
+      target={{ kind: 'node', nodeType: 'tasks', nodeId: '', preview: false }}
       search={{ project: project.id }}
       data-testid="tasks-panel-project"
       className="flex h-[26px] items-center gap-2 rounded-sm px-2 text-xs text-ink-2 no-underline transition-colors hover:bg-accent hover:text-ink-1 hover:no-underline"
@@ -170,7 +170,7 @@ function ProjectRow({ project, openCount }: FollowedProject<PanelProjectNode>) {
         {panelTitle(project.name, 'Untitled project')}
       </span>
       {openCount > 0 && <span className="shrink-0 text-[10px] text-ink-3">{openCount}</span>}
-    </Link>
+    </PlatformLink>
   )
 }
 
