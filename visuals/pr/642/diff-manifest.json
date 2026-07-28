@@ -1,0 +1,156 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [
+    {
+      "id": "web-comms-presencedot--active",
+      "title": "Web/Comms/PresenceDot",
+      "name": "Active",
+      "file": "stories/web-comms-presencedot--active.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-comms-presencedot--all-statuses",
+      "title": "Web/Comms/PresenceDot",
+      "name": "All Statuses",
+      "file": "stories/web-comms-presencedot--all-statuses.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-comms-presencedot--docs",
+      "title": "Web/Comms/PresenceDot",
+      "name": "Docs",
+      "file": "stories/web-comms-presencedot--docs.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-comms-reactionbar--default",
+      "title": "Web/Comms/ReactionBar",
+      "name": "Default",
+      "file": "stories/web-comms-reactionbar--default.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-comms-reactionbar--docs",
+      "title": "Web/Comms/ReactionBar",
+      "name": "Docs",
+      "file": "stories/web-comms-reactionbar--docs.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-comms-reactionbar--single-reaction",
+      "title": "Web/Comms/ReactionBar",
+      "name": "Single Reaction",
+      "file": "stories/web-comms-reactionbar--single-reaction.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-presenceavatars--docs",
+      "title": "Web/PresenceAvatars",
+      "name": "Docs",
+      "file": "stories/web-presenceavatars--docs.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--docs",
+      "title": "Web/StorageWarningBanner",
+      "name": "Docs",
+      "file": "stories/web-storagewarningbanner--docs.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "routes": [
+    {
+      "id": "crm",
+      "label": "CRM",
+      "file": "routes/crm.png",
+      "status": "changed",
+      "ssim": 0.979034,
+      "before": "before/routes/crm.png",
+      "after": "routes/crm.png",
+      "diff": "diff/routes/crm.png"
+    },
+    {
+      "id": "discover",
+      "label": "Discover",
+      "file": "routes/discover.png",
+      "status": "changed",
+      "ssim": 0.982216,
+      "before": "before/routes/discover.png",
+      "after": "routes/discover.png",
+      "diff": "diff/routes/discover.png"
+    },
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png",
+      "status": "changed",
+      "ssim": 0.981598,
+      "before": "before/routes/home.png",
+      "after": "routes/home.png",
+      "diff": "diff/routes/home.png"
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "file": "routes/settings.png",
+      "status": "changed",
+      "ssim": 0.965369,
+      "before": "before/routes/settings.png",
+      "after": "routes/settings.png",
+      "diff": "diff/routes/settings.png"
+    }
+  ],
+  "electron": [],
+  "flows": [
+    {
+      "id": "chat",
+      "label": "Open a channel and post a message",
+      "gif": "flows/chat.gif",
+      "mp4": "flows/chat.mp4",
+      "poster": "flows/chat.poster.png"
+    },
+    {
+      "id": "crm-quote",
+      "label": "Build a CRM quote (product + line item)",
+      "gif": "flows/crm-quote.gif",
+      "mp4": "flows/crm-quote.mp4",
+      "poster": "flows/crm-quote.poster.png"
+    }
+  ],
+  "changedCount": 6
+}
