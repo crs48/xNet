@@ -10,6 +10,7 @@
 
 import type { ConnectHubRequest } from './components/ConnectHubDialog'
 import { useCommandPalette, CommandPalette } from '@xnetjs/ui'
+import { PlatformProvider } from '@xnetjs/workbench'
 import { AiChatPanel } from '@xnetjs/workbench/ai'
 import React, { useCallback, useEffect, useState } from 'react'
 import { ActionDock } from './components/ActionDock'
@@ -26,6 +27,7 @@ import { SocialImportView } from './components/SocialImportView'
 import { StorybookView } from './components/StorybookView'
 import { SystemMenu } from './components/SystemMenu'
 import { setPersistedHubUrl } from './lib/hub-url'
+import { useDesktopPlatformPort } from './shell/desktop-platform'
 import { STORIES_ENABLED, useDocumentShell } from './shell/use-document-shell'
 import { useShellPaletteCommands } from './shell/use-shell-palette-commands'
 
@@ -91,6 +93,18 @@ export function App(): React.ReactElement {
     setPersistedHubUrl(request.hub)
     await window.__xnetIpcSyncManager?.configureShareSession({ signalingUrl: request.hub })
   }, [])
+
+  // The desktop PlatformPort (0406 phase 3): shared workbench modules navigate
+  // by intent; this host resolves intents to ShellState transitions.
+  const platform = useDesktopPlatformPort({
+    shellState,
+    returnHome: handleReturnHome,
+    openDocument: handleOpenDocument,
+    openAssistant: handleOpenAssistant,
+    openSettings: handleOpenSettings,
+    openMeetings: handleOpenMeetings,
+    openDataWorkspace: handleOpenDataWorkspace
+  })
 
   const paletteCommands = useShellPaletteCommands({
     canvasViewRef,
@@ -274,112 +288,118 @@ export function App(): React.ReactElement {
   }
 
   return (
-    <div className="relative h-screen overflow-hidden bg-background">
-      <header className="absolute inset-x-0 top-0 z-50 h-[38px]">
-        <div className="absolute inset-0 titlebar-drag" />
-        <div className="relative flex h-full items-center justify-end px-3">
-          <SystemMenu
-            recentDocuments={recentDocuments}
-            onOpenDocument={handleOpenDocument}
-            onOpenSettings={handleOpenSettings}
-            onOpenDataWorkspace={handleOpenDataWorkspace}
-            onOpenMeetings={handleOpenMeetings}
-            onOpenAssistant={handleOpenAssistant}
-            onOpenSocialImport={handleOpenSocialImport}
-            onOpenStories={STORIES_ENABLED ? handleOpenStories : undefined}
-            onAddShared={() => {
-              setPrefilledShareValue('')
-              setShowAddSharedDialog(true)
-            }}
-            onToggleDebugPanel={() => {
-              window.dispatchEvent(new CustomEvent('xnet-devtools-toggle'))
-            }}
-          />
-        </div>
-      </header>
+    <PlatformProvider value={platform}>
+      <div className="relative h-screen overflow-hidden bg-background">
+        <header className="absolute inset-x-0 top-0 z-50 h-[38px]">
+          <div className="absolute inset-0 titlebar-drag" />
+          <div className="relative flex h-full items-center justify-end px-3">
+            <SystemMenu
+              recentDocuments={recentDocuments}
+              onOpenDocument={handleOpenDocument}
+              onOpenSettings={handleOpenSettings}
+              onOpenDataWorkspace={handleOpenDataWorkspace}
+              onOpenMeetings={handleOpenMeetings}
+              onOpenAssistant={handleOpenAssistant}
+              onOpenSocialImport={handleOpenSocialImport}
+              onOpenStories={STORIES_ENABLED ? handleOpenStories : undefined}
+              onAddShared={() => {
+                setPrefilledShareValue('')
+                setShowAddSharedDialog(true)
+              }}
+              onToggleDebugPanel={() => {
+                window.dispatchEvent(new CustomEvent('xnet-devtools-toggle'))
+              }}
+            />
+          </div>
+        </header>
 
-      <main className="relative h-full overflow-hidden pt-[38px]">
-        <div
-          className={[
-            'absolute inset-0',
-            prefersReducedMotion ? '' : 'transition-all duration-200',
-            isCanvasInteractiveShell
-              ? 'opacity-100'
-              : prefersReducedMotion
-                ? 'pointer-events-none opacity-70'
-                : 'pointer-events-none scale-[0.985] opacity-70'
-          ].join(' ')}
-        >
-          <CanvasView
-            ref={canvasViewRef}
-            docId={homeCanvasId}
-            documents={documents}
-            pendingInsert={pendingCanvasInsert}
+        <main className="relative h-full overflow-hidden pt-[38px]">
+          <div
+            className={[
+              'absolute inset-0',
+              prefersReducedMotion ? '' : 'transition-all duration-200',
+              isCanvasInteractiveShell
+                ? 'opacity-100'
+                : prefersReducedMotion
+                  ? 'pointer-events-none opacity-70'
+                  : 'pointer-events-none scale-[0.985] opacity-70'
+            ].join(' ')}
+          >
+            <CanvasView
+              ref={canvasViewRef}
+              docId={homeCanvasId}
+              documents={documents}
+              pendingInsert={pendingCanvasInsert}
+              onCreatePage={() => void handleCreateLinkedDocument('page')}
+              onCreateDatabase={() => void handleCreateLinkedDocument('database')}
+              onCreateNote={handleCreateCanvasNote}
+              onCommandStateChange={handleCommandStateChange}
+              onPendingInsertConsumed={handlePendingInsertConsumed}
+              onOpenDocument={(docId, docType) => focusDocument(docId, docType, true)}
+              onOpenDatabaseSplit={openDatabaseSplit}
+            />
+          </div>
+
+          {renderOverlay()}
+
+          <ActionDock
+            mode={isCanvasInteractiveShell ? 'canvas-home' : 'focused'}
             onCreatePage={() => void handleCreateLinkedDocument('page')}
             onCreateDatabase={() => void handleCreateLinkedDocument('database')}
             onCreateNote={handleCreateCanvasNote}
-            onCommandStateChange={handleCommandStateChange}
-            onPendingInsertConsumed={handlePendingInsertConsumed}
-            onOpenDocument={(docId, docType) => focusDocument(docId, docType, true)}
-            onOpenDatabaseSplit={openDatabaseSplit}
+            onCreateShape={() => {
+              canvasViewRef.current?.createShape('rectangle')
+            }}
+            onCreateFrame={() => {
+              canvasViewRef.current?.createFrame()
+            }}
+            onCreateReference={() => {
+              canvasViewRef.current?.createExternalReference()
+            }}
+            onCreateMedia={() => {
+              canvasViewRef.current?.createMediaFile()
+            }}
+            onOpenSearch={showPalette}
+            onReturnHome={handleReturnHome}
+            onZoomOut={() => {
+              canvasViewRef.current?.zoomOut()
+            }}
+            onZoomIn={() => {
+              canvasViewRef.current?.zoomIn()
+            }}
+            onFitToContent={() => {
+              canvasViewRef.current?.fitCanvasContent()
+            }}
+            onResetView={() => {
+              canvasViewRef.current?.resetCanvasView()
+            }}
           />
-        </div>
+        </main>
 
-        {renderOverlay()}
-
-        <ActionDock
-          mode={isCanvasInteractiveShell ? 'canvas-home' : 'focused'}
-          onCreatePage={() => void handleCreateLinkedDocument('page')}
-          onCreateDatabase={() => void handleCreateLinkedDocument('database')}
-          onCreateNote={handleCreateCanvasNote}
-          onCreateShape={() => {
-            canvasViewRef.current?.createShape('rectangle')
+        <AddSharedDialog
+          isOpen={showAddSharedDialog}
+          onClose={() => {
+            setShowAddSharedDialog(false)
+            setPrefilledShareValue('')
           }}
-          onCreateFrame={() => {
-            canvasViewRef.current?.createFrame()
-          }}
-          onCreateReference={() => {
-            canvasViewRef.current?.createExternalReference()
-          }}
-          onCreateMedia={() => {
-            canvasViewRef.current?.createMediaFile()
-          }}
-          onOpenSearch={showPalette}
-          onReturnHome={handleReturnHome}
-          onZoomOut={() => {
-            canvasViewRef.current?.zoomOut()
-          }}
-          onZoomIn={() => {
-            canvasViewRef.current?.zoomIn()
-          }}
-          onFitToContent={() => {
-            canvasViewRef.current?.fitCanvasContent()
-          }}
-          onResetView={() => {
-            canvasViewRef.current?.resetCanvasView()
-          }}
+          onAdd={handleAddShared}
+          initialValue={prefilledShareValue}
         />
-      </main>
 
-      <AddSharedDialog
-        isOpen={showAddSharedDialog}
-        onClose={() => {
-          setShowAddSharedDialog(false)
-          setPrefilledShareValue('')
-        }}
-        onAdd={handleAddShared}
-        initialValue={prefilledShareValue}
-      />
+        <ConnectHubDialog
+          request={connectRequest}
+          onCancel={() => setConnectRequest(null)}
+          onConfirm={handleCloudConnect}
+        />
 
-      <ConnectHubDialog
-        request={connectRequest}
-        onCancel={() => setConnectRequest(null)}
-        onConfirm={handleCloudConnect}
-      />
+        <CommandPalette
+          commands={paletteCommands}
+          open={paletteOpen}
+          onOpenChange={setPaletteOpen}
+        />
 
-      <CommandPalette commands={paletteCommands} open={paletteOpen} onOpenChange={setPaletteOpen} />
-
-      <BundledPluginInstaller />
-    </div>
+        <BundledPluginInstaller />
+      </div>
+    </PlatformProvider>
   )
 }

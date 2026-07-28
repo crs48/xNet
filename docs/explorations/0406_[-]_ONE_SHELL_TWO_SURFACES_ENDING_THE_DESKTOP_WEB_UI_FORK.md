@@ -545,7 +545,7 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 
 ### Phase 3 — desktop mounts the shell
 
-- [ ] Add `DesktopPlatformPort` backed by the existing `ShellState` reducer
+- [x] Add `DesktopPlatformPort` backed by the existing `ShellState` reducer
 - [ ] Render `<Workbench/>` in `apps/electron` behind an `XNET_UNIFIED_SHELL` flag
 - [ ] Verify islands, explorer, panels, and palette render over real SQLite data
 - [ ] Measure desktop bundle delta and cold-open time against baseline
