@@ -32,6 +32,7 @@ export interface DesktopNavDeps {
   openSettings: () => void
   openMeetings: () => void
   openDataWorkspace: () => void
+  openSocialImport: () => void
 }
 
 const DESKTOP_CAPABILITIES: PlatformCapabilities = {
@@ -117,6 +118,9 @@ export function navigateShell(target: NavTarget, deps: DesktopNavDeps): boolean 
         case '/data':
           deps.openDataWorkspace()
           return true
+        case '/social-import':
+          deps.openSocialImport()
+          return true
         case '/ai':
           deps.openAssistant()
           return true
@@ -186,6 +190,7 @@ export function useDesktopPlatformPort(deps: DesktopNavDeps): PlatformPort {
     deps.openAssistant,
     deps.openSettings,
     deps.openMeetings,
-    deps.openDataWorkspace
+    deps.openDataWorkspace,
+    deps.openSocialImport
   ])
 }

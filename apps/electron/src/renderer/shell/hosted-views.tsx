@@ -7,8 +7,16 @@
  * never a silent one. The Record stays complete so a new TabNodeType is a
  * compile error here, exactly as on web.
  */
-import { registerHostedViews, type HostedView, type TabNodeType } from '@xnetjs/workbench'
+import {
+  registerHostedViews,
+  useNavigateTo,
+  type HostedView,
+  type TabNodeType
+} from '@xnetjs/workbench'
+import { CanvasView } from '../components/CanvasView'
 import { DatabaseView } from '../components/DatabaseView'
+import { DataWorkspaceView } from '../components/DataWorkspaceView'
+import { MeetingsView } from '../components/MeetingsView'
 import { PageView } from '../components/PageView'
 
 function NotOnDesktop({ label }: { label: string }) {
@@ -27,18 +35,49 @@ const notYet = (label: string): HostedView =>
     return <NotOnDesktop label={label} />
   }
 
+/**
+ * Canvas as a hosted tab: open-document and split intents resolve through the
+ * port instead of the bespoke shell's handlers. The home canvas rendered by
+ * App.tsx keeps its richer wiring (ref, pending inserts, create handlers) —
+ * this covers canvases opened from the explorer or a split.
+ */
+function CanvasTabView({ nodeId }: { nodeId: string }) {
+  const navigate = useNavigateTo()
+  return (
+    <CanvasView
+      docId={nodeId}
+      onOpenDocument={(docId, docType) =>
+        navigate({ kind: 'node', nodeType: docType, nodeId: docId })
+      }
+      onOpenDatabaseSplit={(docId) =>
+        navigate({ kind: 'node', nodeType: 'database', nodeId: docId })
+      }
+    />
+  )
+}
+
+function MeetingsTabView() {
+  const navigate = useNavigateTo()
+  return <MeetingsView onClose={() => navigate({ kind: 'home' })} />
+}
+
+function DataWorkspaceTabView() {
+  const navigate = useNavigateTo()
+  return <DataWorkspaceView onClose={() => navigate({ kind: 'home' })} />
+}
+
 const DESKTOP_HOSTED_VIEWS: Record<TabNodeType, HostedView> = {
   page: ({ nodeId }) => <PageView docId={nodeId} minimalChrome />,
   database: ({ nodeId }) => <DatabaseView docId={nodeId} minimalChrome />,
+  canvas: CanvasTabView,
+  meetings: MeetingsTabView,
+  data: DataWorkspaceTabView,
   post: notYet('Posts'),
   frame: notYet('Frames'),
-  canvas: notYet('Canvas tabs'),
   dashboard: notYet('Dashboards'),
   map: notYet('Maps'),
   savedview: notYet('Saved views'),
   tasks: notYet('Tasks'),
-  meetings: notYet('Meetings'),
-  data: notYet('Data workspace'),
   experiments: notYet('Experiments'),
   crm: notYet('CRM'),
   finance: notYet('Finance'),
