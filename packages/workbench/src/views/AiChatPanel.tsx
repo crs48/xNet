@@ -40,6 +40,7 @@ import { useDataBridge, useNodeStore } from '@xnetjs/react/internal'
 import { Bot, Loader2, Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePlatform } from '../platform'
+import { createFramedBridgeProvider, type BridgeAgentFrame } from './ai-bridge-frames'
 import { createChatCeremony, type CeremonyPending, type ChatCeremony } from './ai-chat-ceremony'
 import {
   AI_CHAT_STORAGE_KEYS,
@@ -223,6 +224,11 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
   const conversationLogRef = useRef<AiConversationLog | null>(null)
   const assistantBufferRef = useRef('')
   const [activity, setActivity] = useState<ChatToolActivity | null>(null)
+  // Framed bridge display (0392/0394): the agent's own tool use, cost, and
+  // permission asks, previously flattened away by the OpenAI-compatible wire.
+  const [bridgeCost, setBridgeCost] = useState<{ usd?: number; outputTokens?: number } | null>(null)
+  const [bridgePermission, setBridgePermission] = useState<string | null>(null)
+  const bridgeToolNamesRef = useRef(new Map<string, string>())
 
   const handlers = useMemo(
     () => ({
@@ -233,6 +239,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
       onSettled: () => {
         setStreaming(false)
         setActivity(null)
+        setBridgePermission(null)
         void conversationLogRef.current?.logAssistantReply(assistantBufferRef.current)
         assistantBufferRef.current = ''
       },
@@ -244,6 +251,27 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     }),
     []
   )
+
+  // Structured frames from the bridge agent. Tool activity reuses the same
+  // line as in-panel tools; a permission ask is surfaced honestly — the panel
+  // has no response channel to the agent's own consent flow, so it points at
+  // where the decision actually lives.
+  const onAgentFrame = useCallback((frame: BridgeAgentFrame) => {
+    if (frame.type === 'tool_call') {
+      bridgeToolNamesRef.current.set(frame.id, frame.name)
+      setActivity({ kind: 'call', tool: frame.name })
+    } else if (frame.type === 'tool_result') {
+      const tool = bridgeToolNamesRef.current.get(frame.id)
+      if (tool) setActivity({ kind: 'result', tool })
+    } else if (frame.type === 'cost') {
+      setBridgeCost({
+        ...(frame.usd !== undefined ? { usd: frame.usd } : {}),
+        ...(frame.outputTokens !== undefined ? { outputTokens: frame.outputTokens } : {})
+      })
+    } else if (frame.type === 'permission_request') {
+      setBridgePermission(frame.tool)
+    }
+  }, [])
 
   // Persist the selected tier so the choice survives a reload.
   const selectTier = useCallback((tier: ConnectorTier) => {
@@ -457,7 +485,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     // gesture before doing so — even when the tier is auto-selected.
     if (selected.tier === 'webllm' && !webllmArmed) return
     let cancelled = false
-    void resolveProvider(selected, settings, onBudget, setWebllmProgress)
+    void resolveProvider(selected, settings, onBudget, setWebllmProgress, onAgentFrame)
       .then((provider) => {
         if (cancelled || !provider) return
         // Read-only tools, on tiers that can actually call them (0394 Phase 1),
@@ -543,6 +571,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     operatorDID,
     writesEnabled,
     onBudget,
+    onAgentFrame,
     webllmArmed
   ])
 
@@ -659,6 +688,21 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
                 writeSetting(AI_CHAT_STORAGE_KEYS.bridgeToken, value)
               }}
             />
+            {bridgeCost && (
+              <p className="border-b border-hairline px-3 py-1 text-[10px] text-ink-3">
+                Last turn
+                {bridgeCost.usd !== undefined ? ` · $${bridgeCost.usd.toFixed(4)}` : ''}
+                {bridgeCost.outputTokens !== undefined
+                  ? ` · ${bridgeCost.outputTokens} output tokens`
+                  : ''}
+              </p>
+            )}
+            {bridgePermission && (
+              <p className="border-b border-hairline px-3 py-1.5 text-[11px] text-amber-600">
+                The agent is asking to use <code>{bridgePermission}</code>. This chat has no channel
+                to approve it — decide in the agent&apos;s own session.
+              </p>
+            )}
           </>
         ) : (
           <BridgeOffline onRecheck={() => setDetectNonce((nonce) => nonce + 1)} />
@@ -1407,8 +1451,21 @@ async function resolveProvider(
   detection: ConnectorDetection,
   settings: AiChatSettings,
   onBudget: (snapshot: ManagedBudgetSnapshot) => void,
-  onWebllmProgress: (progress: WebLLMProgress | null) => void
+  onWebllmProgress: (progress: WebLLMProgress | null) => void,
+  onAgentFrame?: (frame: BridgeAgentFrame) => void
 ): Promise<AIProvider | null> {
+  // The bridge speaks the framed endpoint (0392/0394): same transport, but
+  // tool calls, cost, and permission asks arrive structured instead of
+  // flattened into text. Other tiers keep their existing providers.
+  if (detection.tier === 'bridge') {
+    const baseUrl = baseUrlFromDetail(detection.detail)
+    if (!baseUrl || !settings.bridgeToken) return null
+    return createFramedBridgeProvider({
+      baseUrl,
+      token: settings.bridgeToken,
+      ...(onAgentFrame ? { onFrame: onAgentFrame } : {})
+    })
+  }
   // In-tab WebLLM: build a real @mlc-ai/web-llm engine, downloading the model on
   // first run with a progress callback. Clear the gauge once it settles (success
   // or — after the caller's .catch — failure).
