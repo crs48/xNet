@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>The desktop app now shares the web app's interface</title>
+      <link>https://xnet.fyi/changelog#2026-07-28-the-desktop-app-now-shares-the-web-app-s</link>
+      <guid isPermaLink="false">2026-07-28-the-desktop-app-now-shares-the-web-app-s</guid>
+      <pubDate>Wed, 29 Jul 2026 01:42:07 GMT</pubDate>
+      <description>The desktop shell is the same workbench the web app uses: sidebar with search and filters, command palette, tabs, and panels — with the canvas home, meetings, data workspace, and social import inside it. The two apps now stay in sync by construction.</description>
+    </item>
+    <item>
       <title>The desktop app has an Assistant</title>
       <link>https://xnet.fyi/changelog#2026-07-28-the-desktop-app-has-an-assistant</link>
       <guid isPermaLink="false">2026-07-28-the-desktop-app-has-an-assistant</guid>

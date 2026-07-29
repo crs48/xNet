@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-28-the-desktop-app-now-shares-the-web-app-s",
+      "url": "https://xnet.fyi/changelog#2026-07-28-the-desktop-app-now-shares-the-web-app-s",
+      "title": "The desktop app now shares the web app's interface",
+      "content_text": "The desktop shell is the same workbench the web app uses: sidebar with search and filters, command palette, tabs, and panels — with the canvas home, meetings, data workspace, and social import inside it. The two apps now stay in sync by construction.\n",
+      "date_published": "2026-07-29T01:42:07Z",
+      "tags": [
+        "app",
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 28, 2026",
+        "summary": "The desktop shell is the same workbench the web app uses: sidebar with search and filters, command palette, tabs, and panels — with the canvas home, meetings, data workspace, and social import inside it. The two apps now stay in sync by construction.",
+        "highlights": [],
+        "mergedAt": "2026-07-29T01:42:07Z",
+        "pr": 653,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-28-the-desktop-app-has-an-assistant",
       "url": "https://xnet.fyi/changelog#2026-07-28-the-desktop-app-has-an-assistant",
       "title": "The desktop app has an Assistant",
