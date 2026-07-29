@@ -63,7 +63,7 @@ const SHARE_TYPES: Partial<Record<WorkbenchTab['nodeType'], ShareDocType>> = {
 
 /** Below the storage banner, filling the rest of the viewport as a column. */
 const FRAME =
-  'wb-root relative mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px))] flex-col overflow-hidden bg-island font-sans text-ink-1'
+  'wb-root relative mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px)-var(--titlebar-height,0px))] flex-col overflow-hidden bg-island font-sans text-ink-1'
 
 /** Island chrome shared by the floating cluster + status pill. */
 const ISLAND = ISLAND_SURFACE

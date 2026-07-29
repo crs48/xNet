@@ -18,6 +18,7 @@ import {
   type WorkbenchHost
 } from '@xnetjs/workbench'
 import { useCallback, useMemo } from 'react'
+import { AddSharedDialog, type AddSharedInput } from '../components/AddSharedDialog'
 
 /** Deterministic presence-style color from a DID (same palette rule as web). */
 function colorForDid(did: string): string {
@@ -109,12 +110,21 @@ const CREATE_SCHEMAS = {
   map: { schema: MapSchema, seed: { title: 'Untitled Map' } }
 } as const
 
+export interface DesktopHostDeps {
+  /** The shell's add-shared handler (join a shared doc/channel by link or id). */
+  addShared: (input: AddSharedInput) => Promise<void>
+}
+
 /**
  * Build the desktop host. A hook because the createInSpace member needs the
  * live navigate function; App calls this once and registers the result.
  */
-export function useDesktopWorkbenchHost(navigate: (target: NavTarget) => void): WorkbenchHost {
+export function useDesktopWorkbenchHost(
+  navigate: (target: NavTarget) => void,
+  deps: DesktopHostDeps
+): WorkbenchHost {
   const { create } = useMutate()
+  const { addShared } = deps
 
   const useCreateInSpaceDesktop = useCallback(() => {
     return async (type: keyof typeof CREATE_SCHEMAS | string, spaceId: string | null) => {
@@ -197,13 +207,17 @@ export function useDesktopWorkbenchHost(navigate: (target: NavTarget) => void): 
       SelfAvatar,
       ShareDialog: ShareDialogPlaceholder,
       ErrorFallback: DesktopErrorFallback,
-      AddSharedDialog: ShareDialogPlaceholder,
+      // The real desktop join-by-link dialog, bound to the shell's handler —
+      // reachable through the `share.addShared` command (AddSharedHost).
+      AddSharedDialog: function AddSharedDialogHosted({ isOpen, onClose }) {
+        return <AddSharedDialog isOpen={isOpen} onClose={onClose} onAdd={addShared} />
+      },
       WinddownOverlay: Null,
       CoachmarkLayer: Null,
       contributeTips: () => () => undefined,
       WhatsNewButton: Null
     }),
-    [useCreateInSpaceDesktop]
+    [useCreateInSpaceDesktop, addShared]
   )
 }
 
