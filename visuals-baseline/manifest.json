@@ -373,24 +373,6 @@
       "file": "stories/web-storagewarningbanner--informational.png"
     },
     {
-      "id": "electron-systemmenu--docs",
-      "title": "Electron/SystemMenu",
-      "name": "Docs",
-      "file": "stories/electron-systemmenu--docs.png"
-    },
-    {
-      "id": "electron-systemmenu--default",
-      "title": "Electron/SystemMenu",
-      "name": "Default",
-      "file": "stories/electron-systemmenu--default.png"
-    },
-    {
-      "id": "electron-systemmenu--empty-recent",
-      "title": "Electron/SystemMenu",
-      "name": "Empty Recent",
-      "file": "stories/electron-systemmenu--empty-recent.png"
-    },
-    {
       "id": "explorations-0390-tasks-second-nav--docs",
       "title": "Explorations/0390 Tasks second nav",
       "name": "Docs",
