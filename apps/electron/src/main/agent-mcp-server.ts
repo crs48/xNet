@@ -56,7 +56,21 @@ export async function startAgentMcpServer(): Promise<AgentMcpServerHandle> {
   // the cache only has to be warm by the time a chat turn calls a tool.
   void schemas.ensurePrimed().catch(() => undefined)
 
-  const server = createMCPServer({ store: createNodeStoreProxy(), schemas })
+  const server = createMCPServer({
+    store: createNodeStoreProxy(),
+    schemas,
+    // The 0337 ceremony (0394 Phase 2): every AI-surface tool call lands as an
+    // AgentAction node, and medium+ risk writes park behind the risk-tiered
+    // approval — medium releases on the APPROVE code the agent relays into
+    // chat (`xnet_approve`), high/critical only from an xNet surface. Without
+    // this, a bridged agent could run `xnet_apply_page_markdown` with no gate
+    // but the system prompt.
+    agentAudit: {
+      agentDID: 'bridge:agent',
+      sessionKey: `bridge-${Date.now().toString(36)}`,
+      channel: 'cli'
+    }
+  })
   const http = createMcpHttpServer({ server, port: 0 })
   await http.start()
 

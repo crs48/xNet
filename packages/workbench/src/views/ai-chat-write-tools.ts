@@ -63,6 +63,18 @@ export function writeToolSpecs(
     }))
 }
 
+/**
+ * Replaces `AI_TOOLS_PROMPT` when writes are armed: same search guidance,
+ * minus the "you cannot create, edit, or delete" close — a prompt that both
+ * grants and denies writing teaches the model to ignore one half of it.
+ */
+export const AI_TOOLS_PROMPT_WRITABLE = [
+  'You can call tools to look things up in the workspace yourself — search it,',
+  'read a page, describe or query a database, expand the graph around a node.',
+  'Prefer calling a tool over guessing, and prefer it over saying you lack',
+  'access. Cite what you found by title or id.'
+].join(' ')
+
 /** Standing instructions appended when write tools are enabled. */
 export const AI_WRITE_TOOLS_PROMPT = [
   'You can also propose and apply page edits: validate markdown, plan a patch,',

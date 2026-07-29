@@ -69,7 +69,11 @@ import {
 } from './ai-chat-connector'
 import { createAiConversationLog, type AiConversationLog } from './ai-chat-persistence'
 import { AI_TOOLS_PROMPT, readOnlyToolSpecs, toolsEnabledFor } from './ai-chat-tools'
-import { AI_WRITE_TOOLS_PROMPT, writeToolSpecs } from './ai-chat-write-tools'
+import {
+  AI_TOOLS_PROMPT_WRITABLE,
+  AI_WRITE_TOOLS_PROMPT,
+  writeToolSpecs
+} from './ai-chat-write-tools'
 import { AI_SYSTEM_PROMPT, formatContextMessages } from './ai-context'
 import { createGraphContextRetriever, keywordEntrySearch } from './ai-graph-retriever'
 import { schemaRegistryApi } from './ai-schemas'
@@ -511,11 +515,9 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
               })
             : null
         ceremonyRef.current = ceremony
-        const promptParts = [
-          AI_SYSTEM_PROMPT,
-          ...(tools.length ? [AI_TOOLS_PROMPT] : []),
-          ...(writeTools.length ? [AI_WRITE_TOOLS_PROMPT] : [])
-        ]
+        const promptParts = writeTools.length
+          ? [AI_SYSTEM_PROMPT, AI_TOOLS_PROMPT_WRITABLE, AI_WRITE_TOOLS_PROMPT]
+          : [AI_SYSTEM_PROMPT, ...(tools.length ? [AI_TOOLS_PROMPT] : [])]
         const runtime = createAiAgentRuntime({
           provider,
           systemPrompt: promptParts.join('\n\n'),
@@ -1288,8 +1290,8 @@ function WritesToggle({
         className="cursor-pointer"
       />
       <span>
-        Allow edits (with approval) — the assistant may propose page edits; nothing is applied until
-        you approve it here.
+        Allow edits (with approval) — the assistant may create and edit pages. Risky changes pause
+        for your approval, and every action is audited.
       </span>
     </label>
   )
