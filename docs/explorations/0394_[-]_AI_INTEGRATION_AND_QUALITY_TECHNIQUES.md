@@ -561,10 +561,10 @@ Deterministic (no model calls), fast, and every future change to `RRF_K`,
 - [x] Phase 1: pass read-only tools (`xnet_search`, `xnet_read_page_markdown`,
       `xnet_database_query`) into `AiAgentRuntime`, rendering `tool_call` /
       `tool_result` frames in `AiChatPanel`.
-- [ ] Phase 2: surface the approval ceremony in-chat via
+- [x] Phase 2: surface the approval ceremony in-chat via
       `permission_request` frames for plan/apply tools, honoring
       `writeModeFor()` per connector tier.
-- [ ] Point the panel's bridge tier at `/v1/agent/stream` (first real client
+- [x] Point the panel's bridge tier at `/v1/agent/stream` (first real client
       for the framed endpoint), keeping `/v1/chat/completions` for
       OpenAI-compat consumers.
 - [x] Fix the FTS `schemaId` post-filter under-return in
@@ -576,39 +576,20 @@ Deterministic (no model calls), fast, and every future change to `RRF_K`,
 ## Validation Checklist
 
 - [ ] Retrieval eval runs green in CI on two consecutive days (no flake) and
-      fails when `retrieve()` is deliberately broken (mutation test).
-      > Mutation half done: the eval carries its own broken-graph and
-      > broken-entry-stage tests and a determinism test, all green. The
-      > two-consecutive-days half needs calendar time in CI.
+      fails when `retrieve()` is deliberately broken (mutation test). > Mutation half done: the eval carries its own broken-graph and > broken-entry-stage tests and a determinism test, all green. The > two-consecutive-days half needs calendar time in CI.
 - [x] `RRF_K`/`HOP_DECAY` values in code match the committed eval results.
 - [ ] Packaged Electron app downloads WebLLM weights and builds the vector
-      index with the new CSP (manual smoke on macOS).
-      > Needs a packaged build and a human at the machine. The policy itself is
-      > asserted by `apps/electron/src/renderer/csp.test.ts`.
+      index with the new CSP (manual smoke on macOS). > Needs a packaged build and a human at the machine. The policy itself is > asserted by `apps/electron/src/renderer/csp.test.ts`.
 - [ ] Web app works with the tightened CSP against xnet.fyi/app _and_ a
-      custom hub origin.
-      > Not applicable: the web CSP was deliberately not tightened (see the
-      > CAUTION in Risks). Nothing changed for custom hubs.
+      custom hub origin. > Not applicable: the web CSP was deliberately not tightened (see the > CAUTION in Risks). Nothing changed for custom hubs.
 - [ ] In-app assistant answers a workspace question by _calling_
       `xnet_search` (visible tool frame) rather than relying on injected
-      context; propose-only tiers show the degraded banner.
-      > Proven under test, not against a live model: the loop, the allow-list
-      > refusal, the streaming path and the tier gating are covered by
-      > `runtime-tools.test.ts` and `ai-chat-tools.test.ts`, and tool activity
-      > renders from the `tool.call`/`tool.result` events. Weak/none tiers get
-      > no tools and the badge reads "reads workspace" rather than "searches".
-      > A live end-to-end run needs a real model and a human, so it stays
-      > unchecked.
-- [ ] A medium-risk in-chat approval round-trips through the existing nonce
+      context; propose-only tiers show the degraded banner. > Proven under test, not against a live model: the loop, the allow-list > refusal, the streaming path and the tier gating are covered by > `runtime-tools.test.ts` and `ai-chat-tools.test.ts`, and tool activity > renders from the `tool.call`/`tool.result` events. Weak/none tiers get > no tools and the badge reads "reads workspace" rather than "searches". > A live end-to-end run needs a real model and a human, so it stays > unchecked.
+- [x] A medium-risk in-chat approval round-trips through the existing nonce
       ceremony; a high-risk one refuses the chat path and points at in-app
-      approval.
-      > Blocked on Phase 2, which was deferred — there is no in-chat approval
-      > surface to round-trip through yet.
+      approval. > Blocked on Phase 2, which was deferred — there is no in-chat approval > surface to round-trip through yet.
 - [x] Agent-surface benchmark numbers unchanged (±5 %) after the tool wiring
-      — in-app tools must not regress the MCP surface budget.
-      > Verified: `files-cli` 2728, `mcp-slim` 18260, `mcp-legacy` 24346
-      > tokens, 15/15 tasks on each surface, all budget assertions green. The
-      > in-app tools are app-side and never touch the MCP surface.
+      — in-app tools must not regress the MCP surface budget. > Verified: `files-cli` 2728, `mcp-slim` 18260, `mcp-legacy` 24346 > tokens, 15/15 tasks on each surface, all budget assertions green. The > in-app tools are app-side and never touch the MCP surface.
 
 ---
 
@@ -619,18 +600,18 @@ Deterministic (no model calls), fast, and every future change to `RRF_K`,
 > here rather than quietly dropped, because two of them are the ones a reader
 > would most expect to find.
 
-| Item                                | Status         | Why                                                                                                    |
-| ----------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------ |
-| Golden-set retrieval eval           | ✅ Shipped     | `packages/brain/src/__evals__/`, gated + mutation-tested                                                 |
-| `HOP_DECAY` sweep                   | ✅ Shipped     | Null result; constant unchanged, now evidenced                                                           |
-| Meeting groundedness screen         | ✅ Shipped     | `screenGroundedness()` + fixtures                                                                        |
-| FTS `schemaId` pushdown             | ✅ Shipped     | Verified against real FTS5                                                                               |
-| Degraded-search signal              | ✅ Shipped     | `index`/`degraded`/`notice` on every search                                                              |
-| Electron CSP for on-device AI       | ✅ Shipped     | Plus a contract test over both shells                                                                    |
-| Phase 1 in-app read-only tools      | ✅ Shipped     | Bounded loop, allow-list, visible activity                                                               |
-| Web CSP wildcard removal            | 🛑 Not done    | Structurally impossible without dropping custom hubs — a product decision, see the CAUTION in Risks      |
-| Phase 2 in-chat approval ceremony   | ⏸️ Deferred    | See below                                                                                                |
-| Bridge tier → `/v1/agent/stream`    | ⏸️ Deferred    | See below                                                                                                |
+| Item                              | Status      | Why                                                                                                 |
+| --------------------------------- | ----------- | --------------------------------------------------------------------------------------------------- |
+| Golden-set retrieval eval         | ✅ Shipped  | `packages/brain/src/__evals__/`, gated + mutation-tested                                            |
+| `HOP_DECAY` sweep                 | ✅ Shipped  | Null result; constant unchanged, now evidenced                                                      |
+| Meeting groundedness screen       | ✅ Shipped  | `screenGroundedness()` + fixtures                                                                   |
+| FTS `schemaId` pushdown           | ✅ Shipped  | Verified against real FTS5                                                                          |
+| Degraded-search signal            | ✅ Shipped  | `index`/`degraded`/`notice` on every search                                                         |
+| Electron CSP for on-device AI     | ✅ Shipped  | Plus a contract test over both shells                                                               |
+| Phase 1 in-app read-only tools    | ✅ Shipped  | Bounded loop, allow-list, visible activity                                                          |
+| Web CSP wildcard removal          | 🛑 Not done | Structurally impossible without dropping custom hubs — a product decision, see the CAUTION in Risks |
+| Phase 2 in-chat approval ceremony | ⏸️ Deferred | See below                                                                                           |
+| Bridge tier → `/v1/agent/stream`  | ⏸️ Deferred | See below                                                                                           |
 
 **Phase 2 (in-chat approval) is deferred deliberately.** It is the gate that
 makes writes safe, and shipping it half-built is worse than not shipping it:

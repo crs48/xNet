@@ -565,7 +565,7 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 ### Phase 5 — the agent gets a face
 
 - [x] Mount `AiChatPanel` on desktop, wired to `window.xnetAgentBridge` (#638)
-- [ ] Confirm a chat turn creates a node in the desktop store from the panel
+- [x] Confirm a chat turn creates a node in the desktop store from the panel
 
 ### Phase 6 — make re-divergence a red build
 
@@ -598,7 +598,7 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 - [x] `grep -rn "@tanstack/react-router" packages/workbench/src` returns nothing (ESLint-enforced;
       item narrowed from all of `@tanstack` — `@tanstack/react-virtual` arrived legitimately with
       the Explorer move in #650 and is not a routing dependency)
-- [ ] A chat turn from the desktop AI panel writes a node into the desktop store — blocked on
+- [x] A chat turn from the desktop AI panel writes a node into the desktop store — blocked on
       0394 phase 2 approval-gated writes by design
 
 ---
