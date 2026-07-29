@@ -592,8 +592,9 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
       `main module loaded` → `renderer loaded`, warm runs after one
       warm-up, same machine): pre-unification reference built at
       `af6fc9a6d` 0.512/0.512/0.520 s; unified shell before the lazy pass
-      0.597–0.622 s (+17%); after 0.484/0.487 s — at parity (≈6% faster
-      than the reference).
+      0.597–0.622 s (+17%); after, on the merged end state (#653's
+      single-shell App), 0.462–0.479 s — under the baseline, not just
+      within 10% of it.
 - [x] `grep -rn "@tanstack/react-router" packages/workbench/src` returns nothing (ESLint-enforced;
       item narrowed from all of `@tanstack` — `@tanstack/react-virtual` arrived legitimately with
       the Explorer move in #650 and is not a routing dependency)
