@@ -4,5 +4,14 @@
   "title": "The assistant can now edit your workspace — with your approval",
   "summary": "Turn on 'Allow edits' in the AI panel and the assistant can create and edit pages. Risky changes pause for your explicit approval in the chat, every action is audited, and the local agent bridge now shows tool activity and per-turn cost.",
   "highlights": [],
-  "tags": ["ai"]
+  "tags": [
+    "ai"
+  ],
+  "pr": 656,
+  "mergedAt": "2026-07-29T04:42:13Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
