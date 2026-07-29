@@ -11,27 +11,47 @@
 import type { ConnectHubRequest } from './components/ConnectHubDialog'
 import { useCommandPalette, CommandPalette } from '@xnetjs/ui'
 import { PlatformProvider, setWorkbenchHost, Workbench } from '@xnetjs/workbench'
-import { AiChatPanel } from '@xnetjs/workbench/ai'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { ActionDock } from './components/ActionDock'
 import { AddSharedDialog } from './components/AddSharedDialog'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { CanvasView } from './components/CanvasView'
 import { ConnectHubDialog } from './components/ConnectHubDialog'
-import { DatabaseView } from './components/DatabaseView'
-import { DataWorkspaceView } from './components/DataWorkspaceView'
-import { MeetingsView } from './components/MeetingsView'
-import { PageView } from './components/PageView'
-import { SettingsView } from './components/SettingsView'
-import { SocialImportView } from './components/SocialImportView'
-import { StorybookView } from './components/StorybookView'
 import { SystemMenu } from './components/SystemMenu'
+
 import { setPersistedHubUrl } from './lib/hub-url'
 import { useDesktopPlatformPort } from './shell/desktop-platform'
 import { registerDesktopHostedViews } from './shell/hosted-views'
 import { STORIES_ENABLED, useDocumentShell } from './shell/use-document-shell'
 import { useShellPaletteCommands } from './shell/use-shell-palette-commands'
 import { useDesktopWorkbenchHost } from './shell/workbench-host'
+
+// Every surface other than the home canvas loads on demand (0406 cold-open
+// budget): the editor, database-view, meetings, social-import and WebLLM
+// graphs are megabytes of parse the first paint never executes. CanvasView
+// stays static above — it IS first paint.
+const AiChatPanel = lazy(() =>
+  import('@xnetjs/workbench/ai').then((m) => ({ default: m.AiChatPanel }))
+)
+const DatabaseView = lazy(() =>
+  import('./components/DatabaseView').then((m) => ({ default: m.DatabaseView }))
+)
+const DataWorkspaceView = lazy(() =>
+  import('./components/DataWorkspaceView').then((m) => ({ default: m.DataWorkspaceView }))
+)
+const MeetingsView = lazy(() =>
+  import('./components/MeetingsView').then((m) => ({ default: m.MeetingsView }))
+)
+const PageView = lazy(() => import('./components/PageView').then((m) => ({ default: m.PageView })))
+const SettingsView = lazy(() =>
+  import('./components/SettingsView').then((m) => ({ default: m.SettingsView }))
+)
+const SocialImportView = lazy(() =>
+  import('./components/SocialImportView').then((m) => ({ default: m.SocialImportView }))
+)
+const StorybookView = lazy(() =>
+  import('./components/StorybookView').then((m) => ({ default: m.StorybookView }))
+)
 
 export function App(): React.ReactElement {
   const {
@@ -305,48 +325,50 @@ export function App(): React.ReactElement {
       <PlatformProvider value={platform}>
         <div className="h-screen overflow-hidden bg-background">
           <Workbench>
-            {shellState.kind === 'page-focus' ? (
-              <PageView docId={shellState.docId} minimalChrome />
-            ) : shellState.kind === 'database-focus' || shellState.kind === 'database-split' ? (
-              <DatabaseView docId={shellState.docId} minimalChrome />
-            ) : shellState.kind === 'meetings' ? (
-              <MeetingsView onClose={handleReturnHome} />
-            ) : shellState.kind === 'data-workspace' ? (
-              <DataWorkspaceView
-                onClose={handleReturnHome}
-                onInsertSavedLensAsCanvasFrame={handleInsertSavedLensAsCanvasFrame}
-              />
-            ) : shellState.kind === 'social-import' ? (
-              <SocialImportView
-                onClose={handleReturnHome}
-                onOpenDataWorkspace={handleOpenDataWorkspace}
-              />
-            ) : shellState.kind === 'settings' ? (
-              <SettingsView onClose={handleReturnHome} />
-            ) : shellState.kind === 'assistant' ? (
-              <AiChatPanel />
-            ) : shellState.kind === 'stories' ? (
-              <StorybookView />
-            ) : (
-              // canvas-home: the desktop differentiator stays the default
-              // surface inside the unified shell (0406 open question 1 —
-              // "default preset, not a different shell").
-              <div className="relative h-full">
-                <CanvasView
-                  ref={canvasViewRef}
-                  docId={homeCanvasId}
-                  documents={documents}
-                  pendingInsert={pendingCanvasInsert}
-                  onCreatePage={() => void handleCreateLinkedDocument('page')}
-                  onCreateDatabase={() => void handleCreateLinkedDocument('database')}
-                  onCreateNote={handleCreateCanvasNote}
-                  onCommandStateChange={handleCommandStateChange}
-                  onPendingInsertConsumed={handlePendingInsertConsumed}
-                  onOpenDocument={(docId, docType) => focusDocument(docId, docType, true)}
-                  onOpenDatabaseSplit={openDatabaseSplit}
+            <Suspense fallback={null}>
+              {shellState.kind === 'page-focus' ? (
+                <PageView docId={shellState.docId} minimalChrome />
+              ) : shellState.kind === 'database-focus' || shellState.kind === 'database-split' ? (
+                <DatabaseView docId={shellState.docId} minimalChrome />
+              ) : shellState.kind === 'meetings' ? (
+                <MeetingsView onClose={handleReturnHome} />
+              ) : shellState.kind === 'data-workspace' ? (
+                <DataWorkspaceView
+                  onClose={handleReturnHome}
+                  onInsertSavedLensAsCanvasFrame={handleInsertSavedLensAsCanvasFrame}
                 />
-              </div>
-            )}
+              ) : shellState.kind === 'social-import' ? (
+                <SocialImportView
+                  onClose={handleReturnHome}
+                  onOpenDataWorkspace={handleOpenDataWorkspace}
+                />
+              ) : shellState.kind === 'settings' ? (
+                <SettingsView onClose={handleReturnHome} />
+              ) : shellState.kind === 'assistant' ? (
+                <AiChatPanel />
+              ) : shellState.kind === 'stories' ? (
+                <StorybookView />
+              ) : (
+                // canvas-home: the desktop differentiator stays the default
+                // surface inside the unified shell (0406 open question 1 —
+                // "default preset, not a different shell").
+                <div className="relative h-full">
+                  <CanvasView
+                    ref={canvasViewRef}
+                    docId={homeCanvasId}
+                    documents={documents}
+                    pendingInsert={pendingCanvasInsert}
+                    onCreatePage={() => void handleCreateLinkedDocument('page')}
+                    onCreateDatabase={() => void handleCreateLinkedDocument('database')}
+                    onCreateNote={handleCreateCanvasNote}
+                    onCommandStateChange={handleCommandStateChange}
+                    onPendingInsertConsumed={handlePendingInsertConsumed}
+                    onOpenDocument={(docId, docType) => focusDocument(docId, docType, true)}
+                    onOpenDatabaseSplit={openDatabaseSplit}
+                  />
+                </div>
+              )}
+            </Suspense>
           </Workbench>
         </div>
       </PlatformProvider>
@@ -406,7 +428,7 @@ export function App(): React.ReactElement {
             />
           </div>
 
-          {renderOverlay()}
+          <Suspense fallback={null}>{renderOverlay()}</Suspense>
 
           <ActionDock
             mode={isCanvasInteractiveShell ? 'canvas-home' : 'focused'}

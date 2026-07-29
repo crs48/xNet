@@ -6,8 +6,13 @@
 
 import type { WidgetDefinition, WidgetProps } from '../types'
 import type { ChartAggregate, ChartKind } from '@xnetjs/charts'
-import { XChart } from '@xnetjs/charts'
+import { lazy, Suspense } from 'react'
 import { nodeQuery, preferredSchema, stubDescriptor, TASK_SCHEMA_IRI } from './shared'
+
+// echarts is ~1.3 MB of parse; a chart widget has to actually render before
+// it is worth paying for, so the surface loads on demand (0406 cold-open
+// budget — the widget registry is reachable from the shell's entry graph).
+const XChart = lazy(() => import('@xnetjs/charts').then((m) => ({ default: m.XChart })))
 
 export interface ChartWidgetConfig extends Record<string, unknown> {
   x?: string
@@ -39,18 +44,20 @@ function chartComponent(kind: ChartKind) {
     }
 
     return (
-      <XChart
-        rows={data.rows}
-        spec={{
-          kind,
-          x: config.x,
-          y: config.y,
-          series: config.series,
-          aggregate: config.aggregate ?? 'count'
-        }}
-        width={width}
-        height={height}
-      />
+      <Suspense fallback={null}>
+        <XChart
+          rows={data.rows}
+          spec={{
+            kind,
+            x: config.x,
+            y: config.y,
+            series: config.series,
+            aggregate: config.aggregate ?? 'count'
+          }}
+          width={width}
+          height={height}
+        />
+      </Suspense>
     )
   }
 }
