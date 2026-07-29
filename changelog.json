@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-28-the-desktop-app-opens-faster",
+      "url": "https://xnet.fyi/changelog#2026-07-28-the-desktop-app-opens-faster",
+      "title": "The desktop app opens faster",
+      "content_text": "Cold open is back at pre-unified-shell speed: editors, database views, meetings, charts and panels now load when first opened instead of at launch.\n",
+      "date_published": "2026-07-29T01:42:07Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "July 28, 2026",
+        "summary": "Cold open is back at pre-unified-shell speed: editors, database views, meetings, charts and panels now load when first opened instead of at launch.",
+        "highlights": [],
+        "mergedAt": "2026-07-29T01:42:07Z",
+        "pr": 653,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-28-the-desktop-app-now-shares-the-web-app-s",
       "url": "https://xnet.fyi/changelog#2026-07-28-the-desktop-app-now-shares-the-web-app-s",
       "title": "The desktop app now shares the web app's interface",
