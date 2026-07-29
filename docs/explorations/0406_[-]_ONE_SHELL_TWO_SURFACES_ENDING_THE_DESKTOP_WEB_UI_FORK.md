@@ -558,8 +558,8 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 
 ### Phase 4 — desktop capabilities as surfaces
 
-- [ ] Register canvas home, meetings, and social import as workbench views
-- [ ] Gate native-only affordances on `capabilities`, not `process.platform`
+- [x] Register canvas home, meetings, and social import as workbench views
+- [x] Gate native-only affordances on `capabilities`, not `process.platform`
 - [ ] Remove the flag; delete the superseded bespoke desktop shell components
 
 ### Phase 5 — the agent gets a face

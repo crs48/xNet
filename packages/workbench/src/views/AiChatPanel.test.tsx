@@ -62,6 +62,17 @@ vi.mock('@xnetjs/data', () => ({
 
 // Imported after the mock so the panel binds to the mocked module.
 const { AiChatPanel } = await import('./AiChatPanel')
+const { createTestPlatform, TestPlatformProvider } = await import('../test-platform')
+
+// The panel reads the port's capabilities (agentBridge gating, 0406) — render
+// it the way every host does: under a PlatformProvider.
+function renderPanel() {
+  return render(
+    <TestPlatformProvider platform={createTestPlatform()}>
+      <AiChatPanel />
+    </TestPlatformProvider>
+  )
+}
 
 const DEFAULT_DETECTIONS = fixture.detections
 
@@ -74,14 +85,14 @@ afterEach(() => {
 
 describe('AiChatPanel', () => {
   it('renders the empty state and the connector picker', async () => {
-    render(<AiChatPanel />)
+    renderPanel()
     expect(screen.getByText(/Ask about your workspace/)).toBeTruthy()
     await waitFor(() => expect(screen.getByText('Cloud API key')).toBeTruthy())
     expect(screen.getByText(/Local model — unavailable/)).toBeTruthy()
   })
 
   it('shows the cloud-key fields and the capability badge for the active tier', async () => {
-    render(<AiChatPanel />)
+    renderPanel()
     await waitFor(() => expect(screen.getByPlaceholderText(/API key/)).toBeTruthy())
     // The fixture's AiSurfaceService stub exposes no getTools, so no tools are
     // advertised and the badge stays at the context-only wording. Either way it
@@ -90,7 +101,7 @@ describe('AiChatPanel', () => {
   })
 
   it('disables the composer until a model is ready, without telling a user with a tier selected to pick one', async () => {
-    render(<AiChatPanel />)
+    renderPanel()
     // cloud-key is the selected tier (available in the fixture) but no key is
     // entered, so the runtime never builds → the box stays disabled.
     const box = await screen.findByRole('textbox')
@@ -116,7 +127,7 @@ describe('AiChatPanel', () => {
       'fetch',
       vi.fn(async () => ({ json: async () => ({ ok: true, agent: 'claude', version: '1.0.0' }) }))
     )
-    render(<AiChatPanel />)
+    renderPanel()
     await waitFor(() => expect(screen.getByText(/Running claude/)).toBeTruthy())
   })
 
@@ -131,7 +142,7 @@ describe('AiChatPanel', () => {
       }
     ]
     window.localStorage.setItem('xnet:ai-tier', 'webllm')
-    render(<AiChatPanel />)
+    renderPanel()
     // The tier is available, but nothing downloads until the user opts in.
     await waitFor(() => expect(screen.getByText(/Run the in-browser model/)).toBeTruthy())
     const box = screen.getByRole('textbox') as HTMLTextAreaElement
@@ -152,7 +163,7 @@ describe('AiChatPanel', () => {
     ]
     fixture.nanoState = 'downloadable'
     window.localStorage.setItem('xnet:ai-tier', 'prompt-api')
-    render(<AiChatPanel />)
+    renderPanel()
     await waitFor(() => expect(screen.getByText(/Download Gemini Nano/)).toBeTruthy())
   })
 })

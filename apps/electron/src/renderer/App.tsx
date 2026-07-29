@@ -105,7 +105,8 @@ export function App(): React.ReactElement {
     openAssistant: handleOpenAssistant,
     openSettings: handleOpenSettings,
     openMeetings: handleOpenMeetings,
-    openDataWorkspace: handleOpenDataWorkspace
+    openDataWorkspace: handleOpenDataWorkspace,
+    openSocialImport: handleOpenSocialImport
   })
 
   // Unified shell (0406): mount the shared <Workbench/> chrome over the
@@ -308,9 +309,42 @@ export function App(): React.ReactElement {
               <PageView docId={shellState.docId} minimalChrome />
             ) : shellState.kind === 'database-focus' || shellState.kind === 'database-split' ? (
               <DatabaseView docId={shellState.docId} minimalChrome />
+            ) : shellState.kind === 'meetings' ? (
+              <MeetingsView onClose={handleReturnHome} />
+            ) : shellState.kind === 'data-workspace' ? (
+              <DataWorkspaceView
+                onClose={handleReturnHome}
+                onInsertSavedLensAsCanvasFrame={handleInsertSavedLensAsCanvasFrame}
+              />
+            ) : shellState.kind === 'social-import' ? (
+              <SocialImportView
+                onClose={handleReturnHome}
+                onOpenDataWorkspace={handleOpenDataWorkspace}
+              />
+            ) : shellState.kind === 'settings' ? (
+              <SettingsView onClose={handleReturnHome} />
+            ) : shellState.kind === 'assistant' ? (
+              <AiChatPanel />
+            ) : shellState.kind === 'stories' ? (
+              <StorybookView />
             ) : (
-              <div className="flex h-full items-center justify-center text-sm text-ink-3">
-                Open a page or database from the explorer.
+              // canvas-home: the desktop differentiator stays the default
+              // surface inside the unified shell (0406 open question 1 —
+              // "default preset, not a different shell").
+              <div className="relative h-full">
+                <CanvasView
+                  ref={canvasViewRef}
+                  docId={homeCanvasId}
+                  documents={documents}
+                  pendingInsert={pendingCanvasInsert}
+                  onCreatePage={() => void handleCreateLinkedDocument('page')}
+                  onCreateDatabase={() => void handleCreateLinkedDocument('database')}
+                  onCreateNote={handleCreateCanvasNote}
+                  onCommandStateChange={handleCommandStateChange}
+                  onPendingInsertConsumed={handlePendingInsertConsumed}
+                  onOpenDocument={(docId, docType) => focusDocument(docId, docType, true)}
+                  onOpenDatabaseSplit={openDatabaseSplit}
+                />
               </div>
             )}
           </Workbench>

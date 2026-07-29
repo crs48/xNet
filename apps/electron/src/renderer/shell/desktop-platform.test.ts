@@ -20,7 +20,8 @@ function makeDeps(): DesktopNavDeps & { calls: string[] } {
     openAssistant: () => void calls.push('assistant'),
     openSettings: () => void calls.push('settings'),
     openMeetings: () => void calls.push('meetings'),
-    openDataWorkspace: () => void calls.push('data')
+    openDataWorkspace: () => void calls.push('data'),
+    openSocialImport: () => void calls.push('social-import')
   }
 }
 
@@ -59,7 +60,8 @@ describe('navigateShell', () => {
     const deps = makeDeps()
     navigateShell({ kind: 'path', path: '/ai' }, deps)
     navigateShell({ kind: 'path', path: '/data' }, deps)
-    expect(deps.calls).toEqual(['assistant', 'data'])
+    navigateShell({ kind: 'path', path: '/social-import' }, deps)
+    expect(deps.calls).toEqual(['assistant', 'data', 'social-import'])
   })
 
   it('returns false for targets this host has no surface for — never a silent no-op', () => {
