@@ -560,7 +560,7 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 
 - [x] Register canvas home, meetings, and social import as workbench views
 - [x] Gate native-only affordances on `capabilities`, not `process.platform`
-- [ ] Remove the flag; delete the superseded bespoke desktop shell components
+- [x] Remove the flag; delete the superseded bespoke desktop shell components
 
 ### Phase 5 — the agent gets a face
 
@@ -569,7 +569,7 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 
 ### Phase 6 — make re-divergence a red build
 
-- [ ] Extend `workspace-parity.test.ts` to fail on desktop-local shell components
+- [x] Extend `workspace-parity.test.ts` to fail on desktop-local shell components
 
 ## Validation Checklist
 

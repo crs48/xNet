@@ -49,7 +49,7 @@ export function FloatingFrame({ children }: { children: ReactNode }) {
   return (
     <UndoToastProvider>
       <div
-        className="wb-root flex h-[100dvh] flex-col gap-2 overflow-hidden bg-canvas p-[11px] font-sans text-ink-1"
+        className="wb-root flex h-[calc(100dvh-var(--titlebar-height,0px))] flex-col gap-2 overflow-hidden bg-canvas p-[11px] font-sans text-ink-1"
         data-wb-shell="floating"
       >
         <WorkspaceCommands />
