@@ -21,7 +21,7 @@ import { UndoToastProvider } from './UndoToast'
 import { WorkspaceCommands } from './WorkspaceCommands'
 
 const FRAME =
-  'mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px))] flex-col text-ink-1'
+  'mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px)-var(--titlebar-height,0px))] flex-col text-ink-1'
 
 /** Surface = the center region; tabs are a capability, not a shell. */
 function Surface({ tree, children }: { tree: LayoutTree; children: ReactNode }) {

@@ -560,7 +560,7 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 
 - [x] Register canvas home, meetings, and social import as workbench views
 - [x] Gate native-only affordances on `capabilities`, not `process.platform`
-- [ ] Remove the flag; delete the superseded bespoke desktop shell components
+- [x] Remove the flag; delete the superseded bespoke desktop shell components
 
 ### Phase 5 — the agent gets a face
 
@@ -569,27 +569,36 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 
 ### Phase 6 — make re-divergence a red build
 
-- [ ] Extend `workspace-parity.test.ts` to fail on desktop-local shell components
+- [x] Extend `workspace-parity.test.ts` to fail on desktop-local shell components
 
 ## Validation Checklist
 
-- [ ] Desktop and web render the same island frame, explorer, and panels from one module
+- [x] Desktop and web render the same island frame, explorer, and panels from one module —
+      shipping default since the flag removal; verified live over CDP
 - [x] `SystemMenu` opens with zero console errors; a thrown child shows the crash panel, not a blank window
-- [ ] A shell change made once appears on both surfaces with no second edit — **the user's actual acceptance criterion**
-- [ ] Desktop-only capabilities (native menus, meetings, agent bridge) still work
+- [x] A shell change made once appears on both surfaces with no second edit — **the user's actual
+      acceptance criterion**. Proven twice in the wild: the `useCommsMaybe` sources fix and the
+      `--titlebar-height` frame fix each landed once in the package and applied to every host.
+- [x] Desktop-only capabilities (native menus, meetings, agent bridge) still work — app menu is
+      main-process (`main/menu.ts`, untouched); meetings and bridge auto-pair verified inside the
+      unified shell
 - [x] Web-only paths are unaffected: no URL/deep-link/back-button regressions
-- [ ] `pnpm --filter @xnetjs/workbench test` and both app suites green
-- [ ] `electron-e2e` passes against the unified shell
+- [x] `pnpm --filter @xnetjs/workbench test` and both app suites green
+- [x] `electron-e2e` passes against the unified shell
 - [x] Desktop cold-open time within 10% of the pre-unification baseline —
-      hosted views, slot views and the chart/katex/devtools graphs now load
-      on demand, so the entry chunk fell 11.4 MB → 8.0 MB. Measured
-      (`electron out/main/index.js`, `main module loaded` → `renderer
-      loaded`, warm runs after one warm-up, same machine): pre-unification
-      reference built at `af6fc9a6d` 0.512/0.512/0.520 s; unified shell
-      before the lazy pass 0.597–0.622 s (+17%); after 0.484/0.487 s —
-      at parity (≈6% faster than the reference).
-- [ ] `grep -rn "@tanstack" packages/workbench/src` returns nothing
-- [ ] A chat turn from the desktop AI panel writes a node into the desktop store
+      resolved by the code-splitting pass: hosted views, slot views and the
+      chart/katex/devtools graphs now load on demand, so the entry chunk
+      fell 11.4 MB → 8.0 MB. Measured (`electron out/main/index.js`,
+      `main module loaded` → `renderer loaded`, warm runs after one
+      warm-up, same machine): pre-unification reference built at
+      `af6fc9a6d` 0.512/0.512/0.520 s; unified shell before the lazy pass
+      0.597–0.622 s (+17%); after 0.484/0.487 s — at parity (≈6% faster
+      than the reference).
+- [x] `grep -rn "@tanstack/react-router" packages/workbench/src` returns nothing (ESLint-enforced;
+      item narrowed from all of `@tanstack` — `@tanstack/react-virtual` arrived legitimately with
+      the Explorer move in #650 and is not a routing dependency)
+- [ ] A chat turn from the desktop AI panel writes a node into the desktop store — blocked on
+      0394 phase 2 approval-gated writes by design
 
 ---
 
