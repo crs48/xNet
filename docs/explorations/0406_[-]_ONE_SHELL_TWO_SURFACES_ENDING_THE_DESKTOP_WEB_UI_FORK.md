@@ -583,8 +583,8 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
       main-process (`main/menu.ts`, untouched); meetings and bridge auto-pair verified inside the
       unified shell
 - [x] Web-only paths are unaffected: no URL/deep-link/back-button regressions
-- [ ] `pnpm --filter @xnetjs/workbench test` and both app suites green
-- [ ] `electron-e2e` passes against the unified shell
+- [x] `pnpm --filter @xnetjs/workbench test` and both app suites green
+- [x] `electron-e2e` passes against the unified shell
 - [ ] Desktop cold-open time within 10% of the pre-unification baseline — **measured 0.87–0.90s
       vs 0.52s baseline (+~70%) on the end state**; the regression is renderer bundle parse
       (26.1→36 MB). Needs a code-splitting pass (lazy the heavy view clusters) — follow-up work,
