@@ -11,13 +11,26 @@ import type { ReactNode } from 'react'
 export interface XNetDevToolsProviderProps {
   children: ReactNode
   defaultOpen?: boolean
+  defaultPanel?: string
   position?: 'bottom' | 'right' | 'floating'
   height?: number
   maxEvents?: number
+  /** TelemetryCollector instance for telemetry instrumentation. Ignored in production. */
+  telemetryCollector?: unknown
+  /** ConsentManager instance for telemetry instrumentation. Ignored in production. */
+  consentManager?: unknown
   /** TraceCollector instance for the Traces panel (exploration 0190). Ignored in production. */
   traceCollector?: unknown
+  /** Storage durability status supplied by the host app. Ignored in production. */
+  storageDurability?: unknown
+  /** Floating toggle FAB offset. Ignored in production. */
+  fabInitialOffset?: { x: number; y: number }
   /** Hide the floating toggle FAB (host renders its own launcher). Ignored in production. */
   hideFab?: boolean
+  /** "Wipe local database" action wired by the host. Ignored in production. */
+  onResetLocalData?: () => void | Promise<void>
+  /** "Wipe my data on the hub" action. Ignored in production. */
+  onResetHub?: () => Promise<number>
 }
 
 /**

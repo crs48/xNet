@@ -585,10 +585,16 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 - [x] Web-only paths are unaffected: no URL/deep-link/back-button regressions
 - [x] `pnpm --filter @xnetjs/workbench test` and both app suites green
 - [x] `electron-e2e` passes against the unified shell
-- [ ] Desktop cold-open time within 10% of the pre-unification baseline — **measured 0.87–0.90s
-      vs 0.52s baseline (+~70%) on the end state**; the regression is renderer bundle parse
-      (26.1→36 MB). Needs a code-splitting pass (lazy the heavy view clusters) — follow-up work,
-      not a reason to keep the fork.
+- [x] Desktop cold-open time within 10% of the pre-unification baseline —
+      resolved by the code-splitting pass: hosted views, slot views and the
+      chart/katex/devtools graphs now load on demand, so the entry chunk
+      fell 11.4 MB → 8.0 MB. Measured (`electron out/main/index.js`,
+      `main module loaded` → `renderer loaded`, warm runs after one
+      warm-up, same machine): pre-unification reference built at
+      `af6fc9a6d` 0.512/0.512/0.520 s; unified shell before the lazy pass
+      0.597–0.622 s (+17%); after, on the merged end state (#653's
+      single-shell App), 0.462–0.479 s — under the baseline, not just
+      within 10% of it.
 - [x] `grep -rn "@tanstack/react-router" packages/workbench/src` returns nothing (ESLint-enforced;
       item narrowed from all of `@tanstack` — `@tanstack/react-virtual` arrived legitimately with
       the Explorer move in #650 and is not a routing dependency)

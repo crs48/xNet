@@ -23,23 +23,62 @@ import {
   SquareCheck,
   Terminal
 } from 'lucide-react'
-import { lazy, Suspense } from 'react'
-import { Canvas } from './calm/Canvas'
-import { ContextPanel } from './ContextPanel'
+import { lazy, Suspense, createElement } from 'react'
 import { workbenchHost } from './host'
-import { UnifiedTree } from './sidebar/UnifiedTree'
 import { getSlotView, registerSlotView } from './slot-registry'
 import { StatusBar } from './StatusBar'
-import { Explorer } from './views/Explorer'
-import { DataPanelView, TasksPanelView } from './views/left'
-import { ShelfTray } from './views/Shelf'
-import { TodayPanel } from './views/TodayPanel'
-import { NotificationsTray, QueryConsoleTray, QuickCaptureTray, SyncTray } from './views/tray'
 
 /** Wrap a bare component so registry entries stay plain ComponentTypes. */
 function asComponent(Component: ComponentType): ComponentType {
   return Component
 }
+
+/**
+ * Slot views load on demand (0406 cold-open budget): none of them are part
+ * of first paint — a dock has to open first — so their import graphs
+ * (Explorer's virtualizer, the trays' query console, the calm Canvas) stay
+ * out of the entry chunk both hosts parse at boot. Same isolation the AI
+ * panel already had, applied to every heavy resident.
+ */
+function lazySlotView(load: () => Promise<{ default: ComponentType }>): ComponentType {
+  const Lazy = lazy(load)
+  return function SlotView() {
+    return <Suspense fallback={null}>{createElement(Lazy)}</Suspense>
+  }
+}
+
+const Canvas = lazySlotView(() => import('./calm/Canvas').then((m) => ({ default: m.Canvas })))
+const ContextPanel = lazySlotView(() =>
+  import('./ContextPanel').then((m) => ({ default: m.ContextPanel }))
+)
+const UnifiedTree = lazySlotView(() =>
+  import('./sidebar/UnifiedTree').then((m) => ({ default: m.UnifiedTree }))
+)
+const Explorer = lazySlotView(() =>
+  import('./views/Explorer').then((m) => ({ default: m.Explorer }))
+)
+const TasksPanelView = lazySlotView(() =>
+  import('./views/left').then((m) => ({ default: m.TasksPanelView }))
+)
+const DataPanelView = lazySlotView(() =>
+  import('./views/left').then((m) => ({ default: m.DataPanelView }))
+)
+const TodayPanel = lazySlotView(() =>
+  import('./views/TodayPanel').then((m) => ({ default: m.TodayPanel }))
+)
+const ShelfTray = lazySlotView(() =>
+  import('./views/Shelf').then((m) => ({ default: m.ShelfTray }))
+)
+const QuickCaptureTray = lazySlotView(() =>
+  import('./views/tray').then((m) => ({ default: m.QuickCaptureTray }))
+)
+const NotificationsTray = lazySlotView(() =>
+  import('./views/tray').then((m) => ({ default: m.NotificationsTray }))
+)
+const SyncTray = lazySlotView(() => import('./views/tray').then((m) => ({ default: m.SyncTray })))
+const QueryConsoleTray = lazySlotView(() =>
+  import('./views/tray').then((m) => ({ default: m.QueryConsoleTray }))
+)
 
 /**
  * Host components resolve at render, not registration — registration runs at
@@ -50,19 +89,11 @@ function ChatsPanel(): JSX.Element {
   return <comms.ChatsPanel />
 }
 
-// Loaded on demand: the AI panel drags the brain/WebLLM stack, which must
-// stay off the core barrel's static graph (the reason the /ai subpath exists).
-const LazyAiChatPanel = lazy(() =>
+// The AI panel additionally drags the brain/WebLLM stack, which must stay
+// off the core barrel's static graph (the reason the /ai subpath exists).
+const AiChatPanel = lazySlotView(() =>
   import('./views/AiChatPanel').then((m) => ({ default: m.AiChatPanel }))
 )
-
-function AiChatPanel(): JSX.Element {
-  return (
-    <Suspense fallback={null}>
-      <LazyAiChatPanel />
-    </Suspense>
-  )
-}
 
 /**
  * First-party residents, registered once (idempotent): the calm frame
