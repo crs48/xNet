@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-28-the-desktop-app-now-shares-the-web-app-s",
+  "date": "July 28, 2026",
+  "title": "The desktop app now shares the web app's interface",
+  "summary": "The desktop shell is the same workbench the web app uses: sidebar with search and filters, command palette, tabs, and panels — with the canvas home, meetings, data workspace, and social import inside it. The two apps now stay in sync by construction.",
+  "highlights": [],
+  "tags": ["app", "platform"]
+}
