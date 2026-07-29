@@ -13,11 +13,23 @@ import {
   type HostedView,
   type TabNodeType
 } from '@xnetjs/workbench'
+import { lazy, Suspense } from 'react'
 import { CanvasView } from '../components/CanvasView'
-import { DatabaseView } from '../components/DatabaseView'
-import { DataWorkspaceView } from '../components/DataWorkspaceView'
-import { MeetingsView } from '../components/MeetingsView'
-import { PageView } from '../components/PageView'
+
+// Hosted views load on demand (0406 cold-open budget): a tab has to open
+// before the editor/database/meetings graphs are needed, so they stay out
+// of the entry chunk. CanvasView stays static — the home canvas is first
+// paint and already in the entry.
+const DatabaseView = lazy(() =>
+  import('../components/DatabaseView').then((m) => ({ default: m.DatabaseView }))
+)
+const DataWorkspaceView = lazy(() =>
+  import('../components/DataWorkspaceView').then((m) => ({ default: m.DataWorkspaceView }))
+)
+const MeetingsView = lazy(() =>
+  import('../components/MeetingsView').then((m) => ({ default: m.MeetingsView }))
+)
+const PageView = lazy(() => import('../components/PageView').then((m) => ({ default: m.PageView })))
 
 function NotOnDesktop({ label }: { label: string }) {
   return (
@@ -58,17 +70,33 @@ function CanvasTabView({ nodeId }: { nodeId: string }) {
 
 function MeetingsTabView() {
   const navigate = useNavigateTo()
-  return <MeetingsView onClose={() => navigate({ kind: 'home' })} />
+  return (
+    <Suspense fallback={null}>
+      <MeetingsView onClose={() => navigate({ kind: 'home' })} />
+    </Suspense>
+  )
 }
 
 function DataWorkspaceTabView() {
   const navigate = useNavigateTo()
-  return <DataWorkspaceView onClose={() => navigate({ kind: 'home' })} />
+  return (
+    <Suspense fallback={null}>
+      <DataWorkspaceView onClose={() => navigate({ kind: 'home' })} />
+    </Suspense>
+  )
 }
 
 const DESKTOP_HOSTED_VIEWS: Record<TabNodeType, HostedView> = {
-  page: ({ nodeId }) => <PageView docId={nodeId} minimalChrome />,
-  database: ({ nodeId }) => <DatabaseView docId={nodeId} minimalChrome />,
+  page: ({ nodeId }) => (
+    <Suspense fallback={null}>
+      <PageView docId={nodeId} minimalChrome />
+    </Suspense>
+  ),
+  database: ({ nodeId }) => (
+    <Suspense fallback={null}>
+      <DatabaseView docId={nodeId} minimalChrome />
+    </Suspense>
+  ),
   canvas: CanvasTabView,
   meetings: MeetingsTabView,
   data: DataWorkspaceTabView,
