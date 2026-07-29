@@ -38,6 +38,7 @@ import {
 import { useDataBridge, useNodeStore } from '@xnetjs/react/internal'
 import { Bot, Loader2, Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { usePlatform } from '../platform'
 import {
   AI_CHAT_STORAGE_KEYS,
   applyRuntimeEvent,
@@ -100,6 +101,11 @@ const writeSetting = (key: string, value: string): void => {
 }
 
 export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) {
+  // The preload control channel is a capability, not a window sniff (0406):
+  // the host declares agentBridge, and only then is the global consulted.
+  const { capabilities } = usePlatform()
+  const bridgeControl =
+    capabilities.agentBridge && typeof window !== 'undefined' ? window.xnetAgentBridge : undefined
   const [detections, setDetections] = useState<ConnectorDetection[]>([])
   const [selectedTier, setSelectedTier] = useState<ConnectorTier | null>(
     () => (readSetting(AI_CHAT_STORAGE_KEYS.tier) as ConnectorTier) || null
@@ -351,7 +357,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
   // and falls back to the pairing-code field below.
   useEffect(() => {
     if (selected?.tier !== 'bridge') return
-    const control = typeof window !== 'undefined' ? window.xnetAgentBridge : undefined
+    const control = bridgeControl
     if (!control?.status) return
     let cancelled = false
     void control
@@ -365,7 +371,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     return () => {
       cancelled = true
     }
-  }, [selected, bridgeRefresh])
+  }, [selected, bridgeRefresh, bridgeControl])
 
   // Loopback tiers reach `http://127.0.0.1:*` from an https page, which Chrome
   // 142+/145+ gates behind a `loopback-network` permission. Query it so we can
@@ -415,11 +421,14 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
 
   // Switch the running agent — only possible where a control channel exists
   // (the Electron preload bridge); the web daemon is launched with a fixed agent.
-  const switchBridgeAgent = useCallback(async (agent: string) => {
-    if (typeof window === 'undefined' || !window.xnetAgentBridge || !agent) return
-    await window.xnetAgentBridge.start(agent)
-    setBridgeRefresh((count) => count + 1)
-  }, [])
+  const switchBridgeAgent = useCallback(
+    async (agent: string) => {
+      if (!bridgeControl || !agent) return
+      await bridgeControl.start(agent)
+      setBridgeRefresh((count) => count + 1)
+    },
+    [bridgeControl]
+  )
 
   // (Re)build the runtime when the active connector/settings change.
   useEffect(() => {
@@ -574,7 +583,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
           <>
             <BridgeStatus
               health={bridgeHealth}
-              canSwitch={typeof window !== 'undefined' && !!window.xnetAgentBridge}
+              canSwitch={!!bridgeControl}
               onSwitchAgent={switchBridgeAgent}
             />
             <BridgePairing
