@@ -46,6 +46,11 @@ vi.mock('./ai-webllm-engine', () => ({
   buildWebLLMProvider: async () => ({ name: 'webllm', generate: async () => '' })
 }))
 
+// The approval ceremony stamps app-tier approvals with the operator identity.
+vi.mock('@xnetjs/react', () => ({
+  useIdentity: () => ({ identity: null, isAuthenticated: true, did: 'did:key:test-operator' })
+}))
+
 // The panel reads the workspace store + schema registry to ground replies.
 vi.mock('@xnetjs/react/internal', () => ({
   useNodeStore: () => ({ store: { name: 'fake-store' }, isReady: true, error: null }),

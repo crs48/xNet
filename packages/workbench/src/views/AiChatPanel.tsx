@@ -35,10 +35,12 @@ import {
   type ManagedBudgetSnapshot,
   type PromptApiAvailability
 } from '@xnetjs/plugins'
+import { useIdentity } from '@xnetjs/react'
 import { useDataBridge, useNodeStore } from '@xnetjs/react/internal'
 import { Bot, Loader2, Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePlatform } from '../platform'
+import { createChatCeremony, type CeremonyPending, type ChatCeremony } from './ai-chat-ceremony'
 import {
   AI_CHAT_STORAGE_KEYS,
   applyRuntimeEvent,
@@ -66,6 +68,7 @@ import {
 } from './ai-chat-connector'
 import { createAiConversationLog, type AiConversationLog } from './ai-chat-persistence'
 import { AI_TOOLS_PROMPT, readOnlyToolSpecs, toolsEnabledFor } from './ai-chat-tools'
+import { AI_WRITE_TOOLS_PROMPT, writeToolSpecs } from './ai-chat-write-tools'
 import { AI_SYSTEM_PROMPT, formatContextMessages } from './ai-context'
 import { createGraphContextRetriever, keywordEntrySearch } from './ai-graph-retriever'
 import { schemaRegistryApi } from './ai-schemas'
@@ -172,6 +175,14 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
   const [semanticSearch, setSemanticSearch] = useState(
     () => readSetting(AI_CHAT_STORAGE_KEYS.semanticSearch) === 'on'
   )
+  // Opt-in writes behind the approval ceremony (0394 Phase 2). Default OFF: a
+  // write surface is chosen, never a side effect of picking a model.
+  const [writesEnabled, setWritesEnabled] = useState(
+    () => readSetting(AI_CHAT_STORAGE_KEYS.writes) === 'on'
+  )
+  const { did: operatorDID } = useIdentity()
+  const [pendingApprovals, setPendingApprovals] = useState<CeremonyPending[]>([])
+  const ceremonyRef = useRef<ChatCeremony | null>(null)
   // The flag is read live (via a ref) inside the entry-search closure, so toggling
   // it does NOT change `surface`'s identity — which would otherwise rebuild the
   // runtime and reset the active thread mid-conversation.
@@ -198,6 +209,11 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
   const toggleSemanticSearch = useCallback((next: boolean) => {
     setSemanticSearch(next)
     writeSetting(AI_CHAT_STORAGE_KEYS.semanticSearch, next ? 'on' : '')
+  }, [])
+
+  const toggleWrites = useCallback((next: boolean) => {
+    setWritesEnabled(next)
+    writeSetting(AI_CHAT_STORAGE_KEYS.writes, next ? 'on' : '')
   }, [])
 
   // Conversation persistence (0391 Phase 2): the thread and its turns land as
@@ -444,15 +460,37 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     void resolveProvider(selected, settings, onBudget, setWebllmProgress)
       .then((provider) => {
         if (cancelled || !provider) return
-        // Read-only tools, on tiers that can actually call them (0394 Phase 1).
-        // The context pack still runs on every turn — tools let the assistant
-        // go looking for what the pack didn't happen to retrieve.
-        const tools = readOnlyToolSpecs(surface, selected.toolCalling)
+        // Read-only tools, on tiers that can actually call them (0394 Phase 1),
+        // plus the opted-in write cluster behind the approval ceremony (Phase
+        // 2). The context pack still runs on every turn — tools let the
+        // assistant go looking for what the pack didn't happen to retrieve.
+        const readTools = readOnlyToolSpecs(surface, selected.toolCalling)
+        const writeTools = writeToolSpecs(surface, selected.toolCalling, writesEnabled)
+        const tools = [...readTools, ...writeTools]
+        // Writes route through the ceremony: medium parks on the approval
+        // code, high parks on the deliberate in-app approval; reads pass
+        // straight through so the audit log records actions, not searches.
+        const ceremony =
+          writeTools.length && surface && store
+            ? createChatCeremony({
+                surface,
+                store,
+                operatorDID: operatorDID ?? 'did:unknown:operator',
+                sessionKey: `panel-${Date.now().toString(36)}`,
+                onPending: (pending) => setPendingApprovals((prev) => [...prev, pending]),
+                onResolved: (actionId) =>
+                  setPendingApprovals((prev) => prev.filter((p) => p.actionId !== actionId))
+              })
+            : null
+        ceremonyRef.current = ceremony
+        const promptParts = [
+          AI_SYSTEM_PROMPT,
+          ...(tools.length ? [AI_TOOLS_PROMPT] : []),
+          ...(writeTools.length ? [AI_WRITE_TOOLS_PROMPT] : [])
+        ]
         const runtime = createAiAgentRuntime({
           provider,
-          systemPrompt: tools.length
-            ? `${AI_SYSTEM_PROMPT}\n\n${AI_TOOLS_PROMPT}`
-            : AI_SYSTEM_PROMPT,
+          systemPrompt: promptParts.join('\n\n'),
           ...(surface
             ? {
                 contextProvider: async ({ content }) => {
@@ -465,7 +503,9 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
             ? {
                 tools,
                 allowedTools: tools.map((tool) => tool.name),
-                executeTool: (call: AIToolCall) => surface.callTool(call.name, call.arguments ?? {})
+                executeTool: ceremony
+                  ? ceremony.executeTool
+                  : (call: AIToolCall) => surface.callTool(call.name, call.arguments ?? {})
               }
             : {})
         })
@@ -489,8 +529,22 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
       cancelled = true
       cleanupRef.current?.()
       cleanupRef.current = null
+      // Resolve any parked approvals so a torn-down runtime never hangs a turn.
+      ceremonyRef.current?.dispose()
+      ceremonyRef.current = null
+      setPendingApprovals([])
     }
-  }, [selected, settings, handlers, surface, onBudget, webllmArmed])
+  }, [
+    selected,
+    settings,
+    handlers,
+    surface,
+    store,
+    operatorDID,
+    writesEnabled,
+    onBudget,
+    webllmArmed
+  ])
 
   // True while we're waiting for the user to kick off an in-tab model's
   // download — the activation block (button) explains itself, so the generic
@@ -546,6 +600,13 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
 
   const send = useCallback(async () => {
     const content = input.trim()
+    // A typed `APPROVE <code>` is a ceremony reply, not a message: it releases
+    // the parked medium-risk action and never reaches the model. Checked
+    // before the streaming gate — the turn is still running while it waits.
+    if (content && ceremonyRef.current && (await ceremonyRef.current.tryApproveFromChat(content))) {
+      setInput('')
+      return
+    }
     const rt = runtimeRef.current
     if (!canSendMessage(content, streaming, !!rt)) return
     const runtime = rt as AiAgentRuntime
@@ -577,6 +638,11 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
         onSelect={selectTier}
         hasSelection={!!selected}
         searchesWorkspace={!!surface && toolsEnabledFor(selected?.toolCalling)}
+        editsWithApproval={
+          !!surface &&
+          writesEnabled &&
+          writeToolSpecs(surface, selected?.toolCalling, true).length > 0
+        }
       />
       {selected?.tier === 'bridge' &&
         (selected.available ? (
@@ -644,8 +710,26 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
       )}
 
       <ChatBody messages={messages} streaming={streaming} />
+      {pendingApprovals.map((pending) => (
+        <ApprovalCard
+          key={pending.actionId}
+          pending={pending}
+          operatorDID={operatorDID}
+          onApprove={() => {
+            const ceremony = ceremonyRef.current
+            if (!ceremony) return
+            if (pending.surface === 'chat' && pending.code) {
+              void ceremony.tryApproveFromChat(`APPROVE ${pending.code}`)
+            } else {
+              void ceremony.approveFromApp(pending.actionId)
+            }
+          }}
+          onDeny={() => void ceremonyRef.current?.deny(pending.actionId)}
+        />
+      ))}
       {activity && <ToolActivityLine activity={activity} />}
       {error && <p className="px-3 py-1 text-[11px] text-rose-500">{error}</p>}
+      <WritesToggle enabled={writesEnabled} onToggle={toggleWrites} />
       <SemanticSearchToggle enabled={semanticSearch} onToggle={toggleSemanticSearch} />
       <ChatComposer
         value={input}
@@ -979,13 +1063,15 @@ function ConnectorBar({
   selectedTier,
   onSelect,
   hasSelection,
-  searchesWorkspace
+  searchesWorkspace,
+  editsWithApproval
 }: {
   detections: ConnectorDetection[]
   selectedTier: ConnectorTier | null
   onSelect: (tier: ConnectorTier) => void
   hasSelection: boolean
   searchesWorkspace: boolean
+  editsWithApproval: boolean
 }) {
   return (
     <div className="flex items-center gap-2 border-b border-hairline px-3 py-2">
@@ -1001,26 +1087,27 @@ function ConnectorBar({
           </option>
         ))}
       </select>
-      {hasSelection && <CapabilityBadge searches={searchesWorkspace} />}
+      {hasSelection && <CapabilityBadge searches={searchesWorkspace} edits={editsWithApproval} />}
     </div>
   )
 }
 
-// Phase 1 (0394): tiers that call tools reliably now search and read the
-// workspace themselves; weaker tiers still answer from the injected context
-// pack alone. Neither can write — that waits on an in-chat approval ceremony,
-// so the badge stops at "searches" and never claims "agentic".
-function CapabilityBadge({ searches }: { searches: boolean }) {
+// The badge never claims more than is true (0394): weak tiers read injected
+// context, reliable tiers search on their own, and only an opted-in reliable
+// tier may edit — with every edit parked on the operator's approval.
+function CapabilityBadge({ searches, edits }: { searches: boolean; edits: boolean }) {
+  const label = edits ? 'edits with approval' : searches ? 'searches workspace' : 'reads workspace'
+  const title = edits
+    ? 'This assistant can search your workspace and propose edits. Every edit pauses for your approval in this chat — nothing is applied without you.'
+    : searches
+      ? 'This assistant can search and read your workspace itself. It cannot make changes.'
+      : 'This assistant is given workspace context to read. It cannot search on its own, or make changes.'
   return (
     <span
-      title={
-        searches
-          ? 'This assistant can search and read your workspace itself. It cannot make changes.'
-          : 'This assistant is given workspace context to read. It cannot search on its own, or make changes.'
-      }
+      title={title}
       className="shrink-0 rounded-full border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink-3"
     >
-      {searches ? 'searches workspace' : 'reads workspace'}
+      {label}
     </span>
   )
 }
@@ -1036,7 +1123,132 @@ const TOOL_LABELS: Record<string, string> = {
   xnet_canvas_list: 'Listing your canvases',
   xnet_canvas_read_viewport: 'Reading a canvas',
   xnet_canvas_search: 'Searching a canvas',
-  xnet_get_audit_log: 'Checking the audit log'
+  xnet_get_audit_log: 'Checking the audit log',
+  xnet_validate_page_markdown: 'Checking a page edit',
+  xnet_plan_page_patch: 'Planning a page edit',
+  xnet_apply_page_markdown: 'Editing a page',
+  xnet_compose_page: 'Creating a page'
+}
+
+/**
+ * A parked write waiting on the operator (0394 Phase 2). Medium risk shows
+ * the approval code (the reply `APPROVE <code>` — or the button, which
+ * submits the same code through the same nonce machinery). High risk refuses
+ * the chat path: approval is the deliberate in-app kind, stamped with the
+ * operator's DID, and the button stays disabled until the change has been
+ * reviewed — seeing what you release is the point, not a speed bump.
+ */
+function ApprovalCard({
+  pending,
+  operatorDID,
+  onApprove,
+  onDeny
+}: {
+  pending: CeremonyPending
+  operatorDID: string | null
+  onApprove: () => void
+  onDeny: () => void
+}) {
+  const [reviewed, setReviewed] = useState(false)
+  const needsReview = pending.surface === 'app'
+  const canApprove = !needsReview || reviewed
+  const riskTone =
+    pending.surface === 'app'
+      ? 'border-rose-400/60 bg-rose-500/5'
+      : 'border-amber-400/60 bg-amber-500/5'
+  return (
+    <div
+      className={`mx-3 my-1.5 rounded-lg border p-2.5 text-[12px] ${riskTone}`}
+      data-approval-card={pending.surface}
+    >
+      <div className="flex items-center gap-2">
+        <span className="rounded-full border border-hairline px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-ink-3">
+          {pending.risk} risk
+        </span>
+        <span className="font-medium text-ink-1">{TOOL_LABELS[pending.tool] ?? pending.tool}</span>
+      </div>
+      <p className="mt-1 text-ink-2">
+        {pending.surface === 'chat' && pending.code ? (
+          <>
+            Reply <code className="rounded bg-surface-2 px-1">APPROVE {pending.code}</code> to run
+            this, or use the buttons.
+          </>
+        ) : (
+          <>
+            This is a {pending.risk}-risk change and needs your explicit in-app approval
+            {operatorDID ? ` as ${operatorDID.slice(0, 24)}…` : ''}.
+          </>
+        )}
+      </p>
+      {needsReview ? (
+        <details
+          className="mt-1.5"
+          onToggle={(event) => {
+            if ((event.target as HTMLDetailsElement).open) setReviewed(true)
+          }}
+        >
+          <summary className="cursor-pointer text-[11px] text-ink-3">
+            Review the change before approving
+          </summary>
+          <pre className="mt-1 max-h-48 overflow-auto rounded bg-surface-2 p-2 text-[10px] leading-relaxed text-ink-2">
+            {JSON.stringify(pending.args, null, 2)}
+          </pre>
+        </details>
+      ) : (
+        <pre className="mt-1.5 max-h-32 overflow-auto rounded bg-surface-2 p-2 text-[10px] leading-relaxed text-ink-3">
+          {JSON.stringify(pending.args, null, 2)}
+        </pre>
+      )}
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          type="button"
+          disabled={!canApprove}
+          onClick={onApprove}
+          title={canApprove ? undefined : 'Open the review above first'}
+          className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+            canApprove
+              ? 'cursor-pointer border-hairline bg-surface-0 text-ink-1 hover:bg-surface-2'
+              : 'cursor-not-allowed border-hairline bg-surface-2 text-ink-3'
+          }`}
+        >
+          {pending.surface === 'app' ? 'Approve in app' : 'Approve'}
+        </button>
+        <button
+          type="button"
+          onClick={onDeny}
+          className="cursor-pointer rounded-md border border-hairline bg-surface-0 px-2.5 py-1 text-[11px] text-ink-2 hover:bg-surface-2"
+        >
+          Deny
+        </button>
+        <span className="ml-auto text-[10px] text-ink-3">
+          expires {new Date(pending.expiresAt).toLocaleTimeString()}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function WritesToggle({
+  enabled,
+  onToggle
+}: {
+  enabled: boolean
+  onToggle: (next: boolean) => void
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2 border-t border-hairline px-3 py-1.5 text-[11px] text-ink-3">
+      <input
+        type="checkbox"
+        checked={enabled}
+        onChange={(event) => onToggle(event.target.checked)}
+        className="cursor-pointer"
+      />
+      <span>
+        Allow edits (with approval) — the assistant may propose page edits; nothing is applied until
+        you approve it here.
+      </span>
+    </label>
+  )
 }
 
 function ToolActivityLine({ activity }: { activity: ChatToolActivity }) {
