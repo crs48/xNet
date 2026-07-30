@@ -516,10 +516,10 @@ jobs:
 
 ### Pass 1 — safety (do first)
 
-- [ ] Close **#400** with a comment citing `origin/main:packages/devkit/src/command-runner.ts`
+- [x] Close **#400** with a comment citing `origin/main:packages/devkit/src/command-runner.ts`
       (`GIT_LOCATION_ENV`, 8 vars, git-scoped) and warning that the branch's
       `command-runner.ts` predates the 0391 `NodeLineRunner` seam.
-- [ ] Close **#9** (draft) noting `apps/electron/src/renderer/workspace/` no
+- [x] Close **#9** (draft) noting `apps/electron/src/renderer/workspace/` no
       longer exists and pointing at #623, #627, #656, #653.
 
 ### Pass 2 — cheap wins
