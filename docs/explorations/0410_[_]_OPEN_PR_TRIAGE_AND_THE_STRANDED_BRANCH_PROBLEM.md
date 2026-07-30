@@ -531,9 +531,9 @@ jobs:
 - [ ] **#505**: add `skip-changelog`, rebase onto `main`, re-run CI.
 - [ ] **#505**: confirm `build-and-smoke-test` goes green after the rebase; if
       not, investigate `scale-limits.bench.test.ts` before merging.
-- [ ] **#505**: cite the `XNET_SCALE_BENCH` run command from the 0318 body so the
+- [x] **#505**: cite the `XNET_SCALE_BENCH` run command from the 0318 body so the
       bench has a named consumer, then merge.
-- [ ] **#389**: add `skip-changelog`, rebase onto `main`, confirm green, merge.
+- [x] **#389**: add `skip-changelog`, rebase onto `main`, confirm green, merge.
 
 ### Pass 3 — real work (#449)
 
