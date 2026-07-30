@@ -19,6 +19,7 @@ import {
 } from '@xnetjs/workbench'
 import { useCallback, useMemo } from 'react'
 import { AddSharedDialog, type AddSharedInput } from '../components/AddSharedDialog'
+import { normalizeHubUrl, persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 
 /** Deterministic presence-style color from a DID (same palette rule as web). */
 function colorForDid(did: string): string {
@@ -158,6 +159,21 @@ export function useDesktopWorkbenchHost(
             color: node.color as string | undefined,
             archived: node.archived as boolean | undefined
           }))
+        }
+      },
+
+      hub: {
+        configuredUrl: () => persistedHubUrl(''),
+        connect: (raw) => {
+          const trimmed = raw.trim()
+          if (!trimmed) {
+            setPersistedHubUrl('')
+            return null
+          }
+          const url = normalizeHubUrl(trimmed)
+          if (!url) return 'Enter a hub URL like wss://hub.example.com'
+          setPersistedHubUrl(url)
+          return null
         }
       },
 

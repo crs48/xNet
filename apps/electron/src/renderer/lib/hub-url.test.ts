@@ -3,6 +3,7 @@ import {
   HUB_URL_STORAGE_KEY,
   configuredHubUrl,
   defaultHubUrl,
+  normalizeHubUrl,
   persistedHubUrl,
   setPersistedHubUrl
 } from './hub-url'
@@ -57,5 +58,31 @@ describe('renderer hub-url', () => {
     expect(persistedHubUrl('wss://fallback.example')).toBe('wss://fallback.example')
     // Must not throw even though there is nowhere to write.
     expect(() => setPersistedHubUrl('wss://hub.xnet.fyi')).not.toThrow()
+  })
+})
+
+describe('normalizeHubUrl', () => {
+  it('converts https/http to wss/ws', () => {
+    expect(normalizeHubUrl('https://t-abc.hub.xnet.fyi')).toBe('wss://t-abc.hub.xnet.fyi')
+    expect(normalizeHubUrl('http://localhost:4444')).toBe('ws://localhost:4444')
+  })
+
+  it('passes ws/wss through and strips a trailing slash', () => {
+    expect(normalizeHubUrl('wss://mine.example')).toBe('wss://mine.example')
+    expect(normalizeHubUrl('wss://mine.example/')).toBe('wss://mine.example')
+  })
+
+  it('is scheme-case-insensitive and keeps an explicit port', () => {
+    expect(normalizeHubUrl('HTTPS://h.example')).toBe('wss://h.example')
+    expect(normalizeHubUrl('https://h.example:8443')).toBe('wss://h.example:8443')
+  })
+
+  it('rejects anything that is not a ws(s)-able URL with a host', () => {
+    // A rejected value must never be persisted — the caller surfaces the error
+    // rather than dialing something the sync manager cannot reach.
+    expect(normalizeHubUrl('hub.example.com')).toBeNull()
+    expect(normalizeHubUrl('https://')).toBeNull()
+    expect(normalizeHubUrl('ftp://h.example')).toBeNull()
+    expect(normalizeHubUrl('   ')).toBeNull()
   })
 })

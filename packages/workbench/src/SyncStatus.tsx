@@ -28,6 +28,86 @@ export const CHIP: Record<SyncCoarseState, { label: string; tone: string }> = {
   synced: { label: 'synced', tone: 'bg-success' }
 }
 
+/**
+ * Event any surface can fire to bring the connection panel up — the Share
+ * dialog's "Connect a hub…" CTA uses it (0290). Both the desktop popover and
+ * the mobile sheet listen, so the CTA works wherever the shell is mounted.
+ */
+const OPEN_PANEL_EVENT = 'xnet:open-sync-status'
+
+/** Open the status bar's connection panel (desktop popover or mobile sheet). */
+export function openSyncStatusPanel(): void {
+  window.dispatchEvent(new CustomEvent(OPEN_PANEL_EVENT))
+}
+
+/** Subscribe a panel's `setOpen` to {@link openSyncStatusPanel}. */
+function useOpenPanelRequests(setOpen: (open: boolean) => void): void {
+  useEffect(() => {
+    const onRequest = () => setOpen(true)
+    window.addEventListener(OPEN_PANEL_EVENT, onRequest)
+    return () => window.removeEventListener(OPEN_PANEL_EVENT, onRequest)
+  }, [setOpen])
+}
+
+/**
+ * Inline hub-URL form, shown in the panel while the client has no hub. Saving
+ * persists through the host and offers the reload that actually applies it —
+ * the same two-step Settings → Network uses, rather than pretending the dial
+ * happens live.
+ */
+function HubConnectForm() {
+  const hub = workbenchHost().hub
+  const [draft, setDraft] = useState(() => hub.configuredUrl())
+  const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault()
+    const rejected = hub.connect(draft)
+    setError(rejected)
+    setSaved(rejected === null)
+  }
+
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-1.5 border-t border-hairline pt-2">
+      <label htmlFor="hub-connect-url" className="text-ink-3">
+        hub URL
+      </label>
+      <input
+        id="hub-connect-url"
+        value={draft}
+        onChange={(event) => {
+          setDraft(event.target.value)
+          setError(null)
+          setSaved(false)
+        }}
+        placeholder="wss://hub.example.com"
+        spellCheck={false}
+        autoComplete="off"
+        className="rounded border border-hairline bg-surface-2 px-2 py-1 text-ink-1 placeholder:text-ink-3"
+      />
+      <div className="flex items-center gap-2">
+        <button
+          type="submit"
+          className="cursor-pointer rounded border border-hairline bg-surface-2 px-2 py-1 text-ink-1 hover:bg-surface-3"
+        >
+          Connect
+        </button>
+        {saved && (
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="cursor-pointer rounded border border-hairline bg-surface-2 px-2 py-1 text-ink-1 hover:bg-surface-3"
+          >
+            Reload to apply
+          </button>
+        )}
+      </div>
+      {error && <span className="text-destructive">{error}</span>}
+    </form>
+  )
+}
+
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
@@ -109,6 +189,11 @@ export function SystemInfoDetails({ vitals }: { vitals: SyncVitals }) {
       >
         {reconciling ? 'reconciling…' : 'Reconcile now'}
       </button>
+
+      {/* Without a hub the panel is otherwise read-only — offer the way out. */}
+      {(!vitals.hasSyncManager || vitals.hub === 'disconnected' || vitals.hub === 'error') && (
+        <HubConnectForm />
+      )}
     </div>
   )
 }
@@ -121,6 +206,8 @@ export function SyncStatus() {
   const vitals = useSyncVitals()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
+
+  useOpenPanelRequests(setOpen)
 
   useEffect(() => {
     if (!open) return
@@ -202,6 +289,8 @@ export function MobileSyncGlyph() {
   const vitals = useSyncVitals()
   const [open, setOpen] = useState(false)
   const chip = CHIP[vitals.state]
+
+  useOpenPanelRequests(setOpen)
 
   return (
     <>

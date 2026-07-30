@@ -24,6 +24,7 @@ import { WinddownOverlay } from '../components/WinddownOverlay'
 import { useCreateInSpace } from '../hooks/useCreateInSpace'
 import { useStorageStatus } from '../hooks/useStorageStatus'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
+import { normalizeHubUrl, persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { logout } from '../lib/identity'
 import { WhatsNewButton } from '../whats-new/WhatsNewButton'
 
@@ -33,6 +34,21 @@ const webWorkbenchHost: WorkbenchHost = {
   useStorageStatus,
   useCreateInSpace,
   useWorkspaceTags,
+
+  hub: {
+    configuredUrl: () => persistedHubUrl(''),
+    connect: (raw) => {
+      const trimmed = raw.trim()
+      if (!trimmed) {
+        setPersistedHubUrl('')
+        return null
+      }
+      const url = normalizeHubUrl(trimmed)
+      if (!url) return 'Enter a hub URL like wss://hub.example.com'
+      setPersistedHubUrl(url)
+      return null
+    }
+  },
 
   comms: {
     useComms,

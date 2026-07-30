@@ -167,6 +167,24 @@ export interface CoachTip {
   order?: number
 }
 
+/**
+ * Hub connection, owned by the app because each surface persists the URL in its
+ * own `hub-url` module (web's localStorage vs the desktop renderer's). The
+ * shell needs it so the status panel can offer a way *out* of the disconnected
+ * state — a "connect a hub" affordance that leads nowhere is the dead end
+ * exploration 0290 was written about.
+ */
+export interface WorkbenchHubHost {
+  /** The hub URL the client will dial: the persisted override, or the default. */
+  configuredUrl(): string
+  /**
+   * Validate and persist `raw` (empty clears it). Returns `null` on success, or
+   * a human-readable reason it was rejected — never a silent no-op, so the form
+   * can tell "saved" apart from "that isn't a hub URL".
+   */
+  connect(raw: string): string | null
+}
+
 export interface WorkbenchHost {
   /** Lock the identity and restart the surface. */
   logout(): Promise<void>
@@ -176,6 +194,7 @@ export interface WorkbenchHost {
   useCreateInSpace(): (type: CreatableDocType, spaceId: string | null) => Promise<void>
   useWorkspaceTags(): { allTags: TagEntry[] }
 
+  hub: WorkbenchHubHost
   comms: WorkbenchCommsHost
   experiments: WorkbenchExperimentsHost
 

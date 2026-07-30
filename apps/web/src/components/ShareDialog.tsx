@@ -6,6 +6,7 @@
  */
 
 import { useXNet } from '@xnetjs/react'
+import { openSyncStatusPanel } from '@xnetjs/workbench'
 import {
   Check,
   Copy,
@@ -82,24 +83,46 @@ function RoleChip({ role }: { role: ShareRole }): JSX.Element {
   )
 }
 
-function CopyButton({ value }: { value: string }): JSX.Element {
+/**
+ * Copy a share link. When the hub is private (0290 bug #3) the first click asks
+ * for confirmation instead of copying: a LAN-only link pasted into a chat looks
+ * identical to a public one and fails silently for the recipient. LAN sharing
+ * still works — this only makes the reach explicit before the link leaves.
+ */
+function CopyButton({ value, localOnly }: { value: string; localOnly?: boolean }): JSX.Element {
   const [copied, setCopied] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+
+  const copy = () => {
+    void navigator.clipboard.writeText(value).then(() => {
+      setConfirming(false)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+
   return (
     <button
       type="button"
-      title="Copy link"
+      title={localOnly ? 'This link only works on your machine or local network' : 'Copy link'}
       onClick={() => {
-        void navigator.clipboard.writeText(value).then(() => {
-          setCopied(true)
-          setTimeout(() => setCopied(false), 1500)
-        })
+        if (localOnly && !confirming) {
+          setConfirming(true)
+          return
+        }
+        copy()
       }}
+      onBlur={() => setConfirming(false)}
       className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-        copied ? 'bg-green-500/20 text-green-400' : 'bg-primary text-white hover:bg-primary/90'
+        copied
+          ? 'bg-green-500/20 text-green-400'
+          : confirming
+            ? 'bg-amber-500/20 text-amber-500'
+            : 'bg-primary text-white hover:bg-primary/90'
       }`}
     >
-      {copied ? <Check size={12} /> : <Copy size={12} />}
-      {copied ? 'Copied' : 'Copy'}
+      {copied ? <Check size={12} /> : confirming ? <ShieldAlert size={12} /> : <Copy size={12} />}
+      {copied ? 'Copied' : confirming ? 'Copy local-only link?' : 'Copy'}
     </button>
   )
 }
@@ -277,7 +300,22 @@ function ShareDialogBody({
 
         <div className="p-4 max-h-[60vh] overflow-y-auto">
           {!ready && tab !== 'permissions' && (
-            <p className="text-xs text-muted-foreground">Connect to a hub to create share links.</p>
+            <div className="flex flex-col items-start gap-2">
+              <p className="text-xs text-muted-foreground">
+                Share links are issued by your hub, so this device needs one connected before it can
+                create them. Your document stays local until then.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose()
+                  openSyncStatusPanel()
+                }}
+                className="px-3 py-1.5 text-xs bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Connect a hub…
+              </button>
+            </div>
           )}
 
           {ready && privateHub && (
@@ -378,7 +416,7 @@ function ShareDialogBody({
                       onClick={(e) => (e.target as HTMLInputElement).select()}
                       className="flex-1 px-2 py-1 text-[11px] font-mono bg-secondary border border-border rounded text-foreground"
                     />
-                    <CopyButton value={freshUrl} />
+                    <CopyButton value={freshUrl} localOnly={privateHub} />
                     <button
                       type="button"
                       title={qrDataUrl ? 'Hide QR code' : 'Show QR code'}
@@ -440,7 +478,9 @@ function ShareDialogBody({
                         {link.disabled ? ' · disabled' : ''}
                       </p>
                     </div>
-                    {link.url && !link.disabled && <CopyButton value={link.url} />}
+                    {link.url && !link.disabled && (
+                      <CopyButton value={link.url} localOnly={privateHub} />
+                    )}
                     <button
                       type="button"
                       title={

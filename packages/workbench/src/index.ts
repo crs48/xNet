@@ -51,6 +51,9 @@ export * from './sidebar/contracts'
 export * from './sidebar/sources'
 export * from './slot-registry'
 export * from './status'
+// Named, not `export *`: the module also exports `SyncStatus`, which collides
+// with the same-named status union re-exported from `@xnetjs/react`.
+export { openSyncStatusPanel } from './SyncStatus'
 export * from './use-layout-mode'
 export * from './commands'
 export * from './focus'

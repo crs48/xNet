@@ -32,6 +32,29 @@ export function persistedHubUrl(fallback: string = defaultHubUrl()): string {
 }
 
 /**
+ * Normalize a hub URL typed by the user or handed in from outside. The control
+ * plane stores a hub's endpoint as `https://…` but the client dials it over a
+ * WebSocket, so convert http(s)→ws(s) and pass ws(s) through. Returns `null`
+ * for anything that isn't a ws(s) URL with a host, so a malformed value is
+ * rejected loudly rather than persisted and silently un-dialable. Mirrors
+ * `apps/web/src/lib/hub-url.ts`.
+ */
+export function normalizeHubUrl(raw: string): string | null {
+  const trimmed = raw.trim()
+  let ws: string
+  if (/^https:\/\//i.test(trimmed)) ws = `wss://${trimmed.slice(8)}`
+  else if (/^http:\/\//i.test(trimmed)) ws = `ws://${trimmed.slice(7)}`
+  else if (/^wss?:\/\//i.test(trimmed)) ws = trimmed
+  else return null
+  try {
+    if (!new URL(ws).host) return null
+  } catch {
+    return null
+  }
+  return ws.replace(/\/$/, '')
+}
+
+/**
  * A boot-time hub override forwarded by the main process as `#hub=<url>` (set
  * from `XNET_HUB_URL`). Read on the very first sync start so e2e tests can pin
  * the renderer at a test hub without a post-boot reconfigure race.
