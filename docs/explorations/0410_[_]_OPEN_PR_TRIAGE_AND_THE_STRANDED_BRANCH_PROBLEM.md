@@ -549,28 +549,33 @@ jobs:
 - [x] Add `.github/workflows/stale.yml` (14d stale / 21d close, `keep-open` exemption).
 - [x] Fix the next-number command in `.claude/skills/explore/SKILL.md` to scan all
       refs and sibling worktrees.
-- [ ] Open a follow-up to triage the five PR-less stranded explorations
+- [x] Open a follow-up to triage the five PR-less stranded explorations
       (0266, 0316, 0320, 0407, 0409).
 
 ## Validation Checklist
 
-- [ ] `gh pr list --state open` returns **0 or 1** PRs (only an in-flight #449
+- [x] `gh pr list --state open` returns **0 or 1** PRs (only an in-flight #449
       replacement).
-- [ ] For every closed PR, `git diff origin/main <branch> -- <its target files>`
+- [x] For every closed PR, `git diff origin/main <branch> -- <its target files>`
       is empty **or** the closure comment explains why the difference is a
       regression rather than an improvement.
-- [ ] `git show origin/main:packages/devkit/src/command-runner.ts | grep -c NodeLineRunner`
+- [x] `git show origin/main:packages/devkit/src/command-runner.ts | grep -c NodeLineRunner`
       returns **≥1** — proof #400's closure did not cost `main` the 0391 seam.
-- [ ] `ls docs/explorations | grep -E '^(0270|0318)'` lists both files on `main`.
-- [ ] `ls docs/explorations | sed -n 's/^\([0-9]\{4\}\)_.*/\1/p'` shows `0270` and
+- [x] `ls docs/explorations | grep -E '^(0270|0318)'` lists both files on `main`.
+- [x] `ls docs/explorations | sed -n 's/^\([0-9]\{4\}\)_.*/\1/p'` shows `0270` and
       `0318` are no longer holes.
-- [ ] `pnpm typecheck && pnpm test` pass on `main` after the two doc merges.
-- [ ] The hub CTA is reachable from the Share dialog with no hub connected, on
+- [x] `pnpm typecheck && pnpm test` pass on `main` after the two doc merges.
+- [x] The hub CTA is reachable from the Share dialog with no hub connected, on
       **both** the web app and the desktop app (proof the `packages/workbench`
       placement paid off).
 - [ ] `actions/stale` completes one scheduled run and comments on nothing
       (because nothing is stale).
-- [ ] The corrected `/explore` number command returns `0411` when run today.
+- [x] The corrected `/explore` number command skips every number already claimed
+      on a branch or sibling worktree. **Result: returns `0412`** — while this
+      exploration was being implemented another session wrote `0411`
+      (`TEMPORAL_AND_DURABLE_EXECUTION`) on its own branch. The old
+      working-tree-only command returns `0411` and collides; the fix is what
+      catches it. A live demonstration rather than a hypothetical one.
 
 ## References
 
