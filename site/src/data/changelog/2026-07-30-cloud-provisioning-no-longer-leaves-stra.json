@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-30-cloud-provisioning-no-longer-leaves-stra",
+  "date": "July 30, 2026",
+  "title": "Cloud provisioning no longer leaves stray hubs behind",
+  "summary": "A failed hub setup now cleans up after itself instead of leaving a paid-for server running with nothing attached to it, and scheduled maintenance jobs no longer get skipped when the service restarts.",
+  "highlights": [],
+  "tags": ["platform"]
+}

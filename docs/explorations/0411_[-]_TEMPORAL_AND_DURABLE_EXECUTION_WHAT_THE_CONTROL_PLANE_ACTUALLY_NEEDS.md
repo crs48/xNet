@@ -1,6 +1,6 @@
 ---
 title: Temporal And Durable Execution — What The Control Plane Actually Needs
-status: draft
+status: partial
 last_updated: 2026-07-30
 tags: [cloud, architecture, reliability, dependencies]
 ---
@@ -491,10 +491,12 @@ reasons).
 | T4  | A paying customer incident is traced to a lost or double-run background job                                 | ☐ No                                          |
 | T5  | Postgres enters the stack for an unrelated reason (promotes DBOS from ❌ to a serious contender)            | ☐ No — SQLite + Firestore only                |
 | T6  | Managed-tenant count exceeds ~500 (fleet operations stop being loopable in a single pass)                   | ☐ No — pre-launch                             |
-| T7  | The in-repo primitives grow past ~500 LOC (we are building a worse Temporal)                                | ☐ No — see the LOC line in Validation         |
+| T7  | The in-repo primitives grow past ~500 LOC (we are building a worse Temporal)                                | ⚠️ **496 / ~500 — on the line**               |
 
-**Count: 0 of 7.** The honest summary is that this is a good technology for a
-problem we have not earned yet.
+**Count: 0 of 7**, but T7 is one refactor away. The honest summary is that this
+is a good technology for a problem we have not earned yet — and that the
+in-repo alternative cost 496 code lines rather than the ~300 estimated, so the
+margin before reconsidering is thinner than the recommendation assumed.
 
 ---
 
@@ -729,6 +731,13 @@ export async function runIfDue(
 - [x] Verify `google-cloud-run-client.destroy` removes the volume as well as
       the service; fix or document if not
 - [ ] Audit the live GCP project for services with no matching `TenantRecord`
+      — ⛔ **DEFERRED: needs live GCP credentials.** The audit itself is built
+      and unit-tested (`findOrphans` / `formatOrphanReport` in
+      [`apps/cloud/src/provisioner/orphan-audit.ts`](../../apps/cloud/src/provisioner/orphan-audit.ts));
+      only the "list live Cloud Run services" call needs credentials. It reports
+      **both** directions — an orphaned service (billing with no tenant) and a
+      dangling record (tenant with no hub) — because collapsing them would hide
+      which is happening. Run before the fleet carries paying tenants.
 
 **G2 — leased periodic jobs**
 
@@ -751,24 +760,53 @@ export async function runIfDue(
 
 ## Validation Checklist
 
-- [ ] `pnpm test` passes; new unit tests cover `saga()`, `claimable()`,
+- [x] `pnpm test` passes; new unit tests cover `saga()`, `claimable()`,
       `stalenessMs()` and rollout resume against `InMemoryDocStore`
-- [ ] **G1 proven:** a test where `aiKeys.create` rejects asserts
+- [x] **G1 proven:** a test where `aiKeys.create` rejects asserts
       `provisioner.destroy` was called with the handle's `substrateRef` and no
       `TenantRecord` remains
-- [ ] **G1 proven (retry):** re-running `provisionTenant` after a compensated
+- [x] **G1 proven (retry):** re-running `provisionTenant` after a compensated
       failure produces exactly one Cloud Run service, not two
-- [ ] **G2 proven:** a job whose `lastCompletedMs` is older than its interval
+- [x] **G2 proven:** a job whose `lastCompletedMs` is older than its interval
       runs on the next tick after a simulated restart; one whose lease is held
       by another holder does not
-- [ ] **G2 proven (loudness):** a job that has not completed in 2× its interval
+- [x] **G2 proven (loudness):** a job that has not completed in 2× its interval
       raises the staleness alert with no successful run required to notice
-- [ ] **G3 proven:** a rollout interrupted mid-wave resumes from the stored
+- [x] **G3 proven:** a rollout interrupted mid-wave resumes from the stored
       record and does not re-upgrade already-promoted tenants
-- [ ] `pnpm typecheck` and `pnpm lint` clean
-- [ ] Total added LOC measured and recorded here; if over ~500, treat as a
+- [x] `pnpm typecheck` and `pnpm lint` clean
+- [x] Total added LOC measured and recorded here; if over ~500, treat as a
       tripwire and re-open the orchestrator question
-- [ ] Tripwire count re-checked and recorded (today: **0/6**)
+- [x] Tripwire count re-checked and recorded (today: **0/7**)
+
+### Measured results
+
+| Check                  | Result                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `pnpm test`            | ✅ 11,395 passed, 4 skipped (1,117 files)                                                        |
+| `pnpm typecheck`       | ✅ 99/99 tasks clean                                                                             |
+| `pnpm lint`            | ✅ 0 errors (468 pre-existing warnings, none in new files)                                       |
+| New `apps/cloud` tests | 54 added — `saga` (10), `leased` (18), `runner` (9), jobs route (5), G1 saga (7), G3 resume (15) |
+
+**LOC — at the tripwire, not past it.** Counting non-comment, non-blank lines:
+
+| Where                                                | Code lines |
+| ---------------------------------------------------- | ---------- |
+| `saga.ts`                                            | 66         |
+| `jobs/leased.ts`                                     | 99         |
+| `jobs/runner.ts`                                     | 82         |
+| `rollout/run-record.ts`                              | 51         |
+| Net change to existing production files (+290 / −92) | 198        |
+| **Total**                                            | **496**    |
+
+> [!WARNING]
+> The estimate was ~300 lines; the actual is **496**, which sits directly on the
+> ~500-line T7 tripwire rather than comfortably below it. The gap is mostly G3:
+> resumable rollouts needed a record type, resume logic in both `rollWave` and
+> `runRollout`, and terminal-status handling. **Any further growth in these four
+> files trips T7** and should re-open the orchestrator question rather than
+> being absorbed. (With doc comments the four new files total 559 lines; the
+> table above is code only, which is the number the tripwire is about.)
 
 ---
 
