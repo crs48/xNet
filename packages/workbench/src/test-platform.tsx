@@ -103,6 +103,7 @@ export function createTestWorkbenchHost(overrides: Partial<WorkbenchHost> = {}):
     useStorageStatus: () => null,
     useCreateInSpace: () => async () => undefined,
     useWorkspaceTags: () => ({ allTags: [] }),
+    hub: { configuredUrl: () => '', connect: () => null },
     comms: {
       useComms: () => {
         throw new Error('[test-host] no comms provider in tests')

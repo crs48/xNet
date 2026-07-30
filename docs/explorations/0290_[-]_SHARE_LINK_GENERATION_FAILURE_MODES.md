@@ -427,8 +427,8 @@ Bug #2 — Share dialog CTA (`apps/web/src/components/ShareDialog.tsx:238`):
 - [x] Extend `ShareClaimResult['docType']` union in `apps/web/src/lib/share-links.ts`.
 - [x] Add a `'workspace'` case to `docRouteFor` (route target for a claimed bench).
 - [ ] Verify the recipient's claim opens the workspace node (sync + route) end-to-end.
-- [ ] Add an in-dialog "Connect a hub" CTA to `ShareDialog` when `!ready`, wired to the existing hub-connection dialog.
-- [ ] Label private-hub links "Local only" and add a copy/QR confirm (keep LAN sharing).
+- [x] Add an in-dialog "Connect a hub" CTA to `ShareDialog` when `!ready`, wired to the existing hub-connection dialog.
+- [x] Label private-hub links "Local only" and add a copy/QR confirm (keep LAN sharing).
 - [ ] (Follow-up) Decide `ownerDid`-on-first-write vs. permissive default; write a hub test for the chosen behaviour.
 - [x] Add a hub test asserting every `ShareDocType` value returns 200 from `POST /shares/links`.
 - [x] Write the changeset(s) reflecting the `docType`/union contract change.
@@ -441,11 +441,11 @@ Bug #2 — Share dialog CTA (`apps/web/src/components/ShareDialog.tsx:238`):
       page/database/canvas/dashboard/view/space/**workspace**.
 - [ ] Browser: with a hub connected, **New link** for a page, a database, and
       a **bench** each yields a copyable URL (no error banner).
-- [ ] Browser: with **no** hub, the Share dialog shows a working **Connect a
+- [x] Browser: with **no** hub, the Share dialog shows a working **Connect a
       hub** button that lands you connected, after which **New link** works.
 - [ ] Round-trip: a second identity **claims** a workspace link and lands on
       the workspace view.
-- [ ] Private hub: link is labelled "Local only"; copy requires confirm.
+- [x] Private hub: link is labelled "Local only"; copy requires confirm.
 - [ ] Ownership: a non-owner (per `docMeta`) gets a clear `403` message, and
       the chosen owner-stamping behaviour matches the new hub test.
 
