@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Cloud provisioning no longer leaves stray hubs behind</title>
+      <link>https://xnet.fyi/changelog#2026-07-30-cloud-provisioning-no-longer-leaves-stra</link>
+      <guid isPermaLink="false">2026-07-30-cloud-provisioning-no-longer-leaves-stra</guid>
+      <pubDate>Thu, 30 Jul 2026 18:24:04 GMT</pubDate>
+      <description>A failed hub setup now cleans up after itself instead of leaving a paid-for server running with nothing attached to it, and scheduled maintenance jobs no longer get skipped when the service restarts.</description>
+    </item>
+    <item>
       <title>Connect a hub straight from the Share dialog</title>
       <link>https://xnet.fyi/changelog#2026-07-30-connect-a-hub-straight-from-the-share-di</link>
       <guid isPermaLink="false">2026-07-30-connect-a-hub-straight-from-the-share-di</guid>
