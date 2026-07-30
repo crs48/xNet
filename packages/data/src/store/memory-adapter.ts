@@ -14,7 +14,9 @@ import type {
   ImportNodesOptions,
   ApplyNodeBatchInput,
   ApplyNodeBatchResult,
-  NodeBatchPreflightResult
+  NodeBatchPreflightResult,
+  PinEntry,
+  PinRegistry
 } from './types'
 import type { ContentId } from '@xnetjs/core'
 
@@ -30,6 +32,7 @@ type MemoryNodeStorageSnapshot = {
     docState: Uint8Array
     byteSize: number
   }[]
+  pinStore: Map<string, Map<string, PinEntry>>
   lastLamportTime: number
 }
 
@@ -67,25 +70,29 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   // ==========================================================================
 
   async appendChange(change: NodeChange): Promise<void> {
-    const nodeId = change.payload.nodeId
-
-    // Add to node's change list
-    const existing = this.changes.get(nodeId) ?? []
-    existing.push(change)
-    this.changes.set(nodeId, existing)
-
-    // Index by hash
-    this.changesByHash.set(change.hash, change)
+    this.appendChangeInternal(change)
   }
 
   async appendChanges(changes: readonly NodeChange[]): Promise<void> {
-    changes.forEach((change) => {
-      const nodeId = change.payload.nodeId
-      const existing = this.changes.get(nodeId) ?? []
-      existing.push(change)
-      this.changes.set(nodeId, existing)
-      this.changesByHash.set(change.hash, change)
-    })
+    changes.forEach((change) => this.appendChangeInternal(change))
+  }
+
+  /**
+   * Append with hash dedupe — replayed changes must not grow the log
+   * (matches the SQLite adapter's `INSERT OR IGNORE`; exploration 0296).
+   */
+  private appendChangeInternal(change: NodeChange): void {
+    if (this.changesByHash.has(change.hash)) return
+
+    const nodeId = change.payload.nodeId
+    const existing = this.changes.get(nodeId) ?? []
+    existing.push(change)
+    this.changes.set(nodeId, existing)
+    this.changesByHash.set(change.hash, change)
+  }
+
+  async hasChange(hash: ContentId): Promise<boolean> {
+    return this.changesByHash.has(hash)
   }
 
   async getChanges(nodeId: NodeId): Promise<NodeChange[]> {
@@ -320,6 +327,44 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   // ==========================================================================
+  // Pin Registry (exploration 0329)
+  // ==========================================================================
+
+  /** key -> ownerId -> entry */
+  private pinStore = new Map<string, Map<string, PinEntry>>()
+
+  readonly pins: PinRegistry = {
+    addPins: async (pins: readonly PinEntry[]): Promise<void> => {
+      for (const pin of pins) {
+        let owners = this.pinStore.get(pin.key)
+        if (!owners) {
+          owners = new Map()
+          this.pinStore.set(pin.key, owners)
+        }
+        owners.set(pin.ownerId, { ...pin })
+      }
+    },
+    removePinsByOwner: async (ownerId: string): Promise<void> => {
+      for (const [key, owners] of this.pinStore) {
+        owners.delete(ownerId)
+        if (owners.size === 0) this.pinStore.delete(key)
+      }
+    },
+    getPinnedKeysAmong: async (keys: readonly string[]): Promise<Set<string>> => {
+      const pinned = new Set<string>()
+      for (const key of keys) {
+        if (this.pinStore.has(key)) pinned.add(key)
+      }
+      return pinned
+    },
+    countPins: async (): Promise<number> => {
+      let count = 0
+      for (const owners of this.pinStore.values()) count += owners.size
+      return count
+    }
+  }
+
+  // ==========================================================================
   // Utility Methods (for testing)
   // ==========================================================================
 
@@ -332,6 +377,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     this.nodes.clear()
     this.documentContentStore.clear()
     this.yjsSnapshotStore = []
+    this.pinStore.clear()
     this.lastLamportTime = 0
     this.syncCursors.clear()
   }
@@ -374,6 +420,9 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
         ])
       ),
       yjsSnapshotStore: structuredClone(this.yjsSnapshotStore),
+      pinStore: new Map(
+        Array.from(this.pinStore.entries(), ([key, owners]) => [key, new Map(owners)])
+      ),
       lastLamportTime: this.lastLamportTime
     }
   }
@@ -384,6 +433,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     this.nodes = snapshot.nodes
     this.documentContentStore = snapshot.documentContentStore
     this.yjsSnapshotStore = snapshot.yjsSnapshotStore
+    this.pinStore = snapshot.pinStore
     this.lastLamportTime = snapshot.lastLamportTime
   }
 }

@@ -13,10 +13,11 @@
  */
 
 import type { InferNode } from '../types'
+import type { MessageLinkPreview } from './link-preview'
 import type { MessageMentions } from './mentions'
 import { defineSchema } from '../define'
 import { checkbox, created, createdBy, date, file, json, relation, text } from '../properties'
-import { spaceCascadeAuthorization } from './space-authorization'
+import { spaceContributorAuthorization } from './space-authorization'
 
 export const ChatMessageSchema = defineSchema({
   name: 'ChatMessage',
@@ -52,12 +53,16 @@ export const ChatMessageSchema = defineSchema({
     /** Node ids from the composer's [[ link picks (exploration 0170) */
     links: relation({ multiple: true }),
 
+    /** Composer-resolved URL previews (0295) — never parsed from content */
+    linkPreviews: json<MessageLinkPreview[]>({}),
+
     createdAt: created(),
     createdBy: createdBy()
   },
   document: undefined,
-  // Inherits access from its home Space (exploration 0181/0192).
-  authorization: spaceCascadeAuthorization('channel')
+  // Inherits access from its home Space (exploration 0181/0192); members may
+  // post but only the author (or space admins) may edit a message (0304).
+  authorization: spaceContributorAuthorization('channel')
 })
 
 export type ChatMessage = InferNode<(typeof ChatMessageSchema)['_properties']>

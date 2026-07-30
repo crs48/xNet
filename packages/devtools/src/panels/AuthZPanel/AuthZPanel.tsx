@@ -2,15 +2,17 @@
  * AuthZPanel - Authorization observability and controls.
  */
 
-import type { AuthGrant, DID, GrantInput } from '@xnetjs/data'
+import {
+  AUTH_ACTIONS,
+  type AuthAction,
+  type AuthGrant,
+  type DID,
+  type GrantInput
+} from '@xnetjs/data'
 import { useEffect, useMemo, useState } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 import { AUTHZ_TABS, type AuthZTab } from '../authz-config'
 import { AuthTraceView, type AuthTrace } from './AuthTraceView'
-
-type AuthAction = 'read' | 'write' | 'delete' | 'share' | 'admin'
-
-const AUTH_ACTIONS: AuthAction[] = ['read', 'write', 'delete', 'share', 'admin']
 
 const AUTHZ_TAB_LABELS: Record<AuthZTab, string> = {
   playground: 'Playground',

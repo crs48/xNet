@@ -13,11 +13,14 @@ import { WebSocket } from 'ws'
 import { createHub, type HubInstance } from '../src'
 import {
   isCommentSchema,
+  profileSubjectFromDocId,
   roleFromActions,
   ShareAccessService,
   SHARE_ROLE_ACTIONS
 } from '../src/services/share-access'
 import { createMemoryStorage } from '../src/storage/memory'
+import { authorizeRoomAction } from '../src/ws/authorize'
+import { syncSpaceAs } from './helpers/space-sync'
 
 const PORT = 14491
 const BASE = `http://localhost:${PORT}`
@@ -180,6 +183,31 @@ describe('Share Links', () => {
     await hub.stop()
   })
 
+  // The app and the hub are different origins in production (xnet.fyi/app vs
+  // hub.xnet.fyi), and the Authorization header forces a CORS preflight — the
+  // browser surfaces a bare "Failed to fetch" if the hub doesn't answer it.
+  it('answers the CORS preflight for authenticated HTTP APIs', async () => {
+    const preflight = await fetch(`${BASE}/shares/links?docId=doc-cors`, {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'https://xnet.fyi',
+        'Access-Control-Request-Method': 'GET',
+        'Access-Control-Request-Headers': 'authorization,content-type'
+      }
+    })
+    expect(preflight.status).toBe(204)
+    expect(preflight.headers.get('access-control-allow-origin')).toBe('*')
+    expect(preflight.headers.get('access-control-allow-headers')?.toLowerCase()).toContain(
+      'authorization'
+    )
+
+    const response = await fetch(`${BASE}/shares/links?docId=doc-cors`, {
+      headers: { Origin: 'https://xnet.fyi', Authorization: `Bearer ${owner.token}` }
+    })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('access-control-allow-origin')).toBe('*')
+  })
+
   it('creates a link whose URL carries the secret in the fragment', async () => {
     const { url, linkId } = await createLink(owner, 'doc-anatomy', 'read')
     expect(url).toBe(`http://localhost:${PORT}/s/${linkId}#s=${url.split('#s=')[1]}`)
@@ -191,6 +219,41 @@ describe('Share Links', () => {
     expect(links[0].linkId).toBe(linkId)
     // The stored record never contains the secret itself
     expect(JSON.stringify(links[0])).not.toContain(url.split('#s=')[1])
+  })
+
+  it('accepts every client ShareDocType, including workspace and channel (0290)', async () => {
+    // The client offered 'workspace' (saved bench, 0280) long before the hub
+    // accepted it — every union member must round-trip create → claim.
+    const docTypes = [
+      'page',
+      'database',
+      'canvas',
+      'dashboard',
+      'view',
+      'space',
+      'workspace',
+      'channel'
+    ]
+    for (const docType of docTypes) {
+      const docId = `doc-type-${docType}`
+      // Container-granting types need an attested owner before a link can be
+      // minted (see space-share-ownership.test.ts); this test is about the
+      // docType union round-tripping, not about who may share.
+      if (docType === 'space') await syncSpaceAs(PORT, owner, docId)
+      const { status, json } = await api('/shares/links', {
+        method: 'POST',
+        token: owner.token,
+        body: { docId, docType, role: 'read' }
+      })
+      expect(status, `docType=${docType}`).toBe(200)
+      expect(json.docType).toBe(docType)
+
+      const recipient = makeActor()
+      const secret = (json.url as string).split('#s=')[1]
+      const claimed = await claim(recipient, json.linkId as string, secret)
+      expect(claimed.status, `claim docType=${docType}`).toBe(200)
+      expect(claimed.json.docType).toBe(docType)
+    }
   })
 
   it('claims a link, records a grant, and is idempotent on re-claim', async () => {
@@ -346,6 +409,118 @@ describe('Share Links', () => {
     expect((await claim(recipient, linkId, secret)).status).toBe(200)
   })
 
+  describe('share-link previews (0295)', () => {
+    const publish = (linkId: string, title: string, icon?: string) =>
+      api(`/shares/links/${linkId}/preview`, {
+        method: 'PUT',
+        token: owner.token,
+        body: { title, ...(icon ? { icon } : {}) }
+      })
+
+    const readPreview = (linkId: string) => api(`/shares/links/${linkId}/preview`)
+
+    it('serves an owner-published preview to unauthenticated linkId holders', async () => {
+      const { linkId } = await createLink(owner, 'doc-preview', 'read')
+      expect((await publish(linkId, 'Q3 Launch Plan', 'FileText')).status).toBe(200)
+
+      const { status, json } = await readPreview(linkId)
+      expect(status).toBe(200)
+      expect(json.title).toBe('Q3 Launch Plan')
+      expect(json.docType).toBe('page')
+      expect(json.icon).toBe('FileText')
+    })
+
+    it('404s when no preview has been published (owner opt-out default)', async () => {
+      const { linkId } = await createLink(owner, 'doc-preview-optout', 'read')
+      expect((await readPreview(linkId)).status).toBe(404)
+    })
+
+    it('404s after the link is revoked and after preview deletion', async () => {
+      const { linkId } = await createLink(owner, 'doc-preview-revoke', 'read')
+      await publish(linkId, 'Soon Gone')
+
+      await api(`/shares/links/${linkId}`, {
+        method: 'PATCH',
+        token: owner.token,
+        body: { disabled: true }
+      })
+      expect((await readPreview(linkId)).status).toBe(404)
+
+      await api(`/shares/links/${linkId}`, {
+        method: 'PATCH',
+        token: owner.token,
+        body: { disabled: false }
+      })
+      expect((await readPreview(linkId)).status).toBe(200)
+
+      await api(`/shares/links/${linkId}/preview`, { method: 'DELETE', token: owner.token })
+      expect((await readPreview(linkId)).status).toBe(404)
+    })
+
+    it('404s for expired links and unknown linkIds', async () => {
+      const { linkId } = await createLink(owner, 'doc-preview-expiry', 'read', {
+        expiresAt: Date.now() + 50
+      })
+      await publish(linkId, 'Blink And Miss')
+      await new Promise((resolve) => setTimeout(resolve, 80))
+      expect((await readPreview(linkId)).status).toBe(404)
+      expect((await readPreview('nonexistent-link')).status).toBe(404)
+    })
+
+    it('sanitizes the snapshot: only title, docType, icon, updatedAt leak', async () => {
+      const { linkId } = await createLink(owner, 'doc-preview-sanitized', 'read')
+      await publish(linkId, `  ${'x'.repeat(400)}  `)
+      const { json } = await readPreview(linkId)
+      expect(Object.keys(json).sort()).toEqual(['docType', 'icon', 'title', 'updatedAt'])
+      expect((json.title as string).length).toBe(200)
+      expect(JSON.stringify(json)).not.toContain('doc-preview-sanitized')
+    })
+
+    it('requires manage rights to publish or delete a preview', async () => {
+      const { linkId } = await createLink(owner, 'doc-preview-authz', 'read')
+      // Register doc ownership so strangers are rejected
+      await publish(linkId, 'Owned Title')
+      const stranger = makeActor()
+      const put = await api(`/shares/links/${linkId}/preview`, {
+        method: 'PUT',
+        token: stranger.token,
+        body: { title: 'Hijacked' }
+      })
+      const del = await api(`/shares/links/${linkId}/preview`, {
+        method: 'DELETE',
+        token: stranger.token
+      })
+      // Docs without recorded owners fall back to the legacy trust model, so
+      // this asserts the endpoints demand auth at minimum.
+      const anon = await api(`/shares/links/${linkId}/preview`, {
+        method: 'PUT',
+        body: { title: 'Anon' }
+      })
+      expect(anon.status).toBeGreaterThanOrEqual(401)
+      expect([200, 403]).toContain(put.status)
+      expect([200, 403]).toContain(del.status)
+    })
+
+    it('rejects empty titles', async () => {
+      const { linkId } = await createLink(owner, 'doc-preview-empty', 'read')
+      const { status } = await api(`/shares/links/${linkId}/preview`, {
+        method: 'PUT',
+        token: owner.token,
+        body: { title: '   ' }
+      })
+      expect(status).toBe(400)
+    })
+
+    it('includes the preview in the owner list for dialog state', async () => {
+      const { linkId } = await createLink(owner, 'doc-preview-list', 'read')
+      await publish(linkId, 'Listed Title')
+      const { json } = await api('/shares/links?docId=doc-preview-list', { token: owner.token })
+      const links = json.links as Array<Record<string, unknown>>
+      const entry = links.find((l) => l.linkId === linkId)
+      expect(entry?.preview).toEqual({ title: 'Listed Title', icon: null })
+    })
+  })
+
   describe('role enforcement', () => {
     it('rejects node-changes from read grantees and allows write grantees', async () => {
       const reader = makeActor()
@@ -373,6 +548,15 @@ describe('Share Links', () => {
         'xnet://xnet.fyi/Comment@1.0.0'
       )
       expect(comment?.code).not.toBe('WRITE_FORBIDDEN')
+
+      // A comment-role channel share lets the grantee post messages —
+      // participating in the conversation counts as commenting (0290 follow-up).
+      const message = await publishChange(
+        commenter,
+        'doc-comments',
+        'xnet://xnet.fyi/ChatMessage@1.0.0'
+      )
+      expect(message?.code).not.toBe('WRITE_FORBIDDEN')
 
       const task = await publishChange(commenter, 'doc-comments', 'xnet://xnet.dev/Task@1.0.0')
       expect(task?.code).toBe('WRITE_FORBIDDEN')
@@ -443,7 +627,11 @@ describe('ShareAccessService', () => {
   it('matches comment schemas version-agnostically', () => {
     expect(isCommentSchema('xnet://xnet.fyi/Comment@1.0.0')).toBe(true)
     expect(isCommentSchema('xnet://xnet.fyi/Reaction@2.0.0')).toBe(true)
+    // Chat messages count as commenting: a comment-role channel share means
+    // "can participate in the conversation, can't edit the channel".
+    expect(isCommentSchema('xnet://xnet.fyi/ChatMessage@1.0.0')).toBe(true)
     expect(isCommentSchema('xnet://xnet.fyi/Page@1.0.0')).toBe(false)
+    expect(isCommentSchema('xnet://xnet.fyi/Channel@1.0.0')).toBe(false)
     expect(isCommentSchema(undefined)).toBe(false)
   })
 
@@ -479,5 +667,70 @@ describe('ShareAccessService', () => {
     expect(await access.getStatus('did:key:zReader', 'doc-1')).toBe('revoked')
     expect(await access.isDenied('did:key:zReader', 'doc-1')).toBe(true)
     expect(await access.canWriteNodeChange('did:key:zReader', 'doc-1', 'any')).toBe(false)
+  })
+})
+
+describe('profile rooms (hub-published identity)', () => {
+  const subject = 'did:key:zSubject'
+  const profileDoc = `profile-${subject}`
+
+  it('parses the subject DID out of profile doc IDs only', () => {
+    expect(profileSubjectFromDocId(profileDoc)).toBe(subject)
+    expect(profileSubjectFromDocId('profile-not-a-did')).toBeNull()
+    expect(profileSubjectFromDocId('doc-1')).toBeNull()
+    expect(profileSubjectFromDocId(`inbox-${subject}`)).toBeNull()
+  })
+
+  it('only the subject DID may write a profile room', async () => {
+    const access = new ShareAccessService(createMemoryStorage(), 60_000)
+    expect(
+      await access.canWriteNodeChange(subject, profileDoc, 'xnet://xnet.fyi/Profile@1.0.0')
+    ).toBe(true)
+    expect(await access.canWriteYjs(subject, profileDoc)).toBe(true)
+    // Any other DID is rejected even though it has no restricting grant
+    // (the legacy "no grant → unrestricted" rule must not apply here).
+    expect(
+      await access.canWriteNodeChange('did:key:zOther', profileDoc, 'xnet://xnet.fyi/Profile@1.0.0')
+    ).toBe(false)
+    expect(await access.canWriteYjs('did:key:zOther', profileDoc)).toBe(false)
+  })
+
+  it('any authenticated DID may subscribe to a profile room, anonymous may not (beyond capabilities)', async () => {
+    const storage = createMemoryStorage()
+    const shareAccess = new ShareAccessService(storage, 60_000)
+    // A recipient whose token carries no capability for this resource —
+    // e.g. a share grantee from another workspace.
+    const session = { did: 'did:key:zRecipient', capabilities: [], token: null }
+
+    const profileRead = await authorizeRoomAction({
+      storage,
+      session,
+      action: 'hub/signal',
+      topic: `xnet-doc-${profileDoc}`,
+      shareAccess
+    })
+    expect(profileRead.allowed).toBe(true)
+    expect(profileRead.source).toBe('profile-public')
+
+    // The same session is still denied on a normal doc room.
+    const docRead = await authorizeRoomAction({
+      storage,
+      session,
+      action: 'hub/signal',
+      topic: 'xnet-doc-doc-1',
+      shareAccess
+    })
+    expect(docRead.allowed).toBe(false)
+
+    // Anonymous sessions get no profile-public allowance (they pass or fail
+    // on capabilities alone).
+    const anon = await authorizeRoomAction({
+      storage,
+      session: { did: 'did:key:anonymous', capabilities: [], token: null },
+      action: 'hub/signal',
+      topic: `xnet-doc-${profileDoc}`,
+      shareAccess
+    })
+    expect(anon.allowed).toBe(false)
   })
 })

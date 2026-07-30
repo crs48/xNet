@@ -2,7 +2,7 @@
  * @xnetjs/slack-compat — Slack wire-protocol compatibility primitives.
  *
  * Pure, dependency-free helpers (node:crypto only) for making integrations
- * written against Slack work against XNet (exploration 0198):
+ * written against Slack work against xNet (exploration 0198):
  *
  *   - {@link slackMrkdwnToMarkdown} / {@link blockKitToMarkdown} — translate
  *     Slack's `mrkdwn` and Block Kit to the GitHub-flavored markdown that

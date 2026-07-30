@@ -33,6 +33,21 @@ describe('WorkOSAuthKitProvider', () => {
     expect(url.searchParams.get('screen_hint')).toBe('sign-up')
   })
 
+  it('pins to an enterprise SSO connection when given (0338 Phase 4)', () => {
+    const p = new WorkOSAuthKitProvider(config)
+    const url = new URL(p.getAuthorizationUrl({ connectionId: 'conn_123' }))
+    expect(url.searchParams.get('connection')).toBe('conn_123')
+    // connection and provider are mutually exclusive.
+    expect(url.searchParams.get('provider')).toBeNull()
+  })
+
+  it('pins to an organization when given', () => {
+    const p = new WorkOSAuthKitProvider(config)
+    const url = new URL(p.getAuthorizationUrl({ organizationId: 'org_456' }))
+    expect(url.searchParams.get('organization')).toBe('org_456')
+    expect(url.searchParams.get('provider')).toBeNull()
+  })
+
   it('exchanges a code for a mapped billing user + tokens', async () => {
     const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body))

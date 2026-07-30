@@ -2,8 +2,11 @@
  * ChangeTimeline panel - Visualize event-sourced changes with Lamport ordering
  */
 
-import { useRef, useEffect, useCallback } from 'react'
+import { MemoryBundleSink, writeBundle } from '@xnetjs/data'
+import { zipSync } from 'fflate'
+import { useRef, useEffect, useCallback, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
+import { useDevTools } from '../../provider/useDevTools'
 import { formatTime, truncateCID } from '../../utils/formatters'
 import { useChangeTimeline, type TimelineEvent } from './useChangeTimeline'
 
@@ -20,8 +23,42 @@ export function ChangeTimeline() {
     setAutoScroll
   } = useChangeTimeline()
 
+  const { store } = useDevTools()
+  const [exporting, setExporting] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
   const getEventsData = useCallback(() => events, [events])
+
+  // Export the log from the oldest visible event onward as an .xnetpack
+  // slice (0344). Unsigned diagnostic artifact — importing it elsewhere
+  // requires allowUnsigned (and allowForeignOwner on another identity).
+  const handleExportRange = useCallback(async () => {
+    if (!store || events.length === 0 || exporting) return
+    setExporting(true)
+    try {
+      const lamports = events
+        .map((e) => ('lamport' in e && typeof e.lamport === 'number' ? e.lamport : 0))
+        .filter((n) => n > 0)
+      const since = lamports.length > 0 ? Math.min(...lamports) - 1 : 0
+      const changes = await store.getChangesSince(since)
+      const ownerDid = changes[0]?.authorDID ?? 'did:key:unknown'
+      const sink = new MemoryBundleSink()
+      await writeBundle(store, { kind: 'full' }, sink, {
+        ownerDid,
+        since: { lamport: since, heads: [], changeCount: 0 }
+      })
+      const zipInput: Record<string, Uint8Array> = {}
+      for (const [path, data] of sink.entries) zipInput[path] = data
+      const bytes = zipSync(zipInput, { level: 6 })
+      const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/zip' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `xnet-timeline-slice-${new Date().toISOString().slice(0, 10)}.xnetpack`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExporting(false)
+    }
+  }, [store, events, exporting])
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -55,6 +92,7 @@ export function ChangeTimeline() {
             <option value="store:restore">restore</option>
             <option value="store:remote-change">remote</option>
             <option value="store:conflict">conflict</option>
+            <option value="store:lww-resolution">lww</option>
           </select>
           <label className="flex items-center gap-1 text-[10px] text-ink-3 cursor-pointer">
             <input
@@ -67,6 +105,14 @@ export function ChangeTimeline() {
           </label>
           <span className="text-[10px] text-ink-3">{events.length} changes</span>
           <CopyButton getData={getEventsData} label="Copy Changes" />
+          <button
+            onClick={() => void handleExportRange()}
+            disabled={!store || events.length === 0 || exporting}
+            className="text-[10px] text-ink-2 hover:text-ink-1 px-1.5 py-0.5 border border-hairline rounded whitespace-nowrap disabled:opacity-50"
+            title="Export the change log from the oldest visible event onward as an unsigned .xnetpack slice (diagnostic; import elsewhere needs allowUnsigned)"
+          >
+            {exporting ? 'Exporting…' : '.xnetpack'}
+          </button>
         </div>
 
         {/* Event list */}
@@ -108,6 +154,7 @@ function TimelineEntry({
   onSelect: () => void
 }) {
   const isConflict = event.type === 'store:conflict'
+  const isLwwResolution = event.type === 'store:lww-resolution'
   const isRemote = event.type === 'store:remote-change'
   const lamport = 'lamport' in event ? ((event as any).lamport ?? '?') : '?'
   const nodeId = 'nodeId' in event ? (event as any).nodeId : ''
@@ -134,6 +181,9 @@ function TimelineEntry({
       )}
       {isConflict && (
         <span className="text-[9px] text-warning bg-warning-muted px-1 rounded">conflict</span>
+      )}
+      {isLwwResolution && (
+        <span className="text-[9px] text-ink-2 bg-background-emphasis px-1 rounded">lww</span>
       )}
     </div>
   )
@@ -169,6 +219,8 @@ function getDotColor(type: string): string {
       return 'bg-ink-3'
     case 'store:conflict':
       return 'bg-warning'
+    case 'store:lww-resolution':
+      return 'bg-ink-3'
     default:
       return 'bg-ink-3'
   }

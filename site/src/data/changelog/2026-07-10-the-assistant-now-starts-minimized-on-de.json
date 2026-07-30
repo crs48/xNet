@@ -1,0 +1,18 @@
+{
+  "id": "2026-07-10-the-assistant-now-starts-minimized-on-de",
+  "date": "July 10, 2026",
+  "title": "The Assistant now starts minimized on desktop",
+  "summary": "The floating Assistant island no longer opens over the editor at launch. It starts collapsed to its reopener pill so the workspace is clear at rest — one click reopens the full island.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "ai"
+  ],
+  "pr": 445,
+  "mergedAt": "2026-07-10T14:22:40Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

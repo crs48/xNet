@@ -21,13 +21,66 @@ export type SchemaIRI = `xnet://${string}/${string}`
 /**
  * Canonical authorization actions.
  * All action checks map to one of these values.
+ *
+ * `create` and `update` are refinements of the coarse `write` action
+ * (exploration 0304): `create` governs bringing a node into existence,
+ * `update` governs mutating a node that already exists. A schema MAY declare
+ * either refinement; when one is absent its expression falls back to the
+ * schema's `write` expression (see {@link actionExpressionOrder}), so schemas
+ * that only declare `write` behave exactly as before. Checking `write` on an
+ * existing node is equivalent to checking `update`.
+ *
+ * `create` checks evaluate roles against the *draft* node built from the
+ * create payload (`createdBy` = the caller). Because `role.creator()` then
+ * always matches, a schema that wants real admission control must exclude the
+ * creator role from `create` and require a container role instead — the
+ * draft's relation properties (e.g. `space`, `channel`) resolve normally.
  */
-export const AUTH_ACTIONS = ['read', 'write', 'delete', 'share', 'admin'] as const
+export const AUTH_ACTIONS = [
+  'read',
+  'create',
+  'update',
+  'write',
+  'delete',
+  'share',
+  'admin'
+] as const
 
 /**
  * An authorization action that can be checked or granted.
  */
 export type AuthAction = (typeof AUTH_ACTIONS)[number]
+
+/**
+ * Expression lookup order for a checked action — the first action name whose
+ * expression a schema defines wins (exploration 0304 fallback table):
+ *
+ * | checked            | expression used                     |
+ * |--------------------|-------------------------------------|
+ * | `create`           | `actions.create` ?? `actions.write` |
+ * | `update` / `write` | `actions.update` ?? `actions.write` |
+ * | anything else      | `actions[action]`                   |
+ */
+export function actionExpressionOrder(action: AuthAction): readonly AuthAction[] {
+  if (action === 'create') return ['create', 'write']
+  if (action === 'update' || action === 'write') return ['update', 'write']
+  return [action]
+}
+
+/**
+ * Whether a granted action satisfies a checked action.
+ *
+ * A `write` grant covers its refinements (`create`, `update`); a granular
+ * grant covers only itself. A granular grant does NOT satisfy a legacy
+ * `write` check (fail closed — old callers checking `write` on an existing
+ * node mean update, which `update` covers).
+ */
+export function grantActionSatisfies(granted: AuthAction, checked: AuthAction): boolean {
+  if (granted === checked) return true
+  if (granted === 'write') return checked === 'create' || checked === 'update'
+  if (granted === 'update') return checked === 'write'
+  return false
+}
 
 /**
  * Alias for backward compatibility with existing Capability type.
@@ -121,7 +174,11 @@ export interface AuthTraceStep {
  *   },
  *   actions: {
  *     read: allow('editor', 'admin', 'owner'),
+ *     // coarse mutation policy; also the fallback for create/update
  *     write: allow('editor', 'admin', 'owner'),
+ *     // optional refinements (0304): who may add vs. who may modify
+ *     create: allow('editor', 'admin'),
+ *     update: allow('owner', 'admin'),
  *     delete: allow('admin', 'owner'),
  *     share: allow('admin', 'owner')
  *   },

@@ -11,7 +11,7 @@ import { cn, LinkifiedText } from '@xnetjs/ui'
 import { Send, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ChatAvatar } from './ChatAvatar'
-import { displayName, useProfiles, type ProfileEntry } from './hooks'
+import { displayName, useEnsureProfiles, useProfiles, type ProfileEntry } from './hooks'
 import { formatTime, type ChatRow } from './message-grouping'
 import { ReactionBar } from './ReactionBar'
 import { useMessageReactions } from './useMessageReactions'
@@ -81,6 +81,11 @@ export function ThreadPane({
     () => [...((replyData as unknown as ChatRow[]) ?? [])].sort(compareMessages),
     [replyData]
   )
+  const authorDids = useMemo(
+    () => [root?.createdBy, ...replies.map((reply) => reply.createdBy)],
+    [root?.createdBy, replies]
+  )
+  useEnsureProfiles(authorDids)
 
   const send = async () => {
     const content = text.trim()
@@ -90,7 +95,7 @@ export function ThreadPane({
   }
 
   return (
-    <aside className="flex h-full w-80 min-w-0 shrink-0 flex-col border-l border-hairline bg-surface-0">
+    <aside className="flex h-full w-80 min-w-0 shrink-0 flex-col border-l border-hairline">
       <header className="flex h-9 shrink-0 items-center justify-between border-b border-hairline px-3">
         <span className="text-sm font-medium text-ink-1">Thread</span>
         <button

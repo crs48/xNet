@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/sync",
-  "version": "0.1.0",
+  "version": "3.0.0",
   "description": "Unified sync primitives for xNet (Change<T>, vector clocks, hash chains)",
   "license": "MIT",
   "repository": {
@@ -12,8 +12,8 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "files": [
@@ -30,7 +30,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "api:check": "api-extractor run",
+    "api:update": "api-extractor run --local"
   },
   "dependencies": {
     "@xnetjs/core": "workspace:*",
@@ -38,6 +40,7 @@
     "@xnetjs/identity": "workspace:*"
   },
   "devDependencies": {
+    "fast-check": "^4.8.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "vitest": "^4.0.0"

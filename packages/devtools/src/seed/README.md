@@ -110,11 +110,13 @@ surface's UI patterns** (exploration 0223):
   same Yjs document model.
 - **Map** — a basemap, viewport and a GeoJSON markers layer.
 
-> **Render gate:** `seed-render.test.ts` builds the real editor ProseMirror
-> schema and parses every seeded page/doc through `yXmlFragmentToProseMirrorRootNode`,
-> and decodes the canvas scene — a malformed fragment fails CI instead of
-> rendering blank. When adding a new block/inline kind, mirror the editor
-> extension's exact node/mark name + attrs.
+> **Render gate:** `seed-render.test.ts` parses every seeded page/doc's
+> `content-v4` fragment back through the real BlockNote schema
+> (`createXNetSchema` via `yXmlFragmentToBlocks`), and decodes the canvas
+> scene — a malformed fragment fails CI instead of rendering blank. Page docs
+> are declared as Block JSON in `docs/rich-pages.ts` and converted to Yjs by a
+> headless BlockNote editor, so block/inline names + props always match the
+> app schema (0312).
 
 ## Adding a Tier-1 seeder
 

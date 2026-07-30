@@ -9,7 +9,9 @@
  */
 
 import type { DevToolsEventBus } from '../core/event-bus'
+import type { LogEntry } from '../core/log-store'
 import type { PeerScoreSnapshot } from '../core/types'
+import { scrubLogText } from '../core/log-store'
 
 /** Minimal TelemetryCollector interface (avoids hard dep on @xnetjs/telemetry) */
 interface TelemetryCollectorLike {
@@ -50,15 +52,37 @@ interface PeerScorerLike {
   }>
 }
 
+/** Minimal ConsoleLogStore surface for crash breadcrumbs */
+interface LogStoreLike {
+  getRecent: (n: number) => LogEntry[]
+}
+
 /** Options for telemetry instrumentation */
 export interface InstrumentTelemetryOptions {
   /** PeerScorer instance for peer reputation display */
   peerScorer?: PeerScorerLike
   /** Poll interval for peer scores in ms (default: 3000) */
   peerScorePollMs?: number
+  /**
+   * Captured-console store; when provided, crash reports gain the last
+   * ~50 scrubbed log lines as breadcrumbs (exploration 0275). Only at
+   * consent tiers that share crashes — `local` keeps reports on-device
+   * where the raw console is available anyway.
+   */
+  logStore?: LogStoreLike
 }
 
 const DEFAULT_PEER_SCORE_POLL_MS = 3000
+const CRASH_BREADCRUMB_COUNT = 50
+
+/** Tiers at which crash reports leave the device (see @xnetjs/telemetry consent). */
+const CRASH_SHARING_TIERS = new Set(['crashes', 'anonymous', 'identified'])
+
+function crashBreadcrumbs(logStore: LogStoreLike): string[] {
+  return logStore
+    .getRecent(CRASH_BREADCRUMB_COUNT)
+    .map((e) => `${e.level} [${e.channel}] ${scrubLogText(e.message)}`)
+}
 
 /**
  * Instrument telemetry collector and consent manager to emit DevTools events.
@@ -87,6 +111,14 @@ export function instrumentTelemetry(
         | string
         | undefined
     })
+    // Attach scrubbed console breadcrumbs when the report can leave the device
+    const logStore = options?.logStore
+    if (logStore && CRASH_SHARING_TIERS.has(consent.tier)) {
+      const recentLogs = crashBreadcrumbs(logStore)
+      if (recentLogs.length > 0) {
+        context = { ...context, recentLogs }
+      }
+    }
     return origReportCrash(error, context)
   }
 

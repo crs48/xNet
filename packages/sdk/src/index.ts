@@ -46,7 +46,7 @@ export {
   type XNetClientRuntimeStatus
 } from '@xnetjs/runtime'
 
-// The umbrella XNet Protocol Version — the negotiable identity of the wire
+// The umbrella xNet Protocol Version — the negotiable identity of the wire
 // protocol this SDK speaks. The normative spec lives in docs/specs/protocol/.
 export {
   XNET_PROTOCOL_VERSION,

@@ -165,6 +165,14 @@ export {
   type SyncStatus,
   type PresenceUser
 } from './hooks/useNode'
+// Ephemeral typed presence over Yjs Awareness — never writes the change log (0314)
+export {
+  usePresence,
+  type PresenceAwareness,
+  type PresencePeer,
+  type UsePresenceOptions,
+  type UsePresenceResult
+} from './hooks/usePresence'
 export {
   usePageTaskSync,
   type PageTaskInput,
@@ -264,9 +272,11 @@ export {
   useGridDatabase,
   type UseGridDatabaseOptions,
   type UseGridDatabaseResult,
+  type AddRowOptions,
   type GridFieldModel,
   type GridOptionModel,
   type GridViewModel,
+  type GridViewConfigPatch,
   type GridRowModel
 } from './hooks/useGridDatabase'
 
@@ -317,6 +327,20 @@ export {
   type ReverseRelation,
   type UseReverseRelationsResult
 } from './hooks/useReverseRelations'
+
+/**
+ * Entangle bus (0346) — page-scoped hover/select co-presence between
+ * frames: hover a row in one frame, its pin/card/wikilink lights up in
+ * every sibling frame on the page.
+ */
+export {
+  EntangleBus,
+  EntangleProvider,
+  useEntangleBind,
+  useEntangleBus,
+  useEntangledHighlight,
+  usePublishEntangleHover
+} from './hooks/useEntangle'
 
 /**
  * useDatabaseSchema - Hook for database-defined schema access
@@ -451,6 +475,32 @@ export { useCommentCount, useCommentCounts } from './hooks/useCommentCount'
 export { useHistory, type UseHistoryResult } from './hooks/useHistory'
 
 /**
+ * Hooks area sub-barrel (0276 policy) — ONE grouped block for new hook
+ * surface. Currently: useTimeMachine (Time Machine scrub/checkpoint/restore)
+ * and useDraft (drafts fork/checkout/review/merge), exploration 0329, plus
+ * the history types their consumers bind to.
+ */
+export {
+  useDraft,
+  useTimeMachine,
+  type DraftMergeConflict,
+  type DraftReview,
+  type DraftReviewCard,
+  type DraftReviewMember,
+  type Frontier,
+  type FrontierEntry,
+  type HistoryHorizon,
+  type MergeDraftResult,
+  type PropertyDiff,
+  type RefreshDraftResult,
+  type RestoreResult,
+  type ScopeTimelineEntry,
+  type UseDraftResult,
+  type UseTimeMachineOptions,
+  type UseTimeMachineResult
+} from './hooks'
+
+/**
  * useUndo - Per-node undo/redo via compensating changes
  *
  * @example
@@ -521,6 +571,8 @@ export { useHubStatus } from './hooks/useHubStatus'
 export { useCan, type UseCanResult } from './hooks/useCan'
 
 export { useCanEdit, type UseCanEditResult } from './hooks/useCanEdit'
+
+export { useCanCreate, type UseCanCreateResult } from './hooks/useCanCreate'
 
 export {
   describeGrantConsent,
@@ -632,6 +684,8 @@ export {
 
 export {
   NodeStoreSyncProvider,
+  channelShareRoom,
+  workspaceShareRoom,
   type SerializedNodeChange,
   type NodeSyncResponse
 } from '@xnetjs/runtime'
@@ -698,7 +752,9 @@ export {
   type OnboardingMachineContext,
   type OnboardingReducerState,
   type QuickStartTemplate,
-  type SyncProgressOverlayProps
+  type SyncProgressOverlayProps,
+  type RunAtprotoCeremony,
+  type AtprotoCeremonyResult
 } from './onboarding/index'
 
 // =============================================================================
@@ -804,6 +860,9 @@ export {
   useImporters,
   useEditorExtensions,
   useEditorExtensionsSafe,
+  useMergedEditorContributions,
+  mergeEditorContributions,
+  type MergedEditorContributions,
   useView,
   useCommand
 } from './hooks/usePlugins'

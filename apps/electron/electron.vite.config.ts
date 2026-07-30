@@ -34,7 +34,8 @@ const xnetPackages = [
   '@xnetjs/query',
   '@xnetjs/social',
   '@xnetjs/telemetry',
-  '@xnetjs/plugins'
+  '@xnetjs/plugins',
+  '@xnetjs/dictation'
 ]
 
 // Path to rebuilt native modules in local node_modules
@@ -101,7 +102,13 @@ export default defineConfig({
         input: resolve(__dirname, 'src/renderer/index.html'),
         external: [
           'web-worker',
-          'mermaid' // Optional peer dependency - dynamically imported in @xnetjs/canvas
+          'mermaid', // Optional peer dependency - dynamically imported in @xnetjs/canvas
+          // Native Node HNSW addon (imports node:fs / node-gyp-build) — reached
+          // via @xnetjs/workbench/ai → @xnetjs/vectors, which dynamically
+          // imports it and falls back to the pure-JS LinearVectorIndex when
+          // absent. Same exclusion apps/web ships; the renderer must not try
+          // to bundle it.
+          'usearch'
         ]
       }
     },

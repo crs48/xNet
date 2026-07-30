@@ -49,7 +49,6 @@ export type {
   SlashCommandContribution,
   SlashCommandContext,
   EditorContribution,
-  ToolbarContribution,
   SidebarContribution,
   PropertyHandlerContribution,
   PropertyHandler,
@@ -77,10 +76,45 @@ export type {
   SettingsPanelProps,
   SchemaContribution,
   StatusBarContribution,
+  SlotContribution,
+  SlotRegion,
+  SurfaceDockContribution,
+  SurfaceDockTier,
   ImporterContribution,
-  AiCommandExposure
+  AiCommandExposure,
+  FrameRendererContribution
 } from './contributions'
 export { TypedRegistry, ContributionRegistry } from './contributions'
+
+// Workspace layout primitives (exploration 0280) — one grouped block
+export {
+  createDefaultTree,
+  createPresetTree,
+  DEFAULT_WORKSPACE_ID,
+  insertSlot,
+  moveSlot,
+  parseWorkspacePayload,
+  placementOf,
+  PRESET_IDS,
+  PRESET_WORKSPACE_ID_PREFIX,
+  isPresetWorkspaceId,
+  presetForWorkspaceId,
+  presetWorkspaceId,
+  REGION_IDS,
+  regionOf,
+  serializeWorkspacePayload,
+  setSlotTier,
+  slotsIn
+} from './workspace'
+export type {
+  ChromePosture,
+  LayoutTree,
+  PresetId,
+  RegionId,
+  SlotPlacement,
+  SlotTier,
+  WorkspacePayload
+} from './workspace'
 
 // Feature modules (exploration 0189) — the two-sided plugin shape
 export type { FeatureModule, ModuleCapabilities } from './feature-module'
@@ -152,7 +186,7 @@ export type {
 // Editor schema-skew guard (exploration 0205) — flag schema-defining editor
 // contributions that risk silent Yjs content loss across version skew.
 export {
-  isSchemaDefiningExtension,
+  isSchemaDefiningContribution,
   findEditorSchemaRisks,
   warnOnEditorSchemaRisks,
   type EditorSchemaRisk
@@ -187,11 +221,14 @@ export {
   buildNotionConnector,
   buildAirtableConnector,
   buildLinearConnector,
+  buildGoogleCalendarConnector,
+  detectUpcomingMeeting,
   EXTERNAL_ITEM_SCHEMA,
   GITHUB_CONNECTOR_ID,
   NOTION_CONNECTOR_ID,
   AIRTABLE_CONNECTOR_ID,
-  LINEAR_CONNECTOR_ID
+  LINEAR_CONNECTOR_ID,
+  GOOGLE_CALENDAR_CONNECTOR_ID
 } from './connectors'
 export type {
   ConnectorDefinition,
@@ -273,8 +310,10 @@ export {
   isSchemaWriteAllowed,
   isSchemaReadAllowed,
   isNetworkAllowed,
+  isSystemAudioAllowed,
   assertSchemaWrite,
   assertNetwork,
+  assertSystemAudio,
   guardStore,
   // Provenance → trust
   deriveTrustTier,
@@ -631,9 +670,38 @@ export {
   renderMarkdownReviewDiff,
   stripXNetPageFrontmatter,
   XNET_MARKDOWN_DIRECTIVE_SPECS,
-  validateXNetPageMarkdown
+  validateXNetPageMarkdown,
+  blockNoteFragmentToMarkdown,
+  createBlockNotePageMarkdownAdapter,
+  legacyFragmentToMarkdown,
+  replaceXNetPageFragmentWithMarkdown,
+  XNET_PAGE_FRAGMENT_FIELD,
+  XNET_PAGE_LEGACY_FRAGMENT_FIELD,
+  xnetPageFragmentToMarkdown
 } from './ai-surface'
-export type { AiCallableTool } from './ai-surface'
+export type {
+  AiCallableTool,
+  BlockNotePageMarkdownAdapterOptions,
+  XNetPageDocResolver,
+  XNetPageFragmentReadOptions,
+  XNetPageFragmentWriteOptions
+} from './ai-surface'
+// Agent audit + ceremony (exploration 0337)
+export {
+  AgentAuditRecorder,
+  createAgentCeremonyTools,
+  createAgentNotificationTools,
+  hashNonce,
+  reversibilityForTool,
+  riskForTool,
+  type AgentAuditContext,
+  type AgentAuditRecorderConfig,
+  type AgentAuditSurface,
+  type AgentCallOutcome,
+  type AgentExecutedResult,
+  type AgentNotificationToolsOptions,
+  type AgentPendingApproval
+} from './ai-surface'
 
 // Services (Background process management)
 // Note: Node.js-only modules (LocalAPIServer, MCPServer, ProcessManager) are
@@ -695,3 +763,74 @@ export type {
   DeleteDayOptions,
   DeleteDayResult
 } from './services'
+
+// Workspace-plugin runtime (exploration 0331) — one grouped block per the
+// sub-barrel policy; the full surface lives in ./workspace-plugins/index.ts.
+export {
+  PluginSourceSchema,
+  PLUGIN_SOURCE_SCHEMA_IRI,
+  readPluginSourceNode,
+  buildPluginModuleGraph,
+  buildPluginFrameSrcdoc,
+  framePluginCsp,
+  PLUGIN_FRAME_SANDBOX,
+  PLUGIN_STORE_DENYLIST,
+  isDenylistedSchema,
+  createPluginStoreRpc,
+  PluginStoreRpcError,
+  createPluginFrameSession,
+  activateWorkspacePlugin,
+  buildWorkspacePlugin,
+  validateWorkspaceManifest,
+  permissionsToCapabilities,
+  WorkspacePluginError,
+  computePluginSourceHash,
+  diffPluginSourceFiles,
+  assessPluginUpdate,
+  createPluginSourceWatcher,
+  createWorkspacePluginHotReloader,
+  SOURCE_SETTLE_DEBOUNCE_MS,
+  createWorkspacePluginPreviewManager,
+  createWorkspacePluginAgentTools,
+  scaffoldWorkspacePluginFiles,
+  requestWorkspacePluginPublish,
+  buildCommunityRegistryEntry,
+  exportPluginSourceAsRepoFiles
+} from './workspace-plugins'
+export type {
+  PluginSourceNode,
+  WorkspacePluginManifestData,
+  WorkspacePluginContributionsData,
+  PluginBuildDiagnostic,
+  PluginBuildInput,
+  PluginFileTranspiler,
+  PluginModuleGraph,
+  VendorModuleSources,
+  PluginFrameToHostMessage,
+  PluginHostToFrameMessage,
+  PluginGraphPayload,
+  PluginStoreRpc,
+  WorkspacePluginStore,
+  PluginFeedbackEntry,
+  PluginFrameSession,
+  PluginRegisteredHandlers,
+  PluginFrameTransport,
+  WorkspacePluginHandle,
+  WorkspacePluginHostDeps,
+  PluginSourceDiff,
+  PluginUpdateAssessment,
+  HotReloadEvent,
+  PluginSourceWatcher,
+  WorkspacePluginHotReloader,
+  WorkspacePluginPreviewManager,
+  WorkspacePluginPreviewResult,
+  WorkspacePluginAgentToolsOptions,
+  WorkspacePluginDraftBackend,
+  WorkspacePluginSourceBackend,
+  PublishConsentRequest,
+  WorkspacePluginPublishResult,
+  CommunityRegistryEntry
+} from './workspace-plugins'
+
+// Workspace-plugin authoring skill (0331)
+export { WRITING_XNET_PLUGINS_SKILL_MD } from './ai-surface/plugin-skill'

@@ -235,6 +235,8 @@ function nowMs(): number {
  * - Y.Doc for collaborative rich text
  * - Type-safe mutations
  * - Real-time sync and presence
+ *
+ * @public
  */
 export function useNode<P extends Record<string, PropertyBuilder>>(
   schema: DefinedSchema<P>,

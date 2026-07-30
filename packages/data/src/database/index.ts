@@ -15,6 +15,7 @@ export {
   type CellValue,
   type FileRef,
   type DateRange,
+  type GeoPoint,
   CELL_PREFIX,
   cellKey,
   isCellKey,
@@ -23,6 +24,7 @@ export {
   fromCellProperties,
   isDateRange,
   isFileRef,
+  isGeoPoint,
   isCellValue
 } from './cell-types'
 
@@ -215,6 +217,27 @@ export {
   reorderColumn,
   duplicateColumn
 } from './column-operations'
+
+// Form view types and validation (exploration 0278)
+export {
+  type FormQuestion,
+  type FormConfirmation,
+  type FormViewConfig,
+  type FormFieldRule,
+  type FormAudience,
+  type FormSubmissionMeta,
+  type FormValidationError,
+  type FormValidationResult,
+  type PublicFormQuestion,
+  type PublicFormDefinition,
+  PUBLIC_SAFE_FORM_FIELD_TYPES,
+  isFormFieldTypeAllowed,
+  isFormQuestionVisible,
+  visibleFormQuestions,
+  validateFormSubmission,
+  buildPublicFormDefinition,
+  submissionRowId
+} from './form-types'
 
 // View types
 export {

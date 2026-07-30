@@ -16,7 +16,7 @@ import type { ModuleCapabilities } from '../feature-module'
 import type { PluginPricing } from '../manifest'
 import { DEFAULT_PLUGIN_LICENSE, pluginLicenseText } from './license-policy'
 
-export type ScaffoldTemplate = 'client' | 'two-sided' | 'ai-script' | 'connector'
+export type ScaffoldTemplate = 'client' | 'two-sided' | 'ai-script' | 'connector' | 'slot-view'
 
 export interface ScaffoldSpec {
   /** Reverse-domain plugin id, e.g. `com.acme.kanban`. */
@@ -52,7 +52,13 @@ export class ScaffoldError extends Error {
 }
 
 const ID_RE = /^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*)+$/i
-const TEMPLATES: readonly ScaffoldTemplate[] = ['client', 'two-sided', 'ai-script', 'connector']
+const TEMPLATES: readonly ScaffoldTemplate[] = [
+  'client',
+  'two-sided',
+  'ai-script',
+  'connector',
+  'slot-view'
+]
 
 function validateSpec(spec: ScaffoldSpec): void {
   if (!spec.id || !ID_RE.test(spec.id)) {
@@ -141,6 +147,21 @@ const MODULE_BODIES: Record<Exclude<ScaffoldTemplate, 'connector'>, (s: Scaffold
         execute: async () => {
           // fetch the plugin's own guarded endowment here
         }
+      }
+    ]
+  }`,
+  // A dockable shell panel (exploration 0280). Capability-scoped: the default
+  // manifest declares NO network and NO schemas — the essay's consent form
+  // starts empty and every grant is an explicit, visible addition.
+  'slot-view': (s) => `  capabilities: ${JSON.stringify(s.capabilities ?? { network: [] })},
+  contributes: {
+    slots: [
+      {
+        id: '${packageName(s.id)}',
+        label: '${s.name}',
+        tier: 'secondary',
+        defaultRegion: 'dock.corner',
+        component: ${pascalCase(s.id)}Panel
       }
     ]
   }`,
@@ -245,9 +266,22 @@ function indexSource(spec: ScaffoldSpec): string {
   const license = spec.license ?? DEFAULT_PLUGIN_LICENSE
   const pricing = spec.pricing ? `\n  pricing: ${JSON.stringify(spec.pricing)},` : ''
   const publisher = spec.publisherDid ? `\n  publisherDid: '${spec.publisherDid}',` : ''
+  // Slot views ship a component; the starter is a plain function component
+  // (no JSX, so the generated file compiles under either jsx setting).
+  const slotPanel =
+    spec.template === 'slot-view'
+      ? `import { createElement } from 'react'
+
+/** The panel body — replace with your view (createElement keeps it JSX-free). */
+function ${ctor}Panel() {
+  return createElement('div', { style: { padding: 12 } }, '${spec.name} panel')
+}
+
+`
+      : ''
   return `import { defineFeatureModule } from '@xnetjs/plugins'
 
-export const ${ctor}Module = defineFeatureModule({
+${slotPanel}export const ${ctor}Module = defineFeatureModule({
   id: '${spec.id}',
   name: '${spec.name}',
   version: '0.1.0',${spec.author ? `\n  author: '${spec.author}',` : ''}

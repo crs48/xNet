@@ -19,6 +19,10 @@ contextBridge.exposeInMainWorld('xnet', {
   getSeedPhrase: () => ipcRenderer.invoke('xnet:seed:get'),
   clearSeedPhrase: () => ipcRenderer.invoke('xnet:seed:clear'),
 
+  // Local main-process crash log (0315): read-only, so a user-triggered debug
+  // report can attach recent main failures. Nothing is transmitted from here.
+  readCrashLog: () => ipcRenderer.invoke('xnet:crashLog:read'),
+
   // Menu events
   onNewPage: (callback: () => void) => {
     ipcRenderer.on('menu:new-page', callback)
@@ -290,6 +294,44 @@ contextBridge.exposeInMainWorld('xnetServices', {
   off: (channel: string, handler: (...args: unknown[]) => void): void => {
     ipcRenderer.removeListener(channel, handler)
   }
+})
+
+// Meeting capture bridge (exploration 0279): system-audio loopback arming +
+// the main-process-hosted native STT engines (Parakeet / whisper.cpp).
+contextBridge.exposeInMainWorld('xnetMeetings', {
+  captureStatus: () => ipcRenderer.invoke('xnet:meetings:capture-status'),
+  permissions: () => ipcRenderer.invoke('xnet:meetings:permissions'),
+  armLoopback: () => ipcRenderer.invoke('xnet:meetings:arm-loopback'),
+  disarmLoopback: () => ipcRenderer.invoke('xnet:meetings:disarm-loopback'),
+  startTap: () => ipcRenderer.invoke('xnet:meetings:start-tap'),
+  stopTap: () => ipcRenderer.invoke('xnet:meetings:stop-tap'),
+  onTapPcm: (handler: (chunk: { samples: Float32Array; sampleRate: number }) => void) => {
+    const listener = (_event: unknown, chunk: Parameters<typeof handler>[0]) => handler(chunk)
+    ipcRenderer.on('xnet:meetings:tap-pcm', listener)
+    return () => ipcRenderer.removeListener('xnet:meetings:tap-pcm', listener)
+  },
+  onTapError: (handler: (error: { message: string }) => void) => {
+    const listener = (_event: unknown, error: { message: string }) => handler(error)
+    ipcRenderer.on('xnet:meetings:tap-error', listener)
+    return () => ipcRenderer.removeListener('xnet:meetings:tap-error', listener)
+  },
+  engines: () => ipcRenderer.invoke('xnet:meetings:engines'),
+  ensureEngine: (engineId: string) => ipcRenderer.invoke('xnet:meetings:ensure-engine', engineId),
+  onEngineProgress: (
+    engineId: string,
+    handler: (progress: { fraction: number; receivedBytes?: number; totalBytes?: number }) => void
+  ) => {
+    const channel = `xnet:meetings:engine-progress:${engineId}`
+    const listener = (_event: unknown, progress: Parameters<typeof handler>[0]) => handler(progress)
+    ipcRenderer.on(channel, listener)
+    return () => ipcRenderer.removeListener(channel, listener)
+  },
+  transcribe: (request: {
+    engineId: string
+    samples: Float32Array
+    sampleRate: number
+    language?: string
+  }) => ipcRenderer.invoke('xnet:meetings:transcribe', request)
 })
 
 // Expose Local API status/control for renderer

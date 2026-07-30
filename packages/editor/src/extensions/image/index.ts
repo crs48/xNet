@@ -1,5 +1,0 @@
-export { ImageExtension } from './ImageExtension'
-export type { ImageOptions } from './ImageExtension'
-export { ImageNodeView } from './ImageNodeView'
-export { createImagePastePlugin, ImagePastePluginKey } from './ImagePastePlugin'
-export type { ImagePastePluginOptions } from './ImagePastePlugin'

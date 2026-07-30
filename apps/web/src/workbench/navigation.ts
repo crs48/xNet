@@ -1,53 +1,5 @@
 /**
- * Tab navigation helper — the router stays authoritative, so every
- * tab activation goes through navigate(); the route effect in
- * EditorArea reconciles the store afterwards.
+ * Shim (0406): canonical module lives in @xnetjs/workbench — the 0280
+ * layout-tree pattern. New code imports the package directly.
  */
-import type { TabNodeType } from './state'
-import type { useNavigate } from '@tanstack/react-router'
-
-type Navigate = ReturnType<typeof useNavigate>
-
-export function navigateToNode(navigate: Navigate, nodeType: TabNodeType, nodeId: string): void {
-  switch (nodeType) {
-    case 'page':
-      void navigate({ to: '/doc/$docId', params: { docId: nodeId } })
-      break
-    case 'database':
-      void navigate({ to: '/db/$dbId', params: { dbId: nodeId } })
-      break
-    case 'canvas':
-      void navigate({ to: '/canvas/$canvasId', params: { canvasId: nodeId } })
-      break
-    case 'dashboard':
-      void navigate({ to: '/dashboard/$dashboardId', params: { dashboardId: nodeId } })
-      break
-    case 'map':
-      void navigate({ to: '/map/$mapId' as never, params: { mapId: nodeId } as never })
-      break
-    case 'savedview':
-      void navigate({ to: '/view/$viewId' as never, params: { viewId: nodeId } as never })
-      break
-    case 'tasks':
-      void navigate({ to: '/tasks' })
-      break
-    case 'data':
-      void navigate({ to: '/data' })
-      break
-    case 'tag':
-      void navigate({ to: '/tag/$tagId' as never, params: { tagId: nodeId } as never })
-      break
-    case 'channel':
-      void navigate({ to: '/channel/$channelId', params: { channelId: nodeId } })
-      break
-    case 'person':
-      void navigate({ to: '/person/$did' as never, params: { did: nodeId } as never })
-      break
-    case 'lab':
-      void navigate({ to: '/lab/$labId' as never, params: { labId: nodeId } as never })
-      break
-    case 'space':
-      void navigate({ to: '/space/$spaceId' as never, params: { spaceId: nodeId } as never })
-      break
-  }
-}
+export * from '@xnetjs/workbench'

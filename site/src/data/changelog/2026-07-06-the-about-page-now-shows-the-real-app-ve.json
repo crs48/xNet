@@ -1,0 +1,19 @@
+{
+  "id": "2026-07-06-the-about-page-now-shows-the-real-app-ve",
+  "date": "July 6, 2026",
+  "title": "The About page now shows the real app version",
+  "summary": "Settings → About now displays the actual running build version — bumped automatically with every release — and links to the correct GitHub repository.",
+  "highlights": [
+    "App version is derived per release, so you can tell exactly which build you are on"
+  ],
+  "tags": [
+    "app"
+  ],
+  "pr": 399,
+  "mergedAt": "2026-07-06T22:31:34Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

@@ -76,6 +76,15 @@ const linuxDeb = assetUrl((n) => n.endsWith('.deb') && !n.includes('arm64'))
         <p class="text-lg text-gray-500 dark:text-gray-400">
           Version <span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-0.5 font-mono text-sm text-indigo-600 dark:text-indigo-400">{version}</span>
         </p>
+        <p
+          class="mx-auto mt-6 max-w-xl rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-5 py-3 text-sm leading-relaxed text-amber-700 dark:text-amber-300"
+        >
+          <strong class="font-semibold">This is alpha software.</strong> It&rsquo;s a real
+          release you can install and use — but it&rsquo;s early. Features change, formats
+          change, and bugs are expected. Keep your own backups (Export &rarr;
+          <code class="font-mono">.xnetpack</code>) and don&rsquo;t trust it with anything
+          you can&rsquo;t afford to lose yet.
+        </p>
       </div>
 
       <!-- Platform cards -->

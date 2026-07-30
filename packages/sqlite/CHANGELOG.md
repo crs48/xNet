@@ -1,5 +1,150 @@
 # @xnetjs/sqlite
 
+## 3.0.0
+
+### Patch Changes
+
+- [#571](https://github.com/crs48/xNet/pull/571) [`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6) Thanks [@crs48](https://github.com/crs48)! - Document alpha status in every package README. xNet is released — these packages
+  are on npm and usable today — but it is early software: APIs can change between
+  releases, sometimes without a migration path. Each README now says so up front,
+  so the notice is visible on the npm package page. Docs only; no code changes.
+
+- [#587](https://github.com/crs48/xNet/pull/587) [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe) Thanks [@crs48](https://github.com/crs48)! - Fix TypeScript type resolution for every package's export map, and ship
+  `@xnetjs/data/portability`.
+
+  `types` was ordered after `import` in 48 export subpaths across 19 packages.
+  Export conditions are order-sensitive, so TypeScript could resolve the wrong
+  entry — or no types at all — depending on the consumer's `moduleResolution`.
+  `types` is now first everywhere.
+
+  `@xnetjs/data` also advertised a `./portability` subpath that was never added to
+  its build, so `@xnetjs/data/portability` — the `.xnetpack` export/import codec —
+  did not resolve at all for consumers. It now builds and ships.
+
+  Both were found by adding `publint` to CI.
+
+## 2.5.0
+
+## 2.4.0
+
+## 2.3.0
+
+## 2.2.0
+
+## 2.1.0
+
+## 2.0.0
+
+### Minor Changes
+
+- [#523](https://github.com/crs48/xNet/pull/523) [`0f7ef43`](https://github.com/crs48/xNet/commit/0f7ef435afab91022433ae6c60c3a71510a1d036) Thanks [@crs48](https://github.com/crs48)! - Time Machine P1 (exploration 0329): frontiers, checkpoints, pins, prune horizon, scope timelines, production Yjs snapshot capture, and a React scrub hook.
+  - `@xnetjs/history`: new `Frontier` primitive (hash-anchored per-node positions:
+    `captureFrontier`, `frontierAtWallTime`, `frontierTarget`,
+    `materializeAtFrontier`, Yjs snapshot refs + pin keys); named checkpoints
+    (`createCheckpoint`, `listCheckpoints`, `deleteCheckpoint`, `pinFrontier`,
+    `restoreToFrontier`); `ScopeTimeline`/`ScopeScrubCache` generalizing
+    `SchemaTimeline` to arbitrary node sets; `HistoryHorizonError` +
+    `HistoryEngine.getHorizon` — targets below the prune horizon now fail loudly
+    instead of silently remapping to the wrong change.
+  - `@xnetjs/data`: `Checkpoint` node schema (`CHECKPOINT_SCHEMA_IRI`); pin
+    registry on storage adapters (`NodeStorageAdapter.pins`, `PinEntry`,
+    `PinRegistry`) protecting pinned changes and Yjs snapshots from pruning and
+    eviction (memory + SQLite implementations).
+  - `@xnetjs/sqlite`: `pinned_changes` table (additive migration).
+  - `@xnetjs/runtime`: Yjs history snapshots are now captured on production doc
+    persists (throttled session-boundary/min-interval capture in NodePool).
+  - `@xnetjs/react`: new `useTimeMachine` hook (hooks sub-barrel) binding a
+    scrubber UI to the merged scope timeline: position/step navigation, preview +
+    property diff at the scrub position, named versions, one-transaction restore,
+    and history-horizon reporting.
+
+### Patch Changes
+
+- [#498](https://github.com/crs48/xNet/pull/498) [`e2e78cd`](https://github.com/crs48/xNet/commit/e2e78cd319723972591e1aae9d87af4588edfda3) Thanks [@crs48](https://github.com/crs48)! - Fix "no such column: p.tiebreak_key" on databases created before schema v8. The
+  `tiebreak_key` column repair now runs before the first `node_properties` read
+  (`getNode`/`getNodes`/`listNodes`/`queryNodes`), not just before writes — a
+  fresh session that opened a document page hit the missing column on its first
+  hydrate query before any write could trigger the lazy guard. Also adds the
+  missing v8 entry to `SCHEMA_MIGRATIONS` (`ALTER TABLE node_properties ADD
+COLUMN tiebreak_key TEXT`).
+
+## 1.0.0
+
+### Major Changes
+
+- [#482](https://github.com/crs48/xNet/pull/482) [`e6b4c6f`](https://github.com/crs48/xNet/commit/e6b4c6f95b2715289ff35ae37ebd6be7eeba5174) Thanks [@crs48](https://github.com/crs48)! - Grinding-resistant Last-Write-Wins tiebreak (protocol v4, exploration 0305)
+
+  The final LWW conflict tiebreak was the raw author DID ("higher DID wins").
+  Because a `did:key` is a free, attacker-chosen function of a keypair, an
+  attacker could grind a vanity DID that sorts highest and win **every**
+  concurrent-write tie against every honest peer, permanently.
+
+  Protocol v4 replaces that final rung with a per-conflict key,
+  `blake3(authorDID ‖ property ‖ value)` (`computeLwwTiebreakKey` in
+  `@xnetjs/core`), so the winner of a tie is a random-oracle function of _what is
+  written_ — a ground identity wins no durable, universal advantage. The key is
+  gated on both changes being v4 (legacy changes fall back to the author DID), is
+  derived at resolution time (never part of the change hash or wire format), and
+  is threaded through `PropertyTimestamp`, the SQLite `node_properties` guard (new
+  nullable `tiebreak_key` column, schema v8), and every conformance kernel.
+
+  BREAKING: `CURRENT_PROTOCOL_VERSION` is now `4` and new changes are stamped v4.
+  The LWW golden vectors gain `0005-tie-grinding-resistant-key`; `LwwStamp` /
+  `PropertyTimestamp` gain an optional `tiebreakKey`. Mixed fleets converge on
+  exact `{lamport, wallTime}` ties only once both peers are on v4 — a transient
+  rollout window affecting rare exact ties.
+
+## 0.12.0
+
+## 0.11.1
+
+## 0.11.0
+
+## 0.10.0
+
+## 0.9.0
+
+## 0.8.0
+
+## 0.7.0
+
+## 0.6.0
+
+## 0.5.0
+
+## 0.4.0
+
+## 0.3.0
+
+## 0.2.0
+
+## 0.1.2
+
+### Patch Changes
+
+- [#392](https://github.com/crs48/xNet/pull/392) [`1a045b3`](https://github.com/crs48/xNet/commit/1a045b371b4d8fabe7cd32c5bc44d03efd6c31cc) Thanks [@crs48](https://github.com/crs48)! - SQL property upserts now enforce the full LWW ordering triple (Lamport →
+  wallTime → author code-units), matching the in-memory `shouldReplace`
+  comparator. The previous lamport-only guard let arrival order decide
+  same-Lamport concurrent edits, so two replicas that received the same
+  conflicting changes in different orders could permanently disagree on the
+  materialized value. Applies to the per-change upsert, the batched
+  `applyNodeBatch` path, and the native web/electron batch adapters.
+
+## 0.1.1
+
+### Patch Changes
+
+- [#388](https://github.com/crs48/xNet/pull/388) [`2ab72a9`](https://github.com/crs48/xNet/commit/2ab72a9c988122635e9610f7d7353d91e96af31d) Thanks [@crs48](https://github.com/crs48)! - Query-plan debug diagnostics no longer convoy the SQLite worker. With
+  `xnet:query:debug` enabled, every query used to issue EXPLAIN QUERY PLAN +
+  PRAGMA schema_version + one PRAGMA index_info per index as separate serial
+  worker round-trips — hundreds per boot, delaying real query results by
+  18-20s. `getIndexInfo` now dedupes concurrent callers onto one in-flight
+  build and fetches all index metadata in a single batched
+  `pragma_index_info` join (with a per-index fallback for runtimes without
+  table-valued pragmas), and the storage adapter collects plan diagnostics
+  once per unique compiled SQL shape per session instead of per execution
+  (invalidated when adaptive indexes are created or dropped).
+
 ## 0.1.0
 
 ### Minor Changes

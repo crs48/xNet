@@ -11,8 +11,11 @@ import { randomUUID } from 'crypto'
 import { existsSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
+import { identityFromPrivateKey } from '@xnetjs/identity'
 import { createElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
+import { createChangeId, createUnsignedChange, signChange, verifyChangeHash } from '@xnetjs/sync'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import { encodeNodeQueryCursor } from './query'
@@ -150,6 +153,19 @@ describe('SQLiteNodeStorageAdapter', () => {
     })
   })
 
+  /**
+   * Pay a fresh adapter's one-time pre-v8 column repair (0305) — a PRAGMA on
+   * the first node_properties read — then clear the query log, so RPC-count
+   * assertions measure the steady state.
+   */
+  async function primeColumnRepair(
+    target: SQLiteNodeStorageAdapter,
+    queries: string[]
+  ): Promise<void> {
+    await target.getNode('prime-column-repair')
+    queries.length = 0
+  }
+
   afterEach(async () => {
     await db.close()
   })
@@ -172,6 +188,105 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(await adapter.getSyncCursor('room-a')).toBe(100)
       await adapter.setSyncCursor('room-a', 150)
       expect(await adapter.getSyncCursor('room-a')).toBe(150)
+    })
+  })
+
+  describe('change-record envelope (0272)', () => {
+    // The changes table has no columns for id/type/protocolVersion/batch
+    // fields, yet they are hashed content: without the payload envelope a
+    // re-read change can never pass verifyChangeHash, so the reload-resync
+    // push (getChangesSince → hub) was rejected as INVALID_HASH and the 0224
+    // breaker stranded offline edits.
+    function makeRealSignedChange(): NodeChange {
+      const { privateKey } = generateSigningKeyPair()
+      const identity = identityFromPrivateKey(privateKey)
+      const unsigned = createUnsignedChange({
+        id: createChangeId(),
+        type: 'node-change',
+        payload: {
+          nodeId: 'envelope-node',
+          schemaId: testSchemaId,
+          properties: { title: 'hello', count: 3 }
+        } as NodePayload,
+        parentHash: null,
+        authorDID: identity.did as DID,
+        lamport: 41,
+        batchId: 'envelope-batch',
+        batchIndex: 0,
+        batchSize: 1
+      })
+      return signChange(unsigned, privateKey) as NodeChange
+    }
+
+    it('a change re-read from the log still passes verifyChangeHash', async () => {
+      const change = makeRealSignedChange()
+      expect(verifyChangeHash(change)).toBe(true)
+
+      // changes.node_id has a FK to nodes(id) — materialize the node first.
+      await adapter.setNode(createTestNode({ id: 'envelope-node' }))
+      await adapter.appendChange(change)
+      const [reread] = await adapter.getAllChanges()
+
+      expect(reread.id).toBe(change.id)
+      expect(reread.type).toBe('node-change')
+      expect(reread.protocolVersion).toBe(change.protocolVersion)
+      expect(reread.batchId).toBe('envelope-batch')
+      expect(reread.batchIndex).toBe(0)
+      expect(reread.batchSize).toBe(1)
+      expect(reread.payload).toEqual(change.payload)
+      expect(verifyChangeHash(reread)).toBe(true)
+    })
+
+    it('round-trips through the applyNodeBatch change path too', async () => {
+      const change = makeRealSignedChange()
+      await adapter.applyNodeBatch({
+        batchId: 'envelope-batch',
+        nodes: [
+          createTestNode({
+            id: 'envelope-node',
+            properties: { title: 'hello', count: 3 }
+          })
+        ],
+        changes: [change],
+        lastLamportTime: change.lamport,
+        affectedSchemaIds: [testSchemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+      const reread = await adapter.getLastChange('envelope-node')
+      expect(reread).not.toBeNull()
+      expect(verifyChangeHash(reread!)).toBe(true)
+    })
+
+    it('legacy rows (raw payload, no envelope) keep the historical fallback fields', async () => {
+      const change = makeRealSignedChange()
+      await adapter.setNode(createTestNode({ id: 'envelope-node' }))
+      // Simulate a row written before the envelope existed: payload only.
+      await db.run(
+        `INSERT INTO changes
+         (hash, node_id, payload, lamport_time, lamport_peer, wall_time, author, parent_hash, batch_id, signature)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          change.hash,
+          change.payload.nodeId,
+          new TextEncoder().encode(JSON.stringify(change.payload)),
+          change.lamport,
+          change.authorDID,
+          change.wallTime,
+          change.authorDID,
+          null,
+          null,
+          change.signature
+        ]
+      )
+      const [reread] = await adapter.getAllChanges()
+      // Identity fields were never persisted, so the fallback fabricates them
+      // (hash-as-id, type 'node') exactly as before the envelope…
+      expect(reread.id).toBe(change.hash)
+      expect(reread.type).toBe('node')
+      expect(reread.payload).toEqual(change.payload)
+      // …which is precisely why legacy rows cannot re-verify.
+      expect(verifyChangeHash(reread)).toBe(false)
     })
   })
 
@@ -2022,6 +2137,38 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(result.plan.postFilterReason).toBe('verified-in-js')
     })
 
+    it('matches spatial filters through dotted object-subfield keys (geo cells)', async () => {
+      await adapter.importNodes([
+        createTestNode({
+          id: 'geo-near',
+          schemaId: taskSchemaId,
+          properties: { title: 'Near', cell_where: { lat: 10, lng: 20 } }
+        }),
+        createTestNode({
+          id: 'geo-far',
+          schemaId: taskSchemaId,
+          properties: { title: 'Far', cell_where: { lat: 80, lng: 170 } }
+        }),
+        createTestNode({
+          id: 'geo-none',
+          schemaId: taskSchemaId,
+          properties: { title: 'No location' }
+        })
+      ])
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        spatial: {
+          kind: 'window',
+          rect: { x: 0, y: 0, width: 50, height: 50 },
+          fields: { x: 'cell_where.lng', y: 'cell_where.lat' }
+        }
+      })
+
+      expect(result.nodes.map((node) => node.id)).toEqual(['geo-near'])
+    })
+
     it('collects plan diagnostics when the xnet:query:debug flag is set', async () => {
       const debugAdapter = new SQLiteNodeStorageAdapter(db)
       const globalWithStorage = globalThis as {
@@ -2050,6 +2197,55 @@ describe('SQLiteNodeStorageAdapter', () => {
           globalWithStorage.localStorage = previousLocalStorage
         }
       }
+    })
+
+    it('throttles plan diagnostics to one collection per compiled SQL shape (2026-07-05 convoy)', async () => {
+      // Pre-fix, EVERY debug-mode execution issued EXPLAIN QUERY PLAN +
+      // PRAGMA schema_version + the index inventory as separate round-trips
+      // on the single serial worker — hundreds per boot, delaying the very
+      // queries being measured by 18-20s. Diagnostics must be collected once
+      // per unique compiled SQL shape and served from the session memo after.
+      const throttledAdapter = new SQLiteNodeStorageAdapter(db, { queryDiagnostics: true })
+      const querySpy = vi.spyOn(db, 'query')
+      const explainCount = () =>
+        querySpy.mock.calls.filter(([sql]) => String(sql).startsWith('EXPLAIN QUERY PLAN')).length
+
+      const descriptor = {
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      }
+
+      const first = await throttledAdapter.queryNodes(descriptor)
+      expect(first.plan.usedIndexNames).toBeDefined()
+      expect(first.plan.availableIndexCount).toBeGreaterThan(0)
+      expect(explainCount()).toBe(1)
+
+      // Same shape again — and the same shape with different bound values
+      // (values are `?` params, so the compiled SQL is identical): both are
+      // served from the memo, with diagnostics still present on every plan.
+      const second = await throttledAdapter.queryNodes(descriptor)
+      const third = await throttledAdapter.queryNodes({
+        ...descriptor,
+        where: { status: 'done' }
+      })
+      expect(second.plan.usedIndexNames).toBeDefined()
+      expect(third.plan.usedIndexNames).toBeDefined()
+      expect(explainCount()).toBe(1)
+
+      // Concurrent cold executions (the boot pattern) share one in-flight
+      // collection instead of each enqueueing their own.
+      const coldAdapter = new SQLiteNodeStorageAdapter(db, { queryDiagnostics: true })
+      const before = explainCount()
+      const results = await Promise.all(
+        Array.from({ length: 8 }, () => coldAdapter.queryNodes(descriptor))
+      )
+      for (const result of results) {
+        expect(result.plan.usedIndexNames).toBeDefined()
+      }
+      expect(explainCount()).toBe(before + 1)
+
+      querySpy.mockRestore()
     })
 
     it('skips plan diagnostics by default', async () => {
@@ -2334,6 +2530,50 @@ describe('SQLiteNodeStorageAdapter', () => {
           spatial
         })
         expect(afterDelete.nodes.map((node) => node.id)).toEqual(['rtree-new', 'rtree-near-large'])
+      } finally {
+        if (nativeDb.isOpen()) {
+          await nativeDb.close()
+        }
+        cleanupDb(dbPath)
+      }
+    })
+
+    it('indexes dotted object-subfield keys (geo cells) in the R-Tree', async () => {
+      const dbPath = getTestDbPath()
+      const nativeDb = await createNativeSQLiteAdapterOrNull(dbPath)
+      if (!nativeDb) return
+
+      const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb, {
+        queryVerification: { enabled: true }
+      })
+
+      try {
+        await nativeAdapter.importNodes([
+          createTestNode({
+            id: 'geo-rtree-near',
+            schemaId: taskSchemaId,
+            properties: { title: 'Near', cell_where: { lat: 10, lng: 20 } }
+          }),
+          createTestNode({
+            id: 'geo-rtree-far',
+            schemaId: taskSchemaId,
+            properties: { title: 'Far', cell_where: { lat: 80, lng: 170 } }
+          })
+        ])
+
+        const result = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          spatial: {
+            kind: 'window',
+            rect: { x: 0, y: 0, width: 50, height: 50 },
+            fields: { x: 'cell_where.lng', y: 'cell_where.lat' }
+          }
+        })
+
+        expect(result.nodes.map((node) => node.id)).toEqual(['geo-rtree-near'])
+        expect(result.plan.postFilterReason).toBe('spatial-rtree-verified-in-js')
+        expect(result.plan.candidateAccelerators).toEqual(['rtree'])
       } finally {
         if (nativeDb.isOpen()) {
           await nativeDb.close()
@@ -3229,6 +3469,7 @@ describe('SQLiteNodeStorageAdapter', () => {
     it('answers a pushed-down descriptor in ONE query RPC', async () => {
       const { db: counting, queries } = countingAdapter()
       const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+      await primeColumnRepair(fusedAdapter, queries)
 
       const result = await fusedAdapter.queryNodes({
         schemaId: taskSchemaId,
@@ -3248,6 +3489,7 @@ describe('SQLiteNodeStorageAdapter', () => {
     it('folds count:exact into the same single RPC via COUNT(*) OVER ()', async () => {
       const { db: counting, queries } = countingAdapter()
       const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+      await primeColumnRepair(fusedAdapter, queries)
 
       const result = await fusedAdapter.queryNodes({
         schemaId: taskSchemaId,
@@ -3266,6 +3508,7 @@ describe('SQLiteNodeStorageAdapter', () => {
     it('scalar-where descriptors fuse too, with correct membership', async () => {
       const { db: counting, queries } = countingAdapter()
       const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+      await primeColumnRepair(fusedAdapter, queries)
 
       const result = await fusedAdapter.queryNodes({
         schemaId: taskSchemaId,
@@ -3284,6 +3527,7 @@ describe('SQLiteNodeStorageAdapter', () => {
     it('an empty page at offset 0 reports totalCount 0 without a count RPC', async () => {
       const { db: counting, queries } = countingAdapter()
       const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+      await primeColumnRepair(fusedAdapter, queries)
 
       const result = await fusedAdapter.queryNodes({
         schemaId: taskSchemaId,
@@ -3345,6 +3589,7 @@ describe('SQLiteNodeStorageAdapter', () => {
     it('different-sized hydrates share ONE SQL string (same bucket)', async () => {
       const { db: capturing, queries } = capturingAdapter()
       const padAdapter = new SQLiteNodeStorageAdapter(capturing)
+      await primeColumnRepair(padAdapter, queries)
 
       const three = await padAdapter.getNodes(['pad-0', 'pad-1', 'pad-2'])
       const seven = await padAdapter.getNodes([
@@ -3450,6 +3695,57 @@ describe('SQLiteNodeStorageAdapter', () => {
 
       expect(result.nodes.length).toBeGreaterThan(0)
       expect(queryBatchCalls).toBe(0)
+    })
+  })
+
+  // ─── Pre-v8 database repair (0305) ─────────────────────────────────────────
+
+  describe('pre-v8 database repair (0305 tiebreak_key)', () => {
+    // A database created by a pre-v8 build has no `tiebreak_key` column, and
+    // the runtime upgrade path (full DDL re-exec via `CREATE TABLE IF NOT
+    // EXISTS`) cannot add it. The repair guard must run before the FIRST
+    // node_properties read — a fresh browser session opens a /doc/ page (pure
+    // reads) long before any write would have triggered the lazy guard.
+    beforeEach(async () => {
+      await db.exec(`
+        DROP TABLE node_properties;
+        CREATE TABLE node_properties (
+            node_id TEXT NOT NULL,
+            property_key TEXT NOT NULL,
+            value BLOB,
+            lamport_time INTEGER NOT NULL,
+            updated_by TEXT NOT NULL,
+            updated_at INTEGER NOT NULL,
+
+            PRIMARY KEY (node_id, property_key),
+            FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+        );
+      `)
+      await db.run(
+        'INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by) VALUES (?, ?, ?, ?, ?)',
+        ['legacy-node', testSchemaId, 1, 1, testDID]
+      )
+      await db.run(
+        `INSERT INTO node_properties (node_id, property_key, value, lamport_time, updated_by, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        ['legacy-node', 'title', new TextEncoder().encode(JSON.stringify('Legacy')), 1, testDID, 1]
+      )
+    })
+
+    it('getNode repairs the missing column instead of throwing', async () => {
+      const node = await adapter.getNode('legacy-node')
+      expect(node?.properties.title).toBe('Legacy')
+
+      const columns = await db.query<{ name: string }>('PRAGMA table_info(node_properties)')
+      expect(columns.some((column) => column.name === 'tiebreak_key')).toBe(true)
+    })
+
+    it('listNodes and queryNodes repair the missing column instead of throwing', async () => {
+      const listed = await adapter.listNodes({ schemaId: testSchemaId })
+      expect(listed.map((node) => node.id)).toContain('legacy-node')
+
+      const queried = await adapter.queryNodes({ schemaId: testSchemaId, includeDeleted: false })
+      expect(queried.nodes.map((node) => node.id)).toContain('legacy-node')
     })
   })
 

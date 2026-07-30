@@ -18,6 +18,10 @@
  *     actions: {
  *       read: allow('editor', 'admin', 'owner'),
  *       write: allow('editor', 'admin', 'owner'),
+ *       // optional refinements (0304) — split who may add vs. who may modify;
+ *       // each falls back to `write` when not declared
+ *       create: allow('editor', 'admin'),
+ *       update: allow('owner', 'admin'),
  *       delete: allow('admin', 'owner'),
  *       share: allow('admin', 'owner')
  *     }

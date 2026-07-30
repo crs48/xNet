@@ -48,23 +48,32 @@ function TextEditor({
 }
 
 /**
+ * Coerce a cell value to text. The text handler is also the fallback for
+ * unknown property types (e.g. formula/rollup results), so despite the
+ * `PropertyHandler<string>` signature it can receive numbers or objects.
+ */
+function toText(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  return typeof value === 'string' ? value : String(value)
+}
+
+/**
  * Text property handler
  */
 export const textHandler: PropertyHandler<string> = {
   type: 'text',
 
   render(value) {
-    if (value === null || value === undefined || value === '') {
+    const str = toText(value)
+    if (str === '') {
       return <span className="text-gray-400 dark:text-gray-500 italic">Empty</span>
     }
     // Read mode only — while editing, TextEditor shows the raw text (0171)
-    return <LinkifiedText value={value} className="text-gray-900 dark:text-gray-100" detectPhones />
+    return <LinkifiedText value={str} className="text-gray-900 dark:text-gray-100" detectPhones />
   },
 
   compare(a, b) {
-    const aStr = a ?? ''
-    const bStr = b ?? ''
-    return aStr.localeCompare(bStr)
+    return toText(a).localeCompare(toText(b))
   },
 
   filterOperators: [
@@ -79,7 +88,7 @@ export const textHandler: PropertyHandler<string> = {
   ],
 
   applyFilter(value, operator, filterValue) {
-    const str = value ?? ''
+    const str = toText(value)
     const filter = String(filterValue ?? '').toLowerCase()
     const strLower = str.toLowerCase()
 

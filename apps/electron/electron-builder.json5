@@ -21,7 +21,21 @@
     // Hardcoding both here made a single job build both arches in one invocation,
     // where @electron/rebuild cross-contaminates the native modules — landing the
     // wrong-arch better_sqlite3.node in a package (see the Linux x64 boot crash).
-    "target": ["dmg", "zip"]
+    "target": ["dmg", "zip"],
+    // Meeting capture (exploration 0279): mic prompt + the audio-capture TCC
+    // category the Core Audio tap helper triggers on macOS 14.4+.
+    "extendInfo": {
+      "NSMicrophoneUsageDescription": "xNet records your microphone during meetings you choose to capture.",
+      "NSAudioCaptureUsageDescription": "xNet captures system audio during meetings you choose to capture, so the other side of the call can be transcribed."
+    },
+    // The Swift tap helper (native/audiotee, built by CI: `swift build -c release`).
+    // Missing binary is fine — the app falls back to Chromium loopback.
+    "extraResources": [
+      {
+        "from": "native/audiotee/.build/release/xnet-audiotee",
+        "to": "xnet-audiotee"
+      }
+    ]
   },
 
   "dmg": {

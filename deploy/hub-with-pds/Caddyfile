@@ -1,0 +1,10 @@
+# One domain, two neighbours (0383 W5). Caddy terminates TLS for the hub, the
+# PDS, and the wildcard the PDS needs for user handles.
+
+hub.{$DOMAIN} {
+	reverse_proxy hub:4444
+}
+
+pds.{$DOMAIN}, *.pds.{$DOMAIN} {
+	reverse_proxy pds:3000
+}

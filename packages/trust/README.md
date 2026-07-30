@@ -3,6 +3,11 @@
 The shared provenance→trust-tier primitives for xNet's extensibility systems
 (exploration 0194).
 
+> **Alpha software.** xNet is released but early: this package is on npm and
+> usable today, but its API can change between releases, sometimes without a
+> migration path. Pin your version. See the
+> [project README](https://github.com/crs48/xNet#readme) for what alpha means here.
+
 Trust follows **provenance** — where an extension came from — never anything the
 code declares about itself. A `synced` extension always re-derives its tier
 locally (sync is not consent).

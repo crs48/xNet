@@ -1,5 +1,222 @@
 # @xnetjs/storage
 
+## 3.0.0
+
+### Patch Changes
+
+- [#571](https://github.com/crs48/xNet/pull/571) [`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6) Thanks [@crs48](https://github.com/crs48)! - Document alpha status in every package README. xNet is released — these packages
+  are on npm and usable today — but it is early software: APIs can change between
+  releases, sometimes without a migration path. Each README now says so up front,
+  so the notice is visible on the npm package page. Docs only; no code changes.
+
+- [#587](https://github.com/crs48/xNet/pull/587) [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe) Thanks [@crs48](https://github.com/crs48)! - Fix TypeScript type resolution for every package's export map, and ship
+  `@xnetjs/data/portability`.
+
+  `types` was ordered after `import` in 48 export subpaths across 19 packages.
+  Export conditions are order-sensitive, so TypeScript could resolve the wrong
+  entry — or no types at all — depending on the consumer's `moduleResolution`.
+  `types` is now first everywhere.
+
+  `@xnetjs/data` also advertised a `./portability` subpath that was never added to
+  its build, so `@xnetjs/data/portability` — the `.xnetpack` export/import codec —
+  did not resolve at all for consumers. It now builds and ships.
+
+  Both were found by adding `publint` to CI.
+
+- Updated dependencies [[`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6), [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe), [`33f4b9e`](https://github.com/crs48/xNet/commit/33f4b9ef38c72b2e898f7a4a4de83cc08b0aea88)]:
+  - @xnetjs/core@3.0.0
+  - @xnetjs/crypto@3.0.0
+  - @xnetjs/sqlite@3.0.0
+
+## 2.5.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@2.5.0
+  - @xnetjs/crypto@2.5.0
+  - @xnetjs/core@2.5.0
+
+## 2.4.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@2.4.0
+  - @xnetjs/crypto@2.4.0
+  - @xnetjs/core@2.4.0
+
+## 2.3.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@2.3.0
+  - @xnetjs/crypto@2.3.0
+  - @xnetjs/core@2.3.0
+
+## 2.2.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@2.2.0
+  - @xnetjs/crypto@2.2.0
+  - @xnetjs/core@2.2.0
+
+## 2.1.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@2.1.0
+  - @xnetjs/crypto@2.1.0
+  - @xnetjs/core@2.1.0
+
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`e2e78cd`](https://github.com/crs48/xNet/commit/e2e78cd319723972591e1aae9d87af4588edfda3), [`0f7ef43`](https://github.com/crs48/xNet/commit/0f7ef435afab91022433ae6c60c3a71510a1d036)]:
+  - @xnetjs/sqlite@2.0.0
+  - @xnetjs/crypto@2.0.0
+  - @xnetjs/core@2.0.0
+
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`e6b4c6f`](https://github.com/crs48/xNet/commit/e6b4c6f95b2715289ff35ae37ebd6be7eeba5174), [`38fd26f`](https://github.com/crs48/xNet/commit/38fd26f3074176ecb73b6b04b8226f2b28d2258c), [`1de6587`](https://github.com/crs48/xNet/commit/1de658746fb4b5420f8f92517f9c135562d23d28)]:
+  - @xnetjs/core@1.0.0
+  - @xnetjs/sqlite@1.0.0
+  - @xnetjs/crypto@1.0.0
+
+## 0.12.0
+
+### Patch Changes
+
+- Updated dependencies [[`5866992`](https://github.com/crs48/xNet/commit/5866992b73a69a92321c7319a40834019f7f7141)]:
+  - @xnetjs/core@0.12.0
+  - @xnetjs/crypto@0.12.0
+  - @xnetjs/sqlite@0.12.0
+
+## 0.11.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@0.11.1
+  - @xnetjs/crypto@0.11.1
+  - @xnetjs/core@0.11.1
+
+## 0.11.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@0.11.0
+  - @xnetjs/crypto@0.11.0
+  - @xnetjs/core@0.11.0
+
+## 0.10.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@0.10.0
+  - @xnetjs/crypto@0.10.0
+  - @xnetjs/core@0.10.0
+
+## 0.9.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@0.9.0
+  - @xnetjs/crypto@0.9.0
+  - @xnetjs/core@0.9.0
+
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@0.8.0
+  - @xnetjs/crypto@0.8.0
+  - @xnetjs/core@0.8.0
+
+## 0.7.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@0.7.0
+  - @xnetjs/crypto@0.7.0
+  - @xnetjs/core@0.7.0
+
+## 0.6.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@0.6.0
+  - @xnetjs/crypto@0.6.0
+  - @xnetjs/core@0.6.0
+
+## 0.5.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@0.5.0
+  - @xnetjs/crypto@0.5.0
+  - @xnetjs/core@0.5.0
+
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@0.4.0
+  - @xnetjs/crypto@0.4.0
+  - @xnetjs/core@0.4.0
+
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies [[`92708ab`](https://github.com/crs48/xNet/commit/92708ab09f2334b1ee02fef4cea654c1aed6b0ed)]:
+  - @xnetjs/core@0.3.0
+  - @xnetjs/crypto@0.3.0
+  - @xnetjs/sqlite@0.3.0
+
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@0.2.0
+  - @xnetjs/crypto@0.2.0
+  - @xnetjs/core@0.2.0
+
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [[`1a045b3`](https://github.com/crs48/xNet/commit/1a045b371b4d8fabe7cd32c5bc44d03efd6c31cc)]:
+  - @xnetjs/sqlite@0.1.2
+  - @xnetjs/crypto@0.1.2
+  - @xnetjs/core@0.1.2
+
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [[`2ab72a9`](https://github.com/crs48/xNet/commit/2ab72a9c988122635e9610f7d7353d91e96af31d)]:
+  - @xnetjs/sqlite@0.1.1
+  - @xnetjs/crypto@0.1.1
+  - @xnetjs/core@0.1.1
+
 ## 0.1.0
 
 ### Patch Changes

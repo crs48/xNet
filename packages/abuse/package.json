@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/abuse",
-  "version": "0.1.0",
+  "version": "3.0.0",
   "description": "Composable abuse, moderation, and reach policy decisions for xNet",
   "license": "MIT",
   "repository": {
@@ -12,12 +12,12 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./adapters": {
-      "import": "./dist/adapters.js",
-      "types": "./dist/adapters.d.ts"
+      "types": "./dist/adapters.d.ts",
+      "import": "./dist/adapters.js"
     }
   },
   "files": [

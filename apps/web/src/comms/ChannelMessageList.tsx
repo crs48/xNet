@@ -76,6 +76,8 @@ export function ChannelMessageList({
   onCancelEdit,
   onSubmitEdit,
   onReply,
+  onDelete,
+  onRemovePreview,
   onOpenThread
 }: {
   channelId: string
@@ -92,6 +94,9 @@ export function ChannelMessageList({
   onCancelEdit: () => void
   onSubmitEdit: (message: ChatRow, content: string) => void | Promise<void>
   onReply: (message: ChatRow) => void
+  onDelete?: (message: ChatRow) => void
+  /** Author removes a stored URL preview card (0295). */
+  onRemovePreview?: (message: ChatRow, url: string) => void
   onOpenThread: (rootId: string) => void
 }) {
   const listRef = useRef<HTMLUListElement>(null)
@@ -153,7 +158,7 @@ export function ChannelMessageList({
           role="log"
           aria-label="Messages"
           aria-live="polite"
-          className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0 py-2"
+          className="scroll-fade m-0 min-h-0 flex-1 list-none overflow-y-auto p-0 py-2"
         >
           {hiddenCount > 0 && (
             <li className="px-4 py-1 text-[10px] text-ink-3">
@@ -184,6 +189,8 @@ export function ChannelMessageList({
                 onCancelEdit={onCancelEdit}
                 onSubmitEdit={(content) => onSubmitEdit(row.message, content)}
                 onReply={() => onReply(row.message)}
+                onDelete={onDelete ? () => onDelete(row.message) : undefined}
+                onRemovePreview={onRemovePreview}
                 thread={threadIndex.get(row.message.id)}
                 onOpenThread={() => onOpenThread(row.message.id)}
               />

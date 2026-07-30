@@ -54,8 +54,19 @@ export interface SQLiteRuntimeCapabilities {
  * index_info` *per index* on every cold query — ~870 serial worker round-trips in
  * the 0253 capture, flooding the boot log and obscuring the real stall. The index
  * set is stable between schema changes, so one build per `schema_version` suffices.
+ *
+ * `inFlight` dedupes CONCURRENT callers: the resolved cache is only populated
+ * once a build finishes, so without it every query issued while the first build
+ * was still queued on the serial worker started its own full build — hundreds of
+ * identical `index_info` round-trips per boot convoying real query results by
+ * 18-20s in the 2026-07-05 capture, despite the #351 cache.
  */
-const indexInfoCache = new WeakMap<SQLiteAdapter, { schemaVersion: number; indexes: IndexInfo[] }>()
+interface IndexInfoCacheEntry {
+  inFlight?: Promise<IndexInfo[]>
+  resolved?: { schemaVersion: number; indexes: IndexInfo[] }
+}
+
+const indexInfoCache = new WeakMap<SQLiteAdapter, IndexInfoCacheEntry>()
 
 async function readSchemaVersion(db: SQLiteAdapter): Promise<number> {
   try {
@@ -67,18 +78,56 @@ async function readSchemaVersion(db: SQLiteAdapter): Promise<number> {
 }
 
 /**
- * Get information about all indexes in the database. Cached per adapter and keyed
- * on `PRAGMA schema_version`, so repeated calls between DDL changes pay one cheap
- * version probe instead of `sqlite_master` + N `PRAGMA index_info` round-trips
- * (exploration 0253).
+ * Fetch every index and its columns in ONE statement via the `pragma_index_info`
+ * table-valued function (SQLite ≥ 3.16), instead of `sqlite_master` + one
+ * `PRAGMA index_info` round-trip per index. On the single serial worker each
+ * round-trip queues behind real queries, so the loop form is O(indexes) latency
+ * even when every statement executes in 0ms.
  */
-export async function getIndexInfo(db: SQLiteAdapter): Promise<IndexInfo[]> {
-  const schemaVersion = await readSchemaVersion(db)
-  const cached = indexInfoCache.get(db)
-  if (cached && cached.schemaVersion === schemaVersion) {
-    return cached.indexes
+async function fetchIndexInfoBatched(db: SQLiteAdapter): Promise<IndexInfo[]> {
+  interface BatchedIndexRow {
+    index_name: string
+    table_name: string
+    index_sql: string | null
+    seqno: number | null
+    column_name: string | null
+    [key: string]: SQLValue
   }
 
+  const rows = await db.query<BatchedIndexRow>(
+    `SELECT m.name AS index_name, m.tbl_name AS table_name, m.sql AS index_sql,
+            ii.seqno AS seqno, ii.name AS column_name
+     FROM sqlite_master AS m
+     LEFT JOIN pragma_index_info(m.name) AS ii
+     WHERE m.type = 'index' AND m.name NOT LIKE 'sqlite_%'
+     ORDER BY m.name, ii.seqno`
+  )
+
+  const byName = new Map<string, IndexInfo>()
+  for (const row of rows) {
+    let info = byName.get(row.index_name)
+    if (!info) {
+      info = {
+        name: row.index_name,
+        tableName: row.table_name,
+        unique: row.index_sql?.includes('UNIQUE') ?? false,
+        columns: [],
+        partial: row.index_sql?.includes('WHERE') ?? false
+      }
+      byName.set(row.index_name, info)
+    }
+    if (row.seqno !== null) {
+      // Expression-index columns have a NULL name — preserved as-is, matching
+      // what `PRAGMA index_info` reported on the per-index path.
+      info.columns.push(row.column_name as string)
+    }
+  }
+
+  return [...byName.values()]
+}
+
+/** Per-index fallback for runtimes without table-valued pragma functions. */
+async function fetchIndexInfoPerIndex(db: SQLiteAdapter): Promise<IndexInfo[]> {
   interface IndexRow {
     name: string
     tbl_name: string
@@ -109,8 +158,53 @@ export async function getIndexInfo(db: SQLiteAdapter): Promise<IndexInfo[]> {
     })
   }
 
-  indexInfoCache.set(db, { schemaVersion, indexes: result })
   return result
+}
+
+/**
+ * Get information about all indexes in the database. Cached per adapter and keyed
+ * on `PRAGMA schema_version`, so repeated calls between DDL changes pay one cheap
+ * version probe instead of a rebuild (exploration 0253). Concurrent callers share
+ * a single in-flight probe+build, and a cold build is a single batched statement
+ * — worst case one diagnostic run costs 2 worker round-trips, not 1 + 1 + N.
+ */
+export async function getIndexInfo(db: SQLiteAdapter): Promise<IndexInfo[]> {
+  let entry = indexInfoCache.get(db)
+  if (!entry) {
+    entry = {}
+    indexInfoCache.set(db, entry)
+  }
+
+  // A probe/build is already queued on the worker — piggyback instead of
+  // enqueueing another. Callers racing a DDL change were unordered anyway.
+  if (entry.inFlight) {
+    return entry.inFlight
+  }
+
+  const cacheEntry = entry
+  const inFlight = (async () => {
+    const schemaVersion = await readSchemaVersion(db)
+    if (cacheEntry.resolved && cacheEntry.resolved.schemaVersion === schemaVersion) {
+      return cacheEntry.resolved.indexes
+    }
+
+    let indexes: IndexInfo[]
+    try {
+      indexes = await fetchIndexInfoBatched(db)
+    } catch {
+      indexes = await fetchIndexInfoPerIndex(db)
+    }
+
+    cacheEntry.resolved = { schemaVersion, indexes }
+    return indexes
+  })()
+
+  entry.inFlight = inFlight
+  try {
+    return await inFlight
+  } finally {
+    cacheEntry.inFlight = undefined
+  }
 }
 
 /**

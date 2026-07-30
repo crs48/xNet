@@ -49,10 +49,12 @@ const SIGNED_BLOCKLIST_FIXTURE = JSON.stringify({
 
 /** Click through the passkey-bypass onboarding into the shell. */
 async function advanceOnboarding(page: Page): Promise<void> {
-  // Shell-neutral readiness signal: the home surface's "All Documents" heading
-  // renders in both the workbench and the calm shell (0250), so this works
-  // regardless of the active layout default.
-  const ready = page.getByRole('heading', { name: /all documents/i })
+  // Shell-neutral readiness signal: the home surface's heading renders in both
+  // the workbench and the calm shell (0250), so this works regardless of the
+  // active layout default. Since 0388 the heading names the active lens —
+  // "Everything" under All (the default), "All Documents" under Docs — so the
+  // gate matches either.
+  const ready = page.getByRole('heading', { name: /all documents|everything/i })
   for (let i = 0; i < 10; i++) {
     if ((await ready.count()) > 0) return
     const start = page.getByRole('button', { name: /Get started/i })
@@ -70,9 +72,10 @@ async function advanceOnboarding(page: Page): Promise<void> {
 
 /**
  * Open a people/social surface from whichever primary nav the active shell
- * shows: the workbench Rail (a direct icon) or the calm shell's ModeSwitch →
- * Network mode, then the Network list entry (0250). Keeps this spec green under
- * either layout default.
+ * shows: the Floating shell's sidebar islands (0286 — Inbox is a pinned primary
+ * row; Discover lives in the "More" surfaces roll-out), the legacy workbench
+ * Rail, or the calm shell's ModeSwitch → Network mode. Keeps this spec green
+ * under any layout default.
  */
 async function openSocialSurface(
   page: Page,
@@ -80,6 +83,19 @@ async function openSocialSurface(
     | { railLabel: 'Discover people'; calmHome: true }
     | { railLabel: 'Requests'; calmHome: false; calmLink: RegExp }
 ): Promise<void> {
+  // Floating shell (0286): the two-island sidebar.
+  const floatingSidebar = page.locator('[data-wb-region="sidebar"]')
+  if ((await floatingSidebar.count()) > 0) {
+    if (r.railLabel === 'Requests') {
+      // The Inbox surface (→ /requests) is a pinned primary row.
+      await floatingSidebar.getByRole('button', { name: 'Inbox' }).first().click()
+    } else {
+      // Discover is not pinned by default — reach it from the "More" roll-out.
+      await floatingSidebar.getByRole('button', { name: /^More/ }).first().click()
+      await page.getByRole('button', { name: 'Discover', exact: true }).first().click()
+    }
+    return
+  }
   const railButton = page.locator(`nav button[aria-label="${r.railLabel}"]`)
   if ((await railButton.count()) > 0) {
     await railButton.first().click()
@@ -155,8 +171,20 @@ test.describe('Discovery + safety UI (0176)', () => {
     await page.getByLabel('Trust level').selectOption({ label: 'Trusted (strong)' })
     await page.getByRole('button', { name: 'Subscribe' }).click()
 
-    // The subscription persists and renders with its DID + a Remove control.
-    await expect(page.getByText('did:key:zE2ELabeler')).toBeVisible()
+    // The subscription persists and renders with its DID + a Remove control. Under
+    // headless CI load the local SQLite worker can lag reflecting the just-written
+    // row into the live query — the same first-load flake `advanceOnboarding`
+    // settles with a reload. If the row hasn't appeared, re-open the panel from a
+    // fresh navigation to force a re-read: the deterministic test identity is stable
+    // across reloads, so the persisted subscription is still ours.
+    const labeler = page.getByText('did:key:zE2ELabeler')
+    try {
+      await expect(labeler).toBeVisible({ timeout: 10_000 })
+    } catch {
+      await page.goto(`${BASE}/settings`)
+      await page.getByRole('button', { name: /Content & Safety/i }).click()
+      await expect(page.getByText('did:key:zE2ELabeler')).toBeVisible()
+    }
     await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible()
   })
 
@@ -179,6 +207,9 @@ test.describe('Discovery + safety UI (0176)', () => {
     await page.goto(`${BASE}/welcome`)
     await expect(page.getByText(/Are you 18 or older/i)).toBeVisible()
     await page.getByRole('button', { name: /Yes, I'm 18\+/i }).click()
+    // The feel chooser (0352) sits between age confirmation and the content dial.
+    await expect(page.getByRole('heading', { name: /How should xNet feel/i })).toBeVisible()
+    await page.getByRole('button', { name: /Focused/i }).click()
     await expect(
       page.getByRole('heading', { name: /What content would you like to see/i })
     ).toBeVisible()

@@ -1,9 +1,11 @@
 import type { AuthAction, AuthDecision, AuthDenyReason, DID } from '@xnetjs/core'
+import { TaggedError } from '@xnetjs/core'
 
 /**
  * Error thrown when a local mutation fails authorization checks.
  */
-export class PermissionError extends Error {
+export class PermissionError extends TaggedError<'PermissionError'> {
+  readonly _tag = 'PermissionError'
   readonly code = 'PERMISSION_DENIED'
   readonly action: AuthAction
   readonly nodeId: string
@@ -23,7 +25,6 @@ export class PermissionError extends Error {
         `Reasons: ${decision.reasons.join(', ')}`
     )
 
-    this.name = 'PermissionError'
     this.action = decision.action
     this.nodeId = decision.resource
     this.subject = decision.subject

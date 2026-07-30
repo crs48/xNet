@@ -22,7 +22,8 @@ import type {
   CanvasInspectorContribution,
   CanvasTemplateContribution,
   WidgetContribution,
-  ImporterContribution
+  ImporterContribution,
+  SlotContribution
 } from './contributions'
 import type { MentionProviderContribution } from './mention-providers'
 import type { Platform, PluginPermissions } from './types'
@@ -134,6 +135,12 @@ export interface PluginContributions {
   mentionProviders?: MentionProviderContribution[]
   /** Model-facing agent tools — what a Connector exposes (exploration 0196). */
   agentTools?: AgentToolContribution[]
+  /**
+   * Shell slot views (exploration 0280): panels the shell hosts in its
+   * docks/strips. A plugin's views land at their `defaultRegion` (default:
+   * the corner dock) and move with the user's layout tree thereafter.
+   */
+  slots?: SlotContribution[]
 }
 
 type CanvasContributionArrayKey =

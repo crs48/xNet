@@ -18,6 +18,7 @@ export type {
   ViewContribution,
   ViewProps,
   CommandContribution,
+  ImporterContribution,
   SlashCommandContribution,
   SlashCommandContext,
   EditorContribution,
@@ -55,3 +56,93 @@ export { PluginRegistry, PluginError } from '../../packages/plugins/src/registry
 
 export { PluginSchema } from '../../packages/plugins/src/schemas/plugin'
 export type { PluginNode } from '../../packages/plugins/src/schemas/plugin'
+
+// Command registry — used by canvas-view's useCanvasCommands (0277)
+export { getCommandRegistry, installCommandHandler } from '../../packages/plugins/src/commands'
+
+// Feature modules + capability guards — used by @xnetjs/meetings (0279)
+export { defineFeatureModule } from '../../packages/plugins/src/feature-module'
+export type { FeatureModule, ModuleCapabilities } from '../../packages/plugins/src/feature-module'
+export {
+  isSystemAudioAllowed,
+  assertSystemAudio
+} from '../../packages/plugins/src/ecosystem/capability-guard'
+export type {
+  AIProvider,
+  AIMessage,
+  AIGenerateRequest,
+  AIStreamChunk
+} from '../../packages/plugins/src/ai/providers'
+
+// Workspace layout primitives + slot contributions (0280) — the workbench
+// shell modules import these through the @xnetjs/plugins alias.
+export {
+  createDefaultTree,
+  createPresetTree,
+  DEFAULT_WORKSPACE_ID,
+  insertSlot,
+  isPresetWorkspaceId,
+  moveSlot,
+  parseWorkspacePayload,
+  placementOf,
+  PRESET_IDS,
+  PRESET_WORKSPACE_ID_PREFIX,
+  presetForWorkspaceId,
+  presetWorkspaceId,
+  REGION_IDS,
+  regionOf,
+  serializeWorkspacePayload,
+  setSlotTier,
+  slotsIn
+} from '../../packages/plugins/src/workspace'
+export type {
+  ChromePosture,
+  LayoutTree,
+  PresetId,
+  RegionId,
+  SlotPlacement,
+  SlotTier,
+  WorkspacePayload
+} from '../../packages/plugins/src/workspace'
+export type { SlotContribution, SlotRegion } from '../../packages/plugins/src/contributions'
+export { evaluateInstallConsent, scaffoldPlugin } from '../../packages/plugins/src/ecosystem'
+
+// Editor schema-skew guard (0205, spec-based since 0312) — used by
+// packages/react's useMergedEditorContributions.
+export {
+  findEditorSchemaRisks,
+  isSchemaDefiningContribution,
+  warnOnEditorSchemaRisks
+} from '../../packages/plugins/src/editor-schema-safety'
+export type { EditorSchemaRisk } from '../../packages/plugins/src/editor-schema-safety'
+
+// AI surface + connector exports (0406): the workbench chrome (and its lazy
+// AI panel) resolve these at build time; stories never run the engine.
+export { AiSurfaceService, createAiSurfaceService } from '../../packages/plugins/src/ai-surface'
+export type { AiSurfaceServiceConfig } from '../../packages/plugins/src/ai-surface'
+export {
+  createAIProvider,
+  createAiAgentRuntime,
+  createManagedProvider,
+  createMemoryAiAgentRuntimeStorage,
+  createPromptApiProvider,
+  createWebLLMProvider,
+  detectConnectors,
+  downloadPromptApiModel,
+  promptApiAvailability,
+  WebLLMProvider
+} from '../../packages/plugins/src/ai'
+export type {
+  AiAgentRuntime,
+  AIProvider,
+  AIProviderConfig,
+  AIToolCall,
+  AIToolSpec,
+  ConnectorDetection,
+  ConnectorTier,
+  ManagedBudgetSnapshot,
+  PromptApiAvailability,
+  ToolCallingFidelity,
+  WebLLMEngineLike,
+  WebLLMProviderOptions
+} from '../../packages/plugins/src/ai'

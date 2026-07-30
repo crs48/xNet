@@ -14,6 +14,12 @@ COPY packages/entitlements/package.json packages/entitlements/
 COPY packages/core/package.json packages/core/
 COPY packages/crypto/package.json packages/crypto/
 COPY packages/data/package.json packages/data/
+COPY packages/data-bridge/package.json packages/data-bridge/
+COPY packages/history/package.json packages/history/
+COPY packages/licenses/package.json packages/licenses/
+COPY packages/plugins/package.json packages/plugins/
+COPY packages/runtime/package.json packages/runtime/
+COPY packages/trust/package.json packages/trust/
 COPY packages/identity/package.json packages/identity/
 COPY packages/slack-compat/package.json packages/slack-compat/
 COPY packages/sqlite/package.json packages/sqlite/
@@ -35,6 +41,12 @@ COPY packages/entitlements/ packages/entitlements/
 COPY packages/core/ packages/core/
 COPY packages/crypto/ packages/crypto/
 COPY packages/data/ packages/data/
+COPY packages/data-bridge/ packages/data-bridge/
+COPY packages/history/ packages/history/
+COPY packages/licenses/ packages/licenses/
+COPY packages/plugins/ packages/plugins/
+COPY packages/runtime/ packages/runtime/
+COPY packages/trust/ packages/trust/
 COPY packages/identity/ packages/identity/
 COPY packages/slack-compat/ packages/slack-compat/
 COPY packages/sqlite/ packages/sqlite/
@@ -60,6 +72,12 @@ COPY --from=builder /build/packages/entitlements/package.json packages/entitleme
 COPY --from=builder /build/packages/core/package.json packages/core/
 COPY --from=builder /build/packages/crypto/package.json packages/crypto/
 COPY --from=builder /build/packages/data/package.json packages/data/
+COPY --from=builder /build/packages/data-bridge/package.json packages/data-bridge/
+COPY --from=builder /build/packages/history/package.json packages/history/
+COPY --from=builder /build/packages/licenses/package.json packages/licenses/
+COPY --from=builder /build/packages/plugins/package.json packages/plugins/
+COPY --from=builder /build/packages/runtime/package.json packages/runtime/
+COPY --from=builder /build/packages/trust/package.json packages/trust/
 COPY --from=builder /build/packages/identity/package.json packages/identity/
 COPY --from=builder /build/packages/slack-compat/package.json packages/slack-compat/
 COPY --from=builder /build/packages/sqlite/package.json packages/sqlite/
@@ -92,6 +110,12 @@ COPY --from=builder /build/packages/entitlements/dist packages/entitlements/dist
 COPY --from=builder /build/packages/core/dist packages/core/dist/
 COPY --from=builder /build/packages/crypto/dist packages/crypto/dist/
 COPY --from=builder /build/packages/data/dist packages/data/dist/
+COPY --from=builder /build/packages/data-bridge/dist packages/data-bridge/dist/
+COPY --from=builder /build/packages/history/dist packages/history/dist/
+COPY --from=builder /build/packages/licenses/dist packages/licenses/dist/
+COPY --from=builder /build/packages/plugins/dist packages/plugins/dist/
+COPY --from=builder /build/packages/runtime/dist packages/runtime/dist/
+COPY --from=builder /build/packages/trust/dist packages/trust/dist/
 COPY --from=builder /build/packages/identity/dist packages/identity/dist/
 COPY --from=builder /build/packages/slack-compat/dist packages/slack-compat/dist/
 COPY --from=builder /build/packages/sqlite/dist packages/sqlite/dist/

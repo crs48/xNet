@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest'
 import { autoValue } from './auto-generator'
 import { buildFixtures, ORG_SPACE_ID } from './fixtures'
 import { isSeedId, makeRng, seedId, DEMO_PEOPLE } from './seed-ids'
-import { SEEDERS } from './seed-manifest'
+import { LANDING_SEED_PROFILE, SEEDERS } from './seed-manifest'
 import { SCALES } from './seed-runner'
 
 const ctx: SeedContext = {
@@ -51,6 +51,30 @@ describe('Tier-1 seeders', () => {
     const run = () =>
       SEEDERS.flatMap((s) => s.seed({ ...ctx, rng: makeRng(1) }).drafts.map((d) => d.id))
     expect(run()).toEqual(run())
+  })
+
+  it('landing seed profile only names registered seeder domains, spaces first', () => {
+    const domains = new Set(SEEDERS.map((s) => s.domain))
+    for (const d of LANDING_SEED_PROFILE.domains) {
+      expect(domains.has(d), `unknown seeder domain in LANDING_SEED_PROFILE: ${d}`).toBe(true)
+    }
+    // The Space must exist before the rest cross-link into it.
+    expect(LANDING_SEED_PROFILE.domains[0]).toBe('spaces')
+    expect(LANDING_SEED_PROFILE.includeAuto).toBe(false)
+  })
+
+  it('the landing demo seeds every schema the left nav has a section for', async () => {
+    // The demo profile skips the Tier-2 auto-generator, so a schema that only
+    // had auto coverage showed up as an empty nav section on first contact —
+    // exactly what happened to Views before 0388.
+    const { SavedViewSchema } = await import('@xnetjs/data')
+    const seeded = SEEDERS.filter((s) => LANDING_SEED_PROFILE.domains.includes(s.domain)).flatMap(
+      (s) => s.seed(ctx).drafts
+    )
+    expect(
+      seeded.some((draft) => draft.schemaId === SavedViewSchema._schemaId),
+      'the Views section would read "Nothing here yet." in the demo workspace'
+    ).toBe(true)
   })
 
   it('work tasks reference their project + milestone', () => {

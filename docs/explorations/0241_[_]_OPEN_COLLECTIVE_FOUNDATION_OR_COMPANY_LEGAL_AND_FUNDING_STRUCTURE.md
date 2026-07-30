@@ -312,7 +312,7 @@ flowchart TB
     L1 -->|"% of revenue → commons"| L2
     L1 -->|"contributes MIT code"| L3
     L2 -->|"funds maintainers, security, docs"| L3
-    L3 -->|"trademark + 'XNet-compatible' license"| L1
+    L3 -->|"trademark + 'xNet-compatible' license"| L1
     style L1 fill:#e3f2fd
     style L2 fill:#e8f5e9
     style L3 fill:#fff3e0
@@ -332,7 +332,7 @@ This is the single most important design decision, and the repo has already half
 | `@xnetjs/cloud` — **FSL** | `docs/specs/protocol/` + `conformance/` |
 | `@xnetjs/billing`, Stripe/Connect | The `xnet://` namespace rules + schema profiles |
 | Managed hub hosting, SLAs, support | Self-hosting path (`@xnetjs/hub`, `@xnetjs/server`) |
-| Paid plugin marketplace economics (`@xnetjs/licenses`) | The **trademark** "xNet" + "XNet-compatible" mark *(→ Foundation eventually)* |
+| Paid plugin marketplace economics (`@xnetjs/licenses`) | The **trademark** "xNet" + "xNet-compatible" mark *(→ Foundation eventually)* |
 | Enterprise/compliance add-ons | Export/migration tools (Charter §2 "Exit") |
 
 The **danger zone** (0145's insight) is the middle: assets that are *both* revenue and trust — the
@@ -540,7 +540,7 @@ buy_me_a_coffee: crs48
   on maintenance, security, and docs — visible in a public ledger.
 
 ## Trademark
-- The code is free to fork. The name "xNet" / "XNet-compatible" mark exists to
+- The code is free to fork. The name "xNet" / "xNet-compatible" mark exists to
   protect users from confusion and will be stewarded by an independent
   foundation as the ecosystem matures.
 
@@ -564,7 +564,7 @@ sequenceDiagram
     User->>Fund: Direct donations (public ledger)
     Fund->>Maint: Grants for maintenance, security, docs
     Company->>Fdn: Contributes MIT code + funds spec work
-    Fdn->>Company: Licenses "XNet-compatible" trademark
+    Fdn->>Company: Licenses "xNet-compatible" trademark
     Fdn->>User: Guarantees the protocol stays un-enclosable
 ```
 

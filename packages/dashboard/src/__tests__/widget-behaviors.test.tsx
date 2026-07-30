@@ -272,7 +272,7 @@ describe('task list widget', () => {
 describe('chart widget', () => {
   const Component = barChartWidget.component
 
-  it('prompts for an x property, shows empty state, and falls back without canvas', () => {
+  it('prompts for an x property, shows empty state, and falls back without canvas', async () => {
     const prompt = render(<Component {...props()} />)
     expect(prompt.container.textContent).toContain('Pick an X axis property')
 
@@ -287,7 +287,11 @@ describe('chart widget', () => {
         })}
       />
     )
-    // jsdom has no canvas: the charts package renders its text fallback.
-    expect(chart.container.querySelector('[data-chart-fallback]')).not.toBeNull()
+    // XChart loads on demand (0406 cold-open budget), so the surface appears
+    // only after the lazy import resolves; jsdom has no canvas, so what
+    // resolves is the charts package's text fallback.
+    await waitFor(() =>
+      expect(chart.container.querySelector('[data-chart-fallback]')).not.toBeNull()
+    )
   })
 })

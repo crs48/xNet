@@ -2,9 +2,9 @@
   "id": "2026-06-19-managed-ai-with-model-switching",
   "date": "June 19, 2026",
   "title": "Managed AI with model switching",
-  "summary": "Use metered XNet Cloud AI right from the app — no API key — and switch between models with live pricing.",
+  "summary": "Use metered xNet Cloud AI right from the app — no API key — and switch between models with live pricing.",
   "highlights": [
-    "New managed AI tier: the chat panel routes through XNet Cloud's metered gateway with a live used/included/cap budget gauge — no key in the browser.",
+    "New managed AI tier: the chat panel routes through xNet Cloud's metered gateway with a live used/included/cap budget gauge — no key in the browser.",
     "Switch between models from a picker grouped by family, with per-token price and context badges; cheaper plans get a curated set, bigger plans the full OpenRouter catalog.",
     "Optional model fallbacks keep a chat working through a provider outage."
   ],

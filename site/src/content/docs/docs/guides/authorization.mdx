@@ -76,13 +76,45 @@ export const TaskSchema = defineSchema({
 
 ### Actions
 
-| Action   | Covers                                          |
-| -------- | ----------------------------------------------- |
-| `read`   | `store.get`, `useQuery`, hub queries            |
-| `write`  | `store.create`, `store.update`, `store.restore` |
-| `delete` | `store.delete`                                  |
-| `share`  | `store.auth.grant`, `store.auth.revoke`         |
-| `admin`  | Hub operational controls                        |
+| Action   | Covers                                            |
+| -------- | ------------------------------------------------- |
+| `read`   | `store.get`, `useQuery`, hub queries              |
+| `create` | `store.create` (refines `write`)                  |
+| `update` | `store.update`, `store.restore` (refines `write`) |
+| `write`  | Coarse mutation policy — the fallback for `create`/`update` when they aren't declared |
+| `delete` | `store.delete`                                    |
+| `share`  | `store.auth.grant`, `store.auth.revoke`           |
+| `admin`  | Hub operational controls                          |
+
+#### Splitting `write`: who may add vs. who may edit
+
+`create` and `update` are optional refinements of `write`. Declaring only
+`write` keeps the classic behavior (one mutation policy). Declaring the
+refinements expresses **contributor semantics** — "anyone here may post, but
+only the author may edit":
+
+```ts
+actions: {
+  read:   allow('owner', 'spaceMember'),
+  create: allow('spaceMember'),          // members may add new nodes…
+  update: allow('owner', 'spaceAdmin'),  // …only the author or an admin edits one
+  write:  allow('owner', 'spaceMember'), // fallback for engines without the split
+  delete: allow('owner', 'spaceAdmin'),
+  share:  allow('owner', 'spaceAdmin')
+}
+```
+
+Two rules to remember:
+
+- **Create checks run against the draft node** (its `createdBy` is the
+  caller), so `role.creator()` always matches on create — leave it out of
+  `create` if you want membership to actually gate who may add. Container
+  relations in the draft (`space`, `channel`, …) resolve normally.
+- **A `write` grant covers both refinements**; a `create`-only or
+  `update`-only grant covers just itself.
+
+The built-in `spaceContributorAuthorization()` block packages this pattern for
+Space content (chat messages and comments use it).
 
 Explicit `deny()` always wins over `allow()`:
 

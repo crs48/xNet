@@ -1,0 +1,46 @@
+---
+// Hero band for "The Harvest You Can Count" (exploration 0368). The decorative
+// art lives in HarvestArt.astro so the same inline SVG backs both this hero and
+// the blog-index preview card.
+import HarvestArt from './HarvestArt.astro'
+
+interface Props {
+  title: string
+  deck: string
+  date: string
+  readingMinutes: number
+  tags: string[]
+}
+const { title, deck, date, readingMinutes, tags } = Astro.props
+---
+
+<section class="relative overflow-hidden border-b border-border bg-surface/20 dark:bg-[#181207]">
+  <HarvestArt />
+  {/* Scrim: the ledger art is bright under the lamp, exactly where the deck
+      sits, so the copy gets its own darkness to stand on. Kept here rather than
+      in HarvestArt so the index card renders the illustration undimmed. */}
+  <div
+    class="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#181207]/85 via-[#181207]/72 to-[#181207]/45"
+    aria-hidden="true"
+  >
+  </div>
+
+  <div class="relative mx-auto max-w-3xl px-6 pb-14 pt-44 lg:pt-52">
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-amber-200/80">
+      <time datetime={date}>{date}</time>
+      <span aria-hidden="true">·</span>
+      <span>{readingMinutes} min read</span>
+      {
+        tags.map((tag) => (
+          <span class="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 font-mono lowercase text-amber-200">
+            {tag}
+          </span>
+        ))
+      }
+    </div>
+    <h1 class="mt-4 text-4xl font-bold tracking-tight text-white drop-shadow lg:text-5xl">
+      {title}
+    </h1>
+    <p class="mt-4 max-w-2xl text-lg leading-relaxed text-gray-300">{deck}</p>
+  </div>
+</section>

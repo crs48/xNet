@@ -23,10 +23,52 @@ export {
   signChange,
   createWebCryptoChangeSigner,
   verifyChange,
+  verifyChangeFast,
+  verifyChangesFast,
   verifyChangeHash,
   createChangeId,
   createBatchId
 } from './change'
+
+// Batch commits: one signature over many changes (exploration 0357)
+export type {
+  BatchCommit,
+  UnsignedBatchCommit,
+  CreateBatchCommitOptions,
+  BatchVerificationResult
+} from './batch-commit'
+export {
+  MAX_COMMIT_CHANGES,
+  computeBatchRoot,
+  computeBatchCommitHash,
+  createUnsignedBatchCommit,
+  signBatchCommit,
+  recomputeBatchCommitHash,
+  verifyBatchCommit,
+  verifyBatchCommitFast,
+  verifyBatch,
+  chunkForCommits
+} from './batch-commit'
+
+// Signed Space snapshots: a checkpoint over a Space frontier (0333/0258/0324/0389)
+export type {
+  SpaceSnapshot,
+  UnsignedSpaceSnapshot,
+  SnapshotHead,
+  CreateSpaceSnapshotOptions
+} from './space-snapshot'
+export {
+  MAX_SNAPSHOT_HEADS,
+  computeSnapshotRoot,
+  computeSnapshotHash,
+  createUnsignedSpaceSnapshot,
+  signSpaceSnapshot,
+  recomputeSnapshotHash,
+  verifySpaceSnapshot,
+  verifySpaceSnapshotFast,
+  snapshotsAgree,
+  snapshotDelta
+} from './space-snapshot'
 
 // Lamport clock utilities
 export type { LamportTimestamp, LamportClock } from './clock'
@@ -235,7 +277,9 @@ export {
   isV1Attestation,
   isV2Attestation,
   ClientIdMapImpl,
-  validateClientIdOwnership
+  validateClientIdOwnership,
+  deriveClientIdFromDid,
+  isDerivedClientId
 } from './clientid-attestation'
 
 // Yjs security: hash chain integration (Step 08)

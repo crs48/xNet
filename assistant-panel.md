@@ -1,0 +1,48 @@
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - banner [ref=e6]:
+      - button "Open system menu" [ref=e9] [cursor=pointer]
+    - main [ref=e14]:
+      - generic:
+        - generic:
+          - button
+          - textbox "Workspace Canvas" [ref=e19]: cdp-durability-1785201763836
+          - generic:
+            - application "Canvas"
+      - generic [ref=e141]:
+        - generic [ref=e142]:
+          - combobox [ref=e143]:
+            - option "xNet Cloud (managed, metered) — unavailable"
+            - option "Local bridge (Claude Code / Codex subscription)" [selected]
+            - option "Cloud API key (Anthropic / OpenAI / OpenRouter) — unavailable"
+            - option "Local model (Ollama / LM Studio)"
+            - option "In-browser model (WebLLM, WebGPU)"
+            - option "Chrome built-in AI (Gemini Nano) — unavailable"
+          - generic "This assistant can search and read your workspace itself. It cannot make changes." [ref=e144]: searches workspace
+        - generic [ref=e145]:
+          - generic [ref=e147]: Running claude · v3.0.0
+          - combobox "Bridge agent" [ref=e148]:
+            - option "Claude Code" [selected]
+            - option "Codex"
+            - option "Gemini CLI"
+            - option "OpenCode"
+        - generic [ref=e149]:
+          - textbox "Bridge pairing code" [ref=e150]: dJZdmC4OJDLFIw2g5Y_FiDG7INHCJeSC
+          - paragraph [ref=e151]:
+            - text: Paste the code
+            - code [ref=e152]: xnet bridge serve
+            - text: prints. Sent only to your local bridge — never to our servers.
+        - generic [ref=e153]:
+          - paragraph [ref=e157]: Ask about your workspace, using your own model or API key.
+          - paragraph [ref=e158]: The assistant reads your pages and data for context; your model runs locally or on your own key — never on our servers.
+        - generic [ref=e159] [cursor=pointer]:
+          - checkbox "Semantic search (beta) — find context by meaning, on device" [ref=e160]
+          - generic [ref=e161]: Semantic search (beta) — find context by meaning, on device
+        - generic [ref=e162]:
+          - textbox "Message…" [ref=e163]
+          - button "Send" [disabled] [ref=e164]
+      - generic [ref=e75]:
+        - button "Canvas" [ref=e168] [cursor=pointer]
+        - button "Command palette (Mod+Shift+P)" [ref=e112] [cursor=pointer]:
+          - generic [ref=e116]: Command palette
+  - generic "Toggle DevTools (⌘⇧D)" [ref=e135]

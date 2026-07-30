@@ -3,7 +3,6 @@
  */
 
 import type { NodeQueryDescriptor, NodeQueryResult } from './query'
-import { applyNodeQueryDescriptor } from './query'
 import type {
   ApplyNodeBatchInput,
   ApplyNodeBatchResult,
@@ -16,13 +15,12 @@ import type {
 } from './types'
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { SchemaIRI } from '../schema/node'
-import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
+import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator, LwwStamp } from '@xnetjs/core'
+import { LWW_TIEBREAK_KEY_VERSION, compareLwwStamps, computeLwwTiebreakKey } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
 import { describe, it, expect, vi } from 'vitest'
-import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
-import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import {
   LensRegistry,
   SchemaDefinitionSchema,
@@ -31,8 +29,11 @@ import {
   addDefault,
   convert
 } from '../schema'
+import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import { MemoryNodeStorageAdapter } from './memory-adapter'
 import { PermissionError } from './permission-error'
+import { applyNodeQueryDescriptor } from './query'
+import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
 import { NodeStore } from './store'
 
 // Test fixtures
@@ -609,6 +610,75 @@ describe('NodeStore', () => {
       expect(await target.store.get('bad-node')).toBeNull()
     })
 
+    it('verifyRemoteChanges reports per-change verdicts positionally (0357)', async () => {
+      const source = createTestStore()
+      const target = createTestStore()
+      await source.store.initialize()
+      await target.store.initialize()
+
+      const first = await source.store.create({
+        id: 'verify-1',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'One' }
+      })
+      const second = await source.store.create({
+        id: 'verify-2',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Two' }
+      })
+      const [changeOne] = await source.store.getChanges(first.id)
+      const [changeTwo] = await source.store.getChanges(second.id)
+
+      // Tampered payload → hash no longer matches.
+      const tampered: NodeChange = {
+        ...changeOne,
+        payload: { ...changeOne.payload, properties: { title: 'Forged' } }
+      }
+      // Intact hash, but the signature is garbage.
+      const forgedSignature: NodeChange = {
+        ...changeTwo,
+        signature: new Uint8Array(64)
+      }
+
+      const verdicts = await target.store.verifyRemoteChanges([
+        changeOne,
+        tampered,
+        forgedSignature,
+        changeTwo
+      ])
+
+      expect(verdicts).toEqual([true, false, false, true])
+    })
+
+    it('preVerified never bypasses authorization (0357)', async () => {
+      // The preVerified seam skips ONLY crypto. A change that passes
+      // verification but fails authz must still be refused.
+      const source = createTestStore()
+      await source.store.initialize()
+
+      const node = await source.store.create({
+        id: 'authz-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Guarded' }
+      })
+      const [change] = await source.store.getChanges(node.id)
+
+      const target = createTestStore()
+      const guarded = new NodeStore({
+        storage: target.adapter,
+        authorDID: target.did,
+        signingKey: target.privateKey,
+        authEvaluator: createAuthEvaluator(() => false)
+      })
+      await guarded.initialize()
+
+      const verdicts = await guarded.verifyRemoteChanges([change])
+      expect(verdicts).toEqual([true])
+
+      await guarded.applyRemoteChange(change, { preVerified: true })
+      expect(await guarded.get('authz-node')).toBeNull()
+    })
+
     it('should track conflicts', async () => {
       const store1Setup = createTestStore()
       const store2Setup = createTestStore()
@@ -652,6 +722,128 @@ describe('NodeStore', () => {
       // Find the conflict for the 'value' property
       const valueConflict = conflicts.find((c) => c.key === 'value')
       expect(valueConflict).toBeDefined()
+      // A winning cross-author write over a differing value is informational
+      // LWW housekeeping, not a true conflict (exploration 0296).
+      expect(valueConflict?.kind).toBe('lww-resolution')
+    })
+
+    // Conflict-predicate golden vectors (exploration 0296): same-author
+    // causal history, idempotent replays, and equal values never record;
+    // only divergent cross-author writes do.
+    it('does not record conflicts for same-author sequential writes', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      await store.create({ id: 'seq-node', schemaId: TEST_SCHEMA, properties: { value: 'a' } })
+      await store.update('seq-node', { properties: { value: 'b' } })
+      await store.update('seq-node', { properties: { value: 'c' } })
+
+      expect(store.getRecentConflicts()).toHaveLength(0)
+    })
+
+    it('does not record a conflict when a stale same-author change is applied', async () => {
+      const source = createTestStore()
+      const target = createTestStore()
+      await source.store.initialize()
+      await target.store.initialize()
+
+      await source.store.create({
+        id: 'stale-node',
+        schemaId: TEST_SCHEMA,
+        properties: { value: 'v1' }
+      })
+      await source.store.update('stale-node', { properties: { value: 'v2' } })
+      await source.store.update('stale-node', { properties: { value: 'v3' } })
+      const [createChange, update1, update2] = await source.store.getChanges('stale-node')
+
+      // Deliver out of order: v3 lands, then the stale v2 arrives late (the
+      // hub-backfill shape from exploration 0296). Same author on both sides
+      // is causal history, not a conflict.
+      await target.store.applyRemoteChange(createChange)
+      await target.store.applyRemoteChange(update2)
+      await target.store.applyRemoteChange(update1)
+
+      const node = await target.store.get('stale-node')
+      expect(node!.properties.value).toBe('v3')
+      expect(target.store.getRecentConflicts()).toHaveLength(0)
+    })
+
+    it('applies a redelivered change idempotently without growing the log', async () => {
+      const source = createTestStore()
+      const target = createTestStore()
+      await source.store.initialize()
+      await target.store.initialize()
+
+      await source.store.create({
+        id: 'replay-node',
+        schemaId: TEST_SCHEMA,
+        properties: { value: 'once' }
+      })
+      const [createChange] = await source.store.getChanges('replay-node')
+
+      await target.store.applyRemoteChange(createChange)
+      await target.store.applyRemoteChange(createChange)
+      await target.store.applyRemoteChange(createChange)
+
+      const log = await target.store.getChanges('replay-node')
+      expect(log).toHaveLength(1)
+      expect((await target.store.get('replay-node'))!.properties.value).toBe('once')
+      expect(target.store.getRecentConflicts()).toHaveLength(0)
+    })
+
+    it('records a true conflict when a cross-author write loses to a newer local value', async () => {
+      const source = createTestStore()
+      const target = createTestStore()
+      await source.store.initialize()
+      await target.store.initialize()
+
+      await source.store.create({
+        id: 'cross-node',
+        schemaId: TEST_SCHEMA,
+        properties: { value: 'origin' }
+      })
+      await source.store.update('cross-node', { properties: { value: 'source-edit' } })
+      const [createChange, sourceUpdate] = await source.store.getChanges('cross-node')
+
+      await target.store.applyRemoteChange(createChange)
+      // Target edits locally first (fresh lamport beats the source update)…
+      await target.store.update('cross-node', { properties: { value: 'target-edit' } })
+      target.store.clearConflicts()
+      // …then the divergent cross-author write arrives late and loses.
+      await target.store.applyRemoteChange(sourceUpdate)
+
+      const node = await target.store.get('cross-node')
+      expect(node!.properties.value).toBe('target-edit')
+
+      const conflicts = target.store.getRecentConflicts()
+      expect(conflicts).toHaveLength(1)
+      expect(conflicts[0]).toMatchObject({
+        key: 'value',
+        localValue: 'target-edit',
+        remoteValue: 'source-edit',
+        resolved: 'local',
+        kind: 'conflict'
+      })
+    })
+
+    it('does not record anything when a cross-author write carries an equal value', async () => {
+      const source = createTestStore()
+      const target = createTestStore()
+      await source.store.initialize()
+      await target.store.initialize()
+
+      await source.store.create({
+        id: 'equal-node',
+        schemaId: TEST_SCHEMA,
+        properties: { value: 'same' }
+      })
+      const [createChange] = await source.store.getChanges('equal-node')
+      await target.store.applyRemoteChange(createChange)
+
+      // Cross-author write of the identical value: no divergence to report.
+      await target.store.update('equal-node', { properties: { value: 'same' } })
+
+      expect(target.store.getRecentConflicts()).toHaveLength(0)
     })
   })
 
@@ -1065,8 +1257,30 @@ describe('deterministic node import', () => {
     expect(result.updated).toBe(1)
     expect(result.nodes).toHaveLength(1)
     expect(result.changes[1].parentHash).toBe(result.changes[0].hash)
+    // Both writes are same-author, same node, same property at the same logical
+    // time — a degenerate tie. Under protocol v4 (exploration 0305) the winner
+    // is decided by the grinding-resistant tiebreak key, not "first applied".
+    // Fold the two actual changes through the real comparator to get it.
+    const stampFor = (c: (typeof result.changes)[number]): LwwStamp => ({
+      lamport: c.lamport,
+      wallTime: c.wallTime,
+      author: c.authorDID,
+      ...((c.protocolVersion ?? 0) >= LWW_TIEBREAK_KEY_VERSION
+        ? {
+            tiebreakKey: computeLwwTiebreakKey(
+              c.authorDID,
+              'title',
+              (c.payload.properties as Record<string, unknown>).title
+            )
+          }
+        : {})
+    })
+    const winner =
+      compareLwwStamps(stampFor(result.changes[1]), stampFor(result.changes[0])) > 0
+        ? 'Second'
+        : 'First'
     await expect(store.get('duplicate-import-node')).resolves.toMatchObject({
-      properties: { title: 'First' }
+      properties: { title: winner }
     })
   })
 
@@ -1579,7 +1793,7 @@ describe('authorization enforcement', () => {
     ).rejects.toThrow(PermissionError)
 
     expect(auth.can).toHaveBeenCalledWith({
-      action: 'write',
+      action: 'create',
       nodeId,
       patch: properties
     })
@@ -1647,6 +1861,60 @@ describe('authorization enforcement', () => {
     expect(await store.get(node.id)).toBeNull()
     expect(await store.list({ includeDeleted: true })).toHaveLength(0)
     expect(callback).toHaveBeenCalledTimes(2)
+  })
+
+  it('checks remote creates as the create action against a draft node (0304)', async () => {
+    const local = createTestStore()
+    const remote = createTestStore()
+
+    await local.store.initialize()
+    await remote.store.initialize()
+
+    const evaluator = createAuthEvaluator(() => true)
+    const store = new NodeStore({
+      storage: local.adapter,
+      authorDID: local.did,
+      signingKey: local.privateKey,
+      authEvaluator: evaluator
+    })
+    await store.initialize()
+
+    const node = await remote.store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Collaborator create' }
+    })
+    const [createChange] = await remote.store.getChanges(node.id)
+
+    await store.applyRemoteChange(createChange)
+
+    // The create was evaluated as 'create' with the payload-built draft — the
+    // node did not exist locally, so nothing else could carry its schema.
+    expect(evaluator.can).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: remote.did,
+        action: 'create',
+        nodeId: node.id,
+        node: expect.objectContaining({
+          schemaId: TEST_SCHEMA,
+          createdBy: remote.did
+        })
+      })
+    )
+    expect(await store.get(node.id)).not.toBeNull()
+
+    // A follow-up mutation of the now-existing node checks as 'update'.
+    await remote.store.update(node.id, { properties: { title: 'Edited' } })
+    const updateChange = (await remote.store.getChanges(node.id)).at(-1)!
+    await store.applyRemoteChange(updateChange)
+
+    expect(evaluator.can).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        action: 'update',
+        nodeId: node.id,
+        node: undefined
+      })
+    )
+    expect((await store.get(node.id))?.properties.title).toBe('Edited')
   })
 
   it('shrinks the candidate set via storage for auth reads without exposing hidden counts', async () => {

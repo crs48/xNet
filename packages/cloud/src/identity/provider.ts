@@ -28,6 +28,14 @@ export interface AuthorizationUrlOptions {
   screenHint?: 'sign-up' | 'sign-in'
   /** Override the configured redirect URI for this request. */
   redirectUri?: string
+  /**
+   * Enterprise SSO (0338 Phase 4): route this sign-in through a specific SSO
+   * connection or organization instead of the hosted AuthKit UI. One of these
+   * pins the flow to an enterprise IdP (SAML / OIDC directory), which is a paid
+   * WorkOS per-connection add-on.
+   */
+  connectionId?: string
+  organizationId?: string
 }
 
 export interface BillingIdentityProvider {

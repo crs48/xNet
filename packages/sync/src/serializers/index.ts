@@ -21,6 +21,7 @@ import { CURRENT_PROTOCOL_VERSION } from '../change'
 import { v1Serializer } from './v1'
 import { v2Serializer } from './v2'
 import { v3Serializer } from './v3'
+import { v4Serializer } from './v4'
 
 // Re-export types
 export type {
@@ -37,6 +38,7 @@ export type {
 export { V1Serializer, v1Serializer } from './v1'
 export { V2Serializer, v2Serializer } from './v2'
 export { V3Serializer, v3Serializer, type V3WireFormat } from './v3'
+export { V4Serializer, v4Serializer } from './v4'
 
 // ─── Serializer Registry Implementation ──────────────────────────────────────
 
@@ -53,6 +55,7 @@ class DefaultSerializerRegistry implements SerializerRegistry {
     this.register(v1Serializer)
     this.register(v2Serializer)
     this.register(v3Serializer)
+    this.register(v4Serializer)
   }
 
   get(version: number): ChangeSerializer | undefined {

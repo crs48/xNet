@@ -31,7 +31,7 @@ async function advanceOnboarding(page: Page) {
     }
 
     // Check if we're already on the home screen
-    const homeHeading = page.getByRole('heading', { name: /all documents/i })
+    const homeHeading = page.getByRole('heading', { name: /all documents|everything/i })
     if ((await homeHeading.count()) > 0 && (await homeHeading.first().isVisible())) {
       console.log('✓ Already on home screen')
       break
@@ -70,7 +70,7 @@ test.describe('Authorization Core Functionality', () => {
     // Wait for home screen
     await expect(
       page
-        .getByRole('heading', { name: /all documents/i })
+        .getByRole('heading', { name: /all documents|everything/i })
         .or(page.getByText('Pages', { exact: true }))
     ).toBeVisible({ timeout: 10_000 })
 
@@ -92,8 +92,9 @@ test.describe('Authorization Core Functionality', () => {
 
     // ─── Test 2: Create a Database ──────────────────────────────────────
 
-    // Navigate back to home
-    await page.click('[aria-label*="Home"], [title*="Home"], a[href="/"]')
+    // Navigate back to home. The single-shell workbench (0284) has no Home
+    // affordance — reload the root instead.
+    await page.goto(process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:5173')
     await page.waitForTimeout(1000)
 
     // Create database

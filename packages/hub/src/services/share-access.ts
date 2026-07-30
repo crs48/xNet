@@ -31,13 +31,28 @@ export const roleFromActions = (actions: string[]): ShareLinkRole => {
 /**
  * Schema IRIs (version-agnostic prefixes) a `comment` grantee may still
  * write. Comments and reactions are their own node kinds, so the gate is a
- * schema allowlist, not content inspection.
+ * schema allowlist, not content inspection. Chat messages count as
+ * "commenting" too — a comment-role channel share means "can participate in
+ * the conversation, can't edit the channel itself" (0290 follow-up).
  */
-const COMMENT_SCHEMA_PREFIXES = ['xnet://xnet.fyi/Comment@', 'xnet://xnet.fyi/Reaction@']
+const COMMENT_SCHEMA_PREFIXES = [
+  'xnet://xnet.fyi/Comment@',
+  'xnet://xnet.fyi/Reaction@',
+  'xnet://xnet.fyi/ChatMessage@'
+]
 
 export const isCommentSchema = (schemaId: string | undefined): boolean =>
   typeof schemaId === 'string' &&
   COMMENT_SCHEMA_PREFIXES.some((prefix) => schemaId.startsWith(prefix))
+
+/**
+ * Profile rooms (`profile-<did>`, see `profileNodeId` in @xnetjs/data) are
+ * hub-published identity: any authenticated DID may read them so shared
+ * content can render author names/avatars, but ONLY the subject DID may
+ * write. Returns the subject DID, or null when the doc isn't a profile.
+ */
+export const profileSubjectFromDocId = (docId: string): string | null =>
+  docId.startsWith('profile-did:') ? docId.slice('profile-'.length) : null
 
 /**
  * Share-grant status of a DID for a doc:
@@ -171,6 +186,8 @@ export class ShareAccessService {
     docId: string,
     schemaId: string | undefined
   ): Promise<boolean> {
+    const profileSubject = profileSubjectFromDocId(docId)
+    if (profileSubject) return did === profileSubject
     const status = await this.getStatusForNode(did, docId)
     if (status === 'none' || status === 'write') return true
     if (status === 'comment') return isCommentSchema(schemaId)
@@ -182,6 +199,8 @@ export class ShareAccessService {
    * Comment grantees cannot — page bodies are Yjs, comments are node-changes.
    */
   async canWriteYjs(did: string, docId: string): Promise<boolean> {
+    const profileSubject = profileSubjectFromDocId(docId)
+    if (profileSubject) return did === profileSubject
     const status = await this.getStatusForNode(did, docId)
     return status === 'none' || status === 'write'
   }

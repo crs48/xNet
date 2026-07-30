@@ -2,10 +2,17 @@
  * @xnetjs/hub - UCAN authentication helpers.
  */
 
+import type { RevocationService } from './revocation'
 import type { HubConfig } from '../types'
 import type { IncomingMessage } from 'http'
 import type { WebSocket } from 'ws'
-import { getCapabilities, type UCANToken, verifyUCAN } from '@xnetjs/identity'
+import {
+  getCapabilities,
+  rootIssuers,
+  ucanTokenId,
+  type UCANToken,
+  verifyUCAN
+} from '@xnetjs/identity'
 import { actionAllows, resourceAllows } from './capabilities'
 
 export type AuthSession = {
@@ -26,6 +33,25 @@ const createAnonymousSession = (): AuthSession => ({
   capabilities: [{ with: '*', can: '*' }],
   token: null
 })
+
+/**
+ * Enforce the trusted-root policy (exploration 0337): when `trustedDids` is
+ * configured, every root issuer of the token's delegation chain must be
+ * trusted. A proof-less token roots at its own issuer, so self-issued
+ * capability claims from unknown DIDs stop here. Returns an error string, or
+ * null when the token passes (or no policy is set).
+ */
+const checkTrustedRoots = (token: string, config: HubConfig): string | null => {
+  const trusted = config.trustedDids
+  if (!trusted || trusted.length === 0) return null
+  const roots = rootIssuers(token)
+  if (roots.length === 0) return 'UCAN has no resolvable delegation root'
+  const untrusted = roots.filter((root) => !trusted.includes(root))
+  if (untrusted.length > 0) {
+    return 'UCAN does not chain to a trusted root'
+  }
+  return null
+}
 
 const createAuthContext = (session: AuthSession): AuthContext => ({
   did: session.did,
@@ -49,6 +75,25 @@ const parseWebSocketProtocols = (value: string | string[] | undefined): string[]
     .split(',')
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0)
+}
+
+/**
+ * Audience enforcement (0307-B): a token is only valid at THIS hub. Enforcement
+ * is triggered by a configured `hubDid` — the canonical hub identifier — which
+ * is also what the server.ts startup warning tells operators to set. When
+ * `hubDid` is present the accepted audiences are the hub's DID *or* its
+ * `publicUrl` (real clients mint `aud` as the URL they connected to, before
+ * they have discovered the DID via /health). A hub with no `hubDid` cannot
+ * name itself and skips enforcement (the startup warning fires).
+ */
+const normalizeAudience = (value: string): string => value.replace(/\/+$/, '')
+
+export const audienceAccepted = (aud: string, config: HubConfig): boolean => {
+  if (!config.hubDid) return true
+  const allowed = [config.hubDid]
+  if (config.publicUrl) allowed.push(normalizeAudience(config.publicUrl))
+  const normalized = normalizeAudience(aud)
+  return allowed.includes(normalized) || allowed.includes(aud)
 }
 
 const getTokenFromRequest = (req: IncomingMessage): string | null => {
@@ -76,7 +121,8 @@ const getTokenFromRequest = (req: IncomingMessage): string | null => {
 export const authenticateConnection = async (
   ws: WebSocket,
   req: IncomingMessage,
-  config: HubConfig
+  config: HubConfig,
+  revocation?: RevocationService
 ): Promise<AuthSession | null> => {
   if (!config.auth) {
     const session = createAnonymousSession()
@@ -96,9 +142,21 @@ export const authenticateConnection = async (
     return null
   }
 
-  // Verify audience matches this hub's DID (if configured)
-  if (config.hubDid && result.payload.aud !== config.hubDid) {
+  // Audience must name this hub (DID or public URL) — a token minted for
+  // another hub is not valid here (0307-B).
+  if (!audienceAccepted(result.payload.aud, config)) {
     ws.close(4401, 'UCAN audience does not match this hub')
+    return null
+  }
+
+  if (revocation?.isRevoked(ucanTokenId(token), result.payload)) {
+    ws.close(4403, 'Token revoked')
+    return null
+  }
+
+  const rootError = checkTrustedRoots(token, config)
+  if (rootError) {
+    ws.close(4403, rootError)
     return null
   }
 
@@ -127,7 +185,8 @@ const parseBearerToken = (value: string | null): string | null => {
 
 export const authenticateHttpRequest = (
   authHeader: string | null,
-  config: HubConfig
+  config: HubConfig,
+  revocation?: RevocationService
 ): AuthContext | null => {
   if (!config.auth) {
     return createAuthContext(createAnonymousSession())
@@ -139,8 +198,12 @@ export const authenticateHttpRequest = (
   const result = verifyUCAN(token)
   if (!result.valid || !result.payload) return null
 
-  // Verify audience matches this hub's DID (if configured)
-  if (config.hubDid && result.payload.aud !== config.hubDid) return null
+  // Audience must name this hub (DID or public URL) — see audienceAccepted.
+  if (!audienceAccepted(result.payload.aud, config)) return null
+
+  if (revocation?.isRevoked(ucanTokenId(token), result.payload)) return null
+
+  if (checkTrustedRoots(token, config) !== null) return null
 
   return createAuthContext({
     did: result.payload.iss,

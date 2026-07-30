@@ -89,6 +89,20 @@ export interface SyncManagerConfig {
   onDocEvict?: (nodeId: string, doc: Y.Doc) => void
   /** Optional room for node-change relay (enables NodeStore sync via hub) */
   nodeSyncRoom?: string
+  /**
+   * Production Yjs history capture (exploration 0329): wired to
+   * `DocumentHistoryEngine` (duck-typed to avoid a hard coupling). Steady
+   * debounce persists go through the engine's own min-interval throttle
+   * (`captureSnapshot`); session boundaries (evict/flush/destroy) force a
+   * capture so a doc never leaves memory without a restorable snapshot.
+   */
+  documentHistory?: DocumentHistoryCapture
+}
+
+/** Duck-typed slice of DocumentHistoryEngine used for capture wiring. */
+export interface DocumentHistoryCapture {
+  captureSnapshot(nodeId: string, doc: Y.Doc): Promise<unknown>
+  forceCapture(nodeId: string, doc: Y.Doc): Promise<unknown>
 }
 
 export type SyncReconciliationOptions = {
@@ -116,6 +130,15 @@ export interface SyncManager {
   track(nodeId: string, schemaId: string): void
   /** Stop tracking a Node */
   untrack(nodeId: string): void
+
+  /**
+   * Subscribe (receive-only) to a share room — e.g. a channel's
+   * `xnet-channel-<id>` — so grant-covered nodes the hub fans in reach the
+   * local store (exploration 0298). Idempotent. No-op without a node store.
+   */
+  subscribeShareRoom(room: string): void
+  /** Stop receiving a share room's changes. */
+  unsubscribeShareRoom(room: string): void
 
   /** Acquire a Y.Doc (used by useNode) */
   acquire(nodeId: string): Promise<Y.Doc>
@@ -287,9 +310,10 @@ function extractBlobCids(doc: Y.Doc): string[] {
   const cids: string[] = []
   const seen = new Set<string>()
 
-  // The editor stores content in a Y.XmlFragment named 'default' or 'prosemirror'
-  // Try known fragment names
-  for (const name of ['default', 'prosemirror', '']) {
+  // The editor stores content in a Y.XmlFragment — 'content-v4' (BlockNote,
+  // 0312), 'content' (legacy TipTap), or the older 'default'/'prosemirror'
+  // names. Scan every known fragment name.
+  for (const name of ['content-v4', 'content', 'default', 'prosemirror', '']) {
     let fragment: Y.XmlFragment | undefined
     try {
       fragment = doc.getXmlFragment(name)
@@ -378,7 +402,20 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       // Clear broadcastDocs so re-acquisition registers a fresh handler
       broadcastDocs.delete(nodeId)
       config.onDocEvict?.(nodeId, doc)
-    }
+    },
+    onDocPersist: config.documentHistory
+      ? (nodeId, doc, context) => {
+          const history = config.documentHistory!
+          // Fire-and-forget: capture must never block or fail a persist.
+          const capture =
+            context === 'debounce'
+              ? history.captureSnapshot(nodeId, doc) // engine min-interval throttles
+              : history.forceCapture(nodeId, doc) // session boundary
+          void capture.catch((err) =>
+            console.warn(`[SyncManager] Yjs snapshot capture failed for ${nodeId}:`, err)
+          )
+        }
+      : undefined
   })
   const registry = createRegistry({
     storage: createRegistryStorageAdapter(config.storage),
@@ -469,8 +506,21 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   // path that reads the queue (drain on connect) awaits this first.
   let offlineQueueReady: Promise<void> = Promise.resolve()
   const nodeSyncProvider = config.nodeSyncRoom
-    ? new NodeStoreSyncProvider(config.nodeStore, config.nodeSyncRoom)
+    ? new NodeStoreSyncProvider(
+        config.nodeStore,
+        config.nodeSyncRoom,
+        false,
+        // Draft privacy (0329): device-local draft nodes/clones never publish
+        // to the personal node-sync room.
+        (change) => !config.nodeStore.isDraftPrivate(change.payload.nodeId)
+      )
     : null
+  // Receive-only providers for share rooms (channels + workspaces, 0298), opened
+  // at runtime when a view mounts, a link is claimed, or the boot resync runs.
+  // Refcounted: several callers may subscribe to the same room (e.g. the open
+  // ChannelView AND the boot resync) — the room stays open until the last one
+  // unsubscribes.
+  const shareRoomProviders = new Map<string, { provider: NodeStoreSyncProvider; refs: number }>()
   // Wrap blobStore to auto-announce new blobs to peers on put()
   let blobSync: BlobSyncProvider | null = null
   if (config.blobStore) {
@@ -1079,6 +1129,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       connection.connect()
 
       nodeSyncProvider?.attach(connection)
+      for (const entry of shareRoomProviders.values()) entry.provider.attach(connection)
 
       // Start blob sync if configured
       blobSync?.start()
@@ -1107,6 +1158,8 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       blobSync?.stop()
 
       nodeSyncProvider?.detach()
+      for (const entry of shareRoomProviders.values()) entry.provider.detach()
+      shareRoomProviders.clear()
 
       // Leave all rooms
       for (const nodeId of Array.from(roomCleanups.keys())) {
@@ -1143,6 +1196,27 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       registry.untrack(nodeId)
       scheduleRegistrySave()
       leaveNodeRoom(nodeId)
+    },
+
+    subscribeShareRoom(room) {
+      const existing = shareRoomProviders.get(room)
+      if (existing) {
+        existing.refs += 1
+        return
+      }
+      const provider = new NodeStoreSyncProvider(config.nodeStore, room, true)
+      shareRoomProviders.set(room, { provider, refs: 1 })
+      // Attach now if the connection exists; otherwise start() attaches it.
+      provider.attach(connection)
+    },
+
+    unsubscribeShareRoom(room) {
+      const entry = shareRoomProviders.get(room)
+      if (!entry) return
+      entry.refs -= 1
+      if (entry.refs > 0) return
+      entry.provider.detach()
+      shareRoomProviders.delete(room)
     },
 
     async acquire(nodeId) {

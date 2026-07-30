@@ -1,0 +1,18 @@
+{
+  "id": "2026-07-10-shared-chat-channels-now-sync-their-mess",
+  "date": "July 10, 2026",
+  "title": "Shared chat channels now sync their messages and members",
+  "summary": "Opening a shared channel link now shows the real channel — its name, full message history, and members' names/avatars — and new messages arrive live. Previously a shared channel opened empty.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "sync"
+  ],
+  "pr": 467,
+  "mergedAt": "2026-07-11T19:30:06Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

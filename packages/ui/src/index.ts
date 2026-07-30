@@ -10,6 +10,8 @@ export { cn, cva, type VariantProps } from './utils'
 
 // ─── Primitives (existing, migrated to semantic tokens) ───────────
 export { Button, buttonVariants, type ButtonProps } from './primitives/Button'
+export { ISLAND_SURFACE, ISLAND_CHROME, ISLAND_OVERLAY } from './primitives/island'
+export { POPUP_LAYER } from './primitives/layers'
 export {
   CodeEditor,
   codeMirrorLanguage,
@@ -100,6 +102,35 @@ export {
   type MenuProps,
   type MenuItemProps
 } from './primitives/Menu'
+export {
+  ContextMenu,
+  ContextMenuRoot,
+  ContextMenuTrigger,
+  ContextMenuPortal,
+  ContextMenuPositioner,
+  ContextMenuGroup,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuCheckboxItem,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
+  type ContextMenuProps,
+  type ContextMenuItemProps
+} from './primitives/ContextMenu'
+export {
+  ActionMenuList,
+  ActionDropdownItems,
+  ActionKebabMenu,
+  visibleActions,
+  ACTION_SEPARATOR,
+  type Action
+} from './composed/ActionMenu'
 export {
   Tooltip,
   TooltipProvider,
@@ -272,12 +303,15 @@ export { SettingsPanel, SettingsGroup, SettingRow, SettingToggle } from './compo
 // ─── Comment Components ───────────────────────────────────────────
 export {
   CommentBubble,
+  CommentIsland,
   CommentPopover,
   MentionTextArea,
   useCommentPopover,
   OrphanedThreadList,
   ThreadPicker,
   type CommentBubbleProps,
+  type CommentIslandProps,
+  type CommentIslandMode,
   type CommentPopoverProps,
   type MentionTextAreaProps,
   type CommentData,
@@ -302,11 +336,33 @@ export {
   type ThemeVariant,
   type Density
 } from './theme/ThemeProvider'
+// The token-override contract without React — usable from outside a provider
+// (the point-and-change overlay is mounted at the app root, 0399).
+export {
+  applyTokenOverrides,
+  clearThemeToken,
+  clearThemeTokens,
+  readTokenOverrides,
+  setThemeToken,
+  tokenStorageKey,
+  writeTokenOverrides,
+  type TokenOverrides
+} from './theme/tokens'
 
 // ─── Motion (exploration 0199) ─────────────────────────────────────
 // The canonical motion vocabulary's React surface. CSS tokens/keyframes
 // live in ./theme/motion.css; see docs/MOTION.md for the style guide.
 export { Presence, type PresenceProps, type PresenceMotion } from './motion/Presence'
+export {
+  useAnchoredPosition,
+  placeAnchored,
+  pointAnchor,
+  toAnchorLike,
+  type AnchorLike,
+  type AnchorSide,
+  type AnchoredPosition,
+  type VirtualAnchor
+} from './motion/useAnchoredPosition'
 export {
   useViewTransition,
   startViewTransition,
@@ -425,7 +481,7 @@ export {
   type ContrastResult
 } from './utils/contrast'
 
-// ─── Link enrichment (0171) ───────────────────────────────────────
+// ─── Link enrichment (0171) + up-res (0295) ───────────────────────
 export {
   findLinkTokens,
   mergeLinkTokens,
@@ -435,6 +491,13 @@ export {
   type LinkTokenType,
   type TextSegment
 } from './utils/linkify'
+export {
+  LinkUpresProvider,
+  useLinkUpres,
+  type LinkUpresRenderer,
+  type UpresLink
+} from './components/LinkUpres'
+export { LinkPreviewCard, type LinkPreviewCardProps } from './components/LinkPreviewCard'
 
 // ─── Drag & Drop (0166 unified node transfer) ─────────────────────
 export {

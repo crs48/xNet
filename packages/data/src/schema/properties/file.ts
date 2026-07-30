@@ -16,6 +16,12 @@ export interface FileRef {
   mimeType: string
   /** File size in bytes */
   size: number
+  /** Intrinsic width in pixels, for images and video (0385 W4) */
+  width?: number
+  /** Intrinsic height in pixels, for images and video (0385 W4) */
+  height?: number
+  /** CID of a small preview image stored as its own blob (0385 W4) */
+  thumbCid?: string
 }
 
 export interface FileOptions {

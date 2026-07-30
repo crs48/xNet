@@ -70,6 +70,25 @@ describe('convertCellValue', () => {
     expect(convertCellValue('something', 'text', 'relation')).toEqual({ value: null })
   })
 
+  it('text → geo parses "lat, lng" pairs and rejects garbage', () => {
+    expect(convertCellValue('52.52, 13.405', 'text', 'geo')).toEqual({
+      value: { lat: 52.52, lng: 13.405 }
+    })
+    expect(convertCellValue('99, 0', 'text', 'geo')).toEqual({ value: null })
+    expect(convertCellValue('somewhere', 'text', 'geo')).toEqual({ value: null })
+  })
+
+  it('geo → text round-trips through the pair rendering', () => {
+    expect(convertCellValue({ lat: 52.52, lng: 13.405 }, 'geo', 'text')).toEqual({
+      value: '52.52, 13.405'
+    })
+    expect(convertCellValue({ lat: 52.52, lng: 13.405 }, 'geo', 'geo')).toEqual({
+      value: { lat: 52.52, lng: 13.405 }
+    })
+    const back = convertCellValue('52.52, 13.405', 'text', 'geo')
+    expect(back.value).toEqual({ lat: 52.52, lng: 13.405 })
+  })
+
   it('person only accepts DIDs', () => {
     expect(convertCellValue('did:key:z6Mk', 'text', 'person')).toEqual({ value: 'did:key:z6Mk' })
     expect(convertCellValue('alice', 'text', 'person')).toEqual({ value: null })

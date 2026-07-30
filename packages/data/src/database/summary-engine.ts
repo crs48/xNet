@@ -92,6 +92,7 @@ const ALL_COLUMN_TYPES: ColumnType[] = [
   'checkbox',
   'date',
   'dateRange',
+  'geo',
   'select',
   'multiSelect',
   'person',

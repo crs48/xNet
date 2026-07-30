@@ -2,6 +2,11 @@
 
 Schema system, NodeStore, and Yjs CRDT engine for xNet. This is the central data package -- it defines how structured data and rich text documents are created, stored, and synced.
 
+> **Alpha software.** xNet is released but early: this package is on npm and
+> usable today, but its API can change between releases, sometimes without a
+> migration path. Pin your version. See the
+> [project README](https://github.com/crs48/xNet#readme) for what alpha means here.
+
 > **Status:** Mixed
 > Stable entrypoints: `@xnetjs/data/schema`, `@xnetjs/data/store`, `@xnetjs/data/updates`, `@xnetjs/data/awareness`
 > Experimental entrypoints: `@xnetjs/data/database`, `@xnetjs/data/auth`

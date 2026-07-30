@@ -1,0 +1,17 @@
+{
+  "id": "2026-07-07-databases-gain-a-form-view-with-public-s",
+  "date": "July 7, 2026",
+  "title": "Databases gain a Form view with public sharing",
+  "summary": "Turn any database into a form: build questions from fields with show-if rules, share a public link that needs no account, and collect responses as rows — validated and signed by your own device, never the server.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ],
+  "pr": 405,
+  "mergedAt": "2026-07-07T21:23:41Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

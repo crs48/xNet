@@ -82,6 +82,27 @@ crypto -> identity -> storage -> sync -> data -> react -> sdk
   - `pnpm typecheck`
   - `pnpm test`
 
+## Versioning
+
+xNet is **alpha**. Read [`STABILITY.md`](./STABILITY.md) before changing
+anything exported from a publishable package — it defines which surfaces carry
+a compatibility promise and which don't.
+
+Two rules matter when you touch `packages/*`:
+
+1. **Bump from the diff, not the commit prefix.** A removed or renamed export,
+   a changed signature, or a changed protocol/hash/wire contract is a
+   **major** — even if the commit says `fix:`. No JS tool can detect this for
+   us, so it is a human judgement, and the conservative call is the right one.
+2. **A protocol constant change is always a major.** `CURRENT_PROTOCOL_VERSION`,
+   `XNET_SYNC_ENVELOPE_VERSION`, `SCHEMA_VERSION`, `XNETPACK_FORMAT_VERSION` and
+   friends are wire-visible. The Stop hook enforces this; see
+   `scripts/changeset/assert-coverage.mjs`.
+
+The package version number is not a maturity claim (2.x is a historical
+artifact, and npm does not permit renumbering downward). The API tier is the
+real promise — see the committed `packages/*/etc/*.api.md` reports.
+
 ## Commit and hook requirements
 
 This repo uses Husky hooks on commit and push. Your commits must pass hooks.

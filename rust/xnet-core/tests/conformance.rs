@@ -1,4 +1,4 @@
-//! Run the shared XNet golden-vector corpus through `xnet-core`.
+//! Run the shared xNet golden-vector corpus through `xnet-core`.
 //!
 //! This proves the Rust kernel reproduces the protocol byte-for-byte — the same
 //! corpus the TypeScript reference and the Python/Swift kernels pass. Unlike the
@@ -141,6 +141,28 @@ fn l3_authz() {
         let is_auth = v["input"]["isAuthenticated"].as_bool().unwrap();
         assert_eq!(
             eval_auth_expr(expr, &roles, is_auth),
+            v["expected"]["allowed"].as_bool().unwrap(),
+            "{name} allowed"
+        );
+    }
+}
+
+#[test]
+fn l3_authz_actions() {
+    let vectors = load("authz-actions");
+    assert!(!vectors.is_empty());
+    for (name, v) in vectors {
+        let actions = &v["input"]["actions"];
+        let action = v["input"]["action"].as_str().unwrap();
+        let roles: HashSet<String> = v["input"]["roles"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r.as_str().unwrap().to_string())
+            .collect();
+        let is_auth = v["input"]["isAuthenticated"].as_bool().unwrap();
+        assert_eq!(
+            eval_auth_action(actions, action, &roles, is_auth),
             v["expected"]["allowed"].as_bool().unwrap(),
             "{name} allowed"
         );

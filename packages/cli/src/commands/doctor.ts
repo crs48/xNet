@@ -161,6 +161,8 @@ async function doctorCommand(options: DoctorOptions): Promise<void> {
   console.log(chalk.bold('\nxNet Health Check\n'))
   console.log(chalk.dim('─'.repeat(50)))
 
+  if (!options.json) await printBridgeHealth(chalk)
+
   try {
     // Find data directory
     let dataDir: string
@@ -609,6 +611,143 @@ async function importCommand(options: ImportOptions): Promise<void> {
   }
 }
 
+// ─── Agent bridge health (exploration 0391) ──────────────────────────────────
+
+/**
+ * Report whether the local agent bridge daemon (`xnet bridge serve`, :31416)
+ * is up — the AI panel's "Local bridge" tier depends on it. Never fatal: the
+ * bridge is optional, so this only informs.
+ */
+async function printBridgeHealth(chalk: Chalk): Promise<void> {
+  const url = 'http://127.0.0.1:31416/health'
+  console.log(chalk.bold('Agent bridge'))
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(1500) })
+    const body = (await res.json()) as { ok?: boolean; agent?: string; version?: string }
+    if (body.ok === true) {
+      console.log(
+        chalk.green(`✓ Bridge daemon running at :31416 (agent: ${body.agent ?? 'unknown'})`)
+      )
+    } else {
+      console.log(chalk.yellow('⚠ Something answered :31416 but it is not the xNet bridge.'))
+    }
+  } catch {
+    console.log(chalk.gray('○ No bridge daemon at :31416.'))
+    console.log(
+      chalk.gray(
+        '  Start one with `xnet bridge serve`, or install at login: `xnet bridge install`.'
+      )
+    )
+  }
+  console.log()
+}
+
+// ─── Agent access self-check (exploration 0393) ──────────────────────────────
+
+export type AgentAccessOptions = {
+  db?: string
+  apiUrl?: string
+  agent?: string
+  key?: string
+  json?: boolean
+}
+
+export type AgentAccessResult = {
+  ok: boolean
+  backend: { mode: 'remote' | 'local'; description: string } | null
+  fts: boolean
+  identity: string | null
+  errors: string[]
+}
+
+/**
+ * Verify a coding agent can reach xNet: a backend resolves (app API or a local
+ * store), full-text search answers, and a signing identity is known. Returns a
+ * structured result and, unless `json`, prints it plus the three-lane cheat
+ * sheet an agent uses (CLI, vault, MCP).
+ */
+export async function runAgentAccessCheck(
+  options: AgentAccessOptions = {}
+): Promise<AgentAccessResult> {
+  const { resolveAgentBackend } = await import('../utils/agent-backend.js')
+  const { createAgentServices } = await import('./agent.js')
+  const result: AgentAccessResult = {
+    ok: false,
+    backend: null,
+    fts: false,
+    identity: null,
+    errors: []
+  }
+
+  let dispose: (() => Promise<void>) | undefined
+  try {
+    const backend = await resolveAgentBackend({
+      ...(options.db ? { db: options.db } : {}),
+      ...(options.apiUrl ? { apiUrl: options.apiUrl } : {}),
+      ...(options.agent ? { agent: options.agent } : {}),
+      ...(options.key ? { key: options.key } : {})
+    })
+    dispose = () => backend.dispose()
+    result.backend = { mode: backend.mode, description: backend.description }
+    result.identity = backend.authorDID ?? (backend.mode === 'remote' ? 'app identity' : null)
+
+    const services = createAgentServices(backend)
+    try {
+      // A search exercising the FTS path; empty results still prove it answers.
+      await services.aiSurface.search({ query: 'xnet', limit: 1 })
+      result.fts = true
+    } catch (err) {
+      result.errors.push(`search/FTS failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
+    result.ok = result.fts
+  } catch (err) {
+    result.errors.push(err instanceof Error ? err.message : String(err))
+  } finally {
+    await dispose?.()
+  }
+
+  if (!options.json) await printAgentAccess(result)
+  return result
+}
+
+async function printAgentAccess(result: AgentAccessResult): Promise<void> {
+  const chalk = await getChalk()
+  console.log(chalk.bold('\nxNet agent access\n'))
+  if (result.backend) {
+    console.log(
+      `  ${chalk.green('✓')} backend: ${result.backend.mode} — ${result.backend.description}`
+    )
+  } else {
+    console.log(`  ${chalk.red('✗')} backend: none reachable`)
+  }
+  console.log(
+    result.fts
+      ? `  ${chalk.green('✓')} full-text search answers`
+      : `  ${chalk.red('✗')} full-text search unavailable`
+  )
+  console.log(
+    result.identity
+      ? `  ${chalk.green('✓')} signing identity: ${result.identity}`
+      : `  ${chalk.yellow('○')} signing identity: ephemeral (reads only)`
+  )
+  for (const err of result.errors) console.log(`  ${chalk.red('✗')} ${err}`)
+
+  console.log(chalk.bold('\nThree ways an agent reaches this workspace:'))
+  console.log(
+    chalk.gray('  1. CLI     — xnet search / query / db / checkout / commit (token-cheap)')
+  )
+  console.log(
+    chalk.gray('  2. Vault   — xnet checkout → edit files → xnet commit (Obsidian-style)')
+  )
+  console.log(chalk.gray('  3. MCP     — xnet mcp serve (stdio or --http) for shell-less clients'))
+  console.log(chalk.gray('\n  Set it up in one step: xnet connect claude-code   (or: codex)'))
+  console.log(
+    result.ok
+      ? chalk.green('\nStatus: ready\n')
+      : chalk.yellow('\nStatus: not ready — start the app or pass --db <path>\n')
+  )
+}
+
 // ─── Command Registration ────────────────────────────────────────────────────
 
 export function registerDoctorCommand(program: Command): void {
@@ -620,7 +759,20 @@ export function registerDoctorCommand(program: Command): void {
     .option('-q, --quick', 'Quick check (skip signature verification)')
     .option('--json', 'Output as JSON')
     .option('-v, --verbose', 'Show detailed issue information')
-    .action(async (opts: DoctorOptions) => {
+    .option(
+      '--agent-access',
+      'Check that a coding agent can reach the workspace (exploration 0393)'
+    )
+    .option('--db <path>', 'With --agent-access: standalone SQLite store to check')
+    .option('--api-url <url>', 'With --agent-access: local API URL to check')
+    .option('--agent <name>', 'With --agent-access: enrolled agent passport to check')
+    .action(async (opts: DoctorOptions & AgentAccessOptions & { agentAccess?: boolean }) => {
+      if (opts.agentAccess) {
+        const result = await runAgentAccessCheck(opts)
+        if (opts.json) console.log(JSON.stringify(result, null, 2))
+        if (!result.ok) process.exitCode = 1
+        return
+      }
       await doctorCommand(opts)
     })
 

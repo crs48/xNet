@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/runtime",
-  "version": "0.1.0",
+  "version": "0.6.0",
   "description": "Framework-agnostic xNet runtime: createXNetClient() and sync orchestration, usable from any framework, a CLI, a worker, or a Node service",
   "license": "MIT",
   "repository": {
@@ -12,8 +12,8 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "files": [

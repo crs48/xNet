@@ -1,0 +1,17 @@
+{
+  "id": "2026-07-09-securely-connect-the-app-to-your-local-m",
+  "date": "July 9, 2026",
+  "title": "Securely connect the app to your local model",
+  "summary": "You can now point the AI panel at a local Claude Code, Codex, or Ollama model through a hardened loopback bridge — protected by a pairing code, an origin allowlist, and Host-header checks so no other website can reach it.",
+  "highlights": [],
+  "tags": [
+    "ai"
+  ],
+  "pr": 439,
+  "mergedAt": "2026-07-09T15:40:34Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

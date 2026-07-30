@@ -27,6 +27,7 @@ export {
 export {
   defineSchema,
   type DefineSchemaOptions,
+  type PublishCapability,
   DEFAULT_SCHEMA_VERSION as SCHEMA_VERSION
 } from './define'
 
@@ -72,6 +73,9 @@ export {
   type DateRange
 } from './properties'
 
+// Property helpers - Spatial
+export { geo, isGeoPoint, type GeoOptions, type GeoPoint } from './properties'
+
 // Property helpers - Selection
 export {
   select,
@@ -109,6 +113,31 @@ export {
 
 // Built-in schemas
 export { PageSchema, type Page } from './schemas'
+export { POST_SCHEMA_IRI, PostSchema, comparePostsForFeed, type Post } from './schemas'
+export {
+  COURSE_SCHEMA_IRI,
+  LESSON_SCHEMA_IRI,
+  LESSON_PROGRESS_SCHEMA_IRI,
+  CourseSchema,
+  LessonSchema,
+  LessonProgressSchema,
+  lessonProgressId,
+  courseCompletion,
+  type Course,
+  type Lesson,
+  type LessonProgress
+} from './schemas'
+export {
+  EVENT_SCHEMA_IRI,
+  RSVP_SCHEMA_IRI,
+  EventSchema,
+  RsvpSchema,
+  rsvpId,
+  upcomingEvents,
+  type Event,
+  type Rsvp
+} from './schemas'
+export { PublicationSchema, type Publication } from './schemas'
 export {
   FOLDER_SCHEMA_IRI,
   FolderSchema,
@@ -133,7 +162,7 @@ export { DatabaseSchema, type Database } from './schemas'
 export { DatabaseRowSchema, type DatabaseRow } from './schemas'
 export { DatabaseFieldSchema, type DatabaseField } from './schemas'
 export { DatabaseSelectOptionSchema, type DatabaseSelectOption } from './schemas'
-export { DatabaseViewSchema, type DatabaseView } from './schemas'
+export { DatabaseViewSchema, type DatabaseView, type ViewGroupMeta } from './schemas'
 export {
   SchemaExtensionSchema,
   ExtensionFieldSchema,
@@ -344,11 +373,67 @@ export {
   type MemoryItem,
   type MemoryKind
 } from './schemas'
+// Agent schema pack (exploration 0337)
+export {
+  AGENT_ACTION_SCHEMA_IRI,
+  AGENT_ACTION_STATUSES,
+  AGENT_APPROVAL_DECISIONS,
+  AGENT_APPROVAL_SCHEMA_IRI,
+  AGENT_APPROVAL_SURFACES,
+  AGENT_CHANNELS,
+  AGENT_NOTIFICATION_KINDS,
+  AGENT_NOTIFICATION_SCHEMA_IRI,
+  AGENT_NOTIFICATION_STATUSES,
+  AGENT_PASSPORT_SCHEMA_IRI,
+  AGENT_REVERSIBILITIES,
+  AGENT_RISKS,
+  AGENT_RUNTIMES,
+  AGENT_SESSION_SCHEMA_IRI,
+  AgentActionSchema,
+  AgentApprovalSchema,
+  AgentNotificationSchema,
+  AgentPassportSchema,
+  AgentSessionSchema,
+  agentActionId,
+  agentApprovalId,
+  agentNotificationId,
+  agentPassportId,
+  agentSessionId,
+  redactInstruction,
+  type AgentAction,
+  type AgentActionStatus,
+  type AgentApproval,
+  type AgentApprovalDecision,
+  type AgentApprovalSurface,
+  type AgentChannel,
+  type AgentNotification,
+  type AgentNotificationKind,
+  type AgentNotificationStatus,
+  type AgentPassport,
+  type AgentReversibility,
+  type AgentRisk,
+  type AgentRuntime,
+  type AgentSession
+} from './schemas'
 export {
   TranscriptionSchema,
   TRANSCRIPTION_SCHEMA_IRI,
   type Transcription,
   type TranscriptionSourceId
+} from './schemas'
+// Meeting schema pack (exploration 0279)
+export {
+  MeetingSchema,
+  MeetingTranscriptSchema,
+  MEETING_SCHEMA_IRI,
+  MEETING_TRANSCRIPT_SCHEMA_IRI,
+  MEETING_CHANNELS,
+  MEETING_TEMPLATE_IDS,
+  type Meeting,
+  type MeetingTranscript,
+  type MeetingChannel,
+  type MeetingSegment,
+  type MeetingTemplateId
 } from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
 export {
@@ -366,8 +451,22 @@ export {
   type GeoFeatureCollection
 } from './schemas'
 export { CommentSchema, type Comment } from './schemas'
+export {
+  CHECKPOINT_SCHEMA_IRI,
+  CheckpointSchema,
+  type Checkpoint,
+  type CheckpointFrontierEntry
+} from './schemas'
+export {
+  DRAFT_SCHEMA_IRI,
+  DraftSchema,
+  type Draft,
+  type DraftEntry,
+  type DraftProvenance
+} from './schemas'
 export { ReactionSchema, type Reaction } from './schemas'
-export { ProfileSchema, type Profile } from './schemas'
+export { DebugReportSchema, type DebugReport } from './schemas'
+export { ProfileSchema, profileNodeId, didFromProfileNodeId, type Profile } from './schemas'
 export { ChannelSchema, CHANNEL_KINDS, type Channel, type ChannelKind } from './schemas'
 export { ChatMessageSchema, type ChatMessage } from './schemas'
 // Integration schema pack (exploration 0213)
@@ -395,6 +494,12 @@ export {
   mentionsInclude,
   isValidMentions,
   type MessageMentions
+} from './schemas'
+export {
+  MAX_LINK_PREVIEWS_PER_MESSAGE,
+  isMessageLinkPreview,
+  sanitizeLinkPreviews,
+  type MessageLinkPreview
 } from './schemas'
 export { extractMentions, getMentionedUsers, type Mention } from './schemas'
 export { GrantSchema, type Grant } from './schemas'
@@ -427,9 +532,17 @@ export {
   revokeDeviceRecord,
   accountState,
   nextEpoch,
-  type LedgerNodeIntent
+  type LedgerNodeIntent,
+  evaluateLedgerWrite,
+  foldAccountRecord,
+  ledgerAccountId,
+  ledgerWriteKind,
+  type LedgerEnforcementState,
+  type LedgerWriteDecision,
+  type LedgerWriteKind
 } from './schemas'
 export { SavedViewSchema, type SavedView } from './schemas'
+export { WorkspaceSchema, type Workspace, type WorkspaceTreeJson } from './schemas'
 export {
   UserWidgetSchema,
   type UserWidget,
@@ -493,6 +606,7 @@ export {
   PolicyListSchema,
   PolicySubscriptionSchema,
   PublicInteractionPolicySchema,
+  publicInteractionPolicyId,
   QualitySignalSchema,
   ReviewTaskSchema,
   type AbuseReport,
@@ -573,6 +687,47 @@ export {
   LensRegistry,
   lensRegistry
 } from './lens'
+
+// Record lenses (node ↔ foreign lexicon, explorations 0380/0389)
+export {
+  type RecordLens,
+  type RecordLensMode,
+  type LexiconRecord,
+  type NodeProperties,
+  type Nsid,
+  type RoundTripReport,
+  RecordLensRegistry,
+  recordLensRegistry,
+  assertRoundTrip,
+  extrasKeyFor,
+  ingestRecord,
+  partitionRecord,
+  projectRecord,
+  recoverExtras,
+  stashExtras
+} from './record-lens'
+
+// Projection lexicons (node → adopted foreign lexicon, 0367/0372/0389)
+export {
+  pageToDocumentLens,
+  SITE_STANDARD_DOCUMENT,
+  XNET_BODY_BLOCK,
+  type XNetBodyBlock,
+  BUILTIN_RECORD_LENSES,
+  registerBuiltinRecordLenses
+} from './lexicons'
+
+// Atmosphere publish state — the one-way door (0365/0389)
+export {
+  type AtmospherePublishState,
+  type AtmospherePublishAction,
+  type NodeVisibilityValue,
+  type TransitionResult,
+  applyAtmosphereAction,
+  availableAtmosphereActions,
+  canEnterAtmosphere,
+  assertCanPublish
+} from './atmosphere-publish'
 
 // Lens builder utilities
 export {

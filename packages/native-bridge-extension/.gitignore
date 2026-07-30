@@ -1,0 +1,4 @@
+# Extension signing private key — minted by `pnpm gen`, never committed.
+# Only needed to pack a .crx for distribution; unpacked dev uses the public
+# `key` already baked into extension/manifest.json.
+extension.pem

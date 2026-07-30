@@ -8,14 +8,22 @@ import { ChannelSchema } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { cn, Popover } from '@xnetjs/ui'
 import { Hash, MessageCircle, Rows2, Rows3, Users, Volume2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { ShareButton } from '../components/ShareButton'
 import { CallControls } from './CallDock'
 import { ChannelChat } from './ChannelChat'
 import { useChatDensity } from './chat-prefs'
 import { ChatAvatar } from './ChatAvatar'
 import { channelHeaderModel } from './comms-utils'
 import { useComms } from './CommsContext'
-import { displayName, useProfiles, useRoomPresence, type ProfileEntry } from './hooks'
+import {
+  displayName,
+  useChannelShareSync,
+  useEnsureProfiles,
+  useProfiles,
+  useRoomPresence,
+  type ProfileEntry
+} from './hooks'
 
 const KIND_ICONS = { channel: Hash, dm: MessageCircle, voice: Volume2 } as const
 
@@ -140,6 +148,8 @@ function MembersButton({
 
 export function ChannelView({ channelId }: { channelId: string }) {
   const { me } = useComms()
+  // Receive a shared channel's node, history, and member profiles (0298).
+  useChannelShareSync(channelId)
   const profiles = useProfiles()
   const { peers } = useRoomPresence(channelId)
   const { data: channel } = useQuery(ChannelSchema, channelId)
@@ -147,10 +157,17 @@ export function ChannelView({ channelId }: { channelId: string }) {
   const header = channelHeaderModel(record, me.did, profiles)
   const Icon = KIND_ICONS[header.kind as keyof typeof KIND_ICONS] ?? Hash
   const roster = rosterUsers(peers).filter((user) => user.did !== me.did)
-  const memberCount = (record?.members as string[] | undefined)?.length ?? 0
+  const members = record?.members as string[] | undefined
+  const memberCount = members?.length ?? 0
+  // Members of a shared channel may be DIDs whose profiles we haven't synced.
+  const rosterDids = useMemo(
+    () => [...(members ?? []), ...roster.map((user) => user.did)],
+    [members, roster]
+  )
+  useEnsureProfiles(rosterDids)
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-surface-0">
+    <div className="flex h-full min-h-0 flex-col">
       <header className="flex h-11 shrink-0 items-center gap-2 border-b border-hairline px-3">
         <Icon size={15} strokeWidth={1.5} className="shrink-0 text-ink-3" />
         <span className={cn('shrink-0 truncate text-sm font-semibold text-ink-1')}>
@@ -160,6 +177,7 @@ export function ChannelView({ channelId }: { channelId: string }) {
         <EditableTopic channelId={channelId} topic={header.topic} />
         <div className="min-w-0 flex-1" />
         <MembersButton roster={roster} memberCount={memberCount} profiles={profiles} />
+        <ShareButton docId={channelId} docType="channel" />
         <DensityToggle />
         <CallControls roomId={channelId} autoJoinVoice={header.kind === 'voice'} />
       </header>

@@ -69,7 +69,9 @@ export async function computeRecipients(
     const grants = dependencies.grantIndex?.findGrantsForResource(node.id) ?? []
     for (const grant of grants) {
       const actions = parseGrantActions(grant.properties.actions)
-      if (actions.includes('read') || actions.includes('write')) {
+      // An update grantee must decrypt the node to mutate it; a create-only
+      // grant confers no access to this existing node's content (0304).
+      if (actions.includes('read') || actions.includes('write') || actions.includes('update')) {
         const grantee = grant.properties.grantee
         if (typeof grantee === 'string' && grantee.startsWith('did:key:')) {
           recipients.add(grantee as DID)

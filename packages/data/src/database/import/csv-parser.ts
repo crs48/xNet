@@ -212,6 +212,18 @@ export function parseValue(value: string, type: ColumnType): unknown {
       return isNaN(date.getTime()) ? null : date.toISOString()
     }
 
+    case 'geo': {
+      // "lat, lng" decimal-degree pair
+      const parts = trimmed.split(',').map((v) => parseFloat(v.trim()))
+      if (parts.length === 2) {
+        const [lat, lng] = parts
+        if (!isNaN(lat) && Math.abs(lat) <= 90 && !isNaN(lng) && Math.abs(lng) <= 180) {
+          return { lat, lng }
+        }
+      }
+      return null
+    }
+
     case 'multiSelect':
       // Split by comma and trim each value
       return trimmed

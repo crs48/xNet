@@ -7,8 +7,7 @@
  * the source; stale references keep resolving because archived tags are
  * never deleted. Phase 3 attaches a discussion channel via Channel.target.
  */
-import type { ExplorerNodeType } from '../workbench/views/explorer-rows'
-import { useNavigate } from '@tanstack/react-router'
+import type { ExplorerNodeType } from '@xnetjs/workbench'
 import { createChannel } from '@xnetjs/comms'
 import {
   CanvasSchema,
@@ -23,10 +22,11 @@ import {
 import { useMutate, useQuery } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { Archive, ArchiveRestore, Hash, Merge, MessageSquare } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChannelChat } from '../comms/ChannelChat'
 import { navigateToNode } from '../workbench/navigation'
-import { useWorkbench } from '../workbench/state'
+import { useNavigateTo } from '../workbench/platform'
+import { usePublishTitle } from '../workbench/route-title'
 import { TAB_VIEWS } from '../workbench/tabs'
 import { filterTagged, mergeTagOps, type TaggedRef } from './tag-view-data'
 
@@ -191,7 +191,7 @@ function TagActions({
 }
 
 function TaggedItemRow({ item }: { item: TaggedItem }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const Icon = TAB_VIEWS[item.type].icon
   return (
     <button
@@ -206,7 +206,7 @@ function TaggedItemRow({ item }: { item: TaggedItem }) {
 }
 
 function TaggedTasksSection({ tasks }: { tasks: Array<{ id: string; title?: string }> }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   if (tasks.length === 0) return null
   return (
     <section>
@@ -217,7 +217,12 @@ function TaggedTasksSection({ tasks }: { tasks: Array<{ id: string; title?: stri
         <button
           key={task.id}
           type="button"
-          onClick={() => void navigate({ to: '/tasks', search: { task: task.id } as never })}
+          onClick={() =>
+            navigate(
+              { kind: 'node', nodeType: 'tasks', nodeId: '', preview: false },
+              { search: { task: task.id } }
+            )
+          }
           className="flex w-full cursor-pointer items-center gap-2 rounded-md border-none bg-transparent px-2 py-1.5 text-left text-sm text-ink-2 hover:bg-accent hover:text-ink-1"
         >
           <span className="min-w-0 flex-1 truncate">{task.title || 'Untitled task'}</span>
@@ -304,9 +309,7 @@ export function TagView({ tagId }: { tagId: string }) {
   const data = useTagPageData(tagId)
   const { tag, sections, taggedTasks } = data
 
-  useEffect(() => {
-    if (tag?.name) useWorkbench.getState().setTabTitle(tagId, `#${tag.name}`)
-  }, [tagId, tag?.name])
+  usePublishTitle(tagId, tag?.name ? `#${tag.name}` : null, tag?.id)
 
   if (!tag) {
     return <p className="mt-10 text-center text-sm text-ink-3">Tag not found.</p>

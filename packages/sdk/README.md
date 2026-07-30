@@ -2,6 +2,13 @@
 
 Unified SDK bundle for xNet.
 
+> **Booting a full client?** `createClient()` here returns an *identity only*
+> (`{ did, identity, privateKey }`). The full client — store, queries,
+> mutations, hub sync — is `createXNetClient` from `@xnetjs/runtime`
+> (re-exported by this package), or `<XNetProvider>` in React. The smallest
+> complete app is [`examples/minimal-app`](../../examples/minimal-app/) in the
+> repo (~60 lines, two synced browser tabs in under five minutes).
+
 ## Installation
 
 ```bash

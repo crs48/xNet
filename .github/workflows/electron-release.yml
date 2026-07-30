@@ -95,6 +95,22 @@ jobs:
           name: js-build
           path: .
 
+      # System-audio tap helper (exploration 0279): electron-builder bundles it
+      # as an extra resource; the app falls back to Chromium loopback when the
+      # binary is absent, but release builds always ship it.
+      - name: Build xnet-audiotee helper
+        run: |
+          cd apps/electron/native/audiotee
+          swift build -c release --arch ${{ matrix.arch == 'x64' && 'x86_64' || 'arm64' }}
+          # Normalise the binary to .build/release/ for electron-builder's
+          # extraResources path. SwiftPM usually symlinks .build/release to the
+          # arch dir already, and cp onto the same inode exits 1 — only copy
+          # when they're genuinely different files (exploration 0283).
+          SRC=".build/${{ matrix.arch == 'x64' && 'x86_64' || 'arm64' }}-apple-macosx/release/xnet-audiotee"
+          DST=.build/release/xnet-audiotee
+          mkdir -p .build/release
+          [ "$SRC" -ef "$DST" ] || cp "$SRC" "$DST"
+
       - name: Resolve macOS signing mode
         id: signing
         env:

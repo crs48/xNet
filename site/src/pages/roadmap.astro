@@ -1,0 +1,60 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Roadmap from '../components/sections/Roadmap.astro'
+import Footer from '../components/sections/Footer.astro'
+---
+
+<Base
+  title="xNet Roadmap — from local-first primitives to a decentralized data layer"
+  description="What's built, what's in flight, and where xNet is going: the full phased roadmap, from the shipped foundation to federation and the decentralized data layer."
+>
+  <Nav />
+
+  <main>
+    <Roadmap />
+
+    <!-- Contributor asks, moved from the former landing Community section -->
+    <section class="pb-24">
+      <div class="mx-auto max-w-3xl px-6">
+        <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.03] p-6 sm:p-8">
+          <h2 class="font-semibold text-indigo-400 mb-4">Help us get there</h2>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3 text-sm text-gray-500 dark:text-gray-400">
+              <span class="text-indigo-400 mt-0.5 shrink-0">&#10140;</span>
+              <span><strong class="text-gray-700 dark:text-gray-300">Shape the API</strong> before it's set in stone &mdash; your feedback directly impacts the design</span>
+            </div>
+            <div class="flex items-start gap-3 text-sm text-gray-500 dark:text-gray-400">
+              <span class="text-indigo-400 mt-0.5 shrink-0">&#10140;</span>
+              <span><strong class="text-gray-700 dark:text-gray-300">Build plugins</strong> for an extensible ecosystem &mdash; custom views, schemas, and integrations</span>
+            </div>
+            <div class="flex items-start gap-3 text-sm text-gray-500 dark:text-gray-400">
+              <span class="text-indigo-400 mt-0.5 shrink-0">&#10140;</span>
+              <span><strong class="text-gray-700 dark:text-gray-300">Contribute to core</strong> &mdash; sync engine, query system, canvas, editor, devtools</span>
+            </div>
+            <div class="flex items-start gap-3 text-sm text-gray-500 dark:text-gray-400">
+              <span class="text-indigo-400 mt-0.5 shrink-0">&#10140;</span>
+              <span><strong class="text-gray-700 dark:text-gray-300">Build apps</strong> on xNet and push the boundaries of local-first software</span>
+            </div>
+          </div>
+          <div class="mt-6 flex flex-wrap gap-4">
+            <a
+              href="https://github.com/crs48/xNet"
+              class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+            >
+              Browse on GitHub
+            </a>
+            <a
+              href="https://github.com/crs48/xNet/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22"
+              class="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-indigo-500/50 hover:bg-surface transition-all"
+            >
+              Good First Issues
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</Base>

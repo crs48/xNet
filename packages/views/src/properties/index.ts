@@ -9,6 +9,7 @@ import { dateHandler } from './date.js'
 import { dateRangeHandler } from './dateRange.js'
 import { emailHandler } from './email.js'
 import { fileHandler } from './file.js'
+import { geoHandler } from './geo.js'
 import { multiSelectHandler } from './multiSelect.js'
 import { numberHandler } from './number.js'
 import { personHandler } from './person.js'
@@ -38,6 +39,7 @@ const builtinHandlers: Partial<Record<ExtendedPropertyType, PropertyHandler<any>
   checkbox: checkboxHandler,
   date: dateHandler,
   dateRange: dateRangeHandler,
+  geo: geoHandler,
   select: selectHandler,
   multiSelect: multiSelectHandler,
   url: urlHandler,
@@ -159,6 +161,7 @@ export {
   checkboxHandler,
   dateHandler,
   dateRangeHandler,
+  geoHandler,
   selectHandler,
   multiSelectHandler,
   urlHandler,

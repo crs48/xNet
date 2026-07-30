@@ -28,6 +28,8 @@ export function LogsPanel() {
     setCapturing,
     paused,
     setPaused,
+    preserve,
+    setPreserve,
     logs,
     totalLogs,
     clear,
@@ -40,6 +42,9 @@ export function LogsPanel() {
   } = useLogsPanel()
 
   const getLogsData = useCallback(() => logs, [logs])
+
+  // Restored entries always precede live ones; the divider sits between them.
+  const lastRestoredIndex = logs.reduce((acc, entry, i) => (entry.restored ? i : acc), -1)
 
   return (
     <div className="flex flex-col h-full">
@@ -106,6 +111,20 @@ export function LogsPanel() {
         >
           {capturing ? 'capturing' : 'off'}
         </button>
+        <Tooltip
+          content="Preserve logs across reloads for this tab's session (snapshots are scrubbed of tokens/emails)"
+          side="bottom"
+          sideOffset={6}
+        >
+          <button
+            onClick={() => setPreserve(!preserve)}
+            className={`text-[10px] px-1.5 py-0.5 rounded border ${
+              preserve ? 'border-success text-success' : 'border-hairline text-ink-3'
+            }`}
+          >
+            preserve
+          </button>
+        </Tooltip>
         <button
           onClick={() => setPaused(!paused)}
           disabled={!capturing}
@@ -134,16 +153,35 @@ export function LogsPanel() {
             </p>
           </div>
         ) : (
-          logs.map((entry) => <LogRow key={entry.id} entry={entry} />)
+          logs.map((entry, i) => (
+            <div key={entry.id}>
+              <LogRow entry={entry} />
+              {i === lastRestoredIndex && i < logs.length - 1 && <SessionDivider />}
+            </div>
+          ))
         )}
       </div>
     </div>
   )
 }
 
+function SessionDivider() {
+  return (
+    <div className="flex items-center gap-2 px-3 py-1 text-[9px] text-ink-3 uppercase tracking-wide">
+      <span className="flex-1 border-t border-hairline" />
+      new session — dimmed entries above were preserved from before the reload
+      <span className="flex-1 border-t border-hairline" />
+    </div>
+  )
+}
+
 function LogRow({ entry }: { entry: LogEntry }) {
   return (
-    <div className="flex items-start gap-2 px-3 py-0.5 border-b border-hairline/40 hover:bg-surface-2 text-[10px]">
+    <div
+      className={`flex items-start gap-2 px-3 py-0.5 border-b border-hairline/40 hover:bg-surface-2 text-[10px] ${
+        entry.restored ? 'opacity-70' : ''
+      }`}
+    >
       <span className="text-ink-3 shrink-0 w-[72px]">{formatTime(entry.at)}</span>
       <span className={`shrink-0 w-10 font-medium ${levelColor(entry.level)}`}>{entry.level}</span>
       <span className="shrink-0 w-12 text-ink-3">{entry.channel}</span>

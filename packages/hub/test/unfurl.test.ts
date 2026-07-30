@@ -58,6 +58,38 @@ describe('unfurl routes', () => {
     expect(requests[0]).toContain('youtube.com/oembed')
   })
 
+  it('resolves generic URLs via Open Graph (0295 chat unfurl path)', async () => {
+    const html = `<!doctype html><html><head>
+      <meta property="og:title" content="A Plain Blog Post" />
+      <meta property="og:description" content="Words about things." />
+      <meta property="og:site_name" content="Example Blog" />
+      </head><body></body></html>`
+    const app = createUnfurlRoutes({
+      userAgent: USER_AGENT,
+      fetchImpl: (async (input: RequestInfo | URL) => {
+        const url = String(input)
+        const response = new Response(html, {
+          status: 200,
+          headers: { 'Content-Type': 'text/html' }
+        })
+        Object.defineProperty(response, 'url', { value: url })
+        return response
+      }) as typeof fetch
+    })
+
+    const res = await app.request(
+      `/metadata?url=${encodeURIComponent('https://blog.example.com/post')}`
+    )
+    expect(res.status).toBe(200)
+    const payload = await res.json()
+    expect(payload.status).toBe('resolved')
+    expect(payload.metadata).toMatchObject({
+      title: 'A Plain Blog Post',
+      description: 'Words about things.',
+      source: 'open-graph'
+    })
+  })
+
   it('rejects invalid and private metadata URLs', async () => {
     const app = createUnfurlRoutes({
       userAgent: USER_AGENT,

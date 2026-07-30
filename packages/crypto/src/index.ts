@@ -36,6 +36,15 @@ export {
   type SigningKeyPair
 } from './signing'
 
+// Fast (native WebCrypto) verification for bulk paths — exploration 0357
+export {
+  verifyFast,
+  verifyMany,
+  hasNativeEd25519,
+  resetFastVerifyCaches,
+  type VerifyRequest
+} from './signing-fast'
+
 // Random
 export { randomBytes } from './random'
 

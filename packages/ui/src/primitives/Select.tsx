@@ -8,6 +8,7 @@ import { Select as BaseSelect } from '@base-ui/react/select'
 import { Check, ChevronDown } from 'lucide-react'
 import * as React from 'react'
 import { cn } from '../utils'
+import { POPUP_LAYER } from './layers'
 
 // ─── Simple Select (Backward Compatible) ────────────────────────────
 
@@ -83,10 +84,14 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
             </BaseSelect.Icon>
           </BaseSelect.Trigger>
           <BaseSelect.Portal>
-            <BaseSelect.Positioner sideOffset={4} alignItemWithTrigger={false}>
+            <BaseSelect.Positioner
+              className={POPUP_LAYER}
+              sideOffset={4}
+              alignItemWithTrigger={false}
+            >
               <BaseSelect.Popup
                 className={cn(
-                  'relative z-50 max-h-96 min-w-[8rem] overflow-hidden',
+                  'relative z-50 min-w-[8rem] overflow-hidden',
                   'rounded-md border border-border bg-popover text-popover-foreground',
                   // Animation
                   'opacity-0 scale-95',
@@ -98,7 +103,11 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                 <BaseSelect.ScrollUpArrow className="flex cursor-default items-center justify-center py-1">
                   <ChevronDown className="h-4 w-4 rotate-180" />
                 </BaseSelect.ScrollUpArrow>
-                <BaseSelect.List className="p-1">
+                {/* max-height lives on the List, not the Popup: Base UI derives
+                    scroll-arrow visibility from the List's scrollHeight, so a
+                    height-clamped Popup with an unclamped List never shows
+                    arrows and swallows wheel scrolling. */}
+                <BaseSelect.List className="scroll-fade max-h-96 overflow-y-auto p-1">
                   {options.map((option) => (
                     <BaseSelect.Item
                       key={option.value}
@@ -190,11 +199,15 @@ export const SelectContent = React.forwardRef<
   }
 >(({ className, children, sideOffset = 4, ...props }, ref) => (
   <BaseSelect.Portal>
-    <BaseSelect.Positioner sideOffset={sideOffset} alignItemWithTrigger={false}>
+    <BaseSelect.Positioner
+      className={POPUP_LAYER}
+      sideOffset={sideOffset}
+      alignItemWithTrigger={false}
+    >
       <BaseSelect.Popup
         ref={ref}
         className={cn(
-          'relative z-50 max-h-96 min-w-[8rem] overflow-hidden',
+          'relative z-50 min-w-[8rem] overflow-hidden',
           'rounded-md border border-border bg-popover text-popover-foreground',
           // Animation
           'opacity-0 scale-95',
@@ -208,7 +221,11 @@ export const SelectContent = React.forwardRef<
         <BaseSelect.ScrollUpArrow className="flex cursor-default items-center justify-center py-1">
           <ChevronDown className="h-4 w-4 rotate-180" />
         </BaseSelect.ScrollUpArrow>
-        <BaseSelect.List className="p-1">{children}</BaseSelect.List>
+        {/* max-height lives on the List, not the Popup — see the simple
+            Select variant above for why. */}
+        <BaseSelect.List className="scroll-fade max-h-96 overflow-y-auto p-1">
+          {children}
+        </BaseSelect.List>
         <BaseSelect.ScrollDownArrow className="flex cursor-default items-center justify-center py-1">
           <ChevronDown className="h-4 w-4" />
         </BaseSelect.ScrollDownArrow>

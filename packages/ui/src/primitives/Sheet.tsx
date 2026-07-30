@@ -56,7 +56,7 @@ SheetOverlay.displayName = 'SheetOverlay'
 
 const sheetVariants = cva(
   [
-    'fixed z-50 gap-4 bg-background p-6',
+    'fixed z-50 gap-4 bg-island-pop p-6',
     'transition-transform duration-slow ease-out',
     'data-[ending-style]:duration-normal',
     'focus:outline-none'

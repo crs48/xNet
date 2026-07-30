@@ -2,6 +2,8 @@
  * @xnetjs/hub - Hub configuration and instance types.
  */
 
+import type { AtprotoIndexConfig } from './features/atproto-index'
+import type { HubSubscriptionsConfig } from './features/hub-subscriber'
 import type { CrawlConfig } from './services/crawl'
 import type { FederationConfig } from './services/federation'
 import type { ShardConfig } from './services/index-shards'
@@ -46,8 +48,52 @@ export type HubConfig = {
   telemetryPeerHashSalt?: string
   /** Hub's own DID for UCAN audience verification (optional). */
   hubDid?: string
+  /**
+   * The operator's xNet DID this hub belongs to (explorations 0372/0389). When
+   * set, the knot handshake (`GET /xrpc/fyi.xnet.owner`) advertises it, and a
+   * matching `fyi.xnet.hub` record in that DID's repo (rkey = hostname)
+   * completes the two-sided binding that makes the hub network-discoverable.
+   */
+  ownerDid?: string
+  /**
+   * Delegation roots this hub trusts (exploration 0337). When set, a
+   * presented UCAN is only honored if every root issuer of its proof chain
+   * is in this list — a self-issued `{with:'*', can:'*'}` token roots at the
+   * stranger who minted it and is rejected (the 0307 weakness). Unset
+   * preserves the legacy accept-any-verified-token behavior.
+   */
+  trustedDids?: string[]
   /** Public hub URL for peer discovery (optional). */
   publicUrl?: string
+  /**
+   * Identity-provider features (0338 Phase 3). When `oidcProvider.enabled`, the
+   * hub embeds `node-oidc-provider` (MIT) and becomes an OIDC provider for the
+   * org's other self-hosted apps — the `tsidp` pattern. Opt-in only; requires
+   * `auth: true` and a `publicUrl` (the issuer). Never the packaged default.
+   */
+  identity?: {
+    oidcProvider?: {
+      enabled: boolean
+      /** Relying parties allowed to authenticate against this hub. */
+      clients?: Array<{
+        client_id: string
+        client_secret?: string
+        redirect_uris: string[]
+        grant_types?: string[]
+        response_types?: string[]
+      }>
+      /** JWKS for signing id_tokens; auto-generated ephemeral if omitted. */
+      jwks?: { keys: unknown[] }
+    }
+    /**
+     * Bring-your-own-OIDC inbound (0338 Phase 3): an org points its hub at an
+     * existing IdP; a verified session admits a device into the account ledger.
+     */
+    byoOidc?: {
+      issuer: string
+      clientId: string
+    }
+  }
   /**
    * Web app base URL the share interstitial falls back to. A trailing `#`
    * marks a hash-routed deployment (default: https://xnet.fyi/app/#).
@@ -68,18 +114,26 @@ export type HubConfig = {
   /** Optional rate limit overrides. */
   rateLimit?: {
     perConnectionRate?: number
+    /** Max node-changes per window per connection, across single and batched pushes (0357). */
+    perConnectionChangeRate?: number
     maxConnections?: number
     maxMessageSize?: number
     windowMs?: number
   }
   /** Log level (default: 'info'). */
   logLevel: 'debug' | 'info' | 'warn' | 'error'
-  /** Federation configuration (optional). */
-  federation?: FederationConfig
-  /** Global shard configuration (optional). */
-  shards?: ShardConfig
-  /** Crawl coordination configuration (optional). */
-  crawl?: CrawlConfig
+  /** Federation configuration (optional; merged over server defaults). */
+  federation?: Partial<FederationConfig>
+  /** Global shard configuration (optional; merged over server defaults). */
+  shards?: Partial<ShardConfig>
+  /** Crawl coordination configuration (optional; merged over server defaults). */
+  crawl?: Partial<CrawlConfig>
+  /** Public-interaction policy surface (0378/0383 W2; on in the community role). */
+  publicInteractions?: { enabled: boolean }
+  /** The atproto index engine (0374/0383 W3; the index role's plane). */
+  atprotoIndex?: AtprotoIndexConfig
+  /** Hub-to-hub Space subscriptions (0258/0383 W4; the gateway role's plane). */
+  subscriptions?: HubSubscriptionsConfig
   /** Runtime metadata (platform info, region). */
   runtime?: {
     platform?: 'railway' | 'fly' | 'cloud-run' | 'fargate' | 'local' | 'unknown'
@@ -92,7 +146,22 @@ export type HubConfig = {
   demo?: boolean
   /** Demo mode overrides (applied when demo=true). */
   demoOverrides?: DemoOverrides
+  /**
+   * Named deployment role (explorations 0382/0383). A role is a config preset
+   * expanded by `resolveConfig` — never a runtime branch of its own. Roles are
+   * the ONLY supported feature combinations; arbitrary config remains possible
+   * but unclaimed (the Elasticsearch `node.roles` posture).
+   */
+  role?: HubRole
 }
+
+/**
+ * The named roles one hub binary can run as (exploration 0382: one binary,
+ * many roles, monolith default). `gateway` arrives with the federation plane
+ * (0383 W4); adding a role means adding a preset in `roles.ts`, never a
+ * scattered ternary (0382's "demo ternaries" anti-pattern).
+ */
+export type HubRole = 'personal' | 'demo' | 'community' | 'index' | 'registry' | 'gateway'
 
 export const DEFAULT_CONFIG: HubConfig = {
   port: 4444,
@@ -127,6 +196,10 @@ export type DemoOverrides = {
   evictionTtl: number
   /** How often to run eviction check (ms). Default: 1 hour. */
   evictionInterval: number
+  /** Wipe all user data on this cadence (ms). Default: 24 hours. */
+  resetInterval: number
+  /** Volume capacity the disk watchdog guards (bytes). Default: 500 MB. */
+  diskLimitBytes: number
 }
 
 export const DEMO_DEFAULTS: DemoOverrides = {
@@ -134,7 +207,9 @@ export const DEMO_DEFAULTS: DemoOverrides = {
   maxDocs: 50,
   maxBlob: 2 * 1024 * 1024, // 2 MB
   evictionTtl: 24 * 60 * 60 * 1000, // 24 hours
-  evictionInterval: 60 * 60 * 1000 // 1 hour
+  evictionInterval: 60 * 60 * 1000, // 1 hour
+  resetInterval: 24 * 60 * 60 * 1000, // 24 hours
+  diskLimitBytes: 500 * 1024 * 1024 // 500 MB (Railway demo volume)
 }
 
 export type HubInstance = {

@@ -1,0 +1,18 @@
+{
+  "id": "2026-07-07-meetings-botless-transcription-and-ai-no",
+  "date": "July 7, 2026",
+  "title": "Meetings: botless transcription and AI notes",
+  "summary": "New Meetings surface: record a meeting without a bot — your mic plus (on desktop) system audio — with live Me/Them transcription that runs on-device by default (NVIDIA Parakeet v2 or Whisper, swappable in Settings), then merge your rough bullets with the transcript into AI-enhanced notes. Includes a meetings list + detail view, engine picker with model downloads, and privacy-first defaults: audio is never stored unless you opt in.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "ai"
+  ],
+  "pr": 407,
+  "mergedAt": "2026-07-07T22:26:20Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

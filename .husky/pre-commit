@@ -117,6 +117,19 @@ if [ -z "$NON_MD_FILES" ]; then
   exit 0
 fi
 
+# Workflow YAML must at least parse — an unparseable workflow file makes GitHub
+# emit a phantom failed run on every push (exploration 0283). Advisory when
+# actionlint isn't installed; CI's lint job is the real gate. Same severity
+# floor as CI so local and CI agree.
+WORKFLOW_FILES=$(printf '%s\n' "$STAGED_FILES" | grep '^\.github/workflows/.*\.ya*ml$' || true)
+if [ -n "$WORKFLOW_FILES" ]; then
+  if command -v actionlint >/dev/null 2>&1; then
+    printf '%s\n' "$WORKFLOW_FILES" | SHELLCHECK_OPTS="--severity=warning" xargs actionlint
+  else
+    echo "[pre-commit] actionlint not installed (brew install actionlint) — CI's lint job will check workflows"
+  fi
+fi
+
 pnpm lint-staged
 pnpm turbo run typecheck --affected
 pnpm vitest run --changed HEAD --passWithNoTests

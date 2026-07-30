@@ -11,7 +11,7 @@
  */
 
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useXNet } from '@xnetjs/react'
+import { useXNet, workspaceShareRoom } from '@xnetjs/react'
 import { useEffect, useMemo, useState } from 'react'
 import {
   claimErrorText,
@@ -27,7 +27,15 @@ const BASE_PATH = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
 const USE_HASH_ROUTER = import.meta.env.VITE_USE_HASH_ROUTER === 'true'
 const SHARE_HANDLE_RE = /^sh_[A-Za-z0-9_-]{16,}$/
 
-type ShareDocType = 'page' | 'database' | 'canvas' | 'dashboard' | 'view' | 'space'
+type ShareDocType =
+  | 'page'
+  | 'database'
+  | 'canvas'
+  | 'dashboard'
+  | 'view'
+  | 'space'
+  | 'workspace'
+  | 'channel'
 
 type SharePayloadV2 = {
   v: 2
@@ -54,12 +62,18 @@ function ShareBridgePage(): JSX.Element {
   const [status, setStatus] = useState<'launching' | 'fallback' | 'error'>('launching')
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
-  const { getHubAuthToken, hubUrl } = useXNet()
+  const { getHubAuthToken, hubUrl, syncManager } = useXNet()
 
   const shareInput = useMemo<ShareRouteInput>(() => parseShareRouteInput(window.location), [])
 
   useEffect(() => {
-    const sanitizedPath = `${window.location.pathname}${window.location.hash.split('?')[0] || ''}`
+    // Scrub the claim inputs from the address bar/history once they're read.
+    // Keep the hash only when it's a hash-router ROUTE (`#/...`); a bare
+    // fragment is the `#s=` secret on path-routed deployments — the one thing
+    // this sanitizer exists to remove (0290 follow-up).
+    const rawHash = window.location.hash
+    const routeHash = rawHash.startsWith('#/') ? rawHash.split('?')[0] : ''
+    const sanitizedPath = `${window.location.pathname}${routeHash}`
     window.history.replaceState({}, '', sanitizedPath)
     document.documentElement.setAttribute('data-nosnippet', 'true')
 
@@ -89,6 +103,13 @@ function ShareBridgePage(): JSX.Element {
         const token = await getHubAuthToken()
         const result = await claimShareLink(input, token)
         const destination = decideClaimDestination(result.endpoint, input.hub, hubUrl)
+
+        // A claimed workspace (bench) has no viewer route to mount its share-room
+        // subscription (channels subscribe when ChannelView mounts), so pull it
+        // here — the bench node then materializes in the switcher (0298 Phase 2).
+        if (result.docType === 'workspace' && syncManager) {
+          syncManager.subscribeShareRoom(workspaceShareRoom(result.resource))
+        }
 
         if (destination.kind === 'navigate') {
           // Visiting the doc subscribes + materializes it locally,
@@ -314,7 +335,11 @@ function getWebFallbackPath(docType: ShareDocType, resource: string, shareSessio
     canvas: `/canvas/${encodeURIComponent(resource)}`,
     dashboard: `/dashboard/${encodeURIComponent(resource)}`,
     view: `/view/${encodeURIComponent(resource)}`,
-    space: `/space/${encodeURIComponent(resource)}`
+    space: `/space/${encodeURIComponent(resource)}`,
+    // Workspaces have no viewer route; land home — the granted node syncs
+    // and appears in the receiver's workspace switcher (0280).
+    workspace: `/?sharedWorkspace=${encodeURIComponent(resource)}`,
+    channel: `/channel/${encodeURIComponent(resource)}`
   }
 
   return `${routePrefix}${docPath[docType]}?${query}`

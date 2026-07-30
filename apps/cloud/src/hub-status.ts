@@ -23,7 +23,14 @@ export interface HubHealth {
   connections?: { active?: number; max?: number }
   memory?: { rss?: number; heapUsed?: number }
   storage?: { usedBytes?: number }
-  backup?: { replicating?: boolean; lastWriteMs?: number | null }
+  backup?: {
+    replicating?: boolean
+    lastWriteMs?: number | null
+    /** Measured R2 replica sync time (exploration 0288); absent on older hubs. */
+    lastSyncMs?: number | null
+    /** Hub's own freshness verdict — the cold-demotion gate (fails closed). */
+    fresh?: boolean
+  }
 }
 
 /** The composed payload returned by `GET /dashboard/live.json`. */
@@ -50,8 +57,16 @@ export interface DashboardLive {
    * (exploration 0216).
    */
   overQuota: boolean | null
-  /** Backup state: replicating to R2, and "data as of" (≈ last backed up). */
-  backup: { replicating: boolean; lastWriteMs: number | null } | null
+  /**
+   * Backup state: replicating to R2, "data as of" (≈ newest write), and — when the
+   * hub measures it — the confirmed R2 replica sync time for a "data safe as of"
+   * line (exploration 0288). `lastSyncMs` is null on older hubs / unknown scrapes.
+   */
+  backup: {
+    replicating: boolean
+    lastWriteMs: number | null
+    lastSyncMs: number | null
+  } | null
   /** Rolling availability over the plan's SLO window, as a percentage. */
   uptimePct: number | null
   /** p95 probe latency over the SLO window, in ms (from the control-plane probes). */
@@ -64,6 +79,64 @@ export interface DashboardLive {
   sloLabel: string | null
   /** Managed-AI spend this billing period (only when AI is enabled). */
   aiUsedUsd: number | null
+  /**
+   * The tenant hub's own crash-report inbox (exploration 0341): content-free
+   * counts + top issues read from the hub's `/diagnostics/summary` with the
+   * provisioned per-tenant secret. Null when the hub is unreachable, older
+   * than the inbox feature, or no secret is configured. This is the tenant's
+   * data on the tenant's hub — the dashboard is a window, not a copy.
+   */
+  diagnostics: HubDiagnosticsSummary | null
+}
+
+/** Mirror of `DiagnosticsSummary` from `@xnetjs/telemetry/inbox` (wire shape). */
+export interface HubDiagnosticsSummary {
+  pending: number
+  drained: number
+  total: number
+  lastSeenMs: number | null
+  topIssues: Array<{
+    fingerprint: string
+    shortId: string
+    errorName: string
+    lane: string
+    surface: string
+    release?: string
+    occurrences: number
+    status: string
+    firstSeenMs: number
+    lastSeenMs: number
+  }>
+}
+
+/**
+ * Fetch a tenant hub's diagnostics summary, or null on any failure (older hub
+ * → 404, inbox off → 404, wrong secret → 401/403, sleeping → timeout). Never
+ * throws — the dashboard renders the card only when data exists.
+ */
+export async function fetchHubDiagnosticsSummary(
+  hubUrl: string,
+  secret: string,
+  opts: FetchHubHealthOpts = {}
+): Promise<HubDiagnosticsSummary | null> {
+  if (!hubUrl || !secret) return null
+  const timeoutMs = opts.timeoutMs ?? 2500
+  const doFetch = opts.fetchImpl ?? fetch
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const res = await doFetch(`${hubUrl.replace(/\/$/, '')}/diagnostics/summary`, {
+      headers: { 'x-internal-secret': secret },
+      signal: controller.signal
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as HubDiagnosticsSummary
+    return typeof data?.pending === 'number' && Array.isArray(data.topIssues) ? data : null
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 export interface FetchHubHealthOpts {
@@ -118,6 +191,8 @@ export function composeDashboardLive(input: {
   quotaBytes?: number
   subscriptionStatus?: 'active' | 'canceled'
   dataTier?: 'hot' | 'cold'
+  /** The hub's own crash-inbox summary (0341), when readable. */
+  diagnostics?: HubDiagnosticsSummary | null
 }): DashboardLive {
   const h = input.health
   const reachable = Boolean(h && (h.status === 'ok' || h.status === undefined))
@@ -154,7 +229,8 @@ export function composeDashboardLive(input: {
     backup: h?.backup
       ? {
           replicating: Boolean(h.backup.replicating),
-          lastWriteMs: num(h.backup.lastWriteMs)
+          lastWriteMs: num(h.backup.lastWriteMs),
+          lastSyncMs: num(h.backup.lastSyncMs)
         }
       : null,
     uptimePct: input.sli ? Number((input.sli.availability * 100).toFixed(2)) : null,
@@ -163,6 +239,7 @@ export function composeDashboardLive(input: {
     errorBudgetPct: input.sli ? Number((input.sli.budgetRemaining * 100).toFixed(1)) : null,
     errorBudgetPolicy: input.sli ? input.sli.policy : null,
     sloLabel: input.sli ? input.sli.sloLabel : null,
-    aiUsedUsd: input.aiUsedUsd
+    aiUsedUsd: input.aiUsedUsd,
+    diagnostics: input.diagnostics ?? null
   }
 }

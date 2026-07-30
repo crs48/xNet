@@ -13,8 +13,10 @@ export {
   isSchemaWriteAllowed,
   isSchemaReadAllowed,
   isNetworkAllowed,
+  isSystemAudioAllowed,
   assertSchemaWrite,
   assertNetwork,
+  assertSystemAudio,
   guardStore
 } from './capability-guard'
 
@@ -40,6 +42,7 @@ export {
   searchMarketplace,
   sortMarketplace,
   filterByCategory,
+  filterByKind,
   aggregateRatings,
   recommendExtensions,
   MarketplaceClient,
@@ -47,6 +50,7 @@ export {
 } from './marketplace'
 export type {
   MarketplaceEntry,
+  MarketplaceListingKind,
   MarketplaceSort,
   MarketplaceClientOptions,
   FetchJson,

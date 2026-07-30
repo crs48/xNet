@@ -42,12 +42,20 @@ jobs:
           # preview build can never open production databases.
           VITE_STORAGE_SCOPE: pr-${{ github.event.pull_request.number }}
 
+      - name: Build demos app preview
+        run: pnpm --filter xnet-demos build
+        env:
+          VITE_BASE_PATH: /pr/${{ github.event.pull_request.number }}/play/
+
       - name: Prepare preview tree
         run: |
           rm -rf /tmp/xnet-pr-preview
           mkdir -p /tmp/xnet-pr-preview
           cp -R apps/web/dist/. /tmp/xnet-pr-preview/
           cp /tmp/xnet-pr-preview/index.html /tmp/xnet-pr-preview/404.html
+          rm -rf /tmp/xnet-pr-preview-play
+          mkdir -p /tmp/xnet-pr-preview-play
+          cp -R apps/demos/dist/. /tmp/xnet-pr-preview-play/
 
       - name: Publish preview to gh-pages
         uses: ./.github/actions/publish-gh-pages
@@ -56,13 +64,21 @@ jobs:
           target: pr/${{ github.event.pull_request.number }}/app
           commit-message: 'deploy(preview): publish PR #${{ github.event.pull_request.number }} preview'
 
+      - name: Publish demos preview to gh-pages
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          source: /tmp/xnet-pr-preview-play
+          target: pr/${{ github.event.pull_request.number }}/play
+          commit-message: 'deploy(preview): publish PR #${{ github.event.pull_request.number }} demos preview'
+
       - name: Comment preview link
         uses: actions/github-script@v7
         with:
           script: |
             const body = [
               '<!-- xnet-pr-preview -->',
-              `Preview: https://xnet.fyi/pr/${context.payload.pull_request.number}/app/`
+              `Preview: https://xnet.fyi/pr/${context.payload.pull_request.number}/app/`,
+              `Demos: https://xnet.fyi/pr/${context.payload.pull_request.number}/play/`
             ].join('\n')
 
             const comments = await github.paginate(github.rest.issues.listComments, {

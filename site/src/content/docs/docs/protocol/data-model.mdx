@@ -1,7 +1,7 @@
 ---
 title: 'Data Model (L1)'
 draft: false
-description: 'The Node, the signed Change, the byte-exact canonicalization, and Last-Write-Wins — the interop kernel of XNet.'
+description: 'The Node, the signed Change, the byte-exact canonicalization, and Last-Write-Wins — the interop kernel of xNet.'
 sidebar:
   order: 2
   label: 'Data Model'
@@ -110,7 +110,7 @@ A schema may declare a collaborative body with `document: 'yjs'`. Such nodes
 carry a `documentContent` blob identified by a `documentCodec` discriminator
 (`yjs-v1`, `automerge-2`, `none`). Implementations **must transport and persist**
 the blob faithfully, but **interpreting it is optional** — a peer that can't parse
-`yjs-v1` still fully participates in the graph. This is the seam that makes XNet
+`yjs-v1` still fully participates in the graph. This is the seam that makes xNet
 portable without porting a CRDT byte format across languages.
 
 Next: [Replication (L2) →](/docs/protocol/replication/)

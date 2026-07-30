@@ -1,5 +1,6 @@
 {
   "_comment": "Maps changed source globs to capturable app routes and interaction flows. Routes must render without URL params and without bespoke seed data. Tune freely -- the mapping is intentionally conservative; over-matching just captures an extra screen.",
+  "_visual_explorations_comment": "Visual exploration companions (docs/explorations/visuals/NNNN/*.mdx, exploration 0403) need NO entry here. They surface in the Storybook index as `docs` entries whose importPath is the .mdx itself, so changed-capture-set.mjs picks them up by the same importPath match it uses for stories. Add the path to visual-capture.yml's `paths:` filter instead -- that is what makes the job run at all on a companion-only change.",
   "routes": [
     {
       "id": "home",
@@ -113,12 +114,11 @@
       "globs": ["apps/web/src/comms/**", "apps/web/src/routes/channel.$channelId.tsx"]
     }
   ],
-
   "_electron_comment": "Electron desktop screens captured via _electron.launch() and fed through the same SSIM diff + sticky comment (exploration 0238 L5). `screen` selects the routine in capture.mjs (captureElectron). Only run when the desktop renderer (a forked subset of the web app) or a shared canvas/ui package changes.",
   "electron": [
     {
       "id": "electron-canvas-home",
-      "label": "Desktop · Canvas home",
+      "label": "Desktop \u00b7 Canvas home",
       "screen": "canvas-home",
       "globs": [
         "apps/electron/src/renderer/**",
@@ -129,7 +129,7 @@
     },
     {
       "id": "electron-canvas-objects",
-      "label": "Desktop · Canvas with objects",
+      "label": "Desktop \u00b7 Canvas with objects",
       "screen": "canvas-objects",
       "globs": ["apps/electron/src/renderer/**", "packages/canvas/**", "packages/canvas-core/**"]
     }

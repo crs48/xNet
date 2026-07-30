@@ -1,7 +1,7 @@
 /**
  * @xnetjs/brain — shared types for the AI second-brain layer (exploration 0211).
  *
- * The "brain" is the thin layer that connects three assets XNet already has but
+ * The "brain" is the thin layer that connects three assets xNet already has but
  * never wired together: the governed node graph (`@xnetjs/data`), full-text
  * search, and the dormant vector engine (`@xnetjs/vectors`). It turns them into
  * a hybrid GraphRAG retriever that hands an agent a small, ranked, budgeted slice
@@ -28,14 +28,35 @@ export interface RetrievalBudget {
   maxEntries: number
   /** Ceiling on total nodes (entries + expanded) considered before packing. */
   maxNodes: number
+  /**
+   * Score multiplier applied per hop away from an entry node, so a directly
+   * matched node outranks one reached by walking a relation. Lower is a
+   * steeper penalty. Injectable so the golden-set eval can sweep it rather
+   * than argue about it (exploration 0394).
+   */
+  hopDecay: number
 }
+
+/**
+ * Per-hop score decay: steep enough that a direct match leads, shallow enough
+ * that graph-only answers survive into the top of the pack.
+ *
+ * Swept over the golden set in `__evals__/hop-decay.sweep.test.ts` (0394).
+ * The result was *no measurable winner* — every value in [0.35, 0.85] scores
+ * identically, and the two that edge ahead do so by a single golden item,
+ * which is the eval's resolution rather than a signal. So 0.55 stays: it was
+ * not vindicated, it was found unfalsified, and moving it needs a larger
+ * golden set with the power to tell these apart.
+ */
+export const DEFAULT_HOP_DECAY = 0.55
 
 /** Sensible defaults: small entry set, shallow walk, modest token budget. */
 export const DEFAULT_BUDGET: RetrievalBudget = {
   maxTokens: 4000,
   maxHops: 1,
   maxEntries: 12,
-  maxNodes: 60
+  maxNodes: 60,
+  hopDecay: DEFAULT_HOP_DECAY
 }
 
 /** An entry hit from the hybrid (vector + keyword) search. */

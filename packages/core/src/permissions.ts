@@ -2,6 +2,8 @@
  * Permission and authorization types for xNet
  */
 
+import { grantActionSatisfies } from './auth-types'
+
 /**
  * A group of users
  */
@@ -21,14 +23,26 @@ export interface Role {
 }
 
 /**
- * Available capabilities
+ * Available capabilities.
+ *
+ * `create`/`update` are refinements of `write` (exploration 0304): a role
+ * holding `write` implicitly covers both; the granular capabilities cover
+ * only themselves.
  */
-export type Capability = 'read' | 'write' | 'delete' | 'share' | 'admin'
+export type Capability = 'read' | 'create' | 'update' | 'write' | 'delete' | 'share' | 'admin'
 
 /**
  * All capabilities in order of privilege
  */
-export const ALL_CAPABILITIES: Capability[] = ['read', 'write', 'delete', 'share', 'admin']
+export const ALL_CAPABILITIES: Capability[] = [
+  'read',
+  'create',
+  'update',
+  'write',
+  'delete',
+  'share',
+  'admin'
+]
 
 /**
  * A grant of a role to a principal
@@ -111,10 +125,11 @@ export const STANDARD_ROLES: Record<string, Role> = {
 }
 
 /**
- * Check if a capability is included in a role
+ * Check if a capability is included in a role.
+ * A role holding `write` covers the `create`/`update` refinements.
  */
 export function roleHasCapability(role: Role, capability: Capability): boolean {
-  return role.capabilities.includes(capability)
+  return role.capabilities.some((held) => grantActionSatisfies(held, capability))
 }
 
 /**

@@ -13,6 +13,7 @@ import {
   type ColumnDefinition,
   type FieldType,
   type FileRef,
+  cellKey,
   DatabaseRowSchema,
   DatabaseSchema,
   FIELD_TYPES,
@@ -25,31 +26,47 @@ import {
   parseRow,
   resolveRowHeightPx
 } from '@xnetjs/data'
-import { useBlobService } from '@xnetjs/editor/react'
+import { useBlobService, useBlobTransfers } from '@xnetjs/editor/react'
 import { useGridDatabase, useIdentity, useNode } from '@xnetjs/react'
 import {
-  CommentPopover,
-  MentionTextArea,
+  CommentIsland,
+  toAnchorLike,
   Select,
   setNodeTransfer,
   type CommentThreadData
 } from '@xnetjs/ui'
 import {
   type CellPresence,
+  type DatabaseViewConfig,
+  type DatabaseViewRow,
   type GridField,
+  AttachmentLightboxProvider,
+  EMPTY_VIEW_CONFIG,
   FieldConfigEditor,
+  FormView,
   GridPeek,
   GridSkeleton,
   GridSummaryBar,
   GridSurface,
   GridToolbar,
-  useDatabaseComments
+  ReverseRelationsPanel,
+  ViewOptionsBar,
+  ViewRenderer,
+  registerBuiltinViews,
+  resolveGeoFields,
+  useDatabaseComments,
+  viewRegistry
 } from '@xnetjs/views'
+import { useContextPanel, type ContextPanelSection } from '@xnetjs/workbench'
+import { useIsCompact } from '@xnetjs/workbench'
 import { Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCommentPeople } from '../hooks/useCommentPeople'
-import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
-import { useWorkbench } from '../workbench/state'
+import { navigateToFrame, navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
+import { usePublishTitle } from '../workbench/route-title'
+import { FormShareBar } from './FormShareBar'
+import { nodePassportSection } from './NodePassport'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
 
@@ -59,6 +76,23 @@ function formatPeekCellValue(value: unknown): string {
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
 }
+
+// Built-in board/gallery/calendar/timeline/list/map views register once
+// through the plugin door (exploration 0339). Guarded for HMR.
+if (!viewRegistry.has('board')) registerBuiltinViews()
+
+// Types offered by the add-view picker: table + form are shell-owned,
+// everything else comes from the registry.
+const ADD_VIEW_TYPES = [
+  { type: 'table' as const, label: 'Table' },
+  { type: 'board' as const, label: 'Board' },
+  { type: 'gallery' as const, label: 'Gallery' },
+  { type: 'calendar' as const, label: 'Calendar' },
+  { type: 'timeline' as const, label: 'Timeline' },
+  { type: 'list' as const, label: 'List' },
+  { type: 'map' as const, label: 'Map' },
+  { type: 'form' as const, label: 'Form' }
+]
 
 interface DatabaseViewProps {
   docId: string
@@ -78,6 +112,7 @@ const FIELD_TYPE_LABELS: Partial<Record<FieldType, string>> = {
   checkbox: 'Checkbox',
   date: 'Date',
   dateRange: 'Date range',
+  geo: 'Location',
   select: 'Single select',
   multiSelect: 'Multiple select',
   person: 'Person',
@@ -111,10 +146,13 @@ interface CommentPopoverState {
   rowId: string
   fieldId: string
   anchor: HTMLElement | { x: number; y: number }
+  /** Which of the cell's threads is showing — a cell can carry several (0375). */
+  threadIndex: number
 }
 
 export function DatabaseView({ docId }: DatabaseViewProps) {
   const { did } = useIdentity()
+  const navigate = useNavigateTo()
 
   // Database node: title + the Y.Doc awareness channel (presence only)
   const {
@@ -130,28 +168,87 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
   const [activeViewId, setActiveViewId] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState('')
-  const grid = useGridDatabase(docId, { viewId: activeViewId, search: search || undefined })
+
+  // Map views feed their visible bounds back as a spatial query window
+  // (exploration 0339): only rows inside the viewport are fetched. The
+  // window comes from the previous render's active view — one harmless
+  // unfiltered fetch on first paint, then viewport-bounded.
+  const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null)
+  const [mapGeoProps, setMapGeoProps] = useState<{ x: string; y: string } | null>(null)
+  const spatial = useMemo(
+    () =>
+      mapBounds && mapGeoProps
+        ? ({
+            kind: 'window' as const,
+            rect: {
+              x: mapBounds[0],
+              y: mapBounds[1],
+              width: mapBounds[2] - mapBounds[0],
+              height: mapBounds[3] - mapBounds[1]
+            },
+            fields: mapGeoProps,
+            // Overscan is in coordinate units: fetch a 25% margin so
+            // small pans reuse already-fetched rows
+            overscan: Math.max(mapBounds[2] - mapBounds[0], mapBounds[3] - mapBounds[1]) * 0.25
+          } as const)
+        : undefined,
+    [mapBounds, mapGeoProps]
+  )
+
+  const grid = useGridDatabase(docId, {
+    viewId: activeViewId,
+    search: search || undefined,
+    spatial
+  })
 
   // ─── File attachments (BlobService: local-first, chunked) ─────────────────
   const blobService = useBlobService()
+  const blobTransfers = useBlobTransfers()
   const handleUploadFile = useCallback(
     async (file: File): Promise<FileRef | null> => {
       if (!blobService) return null
       try {
-        return await blobService.upload(file)
+        const ref = await blobService.upload(file)
+        // Bytes go to the hub in the background so peers can fetch them;
+        // attaching never waits on the network (exploration 0385 W3).
+        blobTransfers?.enqueueUpload(ref)
+        return ref
       } catch (err) {
         console.error('[DatabaseView] file upload failed:', err)
         return null
       }
     },
-    [blobService]
+    [blobService, blobTransfers]
   )
   const handleResolveFileUrl = useCallback(
     async (ref: FileRef): Promise<string> => {
       if (!blobService) throw new Error('BlobService unavailable')
+      // A ref that arrived by sync has no local bytes yet — fetch on first
+      // view rather than bulk-replicating every attachment.
+      if (blobTransfers) {
+        const state = await blobTransfers.ensureLocal(ref)
+        if (state !== 'synced' && state !== 'local') {
+          throw new Error(`File unavailable (${state}): ${ref.name}`)
+        }
+      }
       return blobService.getUrl(ref)
     },
-    [blobService]
+    [blobService, blobTransfers]
+  )
+  const handleResolveThumbUrl = useCallback(
+    async (ref: FileRef): Promise<string | null> => {
+      if (!blobService) return null
+      // Previews are kilobytes — fetch the thumbnail alone so a remote cell
+      // renders without pulling the whole original (exploration 0385 W4).
+      if (blobTransfers) await blobTransfers.ensureThumbnail(ref)
+      return blobService.getThumbUrl(ref)
+    },
+    [blobService, blobTransfers]
+  )
+  // Config for the surface-wide attachment lightbox (exploration 0385)
+  const lightboxConfig = useMemo(
+    () => (blobService ? { onResolveFileUrl: handleResolveFileUrl } : undefined),
+    [blobService, handleResolveFileUrl]
   )
 
   // ─── CSV/JSON import & export (engines in @xnetjs/data) ──────────────────
@@ -310,43 +407,66 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const comments = useDatabaseComments({ databaseNodeId: docId })
   const [commentPopover, setCommentPopover] = useState<CommentPopoverState | null>(null)
 
+  const commentPeople = useCommentPeople()
+
   const openCellComments = useCallback(
     (rowId: string, fieldId: string, anchorEl: HTMLElement | null) => {
       setCommentPopover({
         rowId,
         fieldId,
-        anchor: anchorEl ?? { x: window.innerWidth / 2, y: 120 }
+        anchor: anchorEl ?? { x: window.innerWidth / 2, y: 120 },
+        threadIndex: 0
       })
     },
     []
   )
 
+  // Author DIDs resolve to profile names through the same list that drives
+  // @mention typeahead — otherwise the island shows raw DIDs (0375).
+  const resolveAuthorName = useCallback(
+    (did: string) => commentPeople.find((person) => person.did === did)?.name,
+    [commentPeople]
+  )
+
+  // A cell can carry several threads, and the badge counts all of them, so
+  // showing only threads[0] made the rest unreachable (0375). Expose the whole
+  // set and let the island page through it.
+  const cellThreads = useMemo(() => {
+    if (!commentPopover) return []
+    return comments.getThreadsForCell(commentPopover.rowId, commentPopover.fieldId)
+  }, [commentPopover, comments])
+
+  const activeThreadIndex = commentPopover
+    ? Math.min(commentPopover.threadIndex, Math.max(0, cellThreads.length - 1))
+    : 0
+
   const activeThread: CommentThreadData | null = useMemo(() => {
-    if (!commentPopover) return null
-    const threads = comments.getThreadsForCell(commentPopover.rowId, commentPopover.fieldId)
-    const thread = threads[0]
+    const thread = cellThreads[activeThreadIndex]
     if (!thread) return null
     return {
       root: {
         id: thread.root.id,
         author: thread.root.properties.createdBy,
-        authorDisplayName: undefined,
+        authorDisplayName: resolveAuthorName(thread.root.properties.createdBy),
         content: thread.root.properties.content,
         createdAt: thread.root.createdAt
       },
       replies: thread.replies.map((r) => ({
         id: r.id,
         author: r.properties.createdBy,
-        authorDisplayName: undefined,
+        authorDisplayName: resolveAuthorName(r.properties.createdBy),
         content: r.properties.content,
         createdAt: r.createdAt
       })),
       resolved: Boolean(thread.root.properties.resolved)
     }
-  }, [commentPopover, comments])
+  }, [cellThreads, activeThreadIndex, resolveAuthorName])
 
-  const [newCommentDraft, setNewCommentDraft] = useState('')
-  const commentPeople = useCommentPeople()
+  const stepThread = useCallback((delta: number) => {
+    setCommentPopover((prev) =>
+      prev ? { ...prev, threadIndex: Math.max(0, prev.threadIndex + delta) } : prev
+    )
+  }, [])
 
   // ─── Peek panel ───────────────────────────────────────────────────────────
   const [peekRowId, setPeekRowId] = useState<string | null>(null)
@@ -355,14 +475,34 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     [grid.rows, peekRowId]
   )
 
-  // ─── Workbench integration (0166): tab title + row detail section ─────────
-  const databaseTitle = database?.title
-  useEffect(() => {
-    if (databaseTitle) useWorkbench.getState().setTabTitle(docId, databaseTitle)
-  }, [docId, databaseTitle])
+  // ─── Workbench integration (0166/0353): title + row detail section ────────
+  usePublishTitle(docId, database?.title, database?.id)
 
   const databaseContextSections = useMemo<ContextPanelSection[]>(
     () => [
+      // Relations rail (0346): the peeked row's backlinks — rows in other
+      // databases whose relation cells point here — with "open as frame".
+      {
+        id: 'database-row-relations',
+        title: 'Linked from',
+        content: peekRow ? (
+          <ReverseRelationsPanel
+            rowId={peekRow.id}
+            databaseId={docId}
+            onRowClick={(rowId, sourceDatabaseId) => {
+              navigateToNode(navigate, 'database', sourceDatabaseId)
+              void rowId
+            }}
+            onOpenAsFrame={(sourceDatabaseId) => {
+              navigateToFrame(navigate, 'table', sourceDatabaseId)
+            }}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center p-4 text-center text-xs text-ink-3">
+            Open a row to see what links to it.
+          </div>
+        )
+      },
       {
         id: 'database-row',
         title: 'Row',
@@ -411,9 +551,10 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             Open a row to see its detail here. {grid.rows.length} rows in view.
           </div>
         )
-      }
+      },
+      nodePassportSection(docId)
     ],
-    [peekRow, grid.fields, grid.rows.length]
+    [peekRow, grid.fields, grid.rows.length, docId, navigate]
   )
   useContextPanel(`database:${docId}`, databaseContextSections)
 
@@ -452,150 +593,248 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
   const activeView = grid.activeView
 
+  // ─── Registry views (board/gallery/calendar/timeline/list/map — 0339) ────
+  const isCompact = useIsCompact()
+  const allFields: GridField[] = useMemo(
+    () =>
+      grid.fields.map((f) => ({
+        id: f.id,
+        name: f.name,
+        type: f.type,
+        config: f.config as Record<string, unknown>,
+        width: f.width,
+        isTitle: f.isTitle,
+        options: f.options
+      })),
+    [grid.fields]
+  )
+  const viewRows: DatabaseViewRow[] = useMemo(
+    () => grid.rows.map((r) => ({ id: r.id, sortKey: r.sortKey, cells: r.cells })),
+    [grid.rows]
+  )
+  const viewConfig: DatabaseViewConfig = useMemo(
+    () =>
+      activeView
+        ? {
+            groupBy: activeView.groupBy,
+            collapsedGroups: activeView.collapsedGroups,
+            groupMeta: activeView.groupMeta,
+            coverField: activeView.coverField,
+            cardSize: (activeView.cardSize as DatabaseViewConfig['cardSize']) ?? null,
+            coverFit: (activeView.coverFit as DatabaseViewConfig['coverFit']) ?? null,
+            colorBy: activeView.colorBy,
+            dateField: activeView.dateField,
+            endDateField: activeView.endDateField,
+            latField: activeView.latField,
+            lngField: activeView.lngField,
+            mapViewport: activeView.mapViewport
+          }
+        : EMPTY_VIEW_CONFIG,
+    [activeView]
+  )
+
+  // Compact shells: boards/galleries fall back to the list layout
+  const registryViewType =
+    activeView && activeView.type !== 'table' && activeView.type !== 'form'
+      ? isCompact && (activeView.type === 'board' || activeView.type === 'gallery')
+        ? 'list'
+        : activeView.type
+      : null
+  const registration = registryViewType ? viewRegistry.get(registryViewType) : undefined
+
+  // Keep the spatial window in sync with the active view: resolve the
+  // location cell property names on map views, clear everything elsewhere.
+  // A geo field addresses its lat/lng subfields with the dotted form the
+  // spatial index understands (`cell_<id>.lng`).
+  useEffect(() => {
+    if (registryViewType !== 'map') {
+      setMapBounds(null)
+      setMapGeoProps(null)
+      return
+    }
+    const geo = resolveGeoFields(allFields, viewConfig)
+    setMapGeoProps(
+      geo.geo
+        ? { x: `${cellKey(geo.geo.id)}.lng`, y: `${cellKey(geo.geo.id)}.lat` }
+        : geo.lat && geo.lng
+          ? { x: cellKey(geo.lng.id), y: cellKey(geo.lat.id) }
+          : null
+    )
+  }, [registryViewType, allFields, viewConfig])
+
+  // View filters/sorts apply client-side over the loaded window — when more
+  // rows exist past it, say so instead of presenting a partial result as the
+  // whole table (exploration 0340).
+  const windowedFilterNotice =
+    grid.hasMoreRows &&
+    ((activeView?.filters?.conditions.length ?? 0) > 0 || (activeView?.sorts.length ?? 0) > 0)
+      ? 'filtered within loaded rows'
+      : undefined
+
   if (nodeLoading || grid.loading) {
     return <GridSkeleton className="-m-6" />
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden h-full -m-6">
-      {/* Header */}
-      <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
-        <input
-          type="text"
-          className="text-lg font-semibold border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
-          value={database?.title || ''}
-          onChange={(event) => updateDatabase({ title: event.target.value })}
-          placeholder="Untitled"
-        />
-        <div className="flex-1" />
-        <PresenceAvatars presence={presence} />
-        <ShareButton docId={docId} docType="database" />
-      </div>
-
-      {/* Toolbar */}
-      <GridToolbar
-        views={grid.views.map((v) => ({ id: v.id, name: v.name, type: v.type }))}
-        activeViewId={activeView?.id}
-        onSelectView={setActiveViewId}
-        onAddView={() => {
-          void grid.addView(`View ${grid.views.length + 1}`, 'table')
-        }}
-        fields={grid.fields.map((f) => ({
-          id: f.id,
-          name: f.name,
-          type: f.type,
-          config: f.config as Record<string, unknown>,
-          width: f.width,
-          options: f.options
-        }))}
-        hiddenFieldIds={activeView?.hiddenFields ?? []}
-        onToggleFieldVisible={(fieldId, hidden) => {
-          void grid.setFieldHidden(fieldId, hidden)
-        }}
-        sorts={activeView?.sorts ?? []}
-        onToggleSort={(fieldId) => {
-          void grid.toggleSort(fieldId)
-        }}
-        onClearSorts={() => {
-          if (activeView?.sorts.length) void grid.toggleSort(activeView.sorts[0].columnId)
-        }}
-        filters={activeView?.filters ?? null}
-        onChangeFilters={(filters) => {
-          void grid.setFilters(filters)
-        }}
-        groupBy={activeView?.groupBy ?? null}
-        onChangeGroupBy={(fieldId) => {
-          void grid.setGroupBy(fieldId)
-        }}
-        rowHeight={activeView?.rowHeight}
-        onChangeRowHeight={(height) => {
-          void grid.setRowHeight(height)
-        }}
-        search={search}
-        onSearchChange={setSearch}
-        onExportCsv={handleExportCsv}
-        onExportJson={handleExportJson}
-        onImportCsv={(file) => {
-          void handleImportCsv(file)
-        }}
-        rowCount={grid.rows.length}
-      />
-
-      {/* Body: grid + peek */}
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-hidden">
-            <GridSurface
-              fields={gridFields}
-              rows={gridRows}
-              rowHeight={resolveRowHeightPx(activeView?.rowHeight)}
-              sorts={activeView?.sorts}
-              presences={cellPresences}
-              cellCommentCounts={comments.cellCommentCounts}
-              onUpdateCell={(rowId, fieldId, value) => {
-                void grid.updateCell(rowId, fieldId, value)
-              }}
-              onClearCells={(cells) => {
-                void grid.clearCells(cells)
-              }}
-              onAddRow={(afterRowId) => {
-                void grid.addRow(afterRowId)
-              }}
-              onAddRowWithCells={(cells) => {
-                void grid.addRow(undefined, cells)
-              }}
-              onAddFieldWithCell={(rowId, value) => {
-                void (async () => {
-                  const fieldId = await grid.addField(`Column ${grid.fields.length + 1}`, 'text')
-                  if (fieldId) await grid.updateCell(rowId, fieldId, value)
-                })()
-              }}
-              onDeleteRows={(rowIds) => {
-                void grid.deleteRows(rowIds)
-              }}
-              onMoveRow={(rowId, targetIndex) => {
-                void grid.moveRowToIndex(rowId, targetIndex)
-              }}
-              onMoveField={(fieldId, targetIndex) => {
-                void grid.moveFieldToIndex(fieldId, targetIndex)
-              }}
-              onResizeField={(fieldId, width) => {
-                void grid.resizeField(fieldId, width)
-              }}
-              onToggleSort={(fieldId) => {
-                void grid.toggleSort(fieldId)
-              }}
-              onFieldMenu={(fieldId, anchorEl) => setFieldMenu({ fieldId, anchor: anchorEl })}
-              onAddField={() => setAddingField(true)}
-              onCreateOption={grid.createOption}
-              onUploadFile={blobService ? handleUploadFile : undefined}
-              onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
-              onOpenRow={setPeekRowId}
-              onUndo={() => {
-                void grid.undo()
-              }}
-              onRedo={() => {
-                void grid.redo()
-              }}
-              onCommentCell={openCellComments}
-              onCellFocus={handleCellFocus}
-              onCellBlur={handleCellBlur}
-            />
-          </div>
-          <GridSummaryBar
-            fields={gridFields}
-            rows={gridRows}
-            summaries={activeView?.columnSummaries ?? {}}
-            onChangeSummary={(fieldId, fn) => {
-              void grid.setColumnSummary(fieldId, fn)
-            }}
+    <AttachmentLightboxProvider config={lightboxConfig}>
+      <div className="flex-1 flex flex-col overflow-hidden h-full -m-6">
+        {/* Header */}
+        <div className="flex items-center gap-2 p-3 border-b border-border">
+          <input
+            type="text"
+            className="text-lg font-semibold border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+            value={database?.title || ''}
+            onChange={(event) => updateDatabase({ title: event.target.value })}
+            placeholder="Untitled"
           />
+          <div className="flex-1" />
+          <PresenceAvatars presence={presence} />
+          <ShareButton docId={docId} docType="database" />
         </div>
 
-        {peekRow && (
-          <div className="w-[420px] shrink-0">
-            <GridPeek
-              row={{ id: peekRow.id, cells: peekRow.cells }}
+        {/* Toolbar */}
+        <GridToolbar
+          views={grid.views.map((v) => ({ id: v.id, name: v.name, type: v.type }))}
+          activeViewId={activeView?.id}
+          onSelectView={setActiveViewId}
+          addViewTypes={ADD_VIEW_TYPES}
+          onAddViewOfType={(type) => {
+            void (async () => {
+              const label = ADD_VIEW_TYPES.find((t) => t.type === type)?.label
+              const name = label ?? `View ${grid.views.length + 1}`
+              const id = await grid.addView(name, type)
+              if (id) setActiveViewId(id)
+            })()
+          }}
+          fields={grid.fields.map((f) => ({
+            id: f.id,
+            name: f.name,
+            type: f.type,
+            config: f.config as Record<string, unknown>,
+            width: f.width,
+            options: f.options
+          }))}
+          hiddenFieldIds={activeView?.hiddenFields ?? []}
+          onToggleFieldVisible={(fieldId, hidden) => {
+            void grid.setFieldHidden(fieldId, hidden)
+          }}
+          sorts={activeView?.sorts ?? []}
+          onToggleSort={(fieldId) => {
+            void grid.toggleSort(fieldId)
+          }}
+          onClearSorts={() => {
+            if (activeView?.sorts.length) void grid.toggleSort(activeView.sorts[0].columnId)
+          }}
+          filters={activeView?.filters ?? null}
+          onChangeFilters={(filters) => {
+            void grid.setFilters(filters)
+          }}
+          groupBy={activeView?.groupBy ?? null}
+          onChangeGroupBy={(fieldId) => {
+            void grid.setGroupBy(fieldId)
+          }}
+          rowHeight={activeView?.rowHeight}
+          onChangeRowHeight={(height) => {
+            void grid.setRowHeight(height)
+          }}
+          search={search}
+          onSearchChange={setSearch}
+          onExportCsv={handleExportCsv}
+          onExportJson={handleExportJson}
+          onImportCsv={(file) => {
+            void handleImportCsv(file)
+          }}
+          rowCount={grid.rows.length}
+        />
+
+        {/* Body: form view, registry view (board/gallery/…), or grid + peek */}
+        {registryViewType && registration ? (
+          <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <ViewOptionsBar
+                configFields={registration.configFields ?? []}
+                fields={allFields}
+                config={viewConfig}
+                onPatchConfig={(patch) => {
+                  void grid.setViewConfig(patch)
+                }}
+              />
+              <div className="flex-1 overflow-hidden">
+                <ViewRenderer
+                  type={registryViewType}
+                  fields={allFields}
+                  visibleFields={gridFields}
+                  rows={viewRows}
+                  window={grid.rowWindow}
+                  config={viewConfig}
+                  sorted={(activeView?.sorts.length ?? 0) > 0}
+                  compact={isCompact}
+                  onPatchConfig={(patch) => {
+                    void grid.setViewConfig(patch)
+                  }}
+                  onUpdateCell={(rowId, fieldId, value) => {
+                    void grid.updateCell(rowId, fieldId, value)
+                  }}
+                  onMoveCard={(rowId, cells, opts) => {
+                    void grid.updateRowCells(rowId, cells, opts)
+                  }}
+                  onToggleGroupCollapsed={(groupKey, collapsed) => {
+                    void grid.setGroupCollapsed(groupKey, collapsed)
+                  }}
+                  onOpenRow={setPeekRowId}
+                  onCreateRow={(cells) => {
+                    void grid.addRow(undefined, cells)
+                  }}
+                  onCreateOption={grid.createOption}
+                  onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                  onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
+                  onBoundsChange={setMapBounds}
+                />
+              </div>
+            </div>
+
+            {peekRow && (
+              <div className="w-[420px] shrink-0">
+                <GridPeek
+                  row={{ id: peekRow.id, cells: peekRow.cells }}
+                  fields={allFields}
+                  onClose={() => setPeekRowId(null)}
+                  onUpdateCell={(rowId, fieldId, value) => {
+                    void grid.updateCell(rowId, fieldId, value)
+                  }}
+                  onDeleteRow={(rowId) => {
+                    void grid.deleteRows([rowId])
+                  }}
+                  onCreateOption={grid.createOption}
+                  onUploadFile={blobService ? handleUploadFile : undefined}
+                  onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                  onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
+                >
+                  <div className="text-xs text-gray-500">
+                    {comments.rowCommentCounts.get(peekRow.id) ?? 0} comments on this row
+                  </div>
+                </GridPeek>
+              </div>
+            )}
+          </div>
+        ) : activeView?.type === 'form' ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <FormShareBar
+              viewId={activeView.id}
+              databaseId={docId}
+              space={(database as { space?: string } | null)?.space ?? null}
+              accepting={activeView.formAccepting}
+              config={activeView.formConfig}
+              rules={activeView.formRules}
+              fields={grid.fields.map((f) => ({
+                id: f.id,
+                name: f.name,
+                type: f.type,
+                config: f.config as Record<string, unknown>,
+                options: f.options
+              }))}
+            />
+            <FormView
               fields={grid.fields.map((f) => ({
                 id: f.id,
                 name: f.name,
@@ -605,245 +844,315 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
                 isTitle: f.isTitle,
                 options: f.options
               }))}
-              onClose={() => setPeekRowId(null)}
-              onUpdateCell={(rowId, fieldId, value) => {
-                void grid.updateCell(rowId, fieldId, value)
+              config={activeView.formConfig}
+              rules={activeView.formRules}
+              accepting={activeView.formAccepting}
+              databaseTitle={database?.title}
+              editable
+              onSubmit={async (cells) =>
+                (await grid.addRow(undefined, cells, {
+                  meta: { via: 'form', viewId: activeView.id, submittedAt: Date.now() }
+                })) !== null
+              }
+              onChangeConfig={(next) => {
+                void grid.setFormConfig(next)
               }}
-              onDeleteRow={(rowId) => {
-                void grid.deleteRows([rowId])
+              onChangeRules={(next) => {
+                void grid.setFormRules(next)
               }}
-              onCreateOption={grid.createOption}
+              onChangeAccepting={(next) => {
+                void grid.setFormAccepting(next)
+              }}
               onUploadFile={blobService ? handleUploadFile : undefined}
               onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
-            >
-              {/* Row comments summary */}
-              <div className="text-xs text-gray-500">
-                {comments.rowCommentCounts.get(peekRow.id) ?? 0} comments on this row
+              className="flex-1"
+            />
+          </div>
+        ) : (
+          <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-hidden">
+                <GridSurface
+                  fields={gridFields}
+                  rows={gridRows}
+                  rowHeight={resolveRowHeightPx(activeView?.rowHeight)}
+                  sorts={activeView?.sorts}
+                  presences={cellPresences}
+                  cellCommentCounts={comments.cellCommentCounts}
+                  totalRowCount={grid.totalRowCount}
+                  hasMoreRows={grid.hasMoreRows}
+                  loadingMoreRows={grid.isFetchingMoreRows}
+                  onReachEnd={() => {
+                    void grid.fetchMoreRows()
+                  }}
+                  footerNotice={windowedFilterNotice}
+                  onUpdateCell={(rowId, fieldId, value) => {
+                    void grid.updateCell(rowId, fieldId, value)
+                  }}
+                  onClearCells={(cells) => {
+                    void grid.clearCells(cells)
+                  }}
+                  onAddRow={(afterRowId) => {
+                    void grid.addRow(afterRowId)
+                  }}
+                  onAddRowWithCells={(cells) => {
+                    void grid.addRow(undefined, cells)
+                  }}
+                  onAddFieldWithCell={(rowId, value) => {
+                    void (async () => {
+                      const fieldId = await grid.addField(
+                        `Column ${grid.fields.length + 1}`,
+                        'text'
+                      )
+                      if (fieldId) await grid.updateCell(rowId, fieldId, value)
+                    })()
+                  }}
+                  onDeleteRows={(rowIds) => {
+                    void grid.deleteRows(rowIds)
+                  }}
+                  onMoveRow={(rowId, targetIndex) => {
+                    void grid.moveRowToIndex(rowId, targetIndex)
+                  }}
+                  onMoveField={(fieldId, targetIndex) => {
+                    void grid.moveFieldToIndex(fieldId, targetIndex)
+                  }}
+                  onResizeField={(fieldId, width) => {
+                    void grid.resizeField(fieldId, width)
+                  }}
+                  onToggleSort={(fieldId) => {
+                    void grid.toggleSort(fieldId)
+                  }}
+                  onFieldMenu={(fieldId, anchorEl) => setFieldMenu({ fieldId, anchor: anchorEl })}
+                  onAddField={() => setAddingField(true)}
+                  onCreateOption={grid.createOption}
+                  onUploadFile={blobService ? handleUploadFile : undefined}
+                  onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                  onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
+                  onOpenRow={setPeekRowId}
+                  onUndo={() => {
+                    void grid.undo()
+                  }}
+                  onRedo={() => {
+                    void grid.redo()
+                  }}
+                  onCommentCell={openCellComments}
+                  onCellFocus={handleCellFocus}
+                  onCellBlur={handleCellBlur}
+                />
               </div>
-            </GridPeek>
+              <GridSummaryBar
+                fields={gridFields}
+                rows={gridRows}
+                summaries={activeView?.columnSummaries ?? {}}
+                onChangeSummary={(fieldId, fn) => {
+                  void grid.setColumnSummary(fieldId, fn)
+                }}
+              />
+            </div>
+
+            {peekRow && (
+              <div className="w-[420px] shrink-0">
+                <GridPeek
+                  row={{ id: peekRow.id, cells: peekRow.cells }}
+                  fields={grid.fields.map((f) => ({
+                    id: f.id,
+                    name: f.name,
+                    type: f.type,
+                    config: f.config as Record<string, unknown>,
+                    width: f.width,
+                    isTitle: f.isTitle,
+                    options: f.options
+                  }))}
+                  onClose={() => setPeekRowId(null)}
+                  onUpdateCell={(rowId, fieldId, value) => {
+                    void grid.updateCell(rowId, fieldId, value)
+                  }}
+                  onDeleteRow={(rowId) => {
+                    void grid.deleteRows([rowId])
+                  }}
+                  onCreateOption={grid.createOption}
+                  onUploadFile={blobService ? handleUploadFile : undefined}
+                  onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                  onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
+                >
+                  {/* Row comments summary */}
+                  <div className="text-xs text-gray-500">
+                    {comments.rowCommentCounts.get(peekRow.id) ?? 0} comments on this row
+                  </div>
+                </GridPeek>
+              </div>
+            )}
           </div>
         )}
-      </div>
 
-      {/* Field menu popover */}
-      {fieldMenu && menuField && (
-        <div
-          className="fixed inset-0 z-40"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setFieldMenu(null)
-          }}
-        >
+        {/* Field menu popover */}
+        {fieldMenu && menuField && (
           <div
-            className="absolute z-50 w-64 rounded-lg border border-border bg-white dark:bg-gray-900 shadow-xl p-2"
-            style={{
-              top: fieldMenu.anchor.getBoundingClientRect().bottom + 4,
-              left: Math.min(fieldMenu.anchor.getBoundingClientRect().left, window.innerWidth - 280)
+            className="fixed inset-0 z-40"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setFieldMenu(null)
             }}
           >
-            <input
-              type="text"
-              aria-label="Field name"
-              defaultValue={menuField.name}
-              autoFocus
-              className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-blue-400"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const name = (e.target as HTMLInputElement).value.trim()
-                  if (name && name !== menuField.name) void grid.renameField(menuField.id, name)
-                  setFieldMenu(null)
-                }
-                if (e.key === 'Escape') setFieldMenu(null)
-                e.stopPropagation()
-              }}
-              onBlur={(e) => {
-                const name = e.target.value.trim()
-                if (name && name !== menuField.name) void grid.renameField(menuField.id, name)
-              }}
-            />
-            <div className="mb-2">
-              <Select
-                className="w-full"
-                placeholder="Field type"
-                options={FIELD_TYPE_OPTIONS}
-                value={menuField.type}
-                onValueChange={(value) => {
-                  void grid.changeFieldType(menuField.id, value as FieldType)
-                }}
-              />
-            </div>
-            <FieldConfigEditor
-              field={menuField}
-              fields={grid.fields}
-              onSave={(config) => {
-                void grid.updateFieldConfig(menuField.id, config)
-              }}
-            />
-            <button
-              type="button"
-              className="w-full px-2 py-1 text-left text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-800"
-              onClick={() => {
-                void grid.setFieldHidden(menuField.id, true)
-                setFieldMenu(null)
+            <div
+              className="absolute z-50 w-64 rounded-lg border border-hairline bg-popover shadow-pop p-2"
+              style={{
+                top: fieldMenu.anchor.getBoundingClientRect().bottom + 4,
+                left: Math.min(
+                  fieldMenu.anchor.getBoundingClientRect().left,
+                  window.innerWidth - 280
+                )
               }}
             >
-              Hide in view
-            </button>
-            <button
-              type="button"
-              className="w-full px-2 py-1 flex items-center gap-1 text-left text-sm rounded text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-              onClick={() => {
-                if (window.confirm(`Delete field "${menuField.name}"?`)) {
-                  void grid.removeField(menuField.id)
-                }
-                setFieldMenu(null)
-              }}
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Delete field
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Add field popover */}
-      {addingField && (
-        <div
-          className="fixed inset-0 z-40 flex items-start justify-center pt-32"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setAddingField(false)
-          }}
-        >
-          <div className="w-72 rounded-lg border border-border bg-white dark:bg-gray-900 shadow-xl p-3">
-            <h3 className="text-sm font-medium mb-2">New field</h3>
-            <input
-              type="text"
-              aria-label="New field name"
-              placeholder="Field name"
-              value={newFieldName}
-              autoFocus
-              className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-blue-400"
-              onChange={(e) => setNewFieldName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void submitAddField()
-                if (e.key === 'Escape') setAddingField(false)
-                e.stopPropagation()
-              }}
-            />
-            <div className="mb-3">
-              <Select
-                className="w-full"
-                placeholder="Field type"
-                options={FIELD_TYPE_OPTIONS}
-                value={newFieldType}
-                onValueChange={(value) => setNewFieldType(value as FieldType)}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                className="px-3 py-1 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-800"
-                onClick={() => setAddingField(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="px-3 py-1 text-sm rounded bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
-                disabled={!newFieldName.trim()}
-                onClick={() => void submitAddField()}
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cell comments: existing thread popover or new-comment composer */}
-      {commentPopover && activeThread && (
-        <CommentPopover
-          thread={activeThread}
-          anchor={commentPopover.anchor}
-          mode="full"
-          open
-          people={commentPeople}
-          onReply={(content) => {
-            void comments.commentOnCell(commentPopover.rowId, commentPopover.fieldId, content)
-          }}
-          onDismiss={() => setCommentPopover(null)}
-        />
-      )}
-      {commentPopover && !activeThread && (
-        <div
-          className="fixed inset-0 z-40"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) {
-              setCommentPopover(null)
-              setNewCommentDraft('')
-            }
-          }}
-        >
-          <div
-            className="absolute z-50 w-72 rounded-lg border border-border bg-white dark:bg-gray-900 shadow-xl p-3"
-            style={
-              commentPopover.anchor instanceof HTMLElement
-                ? {
-                    top: commentPopover.anchor.getBoundingClientRect().bottom + 4,
-                    left: Math.min(
-                      commentPopover.anchor.getBoundingClientRect().left,
-                      window.innerWidth - 300
-                    )
+              <input
+                type="text"
+                aria-label="Field name"
+                defaultValue={menuField.name}
+                autoFocus
+                className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-border-emphasis"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const name = (e.target as HTMLInputElement).value.trim()
+                    if (name && name !== menuField.name) void grid.renameField(menuField.id, name)
+                    setFieldMenu(null)
                   }
-                : { top: commentPopover.anchor.y, left: commentPopover.anchor.x }
-            }
-          >
-            <MentionTextArea
-              data-testid="db-new-comment"
-              placeholder="Add a comment… (@ to mention)"
-              value={newCommentDraft}
-              people={commentPeople}
-              autoFocus
-              rows={2}
-              containerClassName="mb-2"
-              className="px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-blue-400 resize-none"
-              onChange={setNewCommentDraft}
-              onKeyDown={(e) => {
-                e.stopPropagation()
-                if (e.key === 'Escape') {
-                  setCommentPopover(null)
-                  setNewCommentDraft('')
-                }
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && newCommentDraft.trim()) {
-                  void comments.commentOnCell(
-                    commentPopover.rowId,
-                    commentPopover.fieldId,
-                    newCommentDraft.trim()
-                  )
-                  setCommentPopover(null)
-                  setNewCommentDraft('')
-                }
-              }}
-            />
-            <div className="flex justify-end">
+                  if (e.key === 'Escape') setFieldMenu(null)
+                  e.stopPropagation()
+                }}
+                onBlur={(e) => {
+                  const name = e.target.value.trim()
+                  if (name && name !== menuField.name) void grid.renameField(menuField.id, name)
+                }}
+              />
+              <div className="mb-2">
+                <Select
+                  className="w-full"
+                  placeholder="Field type"
+                  options={FIELD_TYPE_OPTIONS}
+                  value={menuField.type}
+                  onValueChange={(value) => {
+                    void grid.changeFieldType(menuField.id, value as FieldType)
+                  }}
+                />
+              </div>
+              <FieldConfigEditor
+                field={menuField}
+                fields={grid.fields}
+                onSave={(config) => {
+                  void grid.updateFieldConfig(menuField.id, config)
+                }}
+              />
               <button
                 type="button"
-                className="px-3 py-1 text-sm rounded bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
-                disabled={!newCommentDraft.trim()}
+                className="w-full px-2 py-1 text-left text-sm rounded hover:bg-accent"
                 onClick={() => {
-                  void comments.commentOnCell(
-                    commentPopover.rowId,
-                    commentPopover.fieldId,
-                    newCommentDraft.trim()
-                  )
-                  setCommentPopover(null)
-                  setNewCommentDraft('')
+                  void grid.setFieldHidden(menuField.id, true)
+                  setFieldMenu(null)
                 }}
               >
-                Comment
+                Hide in view
+              </button>
+              <button
+                type="button"
+                className="w-full px-2 py-1 flex items-center gap-1 text-left text-sm rounded text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                onClick={() => {
+                  if (window.confirm(`Delete field "${menuField.name}"?`)) {
+                    void grid.removeField(menuField.id)
+                  }
+                  setFieldMenu(null)
+                }}
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Delete field
               </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+
+        {/* Add field popover */}
+        {addingField && (
+          <div
+            className="fixed inset-0 z-40 flex items-start justify-center pt-32"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setAddingField(false)
+            }}
+          >
+            <div className="w-72 rounded-lg border border-hairline bg-popover shadow-pop p-3">
+              <h3 className="text-sm font-medium mb-2">New field</h3>
+              <input
+                type="text"
+                aria-label="New field name"
+                placeholder="Field name"
+                value={newFieldName}
+                autoFocus
+                className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-border-emphasis"
+                onChange={(e) => setNewFieldName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void submitAddField()
+                  if (e.key === 'Escape') setAddingField(false)
+                  e.stopPropagation()
+                }}
+              />
+              <div className="mb-3">
+                <Select
+                  className="w-full"
+                  placeholder="Field type"
+                  options={FIELD_TYPE_OPTIONS}
+                  value={newFieldType}
+                  onValueChange={(value) => setNewFieldType(value as FieldType)}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  className="px-3 py-1 text-sm rounded hover:bg-accent"
+                  onClick={() => setAddingField(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="px-3 py-1 text-sm rounded bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
+                  disabled={!newFieldName.trim()}
+                  onClick={() => void submitAddField()}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cell comments — one island for both reading a thread and starting
+          the first one, replacing the bespoke composer that carried its own
+          hand-rolled positioning (0375). */}
+        {commentPopover && (
+          <CommentIsland
+            thread={activeThread}
+            anchor={toAnchorLike(commentPopover.anchor)}
+            mode={activeThread ? 'full' : 'composing'}
+            open
+            side="bottom"
+            people={commentPeople}
+            position={
+              cellThreads.length > 1
+                ? {
+                    index: activeThreadIndex,
+                    total: cellThreads.length,
+                    onPrev: () => stepThread(-1),
+                    onNext: () => stepThread(1)
+                  }
+                : undefined
+            }
+            onReply={(content) => {
+              void comments.commentOnCell(commentPopover.rowId, commentPopover.fieldId, content)
+            }}
+            onCreate={(content) => {
+              void comments.commentOnCell(commentPopover.rowId, commentPopover.fieldId, content)
+              setCommentPopover(null)
+            }}
+            onDismiss={() => setCommentPopover(null)}
+          />
+        )}
+      </div>
+    </AttachmentLightboxProvider>
   )
 }

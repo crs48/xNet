@@ -11,12 +11,15 @@
  */
 
 import type {
+  CheckedOutDraftOverlay,
   NodeId,
   NodePayload,
   NodeChange,
   NodeState,
   NodeStorageAdapter,
   NodeStoreOptions,
+  NodeTextSearchOptions,
+  NodeTextSearchResult,
   CreateNodeOptions,
   UpdateNodeOptions,
   PropertyTimestamp,
@@ -47,6 +50,12 @@ import type {
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
 import type { AuthAction, AuthDecision, DID, ContentId, PolicyEvaluator } from '@xnetjs/core'
+import {
+  LWW_TIEBREAK_KEY_VERSION,
+  compareChangeApplicationOrder,
+  computeLwwTiebreakKey,
+  lwwWins
+} from '@xnetjs/core'
 import { base64ToBytes, bytesToBase64 } from '@xnetjs/crypto'
 import { parseDID } from '@xnetjs/identity'
 import {
@@ -60,17 +69,37 @@ import {
   type LamportClock,
   type UnsignedChange
 } from '@xnetjs/sync'
-import { verifyChange, verifyChangeHash } from '@xnetjs/sync'
+import { verifyChange, verifyChangeHash, verifyChangesFast } from '@xnetjs/sync'
 import { createNodeId, getBaseSchemaIRI, type SchemaIRI } from '../schema/node'
+import { accountRecordId, revocationRecordId } from '../schema/schemas/account-ledger'
+import {
+  evaluateLedgerWrite,
+  foldAccountRecord,
+  ledgerAccountId,
+  ledgerWriteKind
+} from '../schema/schemas/account-ledger-enforce'
 import { isSystemNamespaceResource, isSystemSchemaIri } from '../schema/schemas/system'
+import {
+  executeDeterministicNodeImport,
+  planDeterministicNodeImport,
+  type DeterministicNodeImportAppliedPlan,
+  type DeterministicNodeImportPlan
+} from './batch-write-orchestrator'
 import { PermissionError } from './permission-error'
 import {
   applyNodeQueryDescriptor,
+  withoutNodeQueryMaterializedView,
   withoutNodeQueryPagination,
   type NodeQueryDescriptor,
   type NodeQueryResult
 } from './query'
 import { resolveTempIds, type SchemaLookup } from './tempids'
+import {
+  executeTransactionOperations,
+  executeTransactionOperationsFast,
+  type PendingTransactionEvent,
+  type WriteExecutionHost
+} from './transaction-executor'
 
 /** Maximum number of conflicts to retain before trimming */
 const MAX_CONFLICTS = 200
@@ -100,27 +129,6 @@ type SerializedNodeSnapshot = {
   unknown?: Record<string, unknown>
 }
 
-type PendingTransactionEvent = {
-  change: NodeChange
-  result: NodeState | null
-  previousNode: NodeState | null
-}
-
-type DeterministicNodeImportPlan = {
-  created: number
-  updated: number
-  nodes: NodeState[]
-  changes: NodeChange[]
-  events: PendingTransactionEvent[]
-  affectedSchemaIds: SchemaIRI[]
-  timings: Pick<NodeBatchWriteTimings, 'preflightMs' | 'materializeMs'>
-}
-
-type DeterministicNodeImportAppliedPlan = DeterministicNodeImportPlan & {
-  applyMs: number
-  storage?: ApplyNodeBatchResult
-}
-
 type DeterministicNodeImportExecution = ImportDeterministicNodesResult & {
   storage?: ApplyNodeBatchResult
   timings: NodeBatchWriteTimings
@@ -129,6 +137,15 @@ type DeterministicNodeImportExecution = ImportDeterministicNodesResult & {
 /**
  * NodeStore manages event-sourced Nodes with LWW conflict resolution.
  */
+/**
+ * Internal options for {@link NodeStore.applyRemoteChange}. Not exported from
+ * the package: `preVerified` skips signature checking and is only sound when
+ * the caller ran {@link NodeStore.verifyRemoteChanges} over the same change.
+ */
+type ApplyRemoteChangeOptions = {
+  preVerified?: boolean
+}
+
 export class NodeStore {
   private storage: NodeStorageAdapter
   private authorDID: DID
@@ -136,9 +153,18 @@ export class NodeStore {
   private changeSigner?: ChangeSigner
   private clock: LamportClock
   private conflicts: MergeConflict[] = []
+  private writeHost?: WriteExecutionHost
   private listeners: Set<NodeChangeListener> = new Set()
   private nodeListeners: Map<NodeId, Set<NodeChangeListener>> = new Map()
   private batchListeners: Set<NodeBatchChangeListener> = new Set()
+  // Draft overlay (exploration 0329)
+  private checkedOutDraft: CheckedOutDraftOverlay | null = null
+  private cloneToOriginal: Map<NodeId, NodeId> = new Map()
+  private draftMemberSet: Set<NodeId> = new Set()
+  private draftDynamicMembers = false
+  /** null = conservative "all schemas" (memberSchemaIds omitted). */
+  private draftMemberSchemaSet: Set<string> | null = null
+  private draftOverlayListeners: Set<() => void> = new Set()
   private schemaLookup?: SchemaLookup
   private propertyLookup?: PropertyLookup
   private lensRegistry?: LensRegistry
@@ -236,13 +262,14 @@ export class NodeStore {
             schemaId: options.schemaId,
             properties: options.properties
           },
-          authAction: 'write',
+          authAction: 'create',
           requireExisting: false,
           createSchemaId: options.schemaId
         })
 
         this.emit(change, node, null, false)
         this.authEvaluator?.invalidate(node.id)
+        this.notifyDraftNodeCreated(node.id, node.schemaId)
 
         if (this.telemetry) {
           this.telemetry.reportPerformance('data.create', Date.now() - start)
@@ -254,7 +281,7 @@ export class NodeStore {
 
       await this.assertAuthorized({
         subject: this.authorDID,
-        action: 'write',
+        action: 'create',
         nodeId: id,
         patch: options.properties,
         node: {
@@ -293,6 +320,7 @@ export class NodeStore {
       // Emit change event
       this.emit(change, node, null, false)
       this.authEvaluator?.invalidate(node.id)
+      this.notifyDraftNodeCreated(node.id, node.schemaId)
 
       // Track performance
       if (this.telemetry) {
@@ -314,9 +342,228 @@ export class NodeStore {
    * Get a Node by ID.
    */
   async get(id: NodeId): Promise<NodeState | null> {
+    // Draft overlay (exploration 0329): a checked-out member reads as its
+    // clone's content under the original id. Zero-cost when no draft is
+    // checked out (the common case).
+    const cloneId = this.checkedOutDraft?.clones[id]
+    if (cloneId) {
+      const clone = await this.getRaw(cloneId)
+      if (clone) return { ...clone, id }
+    }
+    return this.getRaw(id)
+  }
+
+  /**
+   * Read a node WITHOUT the draft overlay (exploration 0329) — merge review
+   * and diff surfaces use this to see main's true state while checked out.
+   */
+  async getRaw(id: NodeId): Promise<NodeState | null> {
     const node = await this.storage.getNode(id)
     const decrypted = await this.decryptNodeSnapshotIfPresent(node)
     return (await this.canReadNode(decrypted)) ? decrypted : null
+  }
+
+  // ==========================================================================
+  // Draft overlay (exploration 0329)
+  // ==========================================================================
+
+  /**
+   * Check a draft out (or pass null to return to main). While checked out,
+   * member reads swap to clone content under original ids, member writes
+   * redirect to clones (lazily forking via `onMissingMember`), and clone
+   * change events mirror to original-id subscribers.
+   */
+  setCheckedOutDraft(overlay: CheckedOutDraftOverlay | null): void {
+    this.checkedOutDraft = overlay
+    this.cloneToOriginal = new Map(
+      overlay
+        ? Object.entries(overlay.clones).map(([orig, clone]) => [clone as NodeId, orig as NodeId])
+        : []
+    )
+    this.draftMemberSet =
+      overlay && overlay.members !== 'dynamic' ? new Set(overlay.members) : new Set()
+    this.draftDynamicMembers = overlay?.members === 'dynamic'
+    this.draftMemberSchemaSet = overlay?.memberSchemaIds ? new Set(overlay.memberSchemaIds) : null
+    this.notifyDraftOverlayListeners()
+  }
+
+  /** Report a locally-created node to the checkout's draft-born hook (0329 P4). */
+  private notifyDraftNodeCreated(nodeId: NodeId, schemaId: string): void {
+    const overlay = this.checkedOutDraft
+    if (!overlay?.onNodeCreated) return
+    if (nodeId === overlay.draftId || this.cloneToOriginal.has(nodeId)) return
+    try {
+      overlay.onNodeCreated(nodeId, schemaId)
+    } catch (err) {
+      console.error('Error in draft onNodeCreated hook:', err)
+    }
+  }
+
+  private notifyDraftOverlayListeners(): void {
+    for (const listener of this.draftOverlayListeners) {
+      try {
+        listener()
+      } catch (err) {
+        console.error('Error in draft overlay listener:', err)
+      }
+    }
+  }
+
+  getCheckedOutDraft(): CheckedOutDraftOverlay | null {
+    return this.checkedOutDraft
+  }
+
+  /**
+   * Device-local draft privacy (exploration 0329): ids marked here (draft
+   * bookkeeping nodes, clones, draft-born nodes) are excluded from outbound
+   * sync publication by the personal node-sync room's `shouldPublish`
+   * predicate. In-memory only — the draft module rehydrates it from open
+   * Draft nodes at boot, BEFORE sync starts.
+   */
+  private draftPrivateNodeIds: Set<NodeId> = new Set()
+
+  markDraftPrivate(ids: readonly NodeId[]): void {
+    for (const id of ids) this.draftPrivateNodeIds.add(id)
+  }
+
+  unmarkDraftPrivate(ids: readonly NodeId[]): void {
+    for (const id of ids) this.draftPrivateNodeIds.delete(id)
+  }
+
+  isDraftPrivate(id: NodeId): boolean {
+    return this.draftPrivateNodeIds.has(id)
+  }
+
+  /** Notified on every checkout change (including clone-map refreshes). */
+  subscribeToDraftOverlay(listener: () => void): () => void {
+    this.draftOverlayListeners.add(listener)
+    return () => this.draftOverlayListeners.delete(listener)
+  }
+
+  /**
+   * Swap checked-out members' content to their clones (original ids kept, so
+   * MV id lists and grid ordering are untouched). No-op without a checkout.
+   */
+  private async overlayStates(states: NodeState[]): Promise<NodeState[]> {
+    const overlay = this.checkedOutDraft
+    if (!overlay) return states
+
+    // Clone rows never render as themselves — the member shows their content.
+    const visible =
+      this.cloneToOriginal.size > 0
+        ? states.filter((state) => !this.cloneToOriginal.has(state.id))
+        : states
+
+    const cloneIds = visible
+      .map((s) => overlay.clones[s.id])
+      .filter((cloneId): cloneId is NodeId => cloneId !== undefined)
+    if (cloneIds.length === 0) return visible
+
+    const cloneMap = await this.getNodesById(cloneIds, this.storage)
+    return Promise.all(
+      visible.map(async (state) => {
+        const cloneId = overlay.clones[state.id]
+        const clone = cloneId ? cloneMap.get(cloneId) : undefined
+        if (!clone) return state
+        const decrypted = await this.decryptNodeSnapshotIfPresent(clone)
+        return decrypted ? { ...decrypted, id: state.id } : state
+      })
+    )
+  }
+
+  /**
+   * Draft-aware query path (0329 P5): candidates from storage WITHOUT
+   * pagination, unioned with checked-out members the predicate may have
+   * missed (their clone values can change membership), content-swapped,
+   * clone rows hidden, then the full descriptor re-applied in JS so
+   * filter/sort/pagination reflect draft values.
+   */
+  private async draftAwareQuery(
+    descriptor: NodeQueryDescriptor,
+    start: number
+  ): Promise<NodeQueryResult> {
+    const overlay = this.checkedOutDraft
+    const unpaginated = withoutNodeQueryMaterializedView(withoutNodeQueryPagination(descriptor))
+
+    let candidates: NodeState[]
+    if (this.storage.queryNodes && !this.nodeContentCipher) {
+      candidates = (await this.storage.queryNodes(unpaginated)).nodes
+    } else {
+      const fallback = await this.loadQueryFallbackCandidates(unpaginated)
+      const decrypted = await Promise.all(
+        fallback.nodes.map((node) => this.decryptNodeSnapshotIfPresent(node))
+      )
+      candidates = decrypted.filter((node): node is NodeState => node !== null)
+    }
+
+    // Union in members the storage predicate skipped: a member whose ORIGINAL
+    // doesn't match `where` may match under its clone's values.
+    if (overlay) {
+      const present = new Set(candidates.map((node) => node.id))
+      const missing = Object.keys(overlay.clones).filter(
+        (id) => !present.has(id as NodeId)
+      ) as NodeId[]
+      if (missing.length > 0) {
+        const extra = await this.getNodesById(missing, this.storage)
+        for (const node of extra.values()) {
+          const decrypted = await this.decryptNodeSnapshotIfPresent(node)
+          if (!decrypted) continue
+          if (decrypted.schemaId !== descriptor.schemaId) continue
+          if (decrypted.deleted && !descriptor.includeDeleted) continue
+          candidates.push(decrypted)
+        }
+      }
+    }
+
+    const readable = await this.filterReadableNodes(candidates)
+    const swapped = await this.overlayStates(readable)
+    const filtered = applyNodeQueryDescriptor(swapped, withoutNodeQueryPagination(descriptor))
+    const result = applyNodeQueryDescriptor(swapped, descriptor)
+
+    return {
+      nodes: result,
+      totalCount: filtered.length,
+      plan: {
+        strategy: 'draft-overlay',
+        candidateNodeCount: readable.length,
+        hydratedNodeCount: swapped.length,
+        returnedNodeCount: result.length,
+        durationMs: Date.now() - start
+      }
+    }
+  }
+
+  /**
+   * Resolve where a write to `id` lands under the checkout: an existing
+   * clone, a lazily-forked one (`onMissingMember`), or — for non-members,
+   * clone ids, and declined forks — the id itself.
+   */
+  private async resolveDraftWriteTarget(id: NodeId): Promise<NodeId> {
+    const overlay = this.checkedOutDraft
+    if (!overlay) return id
+    const existing = overlay.clones[id]
+    if (existing) return existing
+    // Dynamic (agent-PR) sessions consult the fork callback for every id
+    // except the draft's own bookkeeping and already-created clones.
+    if (this.draftDynamicMembers) {
+      if (id === overlay.draftId || this.cloneToOriginal.has(id)) return id
+    } else if (!this.draftMemberSet.has(id)) {
+      return id
+    }
+    if (overlay.onMissingMember) {
+      const cloneId = await overlay.onMissingMember(id)
+      if (cloneId && this.checkedOutDraft === overlay) {
+        // Keep the live overlay self-consistent so the very next read of the
+        // original resolves to the fresh clone without waiting for the UI
+        // layer to re-checkout.
+        this.checkedOutDraft = { ...overlay, clones: { ...overlay.clones, [id]: cloneId } }
+        this.cloneToOriginal.set(cloneId, id)
+        this.notifyDraftOverlayListeners()
+        return cloneId
+      }
+      if (cloneId) return cloneId
+    }
+    return id
   }
 
   /**
@@ -421,6 +668,8 @@ export class NodeStore {
    */
   async update(id: NodeId, options: UpdateNodeOptions): Promise<NodeState> {
     const start = this.telemetry ? Date.now() : 0
+    // Draft overlay (0329): member writes land on the clone (lazy COW).
+    id = await this.resolveDraftWriteTarget(id)
 
     try {
       if (this.canUseSingleWriteFastPath()) {
@@ -430,7 +679,7 @@ export class NodeStore {
             nodeId: id,
             properties: options.properties
           },
-          authAction: 'write',
+          authAction: 'update',
           requireExisting: true
         })
 
@@ -460,7 +709,7 @@ export class NodeStore {
 
       await this.assertAuthorized({
         subject: this.authorDID,
-        action: 'write',
+        action: 'update',
         nodeId: id,
         patch: options.properties,
         node: {
@@ -528,6 +777,8 @@ export class NodeStore {
    */
   async delete(id: NodeId): Promise<void> {
     const start = this.telemetry ? Date.now() : 0
+    // Draft overlay (0329): member deletes tombstone the clone, not main.
+    id = await this.resolveDraftWriteTarget(id)
 
     try {
       if (this.canUseSingleWriteFastPath()) {
@@ -614,6 +865,8 @@ export class NodeStore {
    * Restore a deleted Node.
    */
   async restore(id: NodeId): Promise<NodeState> {
+    // Draft overlay (0329): member restores un-tombstone the clone.
+    id = await this.resolveDraftWriteTarget(id)
     if (this.canUseSingleWriteFastPath()) {
       const { node, previousNode, change } = await this.applySingleNodeWrite({
         nodeId: id,
@@ -622,7 +875,7 @@ export class NodeStore {
           properties: {},
           deleted: false
         },
-        authAction: 'write',
+        authAction: 'update',
         requireExisting: true
       })
 
@@ -639,7 +892,7 @@ export class NodeStore {
 
     await this.assertAuthorized({
       subject: this.authorDID,
-      action: 'write',
+      action: 'update',
       nodeId: id,
       node: {
         schemaId: existing.schemaId,
@@ -703,7 +956,8 @@ export class NodeStore {
       const readable = await this.filterReadableNodes(
         decrypted.filter((node): node is NodeState => node !== null)
       )
-      const result = this.authEvaluator ? this.applyListPagination(readable, options) : readable
+      const paged = this.authEvaluator ? this.applyListPagination(readable, options) : readable
+      const result = await this.overlayStates(paged)
 
       // Track performance
       if (this.telemetry) {
@@ -722,16 +976,49 @@ export class NodeStore {
   }
 
   /**
+   * Cross-schema full-text search over the FTS5 index (exploration 0391 — the
+   * AI retrieval entry point). Returns `null` when the backing storage has no
+   * FTS support so callers can fall back to a scan. Results are id + rank
+   * only; loading the nodes (and thus read authorization + decryption) stays
+   * with the caller's `get()` calls.
+   */
+  async searchText(
+    query: string,
+    limit: number,
+    options?: NodeTextSearchOptions
+  ): Promise<NodeTextSearchResult[] | null> {
+    if (!this.storage.searchText) return null
+    const trimmed = query.trim()
+    if (!trimmed) return []
+    return this.storage.searchText(trimmed, limit, options)
+  }
+
+  /**
    * Query nodes with descriptor semantics and storage-level pushdown when available.
    */
   async query(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> {
     const start = Date.now()
 
     try {
+      // Draft-aware queries (0329 P5): while a draft with forked members is
+      // checked out, filters/sorts/pagination must see CLONE values for
+      // members (and never show clone rows themselves). Predicate pushdown
+      // and MV id lists are computed from the originals' scalars, so this
+      // path re-applies the descriptor in JS over the content-swapped set.
+      // Scoped to the members' schemas — other grids keep the indexed fast
+      // path; drafts are small, transient sessions (correctness > pushdown).
+      if (
+        this.checkedOutDraft &&
+        Object.keys(this.checkedOutDraft.clones).length > 0 &&
+        (this.draftMemberSchemaSet === null || this.draftMemberSchemaSet.has(descriptor.schemaId))
+      ) {
+        return this.draftAwareQuery(descriptor, start)
+      }
+
       if (this.storage.queryNodes && !this.nodeContentCipher && !this.authEvaluator) {
         const result = await this.storage.queryNodes(descriptor)
         return {
-          nodes: result.nodes,
+          nodes: await this.overlayStates(result.nodes),
           totalCount: result.totalCount,
           plan: {
             ...result.plan,
@@ -758,7 +1045,7 @@ export class NodeStore {
         const authFingerprint = await this.authFingerprint()
         const result = await this.storage.queryNodes({ ...descriptor, authFingerprint })
         return {
-          nodes: result.nodes,
+          nodes: await this.overlayStates(result.nodes),
           totalCount: result.totalCount,
           plan: {
             ...result.plan,
@@ -784,7 +1071,7 @@ export class NodeStore {
       ) {
         const candidates = await this.storage.queryNodes(withoutNodeQueryPagination(descriptor))
         const readable = await this.filterReadableNodes(candidates.nodes)
-        const result = applyNodeQueryDescriptor(readable, descriptor)
+        const result = await this.overlayStates(applyNodeQueryDescriptor(readable, descriptor))
         return {
           nodes: result,
           totalCount: readable.length,
@@ -809,7 +1096,9 @@ export class NodeStore {
       const readable = await this.filterReadableNodes(
         decrypted.filter((node): node is NodeState => node !== null)
       )
-      const result = applyNodeQueryDescriptor(readable, fallback.postFilterDescriptor)
+      const result = await this.overlayStates(
+        applyNodeQueryDescriptor(readable, fallback.postFilterDescriptor)
+      )
       // When pagination was pushed to storage, `readable` holds only the window,
       // so an in-memory count would report the page size, not the true total —
       // leave it undefined (the bridge derives a cheap value). Only count the
@@ -1380,81 +1669,7 @@ export class NodeStore {
     batchId: string
     batchSize: number
   }): Promise<DeterministicNodeImportPlan> {
-    const ids = input.drafts.map((draft) => draft.id)
-    const preflightStartedAt = Date.now()
-    const preflight = await this.getBatchPreflight(ids, input.storage)
-    const preflightMs = elapsedMs(preflightStartedAt)
-    const materializeStartedAt = Date.now()
-    const existingNodes = this.cloneNodeMap(preflight.nodesById)
-    const lastChanges = new Map(preflight.lastChangesByNodeId)
-    const nodesById = new Map<NodeId, NodeState>(existingNodes)
-    const changedIds: NodeId[] = []
-    const seenChangedIds = new Set<NodeId>()
-    const changes: NodeChange[] = []
-    const events: PendingTransactionEvent[] = []
-    let created = 0
-    let updated = 0
-
-    for (let index = 0; index < input.drafts.length; index++) {
-      const draft = input.drafts[index]
-      const currentNode = nodesById.get(draft.id) ?? null
-      const previousNode = this.cloneNodeState(currentNode)
-      const isCreate = currentNode === null
-      const payload: NodePayload = {
-        nodeId: draft.id,
-        ...(isCreate ? { schemaId: draft.schemaId } : {}),
-        properties: draft.properties
-      }
-      const change = await this.createBatchedChangeWithParentHash(
-        'node-change',
-        payload,
-        lastChanges.get(draft.id)?.hash ?? null,
-        input.lamport,
-        input.now,
-        input.batchId,
-        index,
-        input.batchSize
-      )
-      const node = this.materializeNodeChange(
-        change,
-        currentNode ?? this.createInitialNodeFromChange(change, draft.schemaId)
-      )
-
-      nodesById.set(draft.id, node)
-      lastChanges.set(draft.id, change)
-      changes.push(change)
-      events.push({ change, result: this.cloneNodeState(node), previousNode })
-
-      if (!seenChangedIds.has(draft.id)) {
-        changedIds.push(draft.id)
-        seenChangedIds.add(draft.id)
-      }
-
-      if (isCreate) {
-        created += 1
-      } else {
-        updated += 1
-      }
-    }
-
-    const nodes = changedIds.flatMap((id) => {
-      const node = nodesById.get(id)
-      return node ? [node] : []
-    })
-    const affectedSchemaIds = Array.from(new Set(nodes.map((node) => node.schemaId)))
-
-    return {
-      created,
-      updated,
-      nodes,
-      changes,
-      events,
-      affectedSchemaIds,
-      timings: {
-        preflightMs,
-        materializeMs: elapsedMs(materializeStartedAt)
-      }
-    }
+    return planDeterministicNodeImport(this.writeExecutionHost(), input)
   }
 
   private async executeDeterministicNodeImport(input: {
@@ -1466,23 +1681,7 @@ export class NodeStore {
     batchSize: number
     deferIndexes: boolean
   }): Promise<DeterministicNodeImportAppliedPlan> {
-    const plan = await this.planDeterministicNodeImport(input)
-
-    const applyStartedAt = Date.now()
-    await this.importMaterializedNodes(input.storage, plan.nodes, {
-      deferIndexes: input.deferIndexes
-    })
-    await this.appendImportedChanges(input.storage, plan.changes)
-    await input.storage.setLastLamportTime(this.clock.time)
-
-    for (const node of plan.nodes) {
-      await this.persistEncryptedNodeSnapshot(node, input.storage)
-    }
-
-    return {
-      ...plan,
-      applyMs: elapsedMs(applyStartedAt)
-    }
+    return executeDeterministicNodeImport(this.writeExecutionHost(), input)
   }
 
   private async getNodesById(
@@ -1633,135 +1832,11 @@ export class NodeStore {
     changes: NodeChange[]
     events: PendingTransactionEvent[]
   }> {
-    const results: (NodeState | null)[] = []
-    const changes: NodeChange[] = []
-    const events: PendingTransactionEvent[] = []
-
-    for (let i = 0; i < input.operations.length; i++) {
-      const op = input.operations[i]
-      let change: NodeChange
-      let result: NodeState | null = null
-      let previousNode: NodeState | null = null
-
-      switch (op.type) {
-        case 'create': {
-          const id = op.options.id ?? createNodeId()
-          const payload: NodePayload = {
-            nodeId: id,
-            schemaId: op.options.schemaId,
-            properties: op.options.properties
-          }
-          change = await this.createBatchedChange(
-            'node-change',
-            payload,
-            input.lamport,
-            input.now,
-            input.batchId,
-            i,
-            input.batchSize,
-            input.storage
-          )
-          await this.applyChange(change, input.storage)
-          result = await input.storage.getNode(id)
-          await this.persistEncryptedNodeSnapshot(result, input.storage)
-          break
-        }
-
-        case 'update': {
-          const existing = this.cloneNodeState(await input.storage.getNode(op.nodeId))
-          if (!existing) {
-            throw new Error(`Node not found: ${op.nodeId}`)
-          }
-          previousNode = existing
-          const payload: NodePayload = {
-            nodeId: op.nodeId,
-            properties: op.options.properties
-          }
-          change = await this.createBatchedChange(
-            'node-change',
-            payload,
-            input.lamport,
-            input.now,
-            input.batchId,
-            i,
-            input.batchSize,
-            input.storage
-          )
-          await this.applyChange(change, input.storage)
-          result = await input.storage.getNode(op.nodeId)
-          await this.persistEncryptedNodeSnapshot(result, input.storage)
-          break
-        }
-
-        case 'delete': {
-          const existing = this.cloneNodeState(await input.storage.getNode(op.nodeId))
-          if (!existing) {
-            throw new Error(`Node not found: ${op.nodeId}`)
-          }
-          previousNode = existing
-          const payload: NodePayload = {
-            nodeId: op.nodeId,
-            properties: {},
-            deleted: true
-          }
-          change = await this.createBatchedChange(
-            'node-change',
-            payload,
-            input.lamport,
-            input.now,
-            input.batchId,
-            i,
-            input.batchSize,
-            input.storage
-          )
-          await this.applyChange(change, input.storage)
-          result = null
-          break
-        }
-
-        case 'restore': {
-          const existing = this.cloneNodeState(await input.storage.getNode(op.nodeId))
-          if (!existing) {
-            throw new Error(`Node not found: ${op.nodeId}`)
-          }
-          previousNode = existing
-          const payload: NodePayload = {
-            nodeId: op.nodeId,
-            properties: {},
-            deleted: false
-          }
-          change = await this.createBatchedChange(
-            'node-change',
-            payload,
-            input.lamport,
-            input.now,
-            input.batchId,
-            i,
-            input.batchSize,
-            input.storage
-          )
-          await this.applyChange(change, input.storage)
-          result = await input.storage.getNode(op.nodeId)
-          await this.persistEncryptedNodeSnapshot(result, input.storage)
-          break
-        }
-      }
-
-      changes.push(change)
-      results.push(result)
-      events.push({ change, result, previousNode })
-    }
-
-    return { results, changes, events }
+    return executeTransactionOperations(this.writeExecutionHost(), input)
   }
 
   /**
-   * Transaction fast path: one preflight for all touched nodes, in-memory
-   * materialization and signing, then one transactional applyNodeBatch.
-   * Avoids the per-operation storage round trips of
-   * {@link executeTransactionOperations} and the adapter-level
-   * withTransaction snapshotting that dominates small interactive
-   * transactions.
+   * Transaction fast path — see `transaction-executor.ts` (0263/0264/0276).
    */
   private async executeTransactionOperationsFast(input: {
     operations: TransactionOperation[]
@@ -1774,83 +1849,7 @@ export class NodeStore {
     changes: NodeChange[]
     events: PendingTransactionEvent[]
   }> {
-    const planned = input.operations.map((op) => ({
-      op,
-      id: op.type === 'create' ? (op.options.id ?? createNodeId()) : op.nodeId
-    }))
-
-    const preflight = await this.getBatchPreflight(
-      planned.map((entry) => entry.id),
-      this.storage
-    )
-    const nodesById = this.cloneNodeMap(preflight.nodesById)
-    const lastChanges = new Map(preflight.lastChangesByNodeId)
-
-    const results: (NodeState | null)[] = []
-    const changes: NodeChange[] = []
-    const events: PendingTransactionEvent[] = []
-    const affectedSchemaIds = new Set<SchemaIRI>()
-
-    for (let i = 0; i < planned.length; i++) {
-      const { op, id } = planned[i]
-      const existing = nodesById.get(id) ?? null
-
-      if (op.type !== 'create' && !existing) {
-        throw new Error(`Node not found: ${id}`)
-      }
-
-      const payload: NodePayload =
-        op.type === 'create'
-          ? { nodeId: id, schemaId: op.options.schemaId, properties: op.options.properties }
-          : op.type === 'update'
-            ? { nodeId: id, properties: op.options.properties }
-            : { nodeId: id, properties: {}, deleted: op.type === 'delete' }
-
-      const change = await this.createBatchedChangeWithParentHash(
-        'node-change',
-        payload,
-        lastChanges.get(id)?.hash ?? null,
-        input.lamport,
-        input.now,
-        input.batchId,
-        i,
-        input.batchSize
-      )
-
-      const schemaId = existing?.schemaId ?? (op.type === 'create' ? op.options.schemaId : null)
-      if (!schemaId) {
-        throw new Error(`First change for node ${id} must include schemaId`)
-      }
-
-      const node = this.materializeNodeChange(
-        change,
-        existing ?? this.createInitialNodeFromChange(change, schemaId)
-      )
-
-      nodesById.set(id, node)
-      lastChanges.set(id, change)
-      affectedSchemaIds.add(schemaId)
-      changes.push(change)
-      const result = op.type === 'delete' ? null : node
-      results.push(result)
-      events.push({ change, result, previousNode: existing })
-    }
-
-    const touchedIds = Array.from(new Set(planned.map((entry) => entry.id)))
-    await this.storage.applyNodeBatch!({
-      batchId: input.batchId,
-      nodes: touchedIds.flatMap((id) => {
-        const node = nodesById.get(id)
-        return node ? [node] : []
-      }),
-      changes,
-      lastLamportTime: this.clock.time,
-      affectedSchemaIds: Array.from(affectedSchemaIds),
-      indexMode: 'touched',
-      indexProperties: true
-    })
-
-    return { results, changes, events }
+    return executeTransactionOperationsFast(this.writeExecutionHost(), input)
   }
 
   // ==========================================================================
@@ -1863,47 +1862,125 @@ export class NodeStore {
    *
    * @throws Error if signature verification fails
    */
-  async applyRemoteChange(change: NodeChange): Promise<void> {
+  /**
+   * Account-ledger enforcement for inbound changes (0149/0243, wired by 0337):
+   * hydrate the account's controllers/epoch and the author's revocation status
+   * from local storage, then require the write to pass `evaluateLedgerWrite`.
+   * Mirrors the hub's `enforceLedgerWrite` so a hostile or auth-less hub still
+   * cannot push unauthorized ledger records into a client.
+   */
+  private async enforceRemoteLedgerWrite(change: NodeChange): Promise<void> {
+    const schemaId = change.payload.schemaId
+    const kind = ledgerWriteKind(schemaId)
+    if (!kind) return
+    const properties = (change.payload.properties ?? {}) as Record<string, unknown>
+    const accountId = ledgerAccountId(kind, properties)
+
+    let account: ReturnType<typeof foldAccountRecord> | null = null
+    let authorRevoked = false
+    if (accountId) {
+      const accountNode = await this.storage.getNode(accountRecordId(accountId))
+      if (accountNode) {
+        account = foldAccountRecord(accountNode.properties as Record<string, unknown>)
+      }
+      const revocationNode = await this.storage.getNode(
+        revocationRecordId(accountId, change.authorDID)
+      )
+      authorRevoked = revocationNode !== null && revocationNode !== undefined
+    }
+
+    const decision = evaluateLedgerWrite({
+      schemaId,
+      authorDid: change.authorDID,
+      properties,
+      state: { account, authorRevoked }
+    })
+    if (!decision.allowed) {
+      this.telemetry?.reportSecurityEvent('data.ledger_write_rejected', 'high')
+      throw new PermissionError({
+        allowed: false,
+        action: 'update',
+        subject: change.authorDID,
+        resource: change.payload.nodeId,
+        roles: [],
+        grants: [],
+        reasons: ['DENY_NODE_POLICY'],
+        cached: false,
+        evaluatedAt: Date.now(),
+        duration: 0
+      })
+    }
+  }
+
+  async applyRemoteChange(
+    change: NodeChange,
+    options: ApplyRemoteChangeOptions = {}
+  ): Promise<void> {
     const start = this.telemetry ? Date.now() : 0
 
     try {
-      // Verify hash integrity (no tampering)
-      if (!verifyChangeHash(change)) {
-        const error = new Error(
-          `[NodeStore] Remote change ${change.id} failed hash verification - data may be corrupted`
-        )
-        this.telemetry?.reportSecurityEvent('data.hash_verification_failed', 'high')
-        throw error
-      }
-
-      // Verify signature matches the author's public key
-      try {
-        const publicKey = parseDID(change.authorDID)
-        if (!verifyChange(change, publicKey)) {
+      // `preVerified` is an INTERNAL fast path for callers that already ran
+      // the identical hash + signature checks over a whole batch (see
+      // verifyRemoteChanges). It skips only the crypto — ledger enforcement,
+      // authorization, dedup, and LWW still run per change. Never set it from
+      // data that hasn't been verified in this process.
+      if (!options.preVerified) {
+        // Verify hash integrity (no tampering)
+        if (!verifyChangeHash(change)) {
           const error = new Error(
-            `[NodeStore] Remote change ${change.id} failed signature verification - ` +
-              `signature does not match author ${change.authorDID}`
+            `[NodeStore] Remote change ${change.id} failed hash verification - data may be corrupted`
           )
-          this.telemetry?.reportSecurityEvent('data.signature_verification_failed', 'high')
+          this.telemetry?.reportSecurityEvent('data.hash_verification_failed', 'high')
           throw error
         }
-      } catch (err) {
-        // Re-throw verification errors, wrap other errors
-        if (err instanceof Error && err.message.includes('failed')) {
-          throw err
+
+        // Verify signature matches the author's public key
+        try {
+          const publicKey = parseDID(change.authorDID)
+          if (!verifyChange(change, publicKey)) {
+            const error = new Error(
+              `[NodeStore] Remote change ${change.id} failed signature verification - ` +
+                `signature does not match author ${change.authorDID}`
+            )
+            this.telemetry?.reportSecurityEvent('data.signature_verification_failed', 'high')
+            throw error
+          }
+        } catch (err) {
+          // Re-throw verification errors, wrap other errors
+          if (err instanceof Error && err.message.includes('failed')) {
+            throw err
+          }
+          throw new Error(
+            `[NodeStore] Remote change ${change.id} failed verification: ${err instanceof Error ? err.message : String(err)}`
+          )
         }
-        throw new Error(
-          `[NodeStore] Remote change ${change.id} failed verification: ${err instanceof Error ? err.message : String(err)}`
-        )
       }
 
+      // Account-ledger enforcement (0149/0243, wired by 0337): always-on, no
+      // config — ledger records decide who may act as an account, so a remote
+      // change writing one must itself be signed by an active controller of
+      // that account. Evaluated against this store's local ledger state.
+      await this.enforceRemoteLedgerWrite(change)
+
       if (this.authEvaluator) {
-        const action = this.inferActionFromChange(change)
+        const stored = await this.storage.getNode(change.payload.nodeId)
+        const action = this.inferActionFromChange(change, stored)
         const decision = await this.authEvaluator.can({
           subject: change.authorDID,
           action,
           nodeId: change.payload.nodeId,
-          patch: action === 'write' ? change.payload.properties : undefined
+          patch: action === 'create' || action === 'update' ? change.payload.properties : undefined,
+          // A remote create has no stored node to evaluate against — build the
+          // draft from the payload so container-relation roles resolve
+          // (exploration 0304). Update/delete load the stored node as before.
+          node:
+            action === 'create' && change.payload.schemaId
+              ? {
+                  schemaId: change.payload.schemaId,
+                  createdBy: change.authorDID,
+                  properties: change.payload.properties
+                }
+              : undefined
         })
 
         if (!decision.allowed) {
@@ -1911,6 +1988,18 @@ export class NodeStore {
           this.onUnauthorizedRemoteChange?.({ change, action, decision })
           return
         }
+      }
+
+      // Idempotent redelivery (exploration 0296): a change already in the log
+      // was already materialized — hub backfills and relay echoes must not
+      // re-apply it (or re-log conflicts). Still advance the clock so a
+      // replayed high lamport can't regress causality.
+      const alreadyApplied = this.storage.hasChange
+        ? await this.storage.hasChange(change.hash)
+        : (await this.storage.getChangeByHash(change.hash)) !== null
+      if (alreadyApplied) {
+        this.clock = receive(this.clock, change.lamport)
+        return
       }
 
       // Update our clock to be at least as recent as the remote
@@ -1942,20 +2031,70 @@ export class NodeStore {
   }
 
   /**
+   * Verify hash + signature for many remote changes at once.
+   *
+   * Results are positional and never short-circuit, so a caller can quarantine
+   * exactly the changes that failed and still apply the rest. This runs the
+   * SAME checks as {@link applyRemoteChange} — it just amortizes the native
+   * crypto setup across the batch (exploration 0357).
+   */
+  async verifyRemoteChanges(changes: readonly NodeChange[]): Promise<boolean[]> {
+    const entries: { change: NodeChange; publicKey: Uint8Array }[] = []
+    // Positional map from input index → index within `entries`; -1 means the
+    // change already failed (bad hash or unparseable DID) and needs no
+    // signature check.
+    const slots: number[] = []
+
+    for (const change of changes) {
+      if (!verifyChangeHash(change)) {
+        this.telemetry?.reportSecurityEvent('data.hash_verification_failed', 'high')
+        slots.push(-1)
+        continue
+      }
+      try {
+        slots.push(entries.push({ change, publicKey: parseDID(change.authorDID) }) - 1)
+      } catch {
+        slots.push(-1)
+      }
+    }
+
+    const signatureResults = await verifyChangesFast(entries)
+    for (const [index, ok] of signatureResults.entries()) {
+      if (!ok) this.telemetry?.reportSecurityEvent('data.signature_verification_failed', 'high')
+      void index
+    }
+
+    return slots.map((slot) => (slot === -1 ? false : signatureResults[slot]))
+  }
+
+  /**
    * Apply multiple remote changes (from sync).
    */
   async applyRemoteChanges(changes: NodeChange[]): Promise<void> {
-    // Sort by Lamport timestamp for causal ordering
-    const sorted = [...changes].sort(
-      (a, b) =>
-        a.lamport - b.lamport ||
-        // UTF-16 code-unit order (not localeCompare) for deterministic convergence.
-        (a.authorDID < b.authorDID ? -1 : a.authorDID > b.authorDID ? 1 : 0)
+    // Sort by Lamport timestamp for causal ordering (the shared protocol
+    // application order — code-unit author tiebreak, never localeCompare).
+    const sorted = [...changes].sort((a, b) =>
+      compareChangeApplicationOrder(
+        { lamport: a.lamport, author: a.authorDID },
+        { lamport: b.lamport, author: b.authorDID }
+      )
     )
 
-    for (const change of sorted) {
+    // Verify the whole set up front (exploration 0357): one native-support
+    // probe and one key import per distinct author, instead of N cold
+    // pure-JS verifies. Identical checks, ~13x less time on bulk paths.
+    const verdicts = await this.verifyRemoteChanges(sorted)
+
+    for (const [index, change] of sorted.entries()) {
+      if (!verdicts[index]) {
+        console.warn(
+          `[NodeStore] skipping remote change ${change.hash} for node ` +
+            `${change.payload?.nodeId}: failed hash or signature verification`
+        )
+        continue
+      }
       try {
-        await this.applyRemoteChange(change)
+        await this.applyRemoteChange(change, { preVerified: true })
       } catch (err) {
         // A single un-appliable remote change (e.g. a first change missing its
         // schemaId) must not abort the whole batch — skip it and keep applying
@@ -1980,6 +2119,19 @@ export class NodeStore {
    */
   async getAllChanges(): Promise<NodeChange[]> {
     return this.storage.getAllChanges()
+  }
+
+  /**
+   * Whether a change with this hash is already in the local log. Cheap
+   * existence probe (falls back to a full fetch when the adapter lacks the
+   * optional fast path) — used for idempotent import and bundle
+   * prerequisite checks (exploration 0344).
+   */
+  async hasChange(hash: ContentId): Promise<boolean> {
+    if (this.storage.hasChange) {
+      return this.storage.hasChange(hash)
+    }
+    return (await this.storage.getChangeByHash(hash)) !== null
   }
 
   /**
@@ -2131,6 +2283,30 @@ export class NodeStore {
           listener(event)
         } catch (err) {
           console.error('Error in NodeStore node listener:', err)
+        }
+      }
+    }
+
+    // Draft overlay (0329): a clone's change also notifies subscribers of its
+    // ORIGINAL id, with node content re-keyed, so `useNode(originalId)`
+    // consumers refresh while the draft is checked out.
+    const originalId = this.cloneToOriginal.get(change.payload.nodeId)
+    if (originalId) {
+      const originalListeners = this.nodeListeners.get(originalId)
+      if (originalListeners) {
+        const mirrored = {
+          ...event,
+          node: event.node ? { ...event.node, id: originalId } : event.node,
+          previousNode: event.previousNode
+            ? { ...event.previousNode, id: originalId }
+            : event.previousNode
+        }
+        for (const listener of originalListeners) {
+          try {
+            listener(mirrored)
+          } catch (err) {
+            console.error('Error in NodeStore draft-mirror listener:', err)
+          }
         }
       }
     }
@@ -2342,6 +2518,72 @@ export class NodeStore {
   /**
    * Apply a change to storage and update materialized state.
    */
+  /**
+   * The narrow capability set the write orchestration modules
+   * (transaction-executor.ts, batch-write-orchestrator.ts) run on — one seam
+   * for every write strategy (exploration 0276).
+   */
+  private writeExecutionHost(): WriteExecutionHost {
+    this.writeHost ??= {
+      storage: this.storage,
+      clockTime: () => this.clock.time,
+      cloneNodeState: (node) => this.cloneNodeState(node),
+      cloneNodeMap: (nodesById) => this.cloneNodeMap(nodesById),
+      getBatchPreflight: (ids, storage) => this.getBatchPreflight(ids, storage),
+      createBatchedChange: (
+        type,
+        payload,
+        lamport,
+        wallTime,
+        batchId,
+        batchIndex,
+        batchSize,
+        storage
+      ) =>
+        this.createBatchedChange(
+          type,
+          payload,
+          lamport,
+          wallTime,
+          batchId,
+          batchIndex,
+          batchSize,
+          storage
+        ),
+      createBatchedChangeWithParentHash: (
+        type,
+        payload,
+        parentHash,
+        lamport,
+        wallTime,
+        batchId,
+        batchIndex,
+        batchSize
+      ) =>
+        this.createBatchedChangeWithParentHash(
+          type,
+          payload,
+          parentHash,
+          lamport,
+          wallTime,
+          batchId,
+          batchIndex,
+          batchSize
+        ),
+      applyChange: (change, storage) => this.applyChange(change, storage),
+      materializeNodeChange: (change, currentNode) =>
+        this.materializeNodeChange(change, currentNode),
+      createInitialNodeFromChange: (change, schemaId) =>
+        this.createInitialNodeFromChange(change, schemaId),
+      persistEncryptedNodeSnapshot: (node, storage) =>
+        this.persistEncryptedNodeSnapshot(node, storage),
+      importMaterializedNodes: (storage, nodes, options) =>
+        this.importMaterializedNodes(storage, nodes, options),
+      appendImportedChanges: (storage, changes) => this.appendImportedChanges(storage, changes)
+    }
+    return this.writeHost
+  }
+
   private async applyChange(
     change: NodeChange,
     storage: NodeStorageAdapter = this.storage
@@ -2435,14 +2677,21 @@ export class NodeStore {
     const newTs: PropertyTimestamp = {
       lamport: change.lamport,
       author: change.authorDID,
-      wallTime: change.wallTime
+      wallTime: change.wallTime,
+      // Grinding-resistant final tiebreak (exploration 0305): only v4+ changes
+      // carry a key, so a v4-vs-legacy comparison degrades to the author DID
+      // and mixed fleets still agree.
+      ...((change.protocolVersion ?? 0) >= LWW_TIEBREAK_KEY_VERSION
+        ? { tiebreakKey: computeLwwTiebreakKey(change.authorDID, key, value) }
+        : {})
     }
     const incomingWins = !existingTs || this.shouldReplace(existingTs, newTs)
+    const target = isUnknownProperty ? (node._unknown ??= {}) : node.properties
+    const previousValue = target[key]
 
     if (incomingWins) {
       // New value wins: write into properties, or _unknown for forward
       // compatibility when the schema does not know the property.
-      const target = isUnknownProperty ? (node._unknown ??= {}) : node.properties
       if (value === undefined) {
         delete target[key]
       } else {
@@ -2451,29 +2700,34 @@ export class NodeStore {
       node.timestamps[key] = newTs
     }
 
-    // Track a conflict whenever an existing timestamp had to be compared.
-    if (existingTs) {
-      this.conflicts.push({
-        nodeId: change.payload.nodeId,
-        key,
-        localValue: isUnknownProperty ? node._unknown?.[key] : node.properties[key],
-        localTimestamp: existingTs,
-        remoteValue: value,
-        remoteTimestamp: newTs,
-        resolved: incomingWins ? 'remote' : 'local'
-      })
-      this.trimConflicts()
-    }
+    // Record only genuine cross-author divergence (exploration 0296).
+    // Same-author comparisons are never conflicts: identical stamps are
+    // idempotent replays, and an older own write losing to a newer own value
+    // is causal history. Equal values aren't divergence regardless of author.
+    if (!existingTs || existingTs.author === newTs.author) return
+    if (Object.is(previousValue, value)) return
+
+    this.conflicts.push({
+      nodeId: change.payload.nodeId,
+      key,
+      localValue: previousValue,
+      localTimestamp: existingTs,
+      remoteValue: value,
+      remoteTimestamp: newTs,
+      resolved: incomingWins ? 'remote' : 'local',
+      // A losing cross-author write is a true conflict; a winning one is an
+      // informational lost-update record.
+      kind: incomingWins ? 'lww-resolution' : 'conflict'
+    })
+    this.trimConflicts()
   }
 
   /**
-   * Determine if newTs should replace existingTs (LWW).
+   * Determine if newTs should replace existingTs (LWW). Delegates to the ONE
+   * protocol ordering in `@xnetjs/core` (§L1.7; exploration 0276).
    */
   private shouldReplace(existing: PropertyTimestamp, incoming: PropertyTimestamp): boolean {
-    if (incoming.lamport !== existing.lamport) return incoming.lamport > existing.lamport
-    if (incoming.wallTime !== existing.wallTime) return incoming.wallTime > existing.wallTime
-    // UTF-16 code-unit order (not localeCompare) for deterministic convergence.
-    return incoming.author > existing.author
+    return lwwWins(incoming, existing)
   }
 
   /**
@@ -2598,7 +2852,7 @@ export class NodeStore {
       if (operation.type === 'create') {
         await this.assertAuthorized({
           subject: this.authorDID,
-          action: 'write',
+          action: 'create',
           nodeId: operation.options.id ?? '',
           node: {
             schemaId: operation.options.schemaId,
@@ -2620,19 +2874,25 @@ export class NodeStore {
 
       await this.assertAuthorized({
         subject: this.authorDID,
-        action: 'write',
+        action: 'update',
         nodeId: operation.nodeId,
         patch: operation.type === 'update' ? operation.options.properties : undefined
       })
     }
   }
 
-  private inferActionFromChange(change: NodeChange): AuthAction {
+  private inferActionFromChange(change: NodeChange, stored: NodeState | null): AuthAction {
     if (change.payload.deleted === true) {
       return 'delete'
     }
 
-    return 'write'
+    // A change that would bring the node into existence is a create; anything
+    // touching a stored node (including redelivered creates) is an update.
+    if (!stored && change.payload.schemaId) {
+      return 'create'
+    }
+
+    return 'update'
   }
 
   private shouldRecomputeRecipients(schemaId: SchemaIRI, patch: Record<string, unknown>): boolean {

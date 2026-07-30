@@ -104,6 +104,10 @@ jobs:
       #    a fork's branch isn't writable from a pull_request token).
       - name: Commit changeset to PR branch
         if: ${{ steps.gate.outputs.covered != 'true' && github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          # Branch names are attacker-controlled on PRs; never inline them into
+          # the script (actionlint untrusted-input rule, exploration 0283).
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           if [ -z "$(git status --porcelain .changeset)" ]; then
             echo "No new changeset to add — already covered."
@@ -114,12 +118,12 @@ jobs:
           git add .changeset
           git commit -m "chore(changeset): add changeset from conventional commits [skip ci]"
           for attempt in 1 2 3; do
-            if git push origin HEAD:${{ github.event.pull_request.head.ref }}; then
+            if git push origin "HEAD:$HEAD_REF"; then
               echo "Pushed changeset to PR branch."
               exit 0
             fi
             echo "push rejected — rebasing (attempt ${attempt})…"
-            git pull --rebase origin ${{ github.event.pull_request.head.ref }} || break
+            git pull --rebase origin "$HEAD_REF" || break
           done
           echo "::warning title=ai-changeset::Could not push the changeset to the PR branch."
 

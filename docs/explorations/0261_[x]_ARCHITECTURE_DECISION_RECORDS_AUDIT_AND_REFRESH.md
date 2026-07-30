@@ -40,7 +40,7 @@ missing, and a durable process so the corpus stops drifting.
   and the architecture overview still present Yjs as the sync substrate, but
   since exploration [0200](0200_%5Bx%5D_PORTABLE_XNET_PROTOCOL_BOUNDARIES_AND_STANDARD.md)
   the **interop kernel is the signed, hash-chained, LWW change log**, and Yjs is
-  a *pluggable document codec* that travels as opaque bytes inside an XNet
+  a *pluggable document codec* that travels as opaque bytes inside an xNet
   envelope. That is the single most important architectural fact about the
   system and it is absent from the decisions page.
 
@@ -121,7 +121,7 @@ a370feb7 fix(site): move all doc pages under /docs/ prefix   (mechanical move)
 
 | Area | Decision | Primary evidence | Exploration |
 | --- | --- | --- | --- |
-| **Protocol** | XNet is a *protocol*, not an app; interop kernel = signed hash-chained LWW change log; Yjs is a pluggable document codec | `CURRENT_PROTOCOL_VERSION = 3` at [`packages/sync/src/change.ts:23`](../../packages/sync/src/change.ts); [`docs/specs/protocol/`](../../docs/specs/protocol); [`site/.../protocol/overview.mdx`](../../site/src/content/docs/docs/protocol/overview.mdx) | [0200] |
+| **Protocol** | xNet is a *protocol*, not an app; interop kernel = signed hash-chained LWW change log; Yjs is a pluggable document codec | `CURRENT_PROTOCOL_VERSION = 3` at [`packages/sync/src/change.ts:23`](../../packages/sync/src/change.ts); [`docs/specs/protocol/`](../../docs/specs/protocol); [`site/.../protocol/overview.mdx`](../../site/src/content/docs/docs/protocol/overview.mdx) | [0200] |
 | **Storage** | SQLite everywhere; hub = better-sqlite3 + Litestream → R2; **not** libSQL/Turso | [`packages/hub/package.json`](../../packages/hub/package.json), [`packages/hub/src/storage/litestream.ts`](../../packages/hub/src/storage/litestream.ts) | [0178], [0212] |
 | **Runtime** | Framework-agnostic `@xnetjs/runtime` (`createXNetClient`, `liveQuery`); React is a thin T1 binding; SyncManager/NodePool/MetaBridge live in runtime | [`packages/runtime/src/client.ts`](../../packages/runtime/src/client.ts), [`packages/runtime/src/index.ts`](../../packages/runtime/src/index.ts), [`packages/react/src/index.ts`](../../packages/react/src/index.ts) re-exports | [0185], [0237] |
 | **Licensing** | Open-core split: MIT core, FSL-1.1 `@xnetjs/cloud`, MIT-but-`private` `@xnetjs/entitlements` as the shared contract | [`packages/cloud/LICENSE`](../../packages/cloud/LICENSE), [`packages/entitlements/package.json`](../../packages/entitlements/package.json), [`packages/hub/src/config.ts`](../../packages/hub/src/config.ts) | [0181] |
@@ -187,7 +187,7 @@ Sources:
 1. **The ADR page is a five-month-old snapshot, not a living log.** Nine of ten
    entries are still correct, which is why the staleness is easy to miss — the
    danger is what's *absent*, not what's wrong.
-2. **The most load-bearing fact is missing:** XNet's kernel is the change log,
+2. **The most load-bearing fact is missing:** xNet's kernel is the change log,
    not Yjs ([0200]). Both the ADR page and the architecture overview still imply
    the opposite.
 3. **Decisions are recorded in three incompatible places** (ADR page,
@@ -300,7 +300,7 @@ flowchart LR
 
 | # | Title | Status | Supersedes / extends |
 | --- | --- | --- | --- |
-| 11 | XNet is a protocol; kernel = signed change log, Yjs is a document codec | Accepted | clarifies ADR-1, elevates ADR-3 |
+| 11 | xNet is a protocol; kernel = signed change log, Yjs is a document codec | Accepted | clarifies ADR-1, elevates ADR-3 |
 | 12 | SQLite everywhere; hub = better-sqlite3 + Litestream → R2 (not Turso/libSQL) | Accepted | — (re-eval triggers noted) |
 | 13 | Local-first, hub-optional — hub never blocks local reads | Accepted | — |
 | 14 | Framework-agnostic `@xnetjs/runtime`; React is a thin binding; tiers T0/T1/T2 | Accepted | relocates ADR-8's MetaBridge |
@@ -358,20 +358,20 @@ stateDiagram-v2
 ### B) ADR-11, drafted (the keystone addition)
 
 ```markdown
-## ADR-11: XNet is a protocol; the interop kernel is the change log, not Yjs
+## ADR-11: xNet is a protocol; the interop kernel is the change log, not Yjs
 
 **Status:** Accepted
 **Date:** 2026-06 (exploration 0200)
-**Context:** 0200 — Portable XNet protocol boundaries.
+**Context:** 0200 — Portable xNet protocol boundaries.
 
-**Decision:** Treat XNet as a versioned, multi-implementation **protocol** whose
+**Decision:** Treat xNet as a versioned, multi-implementation **protocol** whose
 normative surface is four layers — L0 primitives, L1 data model, L2 replication,
 L3 authorization — with the application profile (L4) explicitly non-normative.
 The interop kernel is a **signed, hash-chained, per-property-LWW change log over
 schema-typed nodes** (`CURRENT_PROTOCOL_VERSION = 3`,
 `packages/sync/src/change.ts`). Yjs is a **pluggable document codec** for the
 rich-text/canvas body of certain nodes and travels the wire as opaque bytes
-inside an XNet envelope.
+inside an xNet envelope.
 
 **Rationale:**
 - A second implementation in any language can forward/store the Yjs blob as an

@@ -26,7 +26,7 @@ export interface CompanyMetricsWeek {
  * `apps/cloud/src/metrics/rollup.ts`; every field is a fleet aggregate, never
  * per-tenant, and the whole block is suppressed below `cohortFloor` upstream.
  */
-export interface UsageSnapshot {
+interface UsageSnapshot {
   hubsHosted: number
   hubsHot: number
   documentsSynced: number
@@ -36,7 +36,7 @@ export interface UsageSnapshot {
   peopleOnPlatform?: number
 }
 
-export interface CompanyMetrics {
+interface CompanyMetrics {
   updated: string
   cohortFloor: number
   /** True while these are illustrative figures, not the real P&L. */
@@ -58,10 +58,10 @@ export const weekCost = (w: CompanyMetricsWeek): number =>
   w.costs.infraUsd + w.costs.payrollUsd + w.costs.saasUsd + w.costs.otherUsd
 
 /** Weekly revenue ≈ MRR / 4.345 (matches the rollup's break-even math). */
-export const weekRevenue = (w: CompanyMetricsWeek): number => w.mrrUsd / 4.345
+const weekRevenue = (w: CompanyMetricsWeek): number => w.mrrUsd / 4.345
 
 /** Percent change between the two most recent weeks for a numeric selector. */
-export function wow(select: (w: CompanyMetricsWeek) => number): number {
+function wow(select: (w: CompanyMetricsWeek) => number): number {
   if (weeks.length < 2) return 0
   const prev = select(weeks[weeks.length - 2])
   const now = select(latest)

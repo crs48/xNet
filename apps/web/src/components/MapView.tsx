@@ -28,7 +28,7 @@ import { useIdentity, useNode } from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { useWorkbench } from '../workbench/state'
+import { usePublishTitle } from '../workbench/route-title'
 
 const EMPTY_FC: GeoFeatureCollection = { type: 'FeatureCollection', features: [] }
 
@@ -146,9 +146,7 @@ export function MapView({ mapId }: MapViewProps) {
     [layers, queryData]
   )
 
-  useEffect(() => {
-    if (title) useWorkbench.getState().setTabTitle(mapId, title)
-  }, [mapId, title])
+  usePublishTitle(mapId, title, map?.id)
 
   const persistViewport = useDebouncedViewport(
     useCallback((next: MapViewport) => void update({ viewport: next }), [update])
@@ -171,7 +169,7 @@ export function MapView({ mapId }: MapViewProps) {
   return (
     <div className="-m-6 flex h-full flex-1 flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-2 border-b border-border bg-secondary p-3">
+      <div className="flex items-center gap-2 border-b border-border p-3">
         <input
           type="text"
           className="border-none bg-transparent text-lg font-semibold text-foreground outline-none placeholder:text-muted-foreground"

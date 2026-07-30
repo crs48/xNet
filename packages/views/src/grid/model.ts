@@ -83,6 +83,8 @@ export interface GridCallbacks {
   onUploadFile?: (file: File) => Promise<FileRef | null>
   /** Resolve a FileRef CID to a displayable URL */
   onResolveFileUrl?: (ref: FileRef) => Promise<string>
+  /** Resolve a ref's small preview, preferred over the full file (0385 W4) */
+  onResolveThumbUrl?: (ref: FileRef) => Promise<string | null>
   /** Open row peek */
   onOpenRow?: (rowId: string) => void
   /** Undo/redo (wired to useUndoScope by the app layer) */

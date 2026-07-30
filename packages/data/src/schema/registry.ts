@@ -21,6 +21,7 @@ import type {
   ValidationError,
   ValidationResult
 } from './types'
+import { singleFlight } from '@xnetjs/core'
 import { parseSchemaIRI, getBaseSchemaIRI, normalizeSchemaIRI, createNodeId } from './node'
 import {
   checkbox,
@@ -30,6 +31,7 @@ import {
   dateRange,
   email,
   file,
+  geo,
   multiSelect,
   number,
   person,
@@ -93,45 +95,30 @@ export class SchemaRegistry {
       return entry.schema
     }
 
-    // Check if it's a built-in schema that needs loading
+    // Check if it's a built-in schema that needs loading. Loaded results live
+    // in this.schemas; loadingPromises only single-flights the load itself.
     if (iri in builtInSchemas) {
-      // Prevent duplicate loading
-      const existingPromise = this.loadingPromises.get(iri)
-      if (existingPromise) {
-        return existingPromise
-      }
-
-      const loadPromise = builtInSchemas[iri as BuiltInSchemaIRI]().then((schema) => {
-        this.schemas.set(iri, { schema, builtIn: true })
-        this.loadingPromises.delete(iri)
-        return schema
-      })
-
-      this.loadingPromises.set(iri, loadPromise)
-      return loadPromise
+      return singleFlight(this.loadingPromises, iri, () =>
+        builtInSchemas[iri as BuiltInSchemaIRI]().then((schema) => {
+          this.schemas.set(iri, { schema, builtIn: true })
+          return schema
+        })
+      )
     }
 
     if (this.remoteResolver) {
-      const existingPromise = this.loadingPromises.get(iri)
-      if (existingPromise) {
-        return existingPromise
-      }
-
-      const loadPromise = this.remoteResolver(iri)
-        .then((definition) => {
-          if (!definition) return undefined
-          const parsed = parseSchemaDefinition(definition)
-          if (!parsed) return undefined
-          this.schemas.set(iri, { schema: parsed, builtIn: false })
-          return parsed
-        })
-        .catch(() => undefined)
-        .finally(() => {
-          this.loadingPromises.delete(iri)
-        })
-
-      this.loadingPromises.set(iri, loadPromise)
-      return loadPromise
+      const remoteResolver = this.remoteResolver
+      return singleFlight(this.loadingPromises, iri, () =>
+        remoteResolver(iri)
+          .then((definition) => {
+            if (!definition) return undefined
+            const parsed = parseSchemaDefinition(definition)
+            if (!parsed) return undefined
+            this.schemas.set(iri, { schema: parsed, builtIn: false })
+            return parsed
+          })
+          .catch(() => undefined)
+      )
     }
 
     return undefined
@@ -376,6 +363,8 @@ const buildPropertyBuilder = (definition: PropertyDefinition): PropertyBuilder |
         required,
         includeTime: toBoolean(config.includeTime)
       })
+    case 'geo':
+      return geo({ required })
     case 'select': {
       const options = normalizeSelectOptions(config.options)
       return select({

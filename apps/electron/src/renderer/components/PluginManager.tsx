@@ -29,7 +29,7 @@ export function PluginManager() {
   const [showInstallDialog, setShowInstallDialog] = useState(false)
   const [plugins, setPlugins] = useState<RegisteredPlugin[]>([])
 
-  // Access the plugin registry from XNet context
+  // Access the plugin registry from xNet context
   const { pluginRegistry: registry, nodeStoreReady } = useXNet()
   const pluginsEnabled = registry !== null
 

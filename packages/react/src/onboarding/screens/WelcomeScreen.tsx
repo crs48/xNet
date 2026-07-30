@@ -6,7 +6,7 @@ import { getPlatformAuthName } from '../helpers'
 import { useOnboarding } from '../OnboardingProvider'
 
 export function WelcomeScreen(): JSX.Element {
-  const { send } = useOnboarding()
+  const { send, atprotoEnabled } = useOnboarding()
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-background to-muted/30 text-foreground p-6">
@@ -71,6 +71,15 @@ export function WelcomeScreen(): JSX.Element {
       <p className="text-xs text-muted-foreground/70 text-center max-w-xs mt-2 mb-6">
         Creates a secure passkey on your device. No passwords needed.
       </p>
+
+      {atprotoEnabled && (
+        <button
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline mb-2"
+          onClick={() => send({ type: 'CONTINUE_WITH_ATPROTO' })}
+        >
+          Continue with Bluesky (or any PDS)
+        </button>
+      )}
 
       <button
         className="text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline mb-2"

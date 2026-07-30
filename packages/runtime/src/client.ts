@@ -41,7 +41,12 @@ import type { ChangeSigner, SyncReplicationConfig } from '@xnetjs/sync'
 import { getSigningPublicKeyFromPrivate, sign, verify } from '@xnetjs/crypto'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
 import { createMainThreadBridgeSync } from '@xnetjs/data-bridge'
-import { UndoManager } from '@xnetjs/history'
+import {
+  DocumentHistoryEngine,
+  UndoManager,
+  rehydrateDraftPrivacy,
+  type YjsSnapshotStorageAdapter
+} from '@xnetjs/history'
 import { PluginRegistry } from '@xnetjs/plugins'
 import { createSyncManager } from './sync/sync-manager'
 
@@ -260,6 +265,26 @@ function buildNodeStore(options: CreateXNetClientOptions, storage: NodeStorageAd
   })
 }
 
+/**
+ * Production Yjs history capture (exploration 0329): when the storage adapter
+ * can persist Yjs snapshots, every doc persist also captures history —
+ * min-interval-throttled in steady state, forced at session boundaries — with
+ * pinned snapshots (checkpoints/drafts) exempt from eviction.
+ */
+function buildDocumentHistory(storage: NodeStorageAdapter): DocumentHistoryEngine | undefined {
+  const snapshotStorage = storage as Partial<YjsSnapshotStorageAdapter>
+  if (
+    typeof snapshotStorage.saveYjsSnapshot !== 'function' ||
+    typeof snapshotStorage.getYjsSnapshots !== 'function' ||
+    typeof snapshotStorage.deleteYjsSnapshots !== 'function'
+  ) {
+    return undefined
+  }
+  return new DocumentHistoryEngine(snapshotStorage as YjsSnapshotStorageAdapter, {
+    pins: storage.pins
+  })
+}
+
 /** Build the SyncManager when sync is enabled (else null). */
 function buildSyncManager(
   store: NodeStore,
@@ -272,6 +297,7 @@ function buildSyncManager(
   return createSyncManager({
     nodeStore: store,
     storage,
+    documentHistory: buildDocumentHistory(storage),
     signalingUrl,
     authorDID: options.authorDID,
     signingKey: options.signingKey,
@@ -299,6 +325,25 @@ function startSyncManager(
   managed.setSyncManager?.(syncManager)
   if (sync.autoStart === false) return
   syncManager.start().catch((err) => reportCrash(telemetry, err, 'runtime.syncManager.start'))
+}
+
+/**
+ * Draft privacy must be rehydrated BEFORE outbound sync starts so a reload
+ * never replays draft clones into the personal node-sync room (0329).
+ */
+async function startSyncManagerWithDraftPrivacy(
+  store: NodeStore,
+  syncManager: SyncManager,
+  bridge: DataBridge,
+  sync: XNetClientSyncOptions,
+  telemetry: XNetClientTelemetry | undefined
+): Promise<void> {
+  try {
+    await rehydrateDraftPrivacy(store)
+  } catch (err) {
+    reportCrash(telemetry, err, 'runtime.drafts.rehydratePrivacy')
+  }
+  startSyncManager(syncManager, bridge, sync, telemetry)
 }
 
 /** Build the PluginRegistry when plugins are enabled (else null). */
@@ -372,7 +417,9 @@ export async function createXNetClient(options: CreateXNetClientOptions): Promis
 
   // ── optional subsystems ──────────────────────────────────────────
   const syncManager = buildSyncManager(store, storage, options)
-  if (syncManager && sync) startSyncManager(syncManager, bridge, sync, telemetry)
+  if (syncManager && sync) {
+    void startSyncManagerWithDraftPrivacy(store, syncManager, bridge, sync, telemetry)
+  }
   const pluginRegistry = buildPlugins(store, options)
   const undoManager = buildUndo(store, options)
 

@@ -1,7 +1,44 @@
 import { Presence } from '@xnetjs/ui'
-import { AlertTriangle, CheckCircle2, Info, ShieldCheck, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronDown, Info, ShieldCheck, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { formatBytes } from '../lib/format-bytes'
+
+/**
+ * Dismissing the storage banner used to reset on every reload, so the
+ * non-blocking "durable storage pending" notice (which localhost and Chrome
+ * re-raise on every boot) nagged endlessly. We persist a dismissal keyed by
+ * the banner's identity (tone + title): closing the current notice keeps it
+ * closed, but a materially different banner — e.g. an escalated
+ * "Storage may be limited" warning — has a new key and still surfaces.
+ */
+const DISMISS_STORAGE_KEY = 'xnet:storage-banner:dismissed'
+
+function bannerKey(tone: string, title: string): string {
+  return `${tone}:${title}`
+}
+
+function readDismissed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DISMISS_STORAGE_KEY)
+    if (!raw) return new Set()
+    const parsed: unknown = JSON.parse(raw)
+    return new Set(
+      Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : []
+    )
+  } catch {
+    return new Set()
+  }
+}
+
+function persistDismissed(key: string): void {
+  try {
+    const next = readDismissed()
+    next.add(key)
+    localStorage.setItem(DISMISS_STORAGE_KEY, JSON.stringify([...next]))
+  } catch {
+    // Private-mode / disabled storage: dismissal is best-effort, session-only.
+  }
+}
 
 interface StorageWarningBannerProps {
   tone: 'success' | 'warning' | 'info'
@@ -80,8 +117,22 @@ export function StorageWarningBanner({
   onSecondaryAction,
   detailItems
 }: StorageWarningBannerProps): JSX.Element | null {
-  const [dismissed, setDismissed] = useState(false)
+  const key = bannerKey(tone, title)
+  const [dismissed, setDismissed] = useState(() => readDismissed().has(key))
+  const [showDetails, setShowDetails] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
+
+  // Re-evaluate persistence when the banner identity changes (an escalated
+  // warning replaces a dismissed info notice without a remount).
+  useEffect(() => {
+    setDismissed(readDismissed().has(key))
+    setShowDetails(false)
+  }, [key])
+
+  const dismiss = () => {
+    persistDismissed(key)
+    setDismissed(true)
+  }
 
   // Publish the banner height so the workbench can offset below the
   // fixed overlay instead of rendering underneath it (0166).
@@ -134,12 +185,31 @@ export function StorageWarningBanner({
               {usageLabel && (
                 <p className="mt-1 hidden text-xs opacity-80 sm:block">{usageLabel}</p>
               )}
+              {/* The recovery steps are useful but verbose — a five-line list
+                  turned this into a top-of-viewport block. Keep the banner to
+                  ~two lines by default and reveal the steps on demand. */}
               {detailItems && detailItems.length > 0 && (
-                <ul className="mt-2 hidden space-y-1 text-xs opacity-90 sm:block">
-                  {detailItems.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowDetails((v) => !v)}
+                    aria-expanded={showDetails}
+                    className={`pointer-events-auto mt-1 hidden items-center gap-1 text-xs font-medium opacity-80 hover:opacity-100 sm:inline-flex ${toneClasses.button}`}
+                  >
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform ${showDetails ? 'rotate-180' : ''}`}
+                      aria-hidden="true"
+                    />
+                    {showDetails ? 'Hide details' : 'What can I do?'}
+                  </button>
+                  {showDetails && (
+                    <ul className="mt-2 hidden list-disc space-y-1 pl-4 text-xs opacity-90 sm:block">
+                      {detailItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -180,7 +250,7 @@ export function StorageWarningBanner({
             </div>
           )}
           <button
-            onClick={() => setDismissed(true)}
+            onClick={dismiss}
             className={`pointer-events-auto flex-shrink-0 inline-flex focus:outline-none ${toneClasses.button}`}
             aria-label="Dismiss"
           >

@@ -25,6 +25,17 @@ const KNOWN_CHANGE_TYPES = new Set(['node-change'])
 const MAX_SENDS_PER_WINDOW = 40
 const SEND_WINDOW_MS = 1000
 
+// Batched push (exploration 0357). When the hub advertises `batch-push`, the
+// drain packs up to MAX_BATCH_CHANGES changes into ONE frame instead of one
+// frame per change. The hub charges its rate limit per *change*, so the
+// per-window change budget is what actually rises here — the win is removing
+// the one-frame-per-change ceiling that made a 10k import take minutes.
+//
+// Must not exceed the hub's own MAX_BATCH_CHANGES guard (packages/hub/src/ws/
+// guards.ts) or the frame is rejected wholesale.
+const MAX_BATCH_CHANGES = 1000
+const MAX_BATCHED_CHANGES_PER_WINDOW = 5000
+
 // How long to wait for the hub's node-sync-response before pushing local
 // changes anyway (request-sync-first, with a fallback so we never hang).
 const SYNC_RESPONSE_TIMEOUT_MS = 4000
@@ -37,6 +48,12 @@ const SYNC_RESPONSE_TIMEOUT_MS = 4000
 // MAX_STRUCTURAL_REJECTIONS in a row we stop pushing until the next reconnect.
 const STRUCTURAL_REJECTION_CODES = new Set(['INVALID_HASH', 'INVALID_SIGNATURE', 'INVALID_CHANGE'])
 const MAX_STRUCTURAL_REJECTIONS = 5
+
+// The hub caps a sync response at one page, so a cold catch-up walks several.
+// This bounds ONE burst (at the hub's 1000-row page, ~500k changes) so a hub
+// that keeps flagging `hasMore` can't spin the client indefinitely; whatever
+// remains is picked up by the next sync.
+const MAX_CATCH_UP_PAGES = 500
 
 // How many changes the outbound resync enqueues between event-loop yields, so a
 // large first-sync slice can't monopolise a frame (exploration 0253). 1024 keeps
@@ -60,6 +77,15 @@ function nowMs(): number {
 function yieldToEventLoop(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0))
 }
+
+/**
+ * The share room that carries a channel's nodes to its grantees (0298). Must
+ * match the hub's `channelShareRoom` so `topicToResource` resolves the grant.
+ */
+export const channelShareRoom = (channelId: string): string => `xnet-channel-${channelId}`
+
+/** The share room that carries a workspace (bench) node to its grantees (0298). */
+export const workspaceShareRoom = (workspaceId: string): string => `xnet-workspace-${workspaceId}`
 
 export type SerializedNodeChange = {
   id: string
@@ -86,12 +112,28 @@ export type NodeSyncResponse = {
   room: string
   changes: SerializedNodeChange[]
   highWaterMark: number
+  /**
+   * The hub capped this response and more changes remain past `highWaterMark`.
+   * Older hubs never send it, in which case one response is the whole catch-up.
+   */
+  hasMore?: boolean
 }
 
 /**
  * Listener for unknown change type events.
  */
 export type UnknownChangeTypeListener = (change: NodeChange, peerId: string) => void
+
+/**
+ * The hub is refusing further writes for a capacity reason (exploration 0291):
+ * `QUOTA_EXCEEDED` — this identity is over the hub's per-user cap (demo mode);
+ * `STORAGE_FULL` — the hub's volume is full and it is shedding writes.
+ * Local data is untouched; outbound sync pauses until the next reconnect.
+ */
+export type SyncBlockedReason = 'QUOTA_EXCEEDED' | 'STORAGE_FULL'
+export type SyncBlockedListener = (reason: SyncBlockedReason, detail: string) => void
+
+const CAPACITY_REJECTION_CODES = new Set<SyncBlockedReason>(['QUOTA_EXCEEDED', 'STORAGE_FULL'])
 
 export class NodeStoreSyncProvider {
   /** Confirmed, persisted high-water mark (advanced from the hub's response). */
@@ -106,15 +148,25 @@ export class NodeStoreSyncProvider {
   private messageCleanup: (() => void) | null = null
   private storeCleanup: (() => void) | null = null
   private unknownChangeTypeListeners = new Set<UnknownChangeTypeListener>()
+  private syncBlockedListeners = new Set<SyncBlockedListener>()
 
   // Throttled send queue.
   private sendQueue: NodeChange[] = []
   private queuedHashes = new Set<string>()
   private sendTimer: ReturnType<typeof setTimeout> | null = null
   private sentInWindow = 0
+  /**
+   * Whether the connected hub advertised `batch-push` in its handshake.
+   * Stays false against older hubs, which keeps the one-change-per-frame
+   * path as the compatible default.
+   */
+  private batchPushSupported = false
 
   // Request-sync-first: resolver for the in-flight node-sync-response wait.
   private syncResponseResolver: (() => void) | null = null
+
+  // Pages walked in the current catch-up burst (see MAX_CATCH_UP_PAGES).
+  private catchUpPages = 0
 
   // Protocol-skew circuit breaker state. `structuralRejections` counts
   // consecutive structural node-errors (reset on forward progress); once it
@@ -132,9 +184,25 @@ export class NodeStoreSyncProvider {
   // and in DevTools (exploration 0212).
   private firstRemoteApplyMarked = false
 
+  /**
+   * Subscribe-only providers (channel share rooms, 0298) RECEIVE and apply a
+   * room's changes but never publish local changes into it (the hub owns
+   * fan-out) and never advance the cursor from a live broadcast's author
+   * lamport — a share room's cursor is a per-room `seq` carried opaquely in the
+   * sync-response high-water mark, and author lamports across members are not
+   * mutually ordered.
+   */
   constructor(
     private store: NodeStore,
-    private room: string
+    private room: string,
+    private subscribeOnly = false,
+    /**
+     * Outbound exclusion (exploration 0329): return false to keep a change
+     * out of this room entirely (live subscribe AND cursor backfill both
+     * funnel through `enqueueChange`). Used to keep device-local draft
+     * clones out of the personal node-sync room.
+     */
+    private shouldPublish?: (change: NodeChange) => boolean
   ) {}
 
   /**
@@ -196,10 +264,13 @@ export class NodeStoreSyncProvider {
       }
     })
 
-    this.storeCleanup = this.store.subscribe((event) => {
-      if (event.isRemote) return
-      this.enqueueChange(event.change)
-    })
+    // Subscribe-only rooms receive but never publish local changes into the room.
+    if (!this.subscribeOnly) {
+      this.storeCleanup = this.store.subscribe((event) => {
+        if (event.isRemote) return
+        this.enqueueChange(event.change)
+      })
+    }
 
     if (connection.status === 'connected') {
       void this.onConnected()
@@ -234,13 +305,15 @@ export class NodeStoreSyncProvider {
     // simply different) hub gets a chance to accept our changes again.
     this.outboundHalted = false
     this.structuralRejections = 0
+    this.catchUpPages = 0
 
     await this.ensureCursorLoaded()
     if (!this.connection || this.connection.status !== 'connected') return
 
     this.requestSync()
     await this.waitForSyncResponse()
-    await this.syncLocalChanges()
+    // Subscribe-only rooms never push local changes (the hub fans them in).
+    if (!this.subscribeOnly) await this.syncLocalChanges()
   }
 
   private onDisconnected(): void {
@@ -249,6 +322,9 @@ export class NodeStoreSyncProvider {
     // nothing is lost and nothing is double-queued.
     this.clearSendQueue()
     this.resolveSyncResponse()
+    // Re-negotiate on the next handshake: a reconnect may land on a different
+    // hub (or an older build) that doesn't support batched push.
+    this.batchPushSupported = false
   }
 
   private async ensureCursorLoaded(): Promise<void> {
@@ -320,6 +396,13 @@ export class NodeStoreSyncProvider {
   }
 
   private handleDirectMessage(message: Record<string, unknown>): void {
+    if (message.type === 'handshake') {
+      // Negotiate batched push. Absent flag → older hub → keep sending
+      // one change per frame.
+      const features = message.features
+      this.batchPushSupported = Array.isArray(features) && features.includes('batch-push')
+      return
+    }
     if (message.type === 'node-cleared') {
       if (message.room === this.room) {
         this.resolveClear(typeof message.cleared === 'number' ? message.cleared : 0)
@@ -337,6 +420,9 @@ export class NodeStoreSyncProvider {
       )
       if (STRUCTURAL_REJECTION_CODES.has(code)) {
         this.recordStructuralRejection(code, message)
+      }
+      if (CAPACITY_REJECTION_CODES.has(code as SyncBlockedReason)) {
+        this.recordCapacityRejection(code as SyncBlockedReason, message)
       }
       return
     }
@@ -373,6 +459,50 @@ export class NodeStoreSyncProvider {
     )
   }
 
+  /**
+   * Halt outbound sync on a capacity rejection (exploration 0291). Unlike the
+   * structural breaker, one rejection is enough: while the account is over
+   * quota (or the hub's disk is full) every further change is rejected too, so
+   * resending only floods the hub. Local data is untouched — the store keeps
+   * accepting writes and the un-pushed changes replay on the next reconnect
+   * (the demo hub's daily reset / freed disk clears the condition server-side).
+   */
+  private recordCapacityRejection(
+    reason: SyncBlockedReason,
+    message: Record<string, unknown>
+  ): void {
+    const detail = String(message.error ?? message.message ?? '')
+    if (!this.outboundHalted) {
+      this.outboundHalted = true
+      this.clearSendQueue()
+      console.error(
+        reason === 'QUOTA_EXCEEDED'
+          ? `[NodeStoreSync] Hub storage limit reached — pausing outbound sync. Your data is safe ` +
+              `locally; syncing resumes when space frees up (demo hubs reset daily). Hub said: ${detail}`
+          : `[NodeStoreSync] Hub disk is full — pausing outbound sync. Your data is safe locally; ` +
+              `syncing resumes automatically. Hub said: ${detail}`
+      )
+    }
+    for (const listener of this.syncBlockedListeners) {
+      try {
+        listener(reason, detail)
+      } catch (err) {
+        console.error('Error in sync-blocked listener:', err)
+      }
+    }
+  }
+
+  /**
+   * Subscribe to capacity-blocked events (hub over quota / disk full) so the
+   * app can surface a "storage full" notice. Returns an unsubscribe function.
+   */
+  onSyncBlocked(listener: SyncBlockedListener): () => void {
+    this.syncBlockedListeners.add(listener)
+    return () => {
+      this.syncBlockedListeners.delete(listener)
+    }
+  }
+
   private requestSync(): void {
     if (!this.connection) return
     this.connection.sendRaw({
@@ -388,7 +518,9 @@ export class NodeStoreSyncProvider {
   ): Promise<void> {
     const change = this.deserializeChange(serialized)
 
-    if (serialized.lamportTime > this.lastSyncedLamport) {
+    // Share rooms cursor on a per-room seq (advanced only from sync-response
+    // high-water marks), so a live broadcast's author lamport must not move it.
+    if (!this.subscribeOnly && serialized.lamportTime > this.lastSyncedLamport) {
       this.lastSyncedLamport = serialized.lamportTime
     }
 
@@ -479,7 +611,8 @@ export class NodeStoreSyncProvider {
     // durably holds changes up to this point. Advance and PERSIST the cursor
     // from it (not from local sends) so a reload never replays already-synced
     // history (exploration 0206).
-    if (response.highWaterMark > this.lastSyncedLamport) {
+    const advanced = response.highWaterMark > this.lastSyncedLamport
+    if (advanced) {
       this.lastSyncedLamport = response.highWaterMark
       this.pushedThrough = Math.max(this.pushedThrough, this.lastSyncedLamport)
       // Forward progress from the hub: clear any accumulated structural-rejection
@@ -492,6 +625,32 @@ export class NodeStoreSyncProvider {
         console.warn('[NodeStoreSync] failed to persist sync cursor:', err)
       }
     }
+
+    // A capped response covers only part of the catch-up. Ask for the next page
+    // now, from the cursor we just persisted, rather than leaving the rest until
+    // some later reconnect. Keep the waiter pending so `onConnected` pushes local
+    // changes only once we are genuinely caught up.
+    //
+    // Only continue when the mark actually MOVED: a hub that keeps saying
+    // `hasMore` at a standing cursor would otherwise spin a request storm, and
+    // the page cap bounds a single burst regardless.
+    if (
+      response.hasMore === true &&
+      advanced &&
+      this.catchUpPages < MAX_CATCH_UP_PAGES &&
+      this.connection?.status === 'connected'
+    ) {
+      this.catchUpPages += 1
+      this.requestSync()
+      return
+    }
+    if (response.hasMore === true && this.catchUpPages >= MAX_CATCH_UP_PAGES) {
+      console.warn(
+        `[NodeStoreSync] stopping catch-up for ${this.room} after ${MAX_CATCH_UP_PAGES} pages ` +
+          `(cursor ${this.lastSyncedLamport}); the remainder resumes on the next sync.`
+      )
+    }
+    this.catchUpPages = 0
 
     this.resolveSyncResponse()
   }
@@ -553,6 +712,7 @@ export class NodeStoreSyncProvider {
   /** Queue a change for throttled broadcast (deduped by hash). */
   private enqueueChange(change: NodeChange): void {
     if (this.outboundHalted) return
+    if (this.shouldPublish && !this.shouldPublish(change)) return
     if (change.lamport <= this.pushedThrough) return
     if (this.queuedHashes.has(change.hash)) return
     this.queuedHashes.add(change.hash)
@@ -573,16 +733,41 @@ export class NodeStoreSyncProvider {
     if (!this.connection || this.connection.status !== 'connected') return
 
     this.sentInWindow = 0
-    while (this.sendQueue.length > 0 && this.sentInWindow < MAX_SENDS_PER_WINDOW) {
-      const change = this.sendQueue.shift()!
-      this.queuedHashes.delete(change.hash)
-      this.publishChange(change)
-      this.sentInWindow += 1
+    if (this.batchPushSupported) {
+      this.drainBatched()
+    } else {
+      while (this.sendQueue.length > 0 && this.sentInWindow < MAX_SENDS_PER_WINDOW) {
+        const change = this.sendQueue.shift()!
+        this.queuedHashes.delete(change.hash)
+        this.publishChange(change)
+        this.sentInWindow += 1
+      }
     }
 
     // More queued than this window allows → drain the rest after the window.
     if (this.sendQueue.length > 0) {
       this.scheduleDrain(SEND_WINDOW_MS)
+    }
+  }
+
+  /**
+   * Batched drain (exploration 0357): pack the queue into slabs of up to
+   * MAX_BATCH_CHANGES and send one frame per slab. `sentInWindow` counts
+   * CHANGES, not frames, matching how the hub charges its rate limit — so the
+   * budget stays a real bound on work rather than a bound on syscalls.
+   */
+  private drainBatched(): void {
+    while (this.sendQueue.length > 0 && this.sentInWindow < MAX_BATCHED_CHANGES_PER_WINDOW) {
+      const queued = this.sendQueue.length
+      const slabSize = Math.min(
+        MAX_BATCH_CHANGES,
+        queued,
+        MAX_BATCHED_CHANGES_PER_WINDOW - this.sentInWindow
+      )
+      const slab = this.sendQueue.splice(0, slabSize)
+      for (const change of slab) this.queuedHashes.delete(change.hash)
+      this.publishChangeBatch(slab)
+      this.sentInWindow += slab.length
     }
   }
 
@@ -596,6 +781,25 @@ export class NodeStoreSyncProvider {
     // Optimistic in-memory advance — keeps us from re-sending within a session.
     // The PERSISTED cursor only advances on the hub's high-water mark.
     this.pushedThrough = Math.max(this.pushedThrough, change.lamport)
+  }
+
+  /**
+   * Send many changes in one frame. The hub verifies and authorizes each one
+   * individually and re-broadcasts them as ordinary `node-change` messages, so
+   * this is purely a transport-level batch.
+   */
+  private publishChangeBatch(changes: NodeChange[]): void {
+    if (!this.connection || changes.length === 0) return
+    this.connection.publish(this.room, {
+      type: 'node-change-batch',
+      room: this.room,
+      changes: changes.map((change) => this.serializeChange(change))
+    })
+    // Optimistic in-memory advance — same contract as publishChange: the
+    // PERSISTED cursor only moves on the hub's high-water mark.
+    for (const change of changes) {
+      this.pushedThrough = Math.max(this.pushedThrough, change.lamport)
+    }
   }
 
   private clearSendQueue(): void {

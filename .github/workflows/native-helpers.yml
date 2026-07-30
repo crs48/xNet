@@ -1,0 +1,28 @@
+# Native helper build check (exploration 0283). The Swift helpers under
+# apps/electron/native/* are otherwise only compiled by the Electron Release
+# workflow, so platform-availability drift (audiotee calling macOS 14.2-only
+# CoreAudio APIs under a 14.0 deployment target) was discovered at release
+# time, after three release runs had already failed. Path-filtered so the
+# 10×-priced macOS runner is paid only when native code actually changes.
+name: Native Helpers
+
+on:
+  pull_request:
+    paths:
+      - 'apps/electron/native/**'
+      - '.github/workflows/native-helpers.yml'
+
+concurrency:
+  group: native-helpers-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-audiotee:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build xnet-audiotee (release)
+        working-directory: apps/electron/native/audiotee
+        run: swift build -c release

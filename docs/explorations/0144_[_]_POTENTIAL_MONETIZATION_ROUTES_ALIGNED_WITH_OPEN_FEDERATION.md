@@ -8,7 +8,7 @@
 
 ## Problem Statement 💰
 
-How can XNet become economically self-sufficient while staying aligned with its primary vision:
+How can xNet become economically self-sufficient while staying aligned with its primary vision:
 decentralization, federation, openness, user-owned data, and open source?
 
 The goal is not to maximize profit like the most extractive software platforms. The goal is to fund
@@ -19,23 +19,23 @@ the real work:
 - improving the hub and local-first stack;
 - funding protocol, schema, federation, and search research;
 - supporting documentation, testing, releases, and operator tooling;
-- helping the ecosystem grow without turning XNet into the central platform gatekeeper.
+- helping the ecosystem grow without turning xNet into the central platform gatekeeper.
 
 The central constraint is:
 
-> XNet should be paid when it creates meaningful operational value for users, developers,
+> xNet should be paid when it creates meaningful operational value for users, developers,
 > organizations, hub operators, app-view providers, and the wider network. It should not be paid by
 > making federation artificially scarce, locking users into a single host, or closing the commons
-> that make XNet worth using.
+> that make xNet worth using.
 
 This document explores monetization routes from personal hub hosting through B2B federation/search
 hosting, partner programs, marketplace revenue, support, public-good funding, and the much harder
-question of whether XNet should ever move lower into the physical infrastructure/data-center layer.
+question of whether xNet should ever move lower into the physical infrastructure/data-center layer.
 
 ## Exploration Status
 
 - [x] Compute the next exploration number and use a valid shortened filename
-- [x] Review XNet README, roadmap, hub config, backup, file storage, metrics, query, federation,
+- [x] Review xNet README, roadmap, hub config, backup, file storage, metrics, query, federation,
       sharding, crawl, telemetry, and plugin surfaces
 - [x] Review adjacent explorations on hub economics, global adoption, VC investment, and
       crypto/public-market paths
@@ -48,14 +48,14 @@ question of whether XNet should ever move lower into the physical infrastructure
 
 ## Executive Summary 🎯
 
-XNet's strongest monetization route is **paid operational convenience over open protocol
+xNet's strongest monetization route is **paid operational convenience over open protocol
 infrastructure**:
 
 > Keep the software, schemas, protocol surfaces, and self-hosting path open; charge for reliable
 > hosting, operations, support, compliance, search/backbone capacity, migration, abuse tooling,
 > observability, and managed federation.
 
-The cleanest starting product is **XNet Cloud for managed hubs**:
+The cleanest starting product is **xNet Cloud for managed hubs**:
 
 - personal and family hubs for sync, backup, files, and identity availability;
 - team/community hubs for collaboration, moderation, member management, and public surfaces;
@@ -67,7 +67,7 @@ The cleanest starting product is **XNet Cloud for managed hubs**:
 
 The key alignment principle is:
 
-> XNet should charge for scarce, valuable work that someone must actually do: uptime, backups,
+> xNet should charge for scarce, valuable work that someone must actually do: uptime, backups,
 > storage, bandwidth, search indexing, crawling, moderation tooling, compliance, support,
 > migrations, and R&D. It should not charge rent on the right to self-host, fork, interoperate, or
 > own data.
@@ -97,13 +97,13 @@ The most important operational recommendation:
 > Establish a transparent "commons budget" from revenue: a fixed share of service revenue funds
 > open maintenance, security, federation interoperability, documentation, and research.
 
-That gives users and operators a concrete reason to pay XNet even when they could self-host: they
+That gives users and operators a concrete reason to pay xNet even when they could self-host: they
 are not paying for permission. They are paying for reliable service and funding the commons they
 depend on.
 
 ```mermaid
 flowchart TD
-    Commons["Open XNet commons<br/>code, specs, schemas, self-hosting"]
+    Commons["Open xNet commons<br/>code, specs, schemas, self-hosting"]
     Services["Paid operational services<br/>hosting, support, search, compliance"]
     Network["Federated network value<br/>more users, hubs, apps, schemas"]
     Revenue["Sustainable revenue"]
@@ -124,9 +124,9 @@ flowchart TD
 
 ## Current State In The Repository 🔎
 
-### XNet already has monetizable infrastructure surfaces
+### xNet already has monetizable infrastructure surfaces
 
-The root [`README.md`](../../README.md) positions XNet as decentralized data infrastructure and an
+The root [`README.md`](../../README.md) positions xNet as decentralized data infrastructure and an
 application: local-first, P2P-synced, user-owned data. It starts with documents and databases, then
 expands through plugins to ERP, MCP integrations, and more.
 
@@ -134,7 +134,7 @@ The architecture already contains the pieces that can become paid service layers
 
 | Surface                    | Current repo evidence                                                                                                                                  | Monetization interpretation                                             |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| Hub hosting                | [`packages/hub/README.md`](../../packages/hub/README.md) describes signaling, sync relay, backup, files, search, federation, sharding, and crawling    | Managed XNet Cloud, community hubs, B2B hosted federation               |
+| Hub hosting                | [`packages/hub/README.md`](../../packages/hub/README.md) describes signaling, sync relay, backup, files, search, federation, sharding, and crawling    | Managed xNet Cloud, community hubs, B2B hosted federation               |
 | Backup quotas              | [`BackupService`](../../packages/hub/src/services/backup.ts) enforces max quota, max blob size, list/delete, and usage reporting                       | Personal/team backup plans and retention tiers                          |
 | File storage quotas        | [`FileService`](../../packages/hub/src/services/files.ts) enforces max file size, max storage per user, content hashing, MIME allowlists, and usage    | File hosting, attachment plans, creator/media storage                   |
 | Hub config and demo limits | [`HubConfig`](../../packages/hub/src/types.ts) has default quotas, max connections, max message size, demo quotas, eviction TTLs, and runtime metadata | Plan limits, trial/demo mode, anti-abuse guardrails                     |
@@ -146,12 +146,12 @@ The architecture already contains the pieces that can become paid service layers
 | Telemetry                  | [`TelemetryCollector`](../../packages/telemetry/src/collection/collector.ts) is consent-gated and scrubbed                                             | Product insight without privacy-hostile analytics                       |
 | Plugins and MCP            | [`@xnetjs/plugins`](../../packages/plugins/README.md) supports registry, sandboxing, AI script generation, Local API, MCP, and webhooks                | Marketplace, paid integrations, AI services, enterprise extension packs |
 
-This is important: XNet does not need to invent monetization from nothing. The code already points
+This is important: xNet does not need to invent monetization from nothing. The code already points
 toward paid services that are genuinely useful and genuinely costly.
 
 ### What is not present yet
 
-XNet does **not** yet have:
+xNet does **not** yet have:
 
 - account plans or subscriptions;
 - billing identities linked to DIDs or organizations;
@@ -172,7 +172,7 @@ with complicated pricing or ecosystem governance.
 
 ```mermaid
 graph TB
-    subgraph Existing["Existing XNet surfaces"]
+    subgraph Existing["Existing xNet surfaces"]
         Quotas["Quotas + limits"]
         Metrics["Hub metrics"]
         Federation["Federation logs + signatures"]
@@ -204,14 +204,14 @@ This exploration builds on four local documents:
   argues that canonical data should stay with users and organizations while reach, ranking,
   workflows, moderation, compute, hosting, and UX become competitive service layers.
 - [`0142_[_]_WHY_MIGHT_VCS_INVEST_IN_XNET_COMPELLING_VENTURE_RETURNS_AND_TIMEFRAMES.md`](./0142_[_]_WHY_MIGHT_VCS_INVEST_IN_XNET_COMPELLING_VENTURE_RETURNS_AND_TIMEFRAMES.md)
-  frames XNet as a local-first, AI-native application platform with hosted hubs as a revenue layer.
+  frames xNet as a local-first, AI-native application platform with hosted hubs as a revenue layer.
 - [`0143_[_]_WHY_MIGHT_PUBLIC_MARKETS_INVEST_IN_XNET_THINK_CRYPTO_AND_WEB3_AND_BLOCKCHAIN.md`](./0143_[_]_WHY_MIGHT_PUBLIC_MARKETS_INVEST_IN_XNET_THINK_CRYPTO_AND_WEB3_AND_BLOCKCHAIN.md)
-  recommends making XNet crypto-ready before crypto-native, with stable payments and service
+  recommends making xNet crypto-ready before crypto-native, with stable payments and service
   receipts before any token.
 
 The shared thesis:
 
-> XNet can be economically viable if it captures value from real operational work while leaving the
+> xNet can be economically viable if it captures value from real operational work while leaving the
 > protocol commons open and portable.
 
 ### Roadmap constraints matter
@@ -241,7 +241,7 @@ server at least to break-even and reinvest any profit in trust and safety or eco
 Source:
 [Matrix premium accounts announcement](https://matrix.org/blog/2025/06/funding-homeserver-premium/).
 
-Implication for XNet: a default public hub is useful for onboarding, but it cannot be an infinite
+Implication for xNet: a default public hub is useful for onboarding, but it cannot be an infinite
 free sink. Freemium limits and paid active-user plans can be aligned if they keep the network open
 and fund the shared commons.
 
@@ -252,7 +252,7 @@ application-level infrastructure such as Relays and AppViews. Relays are bandwid
 AppViews are resource-intensive because they replicate and index application data. Source:
 [AT Protocol self-hosting docs](https://atproto.com/guides/self-hosting).
 
-Implication for XNet: do not price "a hub" as one thing. Price separate service layers: home hub,
+Implication for xNet: do not price "a hub" as one thing. Price separate service layers: home hub,
 community hub, relay/federation, search/app-view, crawler, media cache, enterprise control plane.
 
 ### Discourse: open source plus paid hosting can be coherent
@@ -262,7 +262,7 @@ self-hosted, and can be migrated between hosts. Its hosted pricing charges for m
 operations, plugins, support, staff seats, SSO, migration, and enterprise needs. Source:
 [Discourse pricing](https://www.discourse.org/pricing).
 
-Implication for XNet: managed hosting can be the main business without betraying open source, if
+Implication for xNet: managed hosting can be the main business without betraying open source, if
 self-hosting and portability stay first-class.
 
 ### Moodle: certified partners can fund core development
@@ -272,7 +272,7 @@ themes, training, support, analytics, and related services. Moodle states that c
 financially contribute through royalties, supporting sustainability and core development. Source:
 [Moodle certified partner network](https://moodle.com/news/the-certified-moodle-partner-network-a-pledge-of-guarantee/).
 
-Implication for XNet: XNet should eventually certify hosting providers, integrators, plugin
+Implication for xNet: xNet should eventually certify hosting providers, integrators, plugin
 vendors, and vertical app specialists. Certification can fund core while increasing vendor choice,
 not reducing it.
 
@@ -284,7 +284,7 @@ retrieval, transfer, replication, management, and transform/query features. Sour
 [Cloudflare R2 pricing](https://developers.cloudflare.com/r2/pricing/) and
 [AWS S3 pricing](https://aws.amazon.com/s3/pricing/).
 
-Implication for XNet: "storage" is not one cost. Backup byte-months, object operations, data
+Implication for xNet: "storage" is not one cost. Backup byte-months, object operations, data
 retrieval, egress, search queries, cross-region replication, and media cache reads need distinct
 meters.
 
@@ -305,7 +305,7 @@ technology. Sources:
 [NLnet NGI Zero](https://nlnet.nl/NGI0/), and
 [OTF FOSS Sustainability Fund](https://www.opentech.fund/funds/free-and-open-source-software-sustainability-fund/).
 
-Implication for XNet: grants, sponsorships, and memberships can fund public-good work, especially
+Implication for xNet: grants, sponsorships, and memberships can fund public-good work, especially
 security, docs, standards, and interoperability. They should support the plan, not be the whole
 plan.
 
@@ -315,7 +315,7 @@ The Open Source Initiative's definition requires free redistribution, source cod
 derived works, no discrimination against people/groups, and no discrimination against fields of
 endeavor. Source: [Open Source Definition](https://opensource.org/osd).
 
-Implication for XNet: if openness is part of the primary vision, avoid "source available but no
+Implication for xNet: if openness is part of the primary vision, avoid "source available but no
 cloud competitors" licensing as the central strategy. Trademark, certification, hosted service
 quality, support, and network trust are better alignment levers than restricting use of the code.
 
@@ -328,7 +328,7 @@ created community trust and fork risks. Sources:
 [Redis licenses](https://redis.io/legal/licenses/), and
 [HashiCorp BSL announcement](https://www.hashicorp.com/ja/blog/hashicorp-adopts-business-source-license).
 
-Implication for XNet: do not make monetization depend on later closing the core. Design revenue
+Implication for xNet: do not make monetization depend on later closing the core. Design revenue
 around services that remain valuable even when the code is open.
 
 ### Physical data centers are a different business
@@ -341,14 +341,14 @@ data-center investment activity. Sources:
 and
 [Digital Realty 2025 Form 10-K](https://www.sec.gov/Archives/edgar/data/1297996/000110465926015365/dlr-20251231x10k.htm).
 
-Implication for XNet: physical data-center ownership is not a near-term aligned move. XNet should
+Implication for xNet: physical data-center ownership is not a near-term aligned move. xNet should
 first become portable across clouds, bare metal, home servers, and independent operators. Owning
 strategic capacity may make sense later for specific backbone/search workloads, but not before
 usage is large and predictable.
 
 ## Alignment Principles 🧭
 
-XNet monetization should obey these rules:
+xNet monetization should obey these rules:
 
 1. **Never charge for data ownership.** Users and organizations should own their namespaces, export
    their data, and move hosts.
@@ -360,14 +360,14 @@ XNet monetization should obey these rules:
    to run production hubs.
 5. **Make portability visible.** Hosted users should see export, migration, and alternate-provider
    paths.
-6. **Keep paid features additive.** Paid services should make XNet easier, safer, faster, or more
+6. **Keep paid features additive.** Paid services should make xNet easier, safer, faster, or more
    reliable, not make the free protocol artificially worse.
 7. **Fund the commons explicitly.** A public maintenance/R&D budget should receive a predictable
    share of service revenue.
 8. **Separate product data from business data.** Billing data should not become surveillance.
 9. **Avoid ads as infrastructure dependency.** Ads can exist in optional app views, but the protocol
    should not need targeted advertising.
-10. **Prefer plural operators.** XNet should help other people run profitable hubs, not just run the
+10. **Prefer plural operators.** xNet should help other people run profitable hubs, not just run the
     only hub.
 
 ## Key Findings 💡
@@ -402,12 +402,12 @@ A hub offer can say:
 - what export and migration guarantees exist;
 - what portion funds the commons.
 
-This gives XNet a way to charge without becoming the federation gatekeeper.
+This gives xNet a way to charge without becoming the federation gatekeeper.
 
 ```mermaid
 sequenceDiagram
     participant User as User / organization
-    participant App as XNet app
+    participant App as xNet app
     participant Hub as Managed hub
     participant Ledger as Usage ledger
     participant Fund as Commons fund
@@ -424,24 +424,24 @@ sequenceDiagram
 
 ### 3. B2B managed federation may be bigger than consumer hosting
 
-Many organizations will want XNet's data ownership and federation properties without wanting to
+Many organizations will want xNet's data ownership and federation properties without wanting to
 operate hubs:
 
 - associations hosting member knowledge graphs;
 - open-source projects hosting issues, docs, releases, and contributor records;
 - schools and universities hosting student/project data;
 - municipalities hosting civic records and local service directories;
-- agencies building XNet-powered apps for clients;
+- agencies building xNet-powered apps for clients;
 - SaaS vendors wanting portable user-owned data as a feature;
 - communities wanting a custom policy and identity surface.
 
 This creates a strong service:
 
-> "Your own federated XNet provider, with your domain, your policy, your migration rights, and no
+> "Your own federated xNet provider, with your domain, your policy, your migration rights, and no
 > ops team required."
 
 This is aligned because it creates more independent-looking network endpoints while centralizing
-only the operations layer the customer explicitly pays XNet to manage.
+only the operations layer the customer explicitly pays xNet to manage.
 
 ### 4. Search and backbone infrastructure are high-value but later-stage
 
@@ -459,7 +459,7 @@ Federated search is expensive because someone must:
 - moderate public surfaces;
 - coordinate shards and replicas.
 
-XNet already has crawling, sharding, federation, and query primitives. But billing-grade accounting
+xNet already has crawling, sharding, federation, and query primitives. But billing-grade accounting
 is missing. Therefore the route should be:
 
 1. private/team search inside paid hubs;
@@ -503,13 +503,13 @@ Partners could pay certification fees, contribute a revenue share, sponsor commo
 specific roadmap areas. In exchange, they get brand trust, compatibility tests, roadmap channels,
 security disclosures, and marketplace visibility.
 
-This is one of the best long-term alignment mechanisms because it makes XNet economically stronger
+This is one of the best long-term alignment mechanisms because it makes xNet economically stronger
 when others succeed.
 
 ### 7. Marketplace revenue is useful but should not become a tollbooth
 
 Paid plugins, schemas, templates, app views, and integration packs can fund ecosystem work. But
-XNet should preserve:
+xNet should preserve:
 
 - sideloading;
 - independent registries;
@@ -536,7 +536,7 @@ Public-good funding can support work that the market underfunds:
 - open standards work;
 - public knowledge infrastructure.
 
-But grants are episodic. XNet should apply for them, but should not depend on them to pay the core
+But grants are episodic. xNet should apply for them, but should not depend on them to pay the core
 team indefinitely.
 
 ### 9. Physical infrastructure is a trap if entered too early
@@ -545,7 +545,7 @@ Running data centers means land, power, cooling, hardware procurement, hardware 
 compliance, networking, physical security, capacity planning, and capital expenditure. That is a
 different business from building a local-first federated data platform.
 
-XNet should move down the stack gradually:
+xNet should move down the stack gradually:
 
 | Layer                       | Recommendation                           | Reason                                          |
 | --------------------------- | ---------------------------------------- | ----------------------------------------------- |
@@ -560,7 +560,7 @@ XNet should move down the stack gradually:
 
 ```mermaid
 mindmap
-  root((XNet Monetization))
+  root((xNet Monetization))
     Managed Hubs
       Personal
       Family
@@ -614,7 +614,7 @@ mindmap
 | Training/certification        | Operators and developers       | Low-medium      | High       | Immediate     | Useful supplemental revenue                         |
 | Grants/sponsorships           | Foundations, governments, orgs | Low-medium      | Very high  | Immediate     | Fund public-good work, not core payroll alone       |
 | Ads/sponsorship in app views  | Sponsors                       | Medium          | Low-medium | Later/limited | Keep outside protocol and user-owned private spaces |
-| Data-center ownership         | XNet itself                    | Unclear         | Low early  | Much later    | Defer; use portability and partners first           |
+| Data-center ownership         | xNet itself                    | Unclear         | Low early  | Much later    | Defer; use portability and partners first           |
 
 ```mermaid
 quadrantChart
@@ -689,8 +689,8 @@ Good plan dimensions:
 
 The product promise:
 
-- run a branded XNet provider on your domain;
-- get XNet federation, backup, search, and moderation without staffing a hub SRE team;
+- run a branded xNet provider on your domain;
+- get xNet federation, backup, search, and moderation without staffing a hub SRE team;
 - keep policy and customer relationship;
 - retain migration rights.
 
@@ -705,14 +705,14 @@ This could be sold to:
 - software vendors;
 - agencies.
 
-This is probably the best bridge from "one XNet company" to "many federated operators" because it
-creates more providers while XNet earns for operations.
+This is probably the best bridge from "one xNet company" to "many federated operators" because it
+creates more providers while xNet earns for operations.
 
 ### Federated search/backbone hosting
 
 The product promise:
 
-- make public XNet data discoverable without handing the network to one search monopoly;
+- make public xNet data discoverable without handing the network to one search monopoly;
 - let apps buy search/query/crawl capacity;
 - let independent operators host shards;
 - let users and communities choose ranking and moderation lenses.
@@ -735,9 +735,9 @@ This should wait until billing-grade usage accounting exists.
 
 The most aligned structure is a two-part model:
 
-1. **XNet Labs** runs paid services: XNet Cloud, managed hubs, B2B federation, support,
+1. **xNet Labs** runs paid services: xNet Cloud, managed hubs, B2B federation, support,
    marketplace, operator tooling, and later backbone services.
-2. **XNet Commons or Foundation** steward open specifications, public interoperability tests,
+2. **xNet Commons or Foundation** steward open specifications, public interoperability tests,
    grants, documentation, neutral governance, and a transparent maintenance budget.
 
 This does not need to be heavy on day one. It can begin as a public ledger inside the company:
@@ -756,8 +756,8 @@ and public-good funds.
 ```mermaid
 flowchart LR
     Customers["Users, teams, operators, enterprises"]
-    Labs["XNet Labs<br/>paid services"]
-    Commons["XNet Commons<br/>specs, docs, tests, security, R&D"]
+    Labs["xNet Labs<br/>paid services"]
+    Commons["xNet Commons<br/>specs, docs, tests, security, R&D"]
     Partners["Certified partners"]
     Operators["Independent hubs"]
     Network["Open federated network"]
@@ -777,7 +777,7 @@ flowchart LR
 
 ### Option 1: Pure donations/grants
 
-**Description:** XNet remains mostly volunteer/grant funded.
+**Description:** xNet remains mostly volunteer/grant funded.
 
 **Pros**
 
@@ -796,7 +796,7 @@ flowchart LR
 
 ### Option 2: Managed hosting company
 
-**Description:** XNet sells managed hubs and related operational services.
+**Description:** xNet sells managed hubs and related operational services.
 
 **Pros**
 
@@ -833,13 +833,13 @@ flowchart LR
 
 ### Option 4: Partner/certification ecosystem
 
-**Description:** Certified hosts and integrators pay fees or revenue share back to XNet Commons.
+**Description:** Certified hosts and integrators pay fees or revenue share back to xNet Commons.
 
 **Pros**
 
 - Scales service capacity without centralizing all hosting.
 - Helps users find trustworthy providers.
-- Aligns XNet with partner success.
+- Aligns xNet with partner success.
 
 **Cons**
 
@@ -851,7 +851,7 @@ flowchart LR
 
 ### Option 5: Marketplace revenue share
 
-**Description:** XNet takes a share from paid plugins, app views, schemas, templates, and packaged
+**Description:** xNet takes a share from paid plugins, app views, schemas, templates, and packaged
 solutions.
 
 **Pros**
@@ -870,11 +870,11 @@ solutions.
 
 ### Option 6: Backbone/search infrastructure business
 
-**Description:** XNet sells query, index, crawl, shard, media-cache, and public API services.
+**Description:** xNet sells query, index, crawl, shard, media-cache, and public API services.
 
 **Pros**
 
-- High value if XNet adoption grows.
+- High value if xNet adoption grows.
 - Funds the expensive public-network layers.
 - Creates defensible expertise.
 
@@ -882,13 +882,13 @@ solutions.
 
 - Technically and operationally hard.
 - Needs traffic, metering, quality scoring, and abuse controls.
-- Can recentralize discovery if XNet is the only serious backbone.
+- Can recentralize discovery if xNet is the only serious backbone.
 
 **Verdict:** major long-term route, but not first.
 
 ### Option 7: Physical data-center provider
 
-**Description:** XNet owns/leases physical data-center capacity and becomes lower-level
+**Description:** xNet owns/leases physical data-center capacity and becomes lower-level
 infrastructure.
 
 **Pros**
@@ -911,7 +911,7 @@ infrastructure.
 
 ### Phase 1: Self-sufficient managed hubs
 
-Build XNet Cloud around personal/team/community hubs:
+Build xNet Cloud around personal/team/community hubs:
 
 - account plans;
 - plan-aware quotas;
@@ -938,12 +938,12 @@ Make it easy for other people to run hubs:
 - conformance tests;
 - optional billing tools.
 
-Success metric: independent hubs increase, and some pay XNet because XNet makes their operations
+Success metric: independent hubs increase, and some pay xNet because xNet makes their operations
 better.
 
 ### Phase 3: B2B federation providers
 
-Sell "your own XNet provider" to organizations:
+Sell "your own xNet provider" to organizations:
 
 - managed domain;
 - custom policies;
@@ -952,7 +952,7 @@ Sell "your own XNet provider" to organizations:
 - migration from existing tools;
 - support and training.
 
-Success metric: organizations pay because XNet gives them user-owned/federated infrastructure
+Success metric: organizations pay because xNet gives them user-owned/federated infrastructure
 without hiring a dedicated ops team.
 
 ### Phase 4: Backbone/search services
@@ -979,7 +979,7 @@ Formalize:
 - public commons budget;
 - foundation/trademark governance if needed.
 
-Success metric: XNet grows because other providers can build businesses around it, not because XNet
+Success metric: xNet grows because other providers can build businesses around it, not because xNet
 blocks them.
 
 ```mermaid
@@ -1008,7 +1008,7 @@ cost/value units:
 | Federation       | query units, peering agreements, reciprocal credits  | pay-to-interoperate baseline       |
 | Crawling         | crawl tasks, recrawl frequency, quality tiers        | paying for spammy raw page count   |
 | Enterprise       | seats/admins, support level, compliance pack         | withholding basic security         |
-| Operator control | hubs managed, metrics retention, backup validation   | locking config behind XNet Cloud   |
+| Operator control | hubs managed, metrics retention, backup validation   | locking config behind xNet Cloud   |
 | Marketplace      | billing/review/discovery fee                         | forced tax on sideloaded plugins   |
 
 ## Example Code: Commons Allocation Ledger 🧾
@@ -1111,7 +1111,7 @@ public commitment that commercial success funds the open network.
 
 ## Implementation Checklist 🛠️
 
-- [ ] Define an alignment policy: what XNet will charge for, what it will never charge for, and how
+- [ ] Define an alignment policy: what xNet will charge for, what it will never charge for, and how
       self-hosting/federation stay protected.
 - [ ] Add plan-aware account and organization models linked to DIDs without making DIDs depend on
       payment.
@@ -1135,7 +1135,7 @@ public commitment that commercial success funds the open network.
 
 ## Validation Checklist 🔬
 
-- [ ] A competent operator can run a production hub without paying XNet.
+- [ ] A competent operator can run a production hub without paying xNet.
 - [ ] A hosted user can export data and migrate to another hub.
 - [ ] Baseline federation works without a paid peering agreement.
 - [ ] Paid plans improve reliability, scale, support, compliance, or convenience rather than
@@ -1157,7 +1157,7 @@ public commitment that commercial success funds the open network.
 
 The most aligned business model is:
 
-> **Open-source XNet plus paid XNet Cloud and paid operator services, with a transparent commons
+> **Open-source xNet plus paid xNet Cloud and paid operator services, with a transparent commons
 > budget funding the open network.**
 
 Concretely:
@@ -1171,19 +1171,19 @@ Concretely:
 7. Add search/backbone services only after federation traffic and metering justify them.
 8. Build a partner/certification ecosystem so service revenue is plural, not centralized.
 9. Use grants and sponsorships for public-good work.
-10. Defer physical data-center ownership until XNet has large, stable, predictable infrastructure
+10. Defer physical data-center ownership until xNet has large, stable, predictable infrastructure
     demand.
 
-The healthiest version of XNet is not a company that owns the decentralized web. It is a company
+The healthiest version of xNet is not a company that owns the decentralized web. It is a company
 and commons ecosystem that makes the decentralized web easier to use, safer to operate, and
 economically worth maintaining.
 
 ## References 📚
 
-### XNet repository
+### xNet repository
 
-- [XNet README](../../README.md)
-- [XNet Roadmap](../ROADMAP.md)
+- [xNet README](../../README.md)
+- [xNet Roadmap](../ROADMAP.md)
 - [Hub README](../../packages/hub/README.md)
 - [Hub configuration](../../packages/hub/src/types.ts)
 - [Backup service](../../packages/hub/src/services/backup.ts)
@@ -1198,9 +1198,9 @@ economically worth maintaining.
 - [Telemetry scrubbing](../../packages/telemetry/src/collection/scrubbing.ts)
 - [Plugins README](../../packages/plugins/README.md)
 - [Economic Models For Hosting Federated Hubs](./0132_[_]_ECONOMIC_MODELS_FOR_HOSTING_FEDERATED_HUBS.md)
-- [Global Businesses And Markets Under Wide XNet Adoption](./0141_[_]_GLOBAL_BUSINESSES_AND_MARKETS_UNDER_WIDE_XNET_ADOPTION_FEDERATED_COMMERCE_COLLABORATION_INTERNET_SEARCH_SOCIAL_WIKIPEDIA_YOUTUBE_GITHUB.md)
-- [Why Might VCs Invest In XNet?](./0142_[_]_WHY_MIGHT_VCS_INVEST_IN_XNET_COMPELLING_VENTURE_RETURNS_AND_TIMEFRAMES.md)
-- [Why Might Public Markets Invest In XNet?](./0143_[_]_WHY_MIGHT_PUBLIC_MARKETS_INVEST_IN_XNET_THINK_CRYPTO_AND_WEB3_AND_BLOCKCHAIN.md)
+- [Global Businesses And Markets Under Wide xNet Adoption](./0141_[_]_GLOBAL_BUSINESSES_AND_MARKETS_UNDER_WIDE_XNET_ADOPTION_FEDERATED_COMMERCE_COLLABORATION_INTERNET_SEARCH_SOCIAL_WIKIPEDIA_YOUTUBE_GITHUB.md)
+- [Why Might VCs Invest In xNet?](./0142_[_]_WHY_MIGHT_VCS_INVEST_IN_XNET_COMPELLING_VENTURE_RETURNS_AND_TIMEFRAMES.md)
+- [Why Might Public Markets Invest In xNet?](./0143_[_]_WHY_MIGHT_PUBLIC_MARKETS_INVEST_IN_XNET_THINK_CRYPTO_AND_WEB3_AND_BLOCKCHAIN.md)
 
 ### External research
 

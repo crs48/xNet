@@ -1,0 +1,64 @@
+---
+// The honesty beat for post #15 (exploration 0319), modeled on HonestVault /
+// HonestWorkshop. An essay that says "one coupling for all your data, and you
+// decide who plays" owes the reader the six places where the metaphor stops
+// working — starting with the one no architecture can fix: a grip is not a
+// weld, and reading is copying. The rows concede the strongest standing
+// objections rather than dodging them.
+const rows = [
+  {
+    isnt: 'We won’t pretend revocation can reach into the past.',
+    is: 'Once someone has read a piece of data, they have it — decryption is copying, and no protocol can un-show something. Revoking a grant stops every future change from reaching them; it cannot repossess what they already saw. Anything that promised more would be DRM wearing a nicer coat, and the grip is deliberately not a weld.'
+  },
+  {
+    isnt: 'We won’t pretend a shared namespace makes people agree.',
+    is: 'Two apps sharing a Contact still have to agree on what a contact is, and that agreement is social, not technical — the Semantic Web spent a decade proving it. Lenses, overlays, and sidecars make disagreement cheap enough to live with; they don’t make coordination free. Anyone can mint a schema, which also means anyone can mint a duplicate.'
+  },
+  {
+    isnt: 'We won’t pretend a frozen interface maintains itself.',
+    is: 'LEGO froze one moulding geometry and iterates everything else; a protocol pays for that promise continuously. When we hardened one detail of our merge rule, the change rippled through every conformance kernel and golden vector we keep. Backwards compatibility is a standing engineering bill, not a patent you file once.'
+  },
+  {
+    isnt: 'We won’t pretend a general-purpose substrate is fast for free.',
+    is: 'A silo optimises for exactly one access pattern; a store that must answer any question about any shape pays a tax the silo never sees. Making the open substrate feel app-fast has taken months of unglamorous query and hydration work, and that ledger is still open.'
+  },
+  {
+    isnt: 'We won’t pretend nobody has to run anything.',
+    is: 'Moxie Marlinspike is right that people do not want to run their own servers. Your replica is primary and local, and peers can sync directly — but an always-reachable relay is what makes sharing feel instant, and someone hosts and pays for it. Ours is optional and replaceable; it is not imaginary.'
+  },
+  {
+    isnt: 'We won’t pretend permissions solve moderation or discovery.',
+    is: 'Access control decides who may read and write; it says nothing about what deserves an audience. Spaces give every community its own table and its own rules, which works at the scale of a table — network-scale discovery, spam, and abuse in a world with no central operator remain honestly unsolved, here and everywhere.'
+  }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Where the metaphor stops
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      Six things a universal coupling cannot do, conceded in plain sight —
+      because the essays that skip this section are the ones you were right
+      not to trust.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-sky-500">✓</span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

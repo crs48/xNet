@@ -2,8 +2,10 @@
  * Tasks section for the Right Panel — a flat, monochrome list of the
  * page's checklist items. The document keeps only the prose; what is
  * *about* the page lives here (0166). Clicking an item expands the same
- * inline editor used on the Tasks surface, so due dates and assignees
- * are editable without leaving the page.
+ * inline editor used on the Tasks surface. Doc-owned fields (title, due
+ * date, assignees) are locked for hosted tasks since the BlockNote
+ * migration retired the live-editor write-through (0312) — edit them in
+ * the document itself.
  */
 import {
   flattenTaskTree,
@@ -14,15 +16,9 @@ import {
 } from '@xnetjs/react'
 import { Calendar, CheckSquare2, Square, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { TaskInlineEditor, type TaskHostEditor, type TaskNode } from './TaskInlineEditor'
+import { TaskInlineEditor, type TaskNode } from './TaskInlineEditor'
 
-export function PageTasksSection({
-  pageId,
-  hostEditor
-}: {
-  pageId: string
-  hostEditor?: TaskHostEditor
-}) {
+export function PageTasksSection({ pageId }: { pageId: string }) {
   const { data: tasks, tree, loading } = useTasks({ pageId })
   const rows = useMemo(() => flattenTaskTree(tree), [tree])
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -53,7 +49,6 @@ export function PageTasksSection({
             {expandedTask && (
               <TaskInlineEditor
                 task={expandedTask}
-                {...(hostEditor ? { hostEditor } : {})}
                 onClose={() => setExpandedId(null)}
                 className="mt-1"
               />

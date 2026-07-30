@@ -1,6 +1,6 @@
-//! Portable Rust implementation of the XNet interop kernel.
+//! Portable Rust implementation of the xNet interop kernel.
 //!
-//! This is the byte-exact core of the XNet protocol (docs/specs/protocol/):
+//! This is the byte-exact core of the xNet protocol (docs/specs/protocol/):
 //! `did:key` identity, the canonical-JSON change hash, Ed25519 sign/verify,
 //! per-property LWW convergence, and the pure L2/L3 decision functions. It
 //! reproduces the conformance golden vectors in `conformance/vectors/` exactly,
@@ -255,18 +255,37 @@ pub fn verify_change(unsigned: &Value, signature: &[u8], public_key: &[u8]) -> b
 
 // ────────────────────────── L1 · LWW convergence ────────────────────────────
 
+/// Protocol version at which the grinding-resistant tiebreak key activates.
+///
+/// Mirrors `LWW_TIEBREAK_KEY_VERSION` in `packages/core/src/lww.ts`. Drift
+/// between the two is caught by
+/// `packages/sync/src/protocol-version-parity.test.ts` — update both together.
+const LWW_TIEBREAK_KEY_VERSION: i64 = 4;
+
+/// Grinding-resistant LWW final tiebreak key (exploration 0305 / spec §7.1):
+/// `blake3_hex( authorDID ‖ 0x1f ‖ propertyKey ‖ 0x1f ‖ canonicalJSON(value) )`.
+/// A deletion (`value` = `null`) canonicalises as `null`. Portable — mirrors
+/// `computeLwwTiebreakKey` in `@xnetjs/core`.
+fn lww_tiebreak_key(author: &str, property: &str, value: &Value) -> String {
+    let canonical = canonical_json(value);
+    let input = format!("{author}\u{1f}{property}\u{1f}{canonical}");
+    blake3::hash(input.as_bytes()).to_hex().to_string()
+}
+
 struct LwwTs {
     lamport: i64,
     wall_time: i64,
     author: String,
+    /// Present only for protocol v4+ writes (grinding-resistant tiebreak).
+    tiebreak_key: Option<String>,
 }
 
 impl LwwTs {
-    /// `self` wins over `other`: higher lamport, then wallTime, then authorDID.
-    /// The author tiebreak is by Unicode code point (`>`), matching the spec's
-    /// "lexicographic" (§7) and the golden vectors — a deterministic order. (The
-    /// TS runtime currently uses `localeCompare`, which is locale-dependent and
-    /// diverges for mixed-case DIDs; tracked as a follow-up fix.)
+    /// `self` wins over `other`: higher lamport, then wallTime, then — for v4+
+    /// changes carrying a key — the larger tiebreak key, else the authorDID.
+    /// All string comparisons are by Unicode code point (`>`), matching the
+    /// spec (§7) and the golden vectors — a deterministic order (never locale
+    /// collation).
     fn wins(&self, other: &LwwTs) -> bool {
         if self.lamport != other.lamport {
             return self.lamport > other.lamport;
@@ -274,43 +293,59 @@ impl LwwTs {
         if self.wall_time != other.wall_time {
             return self.wall_time > other.wall_time;
         }
+        if let (Some(a), Some(b)) = (&self.tiebreak_key, &other.tiebreak_key) {
+            if a != b {
+                return a > b;
+            }
+        }
         self.author > other.author
     }
 }
 
-/// Fold change contributions (each `{ authorDID, lamport, wallTime, properties }`)
-/// into converged `(properties, timestamps)`. Order-independent.
+/// Fold change contributions (each `{ authorDID, lamport, wallTime, properties,
+/// protocolVersion? }`) into converged `(properties, timestamps)`.
+/// Order-independent.
 pub fn lww_fold(changes: &[Value]) -> (Map<String, Value>, Map<String, Value>) {
     let mut properties: Map<String, Value> = Map::new();
     let mut tss: std::collections::HashMap<String, LwwTs> = std::collections::HashMap::new();
     for c in changes {
-        let ts = LwwTs {
-            lamport: c["lamport"].as_i64().unwrap_or(0),
-            wall_time: c["wallTime"].as_i64().unwrap_or(0),
-            author: c["authorDID"].as_str().unwrap_or("").to_string(),
-        };
+        let lamport = c["lamport"].as_i64().unwrap_or(0);
+        let wall_time = c["wallTime"].as_i64().unwrap_or(0);
+        let author = c["authorDID"].as_str().unwrap_or("").to_string();
+        let has_key = c["protocolVersion"].as_i64().unwrap_or(0) >= LWW_TIEBREAK_KEY_VERSION;
         if let Some(props) = c["properties"].as_object() {
             for (key, val) in props {
+                let ts = LwwTs {
+                    lamport,
+                    wall_time,
+                    author: author.clone(),
+                    tiebreak_key: if has_key {
+                        Some(lww_tiebreak_key(&author, key, val))
+                    } else {
+                        None
+                    },
+                };
                 let replace = match tss.get(key) {
                     None => true,
                     Some(cur) => ts.wins(cur),
                 };
                 if replace {
                     properties.insert(key.clone(), val.clone());
-                    tss.insert(
-                        key.clone(),
-                        LwwTs { lamport: ts.lamport, wall_time: ts.wall_time, author: ts.author.clone() },
-                    );
+                    tss.insert(key.clone(), ts);
                 }
             }
         }
     }
     let mut timestamps: Map<String, Value> = Map::new();
     for (key, ts) in &tss {
-        timestamps.insert(
-            key.clone(),
-            serde_json::json!({ "lamport": ts.lamport, "wallTime": ts.wall_time, "author": ts.author }),
-        );
+        let mut obj = serde_json::Map::new();
+        obj.insert("lamport".into(), serde_json::json!(ts.lamport));
+        obj.insert("wallTime".into(), serde_json::json!(ts.wall_time));
+        obj.insert("author".into(), serde_json::json!(ts.author));
+        if let Some(k) = &ts.tiebreak_key {
+            obj.insert("tiebreakKey".into(), serde_json::json!(k));
+        }
+        timestamps.insert(key.clone(), Value::Object(obj));
     }
     (properties, timestamps)
 }
@@ -350,4 +385,34 @@ pub fn eval_auth_expr(expr: &Value, roles: &HashSet<String>, is_authenticated: b
         Some("authenticated") => is_authenticated,
         _ => false,
     }
+}
+
+/// Expression lookup order for a checked action (docs/specs/protocol §L3.1,
+/// exploration 0304): `create` falls back to `write`; `update` and legacy
+/// `write` checks share the `update` ?? `write` lookup; every other action
+/// resolves only its own name. Mirrors `actionExpressionOrder` in the
+/// TypeScript reference (`@xnetjs/core`).
+pub fn action_expression_order(action: &str) -> Vec<&str> {
+    match action {
+        "create" => vec!["create", "write"],
+        "update" | "write" => vec!["update", "write"],
+        other => vec![other],
+    }
+}
+
+/// Evaluate a checked action against a schema's `actions` map with the 0304
+/// write fallback. A missing expression (after fallback) denies.
+pub fn eval_auth_action(
+    actions: &Value,
+    action: &str,
+    roles: &HashSet<String>,
+    is_authenticated: bool,
+) -> bool {
+    for candidate in action_expression_order(action) {
+        let expr = &actions[candidate];
+        if !expr.is_null() {
+            return eval_auth_expr(expr, roles, is_authenticated);
+        }
+    }
+    false
 }

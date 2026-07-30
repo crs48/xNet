@@ -13,8 +13,6 @@
 // Types
 export type {
   Disposable,
-  ViewType,
-  ViewConfig,
   SortConfig,
   FilterOperator,
   Filter,
@@ -23,9 +21,7 @@ export type {
   PropertyEditorProps,
   FilterInputProps,
   ColumnMeta,
-  CellPresence,
-  GalleryCardSize,
-  GalleryImageFit
+  CellPresence
 } from './types.js'
 
 // Property handlers
@@ -36,15 +32,12 @@ export {
   getRegisteredPropertyTypes
 } from './properties/index.js'
 
-// View Registry
+// View Registry (V2 contract — exploration 0339)
 export {
   ViewRegistry,
   viewRegistry,
   type ViewRegistration,
-  type ViewProps,
-  type ViewRow,
   type ViewConfigField,
-  type ViewConfigFieldType,
   type Platform as ViewPlatform
 } from './registry.js'
 
@@ -56,6 +49,54 @@ export { useViewRegistry, type UseViewRegistryResult } from './hooks/useViewRegi
 
 // View Renderer
 export { ViewRenderer, type ViewRendererProps } from './ViewRenderer.js'
+
+// V2 database views (exploration 0339): board / gallery / calendar /
+// timeline / list / map on the grid data model — ONE grouped area block.
+export {
+  BoardView,
+  CalendarView,
+  DatabaseMapView,
+  OPENFREEMAP_LIBERTY_STYLE,
+  configureDatabaseMapTiles,
+  GalleryView,
+  ListView,
+  TimelineView,
+  ViewOptionsBar,
+  EMPTY_VIEW_CONFIG,
+  UNGROUPED_KEY,
+  buildGroups,
+  dropCardSortKey,
+  moveCellValue,
+  orderRowsBySortKey,
+  parseDateCell,
+  parseDateRangeCell,
+  rowDateSpan,
+  toDateCell,
+  buildMonthGrid,
+  eventsInRange,
+  overflowByDay,
+  packWeekSegments,
+  timelineItems,
+  timelineRange,
+  rowsToGeoJSON,
+  defaultViewportFor,
+  MAX_MAP_PINS,
+  resolveCoverField,
+  resolveDateField,
+  resolveEndDateField,
+  resolveGeoFields,
+  resolveGroupField,
+  rowTitle,
+  type CardSize,
+  type CoverFit,
+  type DatabaseViewConfig,
+  type DatabaseViewProps,
+  type DatabaseViewRow,
+  type DatabaseViewWindow,
+  type TimelineZoom,
+  type ViewGroup,
+  type ViewOptionsBarProps
+} from './database-views/index.js'
 export {
   textHandler,
   numberHandler,
@@ -69,109 +110,6 @@ export {
   relationHandler
 } from './properties/index.js'
 
-// Table view
-export {
-  TableView,
-  TableHeader,
-  TableCell,
-  useTableState,
-  type TableViewProps,
-  type TableHeaderProps,
-  type TableCellProps,
-  type TableRow,
-  type ColumnUpdate,
-  type UseTableStateOptions,
-  type UseTableStateResult
-} from './table/index.js'
-
-// Board view
-export {
-  BoardView,
-  BoardColumn,
-  BoardCard,
-  useBoardState,
-  type BoardViewProps,
-  type BoardColumnProps,
-  type BoardCardProps,
-  type BoardRow,
-  type BoardColumnType,
-  type UseBoardStateOptions,
-  type UseBoardStateResult
-} from './board/index.js'
-
-// Gallery view
-export {
-  GalleryView,
-  GalleryCard,
-  useGalleryState,
-  CARD_SIZES,
-  type GalleryViewProps,
-  type GalleryCardProps,
-  type GalleryRow,
-  type UseGalleryStateOptions,
-  type UseGalleryStateResult
-} from './gallery/index.js'
-
-// Timeline view
-export {
-  TimelineView,
-  TimelineBar,
-  useTimelineState,
-  getDatePosition,
-  getDateWidth,
-  ZOOM_CONFIGS,
-  type TimelineViewProps,
-  type TimelineBarProps,
-  type TimelineRow,
-  type TimelineItem,
-  type TimelineRange,
-  type ZoomLevel,
-  type ZoomConfig,
-  type UseTimelineStateOptions as UseTimelineStateOptions,
-  type UseTimelineStateResult as UseTimelineStateResult
-} from './timeline/index.js'
-
-// Calendar view
-export {
-  CalendarView,
-  CalendarMonthView,
-  CalendarWeekView,
-  CalendarDayView,
-  useCalendarState,
-  isSameDay,
-  getWeekStart,
-  getMonthWeeks,
-  getDayNames,
-  formatCurrentDate,
-  getHours,
-  formatHour,
-  type CalendarViewProps,
-  type CalendarMonthViewProps,
-  type CalendarWeekViewProps,
-  type CalendarDayViewProps,
-  type CalendarRow,
-  type CalendarEvent,
-  type CalendarViewMode,
-  type WeekStartDay,
-  type UseCalendarStateOptions,
-  type UseCalendarStateResult
-} from './calendar/index.js'
-
-// List view
-export {
-  ListView,
-  ListItem,
-  useListState,
-  type ListViewProps,
-  type ListItemProps,
-  type ListRow,
-  type UseListStateOptions,
-  type UseListStateResult
-} from './list/index.js'
-
-// Card detail modal
-export { CardDetailModal, type CardDetailModalProps } from './card-detail/index.js'
-
 // Database comments
 export {
   useDatabaseComments,
@@ -183,7 +121,17 @@ export {
 } from './hooks/useDatabaseComments.js'
 
 // Shared components
-export { CommentIndicator, type CommentIndicatorProps } from './components/index.js'
+
+// Attachments (exploration 0385) — ONE grouped area block
+export {
+  AttachmentLightbox,
+  type AttachmentLightboxProps,
+  type AttachmentLightboxRequest,
+  AttachmentLightboxProvider,
+  type AttachmentLightboxProviderProps,
+  useAttachmentLightbox,
+  type OpenAttachmentLightbox
+} from './attachments/index.js'
 
 // Filter builder
 export { FilterBuilder, type FilterBuilderProps } from './filter/index.js'
@@ -299,3 +247,170 @@ export {
   type SchemaToFormOptions,
   type SchemaFormProps
 } from './form/index.js'
+
+// Form view (exploration 0278): database-as-form; submissions become rows
+export {
+  FormBuilder,
+  FormFillView,
+  FormView,
+  formFieldsToColumns,
+  EMPTY_FORM_CONFIG,
+  type FormBuilderProps,
+  type FormFillViewProps,
+  type FormViewProps
+} from './form-view/index.js'
+
+// Shared Data Workspace core (exploration 0276): the saved-view / graph-atlas
+// workspace surface both the web and desktop DataWorkspaceViews consume.
+export {
+  DataWorkspaceBody,
+  useDataWorkspace,
+  getDefaultSocialWorkspaceSeeds,
+  upsertDefaultSocialWorkspace,
+  type DataWorkspaceBodyProps,
+  type GraphAtlasRow,
+  type SavedViewCanvasFrameInput,
+  type SavedViewRow,
+  type SocialWorkspaceSeedSummary,
+  type UseDataWorkspaceOptions,
+  type UseDataWorkspaceResult,
+  type WorkspaceMetric
+} from './data-workspace/index.js'
+
+// Shared CanvasView core (exploration 0277 / 0230 Phase 5): canvas
+// capabilities both the web and desktop CanvasViews consume.
+export {
+  CANVAS_DASHBOARD_SCHEMA_REGISTRY,
+  CANVAS_SHORTCUT_HELP_ENTRIES,
+  CanvasAliasEditorPanel,
+  CanvasCommentComposerPanel,
+  CanvasPageStaticPreviewCard,
+  CanvasPinnedSourceRecordCard,
+  CanvasQueryFrameExecutors,
+  CanvasSavedViewQueryFrameExecutor,
+  CanvasSelectionHud,
+  CanvasShortcutHelpPanel,
+  CanvasSourceReferencesPanel,
+  CanvasWidgetNodeCard,
+  getCanvasQueryFrameTargets,
+  parseSavedViewDescriptorForCanvasFrame,
+  useCanvasQueryFrames,
+  isPeekableCanvasDisplayType,
+  shouldActivateDatabasePreviewSurface,
+  shouldActivateInlinePageSurface,
+  useCanvasCommands,
+  useCanvasSourceReferences,
+  useCanvasUndoLadder,
+  useSelectedSourceReferences,
+  type PeekableCanvasDisplayType,
+  type CanvasQueryFrameTarget,
+  type CanvasSelectionHudProps,
+  type CanvasSourceReference,
+  type CanvasSourceReferencesPanelProps,
+  type CanvasUndoDomain,
+  type SavedViewCanvasQueryFrameInput,
+  type UseCanvasQueryFramesOptions,
+  type UseCanvasQueryFramesResult,
+  type UseCanvasUndoLadderOptions,
+  type UseCanvasUndoLadderResult,
+  createCanvasShellNoteProperties,
+  getCanvasShellDisplayType,
+  getCanvasShellNotePlacement,
+  getCanvasShellPreviewModel,
+  getCanvasShellSourceId,
+  getCanvasShellSourceType,
+  getCanvasViewDisplayType,
+  getLinkedDocumentPlacement,
+  getShapeLabel,
+  isCanvasShellNote,
+  isPinnedSourceRecordCard,
+  readStringList,
+  schemaIdLabel,
+  shouldRenderCanvasShellCard,
+  stopCanvasCardAction,
+  useCanvasViewController,
+  type CanvasNodeCardActions,
+  type CanvasPageStaticPreviewCardProps,
+  type CanvasPinnedSourceRecordCardProps,
+  type CanvasResolvedObject,
+  type CanvasSelectionPanel,
+  type CanvasSelectionPanelCardProps,
+  type CanvasShellPreviewModel,
+  type CanvasShortcutHelpPanelProps,
+  type CanvasViewDisplayType,
+  type CanvasViewportSnapshot,
+  type CanvasWidgetNodeCardProps,
+  type LinkedDocType,
+  type LinkedDocumentItem,
+  type UseCanvasViewControllerOptions,
+  type UseCanvasViewControllerResult
+} from './canvas-view/index.js'
+
+// Shared meeting recorder core (exploration 0279): the botless meeting
+// capture/list/detail/settings surfaces both the web and desktop apps consume.
+export {
+  IpcDictationEngine,
+  MEETINGS_CONSENT_STORAGE_KEY,
+  MEETINGS_STORAGE_KEYS,
+  MeetingDetailView,
+  MeetingEngineSettings,
+  MeetingRecorderView,
+  MeetingsListView,
+  MeetingTranscriptChat,
+  appendAiNotesToDoc,
+  appendMarkdownToDoc,
+  buildMeetingEngineRegistry,
+  describeCapturePreflight,
+  extractDocText,
+  getCapturePreflight,
+  getMeetingsBridge,
+  readMeetingConsentSettings,
+  readMeetingEnginePrefs,
+  startMicCapture,
+  startSystemCapture,
+  writeMeetingConsentSettings,
+  writeMeetingEnginePref,
+  type CapturePreflight,
+  type MeetingDetailViewProps,
+  type MeetingRecorderViewProps,
+  type MeetingsBridge,
+  type MeetingsBridgeEngine,
+  type MeetingsCaptureStatus,
+  type MeetingsListViewProps,
+  type MeetingsPermissions,
+  type MeetingTranscriptChatProps
+} from './meeting-recorder/index.js'
+
+// Frames — the compositional unit (0346): FrameDef contract, renderer +
+// source registry, container adapters, dashboard frame widget.
+export {
+  FRAME_MAX_DEPTH,
+  FRAME_WIDGET_TYPE,
+  FrameHostProvider,
+  FrameRenderer,
+  FrameSourceRegistry,
+  SealedFrame,
+  createFrameWidgetDefinition,
+  frameFromCanvasNode,
+  frameFromDatabaseEmbed,
+  frameFromPageEmbed,
+  frameSetSignature,
+  frameSourceRegistry,
+  orderForStack,
+  parseCollectionIds,
+  registerFrameWidget,
+  toggleGeometry,
+  useFrameAncestry,
+  useFrameDepth,
+  useFrameHost,
+  withLayoutDefaults,
+  type FrameDef,
+  type FrameHost,
+  type FrameRendererProps,
+  type FrameSource,
+  type FrameSourceRenderer,
+  type FrameTier,
+  type FrameWidgetConfig,
+  type NodeFrameProps,
+  type PageGeometry
+} from './frames/index.js'

@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/plugins",
-  "version": "0.1.0",
+  "version": "3.0.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -11,12 +11,12 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./node": {
-      "import": "./dist/services/node.js",
-      "types": "./dist/services/node.d.ts"
+      "types": "./dist/services/node.d.ts",
+      "import": "./dist/services/node.js"
     }
   },
   "files": [
@@ -41,14 +41,13 @@
     "@xnetjs/trust": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/slack-compat": "workspace:*",
-    "acorn": "^8.15.0"
+    "acorn": "^8.15.0",
+    "yjs": "^13.6.24"
   },
   "peerDependencies": {
-    "@tiptap/core": "^2.0.0",
     "react": "^18.0.0"
   },
   "devDependencies": {
-    "@tiptap/core": "^2.0.0",
     "@types/react": "^18.2.0",
     "@xnetjs/licenses": "workspace:*",
     "jsdom": "^26.0.0",

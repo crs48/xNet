@@ -1,0 +1,17 @@
+{
+  "description": "a create check on a schema declaring only write uses the write expression",
+  "input": {
+    "actions": {
+      "write": {
+        "_tag": "allow",
+        "roles": ["editor"]
+      }
+    },
+    "action": "create",
+    "roles": ["editor"],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": true
+  }
+}

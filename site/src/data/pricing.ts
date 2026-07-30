@@ -13,7 +13,7 @@
  */
 
 /** Origin of the xNet Cloud control plane (auth callback, checkout, dashboard). */
-export const CLOUD_ORIGIN = 'https://cloud.xnet.fyi'
+const CLOUD_ORIGIN = 'https://cloud.xnet.fyi'
 
 /** Deep-link into the WorkOS AuthKit sign-in, carrying the chosen plan. */
 export function startUrl(plan: string): string {
@@ -174,6 +174,10 @@ export const FAQS: CloudFaq[] = [
   {
     q: 'What happens if I cancel?',
     a: 'Your subscription cancels at the end of the period and the hub is suspended, with your encrypted backup retained for a grace window so you can re-subscribe or export. Deleting your data is a separate, explicit, irreversible action.'
+  },
+  {
+    q: 'Where does the margin come from?',
+    a: 'From operations and support — running your hub, backups, isolation, SLAs, and admin — never from access to your own data. Export everything for free, pay no egress fees, and self-host the same open-source hub whenever you like. Our Charter calls this the "no ground rent" rule and links every one of those promises to the code that backs it.'
   },
   {
     q: 'Do I pay for AI usage?',

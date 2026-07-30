@@ -1,7 +1,7 @@
 /**
  * @xnetjs/hub — Slack compatibility feature (exploration 0198, Tiers 0 + 1).
  *
- * Lets integrations written against Slack reach an XNet workspace unchanged:
+ * Lets integrations written against Slack reach an xNet workspace unchanged:
  *
  *   - **Tier 0 — Incoming Webhooks.** `POST /slack/services/hooks/:token`
  *     accepts a Slack incoming-webhook payload (`text`/`blocks`/`attachments`),

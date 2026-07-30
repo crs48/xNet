@@ -6,7 +6,8 @@ import type {
   RoleKey,
   SchemaAction
 } from './auth-types'
-import { describe, expectTypeOf, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
+import { actionExpressionOrder, grantActionSatisfies } from './auth-types'
 
 type TaskAuth = AuthorizationDefinition<
   {
@@ -40,5 +41,48 @@ describe('auth type utilities', () => {
 
   it('infers schema action union from schema authorization', () => {
     expectTypeOf<SchemaAction<TaskSchema>>().toEqualTypeOf<'read' | 'write' | 'share'>()
+  })
+})
+
+describe('actionExpressionOrder (0304 write fallback)', () => {
+  it('create falls back to write', () => {
+    expect(actionExpressionOrder('create')).toEqual(['create', 'write'])
+  })
+
+  it('update and legacy write checks share the same lookup', () => {
+    expect(actionExpressionOrder('update')).toEqual(['update', 'write'])
+    expect(actionExpressionOrder('write')).toEqual(['update', 'write'])
+  })
+
+  it('other actions have no fallback', () => {
+    expect(actionExpressionOrder('read')).toEqual(['read'])
+    expect(actionExpressionOrder('delete')).toEqual(['delete'])
+    expect(actionExpressionOrder('share')).toEqual(['share'])
+    expect(actionExpressionOrder('admin')).toEqual(['admin'])
+  })
+})
+
+describe('grantActionSatisfies (0304 write ⊇ create/update)', () => {
+  it('a write grant covers create and update', () => {
+    expect(grantActionSatisfies('write', 'create')).toBe(true)
+    expect(grantActionSatisfies('write', 'update')).toBe(true)
+    expect(grantActionSatisfies('write', 'write')).toBe(true)
+  })
+
+  it('an update grant covers legacy write checks on existing nodes', () => {
+    expect(grantActionSatisfies('update', 'write')).toBe(true)
+    expect(grantActionSatisfies('update', 'create')).toBe(false)
+  })
+
+  it('a create grant covers only create (fail closed)', () => {
+    expect(grantActionSatisfies('create', 'create')).toBe(true)
+    expect(grantActionSatisfies('create', 'write')).toBe(false)
+    expect(grantActionSatisfies('create', 'update')).toBe(false)
+  })
+
+  it('unrelated actions never cross-satisfy', () => {
+    expect(grantActionSatisfies('read', 'write')).toBe(false)
+    expect(grantActionSatisfies('admin', 'write')).toBe(false)
+    expect(grantActionSatisfies('write', 'delete')).toBe(false)
   })
 })

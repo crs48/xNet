@@ -1,26 +1,57 @@
 /**
  * Document editor component
  *
- * Uses the shared @xnetjs/editor package for rich text editing.
- * Supports comment extensions for inline commenting.
+ * Uses the shared @xnetjs/editor package (BlockNote-based XNetEditor,
+ * exploration 0312) for rich text editing.
  */
-import type { JSX } from 'react'
 import type * as Y from 'yjs'
 import { normalizeTagName } from '@xnetjs/data'
 import {
-  RichTextEditor,
+  XNetEditor,
   useImageUpload,
   useFileUpload,
   useFileDownload,
-  type Editor as TipTapEditor,
   type HashtagSuggestion,
   type PageTaskSnapshot,
   type TaskMentionSuggestion,
   type TaskViewConfig,
   type TaskViewEmbedType,
-  type WikilinkTarget
+  type WikilinkTarget,
+  type XNetEditorCommentsHost,
+  type XNetEditorInstance
 } from '@xnetjs/editor/react'
-import { TaskCollectionEmbed } from '@xnetjs/react'
+import { TaskCollectionEmbed, useNodeStore } from '@xnetjs/react'
+import { useCallback, type JSX } from 'react'
+import { useLinkPreviewResolver } from '../hooks/useLinkPreviewResolver'
+import { DatabaseEmbed } from './DatabaseEmbed'
+import { useDatabaseViewPicker } from './DatabaseViewPicker'
+import { PageEmbedPreview } from './PageEmbedPreview'
+
+type TaskEmbedFilters = Parameters<typeof TaskCollectionEmbed>[0]
+
+/**
+ * Map the BlockNote task-view embed config (0312 vocabulary) onto the
+ * filters TaskCollectionEmbed expects (the pre-0312 vocabulary). Defaults
+ * match the old task-view extension: open tasks, hierarchy on.
+ */
+function toTaskEmbedFilters(
+  viewConfig: TaskViewConfig
+): Pick<TaskEmbedFilters, 'scope' | 'assignee' | 'dueDate' | 'status' | 'showHierarchy'> {
+  const dueMap = {
+    overdue: 'overdue',
+    today: 'today',
+    week: 'next-7-days',
+    all: 'any'
+  } as const
+  const statusMap = { open: 'open', completed: 'done', all: 'all' } as const
+  return {
+    scope: viewConfig.scope === 'page' ? 'current-page' : 'all',
+    assignee: viewConfig.scope === 'assigned' ? 'me' : 'any',
+    dueDate: viewConfig.dueDate ? dueMap[viewConfig.dueDate] : 'any',
+    status: viewConfig.status ? statusMap[viewConfig.status] : 'open',
+    showHierarchy: viewConfig.showHierarchy ?? true
+  }
+}
 
 interface Props {
   doc: Y.Doc
@@ -28,11 +59,8 @@ interface Props {
   awareness?: any
   did?: string
   onNavigate?: (docId: string) => void
-  /** Custom extensions (e.g., comment extensions) */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extensions?: any[]
   /** Callback when editor is ready */
-  onEditorReady?: (editor: TipTapEditor) => void
+  onEditorReady?: (editor: XNetEditorInstance) => void
   /** People that can be inserted as mentions */
   mentionSuggestions?: TaskMentionSuggestion[]
   /** Workspace tags offered by the inline '#' picker (0169) */
@@ -49,8 +77,8 @@ interface Props {
   onPageTasksChange?: (tasks: PageTaskSnapshot[]) => void
   /** Current page ID for embedded task views */
   pageId?: string | null
-  /** Callback for creating a comment */
-  onCreateComment?: (anchorData: string) => Promise<string | null>
+  /** Inline comments host (0321): 0276 CRUD + live threads + resolveUsers */
+  comments?: XNetEditorCommentsHost
   /** Additional class for the editor container */
   className?: string
   /** Backspace in an empty first block (e.g. return focus to the title) */
@@ -62,7 +90,6 @@ export function Editor({
   awareness,
   did,
   onNavigate,
-  extensions,
   onEditorReady,
   mentionSuggestions,
   hashtagSuggestions,
@@ -72,63 +99,84 @@ export function Editor({
   onTagsChange,
   onPageTasksChange,
   pageId,
-  onCreateComment,
+  comments,
   className,
   onBackspaceAtStart
 }: Props): JSX.Element {
   const onImageUpload = useImageUpload()
   const onFileUpload = useFileUpload()
   const onFileDownload = useFileDownload()
+  const resolveLinkPreview = useLinkPreviewResolver()
+
+  // 0346 Phase 1: live embeds. Database views render through the
+  // ViewRegistry; page embeds render a summary-tier transclusion; the
+  // `/view of…` slash command opens the registry-enumerated picker.
+  const { pick: pickDatabaseView, dialog: databaseViewPickerDialog } = useDatabaseViewPicker()
+  const { store } = useNodeStore()
+  const resolveDatabaseMeta = useCallback(
+    async (databaseId: string): Promise<{ title: string; icon?: string } | null> => {
+      const node = await store?.get(databaseId)
+      if (!node) return null
+      return { title: (node.properties.title as string) || 'Untitled Database' }
+    },
+    [store]
+  )
 
   return (
-    <RichTextEditor
-      ydoc={doc}
-      field="content"
-      placeholder="Start writing..."
-      className={className}
-      onBackspaceAtStart={onBackspaceAtStart}
-      awareness={awareness}
-      did={did}
-      showToolbar={true}
-      // Auto-detect (exploration 0196): the editor-ux-state machine picks
-      // the floating bubble menu on pointer/desktop and the keyboard-aware
-      // fixed bottom toolbar on touch/narrow widths. Previously hardcoded
-      // to "desktop", which disabled the entire mobile toolbar path.
-      toolbarMode="auto"
-      onNavigate={onNavigate}
-      onImageUpload={onImageUpload ?? undefined}
-      onFileUpload={onFileUpload ?? undefined}
-      onFileDownload={onFileDownload ?? undefined}
-      extensions={extensions}
-      onEditorReady={onEditorReady}
-      mentionSuggestions={mentionSuggestions}
-      hashtagSuggestions={hashtagSuggestions}
-      onCreateHashtag={onCreateHashtag}
-      normalizeHashtagName={normalizeTagName}
-      linkTargets={linkTargets}
-      onCreateLinkTarget={onCreateLinkTarget}
-      onTagsChange={onTagsChange}
-      onPageTasksChange={onPageTasksChange}
-      taskViewPageId={pageId ?? null}
-      renderTaskView={({
-        viewConfig,
-        currentPageId
-      }: {
-        viewType: TaskViewEmbedType
-        viewConfig: TaskViewConfig
-        currentPageId: string | null
-      }) => (
-        <TaskCollectionEmbed
-          currentPageId={currentPageId}
-          currentDid={did ?? null}
-          scope={viewConfig.scope}
-          assignee={viewConfig.assignee}
-          dueDate={viewConfig.dueDate}
-          status={viewConfig.status}
-          showHierarchy={viewConfig.showHierarchy}
-        />
-      )}
-      onCreateComment={onCreateComment}
-    />
+    <>
+      {databaseViewPickerDialog}
+      <XNetEditor
+        ydoc={doc}
+        placeholder="Start writing..."
+        className={className}
+        onBackspaceAtStart={onBackspaceAtStart}
+        awareness={awareness}
+        did={did}
+        onNavigate={onNavigate}
+        onImageUpload={onImageUpload ?? undefined}
+        onFileUpload={onFileUpload ?? undefined}
+        onFileDownload={onFileDownload ?? undefined}
+        resolveLinkPreview={resolveLinkPreview}
+        onEditorReady={onEditorReady}
+        mentionSuggestions={mentionSuggestions}
+        hashtagSuggestions={hashtagSuggestions}
+        onCreateHashtag={onCreateHashtag}
+        normalizeHashtagName={normalizeTagName}
+        linkTargets={linkTargets}
+        onCreateLinkTarget={onCreateLinkTarget}
+        onTagsChange={onTagsChange}
+        onPageTasksChange={onPageTasksChange}
+        comments={comments}
+        taskViewPageId={pageId ?? null}
+        renderTaskView={({
+          viewConfig,
+          currentPageId
+        }: {
+          viewType: TaskViewEmbedType
+          viewConfig: TaskViewConfig
+          currentPageId: string | null
+        }) => (
+          <TaskCollectionEmbed
+            currentPageId={currentPageId}
+            currentDid={did ?? null}
+            {...toTaskEmbedFilters(viewConfig)}
+          />
+        )}
+        renderDatabaseView={({ databaseId, viewType, viewConfig, onChangeViewType }) => (
+          <DatabaseEmbed
+            databaseId={databaseId}
+            viewType={viewType}
+            viewConfig={viewConfig}
+            onNavigate={onNavigate}
+            onChangeViewType={onChangeViewType}
+          />
+        )}
+        renderPageEmbed={({ nodeId, title }) => (
+          <PageEmbedPreview nodeId={nodeId} title={title} onNavigate={onNavigate} />
+        )}
+        onSelectDatabaseView={pickDatabaseView}
+        resolveDatabaseMeta={resolveDatabaseMeta}
+      />
+    </>
   )
 }

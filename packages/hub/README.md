@@ -125,6 +125,32 @@ Options:
   --storage <type>      Storage backend: sqlite | memory (default: sqlite)
 ```
 
+## Durability (Litestream → S3, opt-in)
+
+Self-hosters can get the same continuous SQLite backup the managed cloud uses
+(exploration 0288) by running the hub image with Litestream enabled and pointing
+it at **any S3-compatible object store** (Cloudflare R2, AWS S3, MinIO, …). The
+hub's entrypoint restores `hub.db` from the replica on boot, then supervises
+replication (~1s RPO) for the life of the process.
+
+```bash
+# Bring-your-own S3 bucket. Credentials are read from the environment; the
+# rendered Litestream config never embeds them.
+docker run \
+  -e LITESTREAM=1 \
+  -e LITESTREAM_PATH="hubs/my-hub/db" \
+  -e R2_ENDPOINT="https://s3.us-east-1.amazonaws.com" \
+  -e R2_BUCKET="my-xnet-backups" \
+  -e R2_ACCESS_KEY_ID=… -e R2_SECRET_ACCESS_KEY=… \
+  -e LITESTREAM_REGION="us-east-1" \        # default "auto" (R2)
+  -e LITESTREAM_FORCE_PATH_STYLE="false" \  # default "true" (R2); AWS wants false
+  xnet-hub
+```
+
+You can also mount your own `/etc/litestream.yml` — a baked/mounted config always
+wins over the env-generated one. Backup freshness is published on `GET /health`
+(`backup.lastSyncMs` / `backup.fresh`), scraped from Litestream's loopback metrics.
+
 ## Modules
 
 | Module                   | Description                 |
@@ -169,3 +195,24 @@ Options:
 ```bash
 pnpm --filter @xnetjs/hub test
 ```
+
+> Note: run tests through the **root** vitest config (`pnpm vitest run
+> packages/hub/test/<file>`) — the per-package filter breaks project
+> resolution.
+
+## Shipping a hub change (the PR tax)
+
+`@xnetjs/hub` is `private: true`, so hub-only changes take **no changeset**
+(confirm with `node scripts/changeset/publishable-pathspec.mjs`). Two things
+ARE required (exploration 0383 W0):
+
+1. **A changelog fragment** whenever behaviour is user-visible:
+   `node scripts/changelog/new.mjs --title "…" --summary "…" --tags platform,sync`
+   (valid tags are `KNOWN_TAGS` in that script). Pure refactors/CI can use the
+   `skip-changelog` PR label instead.
+2. **Expect one `electron-e2e` rerun.** The `xnet://` deep-link case
+   (`electron-smoke.spec.ts:161`) times out flakily and the lane runs
+   `--fail-on-flaky-tests`, so a single timeout reds the PR on identical code.
+   Before debugging, check `git log --oneline HEAD..origin/main` — if your
+   delta is docs-only or unrelated, it is the flake:
+   `gh run rerun <run-id> --failed`.

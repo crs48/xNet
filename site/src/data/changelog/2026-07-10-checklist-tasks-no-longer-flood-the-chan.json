@@ -1,0 +1,19 @@
+{
+  "id": "2026-07-10-checklist-tasks-no-longer-flood-the-chan",
+  "date": "July 10, 2026",
+  "title": "Checklist tasks no longer flood the Changes tab with conflicts",
+  "summary": "Checking off or deleting page checklist items no longer spams the DevTools Changes tab with false conflicts, and a mid-delete snapshot can no longer rename a task to 'Untitled task'. Replayed sync changes now apply idempotently, and true cross-author conflicts are distinguished from routine last-write-wins housekeeping.",
+  "highlights": [],
+  "tags": [
+    "tasks",
+    "devtools",
+    "sync"
+  ],
+  "pr": 458,
+  "mergedAt": "2026-07-10T22:01:39Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

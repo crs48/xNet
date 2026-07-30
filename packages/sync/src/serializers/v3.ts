@@ -44,8 +44,8 @@ import {
  * V3 wire format with multi-level signature support.
  */
 export interface V3WireFormat {
-  /** Protocol version (always 3) */
-  v: 3
+  /** Protocol version (3, or 4 which shares this exact wire format) */
+  v: number
 
   /** Change ID */
   i: string
@@ -132,8 +132,8 @@ function legacyToUnifiedSignature(sig: Uint8Array): UnifiedSignature {
  * - No backward compatibility with V2 (clean break for prerelease)
  */
 export class V3Serializer implements ChangeSerializer {
-  readonly version = 3
-  readonly name = 'V3 Multi-Level Crypto Serializer'
+  readonly version: number = 3
+  readonly name: string = 'V3 Multi-Level Crypto Serializer'
 
   serialize<T>(change: Change<T>): SerializedChange {
     // Get signature - could be UnifiedSignature (new) or Uint8Array (legacy)
@@ -149,7 +149,7 @@ export class V3Serializer implements ChangeSerializer {
     }
 
     const wire: V3WireFormat = {
-      v: 3,
+      v: this.version,
       i: change.id,
       t: change.type,
       p: change.payload,
@@ -182,11 +182,11 @@ export class V3Serializer implements ChangeSerializer {
         wire = data as unknown as V3WireFormat
       }
 
-      // Validate version marker
-      if (wire.v !== 3) {
+      // Validate version marker (v4 shares this exact wire format)
+      if (wire.v !== this.version) {
         return {
           success: false,
-          error: `Expected v3 format, got v${wire.v}. Clear your database and start fresh.`,
+          error: `Expected v${this.version} format, got v${wire.v}. Clear your database and start fresh.`,
           rawData: data
         }
       }
@@ -223,7 +223,7 @@ export class V3Serializer implements ChangeSerializer {
 
       // Reconstruct change with full field names
       const change: Change<T> = {
-        protocolVersion: 3,
+        protocolVersion: this.version,
         id: wire.i,
         type: wire.t,
         payload: wire.p as T,
@@ -259,9 +259,9 @@ export class V3Serializer implements ChangeSerializer {
 
     const obj = data as Record<string, unknown>
 
-    // V3 format: has v=3 marker and sig object
+    // v-marker must match this serializer's version (v4 shares the wire format)
     return (
-      obj.v === 3 &&
+      obj.v === this.version &&
       typeof obj.i === 'string' &&
       typeof obj.t === 'string' &&
       typeof obj.sig === 'object' &&

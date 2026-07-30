@@ -12,6 +12,8 @@ import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { SchemaRegistry } from '../schema/registry'
+import { ChannelSchema } from '../schema/schemas/channel'
+import { ChatMessageSchema } from '../schema/schemas/chat-message'
 import { MilestoneSchema } from '../schema/schemas/milestone'
 import { ProjectSchema } from '../schema/schemas/project'
 import { SpaceSchema, SPACE_SCHEMA_IRI } from '../schema/schemas/space'
@@ -48,6 +50,8 @@ function registry(): SchemaRegistry {
   r.register(ProjectSchema)
   r.register(TaskSchema)
   r.register(MilestoneSchema)
+  r.register(ChannelSchema)
+  r.register(ChatMessageSchema)
   return r
 }
 
@@ -197,5 +201,137 @@ describe('Space authorization cascade', () => {
     })
     expect(await can(owner.did, 'write', privateTask.id)).toBe(true)
     expect(await can(bobTeamMember.did, 'read', privateTask.id)).toBe(false)
+  })
+
+  // ─── Author-owned content: contributor cascade (exploration 0304) ───────────
+
+  describe('contributor cascade for author-owned content (0304)', () => {
+    let engChannel: string
+
+    beforeEach(async () => {
+      const channel = await store.create({
+        schemaId: ChannelSchema.schema['@id'],
+        properties: { name: 'general', kind: 'channel', space: eng }
+      })
+      engChannel = channel.id
+    })
+
+    function draftMessage(author: DID) {
+      return {
+        schemaId: ChatMessageSchema.schema['@id'],
+        createdBy: author,
+        properties: { channel: engChannel, content: 'hello' }
+      }
+    }
+
+    it('members may post; only the author or a space admin may edit a message', async () => {
+      // The message is authored by the governance identity acting as a
+      // regular participant; bob is a fellow Eng member.
+      const message = await store.create({
+        schemaId: ChatMessageSchema.schema['@id'],
+        properties: { channel: engChannel, content: 'from the author' }
+      })
+
+      // Fellow member bob may read but NOT edit someone else's message —
+      // under the plain cascade his spaceMember rung would have allowed it.
+      expect(await can(bobTeamMember.did, 'read', message.id)).toBe(true)
+      expect(
+        (await evaluator.can({ subject: bobTeamMember.did, action: 'update', nodeId: message.id }))
+          .allowed
+      ).toBe(false)
+      // Legacy write checks follow the update rule.
+      expect(await can(bobTeamMember.did, 'write', message.id)).toBe(false)
+
+      // The author edits their own message; an org admin moderates.
+      expect(
+        (await evaluator.can({ subject: owner.did, action: 'update', nodeId: message.id })).allowed
+      ).toBe(true)
+      expect(
+        (await evaluator.can({ subject: aliceOrgAdmin.did, action: 'update', nodeId: message.id }))
+          .allowed
+      ).toBe(true)
+    })
+
+    it('gates message creation on channel-space membership (draft-node check)', async () => {
+      const checkCreate = async (author: DID) =>
+        (
+          await evaluator.can({
+            subject: author,
+            action: 'create',
+            nodeId: 'draft-message',
+            node: draftMessage(author)
+          })
+        ).allowed
+
+      // Member and org admin may post into the Eng channel.
+      expect(await checkCreate(bobTeamMember.did)).toBe(true)
+      expect(await checkCreate(aliceOrgAdmin.did)).toBe(true)
+      // A viewer may not post, nor may a stranger.
+      expect(await checkCreate(carolTeamViewer.did)).toBe(false)
+      expect(await checkCreate(stranger.did)).toBe(false)
+      // Sharp edge, by design: creating the Space does not make one a member —
+      // the governance identity must hold a membership edge to post.
+      expect(await checkCreate(owner.did)).toBe(false)
+    })
+
+    it("admits a member's remote message create and rejects a stranger's (0304 regression)", async () => {
+      // A receiving store with the evaluator wired into sync: before 0304 every
+      // remote create was checked as `write` on a node that does not exist yet,
+      // so collaborator creates were silently dropped.
+      const receiver = createIdentity()
+      const receiverAdapter = new MemoryNodeStorageAdapter()
+      const reader = new NodeStore({
+        storage: receiverAdapter,
+        authorDID: receiver.did,
+        signingKey: receiver.privateKey
+      })
+      await reader.initialize()
+      const receiverEvaluator = new DefaultPolicyEvaluator({
+        store: reader,
+        schemaRegistry: registry()
+      })
+      const rejected: string[] = []
+      const receiverStore = new NodeStore({
+        storage: receiverAdapter,
+        authorDID: receiver.did,
+        signingKey: receiver.privateKey,
+        authEvaluator: receiverEvaluator,
+        onUnauthorizedRemoteChange: ({ change }) => {
+          rejected.push(change.payload.nodeId)
+        }
+      })
+      await receiverStore.initialize()
+
+      // Replay the shared workspace (spaces, memberships, channel, …).
+      await receiverStore.applyRemoteChanges(await store.getAllChanges())
+      expect(await reader.get(engChannel)).not.toBeNull()
+
+      // Bob (Eng member) authors a message in his own store…
+      const bobStore = await createStore(bobTeamMember)
+      await bobStore.applyRemoteChanges(await store.getAllChanges())
+      const bobMessage = await bobStore.create({
+        schemaId: ChatMessageSchema.schema['@id'],
+        properties: { channel: engChannel, content: 'hi from bob' }
+      })
+      const [bobCreate] = await bobStore.getChanges(bobMessage.id)
+
+      // …and the receiver admits it via the channel-space membership.
+      await receiverStore.applyRemoteChange(bobCreate)
+      expect(await reader.get(bobMessage.id)).not.toBeNull()
+      expect(rejected).toEqual([])
+
+      // A stranger's message into the same channel is rejected.
+      const strangerStore = await createStore(stranger)
+      await strangerStore.applyRemoteChanges(await store.getAllChanges())
+      const strangerMessage = await strangerStore.create({
+        schemaId: ChatMessageSchema.schema['@id'],
+        properties: { channel: engChannel, content: 'let me in' }
+      })
+      const [strangerCreate] = await strangerStore.getChanges(strangerMessage.id)
+
+      await receiverStore.applyRemoteChange(strangerCreate)
+      expect(await reader.get(strangerMessage.id)).toBeNull()
+      expect(rejected).toEqual([strangerMessage.id])
+    })
   })
 })

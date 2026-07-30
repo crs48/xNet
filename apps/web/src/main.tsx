@@ -10,16 +10,26 @@ import {
   type FrameStats
 } from '@xnetjs/canvas'
 import { CanvasSchema } from '@xnetjs/data'
+import { configureDatabaseMapTiles } from '@xnetjs/views'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { App } from './App'
 import { initAnalytics } from './lib/analytics'
+
+// Database Map view tiles (exploration 0339): OpenFreeMap by default;
+// self-hosted deployments serve one PMTiles archive from their own
+// origin instead (offline-capable, one CSP host).
+const selfHostedPmtiles = import.meta.env.VITE_MAP_PMTILES_URL as string | undefined
+if (selfHostedPmtiles) configureDatabaseMapTiles({ pmtilesUrl: selfHostedPmtiles })
 import { installBootDiagnostics, installBootFallback } from './lib/boot-diagnostics'
 import { initErrorReporter } from './lib/error-reporter'
+import { parsePublicFormLocation } from './lib/form-links'
 import { preconnectHub } from './lib/preconnect-hub'
 import { installNativeChrome } from './native/chrome'
+import { PublicFormPage } from './PublicFormPage'
+import { InspectOverlay } from './workbench/inspect/InspectOverlay'
 
 type WebCanvasNodeRecord = {
   id: string
@@ -432,8 +442,18 @@ preconnectHub()
 // SPA is hosted in a mobile webview. No-op on the plain web build (0238).
 installNativeChrome()
 
+// Public form pages (exploration 0278) are session-less: a respondent needs
+// no identity, storage, or sync — bypass the whole app boot and render the
+// standalone page against the issuing hub.
+const publicForm = parsePublicFormLocation(window.location)
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    {publicForm ? <PublicFormPage token={publicForm.token} hub={publicForm.hub} /> : <App />}
+    {/* Hold ⌥ to see which layer owns a pixel (0399). Mounted at the ROOT, not
+        inside the workbench: onboarding, loading and unlock screens are part of
+        the UI a user would point at, and they render before any shell exists.
+        Dev builds only — the source stamp it reads is never in production. */}
+    {import.meta.env.DEV && <InspectOverlay />}
   </React.StrictMode>
 )

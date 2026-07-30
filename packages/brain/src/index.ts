@@ -1,7 +1,7 @@
 /**
  * @xnetjs/brain — the AI second-brain layer (exploration 0211).
  *
- * Connects three things XNet already had but never wired together:
+ * Connects three things xNet already had but never wired together:
  *   - the governed node graph (`@xnetjs/data`),
  *   - full-text / keyword search, and
  *   - the dormant vector engine (`@xnetjs/vectors`),

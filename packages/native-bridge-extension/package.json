@@ -1,0 +1,16 @@
+{
+  "name": "@xnetjs/native-bridge-extension",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Spike (exploration 0289, Option C): a browser-extension + native-messaging bridge that lets the pure-web PWA reach a local model with no loopback port, no CORS, and no DNS-rebinding surface.",
+  "scripts": {
+    "gen": "node scripts/gen-extension-key.mjs",
+    "install-host": "node scripts/install-host.mjs",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@xnetjs/devkit": "workspace:*",
+    "vitest": "^4.0.0"
+  }
+}

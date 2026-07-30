@@ -1,0 +1,52 @@
+---
+/**
+ * "History" link on a blog post, pointing at the GitHub commit history for that
+ * post's own source file (exploration 0364).
+ *
+ * The point is disclosure, not a version picker: essays do get revised after
+ * publication, and a page that shows only its publication date quietly implies
+ * it never was. This makes the record one click away and leaves the checking to
+ * the reader — which is also the only claim we can make honestly, since the link
+ * says "here is the history", not "here is what changed".
+ *
+ * Rendered from `Byline` (full variant only), so it lands on every post page —
+ * including future ones — without touching 18 files.
+ *
+ * Colour restates the byline's own `text-gray-500 dark:text-gray-400` rather
+ * than inheriting it — a global anchor rule wins over inheritance here and
+ * would otherwise leave the link at gray-400 on white (~2.6:1, under WCAG AA).
+ * Keep the pair in this order: reversing it dims the link into the background
+ * in dark mode.
+ */
+import { postHistoryUrl, type BlogPost } from '../../data/blog'
+
+interface Props {
+  post: BlogPost
+}
+const { post } = Astro.props
+---
+
+<a
+  href={postHistoryUrl(post)}
+  target="_blank"
+  rel="noopener noreferrer"
+  title="This essay may have been revised since publication. See every change to it on GitHub."
+  class="inline-flex items-center gap-1 text-gray-500 transition-colors hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400"
+>
+  <svg
+    class="h-3.5 w-3.5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    stroke-width="2"
+    aria-hidden="true"
+  >
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
+    <path
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      d="M3.05 11a9 9 0 1 1 .5 4m-.5 4v-4h4"
+    />
+  </svg>
+  History
+</a>

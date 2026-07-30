@@ -1,11 +1,16 @@
 /**
  * Link detection for plain user text (0171).
  *
- * Tokenizes URLs and email addresses with linkifyjs (the same engine
- * @tiptap/extension-link uses, so read surfaces and the page editor agree on
- * what counts as a link) and applies a strict scheme allowlist before any
- * token is rendered as an anchor. Stored text is never modified — detection
- * is render-time decoration only.
+ * Tokenizes URLs and email addresses with linkifyjs (the same engine the
+ * BlockNote page editor's link extension uses, so read surfaces and the
+ * editor agree on what counts as a link) and applies a strict scheme
+ * allowlist before any token is rendered as an anchor. BlockNote's default
+ * link validation (`isAllowedUri`, see `links.isValidLink` in
+ * @blocknote/core) accepts http|https|ftp|ftps|mailto|tel|callto|sms|cid|xmpp;
+ * read surfaces deliberately allow only the http/https/mailto/tel subset —
+ * anchors for the other schemes are not useful here and widen the attack
+ * surface. Stored text is never modified — detection is render-time
+ * decoration only.
  */
 import { find } from 'linkifyjs'
 
@@ -59,7 +64,9 @@ function toLinkToken(match: ReturnType<typeof find>[number]): LinkToken | null {
  * resolve to https; emails resolve to mailto.
  */
 export function findLinkTokens(text: string): LinkToken[] {
-  if (!text) return []
+  // Property values from untyped stores can leak through as numbers/objects;
+  // linkify-it throws on anything that isn't a real string.
+  if (typeof text !== 'string' || text === '') return []
   return find(text, { defaultProtocol: 'https' })
     .map(toLinkToken)
     .filter((token): token is LinkToken => token !== null)

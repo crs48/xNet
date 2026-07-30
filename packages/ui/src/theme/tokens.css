@@ -114,6 +114,12 @@
     --warning-muted: 38 92% 96%;
     --warning-foreground: 0 0% 9%;
 
+    /* Inline comment marks and indicators (0375). A distinct semantic role
+       from --warning even though the light ramp happens to share its hue:
+       a commented passage is annotated, not alarming. */
+    --comment: 43 96% 56%;
+    --comment-strong: 38 92% 50%;
+
     /* ─── Input & Ring ──────────────────────────────────────────── */
     --input: var(--hairline);
     --ring: var(--accent-ink);
@@ -199,6 +205,11 @@
     --warning-active: 38 92% 45%;
     --warning-foreground: 0 0% 9%;
     --warning-muted: 38 92% 15%;
+
+    /* Comment marks lift slightly in dark so the highlight stays legible
+       against the darker paper. */
+    --comment: 43 96% 62%;
+    --comment-strong: 43 96% 70%;
 
     /* ─── Input & Ring ──────────────────────────────────────────── */
     --input: var(--hairline);
@@ -365,6 +376,90 @@
 }
 
 @layer base {
+  /* ─── Floating Islands (explorations 0286/0287/0299) ──────────────────
+     A warm-clay "floating" override for the desktop workbench shell. Rides
+     on top of the 0166 ramp (ink-1/2/3, status hues, chart-*, identity
+     avatars all stay) and is scoped to `.wb-root`, applied by the shell
+     frame wrapper.
+
+     Two planes only (0299):
+       Plane A — the paper: `--canvas`. The backdrop, the editor, and all
+         tab content share it, so the workbench reads as one solid surface.
+         `--surface-0` (and therefore `--background`/`--card`) alias it.
+       Plane B — the islands: `--island-b`. Every floating element — chrome
+         islands, modals (`--island-pop` alias), popovers/menus (`--popover`)
+         — shares one fill. Chrome islands sit flat (hairline border only);
+         overlays alone carry --pop-shadow. Never a different fill colour.
+
+     Because this is the new default look for the desktop shell, the override
+     lives here (not behind a variant flag); the `linear` accent variant still
+     composes on top (accent-ink only). `dark` lives on <html>, so the dark
+     scope is a descendant selector (`.dark .wb-root`), not `.wb-root.dark`.
+
+     `body:has(.wb-root)` extends the palette to portal layers: menus,
+     selects, and dialogs portal to <body> (outside `.wb-root`), and without
+     it they'd resolve the neutral :root ramp instead of the island fill. */
+  .wb-root,
+  body:has(.wb-root) {
+    --canvas: 44 40% 98%;
+    --island: var(--canvas);
+    --island-b: 40 22% 93%;
+    /* Overlay islands (modals/devtools) share the chrome-island fill;
+       the deeper --pop-shadow alone carries the "hovering" cue. Kept as an
+       alias so bg-island-pop consumers need no edits. */
+    --island-pop: var(--island-b);
+    /* The base plane IS the canvas — bg-background/bg-surface-0 view roots
+       match the backdrop exactly instead of missing by half a point. */
+    --surface-0: var(--canvas);
+    --surface-1: 42 26% 95%;
+    --surface-2: 40 20% 92.5%;
+    /* :root aliases (--background, --secondary, …) substitute var(--surface-*)
+       at :root, then inherit the RESOLVED neutral value — they do NOT re-read
+       this scope's ramp. Re-declare them here so bg-background/bg-secondary/
+       bg-muted consumers actually land on the warm wb planes. */
+    --background: var(--surface-0);
+    --background-subtle: var(--surface-1);
+    --secondary: var(--surface-2);
+    --muted: var(--surface-2);
+    --hairline: 38 16% 83%;
+    --border: 38 16% 83%;
+    --accent: 40 20% 89.5%;
+    --background-muted: 40 20% 89%;
+    /* Floating menus/selects/palette join the island plane. */
+    --popover: var(--island-b);
+    --card: var(--surface-0);
+    --input: var(--hairline);
+    --pop-shadow: 0 8px 20px hsl(34 20% 26% / 0.14), 0 22px 50px hsl(34 22% 18% / 0.2);
+  }
+
+  .dark .wb-root,
+  .wb-root.dark,
+  .dark body:has(.wb-root) {
+    --canvas: 30 8% 11.5%;
+    --island: var(--canvas);
+    --island-b: 30 8% 7%;
+    /* Same fill as the chrome islands (0299); --pop-shadow + hairline carry
+       elevation. Overlays now sit darker than the canvas, like the sidebar. */
+    --island-pop: var(--island-b);
+    --surface-0: var(--canvas);
+    --surface-1: 32 8% 10%;
+    --surface-2: 32 8% 8%;
+    /* Re-declared for the same reason as the light scope: :root aliases
+       inherit already-substituted neutral values. */
+    --background: var(--surface-0);
+    --background-subtle: var(--surface-1);
+    --secondary: var(--surface-2);
+    --muted: var(--surface-2);
+    --hairline: 30 7% 19%;
+    --border: 30 7% 19%;
+    --accent: 32 9% 16%;
+    --background-muted: 32 9% 15%;
+    --popover: var(--island-b);
+    --card: var(--surface-0);
+    --input: var(--hairline);
+    --pop-shadow: 0 10px 26px hsl(0 0% 0% / 0.6), 0 24px 56px hsl(0 0% 0% / 0.7);
+  }
+
   * {
     @apply border-border;
   }

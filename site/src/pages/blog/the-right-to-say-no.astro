@@ -4,6 +4,7 @@ import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
 import SeriesNav from '../../components/blog/SeriesNav.astro'
 import LeverHero from '../../components/blog/LeverHero.astro'
+import Byline from '../../components/blog/Byline.astro'
 import WatchTheOriginal from '../../components/blog/WatchTheOriginal.astro'
 import GrowthVsLeverage from '../../components/blog/GrowthVsLeverage.astro'
 import HonestExit from '../../components/blog/HonestExit.astro'
@@ -27,14 +28,16 @@ const post = postBySlug('the-right-to-say-no')!
     <article
       class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-rose-600 dark:prose-a:text-rose-400"
     >
+      <Byline post={post} />
+
       <p>
-        The first time, we looked up — at an open sea of scattered islands, and the
+        The first time, we looked up: at an open sea of scattered islands, and the
         flags you might fly to stop being someone else’s cargo. The second time, we
         looked down, into the soil, where a fungal network older than any human one
         trades food and news in the dark. The third time, we looked all the way up,
         at a star, and asked how a furnace that holds the energy of a billion bombs
         still feels gentle from here. This time, don’t look up or down. Look at the
-        <em>price tag</em> — at the machine humming underneath the money — because
+        <em>price tag</em>, at the machine humming underneath the money, because
         someone made a very good case recently that the machine quietly changed
         shape, and most of us never got the memo.
       </p>
@@ -60,7 +63,7 @@ const post = postBySlug('the-right-to-say-no')!
         the last ten years. Healthcare? Housing? The cost of a week of groceries?
         Your privacy? Your sense that next year will be easier than this one? Over
         the same decade, the headline stock index nearly tripled. If your life isn’t
-        almost three times better, something in that picture isn’t adding up — and
+        almost three times better, something in that picture isn’t adding up, and
         the gap between the number going up and the life standing still is the whole
         subject.
       </p>
@@ -72,17 +75,17 @@ const post = postBySlug('the-right-to-say-no')!
         economy. The first is <strong>growth</strong>: you build something more
         people want, the pie gets bigger, and you take a slice. The second is
         <strong>leverage</strong>: you get control of something everyone is forced to
-        pass through — a roof, a marketplace, a feed, a standard — and you take a cut
+        pass through (a roof, a marketplace, a feed, a standard) and you take a cut
         of every crossing, whether or not anything new got made.
       </p>
       <p>
-        Growth and leverage feel similar from the outside — both end with someone
-        rich — but they have opposite relationships with <em>you</em>. Growth needs a
+        Growth and leverage feel similar from the outside, since both end with someone
+        rich, but they have opposite relationships with <em>you</em>. Growth needs a
         large, healthy, well-paid population, because that’s who makes things and
         buys things; under growth, your flourishing is the other guy’s revenue. The
         deepest move in the essay is to notice that leverage <em>inverts</em> this.
         If your wealth comes from controlling a chokepoint, then a population that can
-        comfortably walk away — that can wait, refuse, or build its own thing — is
+        comfortably walk away, that can wait, refuse, or build its own thing, is
         not your market. It’s your <em>friction</em>. Scarcity becomes the product;
         leaving becomes the threat.
       </p>
@@ -92,13 +95,13 @@ const post = postBySlug('the-right-to-say-no')!
       <p>
         That inversion quietly answers a riddle a lot of people have been chewing on:
         why so many of the loudest champions of the free market also seem to want
-        <em>fewer</em> people, tighter borders, and a more anxious, indebted public —
+        <em>fewer</em> people, tighter borders, and a more anxious, indebted public,
         which is, on its face, the opposite of what a growth capitalist should want.
         Jordan’s answer is that they aren’t growth capitalists anymore. When the game
         is leverage, an empowered population isn’t the goose that lays the eggs. It’s
         the thing standing between you and the eggs. We don’t have to agree with every
-        application of that lens — birth rates fall for many tangled reasons, most of
-        them about people freely choosing different lives — to admit it explains an
+        application of that lens (birth rates fall for many tangled reasons, most of
+        them about people freely choosing different lives) to admit it explains an
         uncomfortable amount of the news.
       </p>
 
@@ -106,13 +109,13 @@ const post = postBySlug('the-right-to-say-no')!
       <p>
         Once you’re looking for leverage, you find it taking the same shape across
         wildly different industries. A private-equity firm buys a profitable,
-        boring company — a beloved toy chain, say — not to sell more toys but to load
+        boring company, a beloved toy chain, say, not to sell more toys but to load
         it with debt, charge itself fees, and use the company as a debt service until
         it collapses. Investors made a fortune; the thing itself was strip-mined. The
         same move scaled to housing: one of the largest owners of single-family homes
         in the country is an investment firm that bought at the bottom and now rents
         the roofs back, and the academic case for it is stated plainly in the
-        industry’s own white papers — housing is a <em>supply-constrained asset with
+        industry’s own white papers: housing is a <em>supply-constrained asset with
         inelastic demand</em>, which is a polite way of saying people will always need
         somewhere to live, so you can squeeze. As Jordan puts it: where you see a
         product, leverage sees a <strong>debt service</strong>.
@@ -123,10 +126,10 @@ const post = postBySlug('the-right-to-say-no')!
         isn’t really a race to answer your questions well; by several measures these
         systems are confidently wrong a startling share of the time. (The creator
         whose video prompted this essay was, by one such system, told the world he’d
-        done something he never did — and the defence these companies reach for, more
+        done something he never did, and the defence these companies reach for, more
         or less, is that everyone already knows the systems make things up.) The
         point of the race is to get
-        between you and everything you read, watch, and hear — to regurgitate other
+        between you and everything you read, watch, and hear, to regurgitate other
         people’s work just ahead of the link to it, until the people who made the
         work can’t afford to make it, and you can’t reach it except through the
         layer that now sits in the middle. It is the toy-chain move performed on the
@@ -137,22 +140,23 @@ const post = postBySlug('the-right-to-say-no')!
       <p>
         Here’s the turn that lifts the essay above a list of grievances. Jordan
         argues that the endgame of leverage isn’t to take your money. It’s to take
-        your <strong>autonomy</strong> — and money is just the most convenient lever
-        for it. He grounds this in the research on income and well-being — though not
+        your <strong>autonomy</strong>, and money is just the most convenient lever
+        for it. He grounds this in the research on income and well-being, though not
         in the way you usually hear it. The familiar headline is that money stops
         buying happiness past a comfortable income; the more careful recent work
         finds it keeps helping for most people. Either way, his point sits to the
         side of that debate: whatever money does for your mood, what it most
-        concretely buys is the ability to <em>say no</em> — to refuse a bad job,
-        report the harassment, leave the abusive situation, skip the humiliating deal
-        — without your survival being on the line. Call it the <strong>refusal threshold</strong>:
+        concretely buys is the ability to <em>say no</em>: to refuse a bad job,
+        report the harassment, leave the abusive situation, skip the humiliating
+        deal, all without your survival being on the line. Call it the
+        <strong>refusal threshold</strong>:
         the point where you can absorb the cost of walking away.
       </p>
       <p>
         Read that way, a great deal of modern life looks like a campaign to push
         people back below the refusal threshold and keep them there. Not because
         anyone is twirling a moustache, but because a person who can’t afford to walk
-        away is a person who will accept worse terms — on rent, on work, on what they
+        away is a person who will accept worse terms: on rent, on work, on what they
         click, on what they’ll stay quiet about. The most valuable thing to take from
         you isn’t a payment. It’s your <em>ability to refuse the next one.</em>
       </p>
@@ -165,14 +169,14 @@ const post = postBySlug('the-right-to-say-no')!
         gets worse, he said, you have two powers. <strong>Voice</strong>: you stay and
         complain, organise, vote, push for repair. <strong>Exit</strong>: you leave,
         and take your custom elsewhere. His crucial point is that the two are
-        connected — <em>Voice only has power when Exit is credible.</em> A complaint
+        connected. <em>Voice only has power when Exit is credible.</em> A complaint
         the other side knows you can’t act on is just noise. The reason to listen to
         someone is that they can leave.
       </p>
       <p>
         Now you can state what leverage actually does in one line: it
         <strong>removes the exit</strong>. Make the home un-leavable, the platform
-        un-leavable, the standard un-leavable, the data un-portable — and every voice
+        un-leavable, the standard un-leavable, the data un-portable, and every voice
         inside goes quiet, not because people stopped caring but because everyone
         knows the complaint is toothless. A world built entirely out of inescapable
         chokepoints is a world with infinite Voice and zero power. That is the
@@ -192,12 +196,12 @@ const post = postBySlug('the-right-to-say-no')!
       <p>
         With that said: there is exactly one chokepoint a small open-source project can
         actually break, and it happens to be the one Jordan is most alarmed
-        about — the layer over your information and the tools you think with. Most
+        about: the layer over your information and the tools you think with. Most
         software you use is built on the leverage model on purpose. Your notes, your
         files, your messages, your second brain live on someone else’s computer, in
         shapes only their software can read, and the lock-in <em>is</em> the business
-        plan. The exit is missing by design, so the Voice — your preferences, your
-        complaints, your wish that it worked differently — has no teeth.
+        plan. The exit is missing by design, so the Voice (your preferences, your
+        complaints, your wish that it worked differently) has no teeth.
       </p>
       <p>
         <a href="/">xNet</a> is built backwards from that, around a single stubborn
@@ -208,7 +212,7 @@ const post = postBySlug('the-right-to-say-no')!
         <li>
           <strong>Your data lives with you.</strong> The master copy of everything you
           make sits on your own device and works with no network at all. A sync hub is
-          a convenience you point at, not a landlord you depend on — and you choose it,
+          a convenience you point at, not a landlord you depend on, and you choose it,
           self-host it, or skip it. The thing that was a rent stream becomes, again,
           just <em>your stuff</em>.
         </li>
@@ -220,13 +224,13 @@ const post = postBySlug('the-right-to-say-no')!
           refusal threshold, rebuilt for your digital life.
         </li>
         <li>
-          <strong>AI you point at your own data — and can run yourself.</strong> The
+          <strong>AI you point at your own data, and can run yourself.</strong> The
           part of the essay that should chill you most is that cornering the hardware
           makes it deliberately hard to run AI on your own machine, so you’re forced
           through the middle. xNet’s bet is the opposite: search and semantic recall
           that run <em>in your browser</em>, with nothing leaving the device, and an
           assistant grounded in your own workspace that cites its sources and labels
-          what it generated — a tool that works for you instead of regurgitating
+          what it generated: a tool that works for you instead of regurgitating
           everyone else’s work back at you.
         </li>
         <li>
@@ -248,8 +252,8 @@ const post = postBySlug('the-right-to-say-no')!
         </li>
       </ul>
       <p>
-        None of that fixes your rent. It rebuilds one door — the one over your
-        information — and a door you can actually walk through is the only thing that
+        None of that fixes your rent. It rebuilds one door, the one over your
+        information, and a door you can actually walk through is the only thing that
         gives your Voice its teeth back. It is a small, real instance of the exact
         thing the essay names, half-joking, as the system’s nightmare: <em>a
         completely free and open decentralised internet.</em> Built, this time, not
@@ -261,7 +265,7 @@ const post = postBySlug('the-right-to-say-no')!
         Jordan ends somewhere unexpected for an economics video: with a hospice
         nurse’s list of the regrets of the dying, the first of which is having lived
         the life others expected instead of one’s own. The asset worth hoarding, he
-        concludes, was never the money. It was <strong>time</strong> — and the
+        concludes, was never the money. It was <strong>time</strong>, and the
         autonomy to spend it as yourself. The whole apparatus of leverage works by
         getting you to trade that away a slice at a time, in exchange for numbers on a
         screen that buy less every year, while quietly handing you unpaid work and
@@ -276,17 +280,17 @@ const post = postBySlug('the-right-to-say-no')!
         are willing to.
       </p>
       <p>
-        Sea, soil, sky — and now the ledger underneath all three. Same open world,
+        Sea, soil, sky, and now the ledger underneath all three. Same open world,
         four ways of looking at it, and the same conclusion every time: the systems
         worth living in are the ones you’re free to leave. So keep what’s yours. Keep
-        your time. And, in Jordan’s words — whatever you do,
+        your time. And, in Jordan’s words: whatever you do,
         <strong>keep creating.</strong>
       </p>
       <p>
-        If you want to feel the difference: <a href="/app">use the app</a> — it’s
+        If you want to feel the difference: <a href="/app">use the app</a>. It’s
         free, offline, and private. Read <a href="/commitments">the commitments we’re
         built on</a>. Or, if you make things, <a href="/build-with">build something of
-        your own</a> on the open protocol — and own the door.
+        your own</a> on the open protocol, and own the door.
       </p>
 
       <hr />

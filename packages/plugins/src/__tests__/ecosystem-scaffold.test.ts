@@ -152,3 +152,28 @@ describe('scaffoldPlugin — connector template (0196)', () => {
     ).not.toThrow()
   })
 })
+
+describe('slot-view template (0280)', () => {
+  it('scaffolds a dockable panel with a network-closed manifest', () => {
+    const { files } = scaffoldPlugin({
+      id: 'com.you.focus-board',
+      name: 'Focus Board',
+      template: 'slot-view'
+    })
+    const index = files['src/index.ts']
+    expect(index).toContain('slots: [')
+    expect(index).toContain('"network":[]')
+    expect(index).toContain("defaultRegion: 'dock.corner'")
+    expect(index).toContain('FocusBoardPanel')
+  })
+
+  it('honours an explicit capability grant', () => {
+    const { files } = scaffoldPlugin({
+      id: 'com.you.focus-board',
+      name: 'Focus Board',
+      template: 'slot-view',
+      capabilities: { schemaRead: ['xnet://xnet.fyi/Task@1.0.0'], network: [] }
+    })
+    expect(files['src/index.ts']).toContain('xnet://xnet.fyi/Task@1.0.0')
+  })
+})

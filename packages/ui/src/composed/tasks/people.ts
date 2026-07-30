@@ -11,6 +11,8 @@ export interface TaskPersonOption {
   did: string
   /** Best-effort display name; absent for collaborators known only by DID */
   name?: string
+  /** Optional workspace-unique @handle (0172), matched by the mention filter */
+  handle?: string
   /** The current user — sorted first and labelled as such */
   isSelf?: boolean
 }
@@ -22,7 +24,7 @@ export function taskPersonLabel(person: TaskPersonOption): string {
   return tail.length > 10 ? `${tail.slice(0, 10)}…` : tail
 }
 
-/** Case-insensitive match on name or DID, self first, stable otherwise. */
+/** Case-insensitive match on name, @handle, or DID, self first, stable otherwise. */
 export function filterTaskPeople(
   people: TaskPersonOption[],
   query: string,
@@ -33,7 +35,8 @@ export function filterTaskPeople(
     ? people.filter(
         (person) =>
           person.did.toLowerCase().includes(needle) ||
-          (person.name ?? '').toLowerCase().includes(needle)
+          (person.name ?? '').toLowerCase().includes(needle) ||
+          (person.handle ?? '').toLowerCase().includes(needle)
       )
     : people
   return [...matches]

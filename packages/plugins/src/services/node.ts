@@ -126,9 +126,23 @@ export {
   renderMarkdownLineDiff,
   renderMarkdownReviewDiff,
   stripXNetPageFrontmatter,
+  WRITING_XNET_PLUGINS_SKILL_MD,
   XNET_AGENT_SKILL_MD,
   XNET_MARKDOWN_DIRECTIVE_SPECS,
-  validateXNetPageMarkdown
+  validateXNetPageMarkdown,
+  blockNoteFragmentToMarkdown,
+  createBlockNotePageMarkdownAdapter,
+  legacyFragmentToMarkdown,
+  replaceXNetPageFragmentWithMarkdown,
+  XNET_PAGE_FRAGMENT_FIELD,
+  XNET_PAGE_LEGACY_FRAGMENT_FIELD,
+  xnetPageFragmentToMarkdown
+} from '../ai-surface'
+export type {
+  BlockNotePageMarkdownAdapterOptions,
+  XNetPageDocResolver,
+  XNetPageFragmentReadOptions,
+  XNetPageFragmentWriteOptions
 } from '../ai-surface'
 
 // Agent script sandbox (code-execution surface for `xnet run`)

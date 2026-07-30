@@ -1,0 +1,161 @@
+---
+// Decorative art for "The World's Greatest Record Store" (exploration 0352),
+// single-sourced so the same inline SVG backs the post hero and the blog-index
+// preview card (no external assets — Self-Audit parity). A pink-lit record
+// shop after dark: shelves of crates, and a vinyl disc in the foreground whose
+// label is the glowing cosmic-X — the scene's treasure, held at the centre.
+interface Props {
+  /** Override the wrapper classes; defaults to full-bleed for hero use. */
+  class?: string
+}
+const { class: className = 'pointer-events-none absolute inset-0 h-full w-full' } = Astro.props
+
+// Crate spines, hand-placed per shelf so the rows read as loved, not generated:
+// [x, width, hue-index] — hues cycle through the pink/rose/violet family.
+const SPINE_COLORS = ['#f472b6', '#e879f9', '#fb7185', '#c084fc', '#f9a8d4', '#a78bfa']
+const shelfA = [
+  [40, 14], [58, 10], [72, 16], [92, 12], [108, 9], [121, 15], [140, 11], [155, 13],
+  [172, 10], [186, 16], [206, 12], [222, 9], [235, 14], [253, 11], [268, 15], [287, 10]
+] as const
+const shelfB = [
+  [40, 12], [56, 15], [75, 9], [88, 13], [105, 11], [120, 16], [140, 10], [154, 14],
+  [172, 12], [188, 9], [201, 15], [220, 11], [235, 13], [252, 10], [266, 16], [286, 11]
+] as const
+---
+
+<svg
+  class={className}
+  viewBox="0 0 1040 340"
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+>
+  <defs>
+    <linearGradient id="shopNight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#12060f" />
+      <stop offset="60%" stop-color="#1b0a18" />
+      <stop offset="100%" stop-color="#150713" />
+    </linearGradient>
+    <radialGradient id="labelGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f472b6" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#f472b6" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="xlabel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f9a8d4" />
+      <stop offset="100%" stop-color="#a78bfa" />
+    </linearGradient>
+    <linearGradient id="vinyl" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1f1420" />
+      <stop offset="100%" stop-color="#0d0710" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1040" height="340" fill="url(#shopNight)" />
+
+  <!-- dust motes in the lamplight -->
+  <g fill="#fbcfe8" opacity="0.6">
+    <circle cx="120" cy="50" r="1.1" />
+    <circle cx="240" cy="85" r="0.8" />
+    <circle cx="360" cy="40" r="1.2" />
+    <circle cx="500" cy="70" r="0.9" />
+    <circle cx="660" cy="45" r="1.1" />
+    <circle cx="790" cy="90" r="0.8" />
+    <circle cx="900" cy="55" r="1.2" />
+    <circle cx="980" cy="100" r="0.9" />
+    <circle cx="430" cy="115" r="0.7" />
+    <circle cx="720" cy="125" r="0.7" />
+  </g>
+
+  <!-- back wall: two long crate shelves, spines in the pink family -->
+  <g transform="translate(330 60)">
+    <rect x="20" y="58" width="300" height="4" fill="#3b1332" rx="1" />
+    {
+      shelfA.map(([x, w], i) => (
+        <rect
+          x={x}
+          y={14 + ((i * 7) % 12)}
+          width={w}
+          height={44 - ((i * 7) % 12)}
+          fill={SPINE_COLORS[i % SPINE_COLORS.length]}
+          opacity="0.55"
+          rx="1.5"
+        />
+      ))
+    }
+    <rect x="20" y="140" width="300" height="4" fill="#3b1332" rx="1" />
+    {
+      shelfB.map(([x, w], i) => (
+        <rect
+          x={x}
+          y={96 + ((i * 5) % 12)}
+          width={w}
+          height={44 - ((i * 5) % 12)}
+          fill={SPINE_COLORS[(i + 3) % SPINE_COLORS.length]}
+          opacity="0.45"
+          rx="1.5"
+        />
+      ))
+    }
+  </g>
+
+  <!-- the same shelves again, further right and dimmer: the stacks go on -->
+  <g transform="translate(680 60)" opacity="0.6">
+    <rect x="20" y="58" width="300" height="4" fill="#3b1332" rx="1" />
+    {
+      shelfB.map(([x, w], i) => (
+        <rect
+          x={x}
+          y={14 + ((i * 6) % 12)}
+          width={w}
+          height={44 - ((i * 6) % 12)}
+          fill={SPINE_COLORS[(i + 1) % SPINE_COLORS.length]}
+          opacity="0.5"
+          rx="1.5"
+        />
+      ))
+    }
+    <rect x="20" y="140" width="300" height="4" fill="#3b1332" rx="1" />
+    {
+      shelfA.map(([x, w], i) => (
+        <rect
+          x={x}
+          y={96 + ((i * 4) % 12)}
+          width={w}
+          height={44 - ((i * 4) % 12)}
+          fill={SPINE_COLORS[(i + 4) % SPINE_COLORS.length]}
+          opacity="0.4"
+          rx="1.5"
+        />
+      ))
+    }
+  </g>
+
+  <!-- counter line -->
+  <rect x="0" y="285" width="1040" height="55" fill="#170a15" />
+  <line x1="0" y1="285" x2="1040" y2="285" stroke="#4c1d3f" stroke-width="1" />
+
+  <!-- foreground: the record on the counter, label glowing with the cosmic-X -->
+  <g transform="translate(150 185)">
+    <circle cx="0" cy="0" r="130" fill="url(#labelGlow)" opacity="0.35" />
+    <circle cx="0" cy="0" r="96" fill="url(#vinyl)" stroke="#2b1626" stroke-width="2" />
+    <!-- grooves -->
+    <g fill="none" stroke="#f472b6" opacity="0.18">
+      <circle cx="0" cy="0" r="84" stroke-width="1" />
+      <circle cx="0" cy="0" r="72" stroke-width="1" />
+      <circle cx="0" cy="0" r="60" stroke-width="1" />
+      <circle cx="0" cy="0" r="48" stroke-width="1" />
+    </g>
+    <!-- the label: pink pressing, cosmic-X at the centre -->
+    <circle cx="0" cy="0" r="34" fill="#2a0f22" stroke="#f472b6" stroke-width="1.5" opacity="0.95" />
+    <g stroke="url(#xlabel)" stroke-width="6" stroke-linecap="round">
+      <line x1="-13" y1="-15" x2="13" y2="15" />
+      <line x1="13" y1="-15" x2="-13" y2="15" />
+    </g>
+    <circle cx="0" cy="0" r="3" fill="#12060f" stroke="#f9a8d4" stroke-width="1" />
+  </g>
+
+  <!-- a second sleeve leaning against the counter, waiting its turn -->
+  <g transform="translate(285 235) rotate(-8)">
+    <rect x="0" y="0" width="86" height="86" rx="3" fill="#241021" stroke="#4c1d3f" stroke-width="1.5" />
+    <circle cx="43" cy="43" r="28" fill="none" stroke="#e879f9" stroke-width="1" opacity="0.5" />
+  </g>
+</svg>

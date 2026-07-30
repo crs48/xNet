@@ -1,0 +1,134 @@
+---
+// Decorative art for blog post #15 (exploration 0347), extracted so the same
+// inline SVG backs both the post hero and the blog-index preview card (no
+// external assets — Self-Audit parity). The essay's two figures in one frame:
+// a musical staff — the protocol — whose note-heads are small human figures,
+// running into a dark monolith (the "AI" black box). Inside the box the same
+// figures continue, faint but present, and the cosmic-X glows at the seam:
+// open the black box and it is made of people. Along the bottom, barely
+// there, a strip of piano keys — MIDI, the lock-in the musician heard first.
+interface Props {
+  /** Override the wrapper classes; defaults to full-bleed for hero use. */
+  class?: string
+}
+const { class: className = 'pointer-events-none absolute inset-0 h-full w-full' } =
+  Astro.props
+
+// The staff: five lines, entering the monolith's left face.
+const staffYs = [196, 212, 228, 244, 260]
+const monolith = { x: 660, y: 56, w: 190, h: 250 }
+// Note-figures on the staff (x, y of feet, opacity) — a phrase, not a scale.
+const notes = [
+  [104, 212, 0.9],
+  [168, 244, 0.75],
+  [232, 228, 0.9],
+  [300, 196, 0.8],
+  [368, 260, 0.7],
+  [432, 228, 0.9],
+  [500, 212, 0.8],
+  [568, 244, 0.85],
+  [624, 228, 0.75]
+] as const
+// The same figures, inside the box — fainter, still people.
+const inside = [
+  [700, 212, 0.3],
+  [738, 244, 0.24],
+  [776, 196, 0.28],
+  [812, 260, 0.22],
+  [752, 148, 0.2],
+  [790, 116, 0.16]
+] as const
+---
+
+<svg
+  class={className}
+  viewBox="0 0 1040 340"
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+>
+  <defs>
+    <linearGradient id="dbg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#100c1d" />
+      <stop offset="55%" stop-color="#0c0917" />
+      <stop offset="100%" stop-color="#080611" />
+    </linearGradient>
+    <linearGradient id="dbox" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1430" />
+      <stop offset="100%" stop-color="#120d22" />
+    </linearGradient>
+    <radialGradient id="dglow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.85" />
+      <stop offset="45%" stop-color="#f59e0b" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="dx" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fde68a" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <!-- one small person: head + shoulders, used for every note -->
+    <g id="dfig">
+      <circle cx="0" cy="-14" r="4.6" />
+      <path d="M -6 0 Q -6 -9 0 -9 Q 6 -9 6 0 Z" />
+    </g>
+  </defs>
+
+  <rect width="1040" height="340" fill="url(#dbg)" />
+
+  <!-- the staff: the protocol everything has to fit through -->
+  <g stroke="#332a52" stroke-width="1.4" opacity="0.75">
+    {staffYs.map((y) => <line x1="0" y1={y} x2={monolith.x} y2={y} />)}
+  </g>
+  <!-- the staff continues inside the box, fainter: same lines, same people -->
+  <g stroke="#332a52" stroke-width="1.2" opacity="0.3">
+    {staffYs.map((y) => <line x1={monolith.x} y1={y} x2={monolith.x + monolith.w} y2={y} />)}
+  </g>
+
+  <!-- note-heads that are people, walking the staff toward the box -->
+  <g fill="#a78bfa">
+    {notes.map(([x, y, o]) => <use href="#dfig" transform={`translate(${x} ${y})`} opacity={o} />)}
+  </g>
+
+  <!-- the black box -->
+  <rect
+    x={monolith.x}
+    y={monolith.y}
+    width={monolith.w}
+    height={monolith.h}
+    rx="10"
+    fill="url(#dbox)"
+    stroke="#3b3160"
+    stroke-width="1.6"
+    opacity="0.96"
+  />
+
+  <!-- inside the box: the same figures, still there, in disguise -->
+  <g fill="#a78bfa">
+    {inside.map(([x, y, o]) => <use href="#dfig" transform={`translate(${x} ${y})`} opacity={o} />)}
+  </g>
+
+  <!-- the seam of light: the cosmic-X where the box opens -->
+  <g transform={`translate(${monolith.x + monolith.w / 2} ${monolith.y + 62})`}>
+    <circle cx="0" cy="0" r="44" fill="url(#dglow)" />
+    <g stroke="url(#dx)" stroke-width="5.5" stroke-linecap="round" transform="translate(-11 -12)">
+      <line x1="0" y1="0" x2="22" y2="24" />
+      <line x1="22" y1="0" x2="0" y2="24" />
+    </g>
+  </g>
+
+  <!-- MIDI, faint, under everything: the keyboard the lock-in came from -->
+  <g opacity="0.35">
+    <line x1="0" y1="300" x2="1040" y2="300" stroke="#332a52" stroke-width="1" />
+    {
+      Array.from({ length: 26 }, (_, i) => (
+        <rect x={i * 40} y="300" width="39" height="40" fill="none" stroke="#241d3e" stroke-width="1" />
+      ))
+    }
+    {
+      Array.from({ length: 26 }, (_, i) =>
+        [1, 2, 4, 5, 6].includes(i % 7) ? (
+          <rect x={i * 40 - 8} y="300" width="16" height="24" fill="#241d3e" />
+        ) : null
+      )
+    }
+  </g>
+</svg>

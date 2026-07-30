@@ -1,0 +1,167 @@
+---
+// Decorative art for "Rig the Game or Play" (exploration 0363), single-sourced
+// so the same inline SVG backs the post hero and the blog-index preview card
+// (no external assets — Self-Audit parity).
+//
+// The picture is the essay's thesis: a board read left to right, from a game
+// still being played to a game already won. On the left the properties are
+// tall, varied, differently coloured, crowded with houses — many players
+// making many different moves. Moving right, the heights converge, the colour
+// drains to grey, the houses disappear: the search has stopped. At the far
+// right one gold tower stands over a board where nothing else is happening.
+//
+// Variety is drawn as colour and height; the rig is drawn as their absence.
+interface Props {
+  /** Override the wrapper classes; defaults to full-bleed for hero use. */
+  class?: string
+}
+const { class: className = 'pointer-events-none absolute inset-0 h-full w-full' } = Astro.props
+
+// Property columns, hand-placed left to right so the decay reads as a slide
+// rather than a formula: [x, width, height, fill, houses].
+// The gold family is live play; zinc is a square nobody contests any more.
+const LIVE = ['#fbbf24', '#f59e0b', '#fcd34d', '#fb923c', '#facc15', '#f97316']
+const FADED = ['#a1834a', '#8a7245', '#6f6350', '#5c5551', '#4b4750', '#413f47']
+const DEAD = '#3f3f46'
+
+// [x, width, height, colour, houses on top]
+const columns = [
+  [46, 30, 108, LIVE[0], 3],
+  [84, 30, 74, LIVE[2], 2],
+  [122, 30, 132, LIVE[1], 4],
+  [160, 30, 62, LIVE[4], 1],
+  [198, 30, 96, LIVE[3], 3],
+  [236, 30, 148, LIVE[5], 4],
+  [274, 30, 70, LIVE[0], 2],
+  [312, 30, 118, LIVE[2], 3],
+  [350, 30, 88, FADED[0], 2],
+  [388, 30, 104, LIVE[1], 2],
+  [426, 30, 66, FADED[1], 1],
+  [464, 30, 92, FADED[0], 1],
+  [502, 30, 58, FADED[2], 1],
+  [540, 30, 74, FADED[1], 1],
+  [578, 30, 50, FADED[3], 0],
+  [616, 30, 58, FADED[2], 0],
+  [654, 30, 44, FADED[4], 0],
+  [692, 30, 46, FADED[3], 0],
+  [730, 30, 38, FADED[5], 0],
+  [768, 30, 38, DEAD, 0],
+  [806, 30, 34, DEAD, 0],
+  [962, 30, 32, DEAD, 0],
+  [1000, 30, 30, DEAD, 0]
+] as const
+
+const BASELINE = 262
+---
+
+<svg
+  class={className}
+  viewBox="0 0 1040 340"
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+>
+  <defs>
+    <linearGradient id="boardRoom" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1c1207" />
+      <stop offset="55%" stop-color="#16130f" />
+      <stop offset="100%" stop-color="#0f1013" />
+    </linearGradient>
+    <linearGradient id="towerGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde68a" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+    <radialGradient id="lampGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.55" />
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="xToken" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fcd34d" />
+      <stop offset="100%" stop-color="#fb923c" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1040" height="340" fill="url(#boardRoom)" />
+
+  <!-- the lamp over the end of the table where people are still playing -->
+  <ellipse cx="180" cy="120" rx="260" ry="180" fill="url(#lampGlow)" opacity="0.5" />
+
+  <!-- the properties: tall and varied on the left, converging to grey stubs -->
+  {
+    columns.map(([x, w, h, fill, houses]) => (
+      <g>
+        <rect x={x} y={BASELINE - h} width={w} height={h} fill={fill} opacity="0.85" rx="2" />
+        {/* deed stripe — the colour band at the top of a property card */}
+        <rect x={x} y={BASELINE - h} width={w} height="7" fill="#fff" opacity="0.22" rx="1" />
+        {/* houses: the moves players made while the square was still contested */}
+        {Array.from({ length: houses }).map((_, i) => (
+          <rect
+            x={x + 5 + i * 7}
+            y={BASELINE - h - 11}
+            width="5"
+            height="8"
+            fill="#fde68a"
+            opacity={0.85 - i * 0.12}
+            rx="1"
+          />
+        ))}
+      </g>
+    ))
+  }
+
+  <!-- the tower: one holding stacked so high the board beneath it stopped moving -->
+  <g>
+    <rect x={856} y={40} width={56} height={222} fill="url(#towerGold)" opacity="0.95" rx="3" />
+    <g fill="#1c1207" opacity="0.55">
+      <rect x="868" y="62" width="10" height="12" rx="1" />
+      <rect x="890" y="62" width="10" height="12" rx="1" />
+      <rect x="868" y="90" width="10" height="12" rx="1" />
+      <rect x="890" y="90" width="10" height="12" rx="1" />
+      <rect x="868" y="118" width="10" height="12" rx="1" />
+      <rect x="890" y="118" width="10" height="12" rx="1" />
+      <rect x="868" y="146" width="10" height="12" rx="1" />
+      <rect x="890" y="146" width="10" height="12" rx="1" />
+      <rect x="868" y="174" width="10" height="12" rx="1" />
+      <rect x="890" y="174" width="10" height="12" rx="1" />
+      <rect x="868" y="202" width="10" height="12" rx="1" />
+      <rect x="890" y="202" width="10" height="12" rx="1" />
+    </g>
+  </g>
+
+  <!-- table edge -->
+  <rect x="0" y={BASELINE} width="1040" height="78" fill="#120e09" />
+  <line x1="0" y1={BASELINE} x2="1040" y2={BASELINE} stroke="#453214" stroke-width="1.5" />
+
+  <!-- foreground left: two dice mid-roll, and the token still on the board -->
+  <g transform="translate(96 292)">
+    <rect x="-18" y="-18" width="36" height="36" rx="7" fill="#fef3c7" transform="rotate(-12)" />
+    <g fill="#1c1207" transform="rotate(-12)">
+      <circle cx="-8" cy="-8" r="2.6" />
+      <circle cx="8" cy="8" r="2.6" />
+      <circle cx="0" cy="0" r="2.6" />
+    </g>
+  </g>
+  <g transform="translate(152 300)">
+    <rect x="-15" y="-15" width="30" height="30" rx="6" fill="#fef3c7" transform="rotate(9)" />
+    <g fill="#1c1207" transform="rotate(9)">
+      <circle cx="-6" cy="-6" r="2.3" />
+      <circle cx="6" cy="-6" r="2.3" />
+      <circle cx="-6" cy="6" r="2.3" />
+      <circle cx="6" cy="6" r="2.3" />
+    </g>
+  </g>
+
+  <!-- the token: the cosmic-X, still in play, small against the tower -->
+  <g transform="translate(232 298)">
+    <circle cx="0" cy="0" r="19" fill="#241a08" stroke="#fbbf24" stroke-width="1.5" opacity="0.95" />
+    <g stroke="url(#xToken)" stroke-width="4.5" stroke-linecap="round">
+      <line x1="-7" y1="-8" x2="7" y2="8" />
+      <line x1="7" y1="-8" x2="-7" y2="8" />
+    </g>
+  </g>
+
+  <!-- foreground right: a die that has stopped, on a square nobody is bidding for -->
+  <g transform="translate(902 300)" opacity="0.45">
+    <rect x="-14" y="-14" width="28" height="28" rx="6" fill="#52525b" />
+    <circle cx="0" cy="0" r="2.2" fill="#18181b" />
+  </g>
+</svg>

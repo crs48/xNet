@@ -153,7 +153,7 @@ export function SettingsView({
   }
 
   return (
-    <div className={cn('flex h-full bg-background', className)}>
+    <div className={cn('flex h-full', className)}>
       {/* Sidebar navigation */}
       <aside className="w-56 border-r border-border bg-secondary/30">
         <div className="p-4">
@@ -189,7 +189,7 @@ export function SettingsView({
 
       {/* Content area */}
       <main className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
+        <ScrollArea className="h-full" fade>
           <div className="max-w-2xl mx-auto p-6">
             {/* Section header */}
             <div className="mb-6">

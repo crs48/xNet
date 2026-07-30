@@ -26,6 +26,12 @@ import { allow, PUBLIC, AUTHENTICATED, role } from './builders'
 
 /**
  * Authorization presets for common patterns.
+ *
+ * Each preset declares the coarse `write` action, which also governs the
+ * `create`/`update` refinements via fallback (exploration 0304). For
+ * author-owned content inside a Space ("members may post, only the author may
+ * edit") use `spaceContributorAuthorization()` from the schema helpers, or
+ * declare `create`/`update` directly.
  */
 export const presets = {
   /**

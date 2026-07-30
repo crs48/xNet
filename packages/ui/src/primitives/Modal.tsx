@@ -66,8 +66,10 @@ export function Modal({
             '-translate-x-1/2 -translate-y-1/2',
             'w-full',
             'grid gap-4 p-6',
-            'border border-border bg-background',
-            'rounded-lg',
+            // Overlay island: reads like the workspace chrome islands, a step
+            // darker with a deeper shadow so it clearly hovers on top.
+            'border border-hairline bg-island-pop shadow-pop',
+            'rounded-2xl',
             'focus:outline-none',
             // Animation
             'opacity-0 scale-95',
@@ -224,8 +226,10 @@ export const DialogContent = React.forwardRef<
         '-translate-x-1/2 -translate-y-1/2',
         'w-full max-w-lg',
         'grid gap-4 p-6',
-        'border border-border bg-background',
-        'rounded-lg',
+        // Overlay island: reads like the workspace chrome islands, a step
+        // darker with a deeper shadow so it clearly hovers on top.
+        'border border-hairline bg-island-pop shadow-pop',
+        'rounded-2xl',
         'focus:outline-none',
         // Animation
         'opacity-0 scale-95',

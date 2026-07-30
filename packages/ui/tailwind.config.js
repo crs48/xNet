@@ -1,4 +1,21 @@
 import tailwindcssAnimate from 'tailwindcss-animate'
+import plugin from 'tailwindcss/plugin'
+
+/**
+ * Size modifiers for the scroll-edge fade (exploration 0386).
+ *
+ * The utilities themselves live in `src/theme/scroll-fade.css` — they need
+ * `@property` registrations and `@supports`, which a config can't express.
+ * This only exposes the depth knob on the spacing scale, so
+ * `scroll-fade scroll-fade-4` or `scroll-fade-[3rem]` tune the fade without
+ * hand-writing a custom property.
+ */
+const scrollFade = plugin(({ matchUtilities, theme }) => {
+  matchUtilities(
+    { 'scroll-fade': (value) => ({ '--scroll-fade-size': value }) },
+    { values: theme('spacing') }
+  )
+})
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -21,6 +38,18 @@ export default {
         },
         hairline: 'hsl(var(--hairline))',
         'accent-ink': 'hsl(var(--accent-ink))',
+
+        // Floating-islands surfaces (0286). `canvas`/`island` are the
+        // brightest, forward plane (main surface + editor); `island-b` is the
+        // chrome island fill that recedes. Resolve to the ramp unless a
+        // `.wb-root` scope overrides them (see tokens.css).
+        canvas: 'hsl(var(--canvas, var(--surface-0)))',
+        island: {
+          DEFAULT: 'hsl(var(--island, var(--surface-0)))',
+          b: 'hsl(var(--island-b, var(--surface-1)))',
+          // Overlay islands (modals/panels) — a step darker, deeper shadow.
+          pop: 'hsl(var(--island-pop, var(--popover)))'
+        },
 
         // Background variants
         background: {
@@ -97,6 +126,12 @@ export default {
           active: 'hsl(var(--warning-active))',
           muted: 'hsl(var(--warning-muted))',
           foreground: 'hsl(var(--warning-foreground))'
+        },
+
+        // Inline comment marks and cell indicators (0375).
+        comment: {
+          DEFAULT: 'hsl(var(--comment))',
+          strong: 'hsl(var(--comment-strong))'
         },
 
         // Input & Ring
@@ -220,6 +255,10 @@ export default {
         // theme variant (e.g. `cozy`) defines --shadow-soft, so it's a no-op
         // on the default monochrome ramp.
         soft: 'var(--shadow-soft, none)',
+        // Floating-islands elevation (0286): the deep shadow overlays carry.
+        // Chrome islands sit flat (hairline border only, 0299). Token-driven
+        // so a `.wb-root` scope can swap light/dark ramps.
+        pop: 'var(--pop-shadow, 0 8px 24px rgb(0 0 0 / 0.12))',
         inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
         none: 'none'
       },
@@ -367,5 +406,5 @@ export default {
       }
     }
   },
-  plugins: [tailwindcssAnimate]
+  plugins: [tailwindcssAnimate, scrollFade]
 }

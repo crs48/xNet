@@ -1,5 +1,5 @@
 /**
- * Game-event → XNet-node mapping (exploration 0200).
+ * Game-event → xNet-node mapping (exploration 0200).
  *
  * A connector's `pull` fetches a stream of normalized game events from the title's
  * events API and materializes each as a governed node. This module is the pure,
@@ -22,7 +22,7 @@ import {
 export interface PlayerEvent {
   kind: 'player'
   displayName: string
-  /** The player's portable XNet `did:key`, when known. */
+  /** The player's portable xNet `did:key`, when known. */
   did?: string
   homeGame?: string
   bio?: string

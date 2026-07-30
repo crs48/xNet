@@ -9,7 +9,7 @@
  */
 
 import { PageSchema, MemoryNodeStorageAdapter } from '@xnetjs/data'
-import { RichTextEditor } from '@xnetjs/editor/react'
+import { XNetEditor } from '@xnetjs/editor/react'
 import { identityFromPrivateKey } from '@xnetjs/identity'
 import { XNetProvider, useNode } from '@xnetjs/react'
 import React from 'react'
@@ -85,11 +85,9 @@ function DocEditor() {
 
       {doc && (
         <div className="editor-container" data-testid="editor-container">
-          <RichTextEditor
+          <XNetEditor
             ydoc={doc}
-            field="content"
             placeholder="Start writing..."
-            showToolbar={false}
             awareness={awareness ?? undefined}
             did={authorDID}
           />

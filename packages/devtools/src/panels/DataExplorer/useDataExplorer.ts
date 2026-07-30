@@ -61,6 +61,30 @@ export function changeAffectsCount(event: NodeChangeEvent): boolean {
   return (event.previousNode?.deleted ?? false) !== (event.node?.deleted ?? false)
 }
 
+/**
+ * Only schemas that are IN USE belong in the picker. The global registry also
+ * accumulates schemas registered as import side effects (plugins, labs,
+ * conformance…) that the host app never touches — in a small host (the 0314
+ * demos app) those outnumbered the real schemas ~20:1 and buried them. In
+ * use = has rows (count > 0), appears in the current result window (covers
+ * the beat between a first create and the next count pass), or is the
+ * current selection (so a schema can't vanish out from under the user when
+ * its last row is deleted).
+ */
+export function selectInUseSchemaOptions(
+  candidates: readonly SchemaOption[],
+  counts: ReadonlyMap<string, number>,
+  observedSchemaIds: ReadonlySet<string>,
+  selectedSchema: string | null
+): SchemaOption[] {
+  return candidates.filter(
+    (option) =>
+      (counts.get(option.iri) ?? 0) > 0 ||
+      observedSchemaIds.has(option.iri) ||
+      option.iri === selectedSchema
+  )
+}
+
 export function useDataExplorer() {
   const { store } = useDevTools()
 
@@ -229,21 +253,23 @@ export function useDataExplorer() {
     }
   }, [store, runQuery])
 
-  // Schema dropdown options: registered ∪ observed-in-results, deduped per
-  // schema (the registry lists each schema under both a versioned IRI and a
-  // bare alias, which would otherwise show every schema twice).
-  const schemaOptions = useMemo<SchemaOption[]>(
+  // Candidate schemas: registered ∪ observed-in-results, deduped per schema
+  // (the registry lists each schema under both a versioned IRI and a bare
+  // alias, which would otherwise show every schema twice). Candidates feed
+  // the count pass below — which doubles as usage discovery — but are NOT
+  // what the picker shows; see `schemaOptions`.
+  const candidateSchemaOptions = useMemo<SchemaOption[]>(
     () => buildSchemaOptions([...registryIris, ...state.nodes.map((n) => n.schemaId)]),
     [registryIris, state.nodes]
   )
 
   // Stable key of the IRIs we need counts for. Joining into one newline-
   // separated string (schema IRIs never contain newlines) keeps the count
-  // effect from re-running when `schemaOptions` is rebuilt with the same set of
+  // effect from re-running when the candidate set is rebuilt with the same
   // schemas — its identity changes on every query as `state.nodes` updates.
   const countableIrisKey = useMemo(
-    () => Array.from(new Set(schemaOptions.map((o) => o.iri))).join('\n'),
-    [schemaOptions]
+    () => Array.from(new Set(candidateSchemaOptions.map((o) => o.iri))).join('\n'),
+    [candidateSchemaOptions]
   )
 
   // Per-schema entity counts. We read each schema's exact total via
@@ -287,6 +313,19 @@ export function useDataExplorer() {
       alive = false
     }
   }, [store, countableIrisKey, includeDeleted, dataVersion])
+
+  // What the picker actually offers: only schemas that are IN USE — see
+  // selectInUseSchemaOptions.
+  const schemaOptions = useMemo<SchemaOption[]>(
+    () =>
+      selectInUseSchemaOptions(
+        candidateSchemaOptions,
+        schemaCounts,
+        new Set<string>(state.nodes.map((n) => n.schemaId as string)),
+        selectedSchema
+      ),
+    [candidateSchemaOptions, schemaCounts, state.nodes, selectedSchema]
+  )
 
   // "All schemas" total = sum of the per-schema counts (i.e. across pickable
   // schemas). Null until the first count pass resolves, so the picker shows a

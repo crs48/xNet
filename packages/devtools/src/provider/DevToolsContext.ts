@@ -3,6 +3,7 @@
  */
 
 import type { DevToolsEventBus } from '../core/event-bus'
+import type { ConsoleLogStore } from '../core/log-store'
 import type { NodeStore } from '@xnetjs/data'
 import type { DocumentHistoryEngine } from '@xnetjs/history'
 import type * as Y from 'yjs'
@@ -19,6 +20,7 @@ export type PanelId =
   | 'yjs'
   | 'authz'
   | 'abuse'
+  | 'agent-audit'
   | 'queries'
   | 'traces'
   | 'telemetry'
@@ -75,6 +77,14 @@ export interface YDocRegistry {
 }
 
 export interface DevToolsContextValue {
+  /**
+   * True when the full devtools implementation is mounted (dev entry). Hosts use
+   * this to decide whether to render their own devtools launcher (e.g. the
+   * workbench dev-tools island, 0287/0289) — it matches exactly when the FAB
+   * would show, so it works in any build that bundles the real provider, not
+   * only under `import.meta.env.DEV`. The production stub returns `false`.
+   */
+  available: boolean
   /** Whether the devtools panel is open */
   isOpen: boolean
   /** Currently active panel tab */
@@ -95,6 +105,8 @@ export interface DevToolsContextValue {
 
   /** The event bus instance */
   eventBus: DevToolsEventBus
+  /** Provider-lifetime captured console output (exploration 0275) */
+  consoleLogs: ConsoleLogStore
   /** The NodeStore instance (from context) */
   store: NodeStore | null
   /** Registry of Y.Doc instances for tree inspection */

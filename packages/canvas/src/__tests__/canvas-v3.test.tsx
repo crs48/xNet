@@ -253,6 +253,60 @@ describe('Canvas v3 active renderer', () => {
     })
   })
 
+  it('opens a right-click context menu for a node when nodeContextActions is provided (0285 PR4)', () => {
+    const doc = createCanvasTestDoc()
+    const page = getNodeByTitle(doc, 'Research Page')
+    const onSelectionChange = vi.fn()
+    const run = vi.fn()
+    const nodeContextActions = vi.fn(() => [
+      { id: 'rename', label: 'Rename', run },
+      { id: 'delete', label: 'Delete', danger: true, run: () => {} }
+    ])
+
+    render(
+      <Canvas
+        doc={doc}
+        onSelectionChange={onSelectionChange}
+        nodeContextActions={nodeContextActions}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const island = screen.getByText('Research Page').closest('[data-canvas-v3-object="true"]')
+    if (!island) {
+      throw new Error('Expected Research Page DOM island')
+    }
+
+    fireEvent.contextMenu(island, { clientX: 480, clientY: 320 })
+
+    // Right-clicking a node outside the selection selects it first, so the
+    // supplied verbs act on that node.
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ nodeIds: [page.id], edgeIds: [] })
+    expect(nodeContextActions).toHaveBeenCalledWith(page.id)
+
+    // The menu renders the descriptor list; invoking an item runs its handler.
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Rename' }))
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves nodes without a context menu when nodeContextActions is absent (opt-in)', () => {
+    const doc = createCanvasTestDoc()
+
+    render(
+      <Canvas doc={doc} renderNode={(node) => <span>{node.properties.title as string}</span>} />
+    )
+
+    const island = screen.getByText('Research Page').closest('[data-canvas-v3-object="true"]')
+    if (!island) {
+      throw new Error('Expected Research Page DOM island')
+    }
+
+    fireEvent.contextMenu(island, { clientX: 480, clientY: 320 })
+
+    // No portalled menu appears — the renderer is untouched by default.
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
   it('routes creation shortcuts through app entry callbacks', () => {
     const doc = createCanvasTestDoc()
     const onCreateObject = vi.fn()

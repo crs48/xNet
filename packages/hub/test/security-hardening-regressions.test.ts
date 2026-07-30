@@ -15,24 +15,32 @@ const readSource = (relativePath: string): string =>
 
 describe('Security hardening regressions', () => {
   it('keeps bearer tokens out of URL construction paths', () => {
+    // Hub-session/URL handling moved from App.tsx to the boot orchestrator
+    // (0276), then to its own boot/hub-session unit (0290) — check the shell
+    // and the extracted resolver.
     const webApp = readSource('apps/web/src/App.tsx')
+    const hubSession = readSource('apps/web/src/boot/hub-session.ts')
     const webShareRoute = readSource('apps/web/src/routes/share.tsx')
     const dataService = readSource('apps/electron/src/data-process/data-service.ts')
 
     expect(webApp).not.toMatch(/[?&]token=/)
+    expect(hubSession).not.toMatch(/[?&]token=/)
     expect(webShareRoute).not.toMatch(/[?&]token=/)
     expect(dataService).not.toMatch(/searchParams\.set\(\s*['"]token['"]/)
   })
 
   it('strips secret-bearing params from browser URLs', () => {
-    const webApp = readSource('apps/web/src/App.tsx')
+    // Extracted to boot/hub-session.ts in 0290 (testable without the SQLite
+    // worker graph); the /share route inputs are deliberately left untouched
+    // there and sanitized by the route itself after reading.
+    const hubSession = readSource('apps/web/src/boot/hub-session.ts')
     const webShareRoute = readSource('apps/web/src/routes/share.tsx')
 
     // stripParams removes the named params from both the search string and
     // the hash query (hash routing) before rewriting history.
-    expect(webApp).toContain("stripParams('payload', 'handle')")
-    expect(webApp).toContain("stripParams('shareSession')")
-    expect(webApp).toContain('window.history.replaceState')
+    expect(hubSession).toContain("stripParams('payload', 'handle')")
+    expect(hubSession).toContain("stripParams('shareSession')")
+    expect(hubSession).toContain('window.history.replaceState')
 
     expect(webShareRoute).toContain('window.history.replaceState')
   })

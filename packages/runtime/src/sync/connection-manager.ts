@@ -9,6 +9,9 @@
  *   { type: "subscribe", topics: ["xnet-doc-abc", "xnet-doc-def"] }
  */
 
+import { capped, exponential, fixed, jittered, limitAttempts } from '@xnetjs/core'
+import { createReconnectScheduler } from './reconnect-scheduler'
+
 // Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
 function log(...args: unknown[]): void {
   if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug') === 'true') {
@@ -102,8 +105,6 @@ export interface MultiHubConnectionManagerConfig {
 export function createConnectionManager(config: ConnectionManagerConfig): ConnectionManager {
   let ws: WebSocket | null = null
   let status: ConnectionStatus = 'disconnected'
-  let reconnectAttempts = 0
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let connectTimer: ReturnType<typeof setTimeout> | null = null
   let destroyed = false
   let connectInProgress = false
@@ -118,6 +119,23 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
   const connectTimeout = config.connectTimeout ?? 10000
   const initialConnectTimeout =
     config.initialConnectTimeout ?? (connectTimeout > 0 ? Math.min(connectTimeout, 6000) : 0)
+
+  // Exponential backoff capped at maxReconnectDelay; the first retry keeps the
+  // base delay so a persistently unreachable hub isn't dialed every
+  // reconnectDelay ms (exploration 0204).
+  const reconnectPolicy = limitAttempts(
+    capped(exponential(reconnectDelay), maxReconnectDelay),
+    maxReconnects
+  )
+  // Policy/rate-limit close (1008): the hub explicitly asked us to stop. Back
+  // off hard with up to 50% jitter so we neither tight-loop nor stampede on a
+  // reconnect that would just re-flood (exploration 0206).
+  const rateLimitPolicy = limitAttempts(jittered(fixed(rateLimitBackoffMs)), maxReconnects)
+
+  const reconnectScheduler = createReconnectScheduler({
+    policy: () => (policyViolation ? rateLimitPolicy : reconnectPolicy),
+    onRetry: () => void doConnect()
+  })
 
   function clearConnectTimer(): void {
     if (connectTimer) {
@@ -162,7 +180,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
    * Set the relevant timeout to 0 to disable.
    */
   function armConnectTimeout(): void {
-    const timeout = reconnectAttempts === 0 ? initialConnectTimeout : connectTimeout
+    const timeout = reconnectScheduler.attempts === 0 ? initialConnectTimeout : connectTimeout
     if (timeout <= 0 || !Number.isFinite(timeout)) return
     connectTimer = setTimeout(onConnectTimeout, timeout)
   }
@@ -312,7 +330,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
         connectInProgress = false
         log('WebSocket connected')
         setStatus('connected')
-        reconnectAttempts = 0
+        reconnectScheduler.reset()
         policyViolation = false
 
         // Re-subscribe to all rooms
@@ -353,27 +371,11 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
   }
 
   function scheduleReconnect(): void {
-    if (destroyed || reconnectAttempts >= maxReconnects) return
-    if (reconnectTimer) return
-
-    reconnectAttempts++
-    let backoff: number
-    if (policyViolation) {
-      // Policy/rate-limit close (1008): the hub explicitly asked us to stop.
-      // Back off hard with jitter so we neither tight-loop nor stampede on a
-      // reconnect that would just re-flood (exploration 0206).
+    if (destroyed) return
+    if (reconnectScheduler.schedule()) {
+      // The 1008 flag is consumed by the retry it selected a policy for.
       policyViolation = false
-      backoff = rateLimitBackoffMs + Math.floor(Math.random() * rateLimitBackoffMs * 0.5)
-    } else {
-      // Exponential backoff capped at maxReconnectDelay. The first retry keeps
-      // the base delay (back-compat); later retries back off so a persistently
-      // unreachable hub isn't dialed every reconnectDelay ms (exploration 0204).
-      backoff = Math.min(reconnectDelay * 2 ** (reconnectAttempts - 1), maxReconnectDelay)
     }
-    reconnectTimer = setTimeout(() => {
-      reconnectTimer = null
-      void doConnect()
-    }, backoff)
   }
 
   return {
@@ -392,10 +394,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     disconnect() {
       destroyed = true
       clearConnectTimer()
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer)
-        reconnectTimer = null
-      }
+      reconnectScheduler.cancel()
       if (ws) {
         // Unsubscribe from all rooms before closing
         if (rooms.size > 0) {

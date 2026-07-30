@@ -37,6 +37,7 @@ export const OPERATORS_BY_TYPE: Record<ColumnType, FilterOperator[]> = {
   checkbox: ['equals'],
   date: ['equals', 'before', 'after', 'between', 'isEmpty', 'isNotEmpty'],
   dateRange: ['before', 'after', 'between', 'isEmpty', 'isNotEmpty'],
+  geo: ['isEmpty', 'isNotEmpty'],
   select: ['equals', 'notEquals', 'isEmpty', 'isNotEmpty'],
   multiSelect: ['hasAny', 'hasAll', 'hasNone', 'isEmpty', 'isNotEmpty'],
   person: ['equals', 'notEquals', 'isEmpty', 'isNotEmpty'],

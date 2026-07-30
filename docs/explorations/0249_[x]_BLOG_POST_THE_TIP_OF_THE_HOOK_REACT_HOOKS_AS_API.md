@@ -1,4 +1,4 @@
-# Blog Post: "The Tip of the Hook" — XNet's React Hooks as the Whole API
+# Blog Post: "The Tip of the Hook" — xNet's React Hooks as the Whole API
 
 ## Problem Statement
 
@@ -12,7 +12,7 @@ for a general audience.
 
 There's a second deep-dive the project has been missing, aimed squarely at
 **developers**: a tour of the thing they actually touch — the **React
-hooks** — and the argument that, in XNet, *the hooks are the API*. You write
+hooks** — and the argument that, in xNet, *the hooks are the API*. You write
 `useQuery(TaskSchema)` in a component and you get a live, local, offline-first,
 cryptographically-authorized, remotely-mirrored database query, with no
 endpoint to define, no auth middleware to write, no websocket to wire, no
@@ -242,36 +242,36 @@ required. The PR still needs a `changelog-section` fragment (precedent: blog
 
 ## External Research
 
-The post should situate XNet among the local-first / sync-engine field —
+The post should situate xNet among the local-first / sync-engine field —
 both to be credible and to sharpen what's distinct (the *cryptographic*
 enforcement of a client-declared API).
 
 - **Ink & Switch, "Local-first software" (2019)** — the canonical seven
   ideals (fast, multi-device, offline, collaborative, long-lived, private,
-  user-controlled). XNet's hooks are an attempt to make those ideals the
+  user-controlled). xNet's hooks are an attempt to make those ideals the
   *default* of a `useQuery` call. (Already cited in #7.)
 - **Replicache / Rocicorp Zero** — the closest DX cousin: client-side
   queries, a server-authoritative sync, optimistic mutations. Zero ships a
   `useQuery`-style reactive client over a query cache. Difference: Replicache/
   Zero trust a server for authority and permissions (Zero's read/write
-  *permissions* run on the server); XNet pushes authorization into a *signed,
+  *permissions* run on the server); xNet pushes authorization into a *signed,
   hash-chained* log so no server is the root of trust.
 - **Convex / InstantDB** — reactive "DB-as-hooks" (`useQuery`) with a
   hosted backend. Beautiful DX, but the database and auth are the vendor's
-  service; offline is partial. XNet's master copy is the local SQLite and the
+  service; offline is partial. xNet's master copy is the local SQLite and the
   identity is a `did:key`.
 - **ElectricSQL / PowerSync** — sync a server Postgres into a local SQLite,
   reactive queries against the local copy. Architecturally the nearest to
-  XNet's "full DB queries locally, mirrored remotely." Difference: they
-  centre a Postgres of record and shape-based partial replication; XNet
+  xNet's "full DB queries locally, mirrored remotely." Difference: they
+  centre a Postgres of record and shape-based partial replication; xNet
   centres the *edge* device and a portable, signed change log.
 - **RxDB / WatermelonDB / TinyBase** — local reactive databases with
   pluggable replication; WatermelonDB famously runs queries off the main
-  thread for large datasets — direct prior art for XNet's worker + SQLite
+  thread for large datasets — direct prior art for xNet's worker + SQLite
   approach. None bake in cryptographic identity/authz.
 - **TanStack Query / SWR** — popularized the `useQuery` hook *ergonomics*
-  XNet borrows, but they cache *remote* fetches; there is no local database
-  or offline write path. Worth a one-line nod: XNet keeps the ergonomics,
+  xNet borrows, but they cache *remote* fetches; there is no local database
+  or offline write path. Worth a one-line nod: xNet keeps the ergonomics,
   swaps the backend for your own disk.
 - **Linear's sync engine** (engineering talks) — the reference for "feels
   instant because it's local; sync is a background detail." Good rhetorical
@@ -296,7 +296,7 @@ quadrantChart
   "ElectricSQL/PowerSync": [0.62, 0.34]
   "WatermelonDB/RxDB": [0.70, 0.40]
   "TanStack Query": [0.22, 0.12]
-  "XNet": [0.88, 0.88]
+  "xNet": [0.88, 0.88]
 ```
 
 ## Key Findings
@@ -311,7 +311,7 @@ quadrantChart
 3. **Trust is mathematical, not positional.** Because every change is signed
    (Ed25519) and hash-chained (BLAKE3), the client-declared rules are
    *enforceable without trusting the transport or the hub*. This is the
-   crux that separates XNet from the Convex/Replicache family.
+   crux that separates xNet from the Convex/Replicache family.
 4. **Views are live by construction.** `useSyncExternalStore` + a bounded
    working set means edits (local or just-synced) flow into the visible list
    as in-memory deltas, with object-identity reuse so React re-renders only
@@ -332,7 +332,7 @@ quadrantChart
 | --- | --- | --- |
 | **A1. Iceberg tour (recommended)** — surface hooks → dive to workers/SQLite/crypto, mirroring the brief | Matches the ask exactly; the "tip vs. depth" metaphor carries the whole piece; parallels #7's structure | Long; must resist becoming an API reference |
 | A2. Pure tutorial ("build a task app in 20 lines") | Concrete, copy-pasteable | Undersells the depth; reads like docs, not an essay |
-| A3. Comparison-led ("XNet vs. Convex vs. Electric") | SEO-friendly, sharp | Risks being a competitor takedown; ages fast |
+| A3. Comparison-led ("xNet vs. Convex vs. Electric") | SEO-friendly, sharp | Risks being a competitor takedown; ages fast |
 
 ### B. How much code
 

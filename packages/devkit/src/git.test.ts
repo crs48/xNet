@@ -79,4 +79,34 @@ describe('Git (real temp repo)', () => {
   it('throws GitError on a bad command', async () => {
     await expect(git.restore('nonexistent-ref-zzz')).rejects.toThrow(/git .* failed/)
   })
+
+  // Regression (PR #445, #444): under a husky hook, git subprocesses inherited
+  // GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE and committed/pushed into the *hook's*
+  // repo instead of this instance's `cwd`. A checkpoint must land in `cwd`.
+  it('commits into cwd even when GIT_* env points at another repo (hook leak)', async () => {
+    const bogus = mkdtempSync(join(tmpdir(), 'xnet-devkit-git-leak-'))
+    const saved: Record<string, string | undefined> = {}
+    for (const v of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE']) saved[v] = process.env[v]
+    process.env.GIT_DIR = bogus // a non-repo location, as a stray hook env would be
+    process.env.GIT_WORK_TREE = bogus
+    process.env.GIT_INDEX_FILE = join(bogus, 'index')
+    try {
+      writeFileSync(join(dir, 'feature.txt'), 'work\n')
+      const cp = await git.checkpoint('leak-guard')
+
+      // The cwd repo advanced with our checkpoint...
+      expect(await git.headSha()).toBe(cp.sha)
+      expect((await git.log(2))[0]).toEqual({ sha: cp.sha, label: 'checkpoint: leak-guard' })
+      expect(await git.isClean()).toBe(true)
+      // ...and the leaked-env location never became a repo.
+      expect(existsSync(join(bogus, 'HEAD'))).toBe(false)
+      expect(existsSync(join(bogus, 'refs'))).toBe(false)
+    } finally {
+      for (const [v, val] of Object.entries(saved)) {
+        if (val === undefined) delete process.env[v]
+        else process.env[v] = val
+      }
+      rmSync(bogus, { recursive: true, force: true })
+    }
+  })
 })

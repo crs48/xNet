@@ -7,22 +7,28 @@ import ThemeToggle from '../ui/ThemeToggle.astro'
 // Changelog, the SDK docs — lives in the footer.
 const homeLinks = [
   { href: '/#app', label: 'App' },
-  { href: '/#hubs', label: 'Teams' },
-  { href: '/#vision', label: 'Vision' },
+  { href: '/#developers', label: 'Developers' },
+  { href: '/#open', label: 'Open' },
 ]
 const pageLinks = [
   { href: '/why', label: 'Why' },
   { href: '/build-with', label: 'Build' },
+  { href: '/demos/', label: 'Demos' },
   { href: '/blog', label: 'Blog' },
 ]
 ---
 
 <header class="sticky top-0 z-50 border-b border-border/50 bg-white/80 dark:bg-[#0a0a0f]/80 backdrop-blur-xl">
   <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-    <a href="/" class="font-mono text-xl font-bold tracking-tight text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+    <a href="/" class="brand font-mono text-xl font-bold tracking-tight text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+      <!-- Below md the nav row is already over-full (pre-existing), so the
+           mark stays out of that band rather than adding to the overflow. -->
+      <span class="brand-mark hidden md:block" aria-hidden="true"></span>
       xNet
     </a>
-    <div class="flex items-center gap-5 text-sm">
+    <!-- Tighter link spacing below lg: the brand mark costs ~32px and the row
+         has no slack left at tablet widths. Desktop spacing is unchanged. -->
+    <div class="flex items-center gap-4 lg:gap-5 text-sm">
       {homeLinks.map(link => (
         <a href={link.href} class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
           {link.label}
@@ -54,3 +60,60 @@ const pageLinks = [
     </div>
   </nav>
 </header>
+
+<style>
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* The mark is debossed rather than drawn: two offset copies of the same
+     alpha mask, a dark incision over a light lower edge, so it reads as
+     pressed into the header rather than sitting on it. Deliberately faint —
+     it is texture beside the wordmark, not a second logo competing with it. */
+  .brand-mark {
+    position: relative;
+    width: 1.5rem;
+    height: 1.5rem;
+    flex: none;
+  }
+
+  .brand-mark::before,
+  .brand-mark::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    -webkit-mask: url('/mark.png') center / contain no-repeat;
+    mask: url('/mark.png') center / contain no-repeat;
+  }
+
+  /* Lower edge catching the light, offset down-right. */
+  .brand-mark::before {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translate(0.5px, 0.5px);
+  }
+
+  /* The incision itself. */
+  .brand-mark::after {
+    background: rgba(15, 23, 42, 0.62);
+  }
+
+  /* On the near-black header a dark incision has nowhere to go, so the groove
+     is read the other way round: the lit lower edge carries the shape and the
+     shadow sits above it. Etched rather than pressed, same intent. */
+  :global(.dark) .brand-mark::before {
+    background: rgba(0, 0, 0, 0.9);
+    transform: translate(-0.5px, -0.5px);
+  }
+
+  :global(.dark) .brand-mark::after {
+    background: rgba(255, 255, 255, 0.50);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .brand-mark::before {
+      display: none;
+    }
+  }
+</style>

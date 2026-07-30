@@ -1,8 +1,15 @@
 /**
  * Integration test: real parallelism across `worker_threads` reader threads
  * (exploration 0230, Phase 1). Spawns genuine workers running `better-sqlite3`
- * read-only connections and proves two CPU-heavy reads complete in ≈ max(t1,t2),
- * not t1 + t2 — the thing the browser's `opfs-sahpool` VFS cannot do.
+ * read-only connections and proves two reads execute concurrently on distinct
+ * threads — the thing the browser's `opfs-sahpool` VFS cannot do.
+ *
+ * Concurrency is proven with a shared-memory rendezvous, not wall-clock ratios:
+ * each reader parks inside its request handler until the other reader arrives,
+ * so the test only passes if both requests are simultaneously executing on two
+ * threads. A serial dispatcher (or a single reusable thread) deadlocks at the
+ * barrier and fails via its timeout. Wall-clock speedup assertions were removed
+ * — they flake on contended CI runners where 2× cores aren't really available.
  *
  * Best-effort: skips if the native addon or worker spawning is unavailable.
  */
@@ -24,6 +31,24 @@ const cache = new Map()
 parentPort.on('message', (req) => {
   try {
     if (req.op === 'ping') { parentPort.postMessage({ id: req.id, ok: true, pong: true }); return }
+    if (req.op === 'query' && req.sql.indexOf('rendezvous') !== -1) {
+      // Two-thread barrier: park until the peer reader is ALSO inside its
+      // handler. Only genuinely concurrent threads can both get here — a
+      // single thread serving both requests blocks on the first and times out.
+      const lane = new Int32Array(workerData.sab)
+      Atomics.add(lane, 0, 1)
+      Atomics.notify(lane, 0)
+      const deadline = Date.now() + 10000
+      while (Atomics.load(lane, 0) < 2) {
+        if (Date.now() >= deadline) {
+          parentPort.postMessage({ id: req.id, ok: false, error: 'rendezvous timeout: no second reader thread ran concurrently' })
+          return
+        }
+        Atomics.wait(lane, 0, Atomics.load(lane, 0), 100)
+      }
+      parentPort.postMessage({ id: req.id, ok: true, rows: [{ met: 1 }] })
+      return
+    }
     let stmt = cache.get(req.sql)
     if (!stmt) { stmt = db.prepare(req.sql); cache.set(req.sql, stmt) }
     if (req.op === 'query') {
@@ -40,10 +65,8 @@ parentPort.on('message', (req) => {
 parentPort.postMessage({ id: 0, ready: true })
 `
 
-// A CPU-heavy read: a recursive CTE that burns cycles in SQLite (so the work is
-// in the reader thread, not the dispatcher). Tuned to a few tens of ms.
-const HEAVY_SQL =
-  'WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM c WHERE x < 3000000) SELECT count(*) AS n FROM c'
+// Marker SQL routed to the barrier branch above instead of SQLite.
+const RENDEZVOUS_SQL = "SELECT 'rendezvous'"
 
 async function canSpawnReaders(dbPath: string): Promise<boolean> {
   try {
@@ -103,13 +126,15 @@ d('ReaderPool real worker_threads parallelism (0230)', () => {
     writer.close()
 
     const { Worker } = await import('node:worker_threads')
+    // Shared rendezvous lane visible to every reader in this pool.
+    const sab = new SharedArrayBuffer(4)
     const pool = new ReaderPool({
       dbPath,
       size,
       createWorker: () =>
         new Worker(READER_SOURCE, {
           eval: true,
-          workerData: { dbPath }
+          workerData: { dbPath, sab }
         }) as unknown as ReaderWorkerLike
     })
     // Wait for boot.
@@ -129,25 +154,17 @@ d('ReaderPool real worker_threads parallelism (0230)', () => {
     })
   })
 
-  it('two heavy reads complete in ≈ max(t1,t2), not the sum', async () => {
+  it('two reads execute concurrently on distinct reader threads', async () => {
     await withPool(2, async (pool) => {
-      // Warm both readers' page cache + statement cache so timing is steady.
-      await Promise.all([pool.query(HEAVY_SQL), pool.query(HEAVY_SQL)])
-
-      const t0 = performance.now()
-      await pool.query(HEAVY_SQL)
-      const single = performance.now() - t0
-
-      const t1 = performance.now()
-      await Promise.all([pool.query(HEAVY_SQL), pool.query(HEAVY_SQL)])
-      const both = performance.now() - t1
-
-      // eslint-disable-next-line no-console
-      console.log(
-        `heavy read single=${single.toFixed(1)}ms  two-parallel=${both.toFixed(1)}ms  ratio=${(both / single).toFixed(2)}`
-      )
-      // Serial execution would be ~2×; parallelism keeps it well under.
-      expect(both).toBeLessThan(single * 1.8)
+      // Each request parks at the shared-memory barrier until the other reader
+      // is simultaneously inside its handler. Both resolving proves two
+      // requests were concurrently executing on two real threads; anything
+      // serial deadlocks at the barrier and fails via the reader-side timeout.
+      const rows = await Promise.all([
+        pool.query<{ met: number }>(RENDEZVOUS_SQL),
+        pool.query<{ met: number }>(RENDEZVOUS_SQL)
+      ])
+      expect(rows).toEqual([[{ met: 1 }], [{ met: 1 }]])
     })
   }, 20000)
 })

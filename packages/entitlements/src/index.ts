@@ -17,6 +17,7 @@ export {
   PLAN_ORDER,
   resolveEntitlements,
   withStorage,
+  isSeatMetered,
   withSeats,
   withConcurrency,
   withAiBudget,

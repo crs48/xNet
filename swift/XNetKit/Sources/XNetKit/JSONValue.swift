@@ -1,6 +1,6 @@
 import Foundation
 
-/// A deterministic, `Sendable` JSON value. XNet property values and change
+/// A deterministic, `Sendable` JSON value. xNet property values and change
 /// payloads are plain JSON; using an explicit enum (rather than `Any`) makes
 /// canonicalization unambiguous and lets the whole SDK be `Sendable`.
 public enum JSONValue: Sendable, Equatable, Hashable {
@@ -14,7 +14,7 @@ public enum JSONValue: Sendable, Equatable, Hashable {
 }
 
 public extension JSONValue {
-    /// Canonical JSON per the XNet protocol ([L1 §6]): keys sorted recursively
+    /// Canonical JSON per the xNet protocol ([L1 §6]): keys sorted recursively
     /// (UTF-16 / ASCII order), no insignificant whitespace, arrays in order,
     /// matching JS `JSON.stringify(sortKeysRecursively(value))`.
     func canonicalJSON() -> String {
@@ -29,7 +29,7 @@ public extension JSONValue {
             // KNOWN LIMITATION: fractional / out-of-Int64 doubles are not yet
             // guaranteed byte-identical to JS `Number::toString` (which uses
             // un-padded exponents and a specific decimal/exponential threshold).
-            // XNet's hashed numeric surface is integer-valued, so this is an edge;
+            // xNet's hashed numeric surface is integer-valued, so this is an edge;
             // a Ryu/Grisu port is the proper fix (see exploration 0210 review).
             return String(d)
         case .string(let s): return JSONValue.encodeString(s)

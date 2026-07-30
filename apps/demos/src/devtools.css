@@ -1,0 +1,12 @@
+/*
+ * Styling for the embedded xNet DevTools only. The design tokens
+ * (--surface-*, --ink-*, --hairline) come from @xnetjs/ui; the utilities
+ * are generated from the devtools/ui sources via tailwind.config.js.
+ * The demos' own styling lives in styles.css and stays Tailwind-free
+ * (preflight is disabled).
+ */
+@import '@xnetjs/ui/tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

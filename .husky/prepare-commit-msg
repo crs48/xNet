@@ -1,0 +1,23 @@
+#!/bin/sh
+# Auto-append the DCO sign-off (exploration 0283). xNet uses DCO, not a CLA
+# (GOVERNANCE.md); the dco.yml check requires a Signed-off-by trailer on every
+# commit, but agent-driven commits never ran `git commit -s`, so the check
+# failed on 76% of PRs. Adding the trailer here makes DCO green by
+# construction for every git frontend. Dependency-free on purpose: this must
+# work in worktrees where node_modules (and a modern node) may be absent.
+#
+# Note: `git commit --no-verify` skips pre-commit and commit-msg but NOT this
+# hook, so sign-off survives hook bypasses too. Merges and squashes keep their
+# generated messages untouched.
+case "$2" in
+  merge | squash) exit 0 ;;
+esac
+
+MSG_FILE="$1"
+NAME=$(git config user.name)
+EMAIL=$(git config user.email)
+[ -n "$NAME" ] && [ -n "$EMAIL" ] || exit 0
+
+if ! grep -qi "^Signed-off-by: " "$MSG_FILE"; then
+  printf '\nSigned-off-by: %s <%s>\n' "$NAME" "$EMAIL" >> "$MSG_FILE"
+fi

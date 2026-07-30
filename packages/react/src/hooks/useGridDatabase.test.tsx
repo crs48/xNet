@@ -425,4 +425,86 @@ describe('useGridDatabase', () => {
       timeout: 10_000
     })
   })
+
+  // ─── Form view (exploration 0278) ──────────────────────────────────────────
+
+  it('form view: config round-trips through the view node and submissions become rows', async () => {
+    const wrapper = createWrapper()
+    const databaseId = await setupDatabase(wrapper)
+
+    const { result } = renderHook(() => useGridDatabase(databaseId), { wrapper })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let nameId = ''
+    let urgentId = ''
+    await act(async () => {
+      nameId = (await result.current.addField('Name', 'text')) ?? ''
+      urgentId = (await result.current.addField('Urgent', 'checkbox')) ?? ''
+      await result.current.addView('Intake', 'form')
+    })
+    await waitFor(() => expect(result.current.views).toHaveLength(1))
+    expect(result.current.activeView?.type).toBe('form')
+    // Fresh form views default to accepting with no config.
+    expect(result.current.activeView?.formAccepting).toBe(true)
+    expect(result.current.activeView?.formConfig).toBeNull()
+
+    // Round-trip: config (order/labels/required), rules, accepting.
+    const config = {
+      title: 'Request intake',
+      questions: [
+        { fieldId: nameId, label: 'What do you need?', required: true },
+        { fieldId: urgentId }
+      ],
+      confirmation: { title: 'Got it' }
+    }
+    const rules = {
+      [urgentId]: {
+        when: [{ columnId: nameId, operator: 'isNotEmpty' as const, value: null }],
+        match: 'all' as const
+      }
+    }
+    await act(async () => {
+      await result.current.setFormConfig(config)
+      await result.current.setFormRules(rules)
+      await result.current.setFormAccepting(false)
+    })
+    await waitFor(() => expect(result.current.activeView?.formAccepting).toBe(false))
+    expect(result.current.activeView?.formConfig).toEqual(config)
+    expect(result.current.activeView?.formRules).toEqual(rules)
+
+    // Submit path: cells + provenance land on the row.
+    const viewId = result.current.activeView!.id
+    await act(async () => {
+      await result.current.addRow(
+        undefined,
+        { [nameId]: 'Fix the door', [urgentId]: true },
+        { meta: { via: 'form', viewId, submittedAt: 123 } }
+      )
+    })
+    await waitFor(() => expect(result.current.rows).toHaveLength(1))
+    expect(result.current.rows[0].cells[nameId]).toBe('Fix the door')
+    expect(result.current.rows[0].cells[urgentId]).toBe(true)
+  })
+
+  it('form view: deterministic row ids make retried submissions an upsert, not a duplicate', async () => {
+    const wrapper = createWrapper()
+    const databaseId = await setupDatabase(wrapper)
+
+    const { result } = renderHook(() => useGridDatabase(databaseId), { wrapper })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let nameId = ''
+    await act(async () => {
+      nameId = (await result.current.addField('Name', 'text')) ?? ''
+    })
+
+    // Same deterministic id twice (double-drain / retried POST).
+    const rowId = 'formsub_deadbeefdeadbeefdead'
+    await act(async () => {
+      await result.current.addRow(undefined, { [nameId]: 'Ada' }, { id: rowId })
+      await result.current.addRow(undefined, { [nameId]: 'Ada' }, { id: rowId })
+    })
+    await waitFor(() => expect(result.current.rows).toHaveLength(1))
+    expect(result.current.rows[0].id).toBe(rowId)
+  })
 })

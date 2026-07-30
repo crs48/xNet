@@ -22,6 +22,13 @@ export interface LitestreamReplica {
 }
 
 export interface LitestreamConfig {
+  /**
+   * Optional metrics/HTTP bind address (Litestream's top-level `addr`). When set,
+   * Litestream serves Prometheus metrics there — the source the hub scrapes for a
+   * live `lastSyncMs` (exploration 0288). Bind localhost only so a tenant's
+   * replication metrics are never publicly reachable.
+   */
+  addr?: string
   dbs: Array<{ path: string; replicas: LitestreamReplica[] }>
 }
 
@@ -35,6 +42,8 @@ export interface LitestreamConfigArgs {
   accessKeyId?: string
   secretAccessKey?: string
   syncInterval?: string
+  /** Localhost metrics bind (e.g. `127.0.0.1:9090`); omitted ⇒ no metrics server. */
+  metricsAddr?: string
 }
 
 /** Build a single-DB → R2 Litestream config (env-ref credentials by default). */
@@ -43,6 +52,7 @@ export function litestreamConfig(args: LitestreamConfigArgs): LitestreamConfig {
     throw new Error('litestreamConfig requires dbPath, endpoint, bucket, and path')
   }
   return {
+    ...(args.metricsAddr ? { addr: args.metricsAddr } : {}),
     dbs: [
       {
         path: args.dbPath,
@@ -64,7 +74,10 @@ export function litestreamConfig(args: LitestreamConfigArgs): LitestreamConfig {
 
 /** Render a {@link LitestreamConfig} to the YAML Litestream expects. */
 export function toYaml(config: LitestreamConfig): string {
-  const lines: string[] = ['dbs:']
+  const lines: string[] = []
+  // Top-level metrics bind, when configured (localhost only — exploration 0288).
+  if (config.addr) lines.push(`addr: ${config.addr}`)
+  lines.push('dbs:')
   for (const db of config.dbs) {
     lines.push(`  - path: ${db.path}`)
     lines.push('    replicas:')

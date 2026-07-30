@@ -123,7 +123,7 @@ marketing or cross-linked.
 | Docs: protocol interop | [`protocol/implement-in-your-language.mdx`](../../site/src/content/docs/docs/protocol/implement-in-your-language.mdx), [`protocol/conformance.mdx`](../../site/src/content/docs/docs/protocol/conformance.mdx) | Language-agnostic "build a 2nd impl"; references the Python kernel. No Swift/Rust SDK usage pages. |
 | Docs: JS frameworks | [`guides/frameworks.mdx`](../../site/src/content/docs/docs/guides/frameworks.mdx) | Good; not cross-linked from marketing. |
 | Marketing pages | [`site/src/pages/`](../../site/src/pages) (`react.astro`, `index.astro`, `compare.astro`, `why.astro`, …) | A per-framework page exists for **React only**. |
-| Footer | [`components/sections/Footer.astro`](../../site/src/components/sections/Footer.astro) | "Develop" column → "XNet for React". No multi-language/-framework entry. |
+| Footer | [`components/sections/Footer.astro`](../../site/src/components/sections/Footer.astro) | "Develop" column → "xNet for React". No multi-language/-framework entry. |
 | Existing claim | [`components/followed/TheTurn.astro:30`](../../site/src/components/followed/TheTurn.astro) | "golden test vectors reproduced in **Rust, Python and Swift**" — claim exists, links nowhere. |
 
 The single-source sidebar invariant matters: the `build:llms` step fails if a
@@ -320,7 +320,7 @@ expectation; if it requires uniqueness, link rather than re-list.)
 
 ```js
 const developLinks = [
-  { label: 'XNet for React', href: '/react' },
+  { label: 'xNet for React', href: '/react' },
   { label: 'Build with any language', href: '/build-with' }, // NEW — the ask
   { label: 'Swift SDK', href: '/docs/languages/swift/' },     // NEW
   { label: 'Rust core', href: '/docs/languages/rust/' },      // NEW

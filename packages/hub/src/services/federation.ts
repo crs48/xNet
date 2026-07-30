@@ -88,6 +88,51 @@ const toBase64 = (data: Uint8Array): string => Buffer.from(data).toString('base6
 
 const fromBase64 = (value: string): Uint8Array => new Uint8Array(Buffer.from(value, 'base64'))
 
+/**
+ * Fuse multi-source results with reciprocal rank fusion, THEN collapse
+ * duplicates (explorations 0367/0383).
+ *
+ * Order matters: RRF's whole purpose is to reward documents that several
+ * sources independently returned. Deduplicating by cid *before* fusion
+ * collapses each document to a single source, so fusion degenerates into a
+ * rank transform of one hub's ordering and cross-hub agreement is discarded —
+ * the bug this replaces. Every copy must reach fusion; only then is one
+ * representative kept (the local copy when present, so provenance favours
+ * what this hub can serve directly).
+ */
+export function fuseFederatedResults(results: FederatedResult[], k = 60): FederatedResult[] {
+  const bySource = new Map<string, FederatedResult[]>()
+  for (const result of results) {
+    const list = bySource.get(result.sourceHub) ?? []
+    list.push(result)
+    bySource.set(result.sourceHub, list)
+  }
+
+  for (const list of bySource.values()) {
+    list.sort((a, b) => b.score - a.score)
+  }
+
+  const rrfScores = new Map<string, number>()
+  for (const [, list] of bySource) {
+    for (let rank = 0; rank < list.length; rank++) {
+      const current = rrfScores.get(list[rank].cid) ?? 0
+      rrfScores.set(list[rank].cid, current + 1 / (k + rank + 1))
+    }
+  }
+
+  const seen = new Map<string, FederatedResult>()
+  for (const result of results) {
+    const existing = seen.get(result.cid)
+    if (!existing || (existing.sourceHub !== 'local' && result.sourceHub === 'local')) {
+      seen.set(result.cid, result)
+    }
+  }
+
+  return [...seen.values()]
+    .map((result) => ({ ...result, score: rrfScores.get(result.cid) ?? 0 }))
+    .sort((a, b) => b.score - a.score)
+}
+
 export class FederationService {
   private rateLimiters = new Map<string, RateLimiterState>()
 
@@ -177,8 +222,7 @@ export class FederationService {
       results.push(...fedResults)
     }
 
-    const deduped = this.deduplicateByCid(results)
-    const ranked = this.reciprocalRankFusion(deduped)
+    const ranked = fuseFederatedResults(results)
     const responseResults = ranked.map((result) => ({
       docId: result.nodeId,
       title: result.title,
@@ -359,42 +403,6 @@ export class FederationService {
       }
       return []
     }
-  }
-
-  private deduplicateByCid(results: FederatedResult[]): FederatedResult[] {
-    const seen = new Map<string, FederatedResult>()
-    for (const result of results) {
-      const existing = seen.get(result.cid)
-      if (!existing || result.score > existing.score) {
-        seen.set(result.cid, result)
-      }
-    }
-    return [...seen.values()]
-  }
-
-  private reciprocalRankFusion(results: FederatedResult[], k = 60): FederatedResult[] {
-    const bySource = new Map<string, FederatedResult[]>()
-    for (const result of results) {
-      const list = bySource.get(result.sourceHub) ?? []
-      list.push(result)
-      bySource.set(result.sourceHub, list)
-    }
-
-    for (const list of bySource.values()) {
-      list.sort((a, b) => b.score - a.score)
-    }
-
-    const rrfScores = new Map<string, number>()
-    for (const [, list] of bySource) {
-      for (let rank = 0; rank < list.length; rank++) {
-        const current = rrfScores.get(list[rank].cid) ?? 0
-        rrfScores.set(list[rank].cid, current + 1 / (k + rank + 1))
-      }
-    }
-
-    return results
-      .map((result) => ({ ...result, score: rrfScores.get(result.cid) ?? 0 }))
-      .sort((a, b) => b.score - a.score)
   }
 
   private checkRateLimit(key: string, maxPerMinute: number): boolean {

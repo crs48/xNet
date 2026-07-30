@@ -6,7 +6,6 @@ import type { AgentToolContribution } from './agent-tools'
 import type { AiJsonSchema, AiRiskLevel, AiScope } from './ai-surface/types'
 import type { MentionProviderContribution } from './mention-providers'
 import type { Disposable } from './types'
-import type { Extension } from '@tiptap/core'
 import type { ComponentType } from 'react'
 
 /**
@@ -43,6 +42,22 @@ export interface ViewContribution {
   component: ComponentType<ViewProps>
   /** Schema IRIs this view supports (empty = all) */
   supportedSchemas?: string[]
+}
+
+/**
+ * A frame source renderer (0346): how a node of some schema renders as
+ * a frame (document embeds, dashboard frame widgets, frame tabs). The
+ * capability rule mirrors slots: a plugin registers renderers only under
+ * its OWN id namespace and never replaces another provider's renderer —
+ * enforced by `PluginContext.registerFrameRenderer`.
+ */
+export interface FrameRendererContribution {
+  /** Renderer id — namespaced `${pluginId}:${name}` by the context. */
+  id: string
+  /** Schema IRIs this renderer can frame ('*' = any). */
+  supportedSchemas: string[] | '*'
+  /** Component receiving the host's NodeFrameProps contract. */
+  component: ComponentType<never>
 }
 
 export interface ViewProps {
@@ -85,36 +100,36 @@ export interface SlashCommandContribution {
 }
 
 export interface SlashCommandContext {
-  editor: unknown // TipTap editor instance
+  editor: unknown // BlockNote editor instance (0312)
   range: { from: number; to: number }
 }
 
 /**
- * Toolbar button contribution for the editor
+ * Editor contribution (re-typed for the BlockNote editor, 0312).
+ *
+ * Plugins contribute BlockNote specs — `createReactBlockSpec` /
+ * `createReactInlineContentSpec` / `createReactStyleSpec` results keyed by
+ * spec name — plus behavior-only slash menu items. Spec values are opaque
+ * here so this package needs no editor dependency.
+ *
+ * SCHEMA-SKEW WARNING (0205): block/inline/style specs define the
+ * PERSISTED document schema. Under Yjs collaboration every peer must run
+ * the identical schema; a spec only some peers have silently drops
+ * content. `editor-schema-safety.ts` flags specs that aren't statically
+ * bundled in @xnetjs/editor's schema.
  */
-export interface ToolbarContribution {
-  /** Icon name (Lucide) or React component */
-  icon: string | ComponentType
-  /** Tooltip/title text */
-  title: string
-  /** Toolbar section: format, insert, block, or custom */
-  group?: 'format' | 'insert' | 'block' | 'custom'
-  /** Check if button should appear active */
-  isActive?: (editor: unknown) => boolean
-  /** Button click handler */
-  action: (editor: unknown) => void
-  /** Keyboard shortcut display (e.g., 'Mod-Shift-H') */
-  shortcut?: string
-}
-
 export interface EditorContribution {
-  /** Unique extension ID */
+  /** Unique contribution ID */
   id: string
-  /** TipTap extension (Extension, Node, or Mark) */
-  extension: Extension
-  /** Optional toolbar button for this extension */
-  toolbar?: ToolbarContribution
-  /** Priority for extension ordering (lower = earlier, default: 100) */
+  /** BlockNote block specs, keyed by block type name (skew-sensitive) */
+  blockSpecs?: Record<string, unknown>
+  /** BlockNote inline content specs, keyed by type name (skew-sensitive) */
+  inlineContentSpecs?: Record<string, unknown>
+  /** BlockNote style specs, keyed by style name (skew-sensitive) */
+  styleSpecs?: Record<string, unknown>
+  /** Behavior-only slash menu items (skew-safe) */
+  slashMenuItems?: SlashCommandContribution[]
+  /** Priority for ordering (lower = earlier, default: 100) */
   priority?: number
 }
 
@@ -287,6 +302,70 @@ export interface SchemaContribution {
   /** The schema definition */
   schema: unknown // DefinedSchema from @xnetjs/data
 }
+
+/**
+ * Slot prominence (0273, generalized in 0280). `hero` views render in
+ * their region's one-tap strip; `secondary` views live behind "More" and
+ * the command palette. Same progressive-disclosure grammar as the devtools
+ * panel registry (packages/devtools/src/panels/panel-registry.ts), lifted
+ * to an app-level contribution point.
+ */
+export type SurfaceDockTier = 'hero' | 'secondary'
+
+/**
+ * The shell's region skeleton a slot view may occupy (exploration 0280).
+ * Mirrors the app's LayoutTree regions: edge strips (`rail`, `status`)
+ * and the four docks. The `surface` center is not a slot target — views
+ * there are routes/tabs, not panels.
+ */
+export type SlotRegion =
+  | 'rail'
+  | 'status'
+  | 'dock.left'
+  | 'dock.right'
+  | 'dock.bottom'
+  | 'dock.corner'
+
+/**
+ * A view contributed to the shell's slot system (exploration 0280 —
+ * generalizing the 0273 SurfaceDock contract to every region). Where the
+ * view actually sits is the user's layout tree; `defaultRegion` only says
+ * where it lands until the user (or their agent) moves it, and
+ * `allowedRegions` bounds where it may go. A plugin places only its OWN
+ * views; moving anyone else's is the user's (or consented agent's) call.
+ */
+export interface SlotContribution {
+  /** Unique view ID, preferably plugin-scoped */
+  id: string
+  /** Display name in strips / menus / palette */
+  label: string
+  /** Lucide icon name or component */
+  icon?: string | ComponentType
+  /** Prominence within the region: hero = strip, secondary = More + palette */
+  tier: SurfaceDockTier
+  /** Grouping key for menus (e.g. 'capture', 'activity', 'tools') */
+  group?: string
+  /** Extra palette search terms */
+  keywords?: string[]
+  /** Short description for the palette */
+  description?: string
+  /** Ordering within the tier (lower = earlier) */
+  priority?: number
+  /** Dynamic badge (e.g. unread count); null hides it */
+  badge?: () => string | number | null
+  /** The view body, rendered inside its region's host */
+  component: ComponentType
+  /** Where the view lands if the user hasn't placed it (default: dock.corner) */
+  defaultRegion?: SlotRegion
+  /** Regions the view may occupy (empty/undefined = any region) */
+  allowedRegions?: SlotRegion[]
+}
+
+/**
+ * @deprecated Since 0280 — use {@link SlotContribution}. The dock was the
+ * first slot region; the contract is now region-agnostic.
+ */
+export type SurfaceDockContribution = SlotContribution
 
 export type CanvasPreviewTier = 'summary' | 'thumbnail' | 'shell' | 'live'
 
@@ -545,6 +624,13 @@ export class ContributionRegistry {
   readonly importers = new TypedRegistry<ImporterContribution>()
   readonly mentionProviders = new TypedRegistry<MentionProviderContribution>()
   readonly agentTools = new TypedRegistry<AgentToolContribution>()
+  readonly slots = new TypedRegistry<SlotContribution>()
+  readonly frameRenderers = new TypedRegistry<FrameRendererContribution>()
+
+  /** @deprecated Since 0280 — the dock registry is the slot registry. */
+  get surfaceDock(): TypedRegistry<SlotContribution> {
+    return this.slots
+  }
 
   /**
    * Clear all registries (for cleanup/testing)
@@ -570,5 +656,7 @@ export class ContributionRegistry {
     this.importers.clear()
     this.mentionProviders.clear()
     this.agentTools.clear()
+    this.slots.clear()
+    this.frameRenderers.clear()
   }
 }

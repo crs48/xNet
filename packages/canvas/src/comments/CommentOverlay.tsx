@@ -4,7 +4,10 @@
  * This component:
  * - Renders comment pins at their resolved viewport positions
  * - Manages hover/click interactions
- * - Shows the CommentPopover on interaction
+ * - Shows the CommentIsland on interaction, anchored to a *virtual* anchor
+ *   that re-projects the pin through the live viewport transform, so the
+ *   island tracks the pin under pan and zoom instead of stranding at the
+ *   coordinates captured when it was clicked (0375).
  *
  * @example
  * ```tsx
@@ -17,8 +20,13 @@
  * ```
  */
 import type { CommentThread } from '@xnetjs/react'
-import { CommentPopover, type CommentThreadData } from '@xnetjs/ui'
-import React, { useState, useCallback, useMemo, useRef } from 'react'
+import {
+  CommentIsland,
+  type CommentThreadData,
+  type TaskPersonOption,
+  type VirtualAnchor
+} from '@xnetjs/ui'
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import {
   useCanvasComments,
   type CanvasTransform,
@@ -41,12 +49,19 @@ export interface CommentOverlayProps {
   commentModeActive?: boolean
   /** Callback when a new comment should be created */
   onCreateComment?: (canvasX: number, canvasY: number, objectId?: string) => void
+  /**
+   * People for @mention typeahead, and the source of author display names.
+   * Without it, canvas comments render raw DIDs while page comments render
+   * profile names (0375).
+   */
+  people?: TaskPersonOption[]
 }
 
 interface PopoverState {
   visible: boolean
   mode: 'preview' | 'full'
   thread: CommentThread | null
+  /** Viewport point captured on open, in *world* space so it survives pan/zoom. */
   anchor: { x: number; y: number } | null
 }
 
@@ -63,7 +78,8 @@ export function CommentOverlay({
   canvasNodeId,
   canvasSchema,
   transform,
-  objects
+  objects,
+  people = []
 }: CommentOverlayProps) {
   const {
     activePins,
@@ -84,6 +100,15 @@ export function CommentOverlay({
   const [popoverState, setPopoverState] = useState<PopoverState>(INITIAL_POPOVER_STATE)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const orphanTrayAnchorRef = useRef<HTMLButtonElement | null>(null)
+  const overlayRef = useRef<HTMLDivElement | null>(null)
+
+  // Clear any pending hover timer on unmount.
+  useEffect(
+    () => () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+    },
+    []
+  )
 
   // ─── Popover Handlers ─────────────────────────────────────────────────────────
 
@@ -184,12 +209,20 @@ export function CommentOverlay({
     [editComment]
   )
 
-  // Convert thread to CommentThreadData format for popover
+  // Author DIDs resolve to profile names through the same people list that
+  // drives @mention typeahead; without it the island shows raw DIDs (0375).
+  const resolveAuthorName = useCallback(
+    (did: string) => people.find((person) => person.did === did)?.name,
+    [people]
+  )
+
+  // Convert thread to CommentThreadData format for the island
   const threadData: CommentThreadData | null = popoverState.thread
     ? {
         root: {
           id: popoverState.thread.root.id,
           author: popoverState.thread.root.properties.createdBy,
+          authorDisplayName: resolveAuthorName(popoverState.thread.root.properties.createdBy),
           content: popoverState.thread.root.properties.content,
           createdAt: popoverState.thread.root.createdAt,
           edited: popoverState.thread.root.properties.edited,
@@ -198,6 +231,7 @@ export function CommentOverlay({
         replies: popoverState.thread.replies.map((r) => ({
           id: r.id,
           author: r.properties.createdBy,
+          authorDisplayName: resolveAuthorName(r.properties.createdBy),
           content: r.properties.content,
           createdAt: r.createdAt,
           edited: r.properties.edited,
@@ -208,6 +242,29 @@ export function CommentOverlay({
         resolved: popoverState.thread.root.properties.resolved
       }
     : null
+
+  // The live pin for the open thread. activePins is recomputed from the
+  // viewport transform every render, so reading position from it — rather than
+  // from coordinates captured at click time — is what makes the island follow
+  // the pin under pan and zoom.
+  const openPin = popoverState.thread
+    ? activePins.find((pin) => pin.thread.root.id === popoverState.thread?.root.id)
+    : undefined
+
+  // Pin coordinates are relative to the overlay; the island is position:fixed,
+  // so add the overlay's own viewport offset.
+  const pinAnchor = useMemo<VirtualAnchor | null>(() => {
+    if (!openPin) return null
+    const { viewportX, viewportY } = openPin
+    return {
+      getBoundingClientRect: () => {
+        const box = overlayRef.current?.getBoundingClientRect()
+        const originX = (box?.left ?? 0) + viewportX
+        const originY = (box?.top ?? 0) + viewportY
+        return new DOMRect(originX, originY, 0, 0)
+      }
+    }
+  }, [openPin?.viewportX, openPin?.viewportY, openPin])
   const orphanedThreadPreview = useMemo(() => {
     if (orphanedPins.length === 0) {
       return null
@@ -224,6 +281,7 @@ export function CommentOverlay({
 
   return (
     <div
+      ref={overlayRef}
       className="comment-overlay absolute inset-0 pointer-events-none z-50"
       aria-label="Comment pins"
     >
@@ -273,24 +331,24 @@ export function CommentOverlay({
         </div>
       ) : null}
 
-      {/* Comment Popover */}
-      {threadData && popoverState.anchor && (
-        <div style={{ pointerEvents: 'auto' }}>
-          <CommentPopover
-            thread={threadData}
-            anchor={popoverState.anchor}
-            mode={popoverState.mode}
-            open={popoverState.visible}
-            side="right"
-            onReply={handleReply}
-            onResolve={handleResolve}
-            onReopen={handleReopen}
-            onDelete={handleDelete}
-            onEdit={handleEdit}
-            onDismiss={dismiss}
-            onUpgradeToFull={upgradeToFull}
-          />
-        </div>
+      {/* Comment island — portals to body, so it is not clipped by the
+          overlay's pointer-events-none stacking context. */}
+      {threadData && pinAnchor && (
+        <CommentIsland
+          thread={threadData}
+          anchor={pinAnchor}
+          mode={popoverState.mode}
+          open={popoverState.visible}
+          side="right"
+          people={people}
+          onReply={handleReply}
+          onResolve={handleResolve}
+          onReopen={handleReopen}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
+          onDismiss={dismiss}
+          onUpgradeToFull={upgradeToFull}
+        />
       )}
     </div>
   )

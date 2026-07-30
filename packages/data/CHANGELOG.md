@@ -1,5 +1,710 @@
 # @xnetjs/data
 
+## 3.0.0
+
+### Minor Changes
+
+- [#563](https://github.com/crs48/xNet/pull/563) [`33f4b9e`](https://github.com/crs48/xNet/commit/33f4b9ef38c72b2e898f7a4a4de83cc08b0aea88) Thanks [@crs48](https://github.com/crs48)! - Bulk changes: batched push frames and batch commits (exploration 0357)
+
+  Large imports, deletes, and migrations are still N changes (one per node) —
+  that is what makes per-node history, per-property LWW, and selective sync
+  work — but they no longer pay a per-change price on the wire or in
+  verification.
+  - `@xnetjs/crypto` adds `verifyFast`/`verifyMany`, backed by WebCrypto
+    Ed25519 where the runtime has it (~13x faster than the pure-JS verifier,
+    measured 101µs vs 1374µs), with an automatic fallback.
+  - `@xnetjs/sync` adds `BatchCommit`: one signature covering up to 1000
+    ordered change hashes, so verifying a batch costs one signature check plus
+    the hash recomputations a verifier already owes. Additive — the change
+    record, its hash recipe, and LWW ordering are unchanged.
+  - `.xnetpack` bundles now carry `commits.ndjson`; importing a self-export
+    verifies with one signature per 1000 changes instead of one per change.
+    Bundles without it import exactly as before.
+  - Clients batch outbound changes into `node-change-batch` frames when the hub
+    advertises `batch-push`, and fall back to one frame per change otherwise.
+    Hub ingest of 10,000 changes drops from ~250s (wire-bound) to 570ms.
+
+  Batching is transport and authentication only: every change is still verified,
+  authorized, quota-checked, and LWW-applied individually.
+
+- [#576](https://github.com/crs48/xNet/pull/576) [`0edfbee`](https://github.com/crs48/xNet/commit/0edfbeefb6b7cf50c0f6a4c2a638bfe5d79ce6ce) Thanks [@crs48](https://github.com/crs48)! - Add community hosting schemas: `Post` (forum-shaped discussion in a Space, with
+  `comparePostsForFeed` for pinned-then-chronological ordering), `Course` /
+  `Lesson` / `LessonProgress`, and `Event` / `Rsvp`.
+
+  All additive — no existing export changed. `LessonProgress` is readable only by
+  the learner and the Space's admins, so completion can never be enumerated across
+  the membership.
+
+- [#607](https://github.com/crs48/xNet/pull/607) [`22892a6`](https://github.com/crs48/xNet/commit/22892a674e2dc3ae7a86ac81d6c20de559b852ed) Thanks [@crs48](https://github.com/crs48)! - Public-interaction policy resolution and the replication trust gate (explorations 0378/0258/0383).
+  - `@xnetjs/data`: new `publicInteractionPolicyId(targetId)` — the deterministic node id for a target's `PublicInteractionPolicy`, so servers resolve "what may strangers do to this node?" with one O(1) read and re-publishing a policy upserts instead of duplicating.
+  - `@xnetjs/runtime`: `MultiHubSyncManager.publishScoped` now enforces the 0258 trust tiers — plaintext payloads are withheld from `zero-knowledge` destinations and the call returns `{ published, withheld }` (previously `void`); new `mayReceivePayload(trust, payload)` and `PayloadClass` export the rule. Pass `{ payload: 'ciphertext' }` for recipient-scoped envelopes, which may go anywhere.
+
+- [#575](https://github.com/crs48/xNet/pull/575) [`60337df`](https://github.com/crs48/xNet/commit/60337dfa61ab7afaa5768169d1a89e7398827b6c) Thanks [@crs48](https://github.com/crs48)! - Add the publishing spine (exploration 0362).
+
+  `@xnetjs/data` gains a `Publication` schema and publishing fields on `Page`
+  (`publication`, `slug`, `excerpt`, `publishedAt`, `canonicalUrl`,
+  `publishedFrontier`). A post is a Page with editorial metadata rather than a
+  new document type, and `publishedAt` absence is what makes a post a draft.
+
+  `@xnetjs/cli` gains `xnet publish static`, which renders a publication to a
+  self-contained static site — HTML, RSS, sitemap and robots.txt — servable from
+  any static host with no hub in the read path.
+
+  Both changes are additive: no exports were removed or renamed, and every new
+  `Page` property is optional, so existing pages are unaffected.
+
+### Patch Changes
+
+- [#571](https://github.com/crs48/xNet/pull/571) [`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6) Thanks [@crs48](https://github.com/crs48)! - Document alpha status in every package README. xNet is released — these packages
+  are on npm and usable today — but it is early software: APIs can change between
+  releases, sometimes without a migration path. Each README now says so up front,
+  so the notice is visible on the npm package page. Docs only; no code changes.
+
+- [#587](https://github.com/crs48/xNet/pull/587) [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe) Thanks [@crs48](https://github.com/crs48)! - Fix TypeScript type resolution for every package's export map, and ship
+  `@xnetjs/data/portability`.
+
+  `types` was ordered after `import` in 48 export subpaths across 19 packages.
+  Export conditions are order-sensitive, so TypeScript could resolve the wrong
+  entry — or no types at all — depending on the consumer's `moduleResolution`.
+  `types` is now first everywhere.
+
+  `@xnetjs/data` also advertised a `./portability` subpath that was never added to
+  its build, so `@xnetjs/data/portability` — the `.xnetpack` export/import codec —
+  did not resolve at all for consumers. It now builds and ships.
+
+  Both were found by adding `publint` to CI.
+
+- [#578](https://github.com/crs48/xNet/pull/578) [`e48eb34`](https://github.com/crs48/xNet/commit/e48eb345832db3fab41dd7e3ac70a08f8c86c343) Thanks [@crs48](https://github.com/crs48)! - Correct the documented shape of `Page.publishedFrontier` (exploration 0362).
+
+  A frontier entry is `{ hash, yjsSnapshotRef? }`, matching
+  `packages/history/src/frontier.ts` — not a bare change hash. Without the
+  `yjsSnapshotRef` arm a published post pins only its record lane, so its prose
+  would drift with every edit.
+
+  No stored data changes shape: the property is `json` and was not yet written
+  by any shipping code path.
+
+- [#594](https://github.com/crs48/xNet/pull/594) [`0f26bc9`](https://github.com/crs48/xNet/commit/0f26bc96b9261a8ee0589d94dd276c78017dcc1a) Thanks [@crs48](https://github.com/crs48)! - Add shadow-publication support to `@xnetjs/publish` (exploration 0362).
+
+  `HeadOptions` gains `robots` and `feedAutodiscovery`, so a duplicate of a live
+  publication can be rendered `noindex, nofollow` with no RSS autodiscovery tag —
+  a staging copy that cannot be indexed, and that no reader can accidentally
+  subscribe to. A noindex publication also stops advertising a sitemap in its
+  `robots.txt`, which would otherwise be a mixed signal.
+
+  `@xnetjs/data` re-exports `PublicationSchema` from the package root, so a build
+  script can validate posts against the real schema.
+
+- [#565](https://github.com/crs48/xNet/pull/565) [`649cdf7`](https://github.com/crs48/xNet/commit/649cdf74eaf62aa2c08186857b3cd695efa5e3f6) Thanks [@crs48](https://github.com/crs48)! - Spell the brand `xNet` consistently in source comments
+
+  Doc-comment and JSDoc prose only — no exported names, signatures, runtime
+  values, or wire contracts changed. Included so the release notes record why
+  these packages show a diff.
+
+- Updated dependencies [[`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6), [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe), [`215d61d`](https://github.com/crs48/xNet/commit/215d61d586048c7d7d2221947bdcde7966172907), [`33f4b9e`](https://github.com/crs48/xNet/commit/33f4b9ef38c72b2e898f7a4a4de83cc08b0aea88)]:
+  - @xnetjs/core@3.0.0
+  - @xnetjs/crypto@3.0.0
+  - @xnetjs/identity@3.0.0
+  - @xnetjs/sqlite@3.0.0
+  - @xnetjs/storage@3.0.0
+  - @xnetjs/sync@3.0.0
+
+## 2.5.0
+
+### Minor Changes
+
+- [#552](https://github.com/crs48/xNet/pull/552) [`c7ef045`](https://github.com/crs48/xNet/commit/c7ef0456bfc75b5813d8a9d34f465f13a1e088ae) Thanks [@crs48](https://github.com/crs48)! - Composable UI frames (exploration 0346). The `@xnetjs/editor` and
+  `@xnetjs/views` surfaces are release-ignored packages; their changes ship
+  with the app. Live embeds in documents (Phase 1): `databaseEmbed` blocks
+  now pass any registry view type through to the host (map, timeline, plugin
+  views — not just the built-in six), `pageEmbed` blocks render a host-provided
+  live summary transclusion via the new `renderPageEmbed` host callback, and the
+  slash menu gains a `/view of…` command backed by the new
+  `onSelectDatabaseView` host picker. Adds `extractDocPreviewLines` for
+  summary-tier text extraction from a v4 document fragment.
+
+  `@xnetjs/views` gains the Frame contract (0346 Phase 2): `FrameDef` /
+  `FrameSource` / `FrameTier`, the `FrameRenderer` + `frameSourceRegistry`
+  (schema-dispatched node frames, saved-query frames, curated collection
+  frames, depth-clamped transclusion), container adapters
+  (`frameFromDatabaseEmbed` / `frameFromPageEmbed` / `frameFromCanvasNode`),
+  and the generic dashboard frame widget (`registerFrameWidget`).
+
+  `@xnetjs/react` gains the entangle bus (0346 Phase 3): `EntangleProvider`
+  / `useEntangledHighlight` / `useEntangleBind` — page-scoped hover/select
+  co-presence so frames on one page (grid rows, board cards, calendar
+  chips, map pins, wikilink chips) highlight the same node together.
+  `ReverseRelationsPanel` gains an `onOpenAsFrame` action.
+
+  `@xnetjs/plugins` (0346 Phase 5): new agent tools
+  `xnet_plan_frame_placement` / `xnet_apply_frame_placement` /
+  `xnet_compose_page` — the agent composes pages of live frames through
+  the standard plan → validate → apply pipeline (declarative tier only).
+  Plugins gain `registerFrameRenderer` with the own-views-only namespacing
+  rule.
+
+  `@xnetjs/data` (0346 Phase 5): cross-node formula scope — `RELATED()`
+  and `NODE()` context functions widen the one formula language from row →
+  relations → named nodes (host-resolved, cache-bypassed until 0317's
+  precise invalidation). Pages gain an additive
+  `geometry: stack | grid | space` property (default `stack`).
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@2.5.0
+  - @xnetjs/sqlite@2.5.0
+  - @xnetjs/sync@2.5.0
+  - @xnetjs/identity@2.5.0
+  - @xnetjs/crypto@2.5.0
+  - @xnetjs/core@2.5.0
+
+## 2.4.0
+
+### Minor Changes
+
+- [#545](https://github.com/crs48/xNet/pull/545) [`1c7b9c9`](https://github.com/crs48/xNet/commit/1c7b9c9c3804fc0d4c80b032ae0ebc0163714c52) Thanks [@crs48](https://github.com/crs48)! - First-class data portability: the `.xnetpack` bundle codec
+  (`@xnetjs/data/portability`). `writeBundle` exports the signed change log
+  (full, per-space, per-schema, or per-node scope, with incremental
+  `since`-frontier bundles) as NDJSON plus content-addressed blobs and Yjs
+  doc states under a signed manifest; `verifyBundle` integrity-checks a
+  bundle without writing; `applyBundle` imports by replaying through the
+  store's verified remote-change path (idempotent, quarantine-reporting).
+  Adds `NodeStore.hasChange(hash)`.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@2.4.0
+  - @xnetjs/sqlite@2.4.0
+  - @xnetjs/sync@2.4.0
+  - @xnetjs/identity@2.4.0
+  - @xnetjs/crypto@2.4.0
+  - @xnetjs/core@2.4.0
+
+## 2.3.0
+
+### Minor Changes
+
+- [#541](https://github.com/crs48/xNet/pull/541) [`735d491`](https://github.com/crs48/xNet/commit/735d491217a964c5210140ac58925db0ecdd765e) Thanks [@crs48](https://github.com/crs48)! - First-class `geo` property/column type (exploration 0339, Map sub-decision B): a single `{ lat, lng }` WGS84 location value instead of the paired-number-columns convention.
+  - New `geo()` property builder and `GeoPoint`/`isGeoPoint` exports (schema layer), plus `CellGeoPoint`/`isCellGeoPoint` on the database cell layer; `CellValue` now includes geo points.
+  - `ColumnType`/`FieldType` gain `'geo'` (NodeStore-simple, no config), with filter operators (`isEmpty`/`isNotEmpty`), summary functions (count family), sort comparator, cell conversion (`"lat, lng"` text round-trips), and CSV import/export support.
+  - Spatial queries can now address one numeric subfield of an object property with a dotted key (e.g. `cell_<fieldId>.lat`), so viewport-windowed map fetches work over geo cells on both the R\*Tree fast path and the JS-verified path. Flat keys always win; the dotted form only applies when no literal-key property exists.
+
+- [#537](https://github.com/crs48/xNet/pull/537) [`d246195`](https://github.com/crs48/xNet/commit/d2461957723cc4c9e6366192670127f8bd1d458d) Thanks [@crs48](https://github.com/crs48)! - Additive schema fields for per-deployment crash consoles (exploration 0341): `DebugReport` gains `issueKey` (release-independent grouping key, so per-release fingerprint splits stay deliberate while the console can group an issue's whole history) and `escalatedId` (the vendor `XR-…` handle stamped after an operator escalates a report); `SpaceMembership` gains an optional `expiresAt` for time-boxed grants such as vendor support access to a Diagnostics Space. All three are optional — existing nodes and callers are unaffected.
+
+- [#536](https://github.com/crs48/xNet/pull/536) [`3ea44c6`](https://github.com/crs48/xNet/commit/3ea44c6354e3f55443d3c3b49d8ca1f9c0941987) Thanks [@crs48](https://github.com/crs48)! - OAuth + shared global identity (exploration 0338).
+
+  New, additive public surface — nothing removed or renamed:
+  - `@xnetjs/identity`: ATProto bridge (`@xnetjs/identity` re-exports
+    `parseAnyDid`/`isAtprotoDid`/`createAtprotoBinding`/`verifyAtprotoBinding`,
+    represent-only foreign DIDs — `parseDID` signing guarantees unchanged), the
+    `net.x.identity.binding` record, `derivePlcRotationKey` +
+    `withUserPriorityRotationKey` (user-priority did:plc rotation key from the
+    recovery seed), the `RecoveryAnchorProvider` contract, and `ucanTokenId` +
+    a per-token `nonce` on `createUCAN` (0307-B least-privilege/revocation).
+  - `@xnetjs/data`: `ProfileSchema` gains `atprotoDid`/`atprotoHandle`/
+    `atprotoBindingUri`; new `evaluateLedgerWrite` account-ledger enforcement
+    helpers.
+  - `@xnetjs/react`: onboarding gains the ATProto login-door state + the
+    injectable `RunAtprotoCeremony` contract ("Continue with Bluesky / any PDS").
+
+### Patch Changes
+
+- [#539](https://github.com/crs48/xNet/pull/539) [`e2ec439`](https://github.com/crs48/xNet/commit/e2ec43932ec3b05e74765a537ae9b94a219c7c36) Thanks [@crs48](https://github.com/crs48)! - docs(exploration): renumber database views 0337 -> 0339 (collision with OpenClaw 0337)
+
+  Two explorations claimed 0337; the OpenClaw agent-audit doc's first
+  commit (18:05:21) predates the database-views doc (18:07:01), so per the
+  collision rule the database-views doc renumbers. Comment references in
+  the code it introduced follow. No behavior change (empty changeset).
+
+  Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+
+  Signed-off-by: xNet Test <test@xnet.dev>
+
+- Updated dependencies [[`3ea44c6`](https://github.com/crs48/xNet/commit/3ea44c6354e3f55443d3c3b49d8ca1f9c0941987)]:
+  - @xnetjs/identity@2.3.0
+  - @xnetjs/sync@2.3.0
+  - @xnetjs/storage@2.3.0
+  - @xnetjs/sqlite@2.3.0
+  - @xnetjs/crypto@2.3.0
+  - @xnetjs/core@2.3.0
+
+## 2.2.0
+
+### Minor Changes
+
+- [#535](https://github.com/crs48/xNet/pull/535) [`2962c28`](https://github.com/crs48/xNet/commit/2962c28afd0b5c15ce42ee1b42e58e6c55868d5a) Thanks [@crs48](https://github.com/crs48)! - Database views (exploration 0337): `DatabaseViewSchema` gains a `map` view type and per-view presentation config — `colorBy`, `coverFit`, `groupMeta` (per-stack order/hidden overrides), `latField`/`lngField`, and a persisted `mapViewport`. `useGridDatabase` exposes the new config on `GridViewModel`, reports the fetch window (`rowWindow: { size, total }` for truncation-honest views), accepts a `spatial` query window option (map views fetch only the visible viewport), and adds `setViewConfig(patch)`, `updateRowCells(rowId, cells, { sortKey })` (one-write card moves), and `setGroupCollapsed` mutators. Timeline views now report `supportsGrouping` (swimlanes). All additions are optional fields — existing views are unaffected.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@2.2.0
+  - @xnetjs/sqlite@2.2.0
+  - @xnetjs/sync@2.2.0
+  - @xnetjs/identity@2.2.0
+  - @xnetjs/crypto@2.2.0
+  - @xnetjs/core@2.2.0
+
+## 2.1.0
+
+### Minor Changes
+
+- [#533](https://github.com/crs48/xNet/pull/533) [`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708) Thanks [@crs48](https://github.com/crs48)! - Agent Passports and signed agent audit trails (exploration 0337).
+  - `@xnetjs/data`: new agent schema pack — `AgentPassport`, `AgentSession`,
+    `AgentAction`, `AgentApproval`, `AgentNotification` — with deterministic id
+    helpers (`agentActionId`, …) and `redactInstruction`.
+  - `@xnetjs/identity`: `mintAgentPassport` / `verifyAgentPassport` (per-agent
+    `did:key` + operator-delegated, attenuation-checked UCAN; wildcards
+    rejected) and `rootIssuers` for delegation-chain root inspection.
+  - `@xnetjs/plugins`: `AgentAuditRecorder` wraps the AI surface so every tool
+    call lands as an `AgentAction` node and medium+ risk calls park behind a
+    risk-tiered approval ceremony (chat nonce with TTL for medium; xNet-surface
+    only for high/critical); ceremony tools (`xnet_approve`, `xnet_deny`,
+    `xnet_pending_approvals`, `xnet_undo`) and the `xnet_poll_notifications`
+    outbox tool; `MCPServerConfig.agentAudit` wires it into the MCP server;
+    `NodeStoreAPI.create` now accepts an optional deterministic `id`; new AI
+    scopes `agent.approve` and `agent.notifications`.
+  - `@xnetjs/cli`: `xnet agent enroll <name>` mints and stores passports
+    (`~/.xnet/agents`, 0600) and prints OpenClaw/Hermes config; `xnet mcp serve
+--agent <name> [--db <path>]` serves an agent-scoped session over an
+    agent-signed local store.
+
+### Patch Changes
+
+- Updated dependencies [[`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708)]:
+  - @xnetjs/identity@2.1.0
+  - @xnetjs/sync@2.1.0
+  - @xnetjs/storage@2.1.0
+  - @xnetjs/sqlite@2.1.0
+  - @xnetjs/crypto@2.1.0
+  - @xnetjs/core@2.1.0
+
+## 2.0.0
+
+### Minor Changes
+
+- [#496](https://github.com/crs48/xNet/pull/496) [`85c9700`](https://github.com/crs48/xNet/commit/85c9700d6de11459f39083a1824f9cbf79cdb7bd) Thanks [@crs48](https://github.com/crs48)! - Yjs fragment readers understand the BlockNote document schema (exploration 0312).
+
+  Documents now live in the `content-v4` fragment using BlockNote's ProseMirror
+  shape (`blockGroup > blockContainer > blockContent`); the legacy TipTap
+  `content` fragment remains readable as a fallback until each doc is lazily
+  imported.
+  - `@xnetjs/data`: `getRichTextPlainText` extracts text from BlockNote-shaped
+    rich-text cells, including the new inline atoms (`mention` → `@label`,
+    `hashtag` → `#name`, `wikilink` → title, `inlineMath` → latex), while still
+    reading legacy TipTap-shaped cells.
+  - `@xnetjs/history`: version-diff text extraction prefers `content-v4` (legacy
+    `content` fallback) and renders BlockNote inline atoms as readable text.
+  - `@xnetjs/react`: new `useMergedEditorContributions` /
+    `mergeEditorContributions` (+ `MergedEditorContributions` type) collect
+    plugin-contributed BlockNote `blockSpecs`/`inlineContentSpecs`/`styleSpecs`
+    and slash menu items from the plugin registry, running the editor
+    schema-skew guard (`warnOnEditorSchemaRisks`) against the host's statically
+    bundled spec names and excluding un-bundled (skew-hazard) specs.
+  - `@xnetjs/runtime`: blob-CID retention scanning now also walks the
+    `content-v4` and `content` fragments, so blobs referenced from page
+    documents are discovered.
+
+- [#523](https://github.com/crs48/xNet/pull/523) [`a91f278`](https://github.com/crs48/xNet/commit/a91f278ac122c588145ebb5f3981f6745b30ba66) Thanks [@crs48](https://github.com/crs48)! - Drafts P2/P3 (exploration 0329): Patchwork-style branching on the change log.
+  - `@xnetjs/data`: `Draft` node schema (`DRAFT_SCHEMA_IRI`, entries map, no
+    nesting); `NodeStore` draft overlay — `setCheckedOutDraft` swaps member
+    reads to clone content under original ids, redirects member writes to
+    clones with lazy copy-on-write, mirrors clone change events to original-id
+    subscribers, and exposes `getRaw` for overlay-free reads; device-local
+    draft privacy set (`markDraftPrivate`/`isDraftPrivate`).
+  - `@xnetjs/history`: draft lifecycle (`createDraft`, `forkNodeIntoDraft` —
+    signed snapshot-create + pinned fork point + Yjs blob fork with state
+    vector, `discardDraft`, `listDrafts`, never-fork policy); merge
+    (`threeWayPropertyMerge`, `mergeDraft` — one merger-signed squash batch
+    with draft-born promotion via temp ids, relation remapping, deletion
+    conflict cards, idempotent Yjs delta lane, provenance) and
+    `refreshDraftFromMain` (floating drafts).
+  - `@xnetjs/runtime`: `NodeStoreSyncProvider` gains a `shouldPublish`
+    predicate; the personal node-sync room excludes draft-private nodes, and
+    draft privacy is rehydrated before sync starts.
+
+- [#523](https://github.com/crs48/xNet/pull/523) [`dd956e5`](https://github.com/crs48/xNet/commit/dd956e512b60f3b4288ae4fb0cb2ade875da1f9f) Thanks [@crs48](https://github.com/crs48)! - Drafts UI plumbing (exploration 0329 P2/P3).
+  - `@xnetjs/react`: new `useDraft(hostId)` hook (hooks sub-barrel) binding the
+    draft engine and the NodeStore checkout overlay — list/create open drafts
+    for a host, `checkout` (content-swap reads + lazy copy-on-write via
+    `onMissingMember` → `forkNodeIntoDraft`), `returnToMain`, `discard`
+    (leaves the checkout first), `merge` (merger-signed squash; returns
+    conflict cards), `refresh` (fold main into the draft; pauses on
+    conflicts), `setReviewRequested`, and `computeReview` — per-property
+    three-way review cards (base at fork vs main now vs draft now) plus Yjs
+    document-differs indicators, computed without applying anything. Database
+    hosts widen the member scope to their row nodes. Re-exports
+    `DraftMergeConflict`, `MergeDraftResult`, `RefreshDraftResult` for
+    consumers.
+  - `@xnetjs/data`: the `Draft` schema gains an optional `reviewRequested`
+    checkbox (default `false`) — the P4 request-surfacing flag the
+    Inbox/Requests surface lists open drafts by.
+
+- [#499](https://github.com/crs48/xNet/pull/499) [`e4cb876`](https://github.com/crs48/xNet/commit/e4cb876cc49fcf94a71d015dd60683ff038b367c) Thanks [@crs48](https://github.com/crs48)! - Add the `DebugReport` schema (`DebugReportSchema`, `type DebugReport`) for
+  first-party crash/debug-report triage nodes (exploration 0315). Reports carry
+  code-level diagnostics only, group by fingerprint, and inherit access from their
+  diagnostics Space via the standard space cascade.
+
+- [#523](https://github.com/crs48/xNet/pull/523) [`0f7ef43`](https://github.com/crs48/xNet/commit/0f7ef435afab91022433ae6c60c3a71510a1d036) Thanks [@crs48](https://github.com/crs48)! - Time Machine P1 (exploration 0329): frontiers, checkpoints, pins, prune horizon, scope timelines, production Yjs snapshot capture, and a React scrub hook.
+  - `@xnetjs/history`: new `Frontier` primitive (hash-anchored per-node positions:
+    `captureFrontier`, `frontierAtWallTime`, `frontierTarget`,
+    `materializeAtFrontier`, Yjs snapshot refs + pin keys); named checkpoints
+    (`createCheckpoint`, `listCheckpoints`, `deleteCheckpoint`, `pinFrontier`,
+    `restoreToFrontier`); `ScopeTimeline`/`ScopeScrubCache` generalizing
+    `SchemaTimeline` to arbitrary node sets; `HistoryHorizonError` +
+    `HistoryEngine.getHorizon` — targets below the prune horizon now fail loudly
+    instead of silently remapping to the wrong change.
+  - `@xnetjs/data`: `Checkpoint` node schema (`CHECKPOINT_SCHEMA_IRI`); pin
+    registry on storage adapters (`NodeStorageAdapter.pins`, `PinEntry`,
+    `PinRegistry`) protecting pinned changes and Yjs snapshots from pruning and
+    eviction (memory + SQLite implementations).
+  - `@xnetjs/sqlite`: `pinned_changes` table (additive migration).
+  - `@xnetjs/runtime`: Yjs history snapshots are now captured on production doc
+    persists (throttled session-boundary/min-interval capture in NodePool).
+  - `@xnetjs/react`: new `useTimeMachine` hook (hooks sub-barrel) binding a
+    scrubber UI to the merged scope timeline: position/step navigation, preview +
+    property diff at the scrub position, named versions, one-transaction restore,
+    and history-horizon reporting.
+
+### Patch Changes
+
+- [#498](https://github.com/crs48/xNet/pull/498) [`e2e78cd`](https://github.com/crs48/xNet/commit/e2e78cd319723972591e1aae9d87af4588edfda3) Thanks [@crs48](https://github.com/crs48)! - Fix "no such column: p.tiebreak_key" on databases created before schema v8. The
+  `tiebreak_key` column repair now runs before the first `node_properties` read
+  (`getNode`/`getNodes`/`listNodes`/`queryNodes`), not just before writes — a
+  fresh session that opened a document page hit the missing column on its first
+  hydrate query before any write could trigger the lazy guard. Also adds the
+  missing v8 entry to `SCHEMA_MIGRATIONS` (`ALTER TABLE node_properties ADD
+COLUMN tiebreak_key TEXT`).
+- Updated dependencies [[`e2e78cd`](https://github.com/crs48/xNet/commit/e2e78cd319723972591e1aae9d87af4588edfda3), [`0f7ef43`](https://github.com/crs48/xNet/commit/0f7ef435afab91022433ae6c60c3a71510a1d036)]:
+  - @xnetjs/sqlite@2.0.0
+  - @xnetjs/storage@2.0.0
+  - @xnetjs/sync@2.0.0
+  - @xnetjs/identity@2.0.0
+  - @xnetjs/crypto@2.0.0
+  - @xnetjs/core@2.0.0
+
+## 1.0.0
+
+### Major Changes
+
+- [#482](https://github.com/crs48/xNet/pull/482) [`e6b4c6f`](https://github.com/crs48/xNet/commit/e6b4c6f95b2715289ff35ae37ebd6be7eeba5174) Thanks [@crs48](https://github.com/crs48)! - Grinding-resistant Last-Write-Wins tiebreak (protocol v4, exploration 0305)
+
+  The final LWW conflict tiebreak was the raw author DID ("higher DID wins").
+  Because a `did:key` is a free, attacker-chosen function of a keypair, an
+  attacker could grind a vanity DID that sorts highest and win **every**
+  concurrent-write tie against every honest peer, permanently.
+
+  Protocol v4 replaces that final rung with a per-conflict key,
+  `blake3(authorDID ‖ property ‖ value)` (`computeLwwTiebreakKey` in
+  `@xnetjs/core`), so the winner of a tie is a random-oracle function of _what is
+  written_ — a ground identity wins no durable, universal advantage. The key is
+  gated on both changes being v4 (legacy changes fall back to the author DID), is
+  derived at resolution time (never part of the change hash or wire format), and
+  is threaded through `PropertyTimestamp`, the SQLite `node_properties` guard (new
+  nullable `tiebreak_key` column, schema v8), and every conformance kernel.
+
+  BREAKING: `CURRENT_PROTOCOL_VERSION` is now `4` and new changes are stamped v4.
+  The LWW golden vectors gain `0005-tie-grinding-resistant-key`; `LwwStamp` /
+  `PropertyTimestamp` gain an optional `tiebreakKey`. Mixed fleets converge on
+  exact `{lamport, wallTime}` ties only once both peers are on v4 — a transient
+  rollout window affecting rare exact ties.
+
+### Minor Changes
+
+- [#488](https://github.com/crs48/xNet/pull/488) [`1de6587`](https://github.com/crs48/xNet/commit/1de658746fb4b5420f8f92517f9c135562d23d28) Thanks [@crs48](https://github.com/crs48)! - Schema authorization gains `create` and `update` actions — optional refinements of `write` (exploration 0304). A schema may now split its mutation policy into who may **add** nodes vs. who may **modify** existing ones; when a refinement is absent it falls back to the schema's `write` expression, so existing schemas behave identically.
+  - `@xnetjs/core`: `AUTH_ACTIONS` includes `create`/`update`; new `actionExpressionOrder()` and `grantActionSatisfies()` helpers (a `write` grant covers both refinements; granular grants cover only themselves).
+  - `@xnetjs/data`: the policy evaluator resolves actions with the fallback and evaluates `create` against the draft node built from the payload (container relations resolve membership, so creation into a shared Space is genuinely gated); `NodeStore` checks the precise verbs, and remote creates are inferred and checked as `create` instead of failing closed on a not-yet-existing node. New `spaceContributorAuthorization()` cascade — adopted by `ChatMessage` and `Comment` — expresses "members may post, only the author (or space admins) may edit". `StoreAuthAPI.can` accepts an optional draft `node`.
+  - `@xnetjs/react`: new `useCanCreate(schemaId, properties)` hook; `useCan`/`useCanEdit` check the precise `update` verb.
+  - `@xnetjs/runtime`: conformance corpus gains the `authz-actions` suite pinning the fallback table.
+
+### Patch Changes
+
+- Updated dependencies [[`e6b4c6f`](https://github.com/crs48/xNet/commit/e6b4c6f95b2715289ff35ae37ebd6be7eeba5174), [`3bc1b5f`](https://github.com/crs48/xNet/commit/3bc1b5f1243cba019c60c0fda062953fa3ffb910), [`38fd26f`](https://github.com/crs48/xNet/commit/38fd26f3074176ecb73b6b04b8226f2b28d2258c), [`1de6587`](https://github.com/crs48/xNet/commit/1de658746fb4b5420f8f92517f9c135562d23d28)]:
+  - @xnetjs/core@1.0.0
+  - @xnetjs/sync@1.0.0
+  - @xnetjs/sqlite@1.0.0
+  - @xnetjs/crypto@1.0.0
+  - @xnetjs/identity@1.0.0
+  - @xnetjs/storage@1.0.0
+
+## 0.12.0
+
+### Patch Changes
+
+- [#480](https://github.com/crs48/xNet/pull/480) [`5866992`](https://github.com/crs48/xNet/commit/5866992b73a69a92321c7319a40834019f7f7141) Thanks [@crs48](https://github.com/crs48)! - New `@xnetjs/core` utilities (exploration 0303 — Effect Tier 0): a
+  dependency-free `RetryPolicy` vocabulary (`fixed`, `exponential`, `capped`,
+  `jittered`, `limitAttempts`), a `TaggedError` base class with `isTagged`
+  guard for string-discriminant errors, and a `singleFlight` promise-dedupe
+  helper.
+
+  Internal refactors onto them (no behavior change): both sync reconnect
+  loops (`@xnetjs/runtime`) now share one scheduler with their existing
+  backoff schedules preserved; the webhook emitter (`@xnetjs/plugins`) uses
+  the shared exponential policy; the schema registry and sqlite adapter
+  diagnostics memo (`@xnetjs/data`) use `singleFlight`. `NodeRelayError` and
+  `PermissionError` now extend `TaggedError` — `instanceof`, `.name`, and
+  `.code` matching are unchanged.
+
+- Updated dependencies [[`5866992`](https://github.com/crs48/xNet/commit/5866992b73a69a92321c7319a40834019f7f7141)]:
+  - @xnetjs/core@0.12.0
+  - @xnetjs/crypto@0.12.0
+  - @xnetjs/identity@0.12.0
+  - @xnetjs/storage@0.12.0
+  - @xnetjs/sync@0.12.0
+  - @xnetjs/sqlite@0.12.0
+
+## 0.11.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.11.1
+  - @xnetjs/sqlite@0.11.1
+  - @xnetjs/sync@0.11.1
+  - @xnetjs/identity@0.11.1
+  - @xnetjs/crypto@0.11.1
+  - @xnetjs/core@0.11.1
+
+## 0.11.0
+
+### Minor Changes
+
+- [#465](https://github.com/crs48/xNet/pull/465) [`d9cd478`](https://github.com/crs48/xNet/commit/d9cd478e554e3bb5de6f6c58c3d1550143bdd31a) Thanks [@crs48](https://github.com/crs48)! - Profiles gain a canonical deterministic node ID and room for inline avatar images:
+  - New `profileNodeId(did)` / `didFromProfileNodeId(nodeId)` helpers — a DID's canonical Profile now lives at `profile-<did>` (same pattern as `inboxStateNodeId`), so any collaborator who knows a DID (e.g. from `createdBy` on shared content) can acquire the profile without a directory lookup.
+  - `Profile.avatar` max length raised from 500 to 65536 so a small, client-side-downscaled `data:image/*` avatar can live inside the Profile node itself and reach share recipients through the same sync path as the display name.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.11.0
+  - @xnetjs/sqlite@0.11.0
+  - @xnetjs/sync@0.11.0
+  - @xnetjs/identity@0.11.0
+  - @xnetjs/crypto@0.11.0
+  - @xnetjs/core@0.11.0
+
+## 0.10.0
+
+### Minor Changes
+
+- [#461](https://github.com/crs48/xNet/pull/461) [`0721fd5`](https://github.com/crs48/xNet/commit/0721fd5d263abd3242a3b10cf827fa552cbacbb7) Thanks [@crs48](https://github.com/crs48)! - Add composer-resolved link previews (exploration 0295): a new optional
+  `linkPreviews` json field on `ChatMessageSchema` and `CommentSchema`, plus the
+  `MessageLinkPreview` type with `isMessageLinkPreview`, `sanitizeLinkPreviews`,
+  and `MAX_LINK_PREVIEWS_PER_MESSAGE` helpers. Previews are resolved once by the
+  author's client and stored with the message — readers render the snapshot and
+  never fetch the URL.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.10.0
+  - @xnetjs/sqlite@0.10.0
+  - @xnetjs/sync@0.10.0
+  - @xnetjs/identity@0.10.0
+  - @xnetjs/crypto@0.10.0
+  - @xnetjs/core@0.10.0
+
+## 0.9.0
+
+### Minor Changes
+
+- [#458](https://github.com/crs48/xNet/pull/458) [`8bb9cc6`](https://github.com/crs48/xNet/commit/8bb9cc6752cfe0a83d91388bdc375ff03f55b852) Thanks [@crs48](https://github.com/crs48)! - Conflict telemetry now reports only genuine divergence, and remote replays
+  are idempotent end to end. `MergeConflict` gains a required `kind` field:
+  `'conflict'` for a cross-author write that lost to a newer local value,
+  `'lww-resolution'` for an informational lost-update where a cross-author
+  write replaced a differing value. Same-author causal history, identical
+  stamps, and equal values are no longer recorded at all. `applyRemoteChange`
+  short-circuits changes already present in the log (new optional
+  `NodeStorageAdapter.hasChange(hash)` probe, implemented by the SQLite and
+  memory adapters; callers fall back to `getChangeByHash`), and the memory
+  adapter dedupes appended changes by hash.
+
+### Patch Changes
+
+- Updated dependencies [[`8955613`](https://github.com/crs48/xNet/commit/8955613cea6a27af0d5cbe483bbd66b202f2dc25)]:
+  - @xnetjs/sync@0.9.0
+  - @xnetjs/storage@0.9.0
+  - @xnetjs/sqlite@0.9.0
+  - @xnetjs/identity@0.9.0
+  - @xnetjs/crypto@0.9.0
+  - @xnetjs/core@0.9.0
+
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.8.0
+  - @xnetjs/sqlite@0.8.0
+  - @xnetjs/sync@0.8.0
+  - @xnetjs/identity@0.8.0
+  - @xnetjs/crypto@0.8.0
+  - @xnetjs/core@0.8.0
+
+## 0.7.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.7.0
+  - @xnetjs/sqlite@0.7.0
+  - @xnetjs/sync@0.7.0
+  - @xnetjs/identity@0.7.0
+  - @xnetjs/crypto@0.7.0
+  - @xnetjs/core@0.7.0
+
+## 0.6.0
+
+### Minor Changes
+
+- [#409](https://github.com/crs48/xNet/pull/409) [`bd50f40`](https://github.com/crs48/xNet/commit/bd50f40371ab44f22eb4f015f27d38bc8b94f025) Thanks [@crs48](https://github.com/crs48)! - Workspaces as nodes (exploration 0280): new `xnet:Workspace` schema in `@xnetjs/data` (name/preset/system/tree — the portable half of a saved shell layout), and workspace layout primitives in `@xnetjs/plugins` (`LayoutTree`, `createPresetTree`, `moveSlot`/`setSlotTier`, `parseWorkspacePayload`/`serializeWorkspacePayload`) shared by the web shell, the seed, and future desktop adoption.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.6.0
+  - @xnetjs/sqlite@0.6.0
+  - @xnetjs/sync@0.6.0
+  - @xnetjs/identity@0.6.0
+  - @xnetjs/crypto@0.6.0
+  - @xnetjs/core@0.6.0
+
+## 0.5.0
+
+### Minor Changes
+
+- [#407](https://github.com/crs48/xNet/pull/407) [`bc6a088`](https://github.com/crs48/xNet/commit/bc6a088bf778e7126f305ea5af7c54764074de3c) Thanks [@crs48](https://github.com/crs48)! - Botless meeting transcription foundations (exploration 0279).
+
+  `@xnetjs/data`: new `Meeting@1.0.0` (Yjs notes body, Page-like, private by default) and `MeetingTranscript@1.0.0` (channel-attributed timed segments, FTS full text, engine provenance, opt-in audio blob reference) schemas, plus `MeetingSegment`/`MeetingChannel`/`MeetingTemplateId` types.
+
+  `@xnetjs/plugins`: new `systemAudio` module capability (closed by default; gates desktop system-audio capture, renders as a danger consent line) with `isSystemAudioAllowed`/`assertSystemAudio` guards, and a Google Calendar connector (`buildGoogleCalendarConnector`, `detectUpcomingMeeting`) that materializes upcoming events as Meeting nodes.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.5.0
+  - @xnetjs/sqlite@0.5.0
+  - @xnetjs/sync@0.5.0
+  - @xnetjs/identity@0.5.0
+  - @xnetjs/crypto@0.5.0
+  - @xnetjs/core@0.5.0
+
+## 0.4.0
+
+### Minor Changes
+
+- [#405](https://github.com/crs48/xNet/pull/405) [`e245a3c`](https://github.com/crs48/xNet/commit/e245a3c792d4e8aa70280c9b9f0f96c213204204) Thanks [@crs48](https://github.com/crs48)! - Add the form view foundation (exploration 0278). `@xnetjs/data` gains a
+  `'form'` DatabaseView type with `formConfig`/`formRules`/`formAccepting`
+  properties, a `submissionMeta` provenance property on DatabaseRow, and a
+  UI-free form core (`FormViewConfig`, `FormFieldRule`, `visibleFormQuestions`,
+  `validateFormSubmission`, `isFormFieldTypeAllowed`,
+  `PUBLIC_SAFE_FORM_FIELD_TYPES`) whose show-if rules evaluate through the
+  existing filter engine. `@xnetjs/react`'s `useGridDatabase` exposes the form
+  view model plus `setFormConfig`/`setFormRules`/`setFormAccepting`, and
+  `addRow` accepts `AddRowOptions` (`id` for deterministic/idempotent row ids,
+  `meta` for submission provenance).
+
+  For public forms, `@xnetjs/data` also gains `buildPublicFormDefinition`
+  (the sanitized snapshot the hub serves to anonymous respondents),
+  `submissionRowId` (deterministic drain-time row ids from the submission
+  nonce), and `createRow` now accepts `id`/`submissionMeta`.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.4.0
+  - @xnetjs/sqlite@0.4.0
+  - @xnetjs/sync@0.4.0
+  - @xnetjs/identity@0.4.0
+  - @xnetjs/crypto@0.4.0
+  - @xnetjs/core@0.4.0
+
+## 0.3.0
+
+### Patch Changes
+
+- [#401](https://github.com/crs48/xNet/pull/401) [`92708ab`](https://github.com/crs48/xNet/commit/92708ab09f2334b1ee02fef4cea654c1aed6b0ed) Thanks [@crs48](https://github.com/crs48)! - Add the shared Last-Write-Wins ordering module to `@xnetjs/core`
+  (`compareChangeApplicationOrder`, `compareLwwStamps`, `lwwWins`,
+  `lwwUpdateGuardSql`, `LwwStamp`) — the single canonical LWW comparison used
+  across the stack (protocol §L1.7).
+
+  `@xnetjs/data`, `@xnetjs/plugins`, and `@xnetjs/react` adopt it and receive
+  internal decompositions of their most-churned modules (NodeStore query
+  compiler/hydration/transaction execution, ai-surface tool registry and
+  resource URI router, XNetProvider provider units). No public API changes in
+  those packages.
+
+- Updated dependencies [[`92708ab`](https://github.com/crs48/xNet/commit/92708ab09f2334b1ee02fef4cea654c1aed6b0ed)]:
+  - @xnetjs/core@0.3.0
+  - @xnetjs/crypto@0.3.0
+  - @xnetjs/identity@0.3.0
+  - @xnetjs/storage@0.3.0
+  - @xnetjs/sync@0.3.0
+  - @xnetjs/sqlite@0.3.0
+
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.2.0
+  - @xnetjs/sqlite@0.2.0
+  - @xnetjs/sync@0.2.0
+  - @xnetjs/identity@0.2.0
+  - @xnetjs/crypto@0.2.0
+  - @xnetjs/core@0.2.0
+
+## 0.1.2
+
+### Patch Changes
+
+- [#392](https://github.com/crs48/xNet/pull/392) [`1a045b3`](https://github.com/crs48/xNet/commit/1a045b371b4d8fabe7cd32c5bc44d03efd6c31cc) Thanks [@crs48](https://github.com/crs48)! - SQL property upserts now enforce the full LWW ordering triple (Lamport →
+  wallTime → author code-units), matching the in-memory `shouldReplace`
+  comparator. The previous lamport-only guard let arrival order decide
+  same-Lamport concurrent edits, so two replicas that received the same
+  conflicting changes in different orders could permanently disagree on the
+  materialized value. Applies to the per-change upsert, the batched
+  `applyNodeBatch` path, and the native web/electron batch adapters.
+
+- [#392](https://github.com/crs48/xNet/pull/392) [`1a045b3`](https://github.com/crs48/xNet/commit/1a045b371b4d8fabe7cd32c5bc44d03efd6c31cc) Thanks [@crs48](https://github.com/crs48)! - Changes re-read from the local SQLite change log now pass hash verification.
+  The `changes` table never persisted `id`, `type`, `protocolVersion`, or the
+  batch fields, yet all of them are part of the signed content hash — so the
+  reload-resync push (`getChangesSince` → hub) was structurally rejected as
+  INVALID_HASH, tripped the outbound circuit breaker, and stranded edits made
+  offline before an app restart. New rows persist those fields in an envelope
+  inside the payload BLOB (no schema migration needed); legacy rows keep the
+  old fallback behaviour.
+- Updated dependencies [[`1a045b3`](https://github.com/crs48/xNet/commit/1a045b371b4d8fabe7cd32c5bc44d03efd6c31cc)]:
+  - @xnetjs/sqlite@0.1.2
+  - @xnetjs/storage@0.1.2
+  - @xnetjs/sync@0.1.2
+  - @xnetjs/identity@0.1.2
+  - @xnetjs/crypto@0.1.2
+  - @xnetjs/core@0.1.2
+
+## 0.1.1
+
+### Patch Changes
+
+- [#388](https://github.com/crs48/xNet/pull/388) [`2ab72a9`](https://github.com/crs48/xNet/commit/2ab72a9c988122635e9610f7d7353d91e96af31d) Thanks [@crs48](https://github.com/crs48)! - Query-plan debug diagnostics no longer convoy the SQLite worker. With
+  `xnet:query:debug` enabled, every query used to issue EXPLAIN QUERY PLAN +
+  PRAGMA schema_version + one PRAGMA index_info per index as separate serial
+  worker round-trips — hundreds per boot, delaying real query results by
+  18-20s. `getIndexInfo` now dedupes concurrent callers onto one in-flight
+  build and fetches all index metadata in a single batched
+  `pragma_index_info` join (with a per-index fallback for runtimes without
+  table-valued pragmas), and the storage adapter collects plan diagnostics
+  once per unique compiled SQL shape per session instead of per execution
+  (invalidated when adaptive indexes are created or dropped).
+- Updated dependencies [[`2ab72a9`](https://github.com/crs48/xNet/commit/2ab72a9c988122635e9610f7d7353d91e96af31d)]:
+  - @xnetjs/sqlite@0.1.1
+  - @xnetjs/storage@0.1.1
+  - @xnetjs/sync@0.1.1
+  - @xnetjs/identity@0.1.1
+  - @xnetjs/crypto@0.1.1
+  - @xnetjs/core@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

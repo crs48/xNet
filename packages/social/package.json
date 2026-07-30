@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/social",
-  "version": "0.0.3",
+  "version": "0.0.25",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -36,6 +36,10 @@
     "./feeds": {
       "import": "./src/feeds/index.ts",
       "types": "./src/feeds/index.ts"
+    },
+    "./community": {
+      "import": "./src/community/index.ts",
+      "types": "./src/community/index.ts"
     },
     "./lenses": {
       "import": "./src/lenses/index.ts",

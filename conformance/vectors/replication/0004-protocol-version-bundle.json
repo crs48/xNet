@@ -5,7 +5,7 @@
     "bundle": {
       "id": "xnet/1.0",
       "dataModel": 1,
-      "change": 3,
+      "change": 4,
       "syncEnvelope": 2,
       "awareness": 1,
       "schema": "1.0.0",

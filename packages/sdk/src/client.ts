@@ -4,9 +4,15 @@
  * Provides a single entry point for initializing an xNet client identity,
  * with optional telemetry for tracking initialization success/failure.
  *
+ * NOTE: this returns an IDENTITY ONLY (`{ did, identity, privateKey }`) —
+ * it does not boot a store or sync. For the full client (store, queries,
+ * mutations, hub sync) pass the result to `createXNetClient` from
+ * `@xnetjs/runtime` (re-exported by this package), or use `<XNetProvider>`
+ * from `@xnetjs/react`. See exploration 0314 ("SDK entry foot-gun").
+ *
  * @example
- * const client = await createClient({ privateKey: myKey, telemetry })
- * const client = await createClient({ telemetry }) // generates a new identity
+ * const { did, identity, privateKey } = await createClient({ telemetry })
+ * const client = await createXNetClient({ authorDID: did, signingKey: privateKey, identity })
  */
 
 import type { Identity } from '@xnetjs/identity'

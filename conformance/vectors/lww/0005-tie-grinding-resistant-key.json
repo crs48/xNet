@@ -1,0 +1,38 @@
+{
+  "description": "protocol v4 tie resolved by blake3(author‖property‖value), not the author DID",
+  "input": {
+    "changes": [
+      {
+        "authorDID": "did:key:zzzz",
+        "lamport": 7,
+        "wallTime": 700,
+        "properties": {
+          "title": "from-zzzz"
+        },
+        "protocolVersion": 4
+      },
+      {
+        "authorDID": "did:key:zAAA",
+        "lamport": 7,
+        "wallTime": 700,
+        "properties": {
+          "title": "from-zAAA"
+        },
+        "protocolVersion": 4
+      }
+    ]
+  },
+  "expected": {
+    "properties": {
+      "title": "from-zAAA"
+    },
+    "timestamps": {
+      "title": {
+        "lamport": 7,
+        "wallTime": 700,
+        "author": "did:key:zAAA",
+        "tiebreakKey": "73010ab0e23109a234b41d0119de3ea296013013032b5cc52dda480aef02050c"
+      }
+    }
+  }
+}

@@ -35,6 +35,18 @@ describe('reportBootFailure', () => {
     expect(failure.message).toBe('boom')
   })
 
+  it('accepts render failures from the top-level ErrorBoundary', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const seen: BootFailure[] = []
+    onBootFailure((f) => seen.push(f))
+
+    const failure = reportBootFailure('render', new Error('boom in a component'))
+
+    expect(failure.kind).toBe('render')
+    expect(seen).toHaveLength(1)
+    expect(window.__xnetBootError?.kind).toBe('render')
+  })
+
   it('reports the canonically-furthest phase even when marks land out of order', () => {
     // Warm local-first path: the local query paints before the hub connects, so
     // query:first-rows is *inserted* before hub:connected — but hub:connected is

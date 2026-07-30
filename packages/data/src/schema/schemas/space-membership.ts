@@ -45,6 +45,14 @@ export const SpaceMembershipSchema = defineSchema({
     /** When the member was added (ms since epoch) */
     addedAt: number({}),
 
+    /**
+     * Optional expiry (ms since epoch) for time-boxed grants — e.g. sharing a
+     * diagnostics Space with a support identity (exploration 0341). Absent =
+     * permanent. Clients treat an expired membership as revoked and sweep the
+     * edge node on sight.
+     */
+    expiresAt: number({}),
+
     createdAt: created(),
     createdBy: createdBy()
   },

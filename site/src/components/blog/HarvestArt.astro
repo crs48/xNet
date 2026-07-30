@@ -1,0 +1,207 @@
+---
+// Decorative art for "The Harvest You Can Count" (exploration 0368),
+// single-sourced so the same inline SVG backs the post hero and the blog-index
+// preview card (no external assets — Self-Audit parity).
+//
+// The picture is the essay's thesis. On the left, a ruled ledger page: three
+// columns with headings and neat filled entries, everything squared to the
+// rule. Those are the things a ledger has always been able to hold — yield,
+// date, price. To the right the rules keep going but the columns are empty:
+// the headings that were never written, for variance, soil carbon,
+// micronutrients, independence from inputs.
+//
+// And out of that empty half a canopy grows, refusing to sit inside the cells
+// — crossing the margin, ignoring the rules, perfectly real and entirely
+// unrecorded. The ledger is not wrong. It is just short of columns.
+interface Props {
+  /** Override the wrapper classes; defaults to full-bleed for hero use. */
+  class?: string
+}
+const { class: className = 'pointer-events-none absolute inset-0 h-full w-full' } = Astro.props
+
+// Ledger geometry. The page is ruled all the way across; only the left third
+// carries entries, so the emptiness on the right is visibly the *same* page.
+const RULE_TOP = 96
+const RULE_GAP = 26
+const RULE_COUNT = 7
+const rules = Array.from({ length: RULE_COUNT }, (_, i) => RULE_TOP + i * RULE_GAP)
+
+// Column dividers across the whole page — the grid exists everywhere.
+const columnX = [78, 226, 374, 522, 670, 818, 966]
+
+// The three columns that carry entries: [x, heading width, bar widths per row].
+// Hand-placed so the figures read as a real hand rather than a pattern.
+const filled = [
+  { x: 96, head: 86, bars: [72, 88, 64, 92, 58, 80] },
+  { x: 244, head: 74, bars: [88, 62, 94, 70, 86, 66] },
+  { x: 392, head: 92, bars: [64, 90, 76, 60, 92, 72] }
+] as const
+
+// Canopy: irregular blobs and trunks rising through the unruled half. Sizes and
+// offsets are hand-set — a formula would draw an orchard, and an orchard is a
+// monoculture. [cx, cy, rx, ry, opacity]
+const canopy = [
+  [604, 176, 74, 52, 0.9],
+  [700, 138, 92, 62, 0.85],
+  [806, 182, 80, 54, 0.9],
+  [900, 146, 86, 58, 0.82],
+  [658, 218, 64, 42, 0.8],
+  [762, 232, 72, 44, 0.78],
+  [862, 224, 60, 40, 0.8],
+  [956, 206, 68, 46, 0.75]
+] as const
+
+// [x, top y, height, width]
+const trunks = [
+  [602, 176, 92, 7],
+  [698, 140, 126, 8],
+  [804, 182, 88, 7],
+  [898, 148, 118, 8],
+  [760, 232, 44, 6]
+] as const
+---
+
+<svg
+  class={className}
+  viewBox="0 0 1040 340"
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+>
+  <defs>
+    <linearGradient id="harvestPage" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1409" />
+      <stop offset="45%" stop-color="#181207" />
+      <stop offset="100%" stop-color="#12100c" />
+    </linearGradient>
+    <linearGradient id="harvestCanopy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#65a30d" />
+      <stop offset="100%" stop-color="#3f6212" />
+    </linearGradient>
+    <radialGradient id="harvestLamp" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1040" height="340" fill="url(#harvestPage)" />
+
+  <!-- the clerk's lamp, over the end of the page where the writing happens -->
+  <ellipse cx="220" cy="150" rx="300" ry="200" fill="url(#harvestLamp)" opacity="0.55" />
+
+  <!-- the rules: they run the full width of the page, entries or not -->
+  {
+    rules.map((y) => (
+      <line x1="60" y1={y} x2="1000" y2={y} stroke="#a16207" stroke-width="1" opacity="0.32" />
+    ))
+  }
+
+  <!-- column dividers: the grid is everywhere, even where nothing is recorded -->
+  {
+    columnX.map((x) => (
+      <line
+        x1={x}
+        y1={RULE_TOP - 34}
+        x2={x}
+        y2={RULE_TOP + (RULE_COUNT - 1) * RULE_GAP}
+        stroke="#a16207"
+        stroke-width="1"
+        opacity="0.24"
+      />
+    ))
+  }
+
+  <!-- the double rule under the headings -->
+  <line
+    x1="60"
+    y1={RULE_TOP - 8}
+    x2="1000"
+    y2={RULE_TOP - 8}
+    stroke="#d97706"
+    stroke-width="1.5"
+    opacity="0.5"
+  />
+
+  <!-- three headings, and their neat filled entries -->
+  {
+    filled.map((col) => (
+      <g>
+        <rect
+          x={col.x}
+          y={RULE_TOP - 30}
+          width={col.head}
+          height="9"
+          rx="1.5"
+          fill="#fcd34d"
+          opacity="0.8"
+        />
+        {col.bars.map((w, i) => (
+          <rect
+            x={col.x}
+            y={RULE_TOP + i * RULE_GAP + 9}
+            width={w}
+            height="7"
+            rx="1.5"
+            fill="#f59e0b"
+            opacity={0.62 - i * 0.03}
+          />
+        ))}
+      </g>
+    ))
+  }
+
+  <!-- the canopy: real, unrecorded, and not squared to anything -->
+  <g>
+    {
+      trunks.map(([x, y, h, w]) => (
+        <rect x={x} y={y} width={w} height={h} rx="2" fill="#422006" opacity="0.85" />
+      ))
+    }
+    {
+      canopy.map(([cx, cy, rx, ry, o]) => (
+        <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="url(#harvestCanopy)" opacity={o} />
+      ))
+    }
+    {/* a few fruits — the yield nobody entered */}
+    <g fill="#fb923c" opacity="0.9">
+      <circle cx="676" cy="152" r="5" />
+      <circle cx="722" cy="128" r="4.5" />
+      <circle cx="820" cy="176" r="5" />
+      <circle cx="884" cy="140" r="4.5" />
+      <circle cx="614" cy="186" r="4" />
+      <circle cx="932" cy="162" r="5" />
+      <circle cx="778" cy="228" r="4" />
+    </g>
+  </g>
+
+  <!-- the ledger's edge: the page stops, the canopy does not -->
+  <line
+    x1="560"
+    y1={RULE_TOP - 42}
+    x2="560"
+    y2={RULE_TOP + (RULE_COUNT - 1) * RULE_GAP + 14}
+    stroke="#d97706"
+    stroke-width="1.5"
+    opacity="0.4"
+    stroke-dasharray="5 6"
+  />
+
+  <!-- desk edge -->
+  <rect x="0" y="296" width="1040" height="44" fill="#0f0c07" />
+  <line x1="0" y1="296" x2="1040" y2="296" stroke="#4a3512" stroke-width="1.5" />
+
+  <!-- the pen, resting on the counted half -->
+  <g transform="translate(150 316) rotate(-8)">
+    <rect x="-58" y="-3.5" width="104" height="7" rx="3" fill="#7c2d12" />
+    <path d="M46 -3.5 L64 0 L46 3.5 Z" fill="#fcd34d" />
+    <rect x="-58" y="-3.5" width="22" height="7" rx="3" fill="#431407" />
+  </g>
+
+  <!-- the cosmic-X, on the uncounted side -->
+  <g transform="translate(940 300)">
+    <circle cx="0" cy="0" r="17" fill="#1a1409" stroke="#84cc16" stroke-width="1.5" opacity="0.95" />
+    <g stroke="#a3e635" stroke-width="4" stroke-linecap="round">
+      <line x1="-6" y1="-7" x2="6" y2="7" />
+      <line x1="6" y1="-7" x2="-6" y2="7" />
+    </g>
+  </g>
+</svg>

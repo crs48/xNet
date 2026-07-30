@@ -7,6 +7,7 @@
  */
 import { createFileRoute } from '@tanstack/react-router'
 import { DIDAvatar } from '@xnetjs/ui'
+import { DraftReviewRequests } from '../components/DraftReviewRequests'
 import { PersonActions } from '../components/PersonActions'
 import { useMessageRequests } from '../hooks/useDmOpen'
 
@@ -62,6 +63,9 @@ function RequestsPage() {
           ))}
         </ul>
       )}
+
+      {/* Open drafts flagged for review (exploration 0329 P4 support). */}
+      <DraftReviewRequests />
     </div>
   )
 }

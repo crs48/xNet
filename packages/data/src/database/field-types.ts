@@ -61,6 +61,7 @@ export const FIELD_TYPES: readonly FieldType[] = [
   'checkbox',
   'date',
   'dateRange',
+  'geo',
   'select',
   'multiSelect',
   'person',

@@ -1,0 +1,55 @@
+---
+// The honesty beat for post #11 (exploration 0281), modeled on HonestWorkshop /
+// HonestTiller / HonestGarden. An essay that says "apps should be views over
+// data you own" is standing on a pile of projects that said the same thing and
+// stalled — Solid pods, WinFS, the semantic desktop — so it owes the reader a
+// plain account of why they stalled and what this attempt does differently.
+// The rows concede the strongest standing objections rather than dodging them.
+const rows = [
+  {
+    isnt: 'We won’t pretend two apps agreeing on data is a solved problem.',
+    is: 'Schema agreement is the hard part — Solid’s own researchers concluded that apps failed to reuse each other’s data because each one baked in private assumptions about layout. Our answer is not a grand shared ontology; it’s published, versioned schemas plus lenses, overlays, and sidecars that make disagreement cheap. Views can differ about shape without forking the data.'
+  },
+  {
+    isnt: 'We won’t pretend a general-purpose store is fast for free.',
+    is: 'Purpose-built silos are quick because they optimise for exactly one access pattern. Making one open substrate feel app-fast took us months of unglamorous engineering — a dozen pull requests on query batching, hydration, and cold-start alone. The convenience of the vault is real; it just isn’t worth the walls.'
+  },
+  {
+    isnt: 'We won’t pretend decoupling data from apps removes the need for trust.',
+    is: 'A view still runs with access to the slice it renders, and a malicious view is still malicious. That’s a different essay — the previous one, in fact — but the short version is: every view here declares what it can see and touch, and the declaration is enforced, not promised.'
+  },
+  {
+    isnt: 'We won’t pretend decentralisation can’t recentralise one layer up.',
+    is: 'Gordon Brander’s law is real: unbundle the data layer and power tends to reappear at the index, the relay, the host. Our hedge is structural — the local replica is primary, the hub is an optional peer you can replace, and leaving with everything is a supported, documented act rather than a scraping exercise.'
+  }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      An honest inversion
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      The graveyard of systems that promised this is well populated. Here’s
+      what the residents taught us, and where the romance stops.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-sky-500">✓</span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

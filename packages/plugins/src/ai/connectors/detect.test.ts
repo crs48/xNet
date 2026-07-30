@@ -53,7 +53,7 @@ describe('detectConnectors', () => {
     const result = await detectConnectors(NOTHING)
     const managed = result.find((d) => d.tier === 'managed')
     expect(managed?.available).toBe(false)
-    expect(managed?.setupHint).toMatch(/XNet Cloud/)
+    expect(managed?.setupHint).toMatch(/xNet Cloud/)
   })
 
   it('reports the in-tab tier unavailable when WebGPU is present but no engine is wired', async () => {
@@ -114,6 +114,13 @@ describe('detectConnectors', () => {
     const local = result.find((d) => d.tier === 'local-server')
     expect(local?.available).toBe(false)
     expect(local?.setupHint).toMatch(/OLLAMA_ORIGINS|CORS/)
+  })
+
+  it('names the exact origin (never a wildcard) in the local-server hint', async () => {
+    const result = await detectConnectors({ ...NOTHING, appOrigin: 'https://app.xnet.fyi' })
+    const local = result.find((d) => d.tier === 'local-server')
+    expect(local?.setupHint).toContain('OLLAMA_ORIGINS=https://app.xnet.fyi')
+    expect(local?.setupHint).not.toContain('OLLAMA_ORIGINS=*')
   })
 
   it('detects a healthy bridge daemon and surfaces its url', async () => {

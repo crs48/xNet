@@ -2,6 +2,11 @@
 
 Composable abuse, moderation, and reach policy decisions for xNet.
 
+> **Alpha software.** xNet is released but early: this package is on npm and
+> usable today, but its API can change between releases, sometimes without a
+> migration path. Pin your version. See the
+> [project README](https://github.com/crs48/xNet#readme) for what alpha means here.
+
 This package is intentionally dependency-light so lower-level packages such as
 `@xnetjs/sync`, `@xnetjs/network`, and `@xnetjs/hub` can adopt the decision types
 without depending on `@xnetjs/data`.

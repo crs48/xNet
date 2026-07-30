@@ -55,6 +55,8 @@ export interface ReverseRelationsPanelProps {
   databaseId: string
   /** Callback when a backlink is clicked */
   onRowClick?: (rowId: string, databaseId: string) => void
+  /** "Open as frame" (0346): open a linking database through a view. */
+  onOpenAsFrame?: (databaseId: string) => void
 }
 
 interface GroupedRelations {
@@ -78,7 +80,8 @@ function Skeleton({ className = '' }: { className?: string }) {
 export function ReverseRelationsPanel({
   rowId,
   databaseId,
-  onRowClick
+  onRowClick,
+  onOpenAsFrame
 }: ReverseRelationsPanelProps): React.JSX.Element {
   const { relations, loading, error } = useReverseRelations(rowId, databaseId)
 
@@ -148,6 +151,16 @@ export function ReverseRelationsPanel({
             <span>&middot;</span>
             <span>{group.column.name}</span>
             <span className="text-gray-400 dark:text-gray-500">({group.rows.length})</span>
+            {onOpenAsFrame && (
+              <button
+                type="button"
+                className="ml-auto rounded border border-gray-200 px-1.5 py-0.5 text-[10px] text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                onClick={() => onOpenAsFrame(group.sourceDatabaseId)}
+                title="Open this database as a frame"
+              >
+                Open as frame
+              </button>
+            )}
           </div>
 
           {/* Rows */}

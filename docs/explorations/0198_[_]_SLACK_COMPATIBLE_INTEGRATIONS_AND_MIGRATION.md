@@ -2,36 +2,36 @@
 
 ## Problem Statement
 
-Can XNet's channels act as a drop-in replacement for Slack such that a team
-can *switch off Slack and switch on XNet* and have **their existing Slack
+Can xNet's channels act as a drop-in replacement for Slack such that a team
+can *switch off Slack and switch on xNet* and have **their existing Slack
 integrations keep working with no extra hassle**?
 
 The prompt bundles two distinct asks that are worth separating up front,
 because they have wildly different difficulty profiles:
 
-1. **"Switch from Slack to XNet and bring everything with me."** — Migrate the
+1. **"Switch from Slack to xNet and bring everything with me."** — Migrate the
    *data*: channels, history, members, DMs, files, reactions.
 2. **"All my existing Slack integrations just work automatically."** — Make the
    *third-party apps* that were written against Slack's APIs (PagerDuty,
    Datadog, GitHub, Sentry, Jira, internal bots, Zapier/Make workflows, the CI
-   `curl` that posts a build-failed message) continue to function against XNet
+   `curl` that posts a build-failed message) continue to function against xNet
    **without their authors changing a line of code**.
 
-(1) is an ingestion problem and XNet already has the purpose-built primitive
+(1) is an ingestion problem and xNet already has the purpose-built primitive
 for it. (2) is the genuinely interesting question, and the honest answer is
 *"a large, high-value slice of it can, but not all of it, and the slice that
 can is exactly the slice you'd want to do first."*
 
 ## Executive Summary
 
-- **XNet already has a complete native chat substrate.** `Channel` (channel /
+- **xNet already has a complete native chat substrate.** `Channel` (channel /
   DM / voice), `ChatMessage` (markdown body, flat threading, structured
   mentions, attachments, reactions, redaction), presence/typing, an inbox/
   notifier, and real-time Yjs sync all ship today
   (`packages/data/src/schema/schemas/channel.ts`,
   `chat-message.ts`, `packages/comms/**`, `apps/web/src/comms/**`). We are not
   starting from zero; we are starting from "Slack-shaped chat already exists."
-- **XNet already has the ingestion primitive.** The Connector system
+- **xNet already has the ingestion primitive.** The Connector system
   (`packages/plugins/src/connectors/define-connector.ts`, shipped in
   exploration 0196 / PR #160) is *explicitly* designed for this — its own
   doc-comment uses `dev.xnet.connector.slack` and `slack_search_mentions` as the
@@ -39,7 +39,7 @@ can is exactly the slice you'd want to do first."*
 - **"Existing integrations just work" is a compatibility-surface problem, not a
   connector problem.** Slack integrations talk to Slack's *wire protocol*
   (Incoming Webhooks, Web API `chat.postMessage`, slash commands, the Events
-  API, OAuth v2, Block Kit). To make them work unchanged, XNet must **emulate
+  API, OAuth v2, Block Kit). To make them work unchanged, xNet must **emulate
   the parts of that wire protocol the integration uses**. This is precisely the
   road Mattermost and Rocket.Chat took — and tellingly, they emulated only
   *incoming webhooks and slash commands*, because those cover the bulk of real
@@ -47,7 +47,7 @@ can is exactly the slice you'd want to do first."*
   is a deep, never-quite-finished long tail.
 - **The 80/20 is stark.** The single most common Slack integration in the wild
   is a one-way *incoming webhook* ("post this alert to #ops"). It is also the
-  *easiest* thing to emulate — and XNet already has the exact plumbing
+  *easiest* thing to emulate — and xNet already has the exact plumbing
   (`packages/hub/src/features/webhooks.ts` `mountWebhook`: raw-body read →
   scoped-secret gate → signature verify → normalize → apply). Slash commands are
   the next rung and are nearly as cheap.
@@ -58,7 +58,7 @@ can is exactly the slice you'd want to do first."*
   posting subset (`chat.postMessage`/`chat.update`/`conversations.list`) covers
   bots-that-post. Full Events API + OAuth app-install + interactive Block Kit is
   Tier 3: opt-in, best-effort, and where we should instead steer richer
-  integrations toward XNet's *native* path — MCP tools + connectors + agent
+  integrations toward xNet's *native* path — MCP tools + connectors + agent
   bridge — which is the actual differentiator (agent-native, policy-governed,
   the credential never leaves the hub).
 - **Do not promise "everything just works."** Promise: *your alerting webhooks
@@ -90,7 +90,7 @@ can is exactly the slice you'd want to do first."*
 `packages/plugins/src/connectors/define-connector.ts` defines `defineConnector`,
 whose own header comment frames it as *"xNet's answer to the agent-native CLI:
 instead of giving the agent a credentialed shell, it syncs an external service
-into governed XNet nodes and exposes agent-callable tools over them."* A
+into governed xNet nodes and exposes agent-callable tools over them."* A
 connector bundles three things:
 
 1. a `capabilities` manifest — `secrets` (held by the **hub broker**, never the
@@ -166,7 +166,7 @@ integration (or agent) posts into a channel.
   (`packages/cloud/src/identity/workos.ts`) for cloud billing identity, but
   nothing that issues scoped bearer/bot tokens to a third-party app the way
   Slack's `oauth.v2.access` does.
-- **No "bot/app" actor identity.** Slack apps post as a bot user; XNet messages
+- **No "bot/app" actor identity.** Slack apps post as a bot user; xNet messages
   are signed by a DID. A grep of `packages/social/src/schemas/actor.ts` for a
   `bot`/`ai-assistant` kind came back empty in this tree, and hub *system
   identity* is a known open gap (flagged in the billing exploration too). A
@@ -195,7 +195,7 @@ Slack exposes four surfaces, and "an integration" uses some subset:
 Authentication for inbound deliveries is the **signing secret**: integrations
 (and Slack itself) sign requests; you verify `x-slack-signature` (HMAC-SHA256
 over a versioned base string) using the shared secret — *the same shape as the
-GitHub `x-hub-signature-256` check XNet already implements.*
+GitHub `x-hub-signature-256` check xNet already implements.*
 
 ### Prior art: the open-source Slack alternatives
 
@@ -240,9 +240,9 @@ Sources are listed in [References](#references).
    clone.
 5. **Two real gaps gate the bot-grade tiers:** (a) no OAuth authorization server
    to issue bot tokens, and (b) no bot/app *identity* (synthetic DID + actor) to
-   author messages and survive XNet's signed, DID-scoped authz. These are the
+   author messages and survive xNet's signed, DID-scoped authz. These are the
    first things to design, not the Block Kit renderer.
-6. **XNet has a *better* integration story than emulation for rich apps.** The
+6. **xNet has a *better* integration story than emulation for rich apps.** The
    native path — connector + `agentTools` + MCP surface, credential held in the
    hub broker, every write policy-evaluated and budgeted — is the differentiator.
    Emulation is the *migration on-ramp*; MCP/connectors are the *destination*.
@@ -264,7 +264,7 @@ flowchart TD
   A1 --> AEasy["Difficulty: LOW — primitive already exists"]
 
   B --> B1["Option B1: Slack-protocol compatibility shim<br/>emulate Slack's wire API"]
-  B --> B2["Option B2: native per-app connectors + MCP tools<br/>(XNet-native, not Slack-shaped)"]
+  B --> B2["Option B2: native per-app connectors + MCP tools<br/>(xNet-native, not Slack-shaped)"]
 
   B1 --> T0["Tier 0: Incoming Webhooks (alerts)"]
   B1 --> T1["Tier 1: Slack-compatible slash commands"]
@@ -292,7 +292,7 @@ Emulate OAuth v2, the Events API, the full Web API, Socket Mode, Block Kit
 interactivity, App Home, modals. **Pro:** the dream of "everything just works."
 **Con:** enormous, perpetually-trailing surface; chasing an undocumented-in-
 practice moving target; even Slack's open-source competitors didn't attempt it;
-most of the surface assumes Slack-hosted UI XNet doesn't have. **Verdict:
+most of the surface assumes Slack-hosted UI xNet doesn't have. **Verdict:
 reject as a goal. Pursue *tiers* of it, not the whole.**
 
 ### Option 3 — Tiered compatibility shim (recommended)
@@ -306,7 +306,7 @@ Emulate the *commodity* surface that covers most integrations, in cost order:
   almost verbatim. **This alone delivers most of the felt "my integrations still
   work."**
 - **Tier 1 — Slash commands (Slack-compatible).** Register external command
-  endpoints; XNet POSTs Slack's form payload (`command`, `text`, `user_id`,
+  endpoints; xNet POSTs Slack's form payload (`command`, `text`, `user_id`,
   `channel_id`, `response_url`), renders the `response_type`-tagged reply, and
   supports delayed `response_url` posts. Mattermost-compatible, with the same
   documented caveats.
@@ -314,21 +314,21 @@ Emulate the *commodity* surface that covers most integrations, in cost order:
   `chat.delete`, `conversations.list`, `users.info`, `reactions.add`,
   `files.upload` — bearer-token authed. Covers bots that *push*.
 - **Tier 3 — Events API + OAuth + interactive Block Kit.** Opt-in, best-effort.
-  An OAuth authorization server issues scoped bot tokens; XNet's change log
+  An OAuth authorization server issues scoped bot tokens; xNet's change log
   drives an Events emitter that POSTs signed event envelopes to subscribed
   Request URLs (with the `url_verification` challenge). Block Kit interactivity
   degrades to rendered markdown + a few action affordances.
 
 **Pro:** matches proven prior art; cost-ordered so each tier ships value
-independently; reuses XNet's existing webhook/secret/budget/guardrail plumbing.
+independently; reuses xNet's existing webhook/secret/budget/guardrail plumbing.
 **Con:** Tiers 2–3 need the identity + OAuth gaps closed; fidelity is partial.
 **Verdict: recommended — ship Tier 0/1 first, gate 2/3.**
 
 ### Option 4 — Native-first ("don't emulate, translate the *intent*")
 
-For each major integration, ship an XNet-native connector + `agentTools`
+For each major integration, ship an xNet-native connector + `agentTools`
 (`dev.xnet.connector.pagerduty`, `…github`, `…sentry`) rather than emulating
-Slack. **Pro:** this is XNet's actual edge — governed, agent-native, credential
+Slack. **Pro:** this is xNet's actual edge — governed, agent-native, credential
 in the hub, policy-evaluated. **Con:** it is *not* "your existing integration
 works unchanged" — it's a new integration. **Verdict: the long-term destination;
 pair it with Option 3 rather than choosing between them.**
@@ -392,7 +392,7 @@ const MESSAGE = 'xnet://xnet.fyi/ChatMessage@1.0.0'
 export const slackMigrationConnector = defineConnector({
   id: 'dev.xnet.connector.slack',
   name: 'Slack',
-  description: 'Import Slack channels, history, members and files into XNet.',
+  description: 'Import Slack channels, history, members and files into xNet.',
   capabilities: {
     secrets: ['SLACK_USER_TOKEN'],          // held by the hub broker, never the agent
     schemaWrite: [CHANNEL, MESSAGE],         // every synced schema must be covered
@@ -500,15 +500,15 @@ routes.post('/api/chat.postMessage', requireBotToken, async (c) => {
 })
 ```
 
-### D) Inbound flow (integration → XNet channel)
+### D) Inbound flow (integration → xNet channel)
 
 ```mermaid
 sequenceDiagram
   participant App as Slack integration (PagerDuty/CI/...)
-  participant Hub as XNet hub (slack-compat feature)
+  participant Hub as xNet hub (slack-compat feature)
   participant Guard as guardStore + budget + MCP guardrail
   participant Sync as Yjs sync
-  participant UI as XNet ChannelChat
+  participant UI as xNet ChannelChat
 
   App->>Hub: POST /slack/services/hooks/:token {text, blocks?}
   Hub->>Hub: verify token / x-slack-signature (HMAC)
@@ -520,11 +520,11 @@ sequenceDiagram
   Hub-->>App: 200 { ok: true }
 ```
 
-### E) Outbound flow (XNet → bot, Events API — Tier 3)
+### E) Outbound flow (xNet → bot, Events API — Tier 3)
 
 ```mermaid
 sequenceDiagram
-  participant UI as XNet user posts in #ops
+  participant UI as xNet user posts in #ops
   participant Log as Change log / notifier
   participant Emit as Events emitter (slack-compat)
   participant App as Subscribed Slack app (Request URL)
@@ -543,7 +543,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  subgraph Hub["XNet hub (mountFeatures)"]
+  subgraph Hub["xNet hub (mountFeatures)"]
     Broker["secret broker scopedEnv(SLACK_*)"]
     SC["slack-compat feature"]
     CS["connectorSyncFeature (dev.xnet.connector.slack.sync)"]
@@ -563,14 +563,14 @@ flowchart LR
 
 ## Risks And Open Questions
 
-- **Bot/app identity is unbuilt and load-bearing.** Every message in XNet is a
+- **Bot/app identity is unbuilt and load-bearing.** Every message in xNet is a
   signed, DID-authored node under a policy cascade. A Slack app posting needs a
   stable synthetic DID + a `bot`/`app` `SocialActor`. Who holds the app's
   signing key — the hub (a system identity, itself a known gap) or a per-app
   keypair? This blocks Tiers 2–3. **Open question, design first.**
-- **OAuth authorization server is net-new.** XNet has an OAuth *client*, not a
+- **OAuth authorization server is net-new.** xNet has an OAuth *client*, not a
   server. Issuing/scoping/revoking bot tokens (and mapping Slack scopes →
-  XNet capabilities/AI scopes) is a security-sensitive subsystem.
+  xNet capabilities/AI scopes) is a security-sensitive subsystem.
 - **Fidelity loss is unavoidable.** Block Kit interactivity (buttons, selects,
   modals, App Home), `mrkdwn`/`parse`/`link_names`, ephemeral messages, and
   threaded `response_url` semantics will degrade. Document the divergences as
@@ -578,7 +578,7 @@ flowchart LR
 - **The 3-second slash-command ack** and `response_url` delayed-reply pattern
   must be honoured or integrations time out.
 - **Channel addressing / name collisions.** Slack integrations target `#ops` by
-  name or channel ID; XNet uses node IDs and DM-derived IDs. Need a stable
+  name or channel ID; xNet uses node IDs and DM-derived IDs. Need a stable
   Slack-name → Channel-node mapping table and an "unmatched channel" policy.
 - **Abuse / outward-facing writes.** Inbound webhooks are an un-authenticated-ish
   write path; lean hard on `evaluatePublicWriteBudget` (`connector` surface) and
@@ -587,10 +587,10 @@ flowchart LR
   Request URLs is SSRF-adjacent; route through `guardedFetch` with an allowlist
   and redirect re-validation.
 - **Is full emulation even the goal?** Strategic risk of over-investing in
-  cloning a competitor's API instead of leaning into XNet's agent-native
+  cloning a competitor's API instead of leaning into xNet's agent-native
   MCP/connector differentiator. The recommendation deliberately caps emulation
   at the commodity tiers.
-- **Federation interplay.** How do Slack-compat channels interact with XNet's
+- **Federation interplay.** How do Slack-compat channels interact with xNet's
   multi-hub federation and space cascade? Synced/compat nodes are space-stamped,
   but cross-hub visibility of bot-authored messages needs a policy decision.
 
@@ -630,7 +630,7 @@ flowchart LR
 - [ ] **Identity:** add a `bot`/`app` `SocialActor` kind; mint a synthetic
       per-app DID; decide hub-system-identity vs per-app keypair for signing.
 - [ ] **OAuth:** minimal OAuth 2.0 authorization server issuing scoped bot
-      tokens bound to the app DID; map Slack scopes → XNet capabilities/AI scopes;
+      tokens bound to the app DID; map Slack scopes → xNet capabilities/AI scopes;
       `oauth.v2.access`-shaped response; token revocation.
 - [ ] **Tier 2:** Web API posting subset — `chat.postMessage`, `chat.update`,
       `chat.delete`, `conversations.list`, `users.info`, `reactions.add`,
@@ -651,7 +651,7 @@ flowchart LR
 ## Validation Checklist
 
 - [ ] An off-the-shelf alerting integration (e.g. a real CI "post on failure"
-      incoming-webhook config) posts to an XNet channel with **only its webhook
+      incoming-webhook config) posts to an xNet channel with **only its webhook
       URL changed** — message renders, lands in the right channel, appears live.
 - [x] A Slack-format `curl -d '{"text":"...","blocks":[...]}'` against
       `/slack/services/hooks/:token` produces a correctly-rendered `ChatMessage`.
@@ -687,7 +687,7 @@ flowchart LR
 
 ## References
 
-### XNet codebase
+### xNet codebase
 
 - `packages/data/src/schema/schemas/channel.ts` — `Channel` (channel/dm/voice)
 - `packages/data/src/schema/schemas/chat-message.ts` — `ChatMessage`

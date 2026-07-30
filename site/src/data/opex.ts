@@ -12,9 +12,9 @@
  * real P&L when we go fully public.
  */
 
-export type OpexCategory = 'Payroll' | 'Software' | 'Infrastructure' | 'Overhead'
+type OpexCategory = 'Payroll' | 'Software' | 'Infrastructure' | 'Overhead'
 
-export interface OpexLine {
+interface OpexLine {
   category: OpexCategory
   name: string
   /** Recurring monthly cost in USD. */
@@ -22,10 +22,8 @@ export interface OpexLine {
   note?: string
 }
 
-export const updated = 'June 2026'
-
 /** Recurring monthly operating costs. Infra here is the fixed floor; usage-based infra rides the weekly COGS. */
-export const OPEX: OpexLine[] = [
+const OPEX: OpexLine[] = [
   {
     category: 'Payroll',
     name: 'Founder (below-market draw)',
@@ -57,11 +55,3 @@ export const OPEX: OpexLine[] = [
 ]
 
 export const monthlyOpexTotal = OPEX.reduce((sum, l) => sum + l.monthlyUsd, 0)
-
-/** Recurring opex grouped by category (for the breakdown chart). */
-export const opexByCategory: { category: OpexCategory; monthlyUsd: number }[] = (
-  ['Payroll', 'Software', 'Infrastructure', 'Overhead'] as OpexCategory[]
-).map((category) => ({
-  category,
-  monthlyUsd: OPEX.filter((l) => l.category === category).reduce((s, l) => s + l.monthlyUsd, 0)
-}))

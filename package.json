@@ -15,9 +15,15 @@
     "check:cloud-boundary": "bash scripts/check-cloud-boundary.sh",
     "check:plugin-licenses": "node scripts/check-plugin-licenses.mjs",
     "check:motion-vocab": "node scripts/check-motion-vocab.mjs",
+    "check:surface-tokens": "node scripts/check-surface-tokens.mjs",
     "check:humane-patterns": "node scripts/check-humane-patterns.mjs",
+    "guard:no-source-stamp": "node scripts/guard-no-source-stamp.mjs",
     "check:publish-closure": "node scripts/check-publish-closure.mjs",
     "check:electron-parity": "node scripts/check-electron-parity.mjs",
+    "check:view-drift": "node scripts/check-view-drift.mjs",
+    "check:visual-explorations": "node scripts/check-visual-explorations.mjs",
+    "check:agent-docs": "node scripts/check-agent-docs.mjs",
+    "check:storybook-shim": "node scripts/check-storybook-shim.mjs",
     "test:editor": "pnpm --filter @xnetjs/editor test",
     "test:stories": "storybook test --url http://127.0.0.1:6006",
     "test:watch": "vitest",
@@ -43,16 +49,23 @@
     "visuals:capture-set": "node scripts/visuals/changed-capture-set.mjs",
     "visuals:capture": "node scripts/visuals/capture.mjs",
     "visuals:diff": "node scripts/visuals/diff.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "check:api-report": "node scripts/check-api-report.mjs",
+    "check:packaging": "node scripts/check-packaging.mjs",
+    "build:blog-preview": "tsx scripts/build-blog-preview.ts",
+    "check:blog-preview": "tsx scripts/build-blog-preview.ts --check"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.29.7",
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
     "@github-ui/storybook-addon-performance-panel": "^1.1.4",
+    "@microsoft/api-extractor": "^7.58.11",
     "@playwright/test": "1.58.1",
     "@storybook/addon-a11y": "^10.2.16",
+    "@storybook/addon-docs": "^10.2.16",
     "@storybook/addon-links": "^10.2.16",
     "@storybook/addon-themes": "^10.2.16",
     "@storybook/addon-vitest": "^10.2.16",
@@ -68,9 +81,11 @@
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "fallow": "^2.93.0",
+    "fast-check": "^4.8.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.2.0",
+    "publint": "^0.3.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "storybook": "^10.2.16",
@@ -79,7 +94,8 @@
     "tsx": "^4.0.0",
     "turbo": "^2.0.0",
     "typescript": "^5.4.0",
-    "vitest": "^4.0.0"
+    "vitest": "^4.0.0",
+    "yjs": "^13.6.0"
   },
   "packageManager": "pnpm@10.30.3",
   "engines": {
@@ -103,6 +119,9 @@
     ],
     "patchedDependencies": {
       "y-webrtc@10.3.0": "patches/y-webrtc@10.3.0.patch"
+    },
+    "overrides": {
+      "prosemirror-transform": "^1.12.0"
     }
   }
 }

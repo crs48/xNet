@@ -28,6 +28,9 @@ export { money, isMoneyValue, type MoneyOptions, type MoneyValue } from './money
 export { date, type DateOptions } from './date'
 export { dateRange, type DateRangeOptions, type DateRange } from './dateRange'
 
+// Spatial types
+export { geo, isGeoPoint, type GeoOptions, type GeoPoint } from './geo'
+
 // Selection types
 export { select, type SelectOptions, type SelectOption } from './select'
 export { multiSelect, type MultiSelectOptions } from './multiSelect'

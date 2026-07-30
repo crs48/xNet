@@ -9,6 +9,7 @@ export {
   SEEDERS,
   TIER1_SCHEMA_IDS,
   SEED_EXCLUDED_SCHEMA_IDS,
+  LANDING_SEED_PROFILE,
   getAutoSchemas,
   resolveAllSchemas
 } from './seed-manifest'

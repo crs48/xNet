@@ -16,8 +16,9 @@ import type {
   UnifiedTimelineEntry,
   TimelineEntry
 } from './types'
-import type { NodeId } from '@xnetjs/data'
+import type { NodeId, PinRegistry } from '@xnetjs/data'
 import * as Y from 'yjs'
+import { pinKeyForYjsSnapshot } from './frontier'
 
 // ─── Configuration ───────────────────────────────────────────
 
@@ -26,6 +27,11 @@ export interface DocumentHistoryOptions {
   minInterval: number
   /** Maximum snapshots to keep per node (default: 100) */
   maxPerNode: number
+  /**
+   * Pin registry (exploration 0329): snapshots whose `yjs:<nodeId>@<ts>` ref
+   * is pinned (by a checkpoint or draft) are exempt from per-node eviction.
+   */
+  pins?: PinRegistry
 }
 
 const DEFAULT_OPTIONS: DocumentHistoryOptions = {
@@ -260,8 +266,21 @@ export class DocumentHistoryEngine {
     const snapshots = await this.getSnapshots(nodeId)
     if (snapshots.length <= this.options.maxPerNode) return
 
-    // Keep the most recent maxPerNode snapshots by deleting all and re-saving
-    const toKeep = snapshots.slice(-this.options.maxPerNode)
+    // Keep the most recent maxPerNode snapshots — plus any snapshot pinned by
+    // a checkpoint/draft (exploration 0329), which survives eviction so the
+    // pinned frontier stays restorable.
+    const recent = new Set(snapshots.slice(-this.options.maxPerNode))
+    let pinnedRefs = new Set<string>()
+    if (this.options.pins) {
+      pinnedRefs = await this.options.pins.getPinnedKeysAmong(
+        snapshots.map((s) => pinKeyForYjsSnapshot(s.nodeId, s.timestamp))
+      )
+    }
+    const toKeep = snapshots.filter(
+      (s) => recent.has(s) || pinnedRefs.has(pinKeyForYjsSnapshot(s.nodeId, s.timestamp))
+    )
+    if (toKeep.length === snapshots.length) return
+
     await this.snapshotStorage.deleteYjsSnapshots(nodeId)
     for (const snap of toKeep) {
       await this.snapshotStorage.saveYjsSnapshot(snap)
@@ -326,11 +345,16 @@ export class MemoryYjsSnapshotStorage implements YjsSnapshotStorageAdapter {
 function extractTextContent(doc: Y.Doc): string {
   const parts: string[] = []
 
-  // Rich text content (pages)
+  // Rich text content (pages). v4 ('content-v4', BlockNote — 0312) is
+  // preferred; 'content' is the legacy TipTap fragment kept until the lazy
+  // importer runs.
   try {
-    const content = doc.getXmlFragment('content')
-    if (content.length > 0) {
-      parts.push(xmlFragmentToText(content))
+    for (const fragmentName of ['content-v4', 'content']) {
+      const content = doc.getXmlFragment(fragmentName)
+      if (content.length > 0) {
+        parts.push(xmlFragmentToText(content))
+        break
+      }
     }
   } catch {
     // No content fragment
@@ -395,8 +419,33 @@ function xmlFragmentToText(fragment: Y.XmlFragment): string {
 
 /**
  * Convert a Y.XmlElement to plain text (simplified).
+ *
+ * BlockNote (v4, 0312) inline atoms carry their readable text in
+ * attributes, not child text nodes.
  */
 function xmlElementToText(element: Y.XmlElement): string {
+  const attr = (key: string): string => {
+    const value = element.getAttribute(key)
+    return typeof value === 'string' ? value : ''
+  }
+
+  switch (element.nodeName) {
+    case 'mention': {
+      const label = attr('label') || attr('id')
+      return label ? `@${label}` : ''
+    }
+    case 'hashtag': {
+      const name = attr('name')
+      return name ? `#${name}` : ''
+    }
+    case 'wikilink':
+      // Legacy wikilinks carry child text; BlockNote atoms are childless.
+      if (element.length === 0) return attr('title')
+      break
+    case 'inlineMath':
+      return attr('latex')
+  }
+
   const parts: string[] = []
 
   for (let i = 0; i < element.length; i++) {

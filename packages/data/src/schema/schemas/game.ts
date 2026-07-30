@@ -1,15 +1,15 @@
 /**
  * Game-interop schema pack (exploration 0200) — the durable, player-facing facts
- * that flow between a game engine (Unreal Engine 6) and XNet.
+ * that flow between a game engine (Unreal Engine 6) and xNet.
  *
  * The thesis of 0200: UE6's "portable content, code, and economies across games
  * and engines" needs a persistent, *user-owned*, cross-game data + identity layer
- * — exactly what XNet is. This pack is that layer's vocabulary. A `PlayerIdentity`
- * is keyed to the player's own XNet `did`, so it is portable across publishers in
+ * — exactly what xNet is. This pack is that layer's vocabulary. A `PlayerIdentity`
+ * is keyed to the player's own xNet `did`, so it is portable across publishers in
  * a way Epic's per-ecosystem persistence is not; `Inventory`/`GameItem`/
  * `Achievement`/`MatchSession`/`GameEconomyEntry` are the save-file-grade facts a
  * connector ingests, and `GameAsset` is the standards-aligned (glTF/USD) asset
- * *reference* store — XNet holds the CID, never the mesh (XNet is not a 3D engine).
+ * *reference* store — xNet holds the CID, never the mesh (xNet is not a 3D engine).
  *
  * Design decisions, argued in exploration 0200:
  *   - **Durable, not real-time**: every schema here is the kind of thing that
@@ -23,7 +23,7 @@
  *     Space the title is granted scoped access to — the cascade is what stops a
  *     game from ever seeing the player's finance/CRM/notes (exploration 0181/0192).
  *   - **Assets by reference**: glTF/USD/USDZ are stored as `file()` refs (CIDs),
- *     never parsed. XNet is a standards-compliant *reference* store; rendering and
+ *     never parsed. xNet is a standards-compliant *reference* store; rendering and
  *     fidelity stay in the engine.
  *   - **Economy as a ledger fact**: `GameEconomyEntry.amount` is `money()` (integer
  *     minor units) so in-game currency reconciles through `@xnetjs/ledger` — a
@@ -51,7 +51,7 @@ const SPACE_TARGET = 'xnet://xnet.fyi/Space@1.0.0' as const
 
 /**
  * Accepted 3D-asset MIME types — glTF (the "JPEG of 3D", runtime delivery) and
- * OpenUSD (high-fidelity scenes). XNet stores the ref, never the bytes' meaning.
+ * OpenUSD (high-fidelity scenes). xNet stores the ref, never the bytes' meaning.
  */
 export const GAME_ASSET_MIME_TYPES = [
   'model/gltf-binary', // .glb
@@ -85,7 +85,7 @@ export const PlayerIdentitySchema = defineSchema({
   properties: {
     /** Display / gamer name. */
     displayName: text({ required: true, maxLength: 200 }),
-    /** The player's own XNet `did:key` — the portable login across publishers. */
+    /** The player's own xNet `did:key` — the portable login across publishers. */
     did: text({ maxLength: 512 }),
     /** Avatar asset (glTF/USD), stored by reference. */
     avatarAsset: file({ accept: [...GAME_ASSET_MIME_TYPES] }),
@@ -256,7 +256,7 @@ export const GameAssetSchema = defineSchema({
   namespace: GAME_NAMESPACE,
   properties: {
     title: text({ required: true, maxLength: 300 }),
-    /** The asset payload, by reference (CID) — never parsed by XNet. */
+    /** The asset payload, by reference (CID) — never parsed by xNet. */
     file: file({ required: true, accept: [...GAME_ASSET_MIME_TYPES] }),
     format: select({ options: GAME_ASSET_FORMATS, default: 'glb' }),
     sourceGame: text({ maxLength: 200 }),

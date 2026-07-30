@@ -1,5 +1,259 @@
 # @xnetjs/identity
 
+## 3.0.0
+
+### Major Changes
+
+- [#589](https://github.com/crs48/xNet/pull/589) [`215d61d`](https://github.com/crs48/xNet/commit/215d61d586048c7d7d2221947bdcde7966172907) Thanks [@crs48](https://github.com/crs48)! - Move the ATProto identity binding to the `fyi.xnet.*` namespace.
+
+  `ATPROTO_BINDING_COLLECTION` changes from `net.x.identity.binding` to
+  `fyi.xnet.identity.binding`. NSIDs are DNS-rooted, so authority over `net.x.*`
+  requires control of `x.net` — which belongs to IANA and can never be ours. The
+  old collection was therefore unresolvable and indefensible; `xnet.fyi` is a
+  domain we actually hold.
+
+  This is a breaking wire-contract change: the collection name appears in the
+  record `$type`, in the `at://` URI of every binding, and in the hub's
+  verification path. In practice the migration cost is nil — the binding was held
+  by 0 DIDs network-wide, because the OAuth client requested identity-only scope
+  and the write was never authorised (fixed alongside this change).
+
+  Consumers reading or writing the binding directly must use the new collection;
+  records under the old name were never successfully created.
+
+### Patch Changes
+
+- [#571](https://github.com/crs48/xNet/pull/571) [`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6) Thanks [@crs48](https://github.com/crs48)! - Document alpha status in every package README. xNet is released — these packages
+  are on npm and usable today — but it is early software: APIs can change between
+  releases, sometimes without a migration path. Each README now says so up front,
+  so the notice is visible on the npm package page. Docs only; no code changes.
+
+- [#587](https://github.com/crs48/xNet/pull/587) [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe) Thanks [@crs48](https://github.com/crs48)! - Fix TypeScript type resolution for every package's export map, and ship
+  `@xnetjs/data/portability`.
+
+  `types` was ordered after `import` in 48 export subpaths across 19 packages.
+  Export conditions are order-sensitive, so TypeScript could resolve the wrong
+  entry — or no types at all — depending on the consumer's `moduleResolution`.
+  `types` is now first everywhere.
+
+  `@xnetjs/data` also advertised a `./portability` subpath that was never added to
+  its build, so `@xnetjs/data/portability` — the `.xnetpack` export/import codec —
+  did not resolve at all for consumers. It now builds and ships.
+
+  Both were found by adding `publint` to CI.
+
+- Updated dependencies [[`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6), [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe), [`33f4b9e`](https://github.com/crs48/xNet/commit/33f4b9ef38c72b2e898f7a4a4de83cc08b0aea88)]:
+  - @xnetjs/core@3.0.0
+  - @xnetjs/crypto@3.0.0
+
+## 2.5.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.5.0
+  - @xnetjs/core@2.5.0
+
+## 2.4.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.4.0
+  - @xnetjs/core@2.4.0
+
+## 2.3.0
+
+### Minor Changes
+
+- [#536](https://github.com/crs48/xNet/pull/536) [`3ea44c6`](https://github.com/crs48/xNet/commit/3ea44c6354e3f55443d3c3b49d8ca1f9c0941987) Thanks [@crs48](https://github.com/crs48)! - OAuth + shared global identity (exploration 0338).
+
+  New, additive public surface — nothing removed or renamed:
+  - `@xnetjs/identity`: ATProto bridge (`@xnetjs/identity` re-exports
+    `parseAnyDid`/`isAtprotoDid`/`createAtprotoBinding`/`verifyAtprotoBinding`,
+    represent-only foreign DIDs — `parseDID` signing guarantees unchanged), the
+    `net.x.identity.binding` record, `derivePlcRotationKey` +
+    `withUserPriorityRotationKey` (user-priority did:plc rotation key from the
+    recovery seed), the `RecoveryAnchorProvider` contract, and `ucanTokenId` +
+    a per-token `nonce` on `createUCAN` (0307-B least-privilege/revocation).
+  - `@xnetjs/data`: `ProfileSchema` gains `atprotoDid`/`atprotoHandle`/
+    `atprotoBindingUri`; new `evaluateLedgerWrite` account-ledger enforcement
+    helpers.
+  - `@xnetjs/react`: onboarding gains the ATProto login-door state + the
+    injectable `RunAtprotoCeremony` contract ("Continue with Bluesky / any PDS").
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.3.0
+  - @xnetjs/core@2.3.0
+
+## 2.2.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.2.0
+  - @xnetjs/core@2.2.0
+
+## 2.1.0
+
+### Minor Changes
+
+- [#533](https://github.com/crs48/xNet/pull/533) [`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708) Thanks [@crs48](https://github.com/crs48)! - Agent Passports and signed agent audit trails (exploration 0337).
+  - `@xnetjs/data`: new agent schema pack — `AgentPassport`, `AgentSession`,
+    `AgentAction`, `AgentApproval`, `AgentNotification` — with deterministic id
+    helpers (`agentActionId`, …) and `redactInstruction`.
+  - `@xnetjs/identity`: `mintAgentPassport` / `verifyAgentPassport` (per-agent
+    `did:key` + operator-delegated, attenuation-checked UCAN; wildcards
+    rejected) and `rootIssuers` for delegation-chain root inspection.
+  - `@xnetjs/plugins`: `AgentAuditRecorder` wraps the AI surface so every tool
+    call lands as an `AgentAction` node and medium+ risk calls park behind a
+    risk-tiered approval ceremony (chat nonce with TTL for medium; xNet-surface
+    only for high/critical); ceremony tools (`xnet_approve`, `xnet_deny`,
+    `xnet_pending_approvals`, `xnet_undo`) and the `xnet_poll_notifications`
+    outbox tool; `MCPServerConfig.agentAudit` wires it into the MCP server;
+    `NodeStoreAPI.create` now accepts an optional deterministic `id`; new AI
+    scopes `agent.approve` and `agent.notifications`.
+  - `@xnetjs/cli`: `xnet agent enroll <name>` mints and stores passports
+    (`~/.xnet/agents`, 0600) and prints OpenClaw/Hermes config; `xnet mcp serve
+--agent <name> [--db <path>]` serves an agent-scoped session over an
+    agent-signed local store.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.1.0
+  - @xnetjs/core@2.1.0
+
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.0.0
+  - @xnetjs/core@2.0.0
+
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`e6b4c6f`](https://github.com/crs48/xNet/commit/e6b4c6f95b2715289ff35ae37ebd6be7eeba5174), [`38fd26f`](https://github.com/crs48/xNet/commit/38fd26f3074176ecb73b6b04b8226f2b28d2258c), [`1de6587`](https://github.com/crs48/xNet/commit/1de658746fb4b5420f8f92517f9c135562d23d28)]:
+  - @xnetjs/core@1.0.0
+  - @xnetjs/crypto@1.0.0
+
+## 0.12.0
+
+### Patch Changes
+
+- Updated dependencies [[`5866992`](https://github.com/crs48/xNet/commit/5866992b73a69a92321c7319a40834019f7f7141)]:
+  - @xnetjs/core@0.12.0
+  - @xnetjs/crypto@0.12.0
+
+## 0.11.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.11.1
+  - @xnetjs/core@0.11.1
+
+## 0.11.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.11.0
+  - @xnetjs/core@0.11.0
+
+## 0.10.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.10.0
+  - @xnetjs/core@0.10.0
+
+## 0.9.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.9.0
+  - @xnetjs/core@0.9.0
+
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.8.0
+  - @xnetjs/core@0.8.0
+
+## 0.7.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.7.0
+  - @xnetjs/core@0.7.0
+
+## 0.6.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.6.0
+  - @xnetjs/core@0.6.0
+
+## 0.5.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.5.0
+  - @xnetjs/core@0.5.0
+
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.4.0
+  - @xnetjs/core@0.4.0
+
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies [[`92708ab`](https://github.com/crs48/xNet/commit/92708ab09f2334b1ee02fef4cea654c1aed6b0ed)]:
+  - @xnetjs/core@0.3.0
+  - @xnetjs/crypto@0.3.0
+
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.2.0
+  - @xnetjs/core@0.2.0
+
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.1.2
+  - @xnetjs/core@0.1.2
+
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.1.1
+  - @xnetjs/core@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

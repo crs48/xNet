@@ -4,13 +4,33 @@
 
 import type { HubConfig, HubInstance } from './types'
 import { mkdirSync } from 'fs'
+import { getDemoOverrides } from './config'
 import { createServer } from './server'
 import { DEFAULT_CONFIG } from './types'
 export { resolveConfig } from './config'
 
-export type { HubConfig, HubInstance, DemoOverrides } from './types'
+export type { HubConfig, HubInstance, HubRole, DemoOverrides } from './types'
 export { DEMO_DEFAULTS } from './types'
 export { getDemoOverrides } from './config'
+export { loadOrCreateHubIdentity, type HubIdentity } from './hub-identity'
+export { HUB_ROLES, isHubRole, rolePreset } from './roles'
+export {
+  AtprotoIndexService,
+  assertDerivedOnlyDataDir,
+  atprotoIndexFeature,
+  httpIndexSource,
+  DEFAULT_INDEX_COLLECTIONS,
+  type AtprotoIndexConfig,
+  type IndexEntry,
+  type IndexSnapshot,
+  type IndexSource
+} from './features/atproto-index'
+export {
+  HubSubscriberService,
+  hubSubscriberFeature,
+  type HubSubscriptionsConfig,
+  type SubscriptionPeer
+} from './features/hub-subscriber'
 export type {
   YjsEnvelopeV2Verifier,
   YjsEnvelopeV2VerifierContext,
@@ -25,6 +45,23 @@ export {
 } from './auth/capabilities'
 export { createHubAuthError, type HubAuthError, type HubAuthErrorCode } from './auth/errors'
 
+// Inbound webhooks (0213/0346): the inbox feature plus the first-party
+// deliver/apply sinks that close the "normalized then discarded" seam.
+export {
+  webhookInboxFeature,
+  WEBHOOK_INBOX_FEATURE_ID,
+  type WebhookInboxDelivery,
+  type WebhookInboxPorts,
+  type WebhookInboxRoute
+} from './features/webhook-inbox'
+export {
+  createFrameAwareDeliver,
+  createIntegrationApply,
+  EXTERNAL_ITEM_SCHEMA,
+  type FrameAwareDeliverOptions,
+  type WebhookNodeWriter
+} from './features/webhook-deliver'
+
 /**
  * Create an xNet Hub instance.
  *
@@ -36,6 +73,14 @@ export { createHubAuthError, type HubAuthError, type HubAuthErrorCode } from './
  */
 export const createHub = async (config: Partial<HubConfig> = {}): Promise<HubInstance> => {
   const resolved: HubConfig = { ...DEFAULT_CONFIG, ...config }
+
+  // `demo: true` must always carry enforceable limits: the CLI path resolves
+  // demoOverrides from env, but a programmatic `createHub({ demo: true })`
+  // used to leave them undefined — and every demo guardrail silently no-op'd
+  // (exploration 0291). Env vars still override the defaults here.
+  if (resolved.demo && !resolved.demoOverrides) {
+    resolved.demoOverrides = getDemoOverrides(true) ?? undefined
+  }
 
   mkdirSync(resolved.dataDir, { recursive: true })
 

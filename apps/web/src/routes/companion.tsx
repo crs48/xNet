@@ -7,7 +7,7 @@
  * the editor area like any other surface.
  */
 import { createFileRoute } from '@tanstack/react-router'
-import { CompanionView } from '../workbench/calm/CompanionView'
+import { CompanionView } from '@xnetjs/workbench'
 
 export const Route = createFileRoute('/companion')({
   component: CompanionView

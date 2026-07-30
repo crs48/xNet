@@ -56,10 +56,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # upload-release-assets needs contents:write on release events; this job
+      # deliberately runs with contents:read, so every release-triggered run
+      # died here with "Resource not accessible by integration" (0294). The
+      # SBOM still lands as a workflow artifact.
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          upload-release-assets: false
 
   security-scan:
     needs: build

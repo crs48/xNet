@@ -10,6 +10,7 @@ export default {
     'apps/web/src/**/*.{ts,tsx,mdx}',
     'apps/electron/src/renderer/**/*.{ts,tsx,mdx}',
     'packages/views/src/**/*.{ts,tsx,mdx}',
+    'packages/workbench/src/**/*.{ts,tsx,mdx}',
     'packages/canvas/src/**/*.{ts,tsx,mdx}',
     'packages/react/src/**/*.{ts,tsx,mdx}',
     'packages/devtools/src/**/*.{ts,tsx,mdx}'

@@ -6,7 +6,7 @@
  * Current schema version.
  * Increment this when making schema changes.
  */
-export const SCHEMA_VERSION = 7
+export const SCHEMA_VERSION = 9
 
 /**
  * Core SQLite schema for xNet (without FTS5).
@@ -44,6 +44,10 @@ CREATE TABLE IF NOT EXISTS node_properties (
     lamport_time INTEGER NOT NULL,
     updated_by TEXT NOT NULL,
     updated_at INTEGER NOT NULL,
+    -- Grinding-resistant LWW final tiebreak key (exploration 0305): blake3 of
+    -- (author ‖ property ‖ value), present only for protocol v4+ writes. NULL
+    -- for legacy rows, which fall back to the author-DID tiebreak.
+    tiebreak_key TEXT,
 
     PRIMARY KEY (node_id, property_key),
     FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
@@ -170,6 +174,19 @@ CREATE TABLE IF NOT EXISTS yjs_snapshots (
     FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
 );
 
+-- Pin registry (exploration 0329): keys exempt from pruning/eviction.
+-- pin_key is a change hash or a 'yjs:<nodeId>@<timestamp>' snapshot ref;
+-- owner_id is the checkpoint/draft node holding the pin. Blobs are NOT
+-- pinned (explicit blob horizon).
+CREATE TABLE IF NOT EXISTS pinned_changes (
+    pin_key TEXT NOT NULL,
+    owner_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+
+    PRIMARY KEY (pin_key, owner_id)
+);
+
 -- Blobs (content-addressed)
 CREATE TABLE IF NOT EXISTS blobs (
     cid TEXT PRIMARY KEY,
@@ -266,6 +283,8 @@ CREATE INDEX IF NOT EXISTS idx_yjs_state_updated ON yjs_state(updated_at);
 CREATE INDEX IF NOT EXISTS idx_yjs_updates_node ON yjs_updates(node_id);
 CREATE INDEX IF NOT EXISTS idx_yjs_snapshots_node ON yjs_snapshots(node_id);
 CREATE INDEX IF NOT EXISTS idx_yjs_snapshots_timestamp ON yjs_snapshots(node_id, timestamp);
+
+CREATE INDEX IF NOT EXISTS idx_pinned_changes_owner ON pinned_changes(owner_id);
 
 CREATE INDEX IF NOT EXISTS idx_updates_doc ON updates(doc_id);
 CREATE INDEX IF NOT EXISTS idx_updates_created ON updates(created_at);
@@ -425,6 +444,24 @@ CREATE INDEX IF NOT EXISTS idx_changes_node_lamport
   7: `
 ALTER TABLE node_query_materializations
     ADD COLUMN auth_fingerprint TEXT;
+`,
+
+  8: `
+ALTER TABLE node_properties
+    ADD COLUMN tiebreak_key TEXT;
+`,
+
+  9: `
+CREATE TABLE IF NOT EXISTS pinned_changes (
+    pin_key TEXT NOT NULL,
+    owner_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+
+    PRIMARY KEY (pin_key, owner_id)
+);
+CREATE INDEX IF NOT EXISTS idx_pinned_changes_owner
+    ON pinned_changes(owner_id);
 `
 }
 

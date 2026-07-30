@@ -80,6 +80,8 @@ export type { TelemetryBatch, TelemetryBatchRecord, AggregatorResponse } from '.
 export { TELEMETRY_PROTOCOL } from './sync'
 export type { HttpTransportOptions, TelemetryTransport } from './sync'
 export { createHttpTransport } from './sync'
+export type { CrashPing, DebugReport, DiagnosticsClient, DiagnosticsClientOptions } from './sync'
+export { createDiagnosticsClient } from './sync'
 
 // Data dignity — "what we know about you" mirror (exploration 0234)
 export type {

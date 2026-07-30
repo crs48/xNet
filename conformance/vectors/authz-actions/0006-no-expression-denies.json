@@ -1,0 +1,16 @@
+{
+  "description": "a create check with neither create nor write defined is denied",
+  "input": {
+    "actions": {
+      "read": {
+        "_tag": "public"
+      }
+    },
+    "action": "create",
+    "roles": ["editor"],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": false
+  }
+}

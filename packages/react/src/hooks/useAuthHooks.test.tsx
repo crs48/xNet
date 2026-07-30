@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { XNetContext } from '../context'
 import { useAuthTrace } from './useAuthTrace'
 import { useCan } from './useCan'
+import { useCanCreate } from './useCanCreate'
 import { useCanEdit } from './useCanEdit'
 import { describeGrantConsent, useGrants } from './useGrants'
 
@@ -234,9 +235,9 @@ describe('authorization hooks', () => {
           }
         }
 
-        if (action === 'write') {
+        if (action === 'update') {
           return {
-            ...decision('write', false),
+            ...decision('update', false),
             roles: ['viewer']
           }
         }
@@ -262,6 +263,47 @@ describe('authorization hooks', () => {
 
     await waitFor(() => {
       expect(setup.auth.can).toHaveBeenCalledTimes(4)
+    })
+  })
+
+  it('useCanCreate checks the create action against a draft node (0304)', async () => {
+    const setup = createWrapper({
+      can: async (action) => decision(action, action === 'create')
+    })
+
+    const { result } = renderHook(
+      () => useCanCreate('xnet://test/Message@1.0.0', { channel: 'channel-1' }),
+      { wrapper: setup.Wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+      expect(result.current.canCreate).toBe(true)
+    })
+
+    expect(setup.auth.can).toHaveBeenCalledWith({
+      action: 'create',
+      nodeId: 'draft:xnet://test/Message@1.0.0',
+      node: {
+        schemaId: 'xnet://test/Message@1.0.0',
+        properties: { channel: 'channel-1' }
+      }
+    })
+  })
+
+  it('useCanCreate reports a definitive deny', async () => {
+    const setup = createWrapper({
+      can: async (action) => decision(action, false)
+    })
+
+    const { result } = renderHook(() => useCanCreate('xnet://test/Message@1.0.0'), {
+      wrapper: setup.Wrapper
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+      expect(result.current.canCreate).toBe(false)
+      expect(result.current.error).toBeNull()
     })
   })
 })

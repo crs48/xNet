@@ -5,6 +5,7 @@
 import type { HubConfig } from './types'
 import { Command } from 'commander'
 import { resolveConfig } from './config'
+import { HUB_ROLES } from './roles'
 import { registerShutdownHandlers } from './lifecycle/shutdown'
 import { DEFAULT_CONFIG } from './types'
 import { createHub } from './index'
@@ -74,7 +75,11 @@ const run = async (): Promise<void> => {
       String(DEFAULT_CONFIG.discoveryMaxPeers)
     )
     .option('--log-level <level>', 'log level (debug|info|warn|error)', DEFAULT_CONFIG.logLevel)
-    .option('--demo', 'enable demo mode (restricted quotas, auto-eviction)')
+    .option(
+      '--role <role>',
+      `named deployment role (${Object.keys(HUB_ROLES).join('|')}) — explorations 0382/0383`
+    )
+    .option('--demo', '[deprecated] alias for --role demo')
     .action(async (opts) => {
       const config: Partial<HubConfig> = {
         port: parseNumber(opts.port, DEFAULT_CONFIG.port),
@@ -104,6 +109,7 @@ const run = async (): Promise<void> => {
         ),
         discoveryMaxPeers: parseNumber(opts.discoveryMaxPeers, DEFAULT_CONFIG.discoveryMaxPeers),
         logLevel: opts.logLevel,
+        role: opts.role,
         demo: opts.demo ?? false
       }
 
@@ -125,6 +131,7 @@ const run = async (): Promise<void> => {
       console.log(`  Health:    http://localhost:${hub.port}/health`)
       console.log(`  Auth:      ${resolved.auth ? 'UCAN' : 'anonymous'}`)
       console.log(`  Storage:   ${resolved.storage} (${resolved.dataDir})`)
+      console.log(`  Role:      ${resolved.role ?? 'personal'}`)
       if (resolved.demo) {
         console.log(
           `  Mode:      DEMO (quota=${resolved.demoOverrides?.quota ?? 0} bytes, eviction=${resolved.demoOverrides?.evictionTtl ?? 0}ms TTL)`

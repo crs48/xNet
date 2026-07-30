@@ -110,10 +110,30 @@ export type {
   AuthCheckInput,
   PolicyEvaluator
 } from './auth-types'
-export { AUTH_ACTIONS } from './auth-types'
+export { AUTH_ACTIONS, actionExpressionOrder, grantActionSatisfies } from './auth-types'
 
 // Shared utility helpers (dependency-free)
 export { clamp, clamp01, formatBytes } from './utils'
+
+// Retry/backoff policies (exploration 0303)
+export { capped, exponential, fixed, jittered, limitAttempts, type RetryPolicy } from './retry'
+
+// Tagged-error convention (exploration 0303)
+export { TaggedError, isTagged } from './errors'
+
+// Async utilities (exploration 0303)
+export { singleFlight, type SingleFlightOptions } from './async'
+
+// The ONE Last-Write-Wins ordering (protocol §L1.7; exploration 0276/0305)
+export {
+  LWW_TIEBREAK_KEY_VERSION,
+  compareChangeApplicationOrder,
+  compareLwwStamps,
+  computeLwwTiebreakKey,
+  lwwUpdateGuardSql,
+  lwwWins,
+  type LwwStamp
+} from './lww'
 export { SsrfError, assertPublicUrl, validateExternalUrl } from './utils'
 
 // Core types

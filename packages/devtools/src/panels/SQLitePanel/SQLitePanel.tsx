@@ -3,8 +3,10 @@
  */
 
 import { Tooltip } from '@xnetjs/ui'
+import { useCallback, useState } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
-import { useSQLitePanel, useSQLiteStatus } from './useSQLitePanel'
+import { buildSqlDump, type QueryFn } from './sql-dump'
+import { useBlobStoreStats, useSQLitePanel, useSQLiteStatus } from './useSQLitePanel'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -26,6 +28,34 @@ export function SQLitePanel() {
   const { debugEnabled, toggleDebug, supportInfo, recentLogs, clearLogs } = useSQLitePanel(eventBus)
   const sqliteStatus = useSQLiteStatus(store)
   const sqliteDotClass = getSQLiteHealthDotClass(sqliteStatus.health)
+  const [snapshotting, setSnapshotting] = useState(false)
+  const blobStats = useBlobStoreStats(store)
+
+  // Tier-2 snapshot (0344): SQL text dump through the adapter's query()
+  // surface — restorable with `sqlite3 new.db < dump.sql` by any tool.
+  const handleSnapshot = useCallback(async () => {
+    if (!store || snapshotting) return
+    const storageAdapter = store.getStorageAdapter() as {
+      getSQLiteAdapter?: () => unknown
+    } | null
+    const sqliteAdapter =
+      storageAdapter && typeof storageAdapter.getSQLiteAdapter === 'function'
+        ? (storageAdapter.getSQLiteAdapter() as { query?: QueryFn } | null)
+        : null
+    if (!sqliteAdapter || typeof sqliteAdapter.query !== 'function') return
+    setSnapshotting(true)
+    try {
+      const dump = await buildSqlDump(sqliteAdapter.query.bind(sqliteAdapter))
+      const url = URL.createObjectURL(new Blob([dump], { type: 'application/sql' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `xnet-snapshot-${new Date().toISOString().slice(0, 10)}.sql`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setSnapshotting(false)
+    }
+  }, [store, snapshotting])
 
   return (
     <div className="h-full flex flex-col bg-surface-2 text-ink-1">
@@ -42,6 +72,14 @@ export function SQLitePanel() {
           </Tooltip>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => void handleSnapshot()}
+            disabled={!store || snapshotting}
+            className="px-2 py-1 text-xs bg-background-emphasis hover:bg-border-emphasis rounded disabled:opacity-50"
+            title="Download a SQL text dump of the live database (materialized snapshot for any SQLite tool — not the signed bundle; use Settings → Export data for that)"
+          >
+            {snapshotting ? 'Dumping…' : 'Snapshot (.sql)'}
+          </button>
           <label className="flex items-center gap-2 text-xs cursor-pointer">
             <input
               type="checkbox"
@@ -107,6 +145,21 @@ export function SQLitePanel() {
               )}
             </div>
             <p className="text-xs text-ink-2">{storageDurability.message}</p>
+          </div>
+        )}
+
+        {/* Attachment blobs (exploration 0385): file cells and editor uploads
+            share this store, and it's the fastest-growing table on a device
+            that attaches media. */}
+        {blobStats && (
+          <div className="bg-background-emphasis rounded p-3 space-y-2">
+            <h3 className="text-xs font-semibold text-ink-2 uppercase">Attachment Blobs</h3>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              <span className="text-ink-3">Files</span>
+              <span>{blobStats.blobCount.toLocaleString()}</span>
+              <span className="text-ink-3">Total size</span>
+              <span>{formatBytes(blobStats.blobTotalSize)}</span>
+            </div>
           </div>
         )}
 

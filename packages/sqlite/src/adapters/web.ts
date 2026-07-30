@@ -629,6 +629,9 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
 
       for (const property of input.properties) {
         await this.run(
+          // Full LWW ordering triple (lamport → wallTime → author), matching
+          // `shouldReplace` in @xnetjs/data. A lamport-only guard let arrival
+          // order decide same-lamport conflicts, diverging replicas (0272).
           `INSERT INTO node_properties
               (node_id, property_key, value, lamport_time, updated_by, updated_at)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -637,7 +640,11 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
               lamport_time = excluded.lamport_time,
               updated_by = excluded.updated_by,
               updated_at = excluded.updated_at
-            WHERE excluded.lamport_time > node_properties.lamport_time`,
+            WHERE excluded.lamport_time > node_properties.lamport_time
+               OR (excluded.lamport_time = node_properties.lamport_time
+                   AND (excluded.updated_at > node_properties.updated_at
+                        OR (excluded.updated_at = node_properties.updated_at
+                            AND excluded.updated_by > node_properties.updated_by)))`,
           [
             property.nodeId,
             property.propertyKey,

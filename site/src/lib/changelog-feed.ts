@@ -6,16 +6,16 @@
 
 import type { ChangelogEntry } from '../data/changelog'
 
-export const SITE_URL = 'https://xnet.fyi'
-export const CHANGELOG_URL = `${SITE_URL}/changelog`
+const SITE_URL = 'https://xnet.fyi'
+const CHANGELOG_URL = `${SITE_URL}/changelog`
 
 /** Absolute URL for an entry's anchor on the changelog page. */
-export function entryUrl(entry: ChangelogEntry): string {
+function entryUrl(entry: ChangelogEntry): string {
   return `${CHANGELOG_URL}#${entry.id}`
 }
 
 /** Resolve a hero src (absolute path or full URL) to an absolute URL. */
-export function absoluteImage(src: string): string {
+function absoluteImage(src: string): string {
   return src.startsWith('http') ? src : `${SITE_URL}${src}`
 }
 
@@ -26,7 +26,7 @@ export function absoluteImage(src: string): string {
  * fallback well-formed for a slugged id — `2026-06-24-foo` →
  * `2026-06-24T00:00:00Z`, not the malformed `2026-06-24-fooT00:00:00Z`.
  */
-export function entryInstant(entry: ChangelogEntry): string {
+function entryInstant(entry: ChangelogEntry): string {
   return entry.mergedAt ?? `${entry.id.slice(0, 10)}T00:00:00Z`
 }
 

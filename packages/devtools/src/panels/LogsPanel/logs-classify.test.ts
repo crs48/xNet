@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { classifyChannel } from './useLogsPanel'
+import { classifyChannel } from '../../core/log-store'
 
 describe('classifyChannel', () => {
   it('tags sqlite/OPFS output', () => {

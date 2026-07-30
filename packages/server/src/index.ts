@@ -1,7 +1,7 @@
 /**
- * `@xnetjs/server` — bring-your-own-backend server kit for XNet React.
+ * `@xnetjs/server` — bring-your-own-backend server kit for xNet React.
  *
- * Run XNet's data layer on your own centralized server, gated by your own auth,
+ * Run xNet's data layer on your own centralized server, gated by your own auth,
  * stored in your own database — while React keeps the unchanged `useQuery` /
  * `useMutate` / `useNode` hooks. See exploration 0223.
  *

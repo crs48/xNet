@@ -33,7 +33,7 @@ async function advanceOnboarding(page: Page): Promise<void> {
       break
     }
 
-    const homeHeading = page.getByRole('heading', { name: /all documents/i })
+    const homeHeading = page.getByRole('heading', { name: /all documents|everything/i })
     const pagesText = page.getByText('Pages', { exact: true })
     if (
       ((await homeHeading.count()) > 0 && (await homeHeading.first().isVisible())) ||
@@ -61,7 +61,7 @@ test.describe('Mobile surfaces (0238)', () => {
     await advanceOnboarding(page)
     await expect(
       page
-        .getByRole('heading', { name: /all documents/i })
+        .getByRole('heading', { name: /all documents|everything/i })
         .or(page.getByText('Pages', { exact: true }))
     ).toBeVisible({ timeout: 30_000 })
   })
@@ -78,9 +78,14 @@ test.describe('Mobile surfaces (0238)', () => {
   test('database surface renders the grid on a phone', async ({ page }) => {
     await createSurface(page, 'Database')
     await page.waitForURL(/\/db\//, { timeout: 30_000 })
-    // The grid (or its empty state / add-row affordance) is present.
+    // The grid (or its empty state / add-row affordance) is present. .first()
+    // on the combined locator: the DB toolbar's "Row height" button also
+    // matches /row/i, and two strict-mode matches fail the assertion.
     await expect(
-      page.getByRole('grid').or(page.getByRole('button', { name: /add|new row|row/i }).first())
+      page
+        .getByRole('grid')
+        .or(page.getByRole('button', { name: /add|new row|row/i }))
+        .first()
     ).toBeVisible({ timeout: 30_000 })
   })
 

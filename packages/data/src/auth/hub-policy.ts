@@ -13,10 +13,15 @@
  *
  * Correspondence:
  *   read   → read     write → write     share → share     delete → admin
+ *   create → write    update → write
  *
  * `comment` is a hub-only refinement of `read` (a commenter may annotate but
  * not edit). The Space cascade folds commenters into `read` and does not model
  * a distinct `comment` action, so it is intentionally absent here.
+ *
+ * The schema-side `create`/`update` refinements (exploration 0304) both
+ * project onto hub `write` for now — the hub grant model stays coarse; roles
+ * that may only add or only modify still need the write relay capability.
  */
 import type { Schema } from '../schema/types'
 import { deserializeAuthorization } from './serialize'
@@ -25,6 +30,8 @@ import { extractRoleRefs, hasPublicAccess } from './validate'
 /** Maps a schema authorization action onto the hub grant-action vocabulary. */
 const SCHEMA_ACTION_TO_HUB: Readonly<Record<string, string>> = {
   read: 'read',
+  create: 'write',
+  update: 'write',
   write: 'write',
   share: 'share',
   delete: 'admin'

@@ -42,6 +42,15 @@ export const workspaceAliases = {
   '@xnetjs/telemetry': fileURLToPath(
     new URL('../packages/telemetry/src/index.ts', import.meta.url)
   ),
+  // Sub-barrels MUST precede the bare '@xnetjs/ui' key: Vite matches aliases in
+  // insertion order, so the bare entry would otherwise shadow every subpath.
+  // Same shape as the '@xnetjs/editor/*' entries above (0403).
+  '@xnetjs/ui/exploration': fileURLToPath(
+    new URL('../packages/ui/src/exploration/index.ts', import.meta.url)
+  ),
+  '@xnetjs/ui/wireframe': fileURLToPath(
+    new URL('../packages/ui/src/wireframe/index.ts', import.meta.url)
+  ),
   '@xnetjs/ui': fileURLToPath(new URL('../packages/ui/src/index.ts', import.meta.url)),
   '@xnetjs/vectors': fileURLToPath(new URL('../packages/vectors/src/index.ts', import.meta.url)),
   '@xnetjs/views': fileURLToPath(new URL('../packages/views/src/index.ts', import.meta.url))

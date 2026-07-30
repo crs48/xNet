@@ -38,6 +38,14 @@ export interface ModuleCapabilities {
   network?: string[]
   /** Host APIs the client sandbox should expose to the module's code. */
   endowments?: string[]
+  /**
+   * Whether the module may capture the machine's system audio (meeting
+   * transcription, exploration 0279). Renders as a prominent consent line and
+   * gates the desktop loopback-capture IPC — a module without this grant never
+   * reaches the capture service. Microphone access is NOT covered here: the
+   * mic goes through the platform's own `getUserMedia` permission prompt.
+   */
+  systemAudio?: boolean
 }
 
 /**

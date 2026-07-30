@@ -13,11 +13,17 @@ import { agentToolsAsExtraTools, type AgentToolContribution } from '../agent-too
 import {
   AiSurfaceService,
   createAiSurfaceService,
+  type AiExtraTool,
   type AiJsonSchema,
   type AiResource,
   type AiSurfaceLimits,
   type AiToolDefinition
 } from '../ai-surface'
+import { AgentAuditRecorder, type AgentAuditContext } from '../ai-surface/agent-audit'
+import {
+  createAgentCeremonyTools,
+  createAgentNotificationTools
+} from '../ai-surface/agent-ceremony-tools'
 import { McpWriteGuardrail, type McpWriteRequest } from './mcp-guardrail'
 
 /** Schema IRIs for the first-class write tools (exploration 0174/0175). */
@@ -126,6 +132,13 @@ export interface MCPServerConfig {
    */
   agentTools?: AgentToolContribution[]
   /**
+   * Pre-shaped AI tools to expose beside the built-ins — the `lab_*`
+   * (`labAgentToolsToAiTools`) and `plugin_*` (0331,
+   * `createWorkspacePluginAgentTools`) surfaces plug in here. Like
+   * `agentTools`, ignored when a pre-built `aiSurface` is supplied.
+   */
+  extraTools?: AiExtraTool[]
+  /**
    * Write guardrail for the generic + first-class write tools. A default
    * guardrail (delete/outward writes need confirmation, cost budget, audit) is
    * created when omitted. Pass a configured instance to tune it.
@@ -135,6 +148,17 @@ export interface MCPServerConfig {
   name?: string
   /** Server version (default: '1.0.0') */
   version?: string
+  /**
+   * Agent-scoped session (exploration 0337). When set, every AI-surface tool
+   * call routes through an {@link AgentAuditRecorder}: it lands as an
+   * `AgentAction` node and medium+ risk calls park behind the risk-tiered
+   * approval ceremony. Also exposes the ceremony (`xnet_approve`,
+   * `xnet_deny`, `xnet_pending_approvals`, `xnet_undo`) and outbox
+   * (`xnet_poll_notifications`) tools. The store this server was built with
+   * should be signing as the enrolled agent's DID — that is what makes the
+   * kernel change log the tamper-evident half of the trail.
+   */
+  agentAudit?: AgentAuditContext & { approvalTtlMs?: number }
 }
 
 // ─── MCP Server Implementation ───────────────────────────────────────────────
@@ -173,6 +197,9 @@ export class MCPServer {
   private tools: Map<string, MCPTool> = new Map()
   private aiToolNames: Set<string> = new Set()
   private running = false
+  /** Present when `agentAudit` is configured (exploration 0337). */
+  private recorder: AgentAuditRecorder | null = null
+  private agentExtraTools: Map<string, AiExtraTool> = new Map()
 
   constructor(config: MCPServerConfig) {
     const aiSurface =
@@ -181,7 +208,10 @@ export class MCPServer {
         store: config.store,
         schemas: config.schemas,
         limits: config.aiLimits,
-        extraTools: agentToolsAsExtraTools(config.agentTools ?? [])
+        extraTools: [
+          ...agentToolsAsExtraTools(config.agentTools ?? []),
+          ...(config.extraTools ?? [])
+        ]
       })
 
     this.config = {
@@ -192,6 +222,23 @@ export class MCPServer {
       name: config.name ?? 'xnet',
       version: config.version ?? '1.0.0'
     }
+
+    if (config.agentAudit) {
+      const { approvalTtlMs, ...context } = config.agentAudit
+      this.recorder = new AgentAuditRecorder({
+        surface: aiSurface,
+        store: config.store,
+        context,
+        approvalTtlMs
+      })
+      for (const tool of [
+        ...createAgentCeremonyTools(this.recorder),
+        ...createAgentNotificationTools(config.store)
+      ]) {
+        this.agentExtraTools.set(tool.name, tool)
+      }
+    }
+
     this.registerTools()
   }
 
@@ -348,9 +395,14 @@ export class MCPServer {
       inputSchema: {
         type: 'object',
         properties: {
+          schemaId: {
+            type: 'string',
+            description:
+              'Schema IRI to query, exactly as it appears on a node (e.g. xnet://xnet.fyi/Task@1.0.0). Required.'
+          },
           schema: {
             type: 'string',
-            description: 'Schema IRI to query (e.g., xnet://xnet.dev/Task)'
+            description: 'Deprecated alias for schemaId.'
           },
           limit: {
             type: 'number',
@@ -361,7 +413,7 @@ export class MCPServer {
             description: 'Number of results to skip for pagination'
           }
         },
-        required: ['schema']
+        required: ['schemaId']
       }
     })
 
@@ -387,9 +439,13 @@ export class MCPServer {
       inputSchema: {
         type: 'object',
         properties: {
+          schemaId: {
+            type: 'string',
+            description: 'Schema IRI for the new node (e.g. xnet://xnet.fyi/Task@1.0.0). Required.'
+          },
           schema: {
             type: 'string',
-            description: 'Schema IRI for the new node'
+            description: 'Deprecated alias for schemaId.'
           },
           properties: {
             type: 'object',
@@ -398,7 +454,7 @@ export class MCPServer {
           confirm: CONFIRM_SCHEMA,
           provenance: PROVENANCE_SCHEMA
         },
-        required: ['schema', 'properties']
+        required: ['schemaId', 'properties']
       }
     })
 
@@ -518,9 +574,17 @@ export class MCPServer {
       this.tools.set(tool.name, toMCPTool(tool))
     }
 
+    for (const tool of this.agentExtraTools.values()) {
+      // AiExtraTool extends AiToolDefinition; toMCPTool reads definition fields only.
+      this.tools.set(tool.name, toMCPTool(tool))
+    }
+
     for (const [name, tool] of this.tools) {
       tool.defer_loading = !MCP_CORE_TOOL_NAMES.includes(name)
       tool.inputSchema.properties.response_format = RESPONSE_FORMAT_SCHEMA
+      if (this.recorder && this.aiToolNames.has(name)) {
+        tool.inputSchema.properties._instruction = INSTRUCTION_SCHEMA
+      }
     }
   }
 
@@ -541,7 +605,7 @@ export class MCPServer {
 
     switch (name) {
       case 'xnet_query': {
-        const schemaId = toolArgs.schema as string
+        const schemaId = requiredSchemaArg(toolArgs, 'xnet_query')
         const limit = (toolArgs.limit as number) ?? 20
         const offset = (toolArgs.offset as number) ?? 0
 
@@ -561,7 +625,7 @@ export class MCPServer {
       }
 
       case 'xnet_create': {
-        const schema = toolArgs.schema as string
+        const schema = requiredSchemaArg(toolArgs, 'xnet_create')
         const properties = toolArgs.properties as Record<string, unknown>
         result = await this.guardedWrite(
           { kind: 'create', schemaId: schema, ...readWriteGate(toolArgs) },
@@ -649,8 +713,22 @@ export class MCPServer {
       }
 
       default:
+        if (this.agentExtraTools.has(name)) {
+          result = await this.agentExtraTools.get(name)!.invoke(toolArgs)
+          break
+        }
         if (this.aiToolNames.has(name)) {
-          result = await this.config.aiSurface.callTool(name, toolArgs)
+          if (this.recorder) {
+            const { _instruction, ...rest } = toolArgs
+            const outcome = await this.recorder.callTool(
+              name,
+              rest,
+              typeof _instruction === 'string' ? _instruction : undefined
+            )
+            result = outcome.pending ? outcome : outcome.result
+          } else {
+            result = await this.config.aiSurface.callTool(name, toolArgs)
+          }
           break
         }
         throw new Error(`Unknown tool: ${name}`)
@@ -755,6 +833,13 @@ const RESPONSE_FORMAT_SCHEMA: MCPPropertySchema = {
   description: 'Response verbosity. Defaults to concise (compact JSON).'
 }
 
+/** Injected on AI tools when an agent-audit session is active (0337). */
+const INSTRUCTION_SCHEMA: MCPPropertySchema = {
+  type: 'string',
+  description:
+    "The operator's instruction that triggered this call, verbatim — recorded in the AgentAction audit trail."
+}
+
 const CONFIRM_SCHEMA: MCPPropertySchema = {
   type: 'boolean',
   description:
@@ -765,6 +850,23 @@ const PROVENANCE_SCHEMA: MCPPropertySchema = {
   type: 'object',
   description:
     'Optional AI provenance for the write: { sourceType: "local-ai"|"cloud-ai", modelProvider, modelName }.'
+}
+
+/**
+ * Read the schema IRI off a tool call, accepting either spelling.
+ *
+ * Agents reach for `schemaId` — it is the field name on every node the tools
+ * hand back — while these tools were declared with `schema`. Reading only
+ * `schema` turned a filtered query into an unfiltered one (`store.list` treats
+ * an absent `schemaId` as "every schema"), so `xnet_query` silently answered
+ * "my pages" with canvases. A missing filter must fail, never widen.
+ */
+function requiredSchemaArg(args: Record<string, unknown>, tool: string): string {
+  const value = args.schemaId ?? args.schema
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`${tool} requires a schemaId (schema IRI) argument`)
+  }
+  return value
 }
 
 /** Read the shared write-gate args (confirm + provenance) off a tool call. */

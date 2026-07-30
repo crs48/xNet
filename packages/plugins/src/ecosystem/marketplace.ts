@@ -12,6 +12,14 @@ import type { ModuleCapabilities } from '../feature-module'
 import type { PluginPricing } from '../manifest'
 import type { InstallProvenance } from './provenance-trust'
 
+/**
+ * What a marketplace listing distributes (exploration 0280). `plugin` is
+ * the default (code, install-gated); `workspace` is a shared bench — a
+ * `xnet:Workspace` node payload, pure data: importing one never runs code,
+ * so it needs no sandbox tier, only the normal node import path.
+ */
+export type MarketplaceListingKind = 'plugin' | 'workspace'
+
 /** A single entry in the marketplace index (`registry.json`). */
 export interface MarketplaceEntry {
   id: string
@@ -19,6 +27,8 @@ export interface MarketplaceEntry {
   description: string
   version: string
   author: string
+  /** Listing kind (default `plugin`). `workspace` = a shared bench (0280). */
+  kind?: MarketplaceListingKind
   /** Search keywords / tags. */
   keywords?: string[]
   /** Coarse category for filtering (`productivity`, `finance`, `social`, …). */
@@ -27,6 +37,11 @@ export interface MarketplaceEntry {
   capabilities?: ModuleCapabilities
   /** URL the full manifest is fetched from at install. */
   manifestUrl: string
+  /**
+   * For `kind: 'workspace'` listings: URL of the workspace payload JSON
+   * (the portable tree — parsed by `parseWorkspacePayload` on import).
+   */
+  workspaceUrl?: string
   /** Lifetime install count (trust signal). */
   installs?: number
   /** GitHub stars / community signal. */
@@ -111,6 +126,15 @@ export function sortMarketplace(
   const byRelevance: EntryComparator = (a, b) => relevanceScore(b, terms) - relevanceScore(a, terms)
   const comparator = sort === 'relevance' ? byRelevance : (SORTERS[sort] ?? byRelevance)
   return [...entries].sort(comparator)
+}
+
+/** Filter by listing kind; undefined returns all (entries default to `plugin`). */
+export function filterByKind(
+  entries: readonly MarketplaceEntry[],
+  kind: MarketplaceListingKind | undefined
+): MarketplaceEntry[] {
+  if (!kind) return [...entries]
+  return entries.filter((entry) => (entry.kind ?? 'plugin') === kind)
 }
 
 /** Filter by category (case-insensitive); empty/undefined category returns all. */

@@ -9,6 +9,7 @@
  */
 
 import type { CellValue } from './cell-types'
+import type { FormSubmissionMeta } from './form-types'
 import type { NodeQueryMaterializedViewOptions } from '../store/query'
 import type { NodeStore } from '../store/store'
 import type { NodeState, TransactionOperation } from '../store/types'
@@ -46,6 +47,15 @@ export interface CreateRowOptions {
    * If neither before nor after is specified, appends to end.
    */
   after?: string
+
+  /**
+   * Explicit node id (exploration 0278): deterministic ids make retried
+   * form-submission drains an LWW upsert instead of a duplicate row.
+   */
+  id?: string
+
+  /** Form-submission provenance stamped on the row (exploration 0278). */
+  submissionMeta?: FormSubmissionMeta
 }
 
 /**
@@ -111,7 +121,7 @@ export interface DatabaseRowNode extends NodeState {
  * ```
  */
 export async function createRow(store: NodeStore, options: CreateRowOptions): Promise<string> {
-  const { databaseId, cells = {}, before, after } = options
+  const { databaseId, cells = {}, before, after, id, submissionMeta } = options
 
   // Generate sort key for position using fractional indexing
   // generateSortKey(before, after) returns a key that sorts after `before` and before `after`
@@ -139,10 +149,12 @@ export async function createRow(store: NodeStore, options: CreateRowOptions): Pr
     {
       type: 'create' as const,
       options: {
+        ...(id ? { id } : {}),
         schemaId: DatabaseRowSchema.schema['@id'],
         properties: {
           database: databaseId,
           sortKey,
+          ...(submissionMeta ? { submissionMeta } : {}),
           ...dynamicProperties
         }
       }

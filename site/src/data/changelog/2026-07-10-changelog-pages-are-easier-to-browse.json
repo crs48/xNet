@@ -1,0 +1,21 @@
+{
+  "id": "2026-07-10-changelog-pages-are-easier-to-browse",
+  "date": "July 10, 2026",
+  "title": "Changelog pages are easier to browse",
+  "summary": "The changelog now paginates at 50 entries per page, so the timeline loads and scrolls comfortably as history grows.",
+  "highlights": [
+    "Prev/Next and numbered page buttons below the timeline",
+    "Search and tag filters page their results too",
+    "Shared entry links still land on the right entry, whatever page it's on"
+  ],
+  "tags": [
+    "app"
+  ],
+  "pr": 454,
+  "mergedAt": "2026-07-10T20:23:09Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

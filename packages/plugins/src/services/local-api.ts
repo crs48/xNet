@@ -82,7 +82,21 @@ export interface NodeStoreAPI {
   get(id: string): Promise<NodeData | null>
   list(options?: { schemaId?: string; limit?: number; offset?: number }): Promise<NodeData[]>
   query?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>
-  create(options: { schemaId: string; properties: Record<string, unknown> }): Promise<NodeData>
+  /**
+   * Cross-schema FTS5 search (`NodeStore.searchText`, exploration 0391).
+   * BM25 rank: more negative = better. `null` = no FTS in this storage.
+   */
+  searchText?(
+    query: string,
+    limit: number,
+    options?: { schemaId?: string }
+  ): Promise<Array<{ nodeId: string; rank: number }> | null>
+  create(options: {
+    /** Optional deterministic id (LWW upsert on collision — exploration 0337). */
+    id?: string
+    schemaId: string
+    properties: Record<string, unknown>
+  }): Promise<NodeData>
   update(id: string, options: { properties: Record<string, unknown> }): Promise<NodeData>
   delete(id: string): Promise<void>
   subscribe(listener: (event: NodeChangeEventData) => void): () => void

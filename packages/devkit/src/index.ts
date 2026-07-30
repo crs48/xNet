@@ -11,14 +11,47 @@
 export {
   NodeCommandRunner,
   FakeCommandRunner,
+  NodeLineRunner,
+  FakeLineRunner,
   cmd,
   type CommandRunner,
   type CommandResult,
   type RunOptions,
-  type FakeCommandScript
+  type FakeCommandScript,
+  type LineRunner,
+  type StreamRunOptions,
+  type FakeLineScript
 } from './command-runner'
 
 export { Git, GitError, type GitCheckpoint } from './git'
+
+export {
+  KERNEL_PACKAGES,
+  fileOf,
+  isKernel,
+  lane3Prompt,
+  packageOf,
+  resolveLane,
+  workspaceOf,
+  type ChangeScope,
+  type Lane,
+  type PointedElement,
+  type Resolution,
+  type WorkspaceRef
+} from './blast-radius'
+
+export {
+  assertEditable,
+  previewWorktree,
+  probeDevEnvironment,
+  reviewWorktree,
+  type DevEnvironment,
+  type EditableVerdict,
+  type Lane3RefusalCode,
+  type PreviewWorktreeOptions,
+  type WorktreePreview,
+  type WorktreeReview
+} from './lane3'
 
 export {
   runValidationGate,
@@ -57,12 +90,43 @@ export {
 
 export {
   cliChatAgent,
+  cliStreamingChatAgent,
+  isStreamingChatAgent,
+  isFramedChatAgent,
   fakeChatAgent,
+  openAiChatAgent,
   flattenChat,
+  reduceStreamJsonLine,
+  initialStreamJsonState,
   type ChatAgent,
   type ChatMessage,
-  type CliChatAgentOptions
+  type CliChatAgentOptions,
+  type CliStreamingChatAgentOptions,
+  type OpenAiChatAgentOptions,
+  type StreamingChatAgent,
+  type FramedChatAgent,
+  type StreamTurnRequest,
+  type StreamTurnResult,
+  type StreamJsonState
 } from './chat-agent'
+
+export {
+  foldStreamJsonFrames,
+  initialStreamJsonFrameState,
+  AGENT_FRAME_TYPES,
+  type AgentFrame,
+  type StreamJsonFrameState
+} from './agent-frames'
+
+export {
+  createBridgeSessionStore,
+  fileSessionPersistence,
+  transcriptKey,
+  type BridgeSessionStore,
+  type BridgeSessionStoreOptions,
+  type SessionPersistence,
+  type BridgeTurnPlan
+} from './bridge-sessions'
 
 export {
   createBridgeServer,
@@ -73,8 +137,12 @@ export {
 
 export {
   buildAgentArgs,
+  buildStreamingAgentArgs,
   mcpConfigFor,
+  mcpHttpConfigFor,
   DEFAULT_XNET_ALLOWED_TOOLS,
+  XNET_READONLY_ALLOWED_TOOLS,
   type AgentLaunchOptions,
-  type McpServerSpec
+  type McpServerSpec,
+  type McpHttpServerSpec
 } from './agent-launch'

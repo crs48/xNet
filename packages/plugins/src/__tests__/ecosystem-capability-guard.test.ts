@@ -10,7 +10,9 @@ import {
   isSchemaWriteAllowed,
   isSchemaReadAllowed,
   isNetworkAllowed,
+  isSystemAudioAllowed,
   assertSchemaWrite,
+  assertSystemAudio,
   guardStore
 } from '../ecosystem/capability-guard'
 
@@ -54,6 +56,27 @@ describe('schema/network allow checks', () => {
     expect(isNetworkAllowed(caps, 'github.com')).toBe(true)
     expect(isNetworkAllowed(caps, 'https://evil.com')).toBe(false)
     expect(isNetworkAllowed(undefined, 'api.stripe.com')).toBe(false)
+  })
+})
+
+describe('systemAudio capability (exploration 0279)', () => {
+  it('is closed by default — only an explicit true opens it', () => {
+    expect(isSystemAudioAllowed(undefined)).toBe(false)
+    expect(isSystemAudioAllowed({})).toBe(false)
+    expect(isSystemAudioAllowed({ systemAudio: true })).toBe(true)
+  })
+
+  it('assertSystemAudio throws a structured CapabilityError when ungranted', () => {
+    expect(() => assertSystemAudio({ systemAudio: true }, 'p')).not.toThrow()
+    try {
+      assertSystemAudio({}, 'com.me.p')
+      throw new Error('should have thrown')
+    } catch (err) {
+      expect(err).toBeInstanceOf(CapabilityError)
+      const ce = err as CapabilityError
+      expect(ce.pluginId).toBe('com.me.p')
+      expect(ce.capability).toBe('systemAudio')
+    }
   })
 })
 

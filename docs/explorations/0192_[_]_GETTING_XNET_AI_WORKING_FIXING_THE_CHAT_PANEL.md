@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-> "The xNet AI doesn't seem to work. What can we do to get XNet AI working?"
+> "The xNet AI doesn't seem to work. What can we do to get xNet AI working?"
 
 xNet ships a substantial, well-tested AI subsystem — five real model
 providers, a tiered "bring-your-own-model" connector ladder, an agent runtime
@@ -312,7 +312,7 @@ flowchart LR
 
 1. **Phase 0 (A) — immediately.** Four small, independent changes (below) that
    make the panel work with a pasted key on every provider and stop
-   auto-selecting a dead tier. This is the literal answer to "get XNet AI
+   auto-selecting a dead tier. This is the literal answer to "get xNet AI
    working".
 2. **Phase 1 (B) — next sprint.** Wire `AiSurfaceService` tools into the panel
    runtime behind the existing approval guardrail; default the agentic path to

@@ -1,5 +1,5 @@
 /**
- * XNet Protocol conformance corpus — generator + drift guard.
+ * xNet Protocol conformance corpus — generator + drift guard.
  *
  * This test derives the golden-vector corpus at `conformance/vectors/` from the
  * reference implementation and asserts it matches the committed JSON. It makes
@@ -17,12 +17,19 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { LWW_TIEBREAK_KEY_VERSION, computeLwwTiebreakKey } from '@xnetjs/core'
 import { getSigningPublicKeyFromPrivate, verify, hashHex, hash, sign } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import {
   createUnsignedChange,
   computeChangeHash,
   signChange,
+  computeBatchRoot,
+  createUnsignedBatchCommit,
+  signBatchCommit,
+  verifyBatch,
+  verifyBatchCommit,
+  recomputeChangeHash,
   serializeYjsEnvelope,
   verifyYjsEnvelopeV2,
   type SignedYjsEnvelopeV2
@@ -161,26 +168,33 @@ for (const { name, description, options } of changeInputs) {
 }
 
 // ── L1 · LWW convergence vectors ─────────────────────────────────────────────
-type LwwTs = { lamport: number; wallTime: number; author: string }
-const cmpTs = (a: LwwTs, b: LwwTs): number =>
-  a.lamport !== b.lamport
-    ? a.lamport - b.lamport
-    : a.wallTime !== b.wallTime
-      ? a.wallTime - b.wallTime
-      : a.author < b.author
-        ? -1
-        : a.author > b.author
-          ? 1
-          : 0
+// The final tiebreak is the raw author DID for legacy changes, or (protocol
+// v4+, exploration 0305) a grinding-resistant per-conflict key. cmpTs mirrors
+// `@xnetjs/core`'s compareLwwStamps exactly.
+type LwwTs = { lamport: number; wallTime: number; author: string; tiebreakKey?: string }
+const cmpTs = (a: LwwTs, b: LwwTs): number => {
+  if (a.lamport !== b.lamport) return a.lamport - b.lamport
+  if (a.wallTime !== b.wallTime) return a.wallTime - b.wallTime
+  if (
+    a.tiebreakKey !== undefined &&
+    b.tiebreakKey !== undefined &&
+    a.tiebreakKey !== b.tiebreakKey
+  ) {
+    return a.tiebreakKey < b.tiebreakKey ? -1 : 1
+  }
+  return a.author < b.author ? -1 : a.author > b.author ? 1 : 0
+}
 
 type LwwChange = {
   authorDID: string
   lamport: number
   wallTime: number
   properties: Record<string, unknown>
+  /** Present ⇒ this change is at that protocol version (gates the v4 key). */
+  protocolVersion?: number
 }
 
-/** The spec's per-property Last-Write-Wins fold (docs/specs/protocol §L1.7). */
+/** The spec's per-property Last-Write-Wins fold (docs/specs/protocol §L1.7/§7.1). */
 function foldLww(changes: LwwChange[]): {
   properties: Record<string, unknown>
   timestamps: Record<string, LwwTs>
@@ -188,8 +202,14 @@ function foldLww(changes: LwwChange[]): {
   const properties: Record<string, unknown> = {}
   const timestamps: Record<string, LwwTs> = {}
   for (const c of changes) {
-    const ts: LwwTs = { lamport: c.lamport, wallTime: c.wallTime, author: c.authorDID }
+    const hasKey = (c.protocolVersion ?? 0) >= LWW_TIEBREAK_KEY_VERSION
     for (const [key, val] of Object.entries(c.properties)) {
+      const ts: LwwTs = {
+        lamport: c.lamport,
+        wallTime: c.wallTime,
+        author: c.authorDID,
+        ...(hasKey ? { tiebreakKey: computeLwwTiebreakKey(c.authorDID, key, val) } : {})
+      }
       const current = timestamps[key]
       if (!current || cmpTs(ts, current) > 0) {
         properties[key] = val
@@ -247,6 +267,32 @@ const lwwScenarios = [
       { authorDID: 'did:key:zAAA', lamport: 1, wallTime: 1, properties: { title: 'from-upper' } },
       { authorDID: 'did:key:zaaa', lamport: 1, wallTime: 1, properties: { title: 'from-lower' } }
     ] as LwwChange[]
+  },
+  {
+    // Grinding-resistant final tiebreak (exploration 0305, spec §7.1): at
+    // protocolVersion 4 a lamport+wallTime tie is decided by
+    // blake3(author ‖ property ‖ value), NOT the author DID — so the
+    // lexically-maximal DID does NOT automatically win. Here 'did:key:zzzz'
+    // (max DID) loses the `title` tie because its key sorts below zAAA's for
+    // this (property, value) pair; a different property re-randomises the win.
+    name: '0005-tie-grinding-resistant-key',
+    description: 'protocol v4 tie resolved by blake3(author‖property‖value), not the author DID',
+    changes: [
+      {
+        authorDID: 'did:key:zzzz',
+        lamport: 7,
+        wallTime: 700,
+        properties: { title: 'from-zzzz' },
+        protocolVersion: 4
+      },
+      {
+        authorDID: 'did:key:zAAA',
+        lamport: 7,
+        wallTime: 700,
+        properties: { title: 'from-zAAA' },
+        protocolVersion: 4
+      }
+    ] as LwwChange[]
   }
 ]
 
@@ -260,6 +306,171 @@ for (const { name, description, changes } of lwwScenarios) {
     suite: 'lww',
     name,
     data: { description, input: { changes }, expected }
+  })
+}
+
+// ── L1 · batch-commit vectors (one signature over many changes, 0357) ────────
+// A batch commit is an ADDITIVE record: it never changes how a Change is
+// hashed or ordered. These vectors pin the commit's own canonical bytes, its
+// root over the ordered member hashes, and the membership rules that keep a
+// commit from being weaker than per-change signatures.
+{
+  const members = [
+    {
+      id: 'chg-b001',
+      payload: {
+        nodeId: 'node-b001',
+        schemaId: 'xnet://xnet.fyi/Task@1.0.0',
+        properties: { title: 'One' }
+      },
+      lamport: 1
+    },
+    {
+      id: 'chg-b002',
+      payload: {
+        nodeId: 'node-b002',
+        schemaId: 'xnet://xnet.fyi/Task@1.0.0',
+        properties: { title: 'Two' }
+      },
+      lamport: 2
+    },
+    {
+      id: 'chg-b003',
+      payload: {
+        nodeId: 'node-b003',
+        schemaId: 'xnet://xnet.fyi/Task@1.0.0',
+        properties: { title: 'Three' }
+      },
+      lamport: 3
+    }
+  ].map((member) =>
+    signChange(
+      createUnsignedChange({
+        id: member.id,
+        type: 'node-change',
+        payload: member.payload,
+        parentHash: null,
+        authorDID,
+        lamport: member.lamport,
+        wallTime: 1718641200000 + member.lamport
+      }),
+      authorSeed
+    )
+  )
+
+  const changeHashes = members.map((member) => member.hash)
+  const unsignedCommit = createUnsignedBatchCommit({
+    id: 'commit-0001',
+    authorDID,
+    changeHashes,
+    lamport: 10,
+    wallTime: 1718641300000
+  })
+  const commit = signBatchCommit(unsignedCommit, authorSeed)
+
+  // The commit must verify, and every member must be covered by it.
+  expect(verifyBatchCommit(commit, authorPub)).toBe(true)
+  const membership = await verifyBatch(commit, members, authorPub, recomputeChangeHash)
+  expect(membership.ok).toBe(true)
+
+  corpus.push({
+    suite: 'batch-commit',
+    name: '0001-commit-over-three-changes',
+    data: {
+      description: 'one Ed25519 signature covering three ordered change hashes',
+      input: { authorSeedHex: toHex(authorSeed), unsignedCommit },
+      expected: {
+        canonicalJson: canonicalJson(unsignedCommit),
+        root: commit.root,
+        hash: commit.hash,
+        signatureBase64: toB64(commit.signature),
+        memberHashes: changeHashes
+      }
+    }
+  })
+
+  // Order is part of the commitment: the same hashes in a different order
+  // MUST produce a different root, or a batch could be replayed permuted.
+  const reversed = [...changeHashes].reverse()
+  expect(computeBatchRoot(reversed)).not.toBe(commit.root)
+
+  corpus.push({
+    suite: 'batch-commit',
+    name: '0002-root-is-order-sensitive',
+    data: {
+      description: 'reordering the member hashes changes the root',
+      input: { changeHashes, reversedChangeHashes: reversed },
+      expected: { root: commit.root, reversedRoot: computeBatchRoot(reversed) }
+    }
+  })
+
+  // Tamper cases — each MUST be rejected.
+  const smuggled = signChange(
+    createUnsignedChange({
+      id: 'chg-b999',
+      type: 'node-change',
+      payload: {
+        nodeId: 'node-b999',
+        schemaId: 'xnet://xnet.fyi/Task@1.0.0',
+        properties: { title: 'Smuggled' }
+      },
+      parentHash: null,
+      authorDID,
+      lamport: 9,
+      wallTime: 1718641290000
+    }),
+    authorSeed
+  )
+  const smuggledResult = await verifyBatch(
+    commit,
+    [...members, smuggled],
+    authorPub,
+    recomputeChangeHash
+  )
+  expect(smuggledResult.ok).toBe(false)
+  expect(smuggledResult.members).toEqual([true, true, true, false])
+
+  const tamperedMember = {
+    ...members[1],
+    payload: { ...members[1].payload, properties: { title: 'Forged' } }
+  }
+  const tamperedResult = await verifyBatch(
+    commit,
+    [members[0], tamperedMember, members[2]],
+    authorPub,
+    recomputeChangeHash
+  )
+  expect(tamperedResult.ok).toBe(false)
+  expect(tamperedResult.members).toEqual([true, false, true])
+
+  // A commit whose list was edited AND root recomputed still fails, because
+  // the commit hash (and therefore the signature) covers the original list.
+  const editedHashes = [...changeHashes, smuggled.hash]
+  const forgedCommit = {
+    ...commit,
+    changeHashes: editedHashes,
+    root: computeBatchRoot(editedHashes)
+  }
+  expect(verifyBatchCommit(forgedCommit, authorPub)).toBe(false)
+
+  corpus.push({
+    suite: 'batch-commit',
+    name: '0003-tamper-cases',
+    data: {
+      description: 'membership and commit-integrity tamper cases, all rejected',
+      input: {
+        commitHash: commit.hash,
+        smuggledChangeHash: smuggled.hash,
+        tamperedMemberIndex: 1,
+        editedChangeHashes: editedHashes
+      },
+      expected: {
+        smuggledMembers: smuggledResult.members,
+        tamperedMembers: tamperedResult.members,
+        forgedCommitRoot: forgedCommit.root,
+        forgedCommitVerifies: false
+      }
+    }
   })
 }
 
@@ -529,8 +740,119 @@ for (const { name, description, expression, roles, isAuthenticated } of authzSce
   })
 }
 
+// ── L3 · action-expression resolution (0304 write fallback) ──────────────────
+// Pins how a checked action picks its expression from a schema's `actions`
+// map: `create` falls back to `write`; `update` and legacy `write` checks
+// share the `update` ?? `write` lookup; every other action has no fallback.
+// Mirrors `actionExpressionOrder` in @xnetjs/core.
+
+const actionExpressionOrder = (action: string): string[] => {
+  if (action === 'create') return ['create', 'write']
+  if (action === 'update' || action === 'write') return ['update', 'write']
+  return [action]
+}
+
+const resolveAndEval = (
+  actions: Record<string, AuthExpr | undefined>,
+  action: string,
+  roles: Set<string>,
+  isAuthenticated: boolean
+): boolean => {
+  for (const candidate of actionExpressionOrder(action)) {
+    const expr = actions[candidate]
+    if (expr) return evalExpr(expr, roles, isAuthenticated)
+  }
+  return false
+}
+
+const authzActionScenarios: {
+  name: string
+  description: string
+  actions: Record<string, AuthExpr>
+  action: string
+  roles: string[]
+  isAuthenticated: boolean
+}[] = [
+  {
+    name: '0001-create-falls-back-to-write',
+    description: 'a create check on a schema declaring only write uses the write expression',
+    actions: { write: allow('editor') },
+    action: 'create',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0002-update-falls-back-to-write',
+    description: 'an update check on a schema declaring only write uses the write expression',
+    actions: { write: allow('editor') },
+    action: 'update',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0003-declared-create-wins-over-write',
+    description: 'a declared create expression is used even when write would allow',
+    actions: { create: allow('admin'), write: allow('editor', 'admin') },
+    action: 'create',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0004-update-falls-back-past-create',
+    description: 'a declared create never governs update checks — update falls back to write',
+    actions: { create: allow('admin'), write: allow('editor') },
+    action: 'update',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0005-legacy-write-check-uses-update',
+    description: 'a legacy write check on a split schema follows the update expression',
+    actions: { update: allow('owner'), write: allow('editor', 'owner') },
+    action: 'write',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0006-no-expression-denies',
+    description: 'a create check with neither create nor write defined is denied',
+    actions: { read: PUBLIC },
+    action: 'create',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0007-delete-never-falls-back',
+    description: 'delete has no fallback — write does not cover it',
+    actions: { write: allow('editor') },
+    action: 'delete',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0008-read-never-falls-back',
+    description: 'read has no fallback — write does not cover it',
+    actions: { write: allow('editor') },
+    action: 'read',
+    roles: ['editor'],
+    isAuthenticated: true
+  }
+]
+for (const { name, description, actions, action, roles, isAuthenticated } of authzActionScenarios) {
+  const allowed = resolveAndEval(actions, action, new Set(roles), isAuthenticated)
+  corpus.push({
+    suite: 'authz-actions',
+    name,
+    data: {
+      description,
+      input: { actions, action, roles, isAuthenticated },
+      expected: { allowed }
+    }
+  })
+}
+
 // ── generate-or-verify ────────────────────────────────────────────────────────
-describe('XNet Protocol conformance corpus', () => {
+describe('xNet Protocol conformance corpus', () => {
   for (const vector of corpus) {
     it(`${vector.suite}/${vector.name} matches the committed golden vector`, () => {
       const file = path.join(vectorsDir, vector.suite, `${vector.name}.json`)

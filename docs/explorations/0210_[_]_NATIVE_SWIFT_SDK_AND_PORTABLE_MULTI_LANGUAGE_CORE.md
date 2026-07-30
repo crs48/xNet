@@ -2,11 +2,11 @@
 
 ## Problem Statement
 
-XNet's database, schemas, sync, encryption, and authorization are written in
+xNet's database, schemas, sync, encryption, and authorization are written in
 TypeScript and today only run where JavaScript runs: the web app
 (`apps/web`), Electron (`apps/electron`), and React Native via Expo
-(`apps/expo`). We want XNet to be a **first‑class citizen of native Apple
-development** — a real XNet database, with XNet primitives, schemas, queries,
+(`apps/expo`). We want xNet to be a **first‑class citizen of native Apple
+development** — a real xNet database, with xNet primitives, schemas, queries,
 and live sync, embedded directly in a native macOS / iOS / iPadOS / visionOS /
 watchOS app. And we want the *authoring* experience to feel native: you define
 schemas in Swift, query the database in Swift, and bind results into a
@@ -16,7 +16,7 @@ wall.
 Longer term, the same question applies to **Kotlin (Android)**, **.NET
 (Windows / MAUI / Unity)**, **C++ (Unreal — already partially bridged)**, and
 anywhere else. So the real question is not "how do we wrap the JS bundle for
-Swift" but **what is XNet's integration surface, and which parts of the
+Swift" but **what is xNet's integration surface, and which parts of the
 core become composable, portable libraries that any language can pull in?**
 
 This exploration maps the existing seams, surveys how comparable local‑first
@@ -25,7 +25,7 @@ ships a beautiful Swift SDK quickly *and* lays down a genuinely portable core.
 
 ## Executive Summary
 
-- **XNet is unusually well‑positioned for native ports.** Exploration
+- **xNet is unusually well‑positioned for native ports.** Exploration
   [0200](0200_[x]_PORTABLE_XNET_PROTOCOL_BOUNDARIES_AND_STANDARD.md) already
   did the hard conceptual work: the interop kernel is a **signed,
   hash‑chained, last‑writer‑wins (LWW) change log over schema‑typed nodes —
@@ -41,7 +41,7 @@ ships a beautiful Swift SDK quickly *and* lays down a genuinely portable core.
   schema registry, reactive bridge). They demand different porting
   strategies.
 - The "write Swift, not React hooks" desire is an **API‑veneer** problem,
-  solvable on top of *any* core. XNet already exposes a framework‑agnostic
+  solvable on top of *any* core. xNet already exposes a framework‑agnostic
   `liveQuery()` (`packages/runtime/src/live-query.ts`) with a tiny
   `subscribe(run) => unsubscribe` contract — a perfect adapter target for
   Swift's **Observation framework** (`@Observable`) and `AsyncSequence`.
@@ -186,7 +186,7 @@ The repository already splits cleanly into two kinds of code:
   native path; it proves the adapters are swappable but still ships a JS
   engine and React.
 - **Python conformance kernel** (`conformance/reference/python`) — ~85 lines,
-  no XNet deps, reproduces L0 (identity) and L1 (change sign/verify) vectors.
+  no xNet deps, reproduces L0 (identity) and L1 (change sign/verify) vectors.
   **This is the template for a Swift kernel.**
 - **`XNET_PROTOCOL_VERSION`** umbrella bundle
   (`packages/runtime/src/protocol.ts:62`, `id: 'xnet/1.0'`) — the handshake
@@ -205,17 +205,17 @@ The repository already splits cleanly into two kinds of code:
 > current release state.
 
 The local‑first ecosystem has effectively standardized on **one of three
-shapes** for going multi‑language. XNet can borrow from each.
+shapes** for going multi‑language. xNet can borrow from each.
 
-| System | Core language | Multi‑language strategy | Lesson for XNet |
+| System | Core language | Multi‑language strategy | Lesson for xNet |
 | --- | --- | --- | --- |
 | **Automerge** | Rust (`automerge-rs`) | `automerge-swift`, Kotlin, JS/WASM via **UniFFI** + C FFI; one core, many thin veneers | The canonical "extract core to Rust, bind everywhere" model. Proves a CRDT core + UniFFI Swift package is production‑viable. |
-| **Yjs / y‑crdt** | TS (`yjs`) + Rust port (`yrs`) | `yffi` (C ABI), `ywasm`, `y‑py`; bindings consume `yrs` | Two implementations of the *same* format coexist; a Rust port can back native while TS stays canonical — exactly XNet's "Yjs body is opaque" situation. |
+| **Yjs / y‑crdt** | TS (`yjs`) + Rust port (`yrs`) | `yffi` (C ABI), `ywasm`, `y‑py`; bindings consume `yrs` | Two implementations of the *same* format coexist; a Rust port can back native while TS stays canonical — exactly xNet's "Yjs body is opaque" situation. |
 | **Ditto** | Rust | First‑party SDKs for Swift, Kotlin, JS, C#, C++, Flutter over one Rust core | Commercial proof that a single Rust core can serve every platform with idiomatic SDKs and peer‑to‑peer mesh sync. |
-| **PowerSync** | Rust (`powersync-sqlite-core`, a SQLite extension) | Swift, Kotlin, Dart, JS, .NET SDKs; sync logic in the Rust SQLite extension, queries stay in native SQLite | "Ship the engine as a SQLite extension, let each platform use its own SQLite + reactive layer." Maps well to XNet's `SQLiteAdapter` seam. |
+| **PowerSync** | Rust (`powersync-sqlite-core`, a SQLite extension) | Swift, Kotlin, Dart, JS, .NET SDKs; sync logic in the Rust SQLite extension, queries stay in native SQLite | "Ship the engine as a SQLite extension, let each platform use its own SQLite + reactive layer." Maps well to xNet's `SQLiteAdapter` seam. |
 | **cr‑sqlite (Vlcn)** | Rust (loadable SQLite ext) | Runs anywhere SQLite loads extensions | CRDTs delivered as a SQLite extension; minimal per‑language surface. |
 | **Realm / Atlas Device Sync** | C++ (Realm Core) | Swift/Kotlin/JS/.NET language bindings over C++ | The original "native core, many bindings" — but heavy, and now deprecated; a caution about over‑coupling SDKs to a monolith core. |
-| **InstantDB / Zero (Rocicorp)** | TS/Clojure; server‑centric | JS/React‑first; native talks via REST/WebSocket to a sync service | The "thin client over a sync service" path — fast but not embedded/offline‑native; what XNet's `:31416` bridge resembles. |
+| **InstantDB / Zero (Rocicorp)** | TS/Clojure; server‑centric | JS/React‑first; native talks via REST/WebSocket to a sync service | The "thin client over a sync service" path — fast but not embedded/offline‑native; what xNet's `:31416` bridge resembles. |
 
 **Binding technology landscape:**
 
@@ -237,7 +237,7 @@ shapes** for going multi‑language. XNet can borrow from each.
 - **CryptoKit** covers Ed25519, Curve25519 (X25519), SHA‑2, HKDF, and
   **IETF** ChaCha20‑Poly1305 (12‑byte nonce). It does **not** provide
   **XChaCha20‑Poly1305** (24‑byte nonce) or **BLAKE3** — both are required by
-  XNet's wire format, so those need **libsodium** (`swift-sodium`) and a BLAKE3
+  xNet's wire format, so those need **libsodium** (`swift-sodium`) and a BLAKE3
   binding (the official `blake3` C lib or a Swift wrapper). `did:key` base58btc
   needs `swift-multiformats` or ~30 lines of hand‑rolled multibase.
 - **Observation framework** (`@Observable`, iOS 17 / macOS 14+) and
@@ -445,7 +445,7 @@ parity, because the engine is the same code the web app runs.
 Port **only the kernel** to a `xnet-core` Rust crate: identity/`did:key`,
 canonical change + hash + sign/verify, LWW merge, the auth evaluator + UCAN,
 and the E2E envelope. Use `ed25519-dalek`, `x25519-dalek`, `blake3`, and a
-XChaCha20 AEAD crate — all of which already match XNet's `@noble/*` choices.
+XChaCha20 AEAD crate — all of which already match xNet's `@noble/*` choices.
 Generate **Swift + Kotlin** via UniFFI and a **C ABI** for .NET. In `XNetKit`,
 strangler‑fig the JSC kernel calls over to `xnet-core` (the conformance harness
 guarantees equivalence). For Yjs document bodies, link `yrs`.
@@ -585,7 +585,7 @@ func sign(_ unsigned: UnsignedChange, _ key: Curve25519.Signing.PrivateKey) -> D
 - **Crypto gaps on Apple.** CryptoKit lacks **XChaCha20‑Poly1305** (24‑byte
   nonce) and **BLAKE3**; both are on the wire. Pulling in **libsodium** + a
   BLAKE3 binding adds native dependencies and an XCFramework to ship. ML‑DSA /
-  ML‑KEM (security levels 1–2) need liboqs — defer; XNet defaults to
+  ML‑KEM (security levels 1–2) need liboqs — defer; xNet defaults to
   `cryptoLevel: 0` anyway (`packages/runtime/src/protocol.ts:69`).
 - **iOS JavaScriptCore has no JIT for third‑party apps.** The Phase‑1 engine
   runs interpreted on iOS (macOS is unrestricted). Likely fine for data logic;

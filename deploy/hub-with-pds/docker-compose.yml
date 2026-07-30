@@ -1,0 +1,73 @@
+# xNet hub + AT Protocol PDS — the "one binary plus one sidecar" deployment
+# (explorations 0365/0382/0383 W5).
+#
+# The PDS is deliberately NOT a hub role: its repo format, signing chain and
+# firehose are atproto's invariants, not ours (0382's MinIO-gateway lesson;
+# 0365's mandate: the official container, never a reimplementation). This
+# template is the blessed way to run the pair behind one domain — Caddy fronts
+# both, so `hub.example.com` is the hub and `pds.example.com` (plus the
+# wildcard the PDS needs for user handles) is the PDS.
+#
+# Usage:
+#   1. Set DOMAIN, PDS_ADMIN_PASSWORD, PDS_JWT_SECRET, PDS_PLC_ROTATION_KEY.
+#      (Generate secrets per https://github.com/bluesky-social/pds — and note
+#      the wildcard DNS requirement: *.pds.${DOMAIN} must also resolve here.)
+#   2. docker compose up -d
+#   3. Health: https://hub.${DOMAIN}/health and https://pds.${DOMAIN}/xrpc/_health
+
+services:
+  hub:
+    build:
+      # Build from the monorepo root (the hub Dockerfile copies workspace pkgs);
+      # swap for a published image tag once one exists.
+      context: ../..
+      dockerfile: packages/hub/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: '4444'
+      HUB_ROLE: '${HUB_ROLE:-personal}'
+      HUB_PUBLIC_URL: 'wss://hub.${DOMAIN}'
+    volumes:
+      - hub-data:/data
+    command: ['node', 'packages/hub/dist/cli.js', '--port', '4444', '--data', '/data']
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4444/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  pds:
+    # The OFFICIAL PDS container, pinned by digest when you deploy for real.
+    image: ghcr.io/bluesky-social/pds:latest
+    restart: unless-stopped
+    environment:
+      PDS_HOSTNAME: 'pds.${DOMAIN}'
+      PDS_ADMIN_PASSWORD: '${PDS_ADMIN_PASSWORD}'
+      PDS_JWT_SECRET: '${PDS_JWT_SECRET}'
+      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: '${PDS_PLC_ROTATION_KEY}'
+      PDS_DATA_DIRECTORY: /pds
+      PDS_BLOBSTORE_DISK_LOCATION: /pds/blocks
+      PDS_DID_PLC_URL: https://plc.directory
+      PDS_REPORT_SERVICE_URL: https://mod.bsky.app
+      PDS_REPORT_SERVICE_DID: did:plc:ar7c4by46qjdydhdevvrndac
+      PDS_CRAWLERS: https://bsky.network
+    volumes:
+      - pds-data:/pds
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - hub
+      - pds
+
+volumes:
+  hub-data:
+  pds-data:
+  caddy-data:

@@ -9,6 +9,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { defineSchema } from '../schema/define'
+import { person } from '../schema/properties'
 import { TaskSchema, SPACE_ROLES, spaceRoleGrantActions } from '../schema/schemas'
 import { schemaToHubPolicy, hubActionsForSpaceRole } from './hub-policy'
 import { allow, role } from '.'
@@ -39,6 +40,29 @@ describe('schemaToHubPolicy', () => {
       }
     })
     expect(schemaToHubPolicy(PublicDoc.schema).public).toBe(true)
+  })
+
+  it('projects the create/update refinements onto hub write (0304)', () => {
+    const ContributorDoc = defineSchema({
+      name: 'HubContributorDoc',
+      namespace: 'xnet://test/',
+      properties: { contributors: person({ multiple: true }) },
+      authorization: {
+        roles: { owner: role.creator(), contributor: role.property('contributors') },
+        actions: {
+          read: allow('owner', 'contributor'),
+          create: allow('contributor'),
+          update: allow('owner'),
+          delete: allow('owner'),
+          share: allow('owner')
+        }
+      }
+    })
+    const policy = schemaToHubPolicy(ContributorDoc.schema)
+    // The hub grant model stays coarse: both refinements need the write relay
+    // capability, so create-only contributors project onto hub write.
+    expect(policy.roleActions.contributor).toEqual(['read', 'write'])
+    expect(policy.roleActions.owner).toEqual(['admin', 'read', 'share', 'write'])
   })
 
   it('returns an empty policy for legacy (authorization-less) schemas', () => {

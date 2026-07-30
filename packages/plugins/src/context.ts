@@ -5,6 +5,8 @@
 import type { AgentToolContribution } from './agent-tools'
 import type {
   ContributionRegistry,
+  FrameRendererContribution,
+  SlotContribution,
   ViewContribution,
   WidgetContribution,
   CommandContribution,
@@ -80,6 +82,13 @@ export interface ExtensionContext {
   registerSchema(schema: unknown): Disposable
   /** Register a custom view type */
   registerView(view: ViewContribution): Disposable
+  /**
+   * Register a frame source renderer (0346). Own-views-only rule: the
+   * renderer id is namespaced under this plugin's id, so a plugin can
+   * add frames for its own schemas but never replace another provider's
+   * renderer.
+   */
+  registerFrameRenderer(renderer: FrameRendererContribution): Disposable
   /** Register a dashboard widget (trust tier assigned by the host) */
   registerWidget(widget: WidgetContribution): Disposable
   /** Register a property type handler */
@@ -114,6 +123,8 @@ export interface ExtensionContext {
   registerMentionProvider(provider: MentionProviderContribution): Disposable
   /** Register a model-facing agent tool (exploration 0196) */
   registerAgentTool(tool: AgentToolContribution): Disposable
+  /** Register a shell slot view (exploration 0280) */
+  registerSlotView(view: SlotContribution): Disposable
   /** Add middleware to NodeStore */
   addMiddleware(middleware: NodeStoreMiddleware): Disposable
 
@@ -229,6 +240,23 @@ export function createExtensionContext(options: CreateContextOptions): Extension
       return d
     },
 
+    registerFrameRenderer(renderer) {
+      // Own-views-only (0346): namespace the id under this plugin and
+      // refuse to shadow another provider's renderer.
+      const namespacedId = renderer.id.startsWith(`${pluginId}:`)
+        ? renderer.id
+        : `${pluginId}:${renderer.id}`
+      const existing = contributions.frameRenderers
+        .getAll()
+        .find((entry) => entry.id === namespacedId)
+      if (existing) {
+        throw new Error(`[Plugin ${pluginId}] frame renderer already registered: ${namespacedId}`)
+      }
+      const d = contributions.frameRenderers.register({ ...renderer, id: namespacedId })
+      disposables.push(d)
+      return d
+    },
+
     registerWidget(widget) {
       const d = contributions.widgets.register(widget)
       disposables.push(d)
@@ -327,6 +355,12 @@ export function createExtensionContext(options: CreateContextOptions): Extension
 
     registerAgentTool(tool) {
       const d = contributions.agentTools.register(tool)
+      disposables.push(d)
+      return d
+    },
+
+    registerSlotView(view) {
+      const d = contributions.slots.register(view)
       disposables.push(d)
       return d
     },

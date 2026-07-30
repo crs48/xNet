@@ -1,7 +1,7 @@
 import type { UCANToken } from './types'
 import { describe, expect, it } from 'vitest'
 import { generateIdentity } from './did'
-import { createUCAN, hasCapability, isExpired, verifyUCAN } from './ucan'
+import { createUCAN, hasCapability, isExpired, ucanTokenId, verifyUCAN } from './ucan'
 
 describe('UCAN', () => {
   describe('createUCAN and verifyUCAN', () => {
@@ -216,6 +216,61 @@ describe('UCAN', () => {
         sig: new Uint8Array()
       }
       expect(isExpired(token)).toBe(false)
+    })
+  })
+
+  describe('nonce + token id (0307-B)', () => {
+    it('round-trips the nonce through verify', () => {
+      const { identity: issuer, privateKey } = generateIdentity()
+      const token = createUCAN({
+        issuer: issuer.did,
+        issuerKey: privateKey,
+        audience: 'did:key:hub',
+        capabilities: [{ with: '*', can: 'hub/relay' }],
+        nonce: 'nonce-123'
+      })
+      const result = verifyUCAN(token)
+      expect(result.valid).toBe(true)
+      expect(result.payload?.nnc).toBe('nonce-123')
+    })
+
+    it('rejects a non-string nonce claim', () => {
+      const { identity: issuer, privateKey } = generateIdentity()
+      const token = createUCAN({
+        issuer: issuer.did,
+        issuerKey: privateKey,
+        audience: 'did:key:hub',
+        capabilities: [],
+        nonce: 'x'
+      })
+      const [header, body, sig] = token.split('.')
+      const payload = JSON.parse(Buffer.from(body, 'base64url').toString())
+      payload.nnc = 42
+      const tampered = [
+        header,
+        Buffer.from(JSON.stringify(payload)).toString('base64url'),
+        sig
+      ].join('.')
+      expect(verifyUCAN(tampered).valid).toBe(false)
+    })
+
+    it('distinct nonces yield distinct token ids for identical grants', () => {
+      const { identity: issuer, privateKey } = generateIdentity()
+      const expiration = Math.floor(Date.now() / 1000) + 3600
+      const mint = (nonce: string): string =>
+        createUCAN({
+          issuer: issuer.did,
+          issuerKey: privateKey,
+          audience: 'did:key:hub',
+          capabilities: [{ with: '*', can: 'hub/relay' }],
+          expiration,
+          nonce
+        })
+      const a = mint('a')
+      const b = mint('b')
+      expect(ucanTokenId(a)).not.toBe(ucanTokenId(b))
+      expect(ucanTokenId(a)).toMatch(/^[0-9a-f]{64}$/)
+      expect(ucanTokenId(a)).toBe(ucanTokenId(a))
     })
   })
 })

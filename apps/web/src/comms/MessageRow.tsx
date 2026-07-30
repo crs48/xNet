@@ -12,13 +12,22 @@ import type { TabNodeType } from '../workbench/state'
 import type { AbuseLabel } from '@xnetjs/abuse'
 import type { PresenceStatus } from '@xnetjs/comms'
 import type { WikilinkTarget } from '@xnetjs/editor/react'
-import { useNavigate } from '@tanstack/react-router'
-import { cn, LinkifiedText } from '@xnetjs/ui'
-import { useEffect, useRef, useState } from 'react'
+import { sanitizeLinkPreviews } from '@xnetjs/data'
+import {
+  cn,
+  ActionMenuList,
+  ContextMenu,
+  LinkifiedText,
+  LinkPreviewCard,
+  type Action
+} from '@xnetjs/ui'
+import { Copy, MessageSquareReply, Pencil, Trash2 } from 'lucide-react'
+import { createElement, useEffect, useRef, useState } from 'react'
 import { ModeratedPost } from '../components/ModeratedMedia'
 import { PersonMentionChip } from '../components/PersonHovercard'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { ChatAvatar } from './ChatAvatar'
 import { displayName, type ProfileEntry } from './hooks'
 import { nodeIdFromHref } from './link-composer'
@@ -53,6 +62,39 @@ function MessageBody({ message }: { message: ChatRow }) {
   )
 }
 
+/**
+ * Stored URL preview cards (0295). Sender-resolved snapshots — rendering
+ * never fetches. The author can remove a card; readers just see it.
+ */
+function MessageLinkPreviewCards({
+  message,
+  isOwn,
+  onRemovePreview
+}: {
+  message: ChatRow
+  isOwn: boolean
+  onRemovePreview?: (url: string) => void
+}) {
+  if (message.redacted) return null
+  const previews = sanitizeLinkPreviews(message.linkPreviews)
+  if (previews.length === 0) return null
+  return (
+    <div className="mt-1 flex flex-col gap-1">
+      {previews.map((preview) => (
+        <LinkPreviewCard
+          key={preview.url}
+          url={preview.url}
+          title={preview.title}
+          domain={preview.domain}
+          description={preview.description}
+          providerName={preview.providerName}
+          onRemove={isOwn && onRemovePreview ? () => onRemovePreview(preview.url) : undefined}
+        />
+      ))}
+    </div>
+  )
+}
+
 function MessageMentionChips({ message }: { message: ChatRow }) {
   const dids = message.mentions?.dids ?? []
   if (dids.length === 0 || message.redacted) return null
@@ -66,7 +108,7 @@ function MessageMentionChips({ message }: { message: ChatRow }) {
 }
 
 function MessageTagChips({ message }: { message: ChatRow }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { allTags } = useWorkspaceTags()
   const tagIds = message.tags ?? []
   if (tagIds.length === 0 || message.redacted) return null
@@ -93,7 +135,7 @@ function MessageLinkChips({
   message: ChatRow
   linkTargets: WikilinkTarget[]
 }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const linkIds = message.links ?? []
   if (linkIds.length === 0 || message.redacted) return null
   return (
@@ -232,6 +274,8 @@ export function MessageRow({
   onCancelEdit,
   onSubmitEdit,
   onReply,
+  onDelete,
+  onRemovePreview,
   thread,
   onOpenThread
 }: {
@@ -250,6 +294,10 @@ export function MessageRow({
   onCancelEdit: () => void
   onSubmitEdit: (content: string) => void | Promise<void>
   onReply: () => void
+  /** Delete (redact) this message — only wired for the author's own messages. */
+  onDelete?: () => void
+  /** Author removes a stored URL preview card (0295). */
+  onRemovePreview?: (message: ChatRow, url: string) => void
   thread?: ThreadSummary
   onOpenThread: () => void
 }) {
@@ -259,6 +307,38 @@ export function MessageRow({
   const isOwn = message.createdBy === me
   const { groups, toggle } = useMessageReactions(message.id, me)
   const compact = density === 'compact'
+
+  const messageActions: Action[] = [
+    {
+      id: 'copy',
+      label: 'Copy text',
+      icon: createElement(Copy, { size: 14 }),
+      when: () => !message.redacted,
+      run: () => void navigator.clipboard.writeText(message.content ?? '').catch(() => {})
+    },
+    {
+      id: 'reply',
+      label: 'Reply in thread',
+      icon: createElement(MessageSquareReply, { size: 14 }),
+      run: onReply
+    },
+    {
+      id: 'edit',
+      label: 'Edit',
+      icon: createElement(Pencil, { size: 14 }),
+      when: () => isOwn && !message.redacted,
+      run: onStartEdit
+    },
+    { id: '---', when: () => isOwn && Boolean(onDelete) && !message.redacted },
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: createElement(Trash2, { size: 14 }),
+      danger: true,
+      when: () => isOwn && Boolean(onDelete) && !message.redacted,
+      run: () => onDelete?.()
+    }
+  ]
 
   return (
     <>
@@ -272,69 +352,80 @@ export function MessageRow({
           animateIn && 'animate-slide-in-bottom motion-reduce:animate-none'
         )}
       >
-        {startsGroup ? (
-          <ChatAvatar
-            did={message.createdBy ?? '?'}
-            src={author?.avatar}
-            size={compact ? 24 : 36}
-            status={authorStatus}
-            showPresence={authorStatus != null}
-            className="mt-0.5"
-          />
-        ) : (
-          <time className="w-9 shrink-0 select-none pt-0.5 text-right font-mono text-[10px] leading-5 text-ink-3 opacity-0 group-hover:opacity-100">
-            {formatTime(message.createdAt)}
-          </time>
-        )}
-        <div className="min-w-0 flex-1">
-          {startsGroup && (
-            <div className="flex items-baseline gap-2">
-              <span className="text-sm font-semibold text-ink-1">{authorName}</span>
-              <time className="font-mono text-[10px] text-ink-3">
-                {formatTime(message.createdAt)}
-              </time>
-              <EditedTag message={message} />
-            </div>
-          )}
-          {isEditing ? (
-            <EditForm
-              initial={message.content ?? ''}
-              onSubmit={onSubmitEdit}
-              onCancel={onCancelEdit}
+        <ContextMenu className="contents" menu={<ActionMenuList actions={messageActions} />}>
+          {startsGroup ? (
+            <ChatAvatar
+              did={message.createdBy ?? '?'}
+              src={author?.avatar}
+              size={compact ? 24 : 36}
+              status={authorStatus}
+              showPresence={authorStatus != null}
+              className="mt-0.5"
             />
           ) : (
-            <>
-              <ModeratedPost
-                labels={labels}
-                attribution={attribution}
-                platformVisibility={hiddenByBlock ? 'hide' : undefined}
-                hiddenPlaceholder={
-                  <span className="text-xs italic text-ink-3">message hidden</span>
-                }
-              >
-                <MessageBody message={message} />
-              </ModeratedPost>
-              <MessageMentionChips message={message} />
-              <MessageTagChips message={message} />
-              <MessageLinkChips message={message} linkTargets={linkTargets} />
-              <ReactionBar
-                groups={groups}
-                profiles={profiles}
-                onToggle={(emoji) => void toggle(emoji)}
-              />
-              {thread && thread.count > 0 && <ThreadFooter thread={thread} onOpen={onOpenThread} />}
-            </>
+            <time className="w-9 shrink-0 select-none pt-0.5 text-right font-mono text-[10px] leading-5 text-ink-3 opacity-0 group-hover:opacity-100">
+              {formatTime(message.createdAt)}
+            </time>
           )}
-        </div>
-        {!isEditing && (
-          <MessageHoverToolbar
-            messageId={message.id}
-            isOwn={isOwn}
-            onToggleReaction={(emoji) => void toggle(emoji)}
-            onReply={onReply}
-            onStartEdit={onStartEdit}
-          />
-        )}
+          <div className="min-w-0 flex-1">
+            {startsGroup && (
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm font-semibold text-ink-1">{authorName}</span>
+                <time className="font-mono text-[10px] text-ink-3">
+                  {formatTime(message.createdAt)}
+                </time>
+                <EditedTag message={message} />
+              </div>
+            )}
+            {isEditing ? (
+              <EditForm
+                initial={message.content ?? ''}
+                onSubmit={onSubmitEdit}
+                onCancel={onCancelEdit}
+              />
+            ) : (
+              <>
+                <ModeratedPost
+                  labels={labels}
+                  attribution={attribution}
+                  platformVisibility={hiddenByBlock ? 'hide' : undefined}
+                  hiddenPlaceholder={
+                    <span className="text-xs italic text-ink-3">message hidden</span>
+                  }
+                >
+                  <MessageBody message={message} />
+                </ModeratedPost>
+                <MessageLinkPreviewCards
+                  message={message}
+                  isOwn={isOwn}
+                  onRemovePreview={
+                    onRemovePreview ? (url) => onRemovePreview(message, url) : undefined
+                  }
+                />
+                <MessageMentionChips message={message} />
+                <MessageTagChips message={message} />
+                <MessageLinkChips message={message} linkTargets={linkTargets} />
+                <ReactionBar
+                  groups={groups}
+                  profiles={profiles}
+                  onToggle={(emoji) => void toggle(emoji)}
+                />
+                {thread && thread.count > 0 && (
+                  <ThreadFooter thread={thread} onOpen={onOpenThread} />
+                )}
+              </>
+            )}
+          </div>
+          {!isEditing && (
+            <MessageHoverToolbar
+              messageId={message.id}
+              isOwn={isOwn}
+              onToggleReaction={(emoji) => void toggle(emoji)}
+              onReply={onReply}
+              onStartEdit={onStartEdit}
+            />
+          )}
+        </ContextMenu>
       </li>
     </>
   )

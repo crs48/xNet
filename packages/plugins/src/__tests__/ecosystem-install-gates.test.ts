@@ -13,6 +13,7 @@ import {
 } from '@xnetjs/licenses'
 import { describe, it, expect, vi } from 'vitest'
 import { CapabilityError } from '../ecosystem/capability-guard'
+import { filterByKind } from '../ecosystem/marketplace'
 import { createTestPluginHarness } from '../ecosystem/testing'
 import { defineFeatureModule } from '../feature-module'
 import { LicenseRequiredError } from '../registry'
@@ -214,5 +215,34 @@ describe('back-compatibility', () => {
     expect(h.registry.get('com.me.simple')?.status).toBe('active')
     // Default provenance is 'imported' → user tier.
     expect(h.registry.get('com.me.simple')?.trustTier).toBe('user')
+  })
+})
+
+describe('workspace marketplace listings (0280)', () => {
+  const entries = [
+    {
+      id: 'com.you.plugin',
+      name: 'A plugin',
+      description: 'code',
+      version: '1.0.0',
+      author: 'you',
+      manifestUrl: 'https://example.com/m.json'
+    },
+    {
+      id: 'com.you.monday-bench',
+      name: 'Monday triage bench',
+      description: 'A shared workspace layout',
+      version: '1.0.0',
+      author: 'you',
+      kind: 'workspace' as const,
+      manifestUrl: 'https://example.com/w.json',
+      workspaceUrl: 'https://example.com/w-payload.json'
+    }
+  ]
+
+  it('filterByKind separates benches from code listings', () => {
+    expect(filterByKind(entries, 'workspace').map((e) => e.id)).toEqual(['com.you.monday-bench'])
+    expect(filterByKind(entries, 'plugin').map((e) => e.id)).toEqual(['com.you.plugin'])
+    expect(filterByKind(entries, undefined)).toHaveLength(2)
   })
 })

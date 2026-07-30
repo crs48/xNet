@@ -14,6 +14,7 @@ import {
   serializeEncryptedYjsState
 } from './yjs-authorization'
 import { verifyYjsEnvelopeV2 } from './yjs-envelope'
+import { isUpdateTooLarge } from './yjs-limits'
 import { YjsPeerScorer } from './yjs-peer-scoring'
 
 const GRANT_SCHEMA_ID = 'xnet://xnet.fyi/Grant'
@@ -244,7 +245,7 @@ export interface AuthorizedYjsSyncProviderOptions<TDoc extends YDocLike = YDocLi
   verifyEnvelope?: (envelope: SignedYjsEnvelopeV2) => Promise<EnvelopeVerificationResult>
   onRejected?: (input: {
     peerId: DID
-    reason: 'rate-exceeded' | 'invalid-signature' | 'unauthorized'
+    reason: 'rate-exceeded' | 'oversized' | 'invalid-signature' | 'unauthorized'
   }) => void
 }
 
@@ -262,7 +263,7 @@ export class AuthorizedYjsSyncProvider<TDoc extends YDocLike = YDocLike> {
   ) => Promise<EnvelopeVerificationResult>
   private readonly onRejected?: (input: {
     peerId: DID
-    reason: 'rate-exceeded' | 'invalid-signature' | 'unauthorized'
+    reason: 'rate-exceeded' | 'oversized' | 'invalid-signature' | 'unauthorized'
   }) => void
 
   constructor(options: AuthorizedYjsSyncProviderOptions<TDoc>) {
@@ -276,12 +277,29 @@ export class AuthorizedYjsSyncProvider<TDoc extends YDocLike = YDocLike> {
     this.onRejected = options.onRejected
   }
 
+  /**
+   * Admit a remote Yjs update: rate-limit → size cap → signature → authz →
+   * doc-binding, then apply.
+   *
+   * SECURITY (exploration 0307): the peer scorer here is **advisory** — it
+   * accumulates violation penalties but this method does not itself refuse an
+   * already-blocked peer; wire `YjsPeerScorer.getPeerAction`/`onAction` to a
+   * transport that actually drops blocked peers. The size cap below and the
+   * signature/authz/doc-binding checks are the hard gates.
+   */
   async handleRemoteUpdate(envelope: SignedYjsEnvelopeV2): Promise<boolean> {
     const peerId = envelope.meta.authorDID
 
     if (this.rateLimiter && !this.rateLimiter.allow(peerId)) {
       this.peerScorer.penalize(peerId, 'rateExceeded')
       this.onRejected?.({ peerId, reason: 'rate-exceeded' })
+      return false
+    }
+
+    // Bound update size before any further work (DoS guard, protocol limit).
+    if (isUpdateTooLarge(envelope.update)) {
+      this.peerScorer.penalize(peerId, 'oversizedUpdate')
+      this.onRejected?.({ peerId, reason: 'oversized' })
       return false
     }
 

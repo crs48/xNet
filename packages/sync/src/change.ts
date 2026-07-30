@@ -7,7 +7,7 @@
  */
 
 import type { DID, ContentId } from '@xnetjs/core'
-import { hashHex, sign, verify } from '@xnetjs/crypto'
+import { hashHex, sign, verify, verifyFast, verifyMany } from '@xnetjs/crypto'
 
 // ─── Protocol Versioning ─────────────────────────────────────────────────────
 
@@ -15,12 +15,18 @@ import { hashHex, sign, verify } from '@xnetjs/crypto'
  * Current protocol version for Change<T>.
  *
  * Version history:
- * - 3: Multi-level cryptography with hybrid signatures (Ed25519 + ML-DSA)
+ * - 4: Grinding-resistant LWW tiebreak key (exploration 0300). NOTE: the change
+ *   signature is still **Ed25519-only** — `signChange`/`verifyChange` use the
+ *   classical `@xnetjs/crypto` `sign`/`verify`. The hybrid/ML-DSA apparatus
+ *   (`hybrid-signing.ts`) is NOT wired into `Change<T>` yet; wiring it (or the
+ *   PQ envelope) is tracked in exploration 0307.
+ * - 3: Reserved for multi-level cryptography (hybrid Ed25519 + ML-DSA) — defined
+ *   in the crypto layer but not carried by the change-signing path.
  * - 2: V2 compact format with abbreviated field names
  * - 1: Initial versioned protocol (adds protocolVersion field)
  * - 0/undefined: Legacy unversioned changes (backward compat)
  */
-export const CURRENT_PROTOCOL_VERSION = 3
+export const CURRENT_PROTOCOL_VERSION = 4
 
 /**
  * A signed change with chain linkage and Lamport ordering.
@@ -168,9 +174,13 @@ export function createBatchId(): string {
 }
 
 /**
- * Recursively sort object keys for canonical JSON representation.
+ * Recursively sort object keys so canonical JSON is deterministic.
+ *
+ * Exported for `batch-commit.ts`, which hashes its own record with the exact
+ * same recipe — the two MUST NOT drift or a commit hashed by one kernel would
+ * not verify against another.
  */
-function sortObjectKeys(obj: unknown): unknown {
+export function sortObjectKeys(obj: unknown): unknown {
   if (obj === null || typeof obj !== 'object') {
     return obj
   }
@@ -313,7 +323,15 @@ export function createWebCryptoChangeSigner(signingKey: Uint8Array): ChangeSigne
  * @returns true if the signature is valid
  */
 export function verifyChange<T>(change: Change<T>, publicKey: Uint8Array): boolean {
-  // Warn about future protocol versions but don't reject
+  warnOnFutureProtocolVersion(change)
+
+  // Verify the signature matches the hash
+  const hashBytes = new TextEncoder().encode(change.hash)
+  return verify(hashBytes, change.signature, publicKey)
+}
+
+/** Warn about future protocol versions but never reject on version alone. */
+function warnOnFutureProtocolVersion<T>(change: Change<T>): void {
   const version = change.protocolVersion ?? 0
   if (version > CURRENT_PROTOCOL_VERSION) {
     console.warn(
@@ -322,10 +340,46 @@ export function verifyChange<T>(change: Change<T>, publicKey: Uint8Array): boole
         `Consider upgrading xNet for full compatibility.`
     )
   }
+}
 
-  // Verify the signature matches the hash
+/**
+ * Verify a change's signature using the native (WebCrypto) verifier when the
+ * runtime has it — ~13x faster than the pure-JS path (exploration 0350/0357).
+ *
+ * Semantically identical to {@link verifyChange}; use this on bulk paths
+ * (hub relay, `.xnetpack` import, NDJSON restore, resync) where per-change
+ * verification is the bottleneck. Single interactive writes can keep using
+ * the synchronous {@link verifyChange}.
+ */
+export async function verifyChangeFast<T>(
+  change: Change<T>,
+  publicKey: Uint8Array
+): Promise<boolean> {
+  warnOnFutureProtocolVersion(change)
   const hashBytes = new TextEncoder().encode(change.hash)
-  return verify(hashBytes, change.signature, publicKey)
+  return verifyFast(hashBytes, change.signature, publicKey)
+}
+
+/**
+ * Verify many changes at once. Results are positional — `result[i]`
+ * corresponds to `entries[i]` — and a failure never short-circuits the rest,
+ * so callers can report exactly which change was rejected.
+ *
+ * This shares one native-support probe and one key import per distinct author
+ * across the whole set, which is the common shape for a bulk import.
+ */
+export async function verifyChangesFast<T>(
+  entries: readonly { change: Change<T>; publicKey: Uint8Array }[]
+): Promise<boolean[]> {
+  const encoder = new TextEncoder()
+  for (const entry of entries) warnOnFutureProtocolVersion(entry.change)
+  return verifyMany(
+    entries.map((entry) => ({
+      message: encoder.encode(entry.change.hash),
+      signature: entry.change.signature,
+      publicKey: entry.publicKey
+    }))
+  )
 }
 
 /**
