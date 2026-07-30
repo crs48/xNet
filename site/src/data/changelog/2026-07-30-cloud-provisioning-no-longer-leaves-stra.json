@@ -4,5 +4,14 @@
   "title": "Cloud provisioning no longer leaves stray hubs behind",
   "summary": "A failed hub setup now cleans up after itself instead of leaving a paid-for server running with nothing attached to it, and scheduled maintenance jobs no longer get skipped when the service restarts.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 662,
+  "mergedAt": "2026-07-30T18:24:04Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
