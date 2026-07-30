@@ -215,6 +215,19 @@ export class CloudRunLitestreamProvisioner implements Provisioner {
     return { ...this.handle(ref, tagOf(cur.image), svc), state: 'sleeping' }
   }
 
+  /**
+   * Delete the tenant's Cloud Run service and free its shard slot.
+   *
+   * **Scope (verified for 0411 G1):** this removes the *billable compute* and
+   * the allocator slot. It deliberately does NOT touch the tenant's R2 replica —
+   * under Litestream Model B the SQLite data lives in R2, not on an attached
+   * volume, and there is no per-service disk to reclaim.
+   *
+   * That split is exactly what compensation wants: rolling back a failed
+   * provision must stop the meter without ever deleting data. Destroying a
+   * tenant *for real* (dunning `deleted`) is a separate step that removes the
+   * R2 objects too.
+   */
   async destroy(substrateRef: string): Promise<void> {
     const ref = parseRef(substrateRef)
     await this.client.delete(ref)

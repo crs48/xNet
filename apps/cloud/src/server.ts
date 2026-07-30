@@ -41,6 +41,7 @@ import {
   type DebugReportStore
 } from './diagnostics'
 import { composeDashboardLive, fetchHubDiagnosticsSummary, fetchHubHealth } from './hub-status'
+import { type JobHealth } from './jobs/leased'
 import { createLogger, type Logger } from './logger'
 import {
   collectUsage,
@@ -54,6 +55,11 @@ import { publicStatus } from './observability/status'
 import { reportToSentry } from './sentry'
 import { SESSION_COOKIE, readSession, sealSession, type SessionData } from './session'
 
+/** Anything that can report periodic-job health (satisfied by `JobRegistry`). */
+export interface JobHealthSource {
+  health(): Promise<JobHealth[]>
+}
+
 export interface ControlPlaneAppDeps {
   controlPlane: ControlPlane
   billing: BillingIdentityProvider
@@ -65,6 +71,13 @@ export interface ControlPlaneAppDeps {
   nonces?: NonceStore
   /** Fleet health samples (Phase 1 observability). If set, exposes /internal/fleet/health. */
   health?: HealthSampleStore
+  /**
+   * Periodic-job registry (0411 G2). If set, exposes /internal/fleet/jobs, which
+   * reports how long since each job last SUCCEEDED. This is the loudness half of
+   * the fix: a drill that silently stopped running is otherwise indistinguishable
+   * from one that passed, because success is silence.
+   */
+  jobs?: JobHealthSource
   /** Whether per-hub backups (Litestream→R2) are configured; surfaced on /status.json. */
   backupsConfigured?: boolean
   /** Managed AI chat deps. If set, exposes `POST /ai/chat` (metered gateway). */
@@ -662,6 +675,18 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
       cold: tenants.length - live.length,
       tenants: slis
     })
+  })
+
+  // Periodic-job staleness (0411 G2). `stale: true` means a job has not completed
+  // in 2x its interval — the alertable condition, and the only signal that a
+  // silently-skipped nightly drill ever produces. 503 rather than 200-with-empty
+  // when unconfigured: "no jobs registered" and "job reporting is off" must not
+  // look the same.
+  app.get('/internal/fleet/jobs', async (c) => {
+    if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
+    if (!deps.jobs) return c.json({ error: 'jobs_not_configured' }, 503)
+    const jobs = await deps.jobs.health()
+    return c.json({ stale: jobs.some((j) => j.stale), jobs })
   })
 
   // Public usage/scale totals for the marketing `/open` dashboard (exploration 0207).

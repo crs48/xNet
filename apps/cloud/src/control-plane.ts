@@ -11,7 +11,7 @@
  * Customer-Portal plan change drives (changePlan), per explorations 0174/0175.
  */
 
-import type { Provisioner } from '@xnetjs/cloud/provisioner'
+import type { HubHandle, Provisioner } from '@xnetjs/cloud/provisioner'
 import {
   DEFAULT_BUDGET_WINDOW,
   keyResetFor,
@@ -25,7 +25,8 @@ import {
   recoverPaidAccount,
   type BindingStore,
   type DidChallenge,
-  type DidChallengeVerifier
+  type DidChallengeVerifier,
+  type TenantBinding
 } from '@xnetjs/cloud/identity'
 import {
   requiresMigration,
@@ -38,6 +39,7 @@ import { diagnosticsSecretFor } from './diagnostics'
 import { fetchHubHealth } from './hub-status'
 import { applyBillingEvent, type BillingEvent } from './reconcile/billing'
 import { type TenantRecord, type TenantStore } from './registry'
+import { saga, sagaStep } from './saga'
 
 export interface ControlPlaneDeps {
   tenants: TenantStore
@@ -222,45 +224,98 @@ export class ControlPlane {
   /**
    * Provision a brand-new tenant: bind identities (dual proof), resolve + sign
    * entitlements, provision an isolated hub, and record it.
+   *
+   * Runs as a compensating {@link saga} (0411 G1): if a later step fails, the
+   * hub and AI key created by earlier steps are torn down instead of being
+   * orphaned. Without it, a key-manager outage after `provision` left a running,
+   * billable Cloud Run service that no `TenantRecord` referenced — and the
+   * retry provisioned a second one. Throws {@link SagaFailure} on failure;
+   * `leakedResources` distinguishes a clean rollback from one that left
+   * something behind.
+   *
+   * The identity binding is deliberately **not** compensated: `bindIdentities`
+   * creates-or-replaces for the same billing user, so a leftover binding costs
+   * nothing and a retry rebinds cleanly. Only steps holding external resources
+   * need an undo.
    */
   async provisionTenant(args: ProvisionTenantArgs): Promise<TenantRecord> {
     const existing = await this.deps.tenants.get(args.tenantId)
     if (existing) throw new Error(`Tenant already exists: ${args.tenantId}`)
 
-    const binding = await bindIdentities(this.deps.bindings, this.deps.verifyDid, {
-      tenantId: args.tenantId,
-      billingUserId: args.billingUserId,
-      challenge: args.challenge,
-      nowMs: this.now()
-    })
-
     const entitlements = resolveEntitlements(args.plan, args.overrides)
-    const handle = await this.deps.provisioner.provision({
-      tenantId: args.tenantId,
-      entitlements,
-      targetVersion: this.deps.defaultTargetVersion,
-      region: args.region,
-      env: this.hubEnv(args.tenantId, entitlements)
-    })
+    let binding: TenantBinding | undefined
+    let handle: HubHandle | undefined
+    let aiVk: VirtualKey | undefined
+    let record: TenantRecord | undefined
 
-    const aiVk = await this.provisionAiKey(args.tenantId, entitlements)
-    const record: TenantRecord = {
-      tenantId: args.tenantId,
-      plan: args.plan,
-      entitlements,
-      billingUserId: binding.billingUserId,
-      did: binding.did,
-      hubUrl: handle.hubUrl,
-      substrateRef: handle.substrateRef,
-      region: handle.region,
-      targetVersion: handle.targetVersion,
-      createdAt: this.now(),
-      lastActiveMs: this.now(),
-      dataTier: 'hot',
-      ...this.aiKeyFields(aiVk)
-    }
-    await this.deps.tenants.put(record)
-    return record
+    await saga([
+      sagaStep<void>({
+        name: 'bind-identities',
+        run: async () => {
+          binding = await bindIdentities(this.deps.bindings, this.deps.verifyDid, {
+            tenantId: args.tenantId,
+            billingUserId: args.billingUserId,
+            challenge: args.challenge,
+            nowMs: this.now()
+          })
+        }
+      }),
+      sagaStep<void>({
+        name: 'provision-hub',
+        run: async () => {
+          handle = await this.deps.provisioner.provision({
+            tenantId: args.tenantId,
+            entitlements,
+            targetVersion: this.deps.defaultTargetVersion,
+            region: args.region,
+            env: this.hubEnv(args.tenantId, entitlements)
+          })
+        },
+        // Removes the Cloud Run service (the billable compute) and frees the
+        // shard slot. The R2 replica is untouched by design — a brand-new
+        // tenant has nothing there yet, and compensation must never delete data.
+        compensate: async () => {
+          if (handle) await this.deps.provisioner.destroy(handle.substrateRef)
+        }
+      }),
+      sagaStep<void>({
+        name: 'mint-ai-key',
+        run: async () => {
+          aiVk = await this.provisionAiKey(args.tenantId, entitlements)
+        },
+        compensate: async () => {
+          const ref = aiVk?.manageId ?? aiVk?.key
+          if (this.deps.aiKeys && ref) await this.deps.aiKeys.remove(ref)
+        }
+      }),
+      sagaStep<void>({
+        name: 'write-record',
+        run: async () => {
+          record = {
+            tenantId: args.tenantId,
+            plan: args.plan,
+            entitlements,
+            billingUserId: binding!.billingUserId,
+            did: binding!.did,
+            hubUrl: handle!.hubUrl,
+            substrateRef: handle!.substrateRef,
+            region: handle!.region,
+            targetVersion: handle!.targetVersion,
+            createdAt: this.now(),
+            lastActiveMs: this.now(),
+            dataTier: 'hot',
+            ...this.aiKeyFields(aiVk)
+          }
+          await this.deps.tenants.put(record)
+        },
+        compensate: async () => {
+          if (record) await this.deps.tenants.delete(record.tenantId)
+        }
+      })
+    ])
+
+    // `saga` resolves only when every step ran, so the record is always set.
+    return record as TenantRecord
   }
 
   /**
@@ -290,32 +345,68 @@ export class ControlPlane {
     }
 
     const entitlements = resolveEntitlements(args.plan, args.overrides)
-    const handle = await this.deps.provisioner.provision({
-      tenantId,
-      entitlements,
-      targetVersion: this.deps.defaultTargetVersion,
-      region: args.region,
-      env: this.hubEnv(tenantId, entitlements)
-    })
-    const aiVk = await this.provisionAiKey(tenantId, entitlements)
-    const record: TenantRecord = {
-      tenantId,
-      plan: args.plan,
-      entitlements,
-      billingUserId: args.billingUserId,
-      did: '', // bound later via the claim flow (exploration 0192)
-      hubUrl: handle.hubUrl,
-      substrateRef: handle.substrateRef,
-      region: handle.region,
-      targetVersion: handle.targetVersion,
-      createdAt: this.now(),
-      lastActiveMs: this.now(),
-      dataTier: 'hot',
-      subscriptionStatus: 'active',
-      ...this.aiKeyFields(aiVk)
-    }
-    await this.deps.tenants.put(record)
-    return record
+    let handle: HubHandle | undefined
+    let aiVk: VirtualKey | undefined
+    let record: TenantRecord | undefined
+
+    // Same compensating saga as provisionTenant (0411 G1). This path is driven
+    // by a Stripe webhook, so a half-provisioned failure is retried
+    // automatically by Stripe — making the orphan it would otherwise leave
+    // behind recur on every redelivery.
+    await saga([
+      sagaStep<void>({
+        name: 'provision-hub',
+        run: async () => {
+          handle = await this.deps.provisioner.provision({
+            tenantId,
+            entitlements,
+            targetVersion: this.deps.defaultTargetVersion,
+            region: args.region,
+            env: this.hubEnv(tenantId, entitlements)
+          })
+        },
+        compensate: async () => {
+          if (handle) await this.deps.provisioner.destroy(handle.substrateRef)
+        }
+      }),
+      sagaStep<void>({
+        name: 'mint-ai-key',
+        run: async () => {
+          aiVk = await this.provisionAiKey(tenantId, entitlements)
+        },
+        compensate: async () => {
+          const ref = aiVk?.manageId ?? aiVk?.key
+          if (this.deps.aiKeys && ref) await this.deps.aiKeys.remove(ref)
+        }
+      }),
+      sagaStep<void>({
+        name: 'write-record',
+        run: async () => {
+          record = {
+            tenantId,
+            plan: args.plan,
+            entitlements,
+            billingUserId: args.billingUserId,
+            did: '', // bound later via the claim flow (exploration 0192)
+            hubUrl: handle!.hubUrl,
+            substrateRef: handle!.substrateRef,
+            region: handle!.region,
+            targetVersion: handle!.targetVersion,
+            createdAt: this.now(),
+            lastActiveMs: this.now(),
+            dataTier: 'hot',
+            subscriptionStatus: 'active',
+            ...this.aiKeyFields(aiVk)
+          }
+          await this.deps.tenants.put(record)
+        },
+        compensate: async () => {
+          if (record) await this.deps.tenants.delete(record.tenantId)
+        }
+      })
+    ])
+
+    return record as TenantRecord
   }
 
   /** Find the tenant owned by a billing identity (dashboard + claim lookup). */

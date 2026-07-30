@@ -11,7 +11,9 @@
 import type { TenantRecord, TenantStore } from '../registry'
 import type { BindingStore, TenantBinding } from '@xnetjs/cloud/identity'
 import { Firestore, type CollectionReference, type DocumentData } from '@google-cloud/firestore'
+import { type JobRecord } from '../jobs/leased'
 import { nonceStoreFromDocs, type NonceRecord, type NonceStore } from '../nonce'
+import { type RolloutRun, type RolloutRunStore } from '../rollout/run-record'
 import { bindingStoreFromDocs, tenantStoreFromDocs, type DocStore } from './durable'
 
 export class FirestoreDocStore<T> implements DocStore<T> {
@@ -33,11 +35,51 @@ export class FirestoreDocStore<T> implements DocStore<T> {
   }
 }
 
+/**
+ * A `DocStore` whose read-modify-write is atomic, for job leases (0411 G2).
+ *
+ * The plain store above is fine for tenant records — one writer, last-write-wins
+ * is acceptable. A lease is different: two replicas ticking at the same instant
+ * both read "unleased" and both write their own lease, and the job runs twice.
+ * {@link claimAtomically} runs the claim inside a Firestore transaction, so the
+ * loser retries against the winner's write and correctly sees the job as leased.
+ *
+ * Single-instance today, which is why `runIfDue` over the plain store is still
+ * correct; this exists so scaling to two replicas is a wiring change rather than
+ * a correctness bug. More than two replicas is tripwire T3.
+ */
+export class FirestoreLeaseStore<T> {
+  constructor(
+    private readonly firestore: Firestore,
+    private readonly col: CollectionReference
+  ) {}
+
+  /**
+   * Atomically read the current doc, ask `decide` for the next one, and write it
+   * if `decide` returns a value. Returns what was written, or null when `decide`
+   * declined (already leased / not due).
+   */
+  async claimAtomically(id: string, decide: (current: T | null) => T | null): Promise<T | null> {
+    return this.firestore.runTransaction(async (tx) => {
+      const ref = this.col.doc(id)
+      const snap = await tx.get(ref)
+      const next = decide(snap.exists ? (snap.data() as T) : null)
+      if (!next) return null
+      tx.set(ref, next as DocumentData)
+      return next
+    })
+  }
+}
+
 export interface DurableStores {
   tenants: TenantStore
   bindings: BindingStore
   /** Single-use device-claim nonces (0243), durable so they survive a restart mid-claim. */
   nonces: NonceStore
+  /** Periodic-job schedule state (0411 G2) — survives deploys so drills cannot be skipped. */
+  jobs: DocStore<JobRecord>
+  /** Staged-rollout checkpoints (0411 G3) — lets a killed rollout resume mid-wave. */
+  rollouts: RolloutRunStore
 }
 
 /**
@@ -71,6 +113,8 @@ export function firestoreStoresFromEnv(env: NodeJS.ProcessEnv = process.env): Du
     ),
     nonces: nonceStoreFromDocs(
       new FirestoreDocStore<NonceRecord>(firestore.collection('claim_nonces'))
-    )
+    ),
+    jobs: new FirestoreDocStore<JobRecord>(firestore.collection('jobs')),
+    rollouts: new FirestoreDocStore<RolloutRun>(firestore.collection('rollouts'))
   }
 }

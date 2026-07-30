@@ -25,10 +25,13 @@ import { assertSyncedViaHealth } from './backup/sync-gate'
 import { stripeGatewayFromEnv } from './billing/stripe-gateway'
 import { FakeTenantBillingGateway, type TenantBillingGateway } from './billing-gateway'
 import { ControlPlane } from './control-plane'
+import { type JobRecord } from './jobs/leased'
+import { JobRegistry } from './jobs/runner'
 import { HealthSampleStore, httpHealthProbe, probeFleet } from './observability/health'
 import { cloudRunProvisionerFromEnv } from './provisioner/google-cloud-run-client'
 import { MemoryTenantStore, type TenantRecord, type TenantStore } from './registry'
 import { createControlPlaneApp } from './server'
+import { InMemoryDocStore } from './stores/durable'
 import { firestoreStoresFromEnv } from './stores/firestore'
 import { usageLedgerFromEnv } from './stores/usage-ledger'
 import { makeDidChallengeVerifier } from './verify-did'
@@ -104,10 +107,25 @@ export {
   type RolloutEngineDeps,
   type RolloutPlan,
   type RolloutReport,
+  type RolloutDurability,
+  type WaveDurability,
   type WaveResult,
   type WaveOptions
 } from './rollout/engine'
 export { controlPlaneRolloutDeps } from './rollout/control-plane-deps'
+export {
+  checkpoint,
+  decidedTenants,
+  isDecided,
+  loadOrStart,
+  priorVersionOf,
+  startRun,
+  waveResultFor,
+  type RolloutRun,
+  type RolloutRunStore,
+  type TenantCheckpoint,
+  type TenantOutcome
+} from './rollout/run-record'
 export {
   StripeTenantBillingGateway,
   stripeGatewayFromEnv,
@@ -122,10 +140,23 @@ export {
 } from './stores/durable'
 export {
   FirestoreDocStore,
+  FirestoreLeaseStore,
   firestoreFromEnv,
   firestoreStoresFromEnv,
   type DurableStores
 } from './stores/firestore'
+export {
+  claimable,
+  isStale,
+  jobHealth,
+  runIfDue,
+  stalenessMs,
+  type JobHealth,
+  type JobRecord,
+  type LeasedJobOptions,
+  type RunOutcome
+} from './jobs/leased'
+export { JobRegistry, anyStale, type JobRunnerDeps, type JobSpec } from './jobs/runner'
 export { usageLedgerFromDocs, usageLedgerFromEnv } from './stores/usage-ledger'
 export { createAiRoute, type AiChatDeps, type AiTenantContext } from './ai/route'
 export { aiChatDepsFromEnv, aiKeysFromEnv } from './ai/wiring'
@@ -274,52 +305,74 @@ function start(): void {
   const usage = usageLedgerFromEnv(env)
   const ai = aiChatDepsFromEnv(controlPlane, usage, env)
 
-  // Fleet observability (exploration 0201): poll each hot tenant's hub `/health`
-  // on an interval and feed the rolling SLI window behind /internal/fleet/health
-  // and the public /status.json. unref() so the loop never keeps the process alive.
   const health = new HealthSampleStore()
   const probe = httpHealthProbe()
   const probeMs = Number(env.XNET_CLOUD_PROBE_MS ?? 60_000)
-  const timer = setInterval(() => {
-    void controlPlane
-      .listTenants()
-      .then((tenants) => probeFleet(probe, health, tenants, Date.now()))
-  }, probeMs)
-  timer.unref()
-
-  // Backup automation (exploration 0288). Both loops unref() so they never keep the
-  // process alive; both are no-ops on the in-memory provisioner used in dev/tests.
-  //
-  // (1) Restore drill: nightly, over a rotating sample, PROVE a tenant restores from
-  //     its R2 replica into a throwaway hub — "we replicate" is not "we can restore".
   const readyProbe = httpReadyProbe()
   const drillMs = Number(env.XNET_CLOUD_DRILL_MS ?? 24 * 60 * 60_000)
   const drillSample = Number(env.XNET_CLOUD_DRILL_SAMPLE ?? 20)
-  const drillTimer = setInterval(() => {
-    void controlPlane.listTenants().then(async (tenants) => {
-      const sample = pickDrillSample(tenants, drillSample, dayIndex(Date.now()))
-      const summary = summarizeDrill(
-        await runRestoreDrills(controlPlane.provisioner, readyProbe, sample)
-      )
-      if (summary.alert) {
-        // eslint-disable-next-line no-console
-        console.error(`[backup] restore drill FAILED for: ${summary.failures.join(', ')}`)
-      }
-    })
-  }, drillMs)
-  drillTimer.unref()
-
-  // (2) Cold-demotion sweep: demote idle hot tenants to R2-only, but only once the
-  //     hub confirms its backup is fresh — the gate FAILS CLOSED (never destroys a
-  //     volume on an unproven replica; exploration 0288).
   const coldAfterMs = Number(env.XNET_CLOUD_COLD_AFTER_MS ?? 7 * 24 * 60 * 60_000)
   const sweepMs = Number(env.XNET_CLOUD_DEMOTE_SWEEP_MS ?? 60 * 60_000)
   const assertSynced = assertSyncedViaHealth(async (tenantId) => {
     const rec = await controlPlane.getTenant(tenantId)
     return rec?.hubUrl || null
   })
-  const sweepTimer = setInterval(() => {
-    void controlPlane.listTenants().then(async (tenants) => {
+
+  // Periodic work runs through the leased-job registry (0411 G2), NOT bare
+  // setInterval. The timers below are only tick frequencies: each tick asks the
+  // stored completion time whether the job is actually due, so a deploy landing
+  // between scheduled runs no longer skips one, a second replica cannot
+  // double-run, and a job that quietly stops shows up as `stale` on
+  // /internal/fleet/jobs rather than as silence.
+  const jobs = new JobRegistry({
+    store: durable?.jobs ?? new InMemoryDocStore<JobRecord>(),
+    holder: env.K_REVISION ? `${env.K_REVISION}#${process.pid}` : `local#${process.pid}`
+  })
+
+  // Fleet observability (exploration 0201): poll each hot tenant's hub `/health`
+  // and feed the rolling SLI window behind /internal/fleet/health and /status.json.
+  jobs.add({
+    jobId: 'fleet-probe',
+    intervalMs: probeMs,
+    work: async () => {
+      const tenants = await controlPlane.listTenants()
+      probeFleet(probe, health, tenants, Date.now())
+    }
+  })
+
+  // Backup automation (exploration 0288); both are no-ops on the in-memory
+  // provisioner used in dev/tests.
+  //
+  // (1) Restore drill: nightly, over a rotating sample, PROVE a tenant restores from
+  //     its R2 replica into a throwaway hub — "we replicate" is not "we can restore".
+  jobs.add({
+    jobId: 'restore-drill',
+    intervalMs: drillMs,
+    // Tick hourly so a deploy delays the nightly drill by at most an hour.
+    tickMs: Math.min(drillMs, 60 * 60_000),
+    leaseMs: 30 * 60_000,
+    work: async () => {
+      const tenants = await controlPlane.listTenants()
+      const sample = pickDrillSample(tenants, drillSample, dayIndex(Date.now()))
+      const summary = summarizeDrill(
+        await runRestoreDrills(controlPlane.provisioner, readyProbe, sample)
+      )
+      // Throwing marks the run failed, so it stays due and is retried — and the
+      // staleness alert fires if it keeps failing.
+      if (summary.alert) {
+        throw new Error(`restore drill FAILED for: ${summary.failures.join(', ')}`)
+      }
+    }
+  })
+
+  // (2) Cold-demotion sweep: demote idle hot tenants to R2-only, but only once the
+  //     hub confirms its backup is fresh — the gate FAILS CLOSED (never destroys a
+  //     volume on an unproven replica; exploration 0288).
+  jobs.add({
+    jobId: 'cold-demotion-sweep',
+    intervalMs: sweepMs,
+    work: async () => {
+      const tenants = await controlPlane.listTenants()
       const now = Date.now()
       for (const t of tenants) {
         if (demotionDue(t, now, coldAfterMs)) {
@@ -328,15 +381,17 @@ function start(): void {
             .catch(() => undefined)
         }
       }
-    })
-  }, sweepMs)
-  sweepTimer.unref()
+    }
+  })
+
+  jobs.start()
 
   const app = createControlPlaneApp({
     controlPlane,
     billing,
     payments,
     health,
+    jobs,
     backupsConfigured: Boolean(env.R2_BUCKET),
     sessionSecret: env.XNET_CLOUD_SESSION_SECRET ?? 'dev-insecure-session-secret',
     baseUrl: env.XNET_CLOUD_BASE_URL ?? '',
