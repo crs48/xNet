@@ -4,7 +4,7 @@
 
 p2panda (<https://p2panda.org>) is a modular Rust toolkit for building
 encrypted, local-first, peer-to-peer applications. It keeps coming up in our
-own explorations — 0200 called it "the nearest neighbor to what XNet wants to
+own explorations — 0200 called it "the nearest neighbor to what xNet wants to
 be", 0081/0085 studied its access-control CRDT, 0258 cited its append-only
 logs and group encryption. Two questions:
 
@@ -80,7 +80,7 @@ claim without a sourced footnote.*
   application + SDK (TypeScript)… Don't compete with p2panda/iroh on
   networking — consider using them").
 - `docs/explorations/0200_[x]_PORTABLE_XNET_PROTOCOL_BOUNDARIES_AND_STANDARD.md:305`
-  — "the nearest neighbor to what XNet wants to be" (modular bytes-level
+  — "the nearest neighbor to what xNet wants to be" (modular bytes-level
   protocol on BLAKE3/Ed25519/CBOR).
 - `docs/explorations/0081` / `0085` — p2panda's convergent access-control
   CRDT as a reference model for xNet authorization.

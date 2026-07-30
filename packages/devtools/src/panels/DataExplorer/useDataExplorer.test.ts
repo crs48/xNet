@@ -1,6 +1,6 @@
 import type { NodeChangeEvent, NodeState } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
-import { changeAffectsCount } from './useDataExplorer'
+import { changeAffectsCount, selectInUseSchemaOptions } from './useDataExplorer'
 
 function makeNode(overrides: Partial<NodeState> = {}): NodeState {
   return {
@@ -46,5 +46,50 @@ describe('changeAffectsCount', () => {
     const before = makeNode({ properties: { title: 'A' } })
     const after = makeNode({ properties: { title: 'B' } })
     expect(changeAffectsCount(makeEvent(before, after))).toBe(false)
+  })
+})
+
+describe('selectInUseSchemaOptions', () => {
+  const option = (iri: string) => ({ iri, label: iri.split('/').pop() ?? iri })
+  const TODO = 'xnet://demos.xnet.fyi/DemoTodo@1.0.0'
+  const ROOM = 'xnet://demos.xnet.fyi/DemoRoom@1.0.0'
+  // Registered as import side effects (plugins/labs/conformance) — never used.
+  const PLUGIN = 'xnet://xnet.fyi/Plugin@1.0.0'
+  const SCRIPT = 'xnet://xnet.fyi/Script@1.0.0'
+  const candidates = [option(TODO), option(ROOM), option(PLUGIN), option(SCRIPT)]
+
+  it('drops registry entries with no rows (import side-effect schemas)', () => {
+    const counts = new Map([
+      [TODO, 3],
+      [ROOM, 1],
+      [PLUGIN, 0],
+      [SCRIPT, 0]
+    ])
+    const result = selectInUseSchemaOptions(candidates, counts, new Set(), null)
+    expect(result.map((o) => o.iri)).toEqual([TODO, ROOM])
+  })
+
+  it('keeps a schema observed in the current results even before its count lands', () => {
+    const result = selectInUseSchemaOptions(candidates, new Map(), new Set([TODO]), null)
+    expect(result.map((o) => o.iri)).toEqual([TODO])
+  })
+
+  it('keeps the current selection even when its last row was just deleted', () => {
+    const counts = new Map([
+      [TODO, 0],
+      [ROOM, 2],
+      [PLUGIN, 0],
+      [SCRIPT, 0]
+    ])
+    const result = selectInUseSchemaOptions(candidates, counts, new Set(), TODO)
+    expect(result.map((o) => o.iri)).toEqual([TODO, ROOM])
+  })
+
+  it('offers nothing from an empty store with no selection', () => {
+    const counts = new Map([
+      [PLUGIN, 0],
+      [SCRIPT, 0]
+    ])
+    expect(selectInUseSchemaOptions(candidates, counts, new Set(), null)).toEqual([])
   })
 })

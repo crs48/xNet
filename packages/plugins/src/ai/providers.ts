@@ -245,6 +245,25 @@ const createCapabilities = (overrides: Partial<AIModelCapabilities> = {}): AIMod
 
 const normalizeBaseUrl = (baseUrl: string): string => baseUrl.replace(/\/+$/, '')
 
+/**
+ * App-attribution headers OpenRouter reads to credit traffic to xNet on its
+ * public rankings/analytics (exploration 0392). `HTTP-Referer` is the app
+ * identity; `X-Title` its display name. Sent only to OpenRouter.
+ */
+export const OPENROUTER_ATTRIBUTION_HEADERS: Readonly<Record<string, string>> = Object.freeze({
+  'HTTP-Referer': 'https://xnet.fyi',
+  'X-Title': 'xNet'
+})
+
+/** True when the base URL targets OpenRouter (attribution headers apply). */
+export function isOpenRouterBaseUrl(baseUrl: string): boolean {
+  try {
+    return new URL(baseUrl).hostname.endsWith('openrouter.ai')
+  } catch {
+    return baseUrl.includes('openrouter.ai')
+  }
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -634,6 +653,9 @@ export class OpenAICompatibleProvider implements AIProvider {
   private createHeaders(): Record<string, string> {
     return {
       'content-type': 'application/json',
+      // OpenRouter reads these for app attribution → public rankings/analytics
+      // (exploration 0392). Only sent to OpenRouter; user headers still win.
+      ...(isOpenRouterBaseUrl(this.baseUrl) ? OPENROUTER_ATTRIBUTION_HEADERS : {}),
       ...this.defaultHeaders,
       ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {})
     }
@@ -1030,7 +1052,7 @@ const createOpenAICompatiblePresetProvider = (
   })
 }
 
-// ─── Managed (XNet Cloud metered AI) ─────────────────────────────────────────
+// ─── Managed (xNet Cloud metered AI) ─────────────────────────────────────────
 
 /** The live budget snapshot a managed call reports back (drives the panel gauge). */
 export interface ManagedBudgetSnapshot {
@@ -1077,7 +1099,7 @@ interface ManagedChatResponse {
 }
 
 /**
- * XNet Cloud **managed** AI provider (exploration 0208).
+ * xNet Cloud **managed** AI provider (exploration 0208).
  *
  * Posts to the hub's `/ai/chat`, which forwards to the metered control-plane
  * gateway (OpenRouter behind a per-tenant budgeted key). Unlike every other cloud
@@ -1091,7 +1113,7 @@ interface ManagedChatResponse {
  * No `stream` method, so the runtime uses the request/response path.
  */
 export class ManagedProvider implements AIProvider {
-  readonly name = 'XNet Cloud'
+  readonly name = 'xNet Cloud'
   private readonly baseUrl: string
   private readonly model?: string
   private readonly fetchImpl: typeof fetch

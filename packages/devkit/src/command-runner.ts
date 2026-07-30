@@ -97,6 +97,149 @@ export class NodeCommandRunner implements CommandRunner {
   }
 }
 
+// ─── Line-streaming runner (the streaming chat-agent seam, exploration 0391) ───
+
+export interface StreamRunOptions {
+  /** Working directory — required, same rationale as {@link RunOptions.cwd}. */
+  cwd: string
+  /** Extra env on top of the parent process env. */
+  env?: Record<string, string | undefined>
+  /**
+   * Kill the process after this many ms with NO output on stdout/stderr
+   * (0 = never). Idle-based rather than wall-clock: a long agent turn is fine
+   * as long as it keeps emitting events; a hung one is reaped.
+   */
+  idleTimeoutMs?: number
+}
+
+/**
+ * Streams a subprocess's stdout as complete lines, as they arrive. The
+ * streaming counterpart of {@link CommandRunner} for line-oriented protocols
+ * (Claude Code's `--output-format stream-json` emits NDJSON). Throws when the
+ * process exits non-zero or goes idle past `idleTimeoutMs`; killing the
+ * consumer (breaking out of the loop) kills the subprocess.
+ */
+export interface LineRunner {
+  stream(command: string, args: string[], options: StreamRunOptions): AsyncIterable<string>
+}
+
+/** Spawns a real subprocess and yields stdout lines live. Node-only. */
+export class NodeLineRunner implements LineRunner {
+  async *stream(command: string, args: string[], options: StreamRunOptions): AsyncIterable<string> {
+    const child = spawn(command, args, {
+      cwd: options.cwd,
+      env: { ...process.env, ...options.env },
+      shell: false,
+      stdio: ['ignore', 'pipe', 'pipe']
+    })
+
+    const pending: string[] = []
+    let stdoutBuffer = ''
+    let stderrTail = ''
+    let closed = false
+    let exitCode: number | null = null
+    let spawnError: Error | undefined
+    let idledOut = false
+    let wake: (() => void) | undefined
+    const notify = (): void => {
+      wake?.()
+      wake = undefined
+    }
+
+    let idleTimer: ReturnType<typeof setTimeout> | undefined
+    const bumpIdle = (): void => {
+      if (!options.idleTimeoutMs || options.idleTimeoutMs <= 0) return
+      if (idleTimer) clearTimeout(idleTimer)
+      idleTimer = setTimeout(() => {
+        idledOut = true
+        child.kill('SIGKILL')
+      }, options.idleTimeoutMs)
+    }
+    bumpIdle()
+
+    child.stdout?.on('data', (data: Buffer) => {
+      bumpIdle()
+      stdoutBuffer += data.toString()
+      const lines = stdoutBuffer.split('\n')
+      stdoutBuffer = lines.pop() ?? ''
+      for (const line of lines) if (line.length > 0) pending.push(line)
+      if (pending.length > 0) notify()
+    })
+    child.stderr?.on('data', (data: Buffer) => {
+      bumpIdle()
+      stderrTail = (stderrTail + data.toString()).slice(-4000)
+    })
+    child.on('error', (err) => {
+      spawnError = err
+      closed = true
+      notify()
+    })
+    child.on('close', (code) => {
+      if (idleTimer) clearTimeout(idleTimer)
+      if (stdoutBuffer.length > 0) pending.push(stdoutBuffer)
+      stdoutBuffer = ''
+      exitCode = code ?? -1
+      closed = true
+      notify()
+    })
+
+    try {
+      while (true) {
+        const line = pending.shift()
+        if (line !== undefined) {
+          yield line
+          continue
+        }
+        if (closed) break
+        await new Promise<void>((resolve) => {
+          wake = resolve
+        })
+      }
+      if (spawnError) throw new Error(`could not spawn "${command}": ${spawnError.message}`)
+      if (idledOut) {
+        throw new Error(
+          `agent "${command}" produced no output for ${options.idleTimeoutMs}ms and was killed`
+        )
+      }
+      if (exitCode !== 0) {
+        throw new Error(`agent "${command}" failed (code ${exitCode}): ${stderrTail}`.trim())
+      }
+    } finally {
+      if (idleTimer) clearTimeout(idleTimer)
+      if (!closed) child.kill('SIGKILL')
+    }
+  }
+}
+
+/** One scripted response for the fake line runner. */
+export interface FakeLineScript {
+  match: (command: string, args: string[]) => boolean
+  /** Lines to yield (or a function of the invocation). */
+  lines: string[] | ((command: string, args: string[]) => string[])
+  /** Throw this error after yielding the lines (simulates a failing CLI). */
+  error?: Error
+}
+
+/** Deterministic line runner for tests — records calls, replies from scripts. */
+export class FakeLineRunner implements LineRunner {
+  readonly calls: Array<{ command: string; args: string[]; cwd: string }> = []
+
+  constructor(private readonly scripts: FakeLineScript[] = []) {}
+
+  async *stream(command: string, args: string[], options: StreamRunOptions): AsyncIterable<string> {
+    this.calls.push({ command, args: [...args], cwd: options.cwd })
+    const script = this.scripts.find((s) => s.match(command, args))
+    if (!script) return
+    const lines = typeof script.lines === 'function' ? script.lines(command, args) : script.lines
+    for (const line of lines) {
+      yield line
+      // Yield to the microtask queue so consumers observe genuine async delivery.
+      await Promise.resolve()
+    }
+    if (script.error) throw script.error
+  }
+}
+
 /** One scripted response for the fake runner. */
 export interface FakeCommandScript {
   /** Return true to handle this invocation. */

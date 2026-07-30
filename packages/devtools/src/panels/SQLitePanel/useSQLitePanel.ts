@@ -323,3 +323,46 @@ export function useSQLitePanel(_eventBus: DevToolsEventBus) {
     clearLogs
   }
 }
+
+/**
+ * Blob-store totals for the panel (exploration 0385).
+ *
+ * Attachment bytes live in the storage adapter's `blobs` table, not the node
+ * tables, so they're invisible in the row counts above — and they're what
+ * actually grows when a workspace attaches media. Polls once on mount; the
+ * numbers move at human speed.
+ */
+export function useBlobStoreStats(
+  store: { getStorageAdapter?: () => unknown } | null | undefined
+): { blobCount: number; blobTotalSize: number } | null {
+  const [stats, setStats] = useState<{ blobCount: number; blobTotalSize: number } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const adapter = store?.getStorageAdapter?.() as
+      | { getStats?: () => Promise<{ blobCount?: number; blobTotalSize?: number }> }
+      | null
+      | undefined
+    if (!adapter || typeof adapter.getStats !== 'function') {
+      setStats(null)
+      return
+    }
+    void adapter
+      .getStats()
+      .then((next) => {
+        if (cancelled) return
+        setStats({
+          blobCount: next.blobCount ?? 0,
+          blobTotalSize: next.blobTotalSize ?? 0
+        })
+      })
+      .catch(() => {
+        if (!cancelled) setStats(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [store])
+
+  return stats
+}

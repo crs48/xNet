@@ -31,6 +31,7 @@ import {
   dateRange,
   email,
   file,
+  geo,
   multiSelect,
   number,
   person,
@@ -362,6 +363,8 @@ const buildPropertyBuilder = (definition: PropertyDefinition): PropertyBuilder |
         required,
         includeTime: toBoolean(config.includeTime)
       })
+    case 'geo':
+      return geo({ required })
     case 'select': {
       const options = normalizeSelectOptions(config.options)
       return select({

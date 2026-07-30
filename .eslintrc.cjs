@@ -61,6 +61,27 @@ module.exports = {
           }
         ]
       }
+    },
+    {
+      // Exploration 0406: the workbench is on its way to packages/workbench,
+      // shared by web and desktop. The desktop renderer has no router, so the
+      // shell reaches navigation only through the PlatformPort — a direct
+      // router import here is the fork restarting inside shared code.
+      files: ['apps/web/src/workbench/**/*.{ts,tsx}', 'packages/workbench/src/**/*.{ts,tsx}'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['@tanstack/react-router', '@tanstack/router-*'],
+                message:
+                  'The workbench must stay host-agnostic (0406): use the PlatformPort (./platform) instead of the router.'
+              }
+            ]
+          }
+        ]
+      }
     }
   ],
   ignorePatterns: ['dist', 'node_modules', '*.js', '*.cjs', '!.storybook', '!.storybook/**']

@@ -1,0 +1,819 @@
+/**
+ * XNetEditor — the BlockNote-based collaborative editor (exploration 0312).
+ *
+ * Replaces the TipTap RichTextEditor. The persistence path is unchanged:
+ * the host hands us the node's Y.Doc (via useNode) and we bind BlockNote's
+ * Yjs collaboration to the `content-v4` fragment. Toolbar, slash menu,
+ * side menu/drag handle, emoji picker and file panel are BlockNote
+ * built-ins; xNet specifics (mentions, hashtags, wikilinks, embeds,
+ * callouts, mermaid, math) are custom specs in ./specs.
+ */
+import { filterSuggestionItems, insertOrUpdateBlockForSlashMenu } from '@blocknote/core'
+import { CommentsExtension, type User } from '@blocknote/core/comments'
+import { BlockNoteView } from '@blocknote/mantine'
+import {
+  SuggestionMenuController,
+  getDefaultReactSlashMenuItems,
+  useCreateBlockNote,
+  useExtensionState,
+  type DefaultReactSuggestionItem
+} from '@blocknote/react'
+import type { MessageLinkPreview } from '@xnetjs/data'
+import type { Awareness } from 'y-protocols/awareness'
+import type * as Y from 'yjs'
+import * as React from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import '@blocknote/core/fonts/inter.css'
+import '@blocknote/mantine/style.css'
+import '../styles/editor.css'
+import { cn } from '../utils'
+import {
+  extractTagIds,
+  getPageTasksSnapshot,
+  type BlockLike,
+  type PageTaskSnapshot
+} from './doc-utils'
+import {
+  XNetEditorHostProvider,
+  type DatabaseViewType,
+  type TaskViewConfig,
+  type TaskViewEmbedType,
+  type XNetEditorHost
+} from './host-context'
+import {
+  XNetThreadStore,
+  XNetThreadStoreAuth,
+  type XNetCommentThread,
+  type XNetThreadStoreHost
+} from './comments/xnet-thread-store'
+import {
+  legacyFragmentToMarkdown,
+  markLegacyImportDone,
+  shouldImportLegacyContent
+} from './legacy-import'
+import { generateCursorColor, truncateDidLabel } from './presence'
+import {
+  EDITOR_DOCUMENT_FRAGMENT_FIELD,
+  LEGACY_DOCUMENT_FRAGMENT_FIELD,
+  createXNetSchema,
+  type XNetEditorInstance
+} from './schema'
+import {
+  filterHashtagSuggestions,
+  CREATE_HASHTAG_ID,
+  type HashtagSuggestion
+} from './specs/hashtag'
+import {
+  filterMentionSuggestions,
+  getMentionDisplayLabel,
+  type TaskMentionSuggestion
+} from './specs/mention'
+import {
+  matchWikilinkTargets,
+  parseWikilinkQuery,
+  CREATE_WIKILINK_ID,
+  type WikilinkTarget
+} from './specs/wikilink'
+
+export interface XNetEditorProps {
+  /** The node's Y.Doc (persistence + sync handled by useNode). */
+  ydoc: Y.Doc
+  /** Y.XmlFragment field for the v4 document (default 'content-v4'). */
+  field?: string
+  /** Legacy v3 fragment lazily imported when the v4 field is empty. */
+  legacyField?: string
+  placeholder?: string
+  className?: string
+  editorLabel?: string
+  readOnly?: boolean
+  /** Yjs Awareness for cursor presence. */
+  awareness?: Awareness
+  /** Local user's DID (cursor label/color). */
+  did?: string
+  /** Display name for the collaboration cursor (0298 profile label). */
+  userLabel?: string
+  onNavigate?: (href: string) => void
+  /** Image upload → stored src URL (CID-backed). */
+  onImageUpload?: (
+    file: File
+  ) => Promise<{ src: string; width?: number; height?: number; cid?: string }>
+  /** File upload → stored file metadata. */
+  onFileUpload?: (
+    file: File
+  ) => Promise<{ cid: string; name: string; mimeType: string; size: number }>
+  /** Resolve stored file metadata to a downloadable URL. */
+  onFileDownload?: (attrs: {
+    cid: string
+    name: string
+    mimeType: string
+    size: number
+  }) => Promise<string>
+  /** Link preview resolver (0295), pasting peer only. */
+  resolveLinkPreview?: (url: string) => Promise<MessageLinkPreview | null>
+  renderDatabaseView?: (props: {
+    databaseId: string
+    viewType: DatabaseViewType
+    viewConfig: Record<string, unknown>
+    /** Persist an "Open with…" view switch onto the block (0346). */
+    onChangeViewType?: (viewType: DatabaseViewType) => void
+  }) => React.ReactNode
+  renderTaskView?: (props: {
+    viewType: TaskViewEmbedType
+    viewConfig: TaskViewConfig
+    currentPageId: string | null
+  }) => React.ReactNode
+  /** Live summary transclusion for page embeds (0346). */
+  renderPageEmbed?: (props: { nodeId: string; title: string }) => React.ReactNode
+  taskViewPageId?: string | null
+  onSelectDatabase?: () => Promise<string | null>
+  /** Database + registry-view picker for the `/view of…` command (0346). */
+  onSelectDatabaseView?: () => Promise<{ databaseId: string; viewType: DatabaseViewType } | null>
+  resolveDatabaseMeta?: (databaseId: string) => Promise<{ title: string; icon?: string } | null>
+  /** People offered by the `@` picker. */
+  mentionSuggestions?: TaskMentionSuggestion[]
+  /** Workspace tags offered by the `#` picker (0169). */
+  hashtagSuggestions?: HashtagSuggestion[]
+  onCreateHashtag?: (name: string) => Promise<HashtagSuggestion | null>
+  normalizeHashtagName?: (raw: string) => string
+  /** Linkable nodes offered by the `[[` typeahead (0170). */
+  linkTargets?: WikilinkTarget[]
+  onCreateLinkTarget?: (title: string) => Promise<WikilinkTarget | null>
+  /** Structured tags write-through (0169). */
+  onTagsChange?: (tagIds: string[]) => void
+  /** Page-backed checklist snapshot (0103/0161, block-id keyed). */
+  onPageTasksChange?: (tasks: PageTaskSnapshot[]) => void
+  /** The editor instance, once created. */
+  onEditorReady?: (editor: XNetEditorInstance) => void
+  /** Backspace in an empty first block (return focus to the title). */
+  onBackspaceAtStart?: () => boolean | void
+  /** Force light/dark; defaults to detecting a `.dark` ancestor. */
+  theme?: 'light' | 'dark'
+  /**
+   * Inline comments (0321): the 0276 node-backed thread CRUD plus the
+   * live thread list. When provided, BlockNote's threaded-comments UI is
+   * enabled — anchors are marks in the document, content stays in the
+   * LWW comment nodes. Must be present (or absent) from first render.
+   */
+  comments?: XNetEditorCommentsHost
+}
+
+export interface XNetEditorCommentsHost extends XNetThreadStoreHost {
+  /** Live thread list from the host's reactive comment query. */
+  threads: readonly XNetCommentThread[]
+  /** Resolve author DIDs to display users (0298 profiles). */
+  resolveUsers: (userIds: string[]) => Promise<User[]>
+  /**
+   * The thread the caret currently sits inside, or null. BlockNote's own
+   * floating thread popover is disabled (`comments={false}`), so the host
+   * renders CommentIsland from this instead — otherwise two comment UIs
+   * would appear for the same selection (0375).
+   */
+  onSelectedThreadChange?: (threadId: string | null) => void
+  /**
+   * True while the toolbar's comment action has staged a new thread but the
+   * user has not written it yet. Drives CommentIsland's `composing` mode in
+   * place of BlockNote's FloatingComposer.
+   */
+  onPendingCommentChange?: (pending: boolean) => void
+}
+
+/**
+ * Bridges BlockNote's comment extension state out to the host.
+ *
+ * BlockNote ships two floating comment surfaces — FloatingComposer (staging a
+ * new thread) and FloatingThread (caret inside an existing mark) — both gated
+ * behind `BlockNoteView`'s `comments` prop. We turn that prop off so the app
+ * shows exactly one comment UI (CommentIsland), and re-publish the state those
+ * controllers consumed so the host can drive the island from the same signals.
+ *
+ * Must render inside `<BlockNoteView>`: `useExtensionState` needs editor
+ * context. Renders nothing.
+ */
+function CommentStateBridge({
+  onSelectedThreadChange,
+  onPendingCommentChange
+}: {
+  onSelectedThreadChange?: (threadId: string | null) => void
+  onPendingCommentChange?: (pending: boolean) => void
+}): null {
+  const selectedThreadId = useExtensionState(CommentsExtension, {
+    selector: (state) => state.selectedThreadId ?? null
+  })
+  const pendingComment = useExtensionState(CommentsExtension, {
+    selector: (state) => Boolean(state.pendingComment)
+  })
+
+  useEffect(() => {
+    onSelectedThreadChange?.(selectedThreadId ?? null)
+  }, [selectedThreadId, onSelectedThreadChange])
+
+  useEffect(() => {
+    onPendingCommentChange?.(pendingComment)
+  }, [pendingComment, onPendingCommentChange])
+
+  return null
+}
+
+function defaultNormalizeHashtagName(raw: string): string {
+  return raw.trim().toLowerCase()
+}
+
+function useDetectedTheme(forced?: 'light' | 'dark'): {
+  theme: 'light' | 'dark'
+  containerRef: React.MutableRefObject<HTMLDivElement | null>
+} {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [detected, setDetected] = useState<'light' | 'dark'>('light')
+
+  useEffect(() => {
+    if (forced) return
+    const el = containerRef.current
+    if (!el) return
+    const compute = () => setDetected(el.closest('.dark') ? 'dark' : 'light')
+    compute()
+    const observer = new MutationObserver(compute)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+      subtree: true
+    })
+    return () => observer.disconnect()
+  }, [forced])
+
+  return { theme: forced ?? detected, containerRef }
+}
+
+export function XNetEditor({
+  ydoc,
+  field = EDITOR_DOCUMENT_FRAGMENT_FIELD,
+  legacyField = LEGACY_DOCUMENT_FRAGMENT_FIELD,
+  placeholder = 'Start writing...',
+  className,
+  editorLabel = 'Rich text editor',
+  readOnly = false,
+  awareness,
+  did,
+  userLabel,
+  onNavigate,
+  onImageUpload,
+  onFileUpload,
+  onFileDownload,
+  resolveLinkPreview,
+  renderDatabaseView,
+  renderTaskView,
+  renderPageEmbed,
+  taskViewPageId = null,
+  onSelectDatabase,
+  onSelectDatabaseView,
+  resolveDatabaseMeta,
+  mentionSuggestions = [],
+  hashtagSuggestions = [],
+  onCreateHashtag,
+  normalizeHashtagName = defaultNormalizeHashtagName,
+  linkTargets = [],
+  onCreateLinkTarget,
+  onTagsChange,
+  onPageTasksChange,
+  onEditorReady,
+  onBackspaceAtStart,
+  theme: forcedTheme,
+  comments
+}: XNetEditorProps): JSX.Element {
+  const { theme, containerRef } = useDetectedTheme(forcedTheme)
+
+  // Latest-value refs so suggestion getters and host callbacks never go
+  // stale — and, critically, so the editor's creation deps stay STABLE.
+  // Hosts pass fresh callback identities on every render; if those were
+  // useCreateBlockNote deps the editor would be recreated per render,
+  // dropping focus and typed input (0312 regression caught by editor-ux).
+  const mentionRef = useRef(mentionSuggestions)
+  const hashtagRef = useRef(hashtagSuggestions)
+  const linkTargetsRef = useRef(linkTargets)
+  const onImageUploadRef = useRef(onImageUpload)
+  const onFileUploadRef = useRef(onFileUpload)
+  const onFileDownloadRef = useRef(onFileDownload)
+  const resolveLinkPreviewRef = useRef(resolveLinkPreview)
+  const commentsRef = useRef(comments)
+  const tagsSignatureRef = useRef('')
+  const pageTaskSignatureRef = useRef('')
+  useEffect(() => {
+    mentionRef.current = mentionSuggestions
+    hashtagRef.current = hashtagSuggestions
+    linkTargetsRef.current = linkTargets
+    onImageUploadRef.current = onImageUpload
+    onFileUploadRef.current = onFileUpload
+    onFileDownloadRef.current = onFileDownload
+    resolveLinkPreviewRef.current = resolveLinkPreview
+    commentsRef.current = comments
+  })
+
+  // Inline comments (0321): one store per editor lifetime, reading the
+  // 0276 CRUD through the ref so host callback identity churn never
+  // recreates the editor. Presence of `comments` is fixed at mount.
+  const commentsEnabledRef = useRef(Boolean(comments))
+  const threadStore = useMemo(() => {
+    if (!commentsEnabledRef.current) return null
+    const hostAdapter: XNetThreadStoreHost = {
+      addComment: (options) => {
+        const host = commentsRef.current
+        return host ? host.addComment(options) : Promise.resolve(null)
+      },
+      replyTo: (threadId, content) =>
+        commentsRef.current?.replyTo(threadId, content) ?? Promise.resolve(undefined),
+      editComment: (commentId, content) =>
+        commentsRef.current?.editComment(commentId, content) ?? Promise.resolve(undefined),
+      deleteComment: (commentId) =>
+        commentsRef.current?.deleteComment(commentId) ?? Promise.resolve(undefined),
+      resolveThread: (threadId) =>
+        commentsRef.current?.resolveThread(threadId) ?? Promise.resolve(undefined),
+      reopenThread: (threadId) =>
+        commentsRef.current?.reopenThread(threadId) ?? Promise.resolve(undefined)
+    }
+    return new XNetThreadStore(
+      hostAdapter,
+      did ?? 'anonymous',
+      new XNetThreadStoreAuth(did ?? 'anonymous', 'editor')
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Feed the live 0276 thread list into the store (BlockNote subscribes).
+  useEffect(() => {
+    if (threadStore && comments) threadStore.setThreads(comments.threads)
+  }, [threadStore, comments?.threads])
+
+  // Lazy legacy import (0312): convert the old TipTap fragment to markdown
+  // once, before the editor binds, so initial render shows the content.
+  const legacyMarkdown = useMemo(() => {
+    if (!shouldImportLegacyContent(ydoc, field, legacyField)) return null
+    return legacyFragmentToMarkdown(ydoc.getXmlFragment(legacyField))
+  }, [ydoc, field, legacyField])
+
+  const fragment = useMemo(() => ydoc.getXmlFragment(field), [ydoc, field])
+
+  const uploadFile = useCallback(async (file: File): Promise<string | Record<string, unknown>> => {
+    const imageUpload = onImageUploadRef.current
+    const fileUpload = onFileUploadRef.current
+    if (file.type.startsWith('image/') && imageUpload) {
+      const result = await imageUpload(file)
+      return result.src
+    }
+    if (fileUpload) {
+      const meta = await fileUpload(file)
+      return {
+        props: {
+          url: `xnet-blob://${meta.cid}?name=${encodeURIComponent(meta.name)}&type=${encodeURIComponent(meta.mimeType)}&size=${meta.size}`,
+          name: meta.name
+        }
+      }
+    }
+    throw new Error('File uploads are not available on this surface')
+  }, [])
+
+  const resolveFileUrl = useCallback(async (url: string): Promise<string> => {
+    const fileDownload = onFileDownloadRef.current
+    if (!url.startsWith('xnet-blob://') || !fileDownload) return url
+    const parsed = new URL(url.replace('xnet-blob://', 'https://cid.invalid/'))
+    const cid = parsed.hostname === 'cid.invalid' ? parsed.pathname.slice(1) : parsed.hostname
+    return fileDownload({
+      cid: cid || url.slice('xnet-blob://'.length).split('?')[0],
+      name: parsed.searchParams.get('name') ?? 'file',
+      mimeType: parsed.searchParams.get('type') ?? 'application/octet-stream',
+      size: Number(parsed.searchParams.get('size') ?? 0)
+    })
+  }, [])
+
+  const schema = useMemo(() => createXNetSchema(), [])
+
+  const editor = useCreateBlockNote(
+    {
+      schema,
+      collaboration: {
+        fragment,
+        user: {
+          name: userLabel || (did ? truncateDidLabel(did) : 'Anonymous'),
+          color: generateCursorColor(did ?? 'anonymous')
+        },
+        ...(awareness ? { provider: { awareness } } : {}),
+        showCursorLabels: 'activity'
+      },
+      uploadFile,
+      resolveFileUrl,
+      dictionary: undefined,
+      placeholders: { emptyDocument: placeholder, default: placeholder },
+      tables: { splitCells: true, headers: true },
+      // Inline comments (0321): anchor marks in the doc, thread content in
+      // the 0276 nodes via XNetThreadStore.
+      ...(threadStore
+        ? {
+            extensions: [
+              CommentsExtension({
+                threadStore,
+                resolveUsers: (userIds: string[]) =>
+                  commentsRef.current?.resolveUsers(userIds) ?? Promise.resolve([])
+              })
+            ]
+          }
+        : {}),
+      // Sender-side paste interception (0295): a lone pasted URL becomes a
+      // media embed (known provider) or a rich-link card (preview resolved
+      // once, stored on the block).
+      pasteHandler: ({ event, editor: pasteEditor, defaultPasteHandler }) => {
+        const text = event.clipboardData?.getData('text/plain')?.trim()
+        const html = event.clipboardData?.getData('text/html')
+        if (!text || html || /\s/.test(text) || !/^https?:\/\//i.test(text)) {
+          return defaultPasteHandler()
+        }
+        void import('@xnetjs/data').then(({ parseEmbedUrl }) => {
+          const cursorBlock = pasteEditor.getTextCursorPosition().block
+          if (parseEmbedUrl(text)) {
+            pasteEditor.insertBlocks(
+              [{ type: 'embed', props: { url: text } } as never],
+              cursorBlock,
+              'after'
+            )
+            return
+          }
+          const linkPreviewResolver = resolveLinkPreviewRef.current
+          if (linkPreviewResolver) {
+            const inserted = pasteEditor.insertBlocks(
+              [{ type: 'richLink', props: { url: text, preview: '' } } as never],
+              cursorBlock,
+              'after'
+            )
+            void linkPreviewResolver(text).then((preview) => {
+              if (!preview) return
+              const block = inserted[0]
+              if (!block) return
+              pasteEditor.updateBlock(block, {
+                props: { preview: JSON.stringify(preview) }
+              } as never)
+            })
+            return
+          }
+          // No preview resolver: fall back to a plain link paragraph.
+          pasteEditor.insertBlocks(
+            [
+              {
+                type: 'paragraph',
+                content: [{ type: 'link', href: text, content: text }]
+              } as never
+            ],
+            cursorBlock,
+            'after'
+          )
+        })
+        return true
+      }
+    },
+    // ONLY identity-stable values: a dep that changes per render recreates
+    // the whole editor (focus loss, dropped input). Host callbacks flow
+    // through refs above; threadStore is created once per editor lifetime.
+    [schema, fragment, awareness, threadStore]
+  )
+
+  // One-time legacy import, after the editor exists (parse needs the schema).
+  useEffect(() => {
+    if (!legacyMarkdown || readOnly) return
+    if (!shouldImportLegacyContent(ydoc, field, legacyField)) return
+    void (async () => {
+      try {
+        const blocks = await editor.tryParseMarkdownToBlocks(legacyMarkdown)
+        if (blocks.length > 0) {
+          editor.replaceBlocks(editor.document, blocks)
+        }
+      } finally {
+        markLegacyImportDone(ydoc)
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor])
+
+  useEffect(() => {
+    onEditorReady?.(editor as unknown as XNetEditorInstance)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor])
+
+  useEffect(() => {
+    editor.isEditable = !readOnly
+  }, [editor, readOnly])
+
+  const host = useMemo<XNetEditorHost>(
+    () => ({
+      onNavigate,
+      onFileDownload,
+      renderDatabaseView,
+      renderTaskView,
+      renderPageEmbed,
+      taskViewPageId,
+      onSelectDatabase,
+      onSelectDatabaseView,
+      resolveDatabaseMeta,
+      readOnly
+    }),
+    [
+      onNavigate,
+      onFileDownload,
+      renderDatabaseView,
+      renderTaskView,
+      renderPageEmbed,
+      taskViewPageId,
+      onSelectDatabase,
+      onSelectDatabaseView,
+      resolveDatabaseMeta,
+      readOnly
+    ]
+  )
+
+  const handleChange = useCallback(() => {
+    const blocks = editor.document as unknown as BlockLike[]
+    if (onTagsChange) {
+      const tagIds = extractTagIds(blocks)
+      const signature = tagIds.join(' ')
+      if (signature !== tagsSignatureRef.current) {
+        tagsSignatureRef.current = signature
+        onTagsChange(tagIds)
+      }
+    }
+    if (onPageTasksChange) {
+      const tasks = getPageTasksSnapshot(blocks, taskViewPageId ?? '')
+      const signature = JSON.stringify(tasks)
+      if (signature !== pageTaskSignatureRef.current) {
+        pageTaskSignatureRef.current = signature
+        onPageTasksChange(tasks)
+      }
+    }
+  }, [editor, onTagsChange, onPageTasksChange, taskViewPageId])
+
+  // --- Suggestion menus ---
+
+  const getSlashItems = useCallback(
+    async (query: string): Promise<DefaultReactSuggestionItem[]> => {
+      const items: DefaultReactSuggestionItem[] = [
+        ...getDefaultReactSlashMenuItems(editor),
+        {
+          title: 'Callout',
+          subtext: 'Highlighted note (info, tip, warning…)',
+          aliases: ['callout', 'info', 'warning', 'tip', 'note'],
+          group: 'Basic blocks',
+          onItemClick: () => {
+            insertOrUpdateBlockForSlashMenu(editor, { type: 'callout' } as never)
+          }
+        },
+        {
+          title: 'Mermaid diagram',
+          subtext: 'Flowcharts, sequence diagrams, …',
+          aliases: ['mermaid', 'diagram', 'flowchart'],
+          group: 'Advanced',
+          onItemClick: () => {
+            insertOrUpdateBlockForSlashMenu(editor, { type: 'mermaid' } as never)
+          }
+        },
+        {
+          title: 'Inline math',
+          subtext: 'KaTeX expression',
+          aliases: ['math', 'katex', 'latex', 'equation'],
+          group: 'Advanced',
+          onItemClick: () => {
+            const latex = window.prompt('LaTeX expression')
+            if (!latex) return
+            editor.insertInlineContent([{ type: 'inlineMath', props: { latex } } as never, ' '])
+          }
+        },
+        {
+          title: 'Media embed',
+          subtext: 'YouTube, Spotify, Vimeo… from a URL',
+          aliases: ['embed', 'youtube', 'video', 'spotify'],
+          group: 'Media',
+          onItemClick: () => {
+            const url = window.prompt('Paste a media URL')
+            if (!url) return
+            insertOrUpdateBlockForSlashMenu(editor, {
+              type: 'embed',
+              props: { url }
+            } as never)
+          }
+        },
+        {
+          title: 'Task view',
+          subtext: 'Embedded checklist of this page’s tasks',
+          aliases: ['tasks', 'taskview', 'todo'],
+          group: 'Advanced',
+          onItemClick: () => {
+            insertOrUpdateBlockForSlashMenu(editor, {
+              type: 'taskViewEmbed',
+              props: { viewType: 'list', config: JSON.stringify({ scope: 'page' }) }
+            } as never)
+          }
+        }
+      ]
+      if (onSelectDatabaseView) {
+        // `/view of…` (0346): the host's picker chooses a database AND a
+        // view type enumerated from its view registry, so plugin views
+        // are insertable without an editor release.
+        items.push({
+          title: 'View of…',
+          subtext: 'Live view of a workspace database (table, board, map, …)',
+          aliases: ['view', 'database', 'table', 'board', 'map', 'calendar', 'gallery'],
+          group: 'Advanced',
+          onItemClick: () => {
+            void onSelectDatabaseView().then((choice) => {
+              if (!choice) return
+              insertOrUpdateBlockForSlashMenu(editor, {
+                type: 'databaseEmbed',
+                props: {
+                  databaseId: choice.databaseId,
+                  viewType: choice.viewType,
+                  viewConfig: ''
+                }
+              } as never)
+            })
+          }
+        })
+      } else if (onSelectDatabase) {
+        items.push({
+          title: 'Database view',
+          subtext: 'Inline table of a workspace database',
+          aliases: ['database', 'table', 'board'],
+          group: 'Advanced',
+          onItemClick: () => {
+            void onSelectDatabase().then((databaseId) => {
+              if (!databaseId) return
+              insertOrUpdateBlockForSlashMenu(editor, {
+                type: 'databaseEmbed',
+                props: { databaseId, viewType: 'table', viewConfig: '' }
+              } as never)
+            })
+          }
+        })
+      }
+      // The menu renders one header per contiguous group run (keyed by group
+      // name), so items appended after the defaults must be regrouped next
+      // to their group peers or React sees duplicate keys.
+      const byGroup = new Map<string | undefined, DefaultReactSuggestionItem[]>()
+      for (const item of items) {
+        const bucket = byGroup.get(item.group)
+        if (bucket) bucket.push(item)
+        else byGroup.set(item.group, [item])
+      }
+      return filterSuggestionItems([...byGroup.values()].flat(), query)
+    },
+    [editor, onSelectDatabase, onSelectDatabaseView]
+  )
+
+  const getMentionItems = useCallback(
+    async (query: string): Promise<DefaultReactSuggestionItem[]> =>
+      filterMentionSuggestions(mentionRef.current, query).map((person) => ({
+        title: getMentionDisplayLabel(person),
+        subtext: person.subtitle ?? person.handle,
+        onItemClick: () => {
+          editor.insertInlineContent([
+            {
+              type: 'mention',
+              props: {
+                id: person.id,
+                label: getMentionDisplayLabel(person),
+                subtitle: person.subtitle ?? '',
+                color: person.color ?? ''
+              }
+            } as never,
+            ' '
+          ])
+        }
+      })),
+    [editor]
+  )
+
+  const getHashtagItems = useCallback(
+    async (query: string): Promise<DefaultReactSuggestionItem[]> => {
+      const normalized = normalizeHashtagName(query)
+      const matches = filterHashtagSuggestions(hashtagRef.current, normalized)
+      const items: DefaultReactSuggestionItem[] = matches.map((tag) => ({
+        title: `#${tag.name}`,
+        onItemClick: () => {
+          editor.insertInlineContent([
+            { type: 'hashtag', props: { id: tag.id, name: tag.name } } as never,
+            ' '
+          ])
+        }
+      }))
+      const exact = matches.some((tag) => tag.name === normalized)
+      if (onCreateHashtag && normalized && !exact) {
+        items.push({
+          title: `Create #${normalized}`,
+          badge: CREATE_HASHTAG_ID,
+          onItemClick: () => {
+            void onCreateHashtag(normalized).then((tag) => {
+              if (!tag) return
+              editor.insertInlineContent([
+                { type: 'hashtag', props: { id: tag.id, name: tag.name } } as never,
+                ' '
+              ])
+            })
+          }
+        })
+      }
+      return items
+    },
+    [editor, normalizeHashtagName, onCreateHashtag]
+  )
+
+  const getWikilinkItems = useCallback(
+    async (query: string): Promise<DefaultReactSuggestionItem[]> => {
+      const { search, alias } = parseWikilinkQuery(query)
+      const insert = (target: WikilinkTarget) => {
+        editor.insertInlineContent([
+          {
+            type: 'wikilink',
+            props: { href: target.href, title: alias ?? target.title }
+          } as never,
+          ' '
+        ])
+      }
+      const items: DefaultReactSuggestionItem[] = matchWikilinkTargets(
+        linkTargetsRef.current,
+        search
+      ).map((target) => ({
+        title: target.title,
+        subtext: target.kind,
+        onItemClick: () => insert(target)
+      }))
+      const exact = linkTargetsRef.current.some(
+        (t) => t.title.toLowerCase() === search.toLowerCase()
+      )
+      if (onCreateLinkTarget && search && !exact) {
+        items.push({
+          title: `Create page “${search}”`,
+          badge: CREATE_WIKILINK_ID,
+          onItemClick: () => {
+            void onCreateLinkTarget(search).then((target) => {
+              if (target) insert(target)
+            })
+          }
+        })
+      }
+      return items
+    },
+    [editor, onCreateLinkTarget]
+  )
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (
+        !onBackspaceAtStart ||
+        event.key !== 'Backspace' ||
+        event.shiftKey ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey
+      ) {
+        return
+      }
+      const blocks = editor.document
+      const first = blocks[0]
+      const cursor = editor.getTextCursorPosition()
+      const firstEmpty = Array.isArray(first?.content) && (first.content as unknown[]).length === 0
+      if (blocks.length === 1 && cursor.block.id === first?.id && firstEmpty) {
+        if (onBackspaceAtStart() === true) {
+          event.preventDefault()
+        }
+      }
+    },
+    [editor, onBackspaceAtStart]
+  )
+
+  return (
+    <XNetEditorHostProvider value={host}>
+      <div
+        ref={containerRef}
+        className={cn('xnet-editor h-full', className)}
+        onKeyDownCapture={handleKeyDown}
+      >
+        <BlockNoteView
+          editor={editor}
+          theme={theme}
+          editable={!readOnly}
+          onChange={handleChange}
+          slashMenu={false}
+          // 0375: BlockNote's own comment UI (FloatingComposer +
+          // FloatingThread) is stock Mantine chrome that does not match the
+          // shell. CommentIsland is the single comment surface; this prop is
+          // what stops the two from both rendering.
+          comments={false}
+          aria-label={editorLabel}
+        >
+          <SuggestionMenuController triggerCharacter="/" getItems={getSlashItems} />
+          <SuggestionMenuController triggerCharacter="@" getItems={getMentionItems} />
+          <SuggestionMenuController triggerCharacter="#" getItems={getHashtagItems} />
+          <SuggestionMenuController triggerCharacter="[[" getItems={getWikilinkItems} />
+          {comments ? (
+            <CommentStateBridge
+              onSelectedThreadChange={comments.onSelectedThreadChange}
+              onPendingCommentChange={comments.onPendingCommentChange}
+            />
+          ) : null}
+        </BlockNoteView>
+      </div>
+    </XNetEditorHostProvider>
+  )
+}

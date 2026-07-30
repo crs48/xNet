@@ -6,7 +6,6 @@ import type { AgentToolContribution } from './agent-tools'
 import type { AiJsonSchema, AiRiskLevel, AiScope } from './ai-surface/types'
 import type { MentionProviderContribution } from './mention-providers'
 import type { Disposable } from './types'
-import type { Extension } from '@tiptap/core'
 import type { ComponentType } from 'react'
 
 /**
@@ -43,6 +42,22 @@ export interface ViewContribution {
   component: ComponentType<ViewProps>
   /** Schema IRIs this view supports (empty = all) */
   supportedSchemas?: string[]
+}
+
+/**
+ * A frame source renderer (0346): how a node of some schema renders as
+ * a frame (document embeds, dashboard frame widgets, frame tabs). The
+ * capability rule mirrors slots: a plugin registers renderers only under
+ * its OWN id namespace and never replaces another provider's renderer —
+ * enforced by `PluginContext.registerFrameRenderer`.
+ */
+export interface FrameRendererContribution {
+  /** Renderer id — namespaced `${pluginId}:${name}` by the context. */
+  id: string
+  /** Schema IRIs this renderer can frame ('*' = any). */
+  supportedSchemas: string[] | '*'
+  /** Component receiving the host's NodeFrameProps contract. */
+  component: ComponentType<never>
 }
 
 export interface ViewProps {
@@ -85,36 +100,36 @@ export interface SlashCommandContribution {
 }
 
 export interface SlashCommandContext {
-  editor: unknown // TipTap editor instance
+  editor: unknown // BlockNote editor instance (0312)
   range: { from: number; to: number }
 }
 
 /**
- * Toolbar button contribution for the editor
+ * Editor contribution (re-typed for the BlockNote editor, 0312).
+ *
+ * Plugins contribute BlockNote specs — `createReactBlockSpec` /
+ * `createReactInlineContentSpec` / `createReactStyleSpec` results keyed by
+ * spec name — plus behavior-only slash menu items. Spec values are opaque
+ * here so this package needs no editor dependency.
+ *
+ * SCHEMA-SKEW WARNING (0205): block/inline/style specs define the
+ * PERSISTED document schema. Under Yjs collaboration every peer must run
+ * the identical schema; a spec only some peers have silently drops
+ * content. `editor-schema-safety.ts` flags specs that aren't statically
+ * bundled in @xnetjs/editor's schema.
  */
-export interface ToolbarContribution {
-  /** Icon name (Lucide) or React component */
-  icon: string | ComponentType
-  /** Tooltip/title text */
-  title: string
-  /** Toolbar section: format, insert, block, or custom */
-  group?: 'format' | 'insert' | 'block' | 'custom'
-  /** Check if button should appear active */
-  isActive?: (editor: unknown) => boolean
-  /** Button click handler */
-  action: (editor: unknown) => void
-  /** Keyboard shortcut display (e.g., 'Mod-Shift-H') */
-  shortcut?: string
-}
-
 export interface EditorContribution {
-  /** Unique extension ID */
+  /** Unique contribution ID */
   id: string
-  /** TipTap extension (Extension, Node, or Mark) */
-  extension: Extension
-  /** Optional toolbar button for this extension */
-  toolbar?: ToolbarContribution
-  /** Priority for extension ordering (lower = earlier, default: 100) */
+  /** BlockNote block specs, keyed by block type name (skew-sensitive) */
+  blockSpecs?: Record<string, unknown>
+  /** BlockNote inline content specs, keyed by type name (skew-sensitive) */
+  inlineContentSpecs?: Record<string, unknown>
+  /** BlockNote style specs, keyed by style name (skew-sensitive) */
+  styleSpecs?: Record<string, unknown>
+  /** Behavior-only slash menu items (skew-safe) */
+  slashMenuItems?: SlashCommandContribution[]
+  /** Priority for ordering (lower = earlier, default: 100) */
   priority?: number
 }
 
@@ -610,6 +625,7 @@ export class ContributionRegistry {
   readonly mentionProviders = new TypedRegistry<MentionProviderContribution>()
   readonly agentTools = new TypedRegistry<AgentToolContribution>()
   readonly slots = new TypedRegistry<SlotContribution>()
+  readonly frameRenderers = new TypedRegistry<FrameRendererContribution>()
 
   /** @deprecated Since 0280 — the dock registry is the slot registry. */
   get surfaceDock(): TypedRegistry<SlotContribution> {
@@ -641,5 +657,6 @@ export class ContributionRegistry {
     this.mentionProviders.clear()
     this.agentTools.clear()
     this.slots.clear()
+    this.frameRenderers.clear()
   }
 }

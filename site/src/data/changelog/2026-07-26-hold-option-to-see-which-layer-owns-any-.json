@@ -1,0 +1,18 @@
+{
+  "id": "2026-07-26-hold-option-to-see-which-layer-owns-any-",
+  "date": "July 26, 2026",
+  "title": "Hold Option to see which layer owns any part of the UI",
+  "summary": "Hold Option and hover to see whether a piece of the interface comes from a theme token, a panel, a plugin, or xNet's own source — and one sentence on what changing it would affect. Option-click to adjust a token or move a panel, with one Undo.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "devtools"
+  ],
+  "pr": 631,
+  "mergedAt": "2026-07-26T22:25:34Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

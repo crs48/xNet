@@ -347,8 +347,21 @@ interface FileRef {
   name: string // Original filename
   mimeType: string // MIME type
   size: number // File size in bytes
+  width?: number // Intrinsic width, images and video
+  height?: number // Intrinsic height, images and video
+  thumbCid?: string // Small preview, stored as its own blob
 }
 ```
+
+In a database, a `file` field renders each attachment as a chip — a thumbnail
+for images, an icon otherwise — and clicking one opens a full-screen viewer
+with paging and download. Set `multiple` to keep several files in one cell.
+
+Only the `FileRef` travels through the change log; the bytes are stored
+content-addressed and moved separately, uploaded to the hub in the background
+after attaching and fetched by peers on first view. An attachment whose bytes
+haven't reached this device yet reads "on another device" rather than
+appearing broken.
 
 ---
 

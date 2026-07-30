@@ -6,6 +6,31 @@
  */
 
 export { PageSchema, type Page } from './page'
+export { POST_SCHEMA_IRI, PostSchema, comparePostsForFeed, type Post } from './post'
+export {
+  COURSE_SCHEMA_IRI,
+  LESSON_SCHEMA_IRI,
+  LESSON_PROGRESS_SCHEMA_IRI,
+  CourseSchema,
+  LessonSchema,
+  LessonProgressSchema,
+  lessonProgressId,
+  courseCompletion,
+  type Course,
+  type Lesson,
+  type LessonProgress
+} from './course'
+export {
+  EVENT_SCHEMA_IRI,
+  RSVP_SCHEMA_IRI,
+  EventSchema,
+  RsvpSchema,
+  rsvpId,
+  upcomingEvents,
+  type Event,
+  type Rsvp
+} from './event'
+export { PublicationSchema, type Publication } from './publication'
 export {
   FOLDER_SCHEMA_IRI,
   FolderSchema,
@@ -30,7 +55,7 @@ export { DatabaseSchema, type Database } from './database'
 export { DatabaseRowSchema, type DatabaseRow } from './database-row'
 export { DatabaseFieldSchema, type DatabaseField } from './database-field'
 export { DatabaseSelectOptionSchema, type DatabaseSelectOption } from './database-select-option'
-export { DatabaseViewSchema, type DatabaseView } from './database-view'
+export { DatabaseViewSchema, type DatabaseView, type ViewGroupMeta } from './database-view'
 export {
   SchemaExtensionSchema,
   ExtensionFieldSchema,
@@ -217,7 +242,21 @@ export {
   type GeoFeatureCollection
 } from './map'
 export { CommentSchema, type Comment } from './comment'
+export {
+  CHECKPOINT_SCHEMA_IRI,
+  CheckpointSchema,
+  type Checkpoint,
+  type CheckpointFrontierEntry
+} from './checkpoint'
+export {
+  DRAFT_SCHEMA_IRI,
+  DraftSchema,
+  type Draft,
+  type DraftEntry,
+  type DraftProvenance
+} from './draft'
 export { ReactionSchema, type Reaction } from './reaction'
+export { DebugReportSchema, type DebugReport } from './debug-report'
 export { ProfileSchema, profileNodeId, didFromProfileNodeId, type Profile } from './profile'
 export { ChannelSchema, CHANNEL_KINDS, type Channel, type ChannelKind } from './channel'
 export { ChatMessageSchema, type ChatMessage } from './chat-message'
@@ -288,6 +327,15 @@ export {
   nextEpoch,
   type LedgerNodeIntent
 } from './account-ledger-ops'
+export {
+  evaluateLedgerWrite,
+  foldAccountRecord,
+  ledgerAccountId,
+  ledgerWriteKind,
+  type LedgerEnforcementState,
+  type LedgerWriteDecision,
+  type LedgerWriteKind
+} from './account-ledger-enforce'
 export { SavedViewSchema, type SavedView } from './saved-view'
 export { WorkspaceSchema, type Workspace, type WorkspaceTreeJson } from './workspace'
 export {
@@ -353,6 +401,7 @@ export {
   PolicyListSchema,
   PolicySubscriptionSchema,
   PublicInteractionPolicySchema,
+  publicInteractionPolicyId,
   QualitySignalSchema,
   ReviewTaskSchema,
   type AbuseReport,
@@ -414,6 +463,49 @@ export {
   type MemoryKind
 } from './memory'
 
+// Agent schema pack (exploration 0337)
+export {
+  AGENT_ACTION_SCHEMA_IRI,
+  AGENT_ACTION_STATUSES,
+  AGENT_APPROVAL_DECISIONS,
+  AGENT_APPROVAL_SCHEMA_IRI,
+  AGENT_APPROVAL_SURFACES,
+  AGENT_CHANNELS,
+  AGENT_NOTIFICATION_KINDS,
+  AGENT_NOTIFICATION_SCHEMA_IRI,
+  AGENT_NOTIFICATION_STATUSES,
+  AGENT_PASSPORT_SCHEMA_IRI,
+  AGENT_REVERSIBILITIES,
+  AGENT_RISKS,
+  AGENT_RUNTIMES,
+  AGENT_SESSION_SCHEMA_IRI,
+  AgentActionSchema,
+  AgentApprovalSchema,
+  AgentNotificationSchema,
+  AgentPassportSchema,
+  AgentSessionSchema,
+  agentActionId,
+  agentApprovalId,
+  agentNotificationId,
+  agentPassportId,
+  agentSessionId,
+  redactInstruction,
+  type AgentAction,
+  type AgentActionStatus,
+  type AgentApproval,
+  type AgentApprovalDecision,
+  type AgentApprovalSurface,
+  type AgentChannel,
+  type AgentNotification,
+  type AgentNotificationKind,
+  type AgentNotificationStatus,
+  type AgentPassport,
+  type AgentReversibility,
+  type AgentRisk,
+  type AgentRuntime,
+  type AgentSession
+} from './agent'
+
 // Comment anchor types
 export {
   type AnchorType,
@@ -472,6 +564,15 @@ export {
 export const builtInSchemas = {
   // Versioned IRIs (canonical)
   'xnet://xnet.fyi/Page@1.0.0': () => import('./page').then((m) => m.PageSchema),
+  'xnet://xnet.fyi/Post@1.0.0': () => import('./post').then((m) => m.PostSchema),
+  'xnet://xnet.fyi/Course@1.0.0': () => import('./course').then((m) => m.CourseSchema),
+  'xnet://xnet.fyi/Lesson@1.0.0': () => import('./course').then((m) => m.LessonSchema),
+  'xnet://xnet.fyi/LessonProgress@1.0.0': () =>
+    import('./course').then((m) => m.LessonProgressSchema),
+  'xnet://xnet.fyi/Event@1.0.0': () => import('./event').then((m) => m.EventSchema),
+  'xnet://xnet.fyi/Rsvp@1.0.0': () => import('./event').then((m) => m.RsvpSchema),
+  'xnet://xnet.fyi/Publication@1.0.0': () =>
+    import('./publication').then((m) => m.PublicationSchema),
   'xnet://xnet.fyi/Folder@1.0.0': () => import('./folder').then((m) => m.FolderSchema),
   'xnet://xnet.fyi/Tag@1.0.0': () => import('./tag').then((m) => m.TagSchema),
   'xnet://xnet.fyi/Database@2.0.0': () => import('./database').then((m) => m.DatabaseSchema),
@@ -530,7 +631,11 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Map@1.0.0': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
+  'xnet://xnet.fyi/Checkpoint@1.0.0': () => import('./checkpoint').then((m) => m.CheckpointSchema),
+  'xnet://xnet.fyi/Draft@1.0.0': () => import('./draft').then((m) => m.DraftSchema),
   'xnet://xnet.fyi/Reaction@1.0.0': () => import('./reaction').then((m) => m.ReactionSchema),
+  'xnet://xnet.fyi/DebugReport@1.0.0': () =>
+    import('./debug-report').then((m) => m.DebugReportSchema),
   'xnet://xnet.fyi/Profile@1.0.0': () => import('./profile').then((m) => m.ProfileSchema),
   'xnet://xnet.fyi/Channel@1.0.0': () => import('./channel').then((m) => m.ChannelSchema),
   'xnet://xnet.fyi/ChatMessage@1.0.0': () =>
@@ -593,9 +698,23 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/GameAsset@1.0.0': () => import('./game').then((m) => m.GameAssetSchema),
   // Memory schema pack (exploration 0211)
   'xnet://xnet.fyi/MemoryItem@1.0.0': () => import('./memory').then((m) => m.MemoryItemSchema),
+  // Agent schema pack (exploration 0337)
+  'xnet://xnet.fyi/AgentPassport@1.0.0': () => import('./agent').then((m) => m.AgentPassportSchema),
+  'xnet://xnet.fyi/AgentSession@1.0.0': () => import('./agent').then((m) => m.AgentSessionSchema),
+  'xnet://xnet.fyi/AgentAction@1.0.0': () => import('./agent').then((m) => m.AgentActionSchema),
+  'xnet://xnet.fyi/AgentApproval@1.0.0': () => import('./agent').then((m) => m.AgentApprovalSchema),
+  'xnet://xnet.fyi/AgentNotification@1.0.0': () =>
+    import('./agent').then((m) => m.AgentNotificationSchema),
 
   // Legacy unversioned IRIs (aliases for the current version)
   'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
+  'xnet://xnet.fyi/Post': () => import('./post').then((m) => m.PostSchema),
+  'xnet://xnet.fyi/Course': () => import('./course').then((m) => m.CourseSchema),
+  'xnet://xnet.fyi/Lesson': () => import('./course').then((m) => m.LessonSchema),
+  'xnet://xnet.fyi/LessonProgress': () => import('./course').then((m) => m.LessonProgressSchema),
+  'xnet://xnet.fyi/Event': () => import('./event').then((m) => m.EventSchema),
+  'xnet://xnet.fyi/Rsvp': () => import('./event').then((m) => m.RsvpSchema),
+  'xnet://xnet.fyi/Publication': () => import('./publication').then((m) => m.PublicationSchema),
   'xnet://xnet.fyi/Folder': () => import('./folder').then((m) => m.FolderSchema),
   'xnet://xnet.fyi/Tag': () => import('./tag').then((m) => m.TagSchema),
   'xnet://xnet.fyi/Database': () => import('./database').then((m) => m.DatabaseSchema),
@@ -646,6 +765,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Map': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Reaction': () => import('./reaction').then((m) => m.ReactionSchema),
+  'xnet://xnet.fyi/DebugReport': () => import('./debug-report').then((m) => m.DebugReportSchema),
   'xnet://xnet.fyi/Profile': () => import('./profile').then((m) => m.ProfileSchema),
   'xnet://xnet.fyi/Channel': () => import('./channel').then((m) => m.ChannelSchema),
   'xnet://xnet.fyi/ChatMessage': () => import('./chat-message').then((m) => m.ChatMessageSchema),
@@ -698,7 +818,14 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/GameEconomyEntry': () => import('./game').then((m) => m.GameEconomyEntrySchema),
   'xnet://xnet.fyi/GameAsset': () => import('./game').then((m) => m.GameAssetSchema),
   // Memory schema pack (exploration 0211)
-  'xnet://xnet.fyi/MemoryItem': () => import('./memory').then((m) => m.MemoryItemSchema)
+  'xnet://xnet.fyi/MemoryItem': () => import('./memory').then((m) => m.MemoryItemSchema),
+  // Agent schema pack (exploration 0337)
+  'xnet://xnet.fyi/AgentPassport': () => import('./agent').then((m) => m.AgentPassportSchema),
+  'xnet://xnet.fyi/AgentSession': () => import('./agent').then((m) => m.AgentSessionSchema),
+  'xnet://xnet.fyi/AgentAction': () => import('./agent').then((m) => m.AgentActionSchema),
+  'xnet://xnet.fyi/AgentApproval': () => import('./agent').then((m) => m.AgentApprovalSchema),
+  'xnet://xnet.fyi/AgentNotification': () =>
+    import('./agent').then((m) => m.AgentNotificationSchema)
 } as const
 
 /**

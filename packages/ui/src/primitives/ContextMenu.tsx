@@ -15,6 +15,7 @@ import { ContextMenu as BaseContextMenu } from '@base-ui/react/context-menu'
 import { Check, ChevronRight, Circle } from 'lucide-react'
 import * as React from 'react'
 import { cn } from '../utils'
+import { POPUP_LAYER } from './layers'
 
 // ─── Simple ContextMenu ─────────────────────────────────────────────
 
@@ -46,7 +47,7 @@ export function ContextMenu({ children, menu, className }: ContextMenuProps) {
     <BaseContextMenu.Root>
       <BaseContextMenu.Trigger className={className}>{children}</BaseContextMenu.Trigger>
       <BaseContextMenu.Portal>
-        <BaseContextMenu.Positioner className="outline-none">
+        <BaseContextMenu.Positioner className={`outline-none ${POPUP_LAYER}`}>
           <BaseContextMenu.Popup
             className={cn(
               'z-50 min-w-[10rem] overflow-hidden',
@@ -90,7 +91,7 @@ export const ContextMenuContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof BaseContextMenu.Popup>
 >(({ className, ...props }, ref) => (
   <BaseContextMenu.Portal>
-    <BaseContextMenu.Positioner className="outline-none">
+    <BaseContextMenu.Positioner className={`outline-none ${POPUP_LAYER}`}>
       <BaseContextMenu.Popup
         ref={ref}
         className={cn(
@@ -271,7 +272,7 @@ export const ContextMenuSubContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof BaseContextMenu.Popup>
 >(({ className, ...props }, ref) => (
   <BaseContextMenu.Portal>
-    <BaseContextMenu.Positioner className="outline-none">
+    <BaseContextMenu.Positioner className={`outline-none ${POPUP_LAYER}`}>
       <BaseContextMenu.Popup
         ref={ref}
         className={cn(

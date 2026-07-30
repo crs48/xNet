@@ -6,76 +6,30 @@
  * at any historical point.
  */
 
-import type { SchemaTimelineEntry, TimelineEntry } from './types'
+import type { SchemaTimelineEntry } from './types'
 import type {
-  NodeChange,
   NodeStorageAdapter,
-  NodeId,
   NodeState,
   NodeStore,
   TransactionOperation,
   SchemaIRI
 } from '@xnetjs/data'
-import { topologicalSort } from '@xnetjs/sync'
-import { createEmptyState, applyChangeToState } from './engine'
+import { ScopeTimeline } from './scope-timeline'
 import { deepEqual } from './utils'
 
 export class SchemaTimeline {
-  constructor(private storage: NodeStorageAdapter) {}
+  private scope: ScopeTimeline
+
+  constructor(private storage: NodeStorageAdapter) {
+    this.scope = new ScopeTimeline(storage)
+  }
 
   /** Get a merged timeline of all changes across all nodes of a schema */
   async getMergedTimeline(schemaIRI: SchemaIRI): Promise<SchemaTimelineEntry[]> {
-    // Get all nodes of this schema
+    // "All nodes of a schema" is just one scope membership (exploration 0329).
     const nodes = await this.storage.listNodes({ schemaId: schemaIRI, includeDeleted: true })
-
     if (nodes.length === 0) return []
-
-    // Get all changes for all these nodes
-    const allChanges: { change: NodeChange; nodeId: NodeId }[] = []
-    await Promise.all(
-      nodes.map(async (node) => {
-        const changes = await this.storage.getChanges(node.id)
-        for (const change of changes) {
-          allChanges.push({ change, nodeId: node.id })
-        }
-      })
-    )
-
-    if (allChanges.length === 0) return []
-
-    // Sort by Lamport time (global causal order), authorDID as tiebreak
-    allChanges.sort(
-      (a, b) =>
-        a.change.lamport - b.change.lamport ||
-        // UTF-16 code-unit order (not localeCompare) for deterministic convergence.
-        (a.change.authorDID < b.change.authorDID
-          ? -1
-          : a.change.authorDID > b.change.authorDID
-            ? 1
-            : 0)
-    )
-
-    // Convert to timeline entries
-    // Track per-node change count to infer create vs update
-    const nodeChangeCount = new Map<NodeId, number>()
-
-    return allChanges.map(({ change, nodeId }, index) => {
-      const count = nodeChangeCount.get(nodeId) ?? 0
-      nodeChangeCount.set(nodeId, count + 1)
-
-      return {
-        index,
-        change,
-        nodeId,
-        properties: Object.keys(change.payload.properties ?? {}),
-        operation: this.inferOperation(change, count),
-        author: change.authorDID,
-        wallTime: change.wallTime,
-        lamport: change.lamport,
-        batchId: change.batchId,
-        batchSize: change.batchSize
-      }
-    })
+    return this.scope.getMergedTimeline(nodes.map((node) => node.id))
   }
 
   /** Reconstruct all nodes of a schema at a specific timeline position */
@@ -83,43 +37,7 @@ export class SchemaTimeline {
     timeline: SchemaTimelineEntry[],
     targetIndex: number
   ): Promise<NodeState[]> {
-    if (timeline.length === 0 || targetIndex < 0 || targetIndex >= timeline.length) return []
-
-    // Group changes by nodeId, filtered to <= targetIndex
-    const changesByNode = new Map<NodeId, NodeChange[]>()
-    for (let i = 0; i <= targetIndex; i++) {
-      const entry = timeline[i]
-      if (!changesByNode.has(entry.nodeId)) {
-        changesByNode.set(entry.nodeId, [])
-      }
-      changesByNode.get(entry.nodeId)!.push(entry.change)
-    }
-
-    // Reconstruct each node
-    const results: NodeState[] = []
-    for (const [nodeId, changes] of changesByNode) {
-      const sorted = topologicalSort(changes)
-      let state = createEmptyState(nodeId, sorted[0])
-      for (const change of sorted) {
-        state = applyChangeToState(state, change)
-      }
-      // Skip deleted nodes
-      if (!state.deleted) {
-        results.push(state)
-      }
-    }
-
-    return results
-  }
-
-  private inferOperation(
-    change: NodeChange,
-    changeCountForNode: number
-  ): TimelineEntry['operation'] {
-    if (changeCountForNode === 0) return 'create'
-    if (change.payload.deleted === true) return 'delete'
-    if (change.payload.deleted === false) return 'restore'
-    return 'update'
+    return this.scope.materializeScopeAt(timeline, targetIndex)
   }
 }
 

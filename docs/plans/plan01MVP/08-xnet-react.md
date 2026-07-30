@@ -26,7 +26,7 @@ packages/react/
 ├── tsconfig.json
 ├── src/
 │   ├── index.ts              # Public exports
-│   ├── context.ts            # XNet context provider
+│   ├── context.ts            # xNet context provider
 │   ├── hooks/
 │   │   ├── useDocument.ts    # Document hook
 │   │   ├── useDocument.test.ts

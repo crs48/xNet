@@ -31,7 +31,17 @@
  */
 import { blake3 } from '@noble/hashes/blake3.js'
 
-/** Protocol version at which the grinding-resistant tiebreak key activates. */
+/**
+ * Protocol version at which the grinding-resistant tiebreak key activates.
+ *
+ * This is **not** the same constant as `CURRENT_PROTOCOL_VERSION` in
+ * `@xnetjs/sync` — it happens to share the value 4 today, but it records the
+ * version the tiebreak *activated at* and stays pinned there when the change
+ * format moves on. Do not collapse the two.
+ *
+ * Mirrored by hand in `rust/xnet-core/src/lib.rs`; drift between them is caught
+ * by `packages/sync/src/protocol-version-parity.test.ts`.
+ */
 export const LWW_TIEBREAK_KEY_VERSION = 4
 
 const US = '\x1f' // ASCII unit separator — delimits key fields, cannot collide

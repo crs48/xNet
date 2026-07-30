@@ -229,6 +229,16 @@ export interface NodeStorageAdapter {
   countNodes(options?: CountNodesOptions): Promise<number>
   queryNodes?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>
   /**
+   * Cross-schema full-text search over the `nodes_fts` FTS5 index
+   * (exploration 0391 — the AI retrieval path). Returns `null` when the
+   * backing store has no FTS support, so callers can fall back to a scan.
+   */
+  searchText?(
+    query: string,
+    limit: number,
+    options?: NodeTextSearchOptions
+  ): Promise<NodeTextSearchResult[] | null>
+  /**
    * Inject the read-authorization filter the adapter applies before persisting
    * a materialized view's id list (exploration 0226). `NodeStore` wires this to
    * its `filterReadableNodes` so a materialization is authorized exactly once,
@@ -277,6 +287,78 @@ export interface NodeStorageAdapter {
   // Document content operations (for nodes with CRDT document)
   getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null>
   setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void>
+
+  /**
+   * Pin registry (exploration 0329): keys pinned here are exempt from history
+   * pruning and Yjs snapshot eviction. A key is either a change hash or a
+   * `yjs:<nodeId>@<timestamp>` snapshot ref; owners (checkpoints, drafts)
+   * release all their pins in one call when they are deleted. Blobs are NOT
+   * pinned — referenced blobs past retention are an explicit blob horizon.
+   * Optional: without it, pruning behaves as before (nothing is protected).
+   */
+  pins?: PinRegistry
+}
+
+/**
+ * Checked-out draft overlay (exploration 0329): while set on a NodeStore,
+ * reads of an original member id return its clone's content (under the
+ * original id — MV id lists and grid ordering never see clone ids), writes
+ * to members redirect to their clones, and the first write to a not-yet-
+ * forked member triggers `onMissingMember` (lazy copy-on-write, wired to
+ * `forkNodeIntoDraft`). Only ids in `members` are overlay-managed — all
+ * other reads/writes pass through untouched, so bookkeeping writes (the
+ * draft node itself, profiles, unrelated content) never fork.
+ */
+export interface CheckedOutDraftOverlay {
+  /** The Draft node that owns this checkout. */
+  draftId: NodeId
+  /**
+   * The draft's declared scope: ids eligible for overlay + lazy COW.
+   * `'dynamic'` (agent-PR sessions, 0329 P4) makes EVERY written id a
+   * candidate — `onMissingMember` decides per id (never-fork schemas and
+   * bookkeeping decline by returning null).
+   */
+  members: readonly NodeId[] | 'dynamic'
+  /** originalId -> cloneId for members already forked. */
+  clones: Record<NodeId, NodeId>
+  /**
+   * Schema IRIs the members span. Queries against OTHER schemas keep their
+   * indexed fast path (nothing to overlay); queries against these take the
+   * draft-aware path (clone values drive filter/sort — a JS re-apply over
+   * unpaginated candidates, the accepted transient-session cost). Omitted =
+   * conservative: every query takes the draft-aware path.
+   */
+  memberSchemaIds?: readonly string[]
+  /**
+   * Lazy copy-on-write: fork `originalId` into the draft and return the
+   * clone id (or null to decline — the write then targets the original).
+   */
+  onMissingMember?: (originalId: NodeId) => Promise<NodeId | null>
+  /**
+   * Fired when a NEW node is created while this draft is checked out
+   * (draft-born; promoted to a fresh main node on merge). Agent-PR sessions
+   * wire this to `markCreatedInDraft`.
+   */
+  onNodeCreated?: (nodeId: NodeId, schemaId: string) => void
+}
+
+/** One pinned key: a change hash or a `yjs:`-prefixed snapshot ref. */
+export interface PinEntry {
+  key: string
+  ownerId: string
+  reason: string
+}
+
+/** Pin registry capability on a storage adapter (exploration 0329). */
+export interface PinRegistry {
+  /** Add pins (idempotent per (key, ownerId)). */
+  addPins(pins: readonly PinEntry[]): Promise<void>
+  /** Release every pin held by an owner (checkpoint/draft deletion). */
+  removePinsByOwner(ownerId: string): Promise<void>
+  /** Of the given keys, return the subset pinned by any owner. */
+  getPinnedKeysAmong(keys: readonly string[]): Promise<Set<string>>
+  /** Total number of pins (diagnostics). */
+  countPins(): Promise<number>
 }
 
 export interface SetNodeOptions {
@@ -445,6 +527,23 @@ export interface CountNodesOptions {
   schemaId?: SchemaIRI
   /** Include soft-deleted nodes */
   includeDeleted?: boolean
+}
+
+/** Scoping options for {@link NodeStorageAdapter.searchText}. */
+export interface NodeTextSearchOptions {
+  /**
+   * Restrict matches to one schema, pushed down into the index query. Callers
+   * that post-filter a cross-schema window instead silently under-return once
+   * the schema's matches sit past that window (exploration 0394).
+   */
+  schemaId?: SchemaIRI
+}
+
+/** One full-text match from {@link NodeStorageAdapter.searchText}. */
+export interface NodeTextSearchResult {
+  nodeId: NodeId
+  /** BM25 rank — MORE NEGATIVE is a better match (SQLite FTS5 convention). */
+  rank: number
 }
 
 // ============================================================================

@@ -12,11 +12,6 @@ export interface Disposable {
 }
 
 /**
- * View type identifiers
- */
-export type ViewType = 'table' | 'board' | 'gallery' | 'timeline' | 'calendar' | 'list' | 'form'
-
-/**
  * Sort configuration
  */
 export interface SortConfig {
@@ -60,58 +55,6 @@ export interface Filter {
 export interface FilterGroup {
   type: 'and' | 'or'
   filters: Filter[]
-}
-
-/**
- * Gallery card size options
- */
-export type GalleryCardSize = 'small' | 'medium' | 'large'
-
-/**
- * Gallery image fit options
- */
-export type GalleryImageFit = 'cover' | 'contain'
-
-/**
- * View configuration stored with the database
- */
-export interface ViewConfig {
-  id: string
-  name: string
-  type: ViewType
-
-  /** Which properties are visible (ordered) */
-  visibleProperties: string[]
-
-  /** Property widths for table view */
-  propertyWidths?: Record<string, number>
-
-  /** Active sorts */
-  sorts: SortConfig[]
-
-  /** Active filter group */
-  filter?: FilterGroup
-
-  /** Board view: property to group by */
-  groupByProperty?: string
-
-  /** Gallery view: property for cover image */
-  coverProperty?: string
-
-  /** Gallery view: card size */
-  galleryCardSize?: GalleryCardSize
-
-  /** Gallery view: image fit mode */
-  galleryImageFit?: GalleryImageFit
-
-  /** Gallery view: show title on cards */
-  galleryShowTitle?: boolean
-
-  /** Timeline/Calendar: date property to use */
-  dateProperty?: string
-
-  /** Timeline: end date property for ranges */
-  endDateProperty?: string
 }
 
 /**

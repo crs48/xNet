@@ -8,14 +8,31 @@ import { ScrollArea as BaseScrollArea } from '@base-ui/react/scroll-area'
 import * as React from 'react'
 import { cn } from '../utils'
 
+/**
+ * Fades content into the background at whichever vertical edge still has
+ * more to scroll (exploration 0386).
+ *
+ * Unlike the `scroll-fade` utility class — which needs scroll-driven
+ * animations and so does nothing in Firefox — this path reads the live
+ * per-edge overflow distances Base UI publishes on the Viewport, so it
+ * works in every browser we support. Masking the Viewport also leaves the
+ * scrollbar unfaded, since the scrollbar is its sibling.
+ */
+export interface ScrollAreaFadeProps {
+  /** Fade content at vertical edges that have more to scroll. */
+  fade?: boolean
+}
+
 // ─── ScrollArea Root ───────────────────────────────────────────────
 
 const ScrollArea = React.forwardRef<
   HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof BaseScrollArea.Root>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof BaseScrollArea.Root> & ScrollAreaFadeProps
+>(({ className, children, fade, ...props }, ref) => (
   <BaseScrollArea.Root ref={ref} className={cn('relative overflow-hidden', className)} {...props}>
-    <BaseScrollArea.Viewport className="h-full w-full rounded-[inherit]">
+    <BaseScrollArea.Viewport
+      className={cn('h-full w-full rounded-[inherit]', fade && 'xnet-scroll-fade-viewport')}
+    >
       {children}
     </BaseScrollArea.Viewport>
     <ScrollBar />
@@ -61,11 +78,15 @@ export const ScrollAreaRoot = BaseScrollArea.Root
 /** ScrollArea viewport - the actual scrollable container */
 export const ScrollAreaViewport = React.forwardRef<
   HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof BaseScrollArea.Viewport>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof BaseScrollArea.Viewport> & ScrollAreaFadeProps
+>(({ className, fade, ...props }, ref) => (
   <BaseScrollArea.Viewport
     ref={ref}
-    className={cn('h-full w-full rounded-[inherit]', className)}
+    className={cn(
+      'h-full w-full rounded-[inherit]',
+      fade && 'xnet-scroll-fade-viewport',
+      className
+    )}
     {...props}
   />
 ))

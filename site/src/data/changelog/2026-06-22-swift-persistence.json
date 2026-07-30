@@ -2,7 +2,7 @@
   "id": "2026-06-22-swift-persistence",
   "date": "June 22, 2026",
   "title": "Native Swift data is now durable — XNetKit persists to SQLite",
-  "summary": "XNetKit gained an on-device store: pass a `SQLiteChangeLog` to a `NodeStore` and every signed change is written to SQLite, then replayed on next launch to rebuild state. A native app's XNet database now survives restarts, with last-writer-wins preserved across the replay. Uses the system SQLite library — no extra dependency.",
+  "summary": "XNetKit gained an on-device store: pass a `SQLiteChangeLog` to a `NodeStore` and every signed change is written to SQLite, then replayed on next launch to rebuild state. A native app's xNet database now survives restarts, with last-writer-wins preserved across the replay. Uses the system SQLite library — no extra dependency.",
   "highlights": [
     "`SQLiteChangeLog` persists the signed change log; `NodeStore(identity:persistence:)` replays it on open to rebuild node state",
     "Durable across restarts with LWW intact — verified by a write → close → reopen test that keeps the latest update",

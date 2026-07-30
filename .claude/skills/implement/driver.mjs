@@ -14,7 +14,7 @@
  *
  * Commands:
  *   find [query]      Print the path of the exploration to implement.
- *                     No query  -> highest-numbered UNIMPLEMENTED ([_]) doc.
+ *                     No query  -> highest-numbered UNFINISHED ([_] or [-]) doc.
  *                     query      -> match by number (e.g. 0212) or title substring.
  *   status <path>     Print Implementation/Validation checklist progress
  *                     and list the remaining unchecked items.
@@ -22,9 +22,12 @@
  *                     Flip the single unchecked "- [ ]" item whose text
  *                     contains <substring> to "- [x]". Errors if the match
  *                     is missing or ambiguous.
- *   done <path>       Rename the doc [_] -> [x] (git mv) once every checkbox
- *                     is checked. Refuses if any "- [ ]" remain. Prints the
- *                     suggested check-off commit message.
+ *   partial <path>    Rename the doc [_] -> [-] (git mv) when some checkbox
+ *                     items are checked but others remain. Refuses if none
+ *                     are checked (still [_]) or all are (use `done`).
+ *   done <path>       Rename the doc [_] or [-] -> [x] (git mv) once every
+ *                     checkbox is checked. Refuses if any "- [ ]" remain.
+ *                     Prints the suggested check-off commit message.
  *   branch <path>     Suggest a conventional branch name derived from the doc.
  */
 
@@ -53,12 +56,14 @@ function listExplorations() {
     .filter((n) => /^\d{4}_\[.\]_.*\.md$/.test(n))
     .map((n) => {
       const m = n.match(/^(\d{4})_\[(.)\]_(.*)\.md$/)
+      const box = m[2].toLowerCase()
       return {
         file: n,
         path: join(EXPLORE_DIR, n),
         num: Number(m[1]),
         numStr: m[1],
-        done: m[2].toLowerCase() === 'x',
+        done: box === 'x',
+        partial: box === '-',
         title: m[3]
       }
     })
@@ -120,9 +125,14 @@ function cmdStatus(path) {
   const s = parseChecklists(text)
   const impl = summarize(s.implementation)
   const val = summarize(s.validation)
-  const docDone = basename(path).includes('_[x]_')
+  const file = basename(path)
+  const box = file.includes('_[x]_')
+    ? '[x] implemented'
+    : file.includes('_[-]_')
+      ? '[-] partially implemented'
+      : '[_] not implemented'
   console.log(`doc: ${path}`)
-  console.log(`status box: ${docDone ? '[x] implemented' : '[_] not implemented'}`)
+  console.log(`status box: ${box}`)
   console.log(`implementation: ${impl.done}/${impl.total}`)
   console.log(`validation:     ${val.done}/${val.total}`)
   const allRemaining = [...impl.remaining, ...val.remaining]
@@ -130,6 +140,8 @@ function cmdStatus(path) {
     console.log(`\nremaining (${allRemaining.length}):`)
     for (const r of impl.remaining) console.log(`  [impl] ${r.text}`)
     for (const r of val.remaining) console.log(`  [val]  ${r.text}`)
+    if (impl.done + val.done > 0 && file.includes('_[_]_'))
+      console.log('\nsome items checked — run `partial` to mark the doc [-] if stopping here.')
   } else {
     console.log('\nall checklist items checked — run `done` to mark the doc [x].')
   }
@@ -156,6 +168,46 @@ function cmdCheck(path, substring) {
   console.log(`checked: ${lines[i].trim()}`)
 }
 
+function renameBox(path, nextBox) {
+  const dir = dirname(path)
+  const file = basename(path)
+  const next = file.replace(/_\[[_-]\]_/, `_[${nextBox}]_`)
+  const newPath = join(dir, next)
+  try {
+    execFileSync('git', ['mv', path, newPath], { stdio: 'pipe' })
+  } catch {
+    renameSync(path, newPath) // not tracked / not a git checkout
+  }
+  const topic = next
+    .replace(/^\d{4}_\[.\]_/, '')
+    .replace(/\.md$/, '')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+  return { newPath, topic }
+}
+
+function cmdPartial(path) {
+  if (!path) die('usage: partial <path>')
+  const text = readFileSync(path, 'utf8')
+  const s = parseChecklists(text)
+  const impl = summarize(s.implementation)
+  const val = summarize(s.validation)
+  const checked = impl.done + val.done
+  const remaining = impl.remaining.length + val.remaining.length
+  if (!checked) die('refusing: no checklist items are checked yet — the doc stays [_]')
+  if (!remaining) die('all checklist items are checked — run `done` to mark the doc [x]')
+  const file = basename(path)
+  if (file.includes('_[-]_')) {
+    console.log('already marked [-] — nothing to do')
+    return
+  }
+  if (file.includes('_[x]_'))
+    die('doc is marked [x] but has unchecked items — reconcile it manually')
+  const { newPath, topic } = renameBox(path, '-')
+  console.log(`renamed -> ${newPath}`)
+  console.log(`commit:  docs(exploration): partially check off ${topic} (${checked}/${checked + remaining})`)
+}
+
 function cmdDone(path) {
   if (!path) die('usage: done <path>')
   const text = readFileSync(path, 'utf8')
@@ -166,24 +218,12 @@ function cmdDone(path) {
     for (const r of remaining) console.error(`  ${r.text}`)
     process.exit(1)
   }
-  const dir = dirname(path)
   const file = basename(path)
   if (file.includes('_[x]_')) {
     console.log('already marked [x] — nothing to do')
     return
   }
-  const next = file.replace('_[_]_', '_[x]_')
-  const newPath = join(dir, next)
-  try {
-    execFileSync('git', ['mv', path, newPath], { stdio: 'pipe' })
-  } catch {
-    renameSync(path, newPath) // not tracked / not a git checkout
-  }
-  const topic = next
-    .replace(/^\d{4}_\[x\]_/, '')
-    .replace(/\.md$/, '')
-    .replace(/_/g, ' ')
-    .toLowerCase()
+  const { newPath, topic } = renameBox(path, 'x')
   console.log(`renamed -> ${newPath}`)
   console.log(`commit:  docs(exploration): check off ${topic}`)
 }
@@ -210,6 +250,9 @@ switch (cmd) {
   case 'check':
     cmdCheck(rest[0], rest.slice(1).join(' '))
     break
+  case 'partial':
+    cmdPartial(rest[0])
+    break
   case 'done':
     cmdDone(rest[0])
     break
@@ -218,7 +261,7 @@ switch (cmd) {
     break
   default:
     console.error(
-      'commands: find [query] | status <path> | check <path> <substring> | done <path> | branch <path>'
+      'commands: find [query] | status <path> | check <path> <substring> | partial <path> | done <path> | branch <path>'
     )
     process.exit(1)
 }

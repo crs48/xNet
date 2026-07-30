@@ -96,8 +96,12 @@ describe('runSeed — relationships + documents', () => {
 
     const doc = new Y.Doc()
     Y.applyUpdate(doc, content!)
-    const fragment = doc.getXmlFragment('content')
-    expect(fragment.length).toBeGreaterThan(5) // many block types
+    // BlockNote v4 layout: content-v4 → blockGroup → blockContainer per block.
+    const fragment = doc.getXmlFragment('content-v4')
+    expect(fragment.length).toBe(1)
+    const blockGroup = fragment.get(0) as Y.XmlElement
+    expect(blockGroup.nodeName).toBe('blockGroup')
+    expect(blockGroup.length).toBeGreaterThan(5) // many block types
     expect(doc.getMap('meta').get('title')).toBe('Sample Page - All Block Types')
   })
 })

@@ -24,6 +24,7 @@ import {
   isClientHandshake,
   isIndexRemove,
   isIndexUpdate,
+  isNodeChangeBatchPayload,
   isNodeChangePayload,
   isNodeClearRequest,
   isNodeSyncRequest,
@@ -32,12 +33,13 @@ import {
   isSubscribeMessage,
   isUnsubscribeMessage,
   type AwarenessMessage,
+  type NodeChangeBatchMessage,
   type NodeChangeMessage,
   type NodeSyncRequestMessage,
   type PublishMessage
 } from './guards'
 import { createClientHandshakeHandler } from './handlers/client-handshake'
-import { createNodeChangeHandler } from './handlers/node-change'
+import { createNodeChangeBatchHandler, createNodeChangeHandler } from './handlers/node-change'
 import {
   createNodeClearHandler,
   createNodeSyncRequestHandler,
@@ -108,6 +110,12 @@ export const createWsMessageRouter = (deps: WsRouterDeps): MessageRouter => {
   }
 
   // Publish pipeline: persist node-changes, ingest awareness, relay Yjs sync.
+  router.on(
+    'publish',
+    (value): value is PublishMessage & { data: NodeChangeBatchMessage } =>
+      isPublishMessage(value) && isNodeChangeBatchPayload(value.data),
+    createNodeChangeBatchHandler(deps)
+  )
   router.on(
     'publish',
     (value): value is PublishMessage & { data: NodeChangeMessage } =>

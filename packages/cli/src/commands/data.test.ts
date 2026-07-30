@@ -2,7 +2,13 @@
  * Tests for `xnet data` — proves the runtime client works in a plain Node
  * process (no DOM, no React), backed by an in-memory SQLite database.
  */
-import { describe, expect, it } from 'vitest'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { sign } from '@xnetjs/crypto'
+import { applyBundle, verifyBundle, writeBundle } from '@xnetjs/data'
+import { afterAll, describe, expect, it } from 'vitest'
+import { FsBundleSink, FsBundleSource } from '../utils/fs-bundle'
 import { buildDataClient, runCreateNote, runListNotes } from './data'
 
 describe('xnet data (runtime-backed CLI)', () => {
@@ -34,5 +40,47 @@ describe('xnet data (runtime-backed CLI)', () => {
       await a.destroy()
       await b.destroy()
     }
+  })
+
+  describe('xnet data export / import (.xnetpack on disk)', () => {
+    const cleanups: string[] = []
+    afterAll(async () => {
+      for (const dir of cleanups) await rm(dir, { recursive: true, force: true })
+    })
+
+    it('round-trips a bundle through a directory on disk', async () => {
+      const dir = await mkdtemp(join(tmpdir(), 'xnetpack-'))
+      cleanups.push(dir)
+      const key = '22'.repeat(32)
+      const keyBytes = new Uint8Array(Buffer.from(key, 'hex'))
+
+      const a = await buildDataClient({ key })
+      try {
+        await runCreateNote(a, { title: 'exported note', body: 'travels by thumb drive' })
+        const manifest = await writeBundle(a.store, { kind: 'full' }, new FsBundleSink(dir), {
+          ownerDid: a.authorDID,
+          manifestSigner: (bytes) => sign(bytes, keyBytes)
+        })
+        expect(manifest.counts.changes).toBeGreaterThan(0)
+      } finally {
+        await a.destroy()
+      }
+
+      const source = new FsBundleSource(dir)
+      const report = await verifyBundle(source)
+      expect(report.ok).toBe(true)
+
+      const b = await buildDataClient({ key }) // same identity, fresh store
+      try {
+        const result = await applyBundle(b.store, source, { importerDid: b.authorDID })
+        expect(result.applied).toBeGreaterThan(0)
+        expect(result.quarantined).toEqual([])
+        const notes = await runListNotes(b)
+        expect(notes).toHaveLength(1)
+        expect(notes[0].properties.title).toBe('exported note')
+      } finally {
+        await b.destroy()
+      }
+    })
   })
 })

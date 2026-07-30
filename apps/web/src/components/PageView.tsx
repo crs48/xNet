@@ -9,47 +9,57 @@
  * save/sync state in the Status Bar.
  *
  * Features:
- * - Collaborative editing via Yjs
- * - Comment system with inline popover and sidebar
- *   (state machine shared with desktop via usePageComments, 0276)
+ * - Collaborative editing via Yjs (BlockNote XNetEditor, 0312)
+ * - Comment threads in the right panel (state machine shared with
+ *   desktop via usePageComments, 0276) plus inline text anchoring via
+ *   BlockNote's comments UI (0321): the editor's XNetThreadStore writes
+ *   the same comment nodes, so panel and marks stay in lockstep.
  * - Real-time presence indicators
  */
-import { useNavigate } from '@tanstack/react-router'
 import { PageSchema } from '@xnetjs/data'
 import {
   buildPersonMentionSuggestions,
+  cancelInlineCommentThread,
+  createGravatarUrl,
+  createInlineCommentThread,
   usePageComments,
-  type Editor,
   type PageCommentPopoverState,
-  type PageNewCommentState
+  type PageNewCommentState,
+  type PageTaskSnapshot,
+  type XNetEditorInstance
 } from '@xnetjs/editor/react'
-import { useNode, useIdentity, usePageTaskSync } from '@xnetjs/react'
+import { EntangleProvider, useNode, useIdentity, usePageTaskSync } from '@xnetjs/react'
 import {
-  CommentPopover,
+  CommentIsland,
   CommentsSidebar,
-  MentionTextArea,
   OrphanedThreadList,
+  toAnchorLike,
   getNodeTransfer,
   hasNodeTransfer,
   type CommentThreadData,
   type TaskPersonOption
 } from '@xnetjs/ui'
+import {
+  revealContextSection,
+  useContextPanel,
+  type ContextPanelSection,
+  useStatusBarItem,
+  type StatusBarItem
+} from '@xnetjs/workbench'
+import { DraftSwitcher } from '@xnetjs/workbench'
 import { MessageSquare } from 'lucide-react'
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react'
 import { useEnsureProfiles, useProfiles } from '../comms/hooks'
 import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useLinkTargets } from '../hooks/useLinkTargets'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
-import {
-  revealContextSection,
-  useContextPanel,
-  type ContextPanelSection
-} from '../workbench/context-panel'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
+import { usePublishTitle } from '../workbench/route-title'
 import { useWorkbench, type TabNodeType } from '../workbench/state'
-import { useStatusBarItem, type StatusBarItem } from '../workbench/status'
 import { BacklinksPanel } from './BacklinksPanel'
 import { Editor as EditorComponent } from './Editor'
+import { nodePassportSection } from './NodePassport'
 import { PageTasksSection } from './PageTasksSection'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
@@ -116,20 +126,22 @@ function pageSyncStatusItem(
   }
 }
 
-/** Place the caret at the document position nearest to a margin click. */
-function focusEditorNear(editor: Editor, clientX: number, clientY: number): void {
-  const rect = editor.view.dom.getBoundingClientRect()
-  const left = Math.min(Math.max(clientX, rect.left + 1), rect.right - 1)
-  const top = Math.min(Math.max(clientY, rect.top + 1), rect.bottom - 1)
-  const pos = editor.view.posAtCoords({ left, top })?.pos ?? editor.state.doc.content.size
-  editor.chain().focus(pos).run()
-  // TipTap defers DOM focus to the next animation frame; focus the
-  // view directly so the caret moves immediately.
-  editor.view.focus()
+/**
+ * Focus the BlockNote editor after a margin click. Position-based caret
+ * placement (TipTap `posAtCoords`) has no BlockNote equivalent here, so we
+ * degrade gracefully: focus the editable surface and let the browser place
+ * the caret (0312).
+ */
+function focusEditorNear(editor: XNetEditorInstance | null): void {
+  if (editor) {
+    editor.focus()
+    return
+  }
+  document.querySelector<HTMLElement>('.bn-editor [contenteditable="true"], .bn-editor')?.focus()
 }
 
 export function PageView({ docId }: { docId: string }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   // selfDid covers restored sessions too (authorDID without an unlocked
   // identity); `did` keeps the live-identity semantics for sync/cursors.
   const { identity, did: selfDid } = useIdentity()
@@ -154,11 +166,31 @@ export function PageView({ docId }: { docId: string }) {
   })
   const { handleTasksChange } = usePageTaskSync({ pageId: docId })
 
-  // Keep the workbench tab title in sync with the page title (0166).
-  const pageTitle = page?.title
-  useEffect(() => {
-    if (pageTitle) useWorkbench.getState().setTabTitle(docId, pageTitle)
-  }, [docId, pageTitle])
+  // Widen the BlockNote snapshot's slim reference shape ({url, title}) to
+  // the projection-sync contract (provider/kind/refId… all unknown here).
+  const handlePageTasksChange = useCallback(
+    (tasks: PageTaskSnapshot[]) =>
+      handleTasksChange(
+        tasks.map((task) => ({
+          ...task,
+          references: task.references.map((ref) => ({
+            url: ref.url,
+            title: ref.title,
+            provider: null,
+            kind: null,
+            refId: null,
+            subtitle: null,
+            icon: null,
+            embedUrl: null,
+            metadata: '{}'
+          }))
+        }))
+      ),
+    [handleTasksChange]
+  )
+
+  // Publish the title for the header/tab/recents (0166, 0353).
+  usePublishTitle(docId, page?.title, page?.id)
 
   // Editing promotes a preview tab to a permanent one (0166).
   useEffect(() => {
@@ -216,9 +248,7 @@ export function PageView({ docId }: { docId: string }) {
     toggleOrphanedCollapsed,
     popoverState,
     newCommentState,
-    editorRef,
-    handleEditorReady,
-    commentExtensions,
+    showThreadPopover,
     handlePopoverMouseEnter,
     handlePopoverMouseLeave,
     handleDismiss,
@@ -228,7 +258,6 @@ export function PageView({ docId }: { docId: string }) {
     handleReopen,
     handleDelete,
     handleEdit,
-    handleCreateComment,
     handleSubmitNewComment,
     handleCancelNewComment,
     handleSidebarSelectThread,
@@ -238,7 +267,8 @@ export function PageView({ docId }: { docId: string }) {
     handleSidebarDelete,
     handleSidebarEdit,
     handleDismissOrphaned,
-    handleReattachOrphaned
+    handleReattachOrphaned,
+    crud: commentCrud
   } = usePageComments({ docId, resolveAuthorName })
 
   const commentAuthorDids = useMemo(
@@ -251,15 +281,85 @@ export function PageView({ docId }: { docId: string }) {
   )
   useEnsureProfiles(commentAuthorDids)
 
-  const titleInputRef = useRef<HTMLInputElement | null>(null)
-
-  // The right-panel task editor writes assignee/due-date edits through
-  // this live editor (the document owns those fields while it hosts the
-  // task — see PAGE_TASK_RECONCILIATION.md).
-  const taskHostEditor = useMemo(
-    () => ({ getEditor: () => editorRef.current, suggestions: mentionSuggestions }),
-    [editorRef, mentionSuggestions]
+  // Inline comments (0321): the editor's ThreadStore writes the same 0276
+  // comment nodes the right panel reads; profiles resolve author chips.
+  const profilesRef = useRef(profiles)
+  profilesRef.current = profiles
+  const resolveCommentUsers = useCallback(
+    async (userIds: string[]) =>
+      userIds.map((userId) => {
+        const profile = profilesRef.current.find((p) => p.did === userId)
+        return {
+          id: userId,
+          username: profile?.name?.trim() || `${userId.slice(8, 16)}…`,
+          avatarUrl: profile?.avatar || createGravatarUrl(userId)
+        }
+      }),
+    []
   )
+  // The live BlockNote editor (0312); also serves the focus flow, node-drop
+  // insertion, and the inline-comment actions below.
+  const editorRef = useRef<XNetEditorInstance | null>(null)
+  const handleEditorReady = useCallback((editor: XNetEditorInstance) => {
+    editorRef.current = editor
+  }, [])
+
+  // ─── One comment surface (0375) ─────────────────────────────────────────────
+  // BlockNote's own floating comment UI is disabled, so these two signals —
+  // caret-inside-a-mark, and a staged new comment — are what open CommentIsland.
+  // Without them the editor would have no comment UI at all.
+
+  const [composingInline, setComposingInline] = useState(false)
+
+  const handleSelectedThreadChange = useCallback(
+    (threadId: string | null) => {
+      // Opening only. The caret leaves the mark as soon as the user clicks into
+      // the island's own composer, so dismissing on null would close the card
+      // out from under them; Escape and ✕ are the deliberate exits.
+      if (!threadId) return
+      const mark = document.querySelector<HTMLElement>(`[data-bn-thread-id="${threadId}"]`)
+      showThreadPopover(threadId, mark)
+    },
+    [showThreadPopover]
+  )
+
+  const handlePendingCommentChange = useCallback((pending: boolean) => {
+    setComposingInline(pending)
+  }, [])
+
+  const inlineComposerAnchor = useMemo<{ x: number; y: number } | null>(() => {
+    if (!composingInline || typeof window === 'undefined') return null
+    const selection = window.getSelection()
+    if (!selection || selection.rangeCount === 0) return null
+    const rect = selection.getRangeAt(0).getBoundingClientRect()
+    return { x: rect.left, y: rect.bottom }
+  }, [composingInline])
+
+  const handleCreateInlineComment = useCallback((content: string) => {
+    const editor = editorRef.current
+    if (!editor) return
+    // createThread (not addComment) — it also applies the in-document mark.
+    void createInlineCommentThread(editor, content)
+    setComposingInline(false)
+  }, [])
+
+  const handleCancelInlineComment = useCallback(() => {
+    const editor = editorRef.current
+    if (editor) cancelInlineCommentThread(editor)
+    setComposingInline(false)
+  }, [])
+
+  const editorComments = useMemo(
+    () => ({
+      ...commentCrud,
+      resolveUsers: resolveCommentUsers,
+      onSelectedThreadChange: handleSelectedThreadChange,
+      onPendingCommentChange: handlePendingCommentChange
+    }),
+    [commentCrud, resolveCommentUsers, handleSelectedThreadChange, handlePendingCommentChange]
+  )
+
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleSelectOrphaned = useCallback(
     (commentId: string) => {
@@ -323,7 +423,7 @@ export function PageView({ docId }: { docId: string }) {
       {
         id: 'page-tasks',
         title: 'Tasks',
-        content: <PageTasksSection pageId={docId} hostEditor={taskHostEditor} />
+        content: <PageTasksSection pageId={docId} />
       },
       {
         id: 'page-comments',
@@ -363,7 +463,8 @@ export function PageView({ docId }: { docId: string }) {
         id: 'page-backlinks',
         title: 'Backlinks',
         content: <BacklinksPanel docId={docId} />
-      }
+      },
+      nodePassportSection(docId)
     ]
   }, [
     page,
@@ -373,7 +474,6 @@ export function PageView({ docId }: { docId: string }) {
     isDirty,
     lastSavedAt,
     presence,
-    taskHostEditor,
     unresolvedCount,
     sidebarThreads,
     orphanedThreads,
@@ -404,10 +504,9 @@ export function PageView({ docId }: { docId: string }) {
       event.preventDefault()
       const editor = editorRef.current
       if (!editor) return
-      editor.commands.focus('start')
-      // TipTap defers DOM focus to the next animation frame; focus the
-      // view directly so the caret moves immediately.
-      editor.view.focus()
+      const first = editor.document[0]
+      if (first) editor.setTextCursorPosition(first, 'start')
+      editor.focus()
     },
     [editorRef]
   )
@@ -425,10 +524,8 @@ export function PageView({ docId }: { docId: string }) {
     (event: React.MouseEvent) => {
       const target = event.target as HTMLElement
       if (!target.hasAttribute('data-page-margin')) return
-      const editor = editorRef.current
-      if (!editor) return
       event.preventDefault()
-      focusEditorNear(editor, event.clientX, event.clientY)
+      focusEditorNear(editorRef.current)
     },
     [editorRef]
   )
@@ -441,16 +538,21 @@ export function PageView({ docId }: { docId: string }) {
       navigateToNode(navigate, match[1] as TabNodeType, match[2])
       return
     }
-    navigate({ to: '/doc/$docId', params: { docId: targetDocId } })
+    navigate({ kind: 'node', nodeType: 'page', nodeId: targetDocId, preview: false })
   }
 
-  // Dropping any node onto the editor inserts a reference chip (a
-  // wikilink mark) at the drop point — a reference, never a copy.
+  // Dropping a node onto the editor (0346 drop-to-relate): a database
+  // lands as a LIVE frame, a page as a summary transclusion, anything
+  // else as a reference chip. Drops on an existing database frame are
+  // delegated to the frame's own add-row/add-relation menu.
   const handleEditorDragOver = (event: React.DragEvent) => {
-    if (hasNodeTransfer(event)) event.preventDefault()
+    if (!hasNodeTransfer(event)) return
+    if ((event.target as HTMLElement).closest?.('[data-database-embed-frame]')) return
+    event.preventDefault()
   }
 
   const handleEditorDrop = (event: React.DragEvent) => {
+    if ((event.target as HTMLElement).closest?.('[data-database-embed-frame]')) return
     const transfer = getNodeTransfer(event)
     if (!transfer) return
     event.preventDefault()
@@ -458,22 +560,27 @@ export function PageView({ docId }: { docId: string }) {
     const editor = editorRef.current
     if (!editor) return
     const title = transfer.title || 'Untitled'
+    editor.focus()
+    // BlockNote has no coordinate→position API on the editor surface, so
+    // insertion lands at the current cursor position (0312).
+    if (transfer.nodeType === 'database') {
+      editor.insertBlocks(
+        [
+          {
+            type: 'databaseEmbed',
+            props: { databaseId: transfer.nodeId, viewType: 'table', viewConfig: '' }
+          } as never
+        ],
+        editor.getTextCursorPosition().block,
+        'after'
+      )
+      return
+    }
     const href =
       transfer.nodeType === 'page'
         ? transfer.nodeId
         : `xnet://${transfer.nodeType}/${transfer.nodeId}`
-    const pos =
-      editor.view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos ??
-      editor.state.selection.to
-    editor
-      .chain()
-      .focus()
-      .insertContentAt(pos, {
-        type: 'text',
-        text: title,
-        marks: [{ type: 'wikilink', attrs: { href, title } }]
-      })
-      .run()
+    editor.insertInlineContent([{ type: 'wikilink', props: { href, title } } as never, ' '])
   }
 
   const placeholder = pageLoadPlaceholder(loading, error, Boolean(page && doc))
@@ -482,81 +589,92 @@ export function PageView({ docId }: { docId: string }) {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <PageToolbar docId={docId} unresolvedCount={unresolvedCount} presence={presence} />
+    // Entangle bus (0346): one hover/select bus per page — frames in the
+    // document and inline chips co-highlight the same nodes.
+    <EntangleProvider>
+      <div className="flex h-full min-h-0 flex-col">
+        <PageToolbar docId={docId} unresolvedCount={unresolvedCount} presence={presence} />
 
-      {/* The document: one full-height paper surface. The title is the
+        {/* The document: one full-height paper surface. The title is the
           first line of the page; margin clicks place the caret. */}
-      <div
-        data-page-margin
-        className="flex min-h-0 flex-1 flex-col overflow-y-auto"
-        onMouseDown={handleMarginMouseDown}
-        onDragOverCapture={handleEditorDragOver}
-        onDropCapture={handleEditorDrop}
-      >
-        {/* `grow` (not min-h-full): a flex child only stretches into
-            definite space, so the column must flex from the scroller
-            for the editor to fill the page height. */}
-        {/* max-w-[44rem]: with the px-6 + prose gutters this lands the reading
-            measure near ~70ch (max-w-3xl read ~78ch, a touch wide). */}
         <div
           data-page-margin
-          className="mx-auto flex w-full max-w-[44rem] grow flex-col px-6 pt-10"
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+          onMouseDown={handleMarginMouseDown}
+          onDragOverCapture={handleEditorDragOver}
+          onDropCapture={handleEditorDrop}
         >
-          <input
-            ref={titleInputRef}
-            type="text"
-            aria-label="Page title"
-            className="w-full shrink-0 border-none bg-transparent px-8 text-[2.5rem] font-bold leading-tight tracking-tight text-ink-1 outline-none placeholder:text-ink-3"
-            value={page!.title || ''}
-            onChange={(e) => update({ title: e.target.value })}
-            onKeyDown={handleTitleKeyDown}
-            placeholder="Untitled"
-          />
-          <EditorComponent
-            className="page-prose mt-3 flex-1"
-            doc={doc!}
-            awareness={awareness}
-            did={did}
-            pageId={docId}
-            onNavigate={handleNavigate}
-            extensions={commentExtensions}
-            onEditorReady={handleEditorReady}
-            mentionSuggestions={mentionSuggestions}
-            hashtagSuggestions={hashtagSuggestions}
-            onCreateHashtag={getOrCreateTag}
-            linkTargets={linkTargets}
-            onCreateLinkTarget={createPageTarget}
-            onTagsChange={handleTagsChange}
-            onPageTasksChange={handleTasksChange}
-            onCreateComment={handleCreateComment}
-            onBackspaceAtStart={handleBackspaceAtStart}
-          />
+          {/* `grow` (not min-h-full): a flex child only stretches into
+            definite space, so the column must flex from the scroller
+            for the editor to fill the page height. */}
+          {/* max-w-[44rem]: with the px-6 + prose gutters this lands the reading
+            measure near ~70ch (max-w-3xl read ~78ch, a touch wide). */}
+          <div
+            data-page-margin
+            className="mx-auto flex w-full max-w-[44rem] grow flex-col px-6 pt-10"
+          >
+            <input
+              ref={titleInputRef}
+              type="text"
+              aria-label="Page title"
+              className="w-full shrink-0 border-none bg-transparent px-8 text-[2.5rem] font-bold leading-tight tracking-tight text-ink-1 outline-none placeholder:text-ink-3"
+              value={page!.title || ''}
+              onChange={(e) => update({ title: e.target.value })}
+              onKeyDown={handleTitleKeyDown}
+              placeholder="Untitled"
+            />
+            <EditorComponent
+              className="page-prose mt-3 flex-1"
+              doc={doc!}
+              awareness={awareness}
+              did={did}
+              pageId={docId}
+              onNavigate={handleNavigate}
+              onEditorReady={handleEditorReady}
+              mentionSuggestions={mentionSuggestions}
+              hashtagSuggestions={hashtagSuggestions}
+              onCreateHashtag={getOrCreateTag}
+              linkTargets={linkTargets}
+              onCreateLinkTarget={createPageTarget}
+              onTagsChange={handleTagsChange}
+              onPageTasksChange={handlePageTasksChange}
+              comments={editorComments}
+              onBackspaceAtStart={handleBackspaceAtStart}
+            />
+          </div>
         </div>
+
+        <PageCommentIslandOverlay
+          popoverState={popoverState}
+          thread={currentThread}
+          people={commentPeople}
+          onReply={handleReply}
+          onResolve={handleResolve}
+          onReopen={handleReopen}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
+          onDismiss={handleDismiss}
+          onUpgradeToFull={handleUpgradeToFull}
+          onMouseEnter={handlePopoverMouseEnter}
+          onMouseLeave={handlePopoverMouseLeave}
+        />
+
+        <PageInlineComposerOverlay
+          open={composingInline}
+          anchor={inlineComposerAnchor}
+          people={commentPeople}
+          onSubmit={handleCreateInlineComment}
+          onCancel={handleCancelInlineComment}
+        />
+
+        <PageNewCommentOverlay
+          state={newCommentState}
+          people={commentPeople}
+          onSubmit={handleSubmitNewComment}
+          onCancel={handleCancelNewComment}
+        />
       </div>
-
-      <PageCommentPopoverOverlay
-        popoverState={popoverState}
-        thread={currentThread}
-        people={commentPeople}
-        onReply={handleReply}
-        onResolve={handleResolve}
-        onReopen={handleReopen}
-        onDelete={handleDelete}
-        onEdit={handleEdit}
-        onDismiss={handleDismiss}
-        onUpgradeToFull={handleUpgradeToFull}
-        onMouseEnter={handlePopoverMouseEnter}
-        onMouseLeave={handlePopoverMouseLeave}
-      />
-
-      <PageNewCommentOverlay
-        state={newCommentState}
-        people={commentPeople}
-        onSubmit={handleSubmitNewComment}
-        onCancel={handleCancelNewComment}
-      />
-    </div>
+    </EntangleProvider>
   )
 }
 
@@ -579,8 +697,8 @@ function CommentCountBadge({ unresolvedCount }: { unresolvedCount: number }) {
 
 /**
  * A quiet utility row above the document — collaboration affordances
- * only (comments, presence, share). Save/sync state lives in the
- * Status Bar; document metadata lives in the Right Panel.
+ * only (drafts, comments, presence, share). Save/sync state lives in
+ * the Status Bar; document metadata lives in the Right Panel.
  */
 function PageToolbar({
   docId,
@@ -593,6 +711,7 @@ function PageToolbar({
 }) {
   return (
     <div className="flex h-10 shrink-0 items-center justify-end gap-1 px-3">
+      <DraftSwitcher nodeId={docId} />
       <CommentCountBadge unresolvedCount={unresolvedCount} />
       <PresenceAvatars presence={presence} />
       <ShareButton docId={docId} docType="page" />
@@ -602,7 +721,7 @@ function PageToolbar({
 
 // ─── Comment overlays ──────────────────────────────────────────────────────────
 
-interface PageCommentPopoverOverlayProps {
+interface PageCommentIslandOverlayProps {
   popoverState: PageCommentPopoverState
   thread: CommentThreadData | null
   people: TaskPersonOption[]
@@ -617,15 +736,15 @@ interface PageCommentPopoverOverlayProps {
   onMouseLeave: () => void
 }
 
-function PageCommentPopoverOverlay({
+function PageCommentIslandOverlay({
   popoverState,
   thread,
   people,
   ...handlers
-}: PageCommentPopoverOverlayProps) {
+}: PageCommentIslandOverlayProps) {
   if (!popoverState.visible || !popoverState.anchor || !thread) return null
   return (
-    <CommentPopover
+    <CommentIsland
       thread={thread}
       anchor={popoverState.anchor}
       mode={popoverState.mode}
@@ -637,6 +756,45 @@ function PageCommentPopoverOverlay({
   )
 }
 
+/**
+ * Inline composer for a thread staged from the editor toolbar (0375).
+ *
+ * Replaces BlockNote's FloatingComposer, which `comments={false}` disables.
+ * Submitting routes through `createInlineCommentThread` rather than the plain
+ * comment CRUD, because the thread also needs its in-document mark.
+ */
+function PageInlineComposerOverlay({
+  open,
+  anchor,
+  people,
+  onSubmit,
+  onCancel
+}: {
+  open: boolean
+  anchor: { x: number; y: number } | null
+  people: TaskPersonOption[]
+  onSubmit: (content: string) => void
+  onCancel: () => void
+}) {
+  if (!open || !anchor) return null
+  return (
+    <CommentIsland
+      anchor={toAnchorLike(anchor)}
+      mode="composing"
+      open
+      side="bottom"
+      people={people}
+      onCreate={onSubmit}
+      onDismiss={onCancel}
+    />
+  )
+}
+
+/**
+ * New-comment composer for the panel affordance. Anchored to the selection it
+ * annotates — this replaced a centred, scrim-backed modal that dimmed the
+ * whole workbench to show a single text field (0375).
+ */
 function PageNewCommentOverlay({
   state,
   people,
@@ -649,73 +807,16 @@ function PageNewCommentOverlay({
   onCancel: () => void
 }) {
   if (!state?.visible) return null
-  return <NewCommentInput people={people} onSubmit={onSubmit} onCancel={onCancel} />
-}
-
-// ─── New Comment Input ─────────────────────────────────────────────────────────
-
-interface NewCommentInputProps {
-  people: TaskPersonOption[]
-  onSubmit: (content: string) => void
-  onCancel: () => void
-}
-
-function NewCommentInput({ people, onSubmit, onCancel }: NewCommentInputProps) {
-  const [content, setContent] = useState('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-  useEffect(() => {
-    textareaRef.current?.focus()
-  }, [])
-
-  const handleSubmit = () => {
-    if (content.trim()) {
-      onSubmit(content)
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault()
-      handleSubmit()
-    }
-    if (e.key === 'Escape') {
-      onCancel()
-    }
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-      <div className="w-80 rounded-lg border border-hairline bg-island-pop text-popover-foreground shadow-pop p-4">
-        <div className="text-sm font-medium mb-2">Add Comment</div>
-        <MentionTextArea
-          textareaRef={textareaRef}
-          className="p-2 text-sm rounded border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring min-h-[80px]"
-          placeholder="Write a comment... (@ to mention)"
-          value={content}
-          onChange={setContent}
-          people={people}
-          onKeyDown={handleKeyDown}
-        />
-        <div className="flex justify-end gap-2 mt-3">
-          <button
-            onClick={onCancel}
-            className="px-3 py-1.5 text-sm rounded border hover:bg-accent transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!content.trim()}
-            className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Comment
-          </button>
-        </div>
-        <div className="text-xs text-muted-foreground mt-2">
-          Press Cmd+Enter to submit, Esc to cancel
-        </div>
-      </div>
-    </div>
+    <CommentIsland
+      anchor={state.anchor ? toAnchorLike(state.anchor) : null}
+      mode="composing"
+      open
+      side="bottom"
+      people={people}
+      quotedText={state.quotedText}
+      onCreate={onSubmit}
+      onDismiss={onCancel}
+    />
   )
 }

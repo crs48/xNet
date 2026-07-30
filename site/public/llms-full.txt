@@ -32,11 +32,11 @@ Before reading this documentation, understand that xNet works differently:
   - Relations
   - Type Inference
   - Extending Schemas
-- The XNet Protocol
+- The xNet Protocol
 - Data Model (L1)
 - Replication (L2)
 - Authorization (L3)
-- Implement XNet in Your Language
+- Implement xNet in Your Language
 - Conformance
   - The Workbench
   - The Quiet Shell & the Desk
@@ -87,6 +87,12 @@ Before reading this documentation, understand that xNet works differently:
 - The core mental model: three hooks, zero backend
 - When to use xNet (and when not to)
   
+
+**xNet is alpha software**
+Not pre-release — released, but early. The `@xnetjs/*` packages are on npm, the
+desktop app is downloadable, and the hub image ships. But APIs, schemas and wire
+formats still change between releases, sometimes without a migration path. Pin
+your versions, keep your own `.xnetpack` backups, and expect rough edges.
 
 ## The problem
 
@@ -314,6 +320,29 @@ Without writing a single line of backend code, you got:
 
   - src/ - schema.ts defineSchema() definitions - App.tsx XNetProvider - TaskList.tsx useQuery +
   useMutate
+
+## Go multiplayer in two commands
+
+Everything above is one keystroke away from being a shared app. Point the
+provider at a sync hub and give everyone the same room string — whoever
+shares the room sees the same data:
+
+```tsx
+
+```
+
+To run your own hub locally (dev only — auth off accepts anyone):
+
+```bash
+docker run --rm -p 4444:4444 -e HUB_AUTH=false ghcr.io/crs48/xnet-hub:latest
+```
+
+Open the app in two browser windows — changes appear in both. The room string
+is the entire join flow: put it in a URL (`?room=standup`) and the URL becomes
+an invitation. The smallest complete example of this is
+[`examples/minimal-app`](https://github.com/crs48/xNet/tree/main/examples/minimal-app)
+in the repo (~60 lines, copy-paste ready), and you can watch it run live on
+the [demos page](/demos/).
 
 ## Next steps
 
@@ -2701,9 +2730,9 @@ authoring a genuinely new type.
 
 ---
 
-## The XNet Protocol
+## The xNet Protocol
 
-The `xNet` repository is **one implementation** of XNet. XNet itself is a
+The `xNet` repository is **one implementation** of xNet. xNet itself is a
 **protocol** — a written interface you can re‑implement in any language, over any
 database, and still interoperate with every other conforming implementation. Like
 Matrix, the AT Protocol, or ActivityPub, the standard is separate from any one
@@ -2715,7 +2744,7 @@ codebase.
 
 ## The boundary in one sentence
 
-> A conforming XNet implementation agrees on the **cryptographic primitives**,
+> A conforming xNet implementation agrees on the **cryptographic primitives**,
 > the **data model** (especially the byte‑exact canonicalization of a change),
 > the **replication wire format**, and the **authorization semantics** — and
 > treats everything above (query, storage layout, UI, the built‑in app schemas)
@@ -2738,7 +2767,7 @@ flowchart TB
   
   
 
-## The interop kernel (the part that makes it XNet)
+## The interop kernel (the part that makes it xNet)
 
 The irreducible core is small. An implementation that does **only L0 + L1** can
 already create, sign, verify, and converge nodes — fully participating in the
@@ -2753,7 +2782,7 @@ graph:
 
 ## Yjs is _not_ the protocol
 
-A common misconception: "XNet is built on Yjs, so I'd have to port a CRDT." Not
+A common misconception: "xNet is built on Yjs, so I'd have to port a CRDT." Not
 so. Yjs is used only for the optional rich‑text **document body** of certain
 nodes, and it travels the wire as **opaque bytes inside a signed envelope**. A
 second implementation can relay and store that blob without parsing it, and still
@@ -2877,7 +2906,7 @@ A schema may declare a collaborative body with `document: 'yjs'`. Such nodes
 carry a `documentContent` blob identified by a `documentCodec` discriminator
 (`yjs-v1`, `automerge-2`, `none`). Implementations **must transport and persist**
 the blob faithfully, but **interpreting it is optional** — a peer that can't parse
-`yjs-v1` still fully participates in the graph. This is the seam that makes XNet
+`yjs-v1` still fully participates in the graph. This is the seam that makes xNet
 portable without porting a CRDT byte format across languages.
 
 Next: [Replication (L2) →](/docs/protocol/replication/)
@@ -2972,7 +3001,7 @@ Next: [Authorization (L3) →](/docs/protocol/authorization/)
 
 ## Authorization (L3)
 
-In XNet, authorization is **data, not application logic**: rules are declared on
+In xNet, authorization is **data, not application logic**: rules are declared on
 schemas and delegated through grant nodes and UCAN tokens, and enforced at the
 sync boundary. Because two implementations that disagree on policy make different
 read/write decisions on the same graph, the decision *semantics* are normative.
@@ -3052,7 +3081,7 @@ attribution.
 
 ## Grants and UCAN
 
-- **Grant nodes** — ordinary XNet nodes recording `{ issuer, grantee, resource,
+- **Grant nodes** — ordinary xNet nodes recording `{ issuer, grantee, resource,
   actions, expiresAt, revokedAt }`. Active iff not revoked and not expired.
 - **UCAN tokens** — capability tokens (JWT/EdDSA) with a proof chain. Each
   capability must be an attenuation of its proof; child expiry ≤ parent; chains
@@ -3081,7 +3110,7 @@ Next: [Implement it in your language →](/docs/protocol/implement-in-your-langu
 
 ---
 
-## Implement XNet in Your Language
+## Implement xNet in Your Language
 
 You don't need to port the whole `xNet` codebase to build a compatible
 implementation. You need the **interop kernel** (L0 + L1) — and the
@@ -3169,7 +3198,7 @@ lightweight, "prove‑it‑before‑you‑spec‑it" proposal process.
 
 A specification without a conformance suite drifts — independent implementations
 diverge silently. (ActivityPub shipped a W3C Recommendation with no test suite
-for ~5 years; the fediverse is still paying for it.) XNet ships a
+for ~5 years; the fediverse is still paying for it.) xNet ships a
 **language‑agnostic golden‑vector corpus alongside the spec, from day one**, and
 re‑verifies it in CI.
 
@@ -7553,7 +7582,7 @@ flowchart LR
 
 The fastest way to get a Hub running. No Docker, no SSH, no TLS setup.
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/xnet-hub)
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/deploy/xnet-hub)
 
 **What happens:**
 
@@ -7650,6 +7679,38 @@ Your Hub is live. Copy the URL and configure your app:
 | `RAILWAY_VOLUME_MOUNT_PATH` | —                 | Auto-set by Railway when a volume is attached |
 | `XNET_DIAGNOSTICS_URL`      | —                 | Opt-in: upstream sink for scrubbed crash reports (see below) |
 | `XNET_DIAGNOSTICS_SECRET`   | —                 | Opt-in: shared secret for diagnostics sharing |
+| `XNET_DIAGNOSTICS_INBOX`    | `open`            | Crash inbox mode: `open`, `authed`, or `off`  |
+| `XNET_SHARE_CRASH_COUNTS`   | —                 | Opt-in: tee fingerprint-level crash *counts* upstream |
+
+### Your hub is your crash console (default on)
+
+Every hub runs a first-party **diagnostics inbox**: your deployment's own
+clients report crashes to `POST /diagnostics/ingest` on *your* hub, and the
+reports go nowhere else. The quarantine lives in its own `diagnostics.db`
+(8 KB per report, deduplicated by fingerprint, 30-day retention for handled
+reports, hard row cap), and the operator drains it from the app — **Settings →
+Privacy &amp; Diagnostics → Import reports** — into a Diagnostics Space where
+the workbench is the triage console (Inbox / By release / By fingerprint saved
+views, a `new → acked → fixed → released` status field, comments).
+
+The ingest is rate-limited per client IP and accepts only allowlisted,
+length-bounded, twice-scrubbed fields. Set `XNET_DIAGNOSTICS_INBOX=authed` to
+require authentication for it on hubs exposed to the open internet, or `off`
+to disable the inbox entirely.
+
+Escalation to xNet is a separate, layered choice — three switches, each off
+by default:
+
+1. **Send one report** — from the console, "Send to xNet" previews the exact
+   payload and forwards it through the sharing route below. Requires sharing
+   to be configured; without it, the route does not exist.
+2. **Share crash counts** — `XNET_SHARE_CRASH_COUNTS=on` (plus the sharing
+   config below) tees *fingerprint-level* data upstream on each automatic
+   crash: error name, release, surface, grouping hash, and count. Never the
+   message, stack, breadcrumbs, or any identifier.
+3. **Let xNet help debug** — grant xNet's support identity time-boxed,
+   read-only access to your Diagnostics Space from the same settings panel.
+   It expires on its own and can be revoked in one click.
 
 ### Diagnostics sharing (opt-in, off by default)
 
@@ -7659,6 +7720,20 @@ hub, set both `XNET_DIAGNOSTICS_URL` and `XNET_DIAGNOSTICS_SECRET` to enable the
 reports upstream — the sender's DID is hashed (never sent raw) and document
 content is never included. Leave them unset (the default) and nothing is
 forwarded; `GET /diagnostics/health` simply reports `sharing: false`.
+
+The upstream sink is xNet Cloud's first-party `POST /diagnostics` ingest
+(exploration 0315): reports land in a quarantine and are drained into
+`debug-report` nodes in the operator's own xNet workspace, where the workbench
+_is_ the triage console — filterable tables, a `new → acked → fixed → released`
+status field, and comments. **xNet does not use a third-party error service such
+as Sentry.** The client keeps a dormant, vendor-neutral Sentry seam (no
+`@sentry/*` SDK is installed and no DSN is minted), so if you self-host a
+Sentry-compatible backend you can point that seam at it — [Bugsink][bugsink]
+(single container, SQLite) or [GlitchTip][glitchtip] (MIT, Sentry-SDK
+compatible) are the proven small-footprint options — but nothing ships enabled.
+
+[bugsink]: https://www.bugsink.com/
+[glitchtip]: https://glitchtip.com/
 
 ### CLI Flags
 
@@ -9147,7 +9222,7 @@ The identity system has no concept of "creating an account" or "logging in" to a
 
 ## Overview
 
-xNet uses a **hybrid classical + post-quantum** cryptographic stack, hardened against both current threats and future quantum attacks. NIST finalized the post-quantum standards in August 2024 (FIPS 203/204/205). Since xNet is prerelease software, hybrid security ships as a clean implementation — no migration debt.
+xNet uses a **hybrid classical + post-quantum** cryptographic stack, hardened against both current threats and future quantum attacks. NIST finalized the post-quantum standards in August 2024 (FIPS 203/204/205). Because xNet is still alpha, hybrid security ships as a clean implementation — no migration debt.
 
 | Algorithm          | Role                     | Standard      | Package               |
 | ------------------ | ------------------------ | ------------- | --------------------- |
@@ -9842,7 +9917,7 @@ These records follow the standard [ADR](https://adr.github.io/) discipline:
 **Scope note:** Yjs is the **document codec** for the rich-text/canvas _body_ of
 certain nodes — it is _not_ the sync backbone. Structured node data syncs through
 the signed `Change` log ([ADR-3](#adr-3-field-level-lww-for-structured-data)),
-and Yjs updates ride the wire as opaque bytes inside an XNet envelope. See
+and Yjs updates ride the wire as opaque bytes inside an xNet envelope. See
 [ADR-11](#adr-11-xnet-is-a-protocol--the-interop-kernel-is-the-change-log-not-yjs).
 
 ## ADR-2: DID:key for identity
@@ -9980,19 +10055,19 @@ The decisions below were made after the initial ten were written, as the system
 grew from an app into a protocol with a managed cloud. They are recorded here so
 the log reflects the architecture as it actually stands.
 
-## ADR-11: XNet is a protocol — the interop kernel is the change log, not Yjs
+## ADR-11: xNet is a protocol — the interop kernel is the change log, not Yjs
 
 **Status:** Accepted (2026-06)
 **Context:** Exploration 0200. The normative spec lives in `docs/specs/protocol/`; see also [The Protocol](/docs/protocol/overview/).
 
-**Decision:** Treat XNet as a versioned, multi-implementation **protocol** whose
+**Decision:** Treat xNet as a versioned, multi-implementation **protocol** whose
 normative surface is four layers — **L0** cryptographic primitives, **L1** data
 model, **L2** replication, **L3** authorization — with the application profile
 (**L4**) explicitly non-normative. The interop kernel is a **signed,
 hash-chained, per-property-LWW change log over schema-typed nodes**
 (`CURRENT_PROTOCOL_VERSION = 3` in `packages/sync/src/change.ts`). Yjs is a
 **pluggable document codec** for the rich-text/canvas body of certain nodes and
-travels the wire as opaque bytes inside an XNet envelope.
+travels the wire as opaque bytes inside an xNet envelope.
 
 **Rationale:**
 
@@ -10326,6 +10401,61 @@ behind an algorithm-agility seam, rather than a flag-day switch.
 **Tradeoff / open:** Larger signatures and a two-algorithm verification path. This
 is a documented _posture_, not shipped code — it stays `Proposed` until the seam
 and hybrid signing land, at which point it is superseded by an `Accepted` ADR.
+
+## ADR-26: Cross-hub grants — plane split before propagation
+
+**Status:** Accepted (design); implementation deferred to a follow-up
+**Context:** Explorations 0258/0382/0383 (W4). Hub-to-hub Space subscription
+shipped for **public** Spaces; grants do not cross hubs.
+
+**Decision:** Cross-hub access control splits by plane before any grant ever
+propagates. The **public plane** needs no grants: a hub mirrors another hub's
+public Space over the ordinary wire protocol, and mirrored state is **never
+re-exported** (served only under `/sub/*`), so subscription cycles cannot
+amplify. The **granted plane** stays single-hub until a dedicated design lands:
+a grant is a capability minted by a Space's home hub, and no mirror, gateway,
+or federation surface may widen it. When cross-hub grants are built, they will
+be **delegation chains rooted at the granting hub's persistent DID** (UCAN-style,
+matching the existing auth kernel) — never grant-table replication, which would
+turn every subscribed hub into a policy-enforcement point it cannot honestly be.
+
+**Rationale:**
+
+- Public-first delivered the hub-of-hubs primitive without touching the
+  security kernel (0383's subscription-first ordering).
+- Replicating grant rows would make revocation eventually-consistent across
+  hubs an attacker can choose among — a deny must always win (0359).
+- Delegation chains keep the home hub authoritative: a downstream hub can
+  *prove* access was granted without being able to *mint* it.
+
+**Tradeoff:** Members of a gated community cannot yet read it through a
+different hub. Accepted: correctness of revocation outranks read locality.
+
+## ADR-27: `@xnetjs/server` stays a separate product
+
+**Status:** Accepted
+**Context:** Exploration 0382/0383 (the standing question): "everything is a
+hub" unified the server surface into one binary with roles — except
+`@xnetjs/server`, the BYO-backend engine (exploration 0223), which does not
+depend on `@xnetjs/hub` at all.
+
+**Decision:** **Scope out.** `@xnetjs/server` is not a hub role and will not
+be absorbed. It serves a different buyer: an app team embedding xNet's data
+model inside *their* backend (their auth, their storage, their trust mode) —
+not an operator running xNet's server. The hub's role system covers every
+deployment of *our* server; `@xnetjs/server` remains the library for building
+*someone else's*.
+
+**Rationale:**
+
+- Absorbing it as a role would couple its `TrustMode`/storage hooks to hub
+  release cadence for zero operator benefit (the MinIO gateway lesson, 0382:
+  a role that cannot share the core's invariants is a neighbour, not a role).
+- The decision is recorded precisely so the "second server" cannot drift back
+  into ambiguity one layer up (0383 R6).
+
+**Tradeoff:** Two server documentation surfaces. Accepted; they answer
+different questions.
 
 ---
 

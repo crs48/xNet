@@ -107,6 +107,7 @@ jobs:
           pnpm --filter @xnetjs/e2e-tests exec playwright test \
             src/authz-core.spec.ts src/database.spec.ts \
             src/doc-sync.spec.ts src/multitab-sqlite.spec.ts \
+            src/data-portability.spec.ts \
             --project=chromium --fail-on-flaky-tests
         env:
           CI: 'true'

@@ -63,7 +63,7 @@ export function PluginManager() {
   const [, setConfigTick] = useState(0)
   useEffect(() => onPluginConfigChange(() => setConfigTick((t) => t + 1)), [])
 
-  // Access the plugin registry from XNet context
+  // Access the plugin registry from xNet context
   const { pluginRegistry: registry, nodeStoreReady } = useXNet()
   const pluginsEnabled = registry !== null
 

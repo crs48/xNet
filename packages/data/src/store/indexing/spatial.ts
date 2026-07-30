@@ -403,6 +403,27 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
     }
 
     const value = node.properties[key]
-    return typeof value === 'number' && Number.isFinite(value) ? value : null
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value
+    }
+
+    // `parent.sub` addresses one numeric subfield of an object property
+    // (e.g. `cell_<fieldId>.lat` on a geo database cell) — must mirror
+    // `getNumericProperty` in store/query.ts, the JS parity guard for
+    // rows this index admits.
+    if (value === undefined) {
+      const dot = key.indexOf('.')
+      if (dot > 0) {
+        const parent = node.properties[key.slice(0, dot)]
+        if (typeof parent === 'object' && parent !== null && !Array.isArray(parent)) {
+          const sub = (parent as Record<string, unknown>)[key.slice(dot + 1)]
+          if (typeof sub === 'number' && Number.isFinite(sub)) {
+            return sub
+          }
+        }
+      }
+    }
+
+    return null
   }
 }

@@ -1,13 +1,13 @@
-# XNet Conformance Corpus
+# xNet Conformance Corpus
 
-Language‑agnostic **golden vectors** for the [XNet Protocol](../docs/specs/protocol/).
+Language‑agnostic **golden vectors** for the [xNet Protocol](../docs/specs/protocol/).
 An independent implementation claims conformance to a layer by reproducing that
 layer's vectors byte‑for‑byte. The vectors are plain JSON — any language can load
 them.
 
 > Why this exists: a spec without a conformance suite drifts (ActivityPub shipped
 > a W3C Recommendation with no test suite for ~5 years and implementations
-> diverged silently). XNet ships the corpus _with_ the spec and re‑verifies it in
+> diverged silently). xNet ships the corpus _with_ the spec and re‑verifies it in
 > CI. See [`docs/specs/protocol/90-conformance.md`](../docs/specs/protocol/90-conformance.md).
 
 ## Layout

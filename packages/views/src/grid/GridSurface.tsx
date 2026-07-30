@@ -17,7 +17,7 @@
 import type { CellPresence } from '../types.js'
 import type { CellRef, GridCallbacks, GridField, GridRowData } from './model.js'
 import type { GridCommand, GridPos, GridState, KeyInput } from './types.js'
-import type { CellValue, SortConfig } from '@xnetjs/data'
+import type { CellValue, FileRef, SortConfig } from '@xnetjs/data'
 import {
   DndContext,
   PointerSensor,
@@ -29,9 +29,16 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { useEntangleBind, useEntangledHighlight } from '@xnetjs/react'
 import { cn } from '@xnetjs/ui'
 import { Expand, GripVertical, Plus } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
+import {
+  acceptsFile,
+  toFileRefs,
+  type FileCellConfig,
+  type FileCellValue
+} from '../properties/file.js'
 import { coerceCellText, parseTsv, serializeTsv, type PasteField } from './clipboard.js'
 import { GridCell } from './GridCell.js'
 import { GridHeader } from './GridHeader.js'
@@ -42,6 +49,15 @@ import { isSelected, selectionRect } from './types.js'
 const GUTTER_WIDTH = 56
 const DEFAULT_ROW_HEIGHT = 36
 const GHOST_COL_WIDTH = 140
+/**
+ * Column virtualization kicks in above this many columns. Below it every
+ * field renders (simpler DOM, dnd/tests unchanged); above it vertical
+ * scrolling would mount O(columns) cells per overscan row — measured sub-60fps
+ * from ~32 columns, 8.6fps at 128 (exploration 0340).
+ */
+const COLUMN_VIRTUALIZE_MIN = 20
+/** Grow the row window when scroll comes within this many rows of the end. */
+const REACH_END_THRESHOLD_ROWS = 50
 
 /** Synthetic field for ghost cells (typing creates the real thing). */
 const GHOST_FIELD: GridField = {
@@ -54,6 +70,17 @@ const GHOST_FIELD: GridField = {
 
 /** Synthetic row for the ghost row (typing creates the real thing). */
 const GHOST_ROW: GridRowData = { id: '__ghost__', cells: {} }
+
+/**
+ * Rendered column range for virtualized rows: absolute indexes [start, end]
+ * plus spacer widths standing in for the unrendered columns on each side.
+ */
+interface ColWindow {
+  start: number
+  end: number
+  padLeft: number
+  padRight: number
+}
 
 export interface GridSurfaceProps extends GridCallbacks {
   fields: GridField[]
@@ -72,6 +99,23 @@ export interface GridSurfaceProps extends GridCallbacks {
   rowHeight?: number
   readOnly?: boolean
   className?: string
+  /**
+   * True matching row count for the whole table (not just the loaded
+   * window). When it exceeds `rows.length` the footer reads "N of M rows"
+   * instead of presenting the window size as the total (exploration 0340).
+   */
+  totalRowCount?: number | null
+  /** More rows exist past the loaded window. */
+  hasMoreRows?: boolean
+  /** A window grow is in flight (footer shows a loading hint). */
+  loadingMoreRows?: boolean
+  /**
+   * Called when scrolling nears the end of the loaded rows — wire to the
+   * data hook's `fetchMoreRows` for infinite scroll.
+   */
+  onReachEnd?: () => void
+  /** Extra footer annotation (e.g. "filtered within loaded rows"). */
+  footerNotice?: string
 }
 
 export function GridSurface({
@@ -84,6 +128,11 @@ export function GridSurface({
   rowHeight = DEFAULT_ROW_HEIGHT,
   readOnly,
   className,
+  totalRowCount,
+  hasMoreRows,
+  loadingMoreRows,
+  onReachEnd,
+  footerNotice,
   onUpdateCell,
   onClearCells,
   onAddRow,
@@ -99,6 +148,7 @@ export function GridSurface({
   onCreateOption,
   onUploadFile,
   onResolveFileUrl,
+  onResolveThumbUrl,
   onOpenRow,
   onUndo,
   onRedo,
@@ -163,9 +213,34 @@ export function GridSurface({
     overscan: 10
   })
 
-  // Keep the focused cell scrolled into view
+  // Columns virtualize only past the threshold — vertical scrolling mounts
+  // every rendered column per overscan row, which is the measured fps killer
+  // on wide tables (0340). Horizontal overscan of 3 matches the TanStack
+  // column example; paddingStart accounts for the row gutter so item offsets
+  // line up with the scroll element's coordinate space.
+  const virtualizeColumns = colCount > COLUMN_VIRTUALIZE_MIN
+  const columnVirtualizer = useVirtualizer({
+    horizontal: true,
+    enabled: virtualizeColumns,
+    count: colCount,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: (i) => fields[i]?.width ?? GHOST_COL_WIDTH,
+    paddingStart: GUTTER_WIDTH,
+    overscan: 3
+  })
+  // Field widths live outside the virtualizer (resize/view overrides) — force
+  // re-measure when they change so column offsets stay correct.
   useEffect(() => {
-    if (state.cursor) rowVirtualizer.scrollToIndex(state.cursor.row)
+    if (virtualizeColumns) columnVirtualizer.measure()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields, virtualizeColumns])
+
+  // Keep the focused cell scrolled into view (both axes)
+  useEffect(() => {
+    if (state.cursor) {
+      rowVirtualizer.scrollToIndex(state.cursor.row)
+      if (virtualizeColumns) columnVirtualizer.scrollToIndex(state.cursor.col)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cursorKey])
 
@@ -173,6 +248,23 @@ export function GridSurface({
     () => GUTTER_WIDTH + fields.reduce((sum, f) => sum + f.width, 0),
     [fields]
   )
+
+  // Rendered column window for rows: absolute field range plus flex spacers
+  // standing in for the unrendered columns (keeps row layout, dnd, and
+  // selection index math unchanged).
+  const virtualCols = columnVirtualizer.getVirtualItems()
+  const colWindow = useMemo<ColWindow | undefined>(() => {
+    if (!virtualizeColumns || virtualCols.length === 0) return undefined
+    const first = virtualCols[0]
+    const last = virtualCols[virtualCols.length - 1]
+    const totalColsEnd = columnVirtualizer.getTotalSize()
+    return {
+      start: first.index,
+      end: last.index,
+      padLeft: Math.max(0, first.start - GUTTER_WIDTH),
+      padRight: Math.max(0, totalColsEnd - last.end)
+    }
+  }, [virtualizeColumns, virtualCols, columnVirtualizer])
 
   // ─── Mutation helpers ──────────────────────────────────────────────────────
 
@@ -216,13 +308,26 @@ export function GridSurface({
 
   // Drag-a-file-onto-a-cell → upload + write the FileRef directly
   const handleDropFile = useCallback(
-    (rowIndex: number, colIndex: number, file: File) => {
-      if (!onUploadFile) return
+    (rowIndex: number, colIndex: number, files: File[]) => {
+      if (!onUploadFile || files.length === 0) return
       const cell = cellAt({ row: rowIndex, col: colIndex })
       if (!cell || cell.field.type !== 'file') return
       if (isCellLocked(cell.row.id, cell.field.id)) return
-      void onUploadFile(file).then((ref) => {
-        if (ref) onUpdateCell?.(cell.row.id, cell.field.id, ref as unknown as CellValue)
+
+      // Multi-file fields append to what's already there; single-file fields
+      // take the first accepted drop and replace (exploration 0385 W2).
+      const cfg = (cell.field.config ?? {}) as FileCellConfig
+      const multiple = Boolean(cfg.allowMultiple)
+      const accepted = files.filter((f) => acceptsFile(f, cfg.accept))
+      if (accepted.length === 0) return
+      const batch = multiple ? accepted : accepted.slice(0, 1)
+      const existing = multiple ? toFileRefs(cell.row.cells[cell.field.id] as FileCellValue) : []
+
+      void Promise.all(batch.map((file) => onUploadFile(file))).then((results) => {
+        const uploaded = results.filter((r): r is FileRef => Boolean(r))
+        if (uploaded.length === 0) return
+        const next = multiple ? [...existing, ...uploaded] : uploaded[0]
+        onUpdateCell?.(cell.row.id, cell.field.id, next as unknown as CellValue)
       })
     },
     [onUploadFile, cellAt, onUpdateCell, isCellLocked]
@@ -579,6 +684,11 @@ export function GridSurface({
     containerRef.current?.focus()
   }, [])
 
+  // Stable identity so memoized rows don't re-render on unrelated updates
+  const handleSelectRow = useCallback((r: number, shiftKey: boolean) => {
+    dispatch({ type: 'selectRow', row: r, extend: shiftKey })
+  }, [])
+
   // ─── Row drag (gutter handles) ─────────────────────────────────────────────
 
   const rowSensors = useSensors(
@@ -600,6 +710,20 @@ export function GridSurface({
 
   const virtualRows = rowVirtualizer.getVirtualItems()
   const totalHeight = rowVirtualizer.getTotalSize()
+
+  // Infinite scroll: grow the row window when scroll nears the end of the
+  // loaded rows. Fires once per window size — a grow changes rows.length,
+  // re-arming the sentinel.
+  const lastReachEndAtRef = useRef(-1)
+  const lastVirtualIndex = virtualRows.length > 0 ? virtualRows[virtualRows.length - 1].index : -1
+  useEffect(() => {
+    if (!onReachEnd || !hasMoreRows || loadingMoreRows) return
+    if (rows.length === 0) return
+    if (lastVirtualIndex < rows.length - REACH_END_THRESHOLD_ROWS) return
+    if (lastReachEndAtRef.current === rows.length) return
+    lastReachEndAtRef.current = rows.length
+    onReachEnd()
+  }, [onReachEnd, hasMoreRows, loadingMoreRows, lastVirtualIndex, rows.length])
 
   return (
     <div
@@ -674,17 +798,17 @@ export function GridSurface({
                       onDoubleClickCell={handleCellDoubleClick}
                       onEditorCommit={handleEditorCommit}
                       onEditorCancel={handleEditorCancel}
-                      onSelectRow={(r, shiftKey) =>
-                        dispatch({ type: 'selectRow', row: r, extend: shiftKey })
-                      }
+                      onSelectRow={handleSelectRow}
                       onOpenRow={onOpenRow}
                       onCommentClick={onCommentCell ?? undefined}
                       onCreateOption={onCreateOption}
                       onUploadFile={onUploadFile}
                       onDropFile={handleDropFile}
                       onResolveFileUrl={onResolveFileUrl}
+                      onResolveThumbUrl={onResolveThumbUrl}
                       isGhostRow={row.id === '__ghost__'}
                       hasGhostCol={hasGhostCol}
+                      colWindow={colWindow}
                     />
                   )
                 })}
@@ -694,10 +818,14 @@ export function GridSurface({
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer — shows the true total when the loaded window is smaller */}
       <div className="flex items-center justify-between px-3 py-1.5 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-        <span>
-          {rows.length} {rows.length === 1 ? 'row' : 'rows'}
+        <span data-testid="grid-row-count">
+          {totalRowCount != null && totalRowCount > rows.length
+            ? `${rows.length.toLocaleString()} of ${totalRowCount.toLocaleString()} rows`
+            : `${rows.length.toLocaleString()} ${rows.length === 1 ? 'row' : 'rows'}`}
+          {loadingMoreRows && ' · loading more…'}
+          {footerNotice && ` · ${footerNotice}`}
         </span>
         {!readOnly && onAddRow && (
           <button
@@ -738,15 +866,25 @@ interface GridRowProps {
   onCommentClick?: (rowId: string, fieldId: string, anchorEl: HTMLElement | null) => void
   onCreateOption?: (fieldId: string, name: string) => Promise<string | null>
   onUploadFile?: (file: File) => Promise<import('@xnetjs/data').FileRef | null>
-  onDropFile?: (rowIndex: number, colIndex: number, file: File) => void
+  onDropFile?: (rowIndex: number, colIndex: number, files: File[]) => void
   onResolveFileUrl?: (ref: import('@xnetjs/data').FileRef) => Promise<string>
+  /** Resolve a ref's small preview, preferred over the full file (0385 W4) */
+  onResolveThumbUrl?: (ref: import('@xnetjs/data').FileRef) => Promise<string | null>
   /** This is the ghost "type to add a row" row */
   isGhostRow?: boolean
   /** Append the ghost "type to add a field" column cell */
   hasGhostCol?: boolean
+  /** When set, render only columns [start, end] with spacers on both sides */
+  colWindow?: ColWindow
 }
 
-function GridRow({
+/**
+ * Memoized: with stable row identity from the data hook (0340), a window
+ * grow or an edit to one row re-renders only the rows whose props changed —
+ * not every visible row. Interaction state (cursor/selection/editing) is a
+ * single `state` prop, so interactions still repaint the visible window.
+ */
+const GridRow = React.memo(function GridRow({
   row,
   rowIndex,
   top,
@@ -771,12 +909,18 @@ function GridRow({
   onDropFile,
   onResolveFileUrl,
   isGhostRow,
-  hasGhostCol
+  hasGhostCol,
+  colWindow
 }: GridRowProps): React.JSX.Element {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
     id: row.id,
     disabled: readOnly
   })
+
+  // Entangle bus (0346): hovering this row lights the same node in
+  // sibling frames (map pin, board card, wikilink) and vice versa.
+  const entangleBind = useEntangleBind(isGhostRow ? null : row.id)
+  const entangled = useEntangledHighlight(isGhostRow ? null : row.id)
 
   const hostsEditing = state.editing?.pos.row === rowIndex
 
@@ -805,8 +949,10 @@ function GridRow({
       className={cn(
         'flex group/row hover:bg-gray-50 dark:hover:bg-gray-800/40',
         rowSelected && 'bg-blue-50 dark:bg-blue-900/20',
+        entangled && 'bg-amber-50/70 dark:bg-amber-900/15',
         isDragging && 'opacity-60 z-20'
       )}
+      {...entangleBind}
     >
       {/* Gutter: row number, drag handle, expand (ghost row: + affordance) */}
       <div
@@ -851,7 +997,14 @@ function GridRow({
         )}
       </div>
 
-      {[...fields, ...(hasGhostCol ? [GHOST_FIELD] : [])].map((field, colIndex) => {
+      {colWindow && colWindow.padLeft > 0 && (
+        <div style={{ width: colWindow.padLeft, minWidth: colWindow.padLeft }} aria-hidden />
+      )}
+      {(() => {
+        const allCols = [...fields, ...(hasGhostCol ? [GHOST_FIELD] : [])]
+        return colWindow ? allCols.slice(colWindow.start, colWindow.end + 1) : allCols
+      })().map((field, i) => {
+        const colIndex = colWindow ? colWindow.start + i : i
         const isGhostCell = isGhostRow || field.id === '__ghost__'
         const pos = { row: rowIndex, col: colIndex }
         const focused =
@@ -907,6 +1060,9 @@ function GridRow({
           />
         )
       })}
+      {colWindow && colWindow.padRight > 0 && (
+        <div style={{ width: colWindow.padRight, minWidth: colWindow.padRight }} aria-hidden />
+      )}
     </div>
   )
-}
+})

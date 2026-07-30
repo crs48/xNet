@@ -1,61 +1,28 @@
 /**
- * ViewRenderer - Renders the appropriate view based on type
- *
- * Replaces hardcoded switch statements in apps with a registry-based lookup.
+ * ViewRenderer — dispatches a database view type to its registered
+ * component (exploration 0339). The database shell renders this for
+ * every non-table/form view; plugin-registered types render through the
+ * exact same path.
  */
 
-import type { ViewProps } from './registry.js'
 import React from 'react'
-import { useViewRegistry } from './hooks/useViewRegistry.js'
+import type { DatabaseViewProps } from './database-views/contract.js'
+import { viewRegistry } from './registry.js'
 
-export interface ViewRendererProps extends ViewProps {
-  /** View type to render */
-  viewType: string
-  /** Fallback content when view type is not found */
-  fallback?: React.ReactNode
+export interface ViewRendererProps extends DatabaseViewProps {
+  /** View type to render (the DatabaseView node's `type`) */
+  type: string
 }
 
-/**
- * Renders a view component based on the view type
- *
- * Looks up the view component from the ViewRegistry and renders it
- * with the provided props. Falls back to an error message if the
- * view type is not registered.
- *
- * @example
- * ```tsx
- * // Instead of:
- * switch (viewType) {
- *   case 'table': return <TableView {...props} />
- *   case 'board': return <BoardView {...props} />
- * }
- *
- * // Use:
- * <ViewRenderer viewType={viewType} {...props} />
- * ```
- */
-export function ViewRenderer({
-  viewType,
-  fallback,
-  ...viewProps
-}: ViewRendererProps): React.JSX.Element {
-  const { getView } = useViewRegistry()
-  const registration = getView(viewType)
-
+export function ViewRenderer({ type, ...props }: ViewRendererProps): React.JSX.Element {
+  const registration = viewRegistry.get(type)
   if (!registration) {
-    if (fallback) {
-      return <>{fallback}</>
-    }
     return (
-      <div className="flex items-center justify-center h-full p-8 text-muted-foreground">
-        <div className="text-center">
-          <p className="text-lg font-medium">Unknown view type</p>
-          <p className="text-sm mt-1">View type &quot;{viewType}&quot; is not registered</p>
-        </div>
+      <div className="flex h-full items-center justify-center p-8 text-sm text-ink-3">
+        Unknown view type “{type}”. A plugin may need to be enabled.
       </div>
     )
   }
-
   const Component = registration.component
-  return <Component {...viewProps} />
+  return <Component {...props} />
 }

@@ -1,17 +1,17 @@
-# Agent-Native Connectors: XNet As The Governed Integration Plane
+# Agent-Native Connectors: xNet As The Governed Integration Plane
 
 ## Problem Statement
 
 > "I like how OpenClaw has centralized around building CLI tools that AI
 > agents interact with (e.g. [printingpress.dev](https://printingpress.dev/)).
-> What is the XNet equivalent? Maybe XNet just leverages those tools via the
-> user's existing Claude Code harness. Or maybe XNet provides *more guardrails*
+> What is the xNet equivalent? Maybe xNet just leverages those tools via the
+> user's existing Claude Code harness. Or maybe xNet provides *more guardrails*
 > than OpenClaw — instead of giving an agent full reign over your whole machine,
-> XNet is the **staging area** for all this information and the **gatekeeping
+> xNet is the **staging area** for all this information and the **gatekeeping
 > surface** that stops agents from cross-contaminating data or accessing data
 > they're not supposed to. From a developer standpoint it should be really easy
 > to build these integrations / plugins / CLIs for whatever they want — Google
-> Cloud, Slack, anything — leveraging XNet's primitives (data model + plugin
+> Cloud, Slack, anything — leveraging xNet's primitives (data model + plugin
 > ecosystem), and to get them onto a marketplace of open-source integrations."
 
 The market has converged on a powerful pattern: **agent-native CLIs**. Printing
@@ -23,37 +23,37 @@ shell, the user's credentials, and the agent's full discretion. There is no
 boundary between "the Slack data the agent should see" and "everything Slack
 will hand over to a valid token."
 
-XNet has a different center of gravity. It is not a shell; it is a **local-first,
+xNet has a different center of gravity. It is not a shell; it is a **local-first,
 schema-typed, authorization-aware data graph** with CRDT sync, spaces, a
 capability-scoped plugin runtime, a secret broker, and an MCP server that already
 exposes the workspace to agents. The question this exploration answers:
 
-**What is the XNet-native shape of an "integration"? Is it a CLI we generate, a
+**What is the xNet-native shape of an "integration"? Is it a CLI we generate, a
 plugin we install, or something else — and how do we make it trivial for a
 developer to bring *any* external service (Slack, Google Cloud, GitHub, a niche
-API) into XNet such that agents operate on a governed data plane instead of
+API) into xNet such that agents operate on a governed data plane instead of
 holding raw credentials, and then publish it to a marketplace?**
 
-The thesis: **XNet's equivalent of the Printing Press CLI is the *Connector* — a
-FeatureModule subtype that syncs an external service into XNet nodes and exposes
+The thesis: **xNet's equivalent of the Printing Press CLI is the *Connector* — a
+FeatureModule subtype that syncs an external service into xNet nodes and exposes
 agent-callable tools, where every read/write/secret/egress is gated by primitives
-XNet already ships.** The agent never gets the Slack token; it gets
-policy-evaluated nodes. And because XNet can *also* emit an MCP server / skill /
+xNet already ships.** The agent never gets the Slack token; it gets
+policy-evaluated nodes. And because xNet can *also* emit an MCP server / skill /
 files-first checkout from the same definition, a Connector is simultaneously
-governed-inside-XNet and portable to the user's own Claude Code/Codex/OpenClaw
+governed-inside-xNet and portable to the user's own Claude Code/Codex/OpenClaw
 harness. We don't pick "build our own" vs "ride the existing harness" — the
 Connector is the seam that does both.
 
 ## Executive Summary
 
-1. **The OpenClaw/Printing Press model is "agent + shell + raw creds." XNet's
+1. **The OpenClaw/Printing Press model is "agent + shell + raw creds." xNet's
    model is "agent + governed data plane."** That distinction *is* the product.
-   Printing Press optimizes the *agent→service* hop for tokens; XNet inserts a
+   Printing Press optimizes the *agent→service* hop for tokens; xNet inserts a
    **staging + gatekeeping layer** between them so the agent's blast radius is a
    set of authorization-checked nodes, not a credentialed shell. This is the one
    thing the CLI factories structurally cannot offer.
 
-2. **XNet already has ~85% of the substrate — it is unintegrated, not unbuilt.**
+2. **xNet already has ~85% of the substrate — it is unintegrated, not unbuilt.**
    The capability guard (`guardStore`), network endowment (`guardedFetch`), hub
    secret broker (`scopedEnv`), schema-native policy evaluator, spaces cascade,
    the dormant `importers` contribution point, the MCP server (`xnet mcp serve`),
@@ -62,7 +62,7 @@ Connector is the seam that does both.
    **thin composition** of these, not new infrastructure.
 
 3. **Define one primitive — the Connector — as a `FeatureModule` subtype.** It
-   bundles: a server-side **sync adapter** (external API → XNet nodes, holding
+   bundles: a server-side **sync adapter** (external API → xNet nodes, holding
    secrets in the hub broker), a set of **`agentTools`** (a new contribution
    point), and a **capability manifest** (`secrets` / `schemaWrite` / `schemaRead`
    / `network`). Trust tier follows provenance, exactly like Labs and plugins.
@@ -85,7 +85,7 @@ Connector is the seam that does both.
    user's *own* Claude Code/Codex can use it (the agent-bridge path, 0194).
    Conversely, an existing Printing Press CLI can be *wrapped* as a Connector by
    running it through the labs server/command tier and mapping its output into
-   nodes. XNet becomes the governance layer over the CLI ecosystem, not a
+   nodes. xNet becomes the governance layer over the CLI ecosystem, not a
    competitor to it.
 
 7. **Recommendation: the hybrid "governed Connector + portable emitter" (Option
@@ -97,7 +97,7 @@ Connector is the seam that does both.
 
 ## Current State In The Repository
 
-XNet already has every layer the Connector needs. The work is wiring, not
+xNet already has every layer the Connector needs. The work is wiring, not
 greenfield. Mapped by responsibility:
 
 ### The data plane (the "staging area")
@@ -114,7 +114,7 @@ greenfield. Mapped by responsibility:
   immediately searchable and renderable (the Printing Press "SQLite mirror"
   insight, but the mirror is a first-class, synced, queryable graph).
 
-### The gatekeeping surface (what makes XNet ≠ OpenClaw)
+### The gatekeeping surface (what makes xNet ≠ OpenClaw)
 
 - **Capability declaration.** `packages/plugins/src/feature-module.ts` —
   `ModuleCapabilities { secrets?, schemaWrite?, schemaRead?, network?, endowments? }`
@@ -244,9 +244,9 @@ the subject of this exploration — and none of it is large.
 - **Reverse-engineering:** no OpenAPI spec? It drives a browser, captures traffic,
   and synthesizes the spec.
 
-The XNet-relevant insight: Printing Press's value is **opinionated, token-
+The xNet-relevant insight: Printing Press's value is **opinionated, token-
 efficient *shaping* of an external service for agent consumption** — plus a
-thriving distribution channel. XNet should match the shaping/distribution DX and
+thriving distribution channel. xNet should match the shaping/distribution DX and
 *add* the governance layer.
 
 ### OpenClaw — the "agent + full machine" model
@@ -257,7 +257,7 @@ a scheduler, and the ability to browse the web, run shell commands, read/write
 files, and integrate MCP servers. It runs on the user's machine and keeps data
 local. Its trust model is **the agent has the keys to your machine** — privacy by
 locality, not by per-action authorization. This is exactly the model the prompt
-wants XNet to *improve on* with guardrails.
+wants xNet to *improve on* with guardrails.
 
 ### The MCP-vs-CLI token debate (and why it doesn't force a choice)
 
@@ -277,7 +277,7 @@ wants XNet to *improve on* with guardrails.
   MCP for governance, auth, multi-tenancy, and audit trails — *"the price of
   admission for enterprise-grade tool orchestration."*
 
-This validates XNet's position precisely. XNet **already** does progressive
+This validates xNet's position precisely. xNet **already** does progressive
 disclosure (`MCP_CORE_TOOL_NAMES` + deferred tools), **already** has the
 governance MCP gives you (auth, audit via `McpWriteGuardrail`, multi-tenant via
 DID + spaces), and **already** has a files-first/code-execution surface
@@ -293,8 +293,8 @@ Sources:
 
 ## Key Findings
 
-1. **XNet's differentiator is the boundary, not the tool.** Printing Press and
-   OpenClaw make the agent *more capable against a service*. XNet makes the agent
+1. **xNet's differentiator is the boundary, not the tool.** Printing Press and
+   OpenClaw make the agent *more capable against a service*. xNet makes the agent
    *governed against your data*. The Connector is the artifact that turns "the
    agent can call Slack" into "the agent can read the Slack messages it's
    authorized to, in the space it's working in, and the token never leaves the
@@ -330,7 +330,7 @@ Sources:
    tiers (`deriveTrustTier`) which gate sandbox tier and capability reprompts. The
    Connector inherits this with zero new policy.
 
-7. **Interop is cheap because XNet already speaks the lingua franca.** XNet emits
+7. **Interop is cheap because xNet already speaks the lingua franca.** xNet emits
    MCP (`createMcpHttpServer`) and a portable `SKILL.md` (`XNET_AGENT_SKILL_MD`)
    today. Emitting a per-Connector skill/MCP shim — and wrapping an external CLI
    via the labs `server`/command tier — is incremental, not foundational.
@@ -340,34 +340,34 @@ Sources:
 ### Option A — Thin: ride the user's existing harness (BYO)
 
 Do almost nothing new. Lean on the agent bridge (0194) + `xnet mcp serve`. Users
-install Printing Press CLIs in their own Claude Code/OpenClaw; XNet exposes its
+install Printing Press CLIs in their own Claude Code/OpenClaw; xNet exposes its
 workspace as MCP tools and drives the agent.
 
 - **Pros:** near-zero build; immediately compatible with the entire Printing Press
   library; honest about where the ecosystem energy is.
 - **Cons:** **abandons the thesis.** The agent runs in the user's shell with full
-  creds; XNet is just one more tool it can call. No staging, no gatekeeping, no
-  cross-contamination protection. Integrations live outside XNet's data model, so
-  they don't get sync/search/auth/spaces. No marketplace of *XNet* integrations.
+  creds; xNet is just one more tool it can call. No staging, no gatekeeping, no
+  cross-contamination protection. Integrations live outside xNet's data model, so
+  they don't get sync/search/auth/spaces. No marketplace of *xNet* integrations.
 
 ### Option B — Thick: the governed Connector primitive
 
 A new `FeatureModule` subtype: server-side **sync adapter** (secret-scoped
 `HubFeature`) + **`agentTools`** + **capability manifest**. External data lands in
-XNet nodes; agents operate through the policy-evaluated store.
+xNet nodes; agents operate through the policy-evaluated store.
 
 - **Pros:** delivers the thesis exactly. Inherits sync/search/auth/spaces.
   Token-in-broker; node-level authorization; capability + egress guards. A real
-  XNet marketplace category.
+  xNet marketplace category.
 - **Cons:** more to build; a connector author must think in schemas; not directly
   compatible with the existing Printing Press CLI library unless we add a wrapper.
 
 ### Option C — CLI factory: clone Printing Press
 
-Build an XNet generator that emits agent-native CLIs from an API spec.
+Build an xNet generator that emits agent-native CLIs from an API spec.
 
 - **Pros:** matches the proven DX; rides the token-efficiency narrative directly.
-- **Cons:** competes on someone else's turf while ignoring XNet's actual edge (the
+- **Cons:** competes on someone else's turf while ignoring xNet's actual edge (the
   governed data model). A standalone CLI doesn't get auth/spaces/sync. Best value
   is as a *complement* (an output format), not the core.
 
@@ -381,18 +381,18 @@ competitor). Plus one-prompt AI authoring and a `connectors` marketplace categor
 
 - **Pros:** keeps the differentiator (governance) while being a good citizen of the
   CLI/MCP ecosystem. One definition, every surface. The user can run a Connector
-  *inside* XNet's governed plane **or** export it to their own Claude Code — same
+  *inside* xNet's governed plane **or** export it to their own Claude Code — same
   artifact. Wraps existing Printing Press CLIs into the governed plane.
 - **Cons:** the most moving parts; needs phasing to avoid a big-bang.
 
 | Dimension | A: Thin/BYO | B: Connector | C: CLI factory | **D: Hybrid** |
 |---|---|---|---|---|
 | Delivers gatekeeping thesis | ✗ | ✓✓ | ✗ | ✓✓ |
-| Reuses XNet primitives | partial | ✓✓ | ✗ | ✓✓ |
+| Reuses xNet primitives | partial | ✓✓ | ✗ | ✓✓ |
 | Token-efficient agent path | ✓ | ✓ (progressive) | ✓✓ | ✓✓ |
 | Interop w/ Printing Press / external harness | ✓✓ | ✗ | ✓ | ✓✓ |
 | Build cost | tiny | medium | medium | medium-high (phased) |
-| Marketplace of XNet integrations | ✗ | ✓✓ | ✓ | ✓✓ |
+| Marketplace of xNet integrations | ✗ | ✓✓ | ✓ | ✓✓ |
 
 **Recommendation: Option D**, phased so Phase 1 already delivers a usable governed
 Connector and each later phase adds reach.
@@ -406,9 +406,9 @@ flowchart LR
     CLI1 -->|full token| SVC1["Slack API"]
     A1 -.full machine access.-> FS1["Your files, all your data"]
   end
-  subgraph XN["XNet Connector model"]
+  subgraph XN["xNet Connector model"]
     A2["Agent"] -->|MCP/AI tool call| Gate["Capability + policy gate"]
-    Gate -->|authorized nodes only| Store["XNet node store<br/>(space-scoped)"]
+    Gate -->|authorized nodes only| Store["xNet node store<br/>(space-scoped)"]
     Conn["Slack Connector (hub feature)"] -->|token in scopedEnv| SVC2["Slack API"]
     SVC2 -->|sync| Store
     Gate -. agent never sees token .- Conn
@@ -437,7 +437,7 @@ import { defineFeatureModule, type FeatureModule } from '../feature-module'
 export interface ConnectorSyncSpec {
   /** Schema IRIs this connector materializes (must be a subset of capabilities.schemaWrite). */
   schemas: string[]
-  /** Pull external data → XNet nodes. Runs hub-side with scoped secrets + guardedFetch. */
+  /** Pull external data → xNet nodes. Runs hub-side with scoped secrets + guardedFetch. */
   pull(ctx: ConnectorSyncContext): Promise<ConnectorSyncResult>
   /** How often to re-sync (cron-ish). Optional; default manual + on-demand. */
   cadence?: 'manual' | 'hourly' | 'daily' | { everyMs: number }
@@ -555,7 +555,7 @@ stateDiagram-v2
 `emitConnectorArtifacts(def)` produces, from the same definition: an MCP server
 shim (reusing `createMcpHttpServer`), a per-connector `SKILL.md` (extending the
 `XNET_AGENT_SKILL_MD` pattern), a files-first view name, and — optionally — a thin
-CLI. So a Connector is governed inside XNet *and* usable by the user's own Claude
+CLI. So a Connector is governed inside xNet *and* usable by the user's own Claude
 Code via the agent bridge. To ingest the existing world, `wrapCliConnector` runs an
 external Printing Press CLI via the labs `server`/command tier and maps its TSV/JSON
 output into nodes — pulling 300+ existing CLIs into the governed plane.

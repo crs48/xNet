@@ -176,6 +176,10 @@ export const FAQS: CloudFaq[] = [
     a: 'Your subscription cancels at the end of the period and the hub is suspended, with your encrypted backup retained for a grace window so you can re-subscribe or export. Deleting your data is a separate, explicit, irreversible action.'
   },
   {
+    q: 'Where does the margin come from?',
+    a: 'From operations and support — running your hub, backups, isolation, SLAs, and admin — never from access to your own data. Export everything for free, pay no egress fees, and self-host the same open-source hub whenever you like. Our Charter calls this the "no ground rent" rule and links every one of those promises to the code that backs it.'
+  },
+  {
     q: 'Do I pay for AI usage?',
     a: 'The managed AI gateway is included on paid plans up to a budget; usage beyond that is metered transparently and shown on your dashboard. A hard budget stop prevents surprise bills.'
   }

@@ -233,6 +233,13 @@ export function buildControlPlane(options: BuildControlPlaneOptions = {}): {
     aiKeys && cloudUrl && env.XNET_CLOUD_INTERNAL_SECRET
       ? { cloudUrl, internalSecret: env.XNET_CLOUD_INTERNAL_SECRET }
       : undefined
+  // Diagnostics escalation wiring (0341): every managed hub gets the upstream
+  // URL + its per-tenant secret so "Send to xNet" and the dashboard summary
+  // work with zero per-hub config; every switch stays with the tenant.
+  const diagnostics =
+    cloudUrl && env.XNET_CLOUD_INTERNAL_SECRET
+      ? { cloudUrl, masterSecret: env.XNET_CLOUD_INTERNAL_SECRET }
+      : undefined
   const controlPlane = new ControlPlane({
     tenants: options.tenants ?? stores?.tenants ?? new MemoryTenantStore(),
     bindings: options.bindings ?? stores?.bindings ?? new MemoryBindingStore(),
@@ -242,6 +249,7 @@ export function buildControlPlane(options: BuildControlPlaneOptions = {}): {
     defaultTargetVersion: env.HUB_IMAGE_TAG ?? 'xnet-hub@0.0.1',
     ...(aiKeys ? { aiKeys } : {}),
     ...(managedAi ? { managedAi } : {}),
+    ...(diagnostics ? { diagnostics } : {}),
     ...(options.readUsageBytes ? { readUsageBytes: options.readUsageBytes } : {})
   })
   return { controlPlane, billing }
@@ -336,6 +344,10 @@ function start(): void {
     appUrl: env.XNET_CLOUD_APP_URL ?? 'https://xnet.fyi/app',
     ...(env.XNET_CLOUD_INTERNAL_SECRET ? { internalSecret: env.XNET_CLOUD_INTERNAL_SECRET } : {}),
     ...(env.SENTRY_DSN ? { sentryDsn: env.SENTRY_DSN } : {}),
+    // First-seen crash-fingerprint alert (0315 P4): SSRF-guarded, content-free.
+    ...(env.XNET_CLOUD_DIAGNOSTICS_ALERT_URL
+      ? { diagnosticsAlertUrl: env.XNET_CLOUD_DIAGNOSTICS_ALERT_URL }
+      : {}),
     ...(durable ? { nonces: durable.nonces } : {}),
     ...(ai ? { ai } : {})
   })

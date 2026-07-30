@@ -127,9 +127,9 @@ export function MeetingsListView({
 export interface MeetingDetailViewProps {
   meetingId: string
   /**
-   * Platform slot for the collaborative notes editor — the web app passes its
-   * TipTap Editor bound to the meeting's Y.Doc. Absent → the pane explains
-   * notes need the editor surface (transcript still renders).
+   * Platform slot for the collaborative notes editor — the apps pass their
+   * XNetEditor (BlockNote, 0312) bound to the meeting's Y.Doc. Absent → the
+   * pane explains notes need the editor surface (transcript still renders).
    */
   renderNotes?: (args: { meetingId: string; doc: Y.Doc }) => ReactNode
   /**

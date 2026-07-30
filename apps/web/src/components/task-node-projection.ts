@@ -3,7 +3,7 @@
  * Kept free of React so the host-authority rules stay unit-testable.
  */
 import type { UseTasksResult } from '@xnetjs/react'
-import { dueDateMsToIso as msToIso, type TaskDisplayData } from '@xnetjs/ui'
+import type { TaskDisplayData } from '@xnetjs/ui'
 
 export type TaskNode = UseTasksResult['data'][number]
 
@@ -41,27 +41,4 @@ export function taskHostInfo(task: Pick<TaskNode, 'page' | 'canvas'>): TaskHostI
     sourceLabel: pageId ? 'Open page' : canvasId ? 'Open canvas' : null,
     hostOwned: Boolean(pageId || canvasId)
   }
-}
-
-/** Set difference in both directions, preserving `next` order for adds. */
-export function diffAssignees(
-  current: readonly string[],
-  next: readonly string[]
-): { added: string[]; removed: string[] } {
-  return {
-    added: next.filter((did) => !current.includes(did)),
-    removed: current.filter((did) => !next.includes(did))
-  }
-}
-
-/** UTC ms → YYYY-MM-DD for the editor's due-date chips; null clears.
- *  Delegates to the canonical converter (@xnetjs/ui) so the node↔doc
- *  round-trip shares one timezone-safe contract (exploration 0172). */
-export function dueDateMsToIso(dueDate: number | null): string | null {
-  return dueDate == null ? null : msToIso(dueDate)
-}
-
-/** Compact fallback label when presence has no entry for a DID. */
-export function fallbackMentionLabel(did: string): string {
-  return did.startsWith('did:key:') ? did.slice(8, 18) : did
 }

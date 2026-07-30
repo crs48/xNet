@@ -40,7 +40,14 @@ function loadStoryEntries(indexPath) {
   const json = JSON.parse(readFileSync(indexPath, 'utf8'))
   // Storybook >=8 index.json: { v, entries: { id: { type, title, name, importPath } } }
   const entries = json.entries ?? json.stories ?? {}
-  return Object.values(entries).filter((e) => (e.type ?? 'story') === 'story')
+  // `story` and `docs` both render a screenshot-able page. Visual exploration
+  // companions (0403) are `docs` entries whose importPath is their own .mdx, so
+  // including them is what makes a companion capture when it changes — they need
+  // no manifest entry of their own. `viewMode` differs; capture.mjs reads `type`.
+  return Object.values(entries).filter((e) => {
+    const type = e.type ?? 'story'
+    return type === 'story' || type === 'docs'
+  })
 }
 
 const base = arg('base', 'origin/main')
@@ -61,6 +68,7 @@ if (all) {
   set = {
     stories: storyEntries.map((e) => ({
       kind: 'story',
+      type: e.type ?? 'story',
       id: e.id,
       title: e.title,
       name: e.name,

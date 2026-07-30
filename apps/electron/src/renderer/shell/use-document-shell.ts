@@ -84,6 +84,7 @@ export interface DocumentShell {
   handleOpenDataWorkspace: () => void
   handleOpenMeetings: () => void
   handleOpenStories: () => void
+  handleOpenAssistant: () => void
   handleInsertSavedLensAsCanvasFrame: (view: SavedViewCanvasFrameInput) => void
   handleCommandStateChange: Dispatch<SetStateAction<CanvasViewCommandState>>
   handlePendingInsertConsumed: (requestId: string) => void
@@ -408,6 +409,10 @@ export function useDocumentShell(): DocumentShell {
     transitionShell({ type: 'open-stories' })
   }, [transitionShell])
 
+  const handleOpenAssistant = useCallback(() => {
+    transitionShell({ type: 'open-assistant' })
+  }, [transitionShell])
+
   const handlePendingInsertConsumed = useCallback((requestId: string) => {
     setPendingCanvasInsert((current) => (current?.requestId === requestId ? null : current))
   }, [])
@@ -441,6 +446,7 @@ export function useDocumentShell(): DocumentShell {
     handleOpenDataWorkspace,
     handleOpenMeetings,
     handleOpenStories,
+    handleOpenAssistant,
     handleInsertSavedLensAsCanvasFrame,
     handleCommandStateChange: setCanvasCommandState,
     handlePendingInsertConsumed

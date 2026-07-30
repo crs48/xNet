@@ -142,6 +142,55 @@ describe('Search Indexer', () => {
       expect(text).toBe('Hello World')
     })
 
+    it('extracts text from BlockNote-shaped ProseMirror JSON, including inline atoms (0312)', () => {
+      const columns: ColumnDefinition[] = [{ id: 'content', name: 'Content', type: 'richText' }]
+
+      // v4 shape: blockGroup > blockContainer > paragraph, atoms carry
+      // readable text in attrs only.
+      const blockNoteDoc = {
+        type: 'doc',
+        content: [
+          {
+            type: 'blockGroup',
+            content: [
+              {
+                type: 'blockContainer',
+                attrs: { id: 'block-1' },
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      { type: 'text', text: 'Ping ' },
+                      { type: 'mention', attrs: { id: 'did:key:alice', label: 'Alice' } },
+                      { type: 'text', text: ' about ' },
+                      { type: 'hashtag', attrs: { id: 'tag-1', name: 'harvest' } },
+                      { type: 'wikilink', attrs: { href: 'default/plan', title: 'Plan' } },
+                      { type: 'inlineMath', attrs: { latex: 'E=mc^2' } }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+
+      const row: DatabaseRow = {
+        id: 'row-1',
+        sortKey: 'a0',
+        cells: { content: blockNoteDoc },
+        createdAt: Date.now(),
+        createdBy: 'did:key:test'
+      }
+
+      const text = generateSearchableText(row, columns)
+      expect(text).toContain('Ping')
+      expect(text).toContain('@Alice')
+      expect(text).toContain('#harvest')
+      expect(text).toContain('Plan')
+      expect(text).toContain('E=mc^2')
+    })
+
     it('ignores non-searchable columns', () => {
       const columns: ColumnDefinition[] = [
         { id: 'title', name: 'Title', type: 'text' },

@@ -19,7 +19,9 @@ import {
   type FormFieldRule,
   type FormSubmissionMeta,
   type FormViewConfig,
+  type MapViewport,
   type SortConfig,
+  type ViewGroupMeta,
   type ViewType,
   type RowHeight,
   type SummaryFunction,
@@ -42,8 +44,10 @@ import {
   FormulaService,
   type RollupAggregation
 } from '@xnetjs/data'
+import type { QuerySpatialFilter } from '@xnetjs/data-bridge'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useIdentity } from './useIdentity'
+import { useInfiniteQuery } from './useInfiniteQuery'
 import { useMutate } from './useMutate'
 import { useNodeStore } from './useNodeStore'
 import { useQuery } from './useQuery'
@@ -89,6 +93,37 @@ export interface GridViewModel {
   formConfig: FormViewConfig | null
   formRules: Record<string, FormFieldRule>
   formAccepting: boolean
+  // Board/Gallery/Calendar/Timeline/Map config (exploration 0339)
+  coverField: string | null
+  cardSize: string | null
+  coverFit: string | null
+  colorBy: string | null
+  groupMeta: Record<string, ViewGroupMeta>
+  dateField: string | null
+  endDateField: string | null
+  latField: string | null
+  lngField: string | null
+  mapViewport: MapViewport | null
+}
+
+/**
+ * The per-view presentation config a view component may patch through
+ * `setViewConfig` (exploration 0339). One node write per patch — each
+ * property merges independently (LWW) with other clients' edits.
+ */
+export interface GridViewConfigPatch {
+  groupBy?: string | null
+  collapsedGroups?: string[]
+  coverField?: string | null
+  cardSize?: string | null
+  coverFit?: string | null
+  colorBy?: string | null
+  groupMeta?: Record<string, ViewGroupMeta>
+  dateField?: string | null
+  endDateField?: string | null
+  latField?: string | null
+  lngField?: string | null
+  mapViewport?: MapViewport | null
 }
 
 export interface GridRowModel {
@@ -110,8 +145,21 @@ export interface UseGridDatabaseOptions {
   viewId?: string
   /** Quick-find text (full-text search via SQLite FTS) */
   search?: string
-  /** Row window size (default 500) */
+  /** Rows fetched per window grow (default 500) */
   pageSize?: number
+  /**
+   * Ceiling on the live row window (default 2000). The window grows by
+   * `pageSize` via `fetchMoreRows` until this bound; beyond it further
+   * fetches are no-ops so the overfetch buffer and live snapshot stay
+   * bounded (exploration 0340).
+   */
+  maxLoaded?: number
+  /**
+   * Spatial window over two cell properties (map views, exploration
+   * 0339): only rows inside the rect are fetched. Bypasses the
+   * materialized-view cache (the rect varies per pan).
+   */
+  spatial?: QuerySpatialFilter
 }
 
 export interface UseGridDatabaseResult {
@@ -126,10 +174,34 @@ export interface UseGridDatabaseResult {
   activeView: GridViewModel | null
   /** Rows: view filters + sorts applied to the fetched window */
   rows: GridRowModel[]
+  /**
+   * The fetch window (exploration 0339): `size` is the row cap, `total`
+   * the full match count when the bridge reports one. Views use this to
+   * label truncation honestly instead of silently clipping.
+   */
+  rowWindow: { size: number; total: number | null }
   loading: boolean
+  /** Exact matching row count for the whole database (null while unknown). */
+  totalRowCount: number | null
+  /** Whether the row window can grow further (more rows exist past it). */
+  hasMoreRows: boolean
+  /** Whether a window grow is awaiting the larger read. */
+  isFetchingMoreRows: boolean
+  /** Grow the row window by `pageSize` (bounded by `maxLoaded`). */
+  fetchMoreRows: () => Promise<void>
 
   // Cell/row mutations
   updateCell: (rowId: string, fieldId: string, value: CellValue) => Promise<void>
+  /**
+   * Write several cells (and optionally the row's sortKey) as ONE node
+   * update — a kanban card move is exactly one write carrying the group
+   * cell + the fractional position (exploration 0339).
+   */
+  updateRowCells: (
+    rowId: string,
+    cells: Record<string, CellValue>,
+    opts?: { sortKey?: string }
+  ) => Promise<void>
   clearCells: (cells: Array<{ rowId: string; fieldId: string }>) => Promise<void>
   addRow: (
     afterRowId?: string,
@@ -161,6 +233,10 @@ export interface UseGridDatabaseResult {
   toggleSort: (fieldId: string) => Promise<void>
   setFilters: (filters: FilterGroup | null) => Promise<void>
   setGroupBy: (fieldId: string | null) => Promise<void>
+  /** Patch the active view's presentation config (exploration 0339) */
+  setViewConfig: (patch: GridViewConfigPatch) => Promise<void>
+  /** Persist a group's collapsed state on the active view */
+  setGroupCollapsed: (groupKey: string, collapsed: boolean) => Promise<void>
   setRowHeight: (rowHeight: RowHeight) => Promise<void>
   setColumnSummary: (fieldId: string, fn: SummaryFunction) => Promise<void>
   // Form view (exploration 0278)
@@ -213,7 +289,17 @@ function toViewModel(node: Flat): GridViewModel {
     sortKey: (node.sortKey as string) ?? '',
     formConfig: (node.formConfig as FormViewConfig | undefined) ?? null,
     formRules: (node.formRules as Record<string, FormFieldRule> | undefined) ?? {},
-    formAccepting: (node.formAccepting as boolean | undefined) ?? true
+    formAccepting: (node.formAccepting as boolean | undefined) ?? true,
+    coverField: (node.coverField as string | undefined) ?? null,
+    cardSize: (node.cardSize as string | undefined) ?? null,
+    coverFit: (node.coverFit as string | undefined) ?? null,
+    colorBy: (node.colorBy as string | undefined) ?? null,
+    groupMeta: (node.groupMeta as Record<string, ViewGroupMeta> | undefined) ?? {},
+    dateField: (node.dateField as string | undefined) ?? null,
+    endDateField: (node.endDateField as string | undefined) ?? null,
+    latField: (node.latField as string | undefined) ?? null,
+    lngField: (node.lngField as string | undefined) ?? null,
+    mapViewport: (node.mapViewport as MapViewport | undefined) ?? null
   }
 }
 
@@ -253,7 +339,7 @@ export function useGridDatabase(
   databaseId: string,
   options: UseGridDatabaseOptions = {}
 ): UseGridDatabaseResult {
-  const { viewId, search, pageSize = 500 } = options
+  const { viewId, search, pageSize = 500, maxLoaded = 2000, spatial } = options
   const mutate = useMutate()
   const { did } = useIdentity()
 
@@ -261,26 +347,50 @@ export function useGridDatabase(
 
   const { data: database, status: dbStatus } = useQuery(DatabaseSchema, databaseId)
 
+  // Metadata queries fetch by system order (indexable — avoids the
+  // unbounded-property-sort full-scan warning); the memos below re-sort
+  // by fractional sortKey, which is the real ordering authority.
   const { data: fieldNodes, status: fieldStatus } = useQuery(DatabaseFieldSchema, {
     where: { database: databaseId },
-    orderBy: { sortKey: 'asc' }
+    orderBy: { createdAt: 'asc' }
   })
 
   const { data: viewNodes, status: viewStatus } = useQuery(DatabaseViewSchema, {
     where: { database: databaseId },
-    orderBy: { sortKey: 'asc' }
+    orderBy: { createdAt: 'asc' }
   })
 
   const { data: optionNodes } = useQuery(DatabaseSelectOptionSchema, {
     where: { database: databaseId },
-    orderBy: { sortKey: 'asc' }
+    orderBy: { createdAt: 'asc' }
   })
 
-  const { data: rowNodes, status: rowStatus } = useQuery(DatabaseRowSchema, {
+  // Rows ride a growing `limit + orderBy` window (useInfiniteQuery) instead
+  // of a fixed page: `fetchMoreRows` extends it toward `maxLoaded`, and the
+  // whole window stays on the bridge's bounded-delta live path (0182/0340).
+  // `count: 'exact'` folds a COUNT(*) OVER () into the fused row query so the
+  // footer can show the true total, not the window size. Map views swap the
+  // materialized-view cache for a spatial viewport window (0339) — the rect
+  // varies per pan, so caching by view id would serve stale slices.
+  const {
+    data: rowNodes,
+    // Masked while a window grow is in flight (previous rows stay visible):
+    // consumers must not fall back to a skeleton mid-grow or scroll position
+    // is lost — `isFetchingMoreRows` reports the in-flight grow instead.
+    loading: rowsLoading,
+    totalCount: totalRowCount,
+    hasMore: hasMoreRows,
+    isFetchingNextPage: isFetchingMoreRows,
+    fetchNextPage: fetchMoreRows
+  } = useInfiniteQuery(DatabaseRowSchema, {
     where: { database: databaseId },
     orderBy: { sortKey: 'asc' },
-    limit: pageSize,
-    materializedView: `db:${databaseId}${viewId ? `:view:${viewId}` : ''}`,
+    pageSize,
+    maxLoaded,
+    page: { count: 'exact' },
+    ...(spatial
+      ? { spatial }
+      : { materializedView: `db:${databaseId}${viewId ? `:view:${viewId}` : ''}` }),
     ...(search ? { search } : {})
   })
 
@@ -391,12 +501,36 @@ export function useGridDatabase(
     }
   }, [rowNodes, fields, store])
 
+  // Row models cache per node identity: useQuery preserves FlatNode identity
+  // for unchanged rows, so a window grow (or an edit elsewhere) rebuilds only
+  // the rows whose node actually changed. Without this every grow re-created
+  // all models and re-rendered every visible row — the measured window-grow
+  // frame spike (0340). The cache resets whenever any model input other than
+  // the node itself changes.
+  const rowModelCacheRef = useRef<{ deps: readonly unknown[]; map: WeakMap<object, GridRowModel> }>(
+    { deps: [], map: new WeakMap() }
+  )
+
   const rows = useMemo(() => {
+    const cacheDeps = [fields, rollupValues, databaseId] as const
+    if (
+      cacheDeps.length !== rowModelCacheRef.current.deps.length ||
+      cacheDeps.some((d, i) => d !== rowModelCacheRef.current.deps[i])
+    ) {
+      rowModelCacheRef.current = { deps: cacheDeps, map: new WeakMap() }
+    }
+    const cache = rowModelCacheRef.current.map
+
     // Auto fields read node metadata instead of stored cells
     const autoFields = fields.filter((f) =>
       ['created', 'createdBy', 'updated', 'updatedBy'].includes(f.type)
     )
-    const base: GridRowModel[] = ((rowNodes ?? []) as unknown as Flat[]).map((node) => {
+    const formulaFields = fields.filter((f) => f.type === 'formula')
+    const rollupFields = fields.filter((f) => f.type === 'rollup')
+    const columnDefs =
+      formulaFields.length > 0 || activeView ? fieldsToColumnDefinitions(fields) : []
+
+    const buildRow = (node: Flat): GridRowModel => {
       const cells = fromCellProperties(node)
       for (const field of autoFields) {
         switch (field.type) {
@@ -419,59 +553,52 @@ export function useGridDatabase(
             break
         }
       }
-      return {
+      const row: GridRowModel = {
         id: node.id,
         sortKey: (node.sortKey as string) ?? '',
         cells
       }
-    })
+      // Formula fields evaluate from the row's other cells (cached per
+      // row+column input hash), before filters/sorts so they can use the
+      // computed values
+      for (const field of formulaFields) {
+        const columnDef = columnDefs.find((c) => c.id === field.id)
+        if (!columnDef) continue
+        try {
+          row.cells[field.id] = formulaService.compute(
+            { id: row.id, databaseId, cells: row.cells },
+            columnDef,
+            columnDefs
+          ) as CellValue
+        } catch {
+          row.cells[field.id] = null
+        }
+      }
+      // Rollup values merge from the async computation
+      for (const field of rollupFields) {
+        const computed = rollupValues.get(`${row.id}:${field.id}`)
+        if (computed !== undefined) row.cells[field.id] = computed
+      }
+      return row
+    }
 
-    // Formula fields evaluate from the row's other cells (cached per
-    // row+column input hash), before filters/sorts so they can use the
-    // computed values
-    const formulaFields = fields.filter((f) => f.type === 'formula')
-    if (formulaFields.length > 0) {
-      const columnDefs = fieldsToColumnDefinitions(fields)
-      for (const row of base) {
-        for (const field of formulaFields) {
-          const columnDef = columnDefs.find((c) => c.id === field.id)
-          if (!columnDef) continue
-          try {
-            row.cells[field.id] = formulaService.compute(
-              { id: row.id, databaseId, cells: row.cells },
-              columnDef,
-              columnDefs
-            ) as CellValue
-          } catch {
-            row.cells[field.id] = null
-          }
-        }
-      }
-    }
-    // Rollup values merge from the async computation
-    if (rollupValues.size > 0) {
-      for (const row of base) {
-        for (const field of fields) {
-          if (field.type !== 'rollup') continue
-          const computed = rollupValues.get(`${row.id}:${field.id}`)
-          if (computed !== undefined) row.cells[field.id] = computed
-        }
-      }
-    }
+    const base: GridRowModel[] = ((rowNodes ?? []) as unknown as Flat[]).map((node) => {
+      const hit = cache.get(node)
+      if (hit) return hit
+      const row = buildRow(node)
+      cache.set(node, row)
+      return row
+    })
 
     // Fractional-index comparator is the final ordering authority
     base.sort((a, b) => compareSortKeys(a.sortKey, b.sortKey))
     if (!activeView) return base
-    const columns = fieldsToColumnDefinitions(fields)
-    const filtered = filterRows(base, columns, activeView.filters)
-    return sortRows(filtered, columns, activeView.sorts)
+    const filtered = filterRows(base, columnDefs, activeView.filters)
+    return sortRows(filtered, columnDefs, activeView.sorts)
   }, [rowNodes, activeView, fields, databaseId, rollupValues])
 
   const loading =
-    dbStatus === 'loading' ||
-    fieldStatus === 'loading' ||
-    viewStatus === 'loading' ||
-    rowStatus === 'loading'
+    dbStatus === 'loading' || fieldStatus === 'loading' || viewStatus === 'loading' || rowsLoading
 
   // ─── Append-key tails ─────────────────────────────────────────────────────
   // Query results lag mutations within a burst (e.g. three addRow calls in
@@ -560,6 +687,22 @@ export function useGridDatabase(
   const updateCell = useCallback(
     async (rowId: string, fieldId: string, value: CellValue): Promise<void> => {
       await updateRowProps(rowId, { [cellKey(fieldId)]: value })
+    },
+    [updateRowProps]
+  )
+
+  const updateRowCells = useCallback(
+    async (
+      rowId: string,
+      cells: Record<string, CellValue>,
+      opts?: { sortKey?: string }
+    ): Promise<void> => {
+      const props: Record<string, unknown> = {}
+      for (const [fieldId, value] of Object.entries(cells)) {
+        props[cellKey(fieldId)] = value
+      }
+      if (opts?.sortKey !== undefined) props.sortKey = opts.sortKey
+      await updateRowProps(rowId, props)
     },
     [updateRowProps]
   )
@@ -825,6 +968,31 @@ export function useGridDatabase(
     [mutate, activeView]
   )
 
+  const setViewConfig = useCallback(
+    async (patch: GridViewConfigPatch): Promise<void> => {
+      if (!activeView) return
+      // null clears a field (LWW tombstone); undefined keys are omitted
+      const props: Record<string, unknown> = {}
+      for (const [key, value] of Object.entries(patch)) {
+        if (value !== undefined) props[key] = value
+      }
+      if (Object.keys(props).length === 0) return
+      await mutate.update(DatabaseViewSchema, activeView.id, props as never)
+    },
+    [mutate, activeView]
+  )
+
+  const setGroupCollapsed = useCallback(
+    async (groupKey: string, collapsed: boolean): Promise<void> => {
+      if (!activeView) return
+      const set = new Set(activeView.collapsedGroups)
+      if (collapsed) set.add(groupKey)
+      else set.delete(groupKey)
+      await mutate.update(DatabaseViewSchema, activeView.id, { collapsedGroups: [...set] })
+    },
+    [mutate, activeView]
+  )
+
   const setRowHeight = useCallback(
     async (rowHeight: RowHeight): Promise<void> => {
       if (!activeView) return
@@ -904,8 +1072,14 @@ export function useGridDatabase(
     views,
     activeView,
     rows,
+    rowWindow: { size: (rowNodes ?? []).length, total: totalRowCount ?? null },
     loading,
+    totalRowCount,
+    hasMoreRows,
+    isFetchingMoreRows,
+    fetchMoreRows,
     updateCell,
+    updateRowCells,
     clearCells,
     addRow,
     deleteRows,
@@ -922,6 +1096,8 @@ export function useGridDatabase(
     toggleSort,
     setFilters,
     setGroupBy,
+    setViewConfig,
+    setGroupCollapsed,
     setRowHeight,
     setColumnSummary,
     setFormConfig,

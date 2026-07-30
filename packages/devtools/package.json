@@ -2,6 +2,7 @@
   "name": "@xnetjs/devtools",
   "version": "0.1.0",
   "description": "Protocol-level devtools for xNet applications",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "main": "./src/index.ts",
@@ -9,9 +10,10 @@
   "exports": {
     ".": {
       "development": "./src/index.dev.ts",
-      "import": "./src/index.dev.ts",
+      "import": "./src/index.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./seed": "./src/seed/index.ts"
   },
   "scripts": {
     "build": "tsup src/index.ts src/index.dev.ts --format esm --dts --external react --external react-dom --external yjs --external @xnetjs/data --external @xnetjs/plugins --external @xnetjs/sync --external @xnetjs/react --external @xnetjs/ui",
@@ -20,31 +22,28 @@
     "clean": "rm -rf dist"
   },
   "peerDependencies": {
-    "react": ">=18.0.0",
-    "react-dom": ">=18.0.0",
-    "yjs": ">=13.0.0",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/plugins": "workspace:*",
+    "@xnetjs/react": "workspace:*",
     "@xnetjs/sync": "workspace:*",
-    "@xnetjs/react": "workspace:*"
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "yjs": ">=13.0.0"
   },
   "dependencies": {
+    "@blocknote/core": "0.51.4",
     "@xnetjs/canvas": "workspace:*",
+    "@xnetjs/editor": "workspace:*",
     "@xnetjs/history": "workspace:*",
     "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/ui": "workspace:*",
     "@xnetjs/views": "workspace:*",
+    "fflate": "0.8.3",
     "lucide-react": "^0.400.0"
   },
   "devDependencies": {
-    "@tiptap/core": "^3.15.3",
-    "@tiptap/extension-link": "^3.15.3",
-    "@tiptap/extension-task-list": "^3.15.3",
-    "@tiptap/starter-kit": "^3.15.3",
-    "@tiptap/y-tiptap": "^3.0.1",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@xnetjs/editor": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tsup": "^8.0.0",

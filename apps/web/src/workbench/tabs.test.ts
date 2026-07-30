@@ -1,9 +1,9 @@
 /**
  * Route ↔ tab mapping tests (0166).
  */
-import { useNavigate } from '@tanstack/react-router'
 import { describe, expect, it } from 'vitest'
-import { navigateToNode } from './navigation'
+import { armPreviewIntent } from '../platform/web-platform'
+import { navigateToNode, type PlatformNavigate } from './navigation'
 import { useWorkbench } from './state'
 import {
   consumePreviewIntent,
@@ -79,44 +79,54 @@ describe('preview intent', () => {
 })
 
 describe('navigateToNode', () => {
-  it('routes every node type through the typed navigator', () => {
+  it('states node-open intent against the platform port (0406)', () => {
     const calls: unknown[] = []
-    const navigate = ((options: unknown) => {
-      calls.push(options)
-      return Promise.resolve()
-    }) as unknown as ReturnType<typeof useNavigate>
+    const navigate: PlatformNavigate = (target) => {
+      calls.push(target)
+    }
 
     navigateToNode(navigate, 'page', 'p')
     navigateToNode(navigate, 'database', 'd')
-    navigateToNode(navigate, 'canvas', 'c')
-    navigateToNode(navigate, 'dashboard', 'x')
-    navigateToNode(navigate, 'savedview', 'v')
     navigateToNode(navigate, 'tasks', 'tasks')
-    navigateToNode(navigate, 'data', 'data')
 
+    // Route shapes are the web host's business now (`routeForTarget`,
+    // web-platform.test.ts); the shell only says what to open.
     expect(calls).toEqual([
-      { to: '/doc/$docId', params: { docId: 'p' } },
-      { to: '/db/$dbId', params: { dbId: 'd' } },
-      { to: '/canvas/$canvasId', params: { canvasId: 'c' } },
-      { to: '/dashboard/$dashboardId', params: { dashboardId: 'x' } },
-      { to: '/view/$viewId', params: { viewId: 'v' } },
-      { to: '/tasks' },
-      { to: '/data' }
+      { kind: 'node', nodeType: 'page', nodeId: 'p' },
+      { kind: 'node', nodeType: 'database', nodeId: 'd' },
+      { kind: 'node', nodeType: 'tasks', nodeId: 'tasks' }
     ])
-    consumePreviewIntent() // hermetic: these opens set a preview intent
   })
 
-  it('sets a preview intent by default (VS Code preview tabs, 0284)', () => {
-    const navigate = (() => Promise.resolve()) as unknown as ReturnType<typeof useNavigate>
+  it('passes the preview opt-out through to the host', () => {
+    const calls: unknown[] = []
+    const navigate: PlatformNavigate = (target) => {
+      calls.push(target)
+    }
+
+    navigateToNode(navigate, 'page', 'p', { preview: false })
+
+    expect(calls).toEqual([{ kind: 'node', nodeType: 'page', nodeId: 'p', preview: false }])
+  })
+})
+
+describe('armPreviewIntent (VS Code preview tabs, 0284 — now armed by the web host)', () => {
+  it('arms the latch for a default node open', () => {
     consumePreviewIntent() // clear any residue
-    navigateToNode(navigate, 'page', 'p')
+    armPreviewIntent({ kind: 'node', nodeType: 'page', nodeId: 'p' })
     expect(consumePreviewIntent()).toBe(true)
   })
 
-  it('opts out of preview when activating an existing tab', () => {
-    const navigate = (() => Promise.resolve()) as unknown as ReturnType<typeof useNavigate>
+  it('does not arm when activating an existing tab (preview: false)', () => {
     consumePreviewIntent()
-    navigateToNode(navigate, 'page', 'p', { preview: false })
+    armPreviewIntent({ kind: 'node', nodeType: 'page', nodeId: 'p', preview: false })
+    expect(consumePreviewIntent()).toBe(false)
+  })
+
+  it('does not arm for non-node targets (a path open must not leak a preview)', () => {
+    consumePreviewIntent()
+    armPreviewIntent({ kind: 'path', path: '/requests' })
+    armPreviewIntent({ kind: 'home' })
     expect(consumePreviewIntent()).toBe(false)
   })
 })
@@ -126,7 +136,9 @@ describe('syncRouteToTabs', () => {
     useWorkbench.setState({
       groups: [{ id: 'group-1', tabs: [], activeTabId: null }],
       activeGroupId: 'group-1',
-      recents: []
+      recents: [],
+      // These exercise the TAB path, which is opt-in since 0353 P5.
+      tabsEnabled: true
     })
 
     syncRouteToTabs('/doc/r1')
@@ -146,7 +158,9 @@ describe('syncRouteToTabs', () => {
     useWorkbench.setState({
       groups: [{ id: 'group-1', tabs: [], activeTabId: null }],
       activeGroupId: 'group-1',
-      recents: []
+      recents: [],
+      // These exercise the TAB path, which is opt-in since 0353 P5.
+      tabsEnabled: true
     })
 
     setPreviewIntent()
@@ -164,7 +178,9 @@ describe('syncRouteToTabs', () => {
     useWorkbench.setState({
       groups: [{ id: 'group-1', tabs: [], activeTabId: null }],
       activeGroupId: 'group-1',
-      recents: []
+      recents: [],
+      // These exercise the TAB path, which is opt-in since 0353 P5.
+      tabsEnabled: true
     })
     syncRouteToTabs('/discover')
     expect(useWorkbench.getState().groups[0].tabs).toEqual([])
@@ -174,7 +190,9 @@ describe('syncRouteToTabs', () => {
     useWorkbench.setState({
       groups: [{ id: 'group-1', tabs: [], activeTabId: null }],
       activeGroupId: 'group-1',
-      recents: []
+      recents: [],
+      // These exercise the TAB path, which is opt-in since 0353 P5.
+      tabsEnabled: true
     })
 
     // A source armed preview then navigated somewhere untabbed; the next real

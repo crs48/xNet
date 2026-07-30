@@ -14,7 +14,9 @@ import type {
   ImportNodesOptions,
   ApplyNodeBatchInput,
   ApplyNodeBatchResult,
-  NodeBatchPreflightResult
+  NodeBatchPreflightResult,
+  PinEntry,
+  PinRegistry
 } from './types'
 import type { ContentId } from '@xnetjs/core'
 
@@ -30,6 +32,7 @@ type MemoryNodeStorageSnapshot = {
     docState: Uint8Array
     byteSize: number
   }[]
+  pinStore: Map<string, Map<string, PinEntry>>
   lastLamportTime: number
 }
 
@@ -324,6 +327,44 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   // ==========================================================================
+  // Pin Registry (exploration 0329)
+  // ==========================================================================
+
+  /** key -> ownerId -> entry */
+  private pinStore = new Map<string, Map<string, PinEntry>>()
+
+  readonly pins: PinRegistry = {
+    addPins: async (pins: readonly PinEntry[]): Promise<void> => {
+      for (const pin of pins) {
+        let owners = this.pinStore.get(pin.key)
+        if (!owners) {
+          owners = new Map()
+          this.pinStore.set(pin.key, owners)
+        }
+        owners.set(pin.ownerId, { ...pin })
+      }
+    },
+    removePinsByOwner: async (ownerId: string): Promise<void> => {
+      for (const [key, owners] of this.pinStore) {
+        owners.delete(ownerId)
+        if (owners.size === 0) this.pinStore.delete(key)
+      }
+    },
+    getPinnedKeysAmong: async (keys: readonly string[]): Promise<Set<string>> => {
+      const pinned = new Set<string>()
+      for (const key of keys) {
+        if (this.pinStore.has(key)) pinned.add(key)
+      }
+      return pinned
+    },
+    countPins: async (): Promise<number> => {
+      let count = 0
+      for (const owners of this.pinStore.values()) count += owners.size
+      return count
+    }
+  }
+
+  // ==========================================================================
   // Utility Methods (for testing)
   // ==========================================================================
 
@@ -336,6 +377,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     this.nodes.clear()
     this.documentContentStore.clear()
     this.yjsSnapshotStore = []
+    this.pinStore.clear()
     this.lastLamportTime = 0
     this.syncCursors.clear()
   }
@@ -378,6 +420,9 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
         ])
       ),
       yjsSnapshotStore: structuredClone(this.yjsSnapshotStore),
+      pinStore: new Map(
+        Array.from(this.pinStore.entries(), ([key, owners]) => [key, new Map(owners)])
+      ),
       lastLamportTime: this.lastLamportTime
     }
   }
@@ -388,6 +433,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     this.nodes = snapshot.nodes
     this.documentContentStore = snapshot.documentContentStore
     this.yjsSnapshotStore = snapshot.yjsSnapshotStore
+    this.pinStore = snapshot.pinStore
     this.lastLamportTime = snapshot.lastLamportTime
   }
 }

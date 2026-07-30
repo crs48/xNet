@@ -64,7 +64,7 @@ async function advanceOnboarding(page: import('@playwright/test').Page): Promise
 }
 
 async function createCanvas(page: import('@playwright/test').Page): Promise<string> {
-  await expect(page.getByRole('heading', { name: /all documents/i })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /all documents|everything/i })).toBeVisible({
     timeout: 30_000
   })
 

@@ -6,7 +6,6 @@
  * dashboard one click behind it. The popover preserves reading context — you
  * can DM or open the profile without leaving the thread you're in.
  */
-import { useNavigate } from '@tanstack/react-router'
 import { DIDAvatar, Popover } from '@xnetjs/ui'
 import { MessageCircle, UserRound } from 'lucide-react'
 import { useCallback, useState, type ReactElement } from 'react'
@@ -15,11 +14,12 @@ import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
 import { useDmOpen } from '../hooks/useDmOpen'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { PersonActions } from './PersonActions'
 
 /** The popover body: identity + the two actions. */
 function PersonCard({ did }: { did: string }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const profiles = useProfiles()
   const { me } = useComms()
   const { openDm } = useDmOpen()

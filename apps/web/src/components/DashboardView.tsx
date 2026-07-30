@@ -3,10 +3,21 @@
  * schema registry widget queries may target and routes node opens to the
  * right surface.
  */
-import { useNavigate } from '@tanstack/react-router'
-import { DashboardSurface } from '@xnetjs/dashboard'
-import { CANVAS_DASHBOARD_SCHEMA_REGISTRY } from '@xnetjs/views'
-import { useCallback } from 'react'
+import type { TabNodeType } from '../workbench/state'
+import { DashboardSurface, widgetRegistry } from '@xnetjs/dashboard'
+import {
+  CANVAS_DASHBOARD_SCHEMA_REGISTRY,
+  FrameHostProvider,
+  registerFrameWidget
+} from '@xnetjs/views'
+import { useCallback, useMemo } from 'react'
+import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../lib/saved-view-registry'
+import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
+import '../lib/frame-renderers'
+
+// The generic frame widget (0346): any node through any registered view.
+registerFrameWidget(widgetRegistry)
 
 // Single-sourced with the canvas widget cards (0277 W2) so dashboards and
 // canvas widgets resolve queries against the same schema set.
@@ -32,7 +43,7 @@ function nodeOpenOptions(
 }
 
 export function DashboardView({ dashboardId }: { dashboardId: string }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
 
   const handleOpenNode = useCallback(
     (nodeId: string, schemaId: string) => {
@@ -41,11 +52,30 @@ export function DashboardView({ dashboardId }: { dashboardId: string }) {
     [navigate]
   )
 
+  // Frame widgets navigate through the tab machinery (xnet://type/id).
+  const handleFrameNavigate = useCallback(
+    (href: string) => {
+      const match = href.match(/^xnet:\/\/([a-z]+)\/(.+)$/)
+      if (match) {
+        navigateToNode(navigate, match[1] as TabNodeType, match[2])
+        return
+      }
+      navigate({ kind: 'node', nodeType: 'page', nodeId: href, preview: false })
+    },
+    [navigate]
+  )
+  const frameHost = useMemo(
+    () => ({ onNavigate: handleFrameNavigate, savedViewRegistry: WORKBENCH_SAVED_VIEW_REGISTRY }),
+    [handleFrameNavigate]
+  )
+
   return (
-    <DashboardSurface
-      dashboardId={dashboardId}
-      schemas={DASHBOARD_SCHEMA_REGISTRY}
-      onOpenNode={handleOpenNode}
-    />
+    <FrameHostProvider value={frameHost}>
+      <DashboardSurface
+        dashboardId={dashboardId}
+        schemas={DASHBOARD_SCHEMA_REGISTRY}
+        onOpenNode={handleOpenNode}
+      />
+    </FrameHostProvider>
   )
 }

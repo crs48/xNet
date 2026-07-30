@@ -19,6 +19,20 @@ export interface EvalContext {
 
   /** Get column definition */
   getColumn: (columnId: string) => ColumnDefinition | undefined
+
+  /**
+   * Cross-node scope (0346): values of a target column across the rows
+   * this row relates to through a relation column. Pre-resolved by the
+   * host (formulas stay synchronous); absent on hosts without relation
+   * access — RELATED() then evaluates to [].
+   */
+  getRelatedValues?: (relationColumnId: string, targetColumnId?: string) => unknown[]
+
+  /**
+   * Cross-node scope (0346): a named node's property, pre-resolved by
+   * the host. Absent → NODE() evaluates to null.
+   */
+  getNodeProperty?: (nodeId: string, property: string) => unknown
 }
 
 // ─── Evaluator ───────────────────────────────────────────────────────────────
@@ -141,6 +155,23 @@ function evaluateUnary(operator: string, operand: ASTNode, context: EvalContext)
 }
 
 function evaluateCall(name: string, args: ASTNode[], context: EvalContext): unknown {
+  // Context-backed scope functions (0346): one formula language, scope
+  // widened row → relations → named nodes (Coda's lesson — never a
+  // second engine). Hosts that can't resolve relations degrade to
+  // empty/null instead of erroring.
+  if (name === 'RELATED') {
+    const evaluated = args.map((arg) => evaluate(arg, context))
+    const relationColumnId = String(evaluated[0] ?? '')
+    const targetColumnId = evaluated[1] === undefined ? undefined : String(evaluated[1])
+    return context.getRelatedValues?.(relationColumnId, targetColumnId) ?? []
+  }
+  if (name === 'NODE') {
+    const evaluated = args.map((arg) => evaluate(arg, context))
+    const nodeId = String(evaluated[0] ?? '')
+    const property = String(evaluated[1] ?? '')
+    return context.getNodeProperty?.(nodeId, property) ?? null
+  }
+
   const fn = FUNCTIONS[name]
 
   if (!fn) {

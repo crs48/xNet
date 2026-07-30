@@ -24,6 +24,7 @@ import type {
   SearchOptions,
   SearchResult,
   SerializedNodeChange,
+  NodeChangePage,
   GrantIndexRecord,
   ShareLinkPreviewRecord,
   ShareLinkRecord,
@@ -35,6 +36,7 @@ import type {
   DatabaseSortConfig
 } from './interface'
 import { compareChangeApplicationOrder } from '@xnetjs/core'
+import { NODE_SYNC_PAGE_SIZE } from './interface'
 
 /**
  * Code-unit string comparison. Fractional sortKeys (and cursor pagination,
@@ -72,6 +74,7 @@ export const createMemoryStorage = (): HubStorage => {
   const shareLinkPreviewsById = new Map<string, ShareLinkPreviewRecord>()
   const nodeContainers = new Map<string, string>()
   const nodeVisibility = new Map<string, string>()
+  const nodeOwners = new Map<string, string>()
   const nodeChangesByHash = new Map<string, SerializedNodeChange>()
   const nodeChangesByRoom = new Map<string, SerializedNodeChange[]>()
   const files = new Map<string, { data: Uint8Array; meta: FileMeta }>()
@@ -280,6 +283,32 @@ export const createMemoryStorage = (): HubStorage => {
 
   const getNodeVisibility = async (nodeId: string): Promise<string | null> =>
     nodeVisibility.get(nodeId) ?? null
+
+  const setNodeOwnerIfAbsent = async (nodeId: string, ownerDid: string): Promise<boolean> => {
+    if (!nodeId || !ownerDid || ownerDid === 'did:key:anonymous') return false
+    if (nodeOwners.has(nodeId)) return false
+    nodeOwners.set(nodeId, ownerDid)
+    return true
+  }
+
+  const getNodeOwner = async (nodeId: string): Promise<string | null> =>
+    nodeOwners.get(nodeId) ?? null
+
+  // Mirrors the sqlite ordering exactly: lamport ascending, hash breaking ties.
+  const getNodeCreatorDid = async (nodeId: string): Promise<string | null> => {
+    let earliest: SerializedNodeChange | null = null
+    for (const change of nodeChangesByHash.values()) {
+      if (change.nodeId !== nodeId) continue
+      if (
+        !earliest ||
+        change.lamportTime < earliest.lamportTime ||
+        (change.lamportTime === earliest.lamportTime && change.hash < earliest.hash)
+      ) {
+        earliest = change
+      }
+    }
+    return earliest?.authorDid ?? null
+  }
 
   const insertShareLink = async (record: ShareLinkRecord): Promise<void> => {
     shareLinksById.set(record.linkId, { ...record })
@@ -661,6 +690,18 @@ export const createMemoryStorage = (): HubStorage => {
     nodeChangesByRoom.set(room, existing)
   }
 
+  const getNodeChangesByAuthor = async (
+    authorDid: string,
+    sinceLamport: number,
+    limit = 200
+  ): Promise<SerializedNodeChange[]> => {
+    const bounded = Math.min(Math.max(limit, 1), 1000)
+    return [...nodeChangesByHash.values()]
+      .filter((c) => c.authorDid === authorDid && c.lamportTime > sinceLamport)
+      .sort((a, b) => a.lamportTime - b.lamportTime)
+      .slice(0, bounded)
+  }
+
   // Share rooms (exploration 0298): hash→room mappings with a per-mapping seq.
   const roomChangeMappings: Array<{ seq: number; room: string; hash: string }> = []
   let roomMappingSeq = 0
@@ -672,8 +713,8 @@ export const createMemoryStorage = (): HubStorage => {
   const getRoomChangesSince = async (
     room: string,
     sinceSeq: number,
-    limit = 1000
-  ): Promise<{ changes: SerializedNodeChange[]; highWaterMark: number }> => {
+    limit = NODE_SYNC_PAGE_SIZE
+  ): Promise<NodeChangePage> => {
     const rows = roomChangeMappings
       .filter((m) => m.room === room && m.seq > sinceSeq)
       .sort((a, b) => a.seq - b.seq)
@@ -682,7 +723,9 @@ export const createMemoryStorage = (): HubStorage => {
       .map((m) => nodeChangesByHash.get(m.hash))
       .filter((c): c is SerializedNodeChange => c !== undefined)
     const highWaterMark = rows.length > 0 ? rows[rows.length - 1].seq : sinceSeq
-    return { changes, highWaterMark }
+    // Count MAPPINGS, not resolved changes: a mapping whose change is missing
+    // still consumed a slot, so a full page means more seqs remain.
+    return { changes, highWaterMark, hasMore: rows.length >= limit }
   }
 
   const getLatestProfileHash = async (did: string): Promise<string | null> => {
@@ -697,23 +740,56 @@ export const createMemoryStorage = (): HubStorage => {
 
   const getNodeChangesSince = async (
     room: string,
-    sinceLamport: number
-  ): Promise<SerializedNodeChange[]> => {
+    sinceLamport: number,
+    limit = NODE_SYNC_PAGE_SIZE
+  ): Promise<NodeChangePage> => {
+    const pageSize = Math.min(Math.max(limit, 1), NODE_SYNC_PAGE_SIZE)
     const changes = nodeChangesByRoom.get(room) ?? []
-    return (
-      changes
-        .filter((change) => change.lamportTime > sinceLamport)
-        // The shared protocol application order (code-unit author tiebreak).
-        // localeCompare here diverged from the SQLite storage's BINARY-collation
-        // `ORDER BY lamport_time, lamport_author` and from the client sort —
-        // locale collation is non-deterministic across ICU versions (0276).
-        .sort((a, b) =>
-          compareChangeApplicationOrder(
-            { lamport: a.lamportTime, author: a.lamportAuthor },
-            { lamport: b.lamportTime, author: b.lamportAuthor }
-          )
+    const ordered = changes
+      .filter((change) => change.lamportTime > sinceLamport)
+      // The shared protocol application order (code-unit author tiebreak).
+      // localeCompare here diverged from the SQLite storage's BINARY-collation
+      // `ORDER BY lamport_time, lamport_author` and from the client sort —
+      // locale collation is non-deterministic across ICU versions (0276).
+      .sort((a, b) =>
+        compareChangeApplicationOrder(
+          { lamport: a.lamportTime, author: a.lamportAuthor },
+          { lamport: b.lamportTime, author: b.lamportAuthor }
         )
-    )
+      )
+
+    // This storage is memory-bounded and could hand back the whole room at
+    // once, but it must page on exactly the same terms as SQLite — the two
+    // serve the same clients, and a paging contract that holds for only one of
+    // them is the same class of divergence as the 0276 collation split.
+    // 0 for an empty room, matching `getHighWaterMark` — the client's rollback
+    // guard treats 0 as "fresh/wiped hub" and declines to re-offer on it.
+    const roomMax = changes.reduce((max, change) => Math.max(max, change.lamportTime), 0)
+    if (ordered.length <= pageSize) {
+      return { changes: ordered, highWaterMark: roomMax, hasMore: false }
+    }
+
+    // Full page: never report a mark past the last change handed back, and
+    // never cut through a group sharing one lamport. See NodeChangePage.
+    const page = ordered.slice(0, pageSize)
+    const lastLamport = page[page.length - 1].lamportTime
+    const trimmed = page.filter((change) => change.lamportTime < lastLamport)
+
+    if (trimmed.length > 0) {
+      return {
+        changes: trimmed,
+        highWaterMark: trimmed[trimmed.length - 1].lamportTime,
+        hasMore: true
+      }
+    }
+
+    // A single lamport's tie group wider than a page: serve it whole rather
+    // than stall the catch-up on an empty page.
+    return {
+      changes: ordered.filter((change) => change.lamportTime === lastLamport),
+      highWaterMark: lastLamport,
+      hasMore: true
+    }
   }
 
   const getNodeChangesForNode = async (
@@ -738,6 +814,22 @@ export const createMemoryStorage = (): HubStorage => {
     for (const change of changes) nodeChangesByHash.delete(change.hash)
     nodeChangesByRoom.delete(room)
     return changes.length
+  }
+
+  const deleteNodeChangesByAuthor = async (authorDid: string): Promise<number> => {
+    let deleted = 0
+    for (const [hash, change] of [...nodeChangesByHash.entries()]) {
+      if (change.authorDid !== authorDid) continue
+      nodeChangesByHash.delete(hash)
+      deleted++
+    }
+    for (const [room, changes] of nodeChangesByRoom.entries()) {
+      nodeChangesByRoom.set(
+        room,
+        changes.filter((c) => c.authorDid !== authorDid)
+      )
+    }
+    return deleted
   }
 
   const getUsageBytesByDid = async (did: string): Promise<number> => {
@@ -767,6 +859,7 @@ export const createMemoryStorage = (): HubStorage => {
     shareLinksById.clear()
     nodeContainers.clear()
     nodeVisibility.clear()
+    nodeOwners.clear()
     nodeChangesByHash.clear()
     nodeChangesByRoom.clear()
     roomChangeMappings.length = 0
@@ -1013,6 +1106,9 @@ export const createMemoryStorage = (): HubStorage => {
     listContainedNodes,
     setNodeVisibility,
     getNodeVisibility,
+    setNodeOwnerIfAbsent,
+    getNodeOwner,
+    getNodeCreatorDid,
     revokeGrant,
     insertShareLink,
     getShareLink,
@@ -1072,6 +1168,7 @@ export const createMemoryStorage = (): HubStorage => {
     listPopularSchemas,
     hasNodeChange,
     appendNodeChange,
+    getNodeChangesByAuthor,
     getUsageBytesByDid,
     addChangeToRoom,
     getRoomChangesSince,
@@ -1081,6 +1178,7 @@ export const createMemoryStorage = (): HubStorage => {
     getNodeChangesForNode,
     getHighWaterMark,
     clearNodeChanges,
+    deleteNodeChangesByAuthor,
     insertDatabaseRow,
     updateDatabaseRow,
     deleteDatabaseRow,

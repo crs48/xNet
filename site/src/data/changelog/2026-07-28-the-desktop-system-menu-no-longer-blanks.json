@@ -1,0 +1,17 @@
+{
+  "id": "2026-07-28-the-desktop-system-menu-no-longer-blanks",
+  "date": "July 28, 2026",
+  "title": "The desktop system menu no longer blanks the window",
+  "summary": "Opening the menu in the desktop app crashed it to a black screen with no way back. It works again, and a shell error now shows a recoverable panel instead of taking the whole window down.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ],
+  "pr": 641,
+  "mergedAt": "2026-07-28T15:53:55Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 ---
-title: 'The XNet Protocol'
+title: 'The xNet Protocol'
 draft: false
-description: 'XNet is an open protocol, not just an app. Anyone can re-implement it in any language, over any database, and interoperate.'
+description: 'xNet is an open protocol, not just an app. Anyone can re-implement it in any language, over any database, and interoperate.'
 sidebar:
   order: 1
   label: 'Overview'
@@ -9,7 +9,7 @@ sidebar:
 
 import { Card, CardGrid, LinkCard, Aside } from '@astrojs/starlight/components'
 
-The `xNet` repository is **one implementation** of XNet. XNet itself is a
+The `xNet` repository is **one implementation** of xNet. xNet itself is a
 **protocol** — a written interface you can re‑implement in any language, over any
 database, and still interoperate with every other conforming implementation. Like
 Matrix, the AT Protocol, or ActivityPub, the standard is separate from any one
@@ -23,7 +23,7 @@ codebase.
 
 ## The boundary in one sentence
 
-> A conforming XNet implementation agrees on the **cryptographic primitives**,
+> A conforming xNet implementation agrees on the **cryptographic primitives**,
 > the **data model** (especially the byte‑exact canonicalization of a change),
 > the **replication wire format**, and the **authorization semantics** — and
 > treats everything above (query, storage layout, UI, the built‑in app schemas)
@@ -64,7 +64,7 @@ flowchart TB
   />
 </CardGrid>
 
-## The interop kernel (the part that makes it XNet)
+## The interop kernel (the part that makes it xNet)
 
 The irreducible core is small. An implementation that does **only L0 + L1** can
 already create, sign, verify, and converge nodes — fully participating in the
@@ -79,7 +79,7 @@ graph:
 
 ## Yjs is _not_ the protocol
 
-A common misconception: "XNet is built on Yjs, so I'd have to port a CRDT." Not
+A common misconception: "xNet is built on Yjs, so I'd have to port a CRDT." Not
 so. Yjs is used only for the optional rich‑text **document body** of certain
 nodes, and it travels the wire as **opaque bytes inside a signed envelope**. A
 second implementation can relay and store that blob without parsing it, and still
@@ -101,7 +101,7 @@ from reality. A ~100‑line Python kernel reproduces the same DIDs and verifies
 TypeScript‑signed changes. Want to build your own implementation?
 
 <LinkCard
-  title="Implement XNet in your language →"
+  title="Implement xNet in your language →"
   href="/docs/protocol/implement-in-your-language/"
   description="A step-by-step kernel, the golden vectors, and how to claim conformance."
 />

@@ -53,7 +53,7 @@ describe('hub storage change ordering (protocol §L1.7)', () => {
       await storage.appendNodeChange(ROOM, c)
     }
 
-    const returned = await storage.getNodeChangesSince(ROOM, 0)
+    const { changes: returned } = await storage.getNodeChangesSince(ROOM, 0)
     const expected = [...inserted].sort((a, b) =>
       compareChangeApplicationOrder(
         { lamport: a.lamportTime, author: a.lamportAuthor },

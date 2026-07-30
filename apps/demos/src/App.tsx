@@ -3,6 +3,7 @@
  * per room so the node-change relay room follows the URL. The URL is the
  * invitation: share it and the other person is in your room.
  */
+import { XNetDevToolsProvider } from '@xnetjs/devtools'
 import { XNetProvider } from '@xnetjs/react'
 import { useEffect, useMemo, useState } from 'react'
 import { ConnectFour } from './demos/ConnectFour'
@@ -96,9 +97,14 @@ function DemoHost({ route }: { route: DemoRoute }) {
     // Key by view+room: switching rooms tears down the whole client so the
     // relay room, doc rooms, and presence all follow the URL.
     <XNetProvider key={`${route.view}/${route.room}`} config={config}>
-      {route.view === 'cursors' && <CursorParty room={route.room} did={identity.did} />}
-      {route.view === 'connect-four' && <ConnectFour room={route.room} did={identity.did} />}
-      {route.view === 'todo' && <Todo room={route.room} did={identity.did} />}
+      {/* The real xNet DevTools, same as the workbench app: the floating
+          toggle (or ⌘⇧D) opens the inspector — watch queries, sync frames,
+          and presence flow while you play. */}
+      <XNetDevToolsProvider position="bottom" defaultOpen={false}>
+        {route.view === 'cursors' && <CursorParty room={route.room} did={identity.did} />}
+        {route.view === 'connect-four' && <ConnectFour room={route.room} did={identity.did} />}
+        {route.view === 'todo' && <Todo room={route.room} did={identity.did} />}
+      </XNetDevToolsProvider>
     </XNetProvider>
   )
 }

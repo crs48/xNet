@@ -125,12 +125,22 @@ export interface OpenPullRequestOptions {
   base?: string
   title?: string
   body?: string
+  /**
+   * Open as a draft. Defaults to TRUE for point-and-change (0399): the gesture
+   * that produces these is one click, and a gesture that can generate
+   * review-ready PRs faster than humans review them costs maintainers more than
+   * it saves. Pass `false` deliberately for a hand-authored task.
+   */
+  draft?: boolean
 }
 
 /**
  * Push the branch and open a PR via the `gh` CLI — the "one-click PR to the
  * open-source repo" output path. Runs in the worktree (keep it with
  * `keepWorktree: true`).
+ *
+ * Never merges. Opening the PR is the end of the automated path; the merge is a
+ * separate, human decision.
  */
 export async function openPullRequest(
   runner: CommandRunner,
@@ -142,6 +152,7 @@ export async function openPullRequest(
   if (!push.ok) throw new Error(`git push failed: ${push.stderr.trim()}`)
 
   const args = ['pr', 'create', '--base', options.base ?? 'main']
+  if (options.draft !== false) args.push('--draft')
   if (options.title) args.push('--title', options.title)
   if (options.body) args.push('--body', options.body)
   if (!options.title && !options.body) args.push('--fill')

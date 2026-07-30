@@ -50,6 +50,8 @@ import {
   type CanvasUndoDomain,
   type UseCanvasUndoLadderResult
 } from '@xnetjs/views'
+import { useContextPanel, type ContextPanelSection } from '@xnetjs/workbench'
+import { useIsCompact } from '@xnetjs/workbench'
 import {
   FileImage,
   FileText,
@@ -62,13 +64,13 @@ import {
   Table2
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCommentPeople } from '../hooks/useCommentPeople'
 import { DESK_TITLE, isDeskId, isDeskRadialEnabled } from '../lib/desk'
-import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
-import { useIsCompact } from '../workbench/use-layout-mode'
 import { DeskListProjection } from './DeskListProjection'
 import { DeskRadialMenu } from './DeskRadialMenu'
 import { ModeratedMedia } from './ModeratedMedia'
+import { nodePassportSection } from './NodePassport'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
 
@@ -95,6 +97,8 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   // it the first time creates it, so provisioning needs no separate write.
   const isDesk = isDeskId(docId)
   const compact = useIsCompact()
+  // @-mention candidates and author-name source for canvas comments (0375).
+  const commentPeople = useCommentPeople()
 
   const {
     data: canvas,
@@ -427,9 +431,11 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
                 : 'Select a canvas object to inspect it.'}
           </div>
         )
-      }
+      },
+      nodePassportSection(docId)
     ],
     [
+      docId,
       selection.edgeIds.length,
       selection.nodeIds.length,
       selectedCanvasEdge,
@@ -952,6 +958,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           onCreateObject={handleCreateObject}
           onEditSelectionAlias={controller.openAliasEditor}
           onCreateSelectionComment={controller.openCommentComposer}
+          commentPeople={commentPeople}
           onDismissTransientUi={() => {
             if (selectionPanel) {
               controller.closeSelectionPanel()

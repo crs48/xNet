@@ -58,18 +58,40 @@ const COVERED = new Set([
 // recorded in docs/explorations/0238. Each entry must keep its reason; deleting a
 // reason (or the comment) should be a conscious act, reviewed alongside the code.
 const WAIVED = new Map([
+  [
+    'frame',
+    'frame tabs (0346) ride the web workbench tab machinery; desktop adopts them with the deferred ShellFrame port (0280 risk 6)'
+  ],
+  [
+    'ai',
+    'the BYO-model assistant (0174/0192) restored to the nav in 0388 rides the web ' +
+      'workbench slot registry; the desktop renderer has no AI surface wired, same ' +
+      'reason as companion'
+  ],
   ['analytics', 'usage analytics is a web/cloud surface, not a desktop workflow'],
   [
     'companion',
     'companion agent surface is part of the web calm shell (0250); not yet wired into the desktop renderer'
   ],
   ['channel', 'chat/comms not yet ported to desktop (no apps/electron comms layer)'],
+  [
+    'post',
+    'community forum topics (0359) are a web-first social surface; desktop has no ' +
+      'comms/community layer yet, same reason as channel'
+  ],
   ['crm', 'CRM is a web-first business surface; desktop stays canvas/page/db focused'],
   ['dashboard', 'dashboard builder is web-first; deferred on desktop'],
   ['discover', 'discovery/feed is a web/social surface'],
   ['experiments', 'experiment journal is web-first'],
   ['finance', 'ledger/finance is a web-first business surface'],
-  ['lab', 'labs runtime ladder (SES/WASM) not wired into the desktop shell'],
+  [
+    'lab',
+    'Labs editor UI (LabView + SES/WASM ladder) still web-only; the 0331 ' +
+      'workspace-plugin SANDBOX rung is renderer-agnostic and hardened-renderer ' +
+      'safe (opaque-origin iframe, no node/same-origin — see ' +
+      'workspace-plugins-electron-parity.test.ts), so porting the editor surface ' +
+      'is the only remaining desktop gap'
+  ],
   ['map', 'map view is web-first; deferred on desktop'],
   ['person', 'people graph / person dashboard is a web/social surface'],
   ['requests', 'requests inbox is part of the unported comms layer'],

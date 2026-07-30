@@ -9,9 +9,18 @@ import { useQuery, useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { DIDAvatar } from '@xnetjs/ui'
 import { useEffect, useRef, useState } from 'react'
+import { VerifiedHandle } from '../identity/VerifiedHandle'
+import { configuredHubUrl } from '../lib/hub-url'
 import { imageToAvatarDataUrl } from './avatar-image'
 import { isHandleTaken, normalizeHandle, profileFormValues, safeAvatarSrc } from './comms-utils'
 import { useProfiles } from './hooks'
+
+/** The hub's HTTPS base (the verifier endpoint), derived from the ws hub URL. */
+function atprotoHubHttpUrl(): string | undefined {
+  const ws = configuredHubUrl()
+  if (!ws) return undefined
+  return ws.replace(/^wss:\/\//, 'https://').replace(/^ws:\/\//, 'http://')
+}
 
 function Field({
   label,
@@ -232,6 +241,22 @@ export function ProfileSettings() {
           </span>
         )}
       </label>
+      {typeof profile?.atprotoHandle === 'string' && profile.atprotoHandle && (
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-ink-3">
+            Global identity
+          </span>
+          <VerifiedHandle
+            // Cast at the untyped-storage boundary: atprotoDid is a text()
+            // field, did is a native did:key. VerifiedHandle re-validates the
+            // foreign DID before it ever reaches the hub (F2, 0389).
+            atprotoDid={String(profile.atprotoDid ?? '') as `did:web:${string}`}
+            atprotoHandle={String(profile.atprotoHandle)}
+            xnetDid={did as `did:key:${string}`}
+            hubHttpUrl={atprotoHubHttpUrl()}
+          />
+        </div>
+      )}
       <Field
         label="Status emoji"
         value={form.emoji}

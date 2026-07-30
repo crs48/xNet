@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/cli",
-  "version": "0.1.6",
+  "version": "0.4.0",
   "description": "xNet CLI - Schema migrations, diagnostics, and development tools",
   "license": "MIT",
   "repository": {
@@ -15,12 +15,13 @@
   },
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "files": [
     "dist",
+    "plugin",
     "README.md",
     "LICENSE"
   ],
@@ -42,14 +43,17 @@
     "@xnetjs/devkit": "workspace:*",
     "@xnetjs/identity": "workspace:*",
     "@xnetjs/plugins": "workspace:*",
+    "@xnetjs/publish": "workspace:*",
     "@xnetjs/runtime": "workspace:*",
     "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/sync": "workspace:*",
     "chalk": "^5.3.0",
-    "commander": "^12.0.0"
+    "commander": "^12.0.0",
+    "smol-toml": "^1.6.0"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
+    "yjs": "^13.6.0",
     "tsx": "^4.0.0",
     "typescript": "^5.4.0",
     "vitest": "^4.0.0"

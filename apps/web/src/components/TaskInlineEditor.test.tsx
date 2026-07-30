@@ -5,18 +5,9 @@ import { TaskInlineEditor, type TaskNode } from './TaskInlineEditor'
 
 const mocks = vi.hoisted(() => ({
   updateMock: vi.fn(),
-  navigateMock: vi.fn(),
-  addTaskAssigneeToDoc: vi.fn(() => true),
-  removeTaskAssigneeFromDoc: vi.fn(() => true),
-  setTaskDueDateInDoc: vi.fn(() => true)
+  navigateMock: vi.fn()
 }))
-const {
-  updateMock,
-  navigateMock,
-  addTaskAssigneeToDoc,
-  removeTaskAssigneeFromDoc,
-  setTaskDueDateInDoc
-} = mocks
+const { updateMock, navigateMock } = mocks
 
 vi.mock('@xnetjs/react', () => ({
   useMutate: () => ({ update: mocks.updateMock }),
@@ -31,11 +22,6 @@ vi.mock('../hooks/useWorkspacePeople', () => ({
     { did: 'did:key:z6Mkme', isSelf: true, name: 'Me' },
     { did: 'did:key:z6Mkalice', name: 'Alice' }
   ]
-}))
-vi.mock('@xnetjs/editor/react', () => ({
-  addTaskAssigneeToDoc: mocks.addTaskAssigneeToDoc,
-  removeTaskAssigneeFromDoc: mocks.removeTaskAssigneeFromDoc,
-  setTaskDueDateInDoc: mocks.setTaskDueDateInDoc
 }))
 vi.mock('../hooks/useWorkspaceTags', () => ({
   useWorkspaceTags: () => ({
@@ -57,12 +43,6 @@ function node(overrides: Record<string, unknown> = {}): TaskNode {
     createdAt: 1,
     ...overrides
   } as unknown as TaskNode
-}
-
-const fakeEditor = {} as never
-const hostEditor = {
-  getEditor: () => fakeEditor,
-  suggestions: [{ id: 'did:key:z6Mkalice', label: 'Alice' }]
 }
 
 beforeEach(() => {
@@ -133,7 +113,9 @@ describe('TaskInlineEditor (unhosted task)', () => {
   })
 })
 
-describe('TaskInlineEditor (page-hosted, no live editor)', () => {
+describe('TaskInlineEditor (page-hosted)', () => {
+  // Doc-owned fields are always locked for hosted tasks since the
+  // BlockNote migration retired the live-editor write-through (0312).
   it('locks doc-owned fields and links to the page', () => {
     render(<TaskInlineEditor task={node({ page: 'page_1' })} />)
 
@@ -144,38 +126,6 @@ describe('TaskInlineEditor (page-hosted, no live editor)', () => {
 
     fireEvent.click(screen.getByTestId('task-open-source'))
     expect(navigateMock).toHaveBeenCalledWith({ to: '/doc/$docId', params: { docId: 'page_1' } })
-  })
-})
-
-describe('TaskInlineEditor (page-hosted with live editor)', () => {
-  it('writes due dates through the document', () => {
-    render(<TaskInlineEditor task={node({ page: 'page_1' })} hostEditor={hostEditor} />)
-
-    fireEvent.click(screen.getByTestId('task-due-chip'))
-    fireEvent.change(screen.getByTestId('task-due-input'), { target: { value: '2026-07-01' } })
-
-    expect(setTaskDueDateInDoc).toHaveBeenCalledWith(fakeEditor, 'task_1', '2026-07-01')
-    expect(updateMock).not.toHaveBeenCalled()
-  })
-
-  it('adds and removes assignees through the document', () => {
-    render(
-      <TaskInlineEditor
-        task={node({ page: 'page_1', assignees: ['did:key:z6Mkme'] })}
-        hostEditor={hostEditor}
-      />
-    )
-
-    fireEvent.click(screen.getByTestId('task-assign-chip'))
-    fireEvent.click(screen.getByText('Alice'))
-    expect(addTaskAssigneeToDoc).toHaveBeenCalledWith(fakeEditor, 'task_1', {
-      id: 'did:key:z6Mkalice',
-      label: 'Alice'
-    })
-
-    fireEvent.click(screen.getByLabelText('Remove assignee Me'))
-    expect(removeTaskAssigneeFromDoc).toHaveBeenCalledWith(fakeEditor, 'task_1', 'did:key:z6Mkme')
-    expect(updateMock).not.toHaveBeenCalled()
   })
 })
 

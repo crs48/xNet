@@ -1,0 +1,20 @@
+{
+  "id": "2026-07-27-explorations-can-now-carry-a-visual-comp",
+  "date": "July 27, 2026",
+  "title": "Explorations can now carry a visual companion",
+  "summary": "UI explorations can ship an MDX page rendered in Storybook against the real design system, with a wireframe kit for UI that does not exist yet.",
+  "highlights": [
+    "Wireframe primitives themed from the real token ramp",
+    "A guard keeps the markdown exploration the single source of truth"
+  ],
+  "tags": [
+    "devtools"
+  ],
+  "pr": 633,
+  "mergedAt": "2026-07-27T23:32:44Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

@@ -189,7 +189,7 @@ export function SettingsView({
 
       {/* Content area */}
       <main className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
+        <ScrollArea className="h-full" fade>
           <div className="max-w-2xl mx-auto p-6">
             {/* Section header */}
             <div className="mb-6">

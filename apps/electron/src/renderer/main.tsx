@@ -7,7 +7,7 @@ import {
   type CanvasHandle,
   type FrameStats
 } from '@xnetjs/canvas'
-import { BlobService, CanvasSchema, PageSchema } from '@xnetjs/data'
+import { BlobService, CanvasSchema, PageSchema, schemaRegistry, type SchemaIRI } from '@xnetjs/data'
 import { XNetDevToolsProvider, useDevTools } from '@xnetjs/devtools'
 import { BlobProvider } from '@xnetjs/editor/react'
 import { identityFromPrivateKey } from '@xnetjs/identity'
@@ -25,6 +25,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { App } from './App'
+import { ShellErrorBoundary } from './components/ShellErrorBoundary'
 import { configuredHubUrl } from './lib/hub-url'
 import { createIPCBlobStore } from './lib/ipc-blob-store'
 import { IPCNodeStorageAdapter } from './lib/ipc-node-storage'
@@ -811,6 +812,37 @@ function LocalAPIStoreHandler() {
           return undefined
         }
 
+        // The main process has no registry of its own, so the local API and the
+        // agent MCP server read this one — the real thing, including schemas
+        // registered at runtime rather than a hardcoded core list.
+        case 'schemas.list': {
+          return schemaRegistry.getAllIRIs()
+        }
+
+        case 'schemas.get': {
+          // Async `get` (not `getSync`) so built-ins that haven't been touched
+          // yet are lazily loaded rather than reported as missing.
+          const defined = await schemaRegistry.get(params.iri as SchemaIRI)
+          if (!defined) return null
+          const { schema } = defined
+          return {
+            iri: schema['@id'],
+            name: schema.name,
+            // Keyed by property name: friendlier for a model to read than the
+            // positional JSON-LD array, and matches what SchemaData declares.
+            properties: Object.fromEntries(
+              schema.properties.map((property) => [
+                property.name,
+                {
+                  type: property.type,
+                  required: property.required,
+                  ...(property.config ? { config: property.config } : {})
+                }
+              ])
+            )
+          }
+        }
+
         default:
           throw new Error(`Unknown Local API store operation: ${operation}`)
       }
@@ -847,7 +879,8 @@ async function init() {
   // ChunkManager expects a BlobStore, but our IPC blob store has the same interface
   const providerBlobStore = ipcBlobStore as unknown as ConstructorParameters<typeof ChunkManager>[0]
   const chunkManager = new ChunkManager(providerBlobStore)
-  const blobService = new BlobService(chunkManager)
+  // Thumbnails are generated at attach time in the renderer (0385 W4).
+  const blobService = new BlobService(chunkManager, { generateThumbnails: true })
 
   // Listen for devtools toggle from main process menu.
   // Keep only one active listener across HMR reloads.
@@ -906,7 +939,11 @@ async function init() {
               >
                 <SyncInstrumentation syncManager={ipcSyncManager} />
                 <LocalAPIStoreHandler />
-                <App />
+                {/* Inside the providers so the fallback keeps app chrome and
+                    theme; a shell crash must not take the window with it. */}
+                <ShellErrorBoundary>
+                  <App />
+                </ShellErrorBoundary>
               </XNetDevToolsProvider>
             </BlobProvider>
           </XNetProvider>

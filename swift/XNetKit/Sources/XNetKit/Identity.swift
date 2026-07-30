@@ -4,7 +4,7 @@ import CryptoKit
 /// A `did:key` decentralized identifier — `"did:key:z" + base58btc(0xed01 || pub)`.
 public typealias DID = String
 
-/// An XNet identity: an Ed25519 key pair addressed by a `did:key`.
+/// An xNet identity: an Ed25519 key pair addressed by a `did:key`.
 ///
 /// NOTE: Apple's CryptoKit `Curve25519.Signing` uses randomized nonces, so
 /// signatures *verify* correctly but are not the deterministic RFC-8032 bytes a

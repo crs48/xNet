@@ -14,12 +14,26 @@ dictator for life") — the final decision-maker on technical direction, release
 and what ships. This is honest about the project's size: there is a small number
 of maintainers, and pretending otherwise would be theater.
 
-Two things keep BDFL legitimate here:
+Three things keep BDFL legitimate here:
 
-1. **The code is MIT and the protocol is open.** If you disagree with a decision,
-   you can fork the code or re-implement the protocol and interoperate. The right
-   to leave is real (see Charter §2, "Exit").
-2. **This document commits to growing past BDFL** on the triggers below.
+1. **The right to leave.** The code is MIT and the protocol is open. If you
+   disagree with a decision, you can fork the code or re-implement the protocol
+   and interoperate. Exit is real (see Charter §2, "Exit").
+2. **The right to be heard, on the record.** Anyone affected by an operational
+   rule can propose changing it through the
+   [Rule Change Proposal process](./docs/RULE_CHANGES.md) and gets a public
+   written answer with reasoning, logged in
+   [`docs/decisions/rule-changes.md`](./docs/decisions/rule-changes.md).
+   Voice is real too.
+3. **This document commits to growing past BDFL** on the triggers below.
+
+**Exit alone is not a governance model.** A project whose only answer to
+disagreement is "you can leave" loses the disagreement *and* the signal — the
+members most sensitive to quality exit first and quietly. Where voice is
+missing, disputes skip straight to the expensive moves: forks, litigation,
+unilateral operator action. Voice is the cheap move, so it should come first.
+The reasoning is in
+[exploration 0361](./docs/explorations/0361_[x]_VOICE_AS_THE_COMPLEMENT_TO_EXIT_OSTROM_COLLECTIVE_CHOICE_AND_XNET_GOVERNANCE.md).
 
 ## Roles
 
@@ -53,6 +67,26 @@ We prefer the lightest process that works:
 Big or breaking changes to the **protocol** (`docs/specs/protocol/`, `xnet/1.0`)
 follow a written proposal in `docs/` and require explicit maintainer sign-off,
 because other implementations depend on it.
+
+### Changing a rule that binds you
+
+The paths above assume you are already in the room — opening a PR, reviewing,
+discussing. Some of our rules bind people who are not: plugin authors,
+self-hosters, hub operators, paying customers. For those, there is a third path
+that needs no invitation:
+
+**[Rule Change Proposals](./docs/RULE_CHANGES.md)** — a public, written way to
+propose changing an enumerated **operational rule** (the humane-patterns gate,
+allowed plugin licences, marketplace terms, the Charter's refused rents, the
+Moat Register, plan quotas). Anyone affected may file one. Every proposal gets a
+public accept / decline / defer **with reasoning within 30 days**, appended to
+[`docs/decisions/rule-changes.md`](./docs/decisions/rule-changes.md) — declines
+included.
+
+It is deliberately **not a vote and not a veto**: while xNet has a BDFL, the
+BDFL still decides. What it removes is the ability to change a rule that binds
+other people without saying why, in public, on the record. Protocol changes stay
+in [XPP](./docs/specs/protocol/xpp/README.md).
 
 ## Contributing & provenance
 

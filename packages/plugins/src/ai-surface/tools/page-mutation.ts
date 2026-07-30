@@ -90,7 +90,7 @@ export const applyPageMarkdownTool: AiToolEntry = {
     name: 'xnet_apply_page_markdown',
     title: 'Apply page Markdown plan',
     description:
-      'Apply a validated page Markdown mutation plan through the configured TipTap/Yjs document adapter, with a node-property fallback.',
+      'Apply a validated page Markdown mutation plan through the configured BlockNote/Yjs document adapter, with a node-property fallback.',
     risk: 'high',
     requiredScopes: ['page.read', 'page.write'],
     inputSchema: {

@@ -1,8 +1,8 @@
 {
   "id": "2026-06-21-swift-live-sync",
   "date": "June 21, 2026",
-  "title": "Native Swift now syncs with an XNet hub — proven cross-language interop",
-  "summary": "XNetKit gained a live hub connection: a native Swift client can publish a signed change to a running XNet hub over WebSocket and catch up changes from it. It's proven end-to-end against the real TypeScript hub — a Swift-signed change is verified (hash + Ed25519 signature) and stored by the hub, then caught up and materialized by a second Swift client. This is the first true cross-language round-trip, unblocked by the integer-lamport protocol fix.",
+  "title": "Native Swift now syncs with an xNet hub — proven cross-language interop",
+  "summary": "XNetKit gained a live hub connection: a native Swift client can publish a signed change to a running xNet hub over WebSocket and catch up changes from it. It's proven end-to-end against the real TypeScript hub — a Swift-signed change is verified (hash + Ed25519 signature) and stored by the hub, then caught up and materialized by a second Swift client. This is the first true cross-language round-trip, unblocked by the integer-lamport protocol fix.",
   "highlights": [
     "`HubConnection` speaks the L2 replication protocol over `URLSessionWebSocketTask`: version handshake, room subscribe, `node-change` publish, and `node-sync-request` catch-up",
     "`WireCodec` maps a Swift `Change` to/from the hub's `SerializedNodeChange` wire shape; a `NodeStore.onLocalChange` hook publishes local writes",

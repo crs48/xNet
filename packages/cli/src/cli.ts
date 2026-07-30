@@ -22,12 +22,15 @@ import { program } from 'commander'
 import { registerAgentCommands } from './commands/agent.js'
 import { registerBridgeCommand } from './commands/bridge.js'
 import { registerCodeCommand } from './commands/code.js'
+import { registerConnectCommand } from './commands/connect.js'
 import { registerConnectorCommand } from './commands/connector.js'
 import { registerDataCommand } from './commands/data.js'
 import { registerDoctorCommand } from './commands/doctor.js'
+import { registerAgentEnrollCommand } from './commands/enroll.js'
 import { registerMcpCommand } from './commands/mcp.js'
 import { registerMigrateCommand } from './commands/migrate.js'
 import { registerPluginCommand } from './commands/plugin.js'
+import { registerPublishCommand } from './commands/publish.js'
 import { registerSchemaCommand } from './commands/schema.js'
 
 program
@@ -40,12 +43,15 @@ registerMigrateCommand(program)
 registerSchemaCommand(program)
 registerDoctorCommand(program)
 registerAgentCommands(program)
+registerAgentEnrollCommand(program)
 registerMcpCommand(program)
 registerBridgeCommand(program)
 registerCodeCommand(program)
+registerConnectCommand(program)
 registerDataCommand(program)
 registerPluginCommand(program)
 registerConnectorCommand(program)
+registerPublishCommand(program)
 
 // Parse and run
 program.parse()

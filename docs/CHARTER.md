@@ -22,6 +22,10 @@ how the code is built), it links to that code. Where it is **aspirational** (not
 yet fully built), it says that too — honesty about the gap is itself a
 commitment.
 
+This charter is the refusal side of the coin. Its companion,
+[`docs/VIBE.md`](./VIBE.md), names what the refusals make room for — the feel
+xNet cultivates (exploration 0352).
+
 ---
 
 ## 1. Own — you hold the master copy
@@ -118,11 +122,118 @@ control.
   owned page with a portable, DID‑based subscriber list — tracked in
   exploration 0234 (Wave 3).
 
+### No ground rent
+
+The Commons commitment has an economic edge
+([exploration 0351](./explorations/0351_[x]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)):
+xNet charges for **improvements** — operations, support, context, and
+distribution we build and run — and never for **ground rent**: access to
+things you would own anyway. The refused rents, each with its receipt:
+
+- **No take rate on direct creator sales.** Payments for your work settle on
+  your own account; xNet is not in the flow of funds. **Aspirational:** the
+  policy and design are fixed in
+  [exploration 0349](./explorations/0349_[_]_FIRST_CLASS_PAYMENTS_CREATOR_COMMERCE_AND_ECONOMIC_EXCHANGE.md)
+  (Stripe Connect Standard direct charges, 0%); the payments feature itself
+  has not shipped yet.
+- **No egress or export fees.** You can export everything, verified, for
+  free. **Architectural:** portable `.xnetpack` bundles
+  ([`packages/data/src/portability/`](../packages/data/src/portability/),
+  exploration 0344), JSON export
+  ([`packages/data/src/database/export/json-export.ts`](../packages/data/src/database/export/json-export.ts));
+  the claims ledger pins this receipt to the portability regression suite
+  (`commons-no-ground-rent-export` in
+  [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)).
+- **No identity ransom.** Your `did:key` is minted by you and works on any
+  hub (§2). **Architectural:**
+  [`packages/identity/src/keys.ts`](../packages/identity/src/keys.ts).
+- **No protocol tolls.** The wire format, client, and hub are MIT; the
+  entitlements contract is MIT and dependency‑free, so a self‑hosted hub
+  never phones home to us. **Architectural:** root [`LICENSE`](../LICENSE),
+  [`packages/sync/src/change.ts`](../packages/sync/src/change.ts),
+  [`packages/entitlements/`](../packages/entitlements/).
+- **No per‑member pricing on communities.** Hosting is billed on the
+  operations we run — storage, concurrency, AI — never on the size of the
+  audience you brought. A per‑member meter would charge you for access to a
+  relationship we did not build, and would make your own growth the thing you
+  pay us for. **Enforced:** the `community` plan is flat‑billed (`seats: 0`,
+  meaning *not seat‑metered*) and `withSeats()` refuses to attach a seat count
+  to it, so the meter cannot return through an override
+  ([`packages/entitlements/src/plans.ts`](../packages/entitlements/src/plans.ts));
+  the receipt is pinned by `never seat-meters the community plan` in
+  [`packages/entitlements/src/plans.test.ts`](../packages/entitlements/src/plans.test.ts)
+  (exploration 0359).
+- **No behavioural surplus.** Restates §1 as a refused rent. **Enforced:**
+  [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
+  (`surplus` rules).
+- **No global chokepoint tier.** We do not operate an indispensable middle to
+  rent back later: relays are bounded, hubs are user‑ownable.
+  **Architectural:** the decision is recorded in exploration 0333 and the hub
+  is a single self‑contained process
+  ([`packages/hub/src/cli.ts`](../packages/hub/src/cli.ts)).
+- **A FRAND trademark.** The name never fences the code (see
+  [`TRADEMARK.md`](../TRADEMARK.md)).
+- **No context capture.** Portability covers the *context*, not just the
+  bytes: an audience, share grants, and plugin licences travel with the
+  export. Data you can move while your standing stays behind is the moat we
+  refuse — a repository is portable, a contribution graph is not.
+  **Building:** the `.xnetpack` inventory in
+  [`docs/ECONOMICS.md`](./ECONOMICS.md) names what travels today and what does
+  not, and the `economics-no-context-capture` claim tracks the gap
+  (exploration 0358).
+- **No marketplace self‑preferencing.** xNet's own listings receive no ranking
+  preference over anyone else's, and delisting is limited to the grounds
+  enumerated in the public marketplace terms.
+  **Architectural:** the sovereign 0% BYO‑billing path and the MIT catalog mean
+  a self‑hoster can run their own marketplace
+  ([exploration 0196](./explorations/0196_[_]_PAID_PLUGIN_MARKETPLACE_MONETIZATION_AND_LICENSING.md)).
+
+Covenants are tested in down quarters, not up ones — so the test lives here,
+not in anyone's memory. **Every new revenue lane must pass four tests before
+it ships:**
+
+1. **Improvement test** — the margin pays for labour, capital, or operations
+   *we* provide, not for access to something users would own anyway.
+2. **BATNA test** — after the lane ships, self‑hosting remains a real,
+   undegraded alternative.
+3. **Vanish test** — if xNet‑the‑company disappeared tomorrow, what the
+   customer paid for (their data, their audience, their workflows) survives.
+4. **Sleep test** — if a well‑funded competitor shipped our entire feature set
+   as open source tomorrow, which revenue lines survive? A lane whose answer is
+   "none" is a cliff (exploration 0358).
+
+The first three ask whether a lane is fair to the user. The fourth asks whether
+it is durable for us, and it exists because those are not the same question:
+
+> _Rent fails all at once; improvement fails gradually. We take improvement
+> margins not only because rent is unfair, but because a company defending a
+> cliff will eventually break every other promise in this document to keep
+> from falling off it._
+
+A lane that fails any test is redesigned or refused. Exploration documents
+that propose a revenue lane should apply the four tests explicitly.
+
+### Who can change this section
+
+The refused rents and the four tests bind people who cannot merge a PR — plugin
+authors, self-hosters, hub operators, paying customers. So they are an
+**in-scope operational rule** under the
+[Rule Change Proposal process](./RULE_CHANGES.md): anyone affected can propose
+changing them, and gets a public written answer with reasoning within 30 days,
+recorded in [`docs/decisions/rule-changes.md`](./decisions/rule-changes.md).
+
+This is what makes §6 answerable rather than merely stated. A covenant only the
+covenantor may amend, silently, is a preference. The decision log's seed entries
+include both of the refusals above that exploration 0358 added, a proposal we
+**declined** (relicensing the core under copyleft), and a revenue lane we
+**withdrew** after proposing it — because a record of only the flattering
+decisions is marketing (exploration 0361).
+
 ---
 
 ## Cryptographic posture (post‑quantum)
 
-The change protocol is versioned at `CURRENT_PROTOCOL_VERSION = 3`, which defines
+The change protocol is versioned at `CURRENT_PROTOCOL_VERSION = 4`, which defines
 **hybrid** signatures (Ed25519 + ML‑DSA). That machinery is built and tested
 ([`packages/crypto/src/hybrid-signing.ts`](../packages/crypto/src/hybrid-signing.ts)),
 so post‑quantum protection is available, not theoretical.

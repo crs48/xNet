@@ -368,6 +368,8 @@ function collectMigrationWarnings(
 
 /**
  * Query all nodes of a schema
+ *
+ * @public
  */
 export function useQuery<P extends Record<string, PropertyBuilder>>(
   schema: DefinedSchema<P>

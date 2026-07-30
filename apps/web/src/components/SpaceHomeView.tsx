@@ -7,7 +7,6 @@
  * once (a share link with `docType: 'space'`; the claim writes a membership
  * edge that the authorization cascade resolves against).
  */
-import { useNavigate } from '@tanstack/react-router'
 import {
   CanvasSchema,
   DatabaseSchema,
@@ -39,14 +38,17 @@ import {
   Users,
   X
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { displayName as resolveName } from '../comms/comms-utils'
 import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
 import { useCreateInSpace } from '../hooks/useCreateInSpace'
 import { useSpaceMembers, useSpaces } from '../hooks/useSpaces'
 import { navigateToNode } from '../workbench/navigation'
-import { useWorkbench, type TabNodeType } from '../workbench/state'
+import { useNavigateTo } from '../workbench/platform'
+import { usePublishTitle } from '../workbench/route-title'
+import { type TabNodeType } from '../workbench/state'
+import { CommunityFeed } from './community/CommunityFeed'
 import { ShareDialog } from './ShareDialog'
 
 const KIND_META: Record<SpaceKind, { icon: LucideIcon; label: string }> = {
@@ -309,7 +311,7 @@ function SpaceSettingsForm({
 }
 
 export function SpaceHomeView({ spaceId }: { spaceId: string }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { me } = useComms()
   const profiles = useProfiles()
   const { tree, getSpace, setSpaceVisibility, updateSpace, renameSpace } = useSpaces()
@@ -322,9 +324,7 @@ export function SpaceHomeView({ spaceId }: { spaceId: string }) {
   const space = getSpace(spaceId)
   const subSpaces = useMemo(() => tree.flatMap((n) => collectChildren(n, spaceId)), [tree, spaceId])
 
-  useEffect(() => {
-    if (space?.name) useWorkbench.getState().setTabTitle(spaceId, space.name)
-  }, [spaceId, space?.name])
+  usePublishTitle(spaceId, space?.name)
 
   const myRoles = useMemo<SpaceRole[]>(() => {
     const roles: SpaceRole[] = []
@@ -347,6 +347,7 @@ export function SpaceHomeView({ spaceId }: { spaceId: string }) {
   const Vis = VISIBILITY_META[space.visibility]
   const VisIcon = Vis.icon
   const isPersonal = space.kind === 'personal'
+  const isCommunity = space.kind === 'community'
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -419,6 +420,17 @@ export function SpaceHomeView({ spaceId }: { spaceId: string }) {
           onUpdate={updateSpace}
           onClose={() => setEditing(false)}
         />
+      )}
+
+      {/*
+        A community leads with its discussion — the feed sits above the member
+        list and content, because what a community is *for* is the conversation
+        (exploration 0359). Other Space kinds keep the content-first layout.
+      */}
+      {isCommunity && (
+        <Section title="Discussion">
+          <CommunityFeed spaceId={spaceId} viewerDid={me?.did ?? null} />
+        </Section>
       )}
 
       {!isPersonal && (

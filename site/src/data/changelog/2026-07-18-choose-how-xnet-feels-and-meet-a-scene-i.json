@@ -1,0 +1,18 @@
+{
+  "id": "2026-07-18-choose-how-xnet-feels-and-meet-a-scene-i",
+  "date": "July 18, 2026",
+  "title": "Choose how xNet feels, and meet a scene in the demo",
+  "summary": "First-run now asks how xNet should feel — focused, cozy, or quiet — instead of hiding warmth in settings. The demo workspace gains Night Bloom Records, a small record-archiving collective, alongside Acme Inc. And a new CI rule bans ratio/leaderboard scorekeeping for good.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "devtools"
+  ],
+  "pr": 560,
+  "mergedAt": "2026-07-18T18:56:51Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

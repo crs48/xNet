@@ -17,6 +17,7 @@ import { createPublicRoutes, resolveEffectiveVisibility } from '../src/routes/pu
 import { ShareAccessService } from '../src/services/share-access'
 import { createMemoryStorage } from '../src/storage/memory'
 import { createSQLiteStorage } from '../src/storage/sqlite'
+import { syncSpaceAs } from './helpers/space-sync'
 
 const TASK_SCHEMA = 'xnet://xnet.fyi/Task@1.0.0'
 const COMMENT_SCHEMA = 'xnet://xnet.fyi/Comment@1.0.0'
@@ -289,6 +290,11 @@ describe('space invite links', () => {
     const owner = makeActor()
     const member = makeActor()
     const spaceId = 'space:acme-eng'
+
+    // Sync the Space first so the hub has an attested owner: a Space grant is
+    // a container grant, so minting a link for a Space with no recorded owner
+    // is refused (see space-share-ownership.test.ts).
+    await syncSpaceAs(PORT, owner, spaceId)
 
     const created = await api('/shares/links', {
       method: 'POST',

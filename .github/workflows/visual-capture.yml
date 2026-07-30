@@ -24,6 +24,8 @@ on:
       - 'apps/web/src/**'
       - 'apps/electron/src/renderer/**'
       - 'scripts/visuals/**'
+      # Visual exploration companions (0403) render as Storybook docs pages.
+      - 'docs/explorations/visuals/**'
       - '.storybook/**'
       - '.github/workflows/visual-capture.yml'
   push:

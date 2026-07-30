@@ -18,6 +18,15 @@
  *   - `pubDate` is an ISO-8601 instant (UTC). Newest-first ordering is by `pubDate`.
  *   - `draft: true` hides a post from the index and the feed (still reachable by URL
  *     during authoring). Production never lists drafts.
+ *
+ * Essay backlog (candidates researched but not yet written):
+ *   - "The Railroad and the Airline" — frontier economics without enclosure:
+ *     railroad land grants, the airline margin trap, dumb pipes, and the
+ *     Georgist operator position (exploration 0351). Tags: essay, economics.
+ *   - "The Landlord's Game Was About Enclosure" — the lineage from Magie's
+ *     board to the Inclosure Acts, common rights as the thing actually lost,
+ *     and ground rent as the oldest unpriced column (explorations 0351, 0368).
+ *     Tags: essay, economics, philosophy.
  */
 
 export type BlogTag =
@@ -88,13 +97,132 @@ export interface BlogPost {
 
 const posts: BlogPost[] = [
   {
+    slug: 'the-harvest-you-can-count',
+    title: 'The Harvest You Can Count',
+    description:
+      'A video claims every food forest on Earth was deliberately erased. It ' +
+      'is wrong, and it is pointing at something real. Layered perennial food ' +
+      'systems existed on every inhabited continent, and most of them lost, ' +
+      'though not the way the romantic version tells it. Grain genuinely won on ' +
+      'calories and on labour. What the forest was better at was variance, ' +
+      'soil carbon, micronutrients and independence from inputs, and no ' +
+      'ledger has ever had a column for any of them. On appropriability, why ' +
+      'a tenant cannot plant a ten-year asset, and why a local-first tool is ' +
+      'illegible to a procurement department for exactly the same reason.',
+    pubDate: '2026-08-03T09:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'economics', 'philosophy'],
+    readingMinutes: 18
+  },
+  {
+    slug: 'rig-the-game-or-play',
+    title: 'Rig the Game or Play',
+    description:
+      'The board game that taught a century of children to build monopolies ' +
+      'was patented in 1904 to show that monopolies are unjust, and the ' +
+      'cautionary rule set is the one that sold thirty million copies. On ' +
+      'runaway leaders and the dead zone, why every table removes the ' +
+      'auction and adds the Free Parking jackpot, what Hayek meant by ' +
+      'competition as a discovery procedure, and why the rules of a rigged ' +
+      'game are usually exposed by someone who got sued rather than by ' +
+      'anyone’s transparency report.',
+    pubDate: '2026-07-20T09:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'economics', 'philosophy'],
+    readingMinutes: 14
+  },
+  {
+    slug: 'the-worlds-greatest-record-store',
+    title: 'The World’s Greatest Record Store',
+    description:
+      'In 2004 a pink website with a pig mascot became the most complete ' +
+      'music collection on the internet: run by one person, governed by its ' +
+      'members, and killed by a police raid. Its community rediscovered ' +
+      'Elinor Ostrom’s commons principles from scratch and was denied only ' +
+      'the one no tracker could have: the right to exist. On ratio economies ' +
+      'and the anxiety they bred, scenius and the ground scenes rent, and ' +
+      'the promise the Palace couldn’t make that local-first software can: ' +
+      'the scene outlives the server.',
+    pubDate: '2026-07-19T17:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'philosophy', 'decentralization', 'economics'],
+    readingMinutes: 14
+  },
+  {
+    slug: 'palimpsest',
+    title: 'Palimpsest',
+    description:
+      'Overwriting was always an economy measure. The economy changed. In ' +
+      '1229 a scribe scraped the only copy of Archimedes’ Method to reuse ' +
+      'the parchment; it took a particle accelerator to partially undo the ' +
+      'knife. Every UPDATE in every mutable database is that knife, and ' +
+      'for the first time we can price it: microseconds, half a kilobyte, ' +
+      'pennies a year. On what a signed, append-only history actually ' +
+      'costs, measured on the shipped code, and why the trade that made ' +
+      'erasure rational has permanently inverted.',
+    pubDate: '2026-07-18T23:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'protocol', 'economics', 'philosophy'],
+    readingMinutes: 13
+  },
+  {
+    slug: 'tree-rings',
+    title: 'Tree Rings',
+    description:
+      'A tree never edits a ring: growth accretes on the outside, and the ' +
+      'whole history stays legible in the grain. Rich Hickey has spent two ' +
+      'decades arguing software should be built the same way: values that ' +
+      'accrete, not places that overwrite. On Effective Programs and its ' +
+      'pyramid of what actually costs money, Simple Made Easy, the epochal ' +
+      'time model, and what taking the middle of that pyramid seriously looks ' +
+      'like in a working protocol, and the three places we deliberately ' +
+      'depart from the hammock.',
+    pubDate: '2026-07-18T21:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'philosophy', 'protocol'],
+    readingMinutes: 14
+  },
+  {
+    slug: 'people-in-disguise',
+    title: 'People in Disguise',
+    description:
+      'For forty years, one man has been making the same argument from ' +
+      'inside the machine: a VR pioneer, a working musician, Microsoft’s ' +
+      'in-house heretic, insisting that digital information is really just ' +
+      'people in disguise. On Jaron Lanier’s long war against the siren ' +
+      'servers, what his ideas look like when you actually build them, and ' +
+      'the one prescription we deliberately refuse.',
+    pubDate: '2026-07-18T17:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'philosophy', 'privacy', 'economics'],
+    readingMinutes: 14
+  },
+  {
+    slug: 'clutch-power',
+    title: 'Clutch Power',
+    description:
+      'On 28 January 1958 the LEGO Group patented not a brick but a ' +
+      'coupling, stud and tube, and with them clutch power: a grip firm ' +
+      'enough to build with that still comes apart by hand. The web never ' +
+      'got a coupling for data, so every app moulds pieces that fit only ' +
+      'its own set, and the APIs that promised otherwise were drawbridges. ' +
+      'On the four frozen interfaces xNet ships instead (one node shape, ' +
+      'one namespace anyone can mint into, one merge rule, one permission ' +
+      'algebra) and why the grip matters as much as the snap: nobody ' +
+      'plays with your bricks unless you say so.',
+    pubDate: '2026-07-14T17:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'protocol', 'decentralization', 'philosophy'],
+    readingMinutes: 14
+  },
+  {
     slug: 'weights-you-can-hold',
     title: 'Weights You Can Hold',
     description:
       'Graduates are booing AI executives at commencement, then going home to ' +
       'run open-weight models on their own laptops. Two video essays, one ' +
       'quiet revolution: a generation trading rented everything for things it ' +
-      'can hold — model weights, assets, film cameras, businesses of its own — ' +
+      'can hold (model weights, assets, film cameras, businesses of its own) ' +
       'and what that exit means for who owns your software.',
     pubDate: '2026-07-10T17:00:00Z',
     authors: ['crs48', 'claude'],
@@ -106,9 +234,9 @@ const posts: BlogPost[] = [
     title: 'Timeout',
     description:
       'A personal essay on autism, dissociation, and the network I dreamed ' +
-      'while I was away from my body. The word has three meanings — the ' +
+      'while I was away from my body. The word has three meanings: the ' +
       'punishment corner, the huddle a team calls for itself, and the quiet ' +
-      'that falls when a peer stops answering — and I have lived in all ' +
+      'that falls when a peer stops answering. I have lived in all ' +
       'three. On finding out at thirty-five, on the years of taking ' +
       'everything in from a distance, and on discovering that the protocol I ' +
       'built treats going quiet exactly the way I needed to be treated: a ' +
@@ -123,14 +251,14 @@ const posts: BlogPost[] = [
     slug: 'the-vault-and-the-view',
     title: 'The Vault and the View',
     description:
-      'When Google Reader died, everyone got an export — and discovered the ' +
+      'When Google Reader died, everyone got an export, and discovered the ' +
       'file was a brick, shaped for a renderer that no longer existed. The ' +
       'modern app is a vault: it holds your data and the only window onto it. ' +
-      'But the vault is a twenty-five-year detour, not the tradition — from ' +
+      'But the vault is a twenty-five-year detour, not the tradition. From ' +
       'Codd’s data independence through Solid’s pods to local-first and “apps ' +
       'as views, not vaults”, five decades of people have insisted the data is ' +
       'the ground and the software is the weather. On that lineage, why the ' +
-      'first pod-shaped attempt stalled, how xNet ships the inversion — and ' +
+      'first pod-shaped attempt stalled, how xNet ships the inversion, and ' +
       'why AI-cheap views make user-owned data the only stable ground left.',
     pubDate: '2026-07-07T21:00:00Z',
     authors: ['crs48', 'claude'],
@@ -143,11 +271,11 @@ const posts: BlogPost[] = [
     description:
       'DotA was a custom map. Counter-Strike was a mod. The battle royale came ' +
       'from a photographer tinkering with a military sim. Modding built half of ' +
-      'modern gaming — then the modern app welded its doors shut, with reasons ' +
+      'modern gaming, then the modern app welded its doors shut, with reasons ' +
       'that are half sincere and half convenient. On what the walled garden ' +
       'actually costs, why the fix is scoping authority rather than banning ' +
       'code, and what software looks like when the application is just a view ' +
-      'over data you own — especially now that anyone can cook.',
+      'over data you own, especially now that anyone can cook.',
     pubDate: '2026-07-05T23:00:00Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'decentralization'],
@@ -158,11 +286,11 @@ const posts: BlogPost[] = [
     title: 'Hand on the Tiller',
     description:
       'Everyone is arguing about one alignment problem: will the AI want what we ' +
-      'want? But alignment is a stack — physics, planet, society, technology, AI — ' +
+      'want? But alignment is a stack (physics, planet, society, technology, AI) ' +
       'and we are bolting an aligned machine onto a civilization that steers by the ' +
       'wrong stars. The oldest word for the fix is the root of “cybernetics” and ' +
       '“govern”: the steersman, correcting course a hundred times a minute. What it ' +
-      'takes to actually hold a course — and the small, real instruments a piece of ' +
+      'takes to actually hold a course, and the small, real instruments a piece of ' +
       'software can hand back.',
     pubDate: '2026-07-03T15:00:00Z',
     authors: ['crs48', 'claude'],
@@ -173,7 +301,7 @@ const posts: BlogPost[] = [
     slug: 'the-tip-of-the-hook',
     title: 'The Tip of the Hook',
     description:
-      "You write useQuery(TaskSchema) and get a live, local, cryptographically-authorised, syncing database — with no API endpoint, no auth middleware, and no cache to invalidate. A developer's tour of xNet's React hooks on the surface, then a dive beneath the waterline to the SQLite database running in a worker, the priority scheduler, and the signed change log that make “just trust the client” safe. The tip is small on purpose; the iceberg is yours to open.",
+      "You write useQuery(TaskSchema) and get a live, local, cryptographically-authorised, syncing database, with no API endpoint, no auth middleware, and no cache to invalidate. A developer's tour of xNet's React hooks on the surface, then a dive beneath the waterline to the SQLite database running in a worker, the priority scheduler, and the signed change log that make “just trust the client” safe. The tip is small on purpose; the iceberg is yours to open.",
     pubDate: '2026-06-29T17:30:00Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'protocol', 'decentralization'],
@@ -183,7 +311,7 @@ const posts: BlogPost[] = [
     slug: 'the-loom-you-can-read',
     title: 'The Loom You Can Read',
     description:
-      "The Luddites didn't fear machines — they refused looms they weren't allowed to open. Follow one note, “Buy milk,” all the way through xNet's internals: a file on your own disk, a signed change log, a name you mint instead of an account, and a three-line merge that settles conflicts with no server in the middle. A guided tour of a machine you're allowed to open — written for developers and everyone else at once.",
+      "The Luddites didn't fear machines; they refused looms they weren't allowed to open. Follow one note, “Buy milk,” all the way through xNet's internals: a file on your own disk, a signed change log, a name you mint instead of an account, and a three-line merge that settles conflicts with no server in the middle. A guided tour of a machine you're allowed to open, written for developers and everyone else at once.",
     pubDate: '2026-06-29T01:09:07Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'protocol', 'decentralization'],
@@ -193,7 +321,7 @@ const posts: BlogPost[] = [
     slug: 'the-forest-and-the-field',
     title: 'The Forest and the Field',
     description:
-      'Industrial farming strips the soil to exhaustion and trucks fertility back in by the ton. Surveillance capitalism does the same to the web. Permaculture is the discipline for growing land that feeds itself — and its principles are, almost furrow for furrow, how you regenerate a digital commons instead of strip-mining one.',
+      'Industrial farming strips the soil to exhaustion and trucks fertility back in by the ton. Surveillance capitalism does the same to the web. Permaculture is the discipline for growing land that feeds itself, and its principles are, almost furrow for furrow, how you regenerate a digital commons instead of strip-mining one.',
     pubDate: '2026-06-28T23:39:38Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'nature'],
@@ -203,7 +331,7 @@ const posts: BlogPost[] = [
     slug: 'the-right-to-say-no',
     title: 'The Right to Say No',
     description:
-      "A musician on YouTube argues the economy quietly changed from growth to extraction, and the real prize isn't your money — it's your ability to refuse. He's mostly right. Here's the part software can actually give back.",
+      "A musician on YouTube argues the economy quietly changed from growth to extraction, and the real prize isn't your money but your ability to refuse. He's mostly right. Here's the part software can actually give back.",
     pubDate: '2026-06-28T22:10:50Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'economics'],
@@ -213,7 +341,7 @@ const posts: BlogPost[] = [
     slug: 'the-desert-that-feeds-the-forest',
     title: 'The Desert That Feeds the Forest',
     description:
-      'Every year a dead desert blows across an ocean and feeds the most alive place on Earth — replacing almost exactly what the rainforest loses. What Saharan dust, the bees nobody watches, and the maintainers nobody thanks teach us about the invisible substrate the open web runs on.',
+      'Every year a dead desert blows across an ocean and feeds the most alive place on Earth, replacing almost exactly what the rainforest loses. What Saharan dust, the bees nobody watches, and the maintainers nobody thanks teach us about the invisible substrate the open web runs on.',
     pubDate: '2026-06-28T21:46:46Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'nature'],
@@ -223,7 +351,7 @@ const posts: BlogPost[] = [
     slug: 'the-gentlest-furnace',
     title: 'The Gentlest Furnace',
     description:
-      'A star carries the energy of a billion bombs and still feels calm from here. What hydrostatic equilibrium — the thermostat that keeps a star from exploding or going cold — teaches us about information, attention, and building technology that burns long instead of burning out.',
+      'A star carries the energy of a billion bombs and still feels calm from here. What hydrostatic equilibrium (the thermostat that keeps a star from exploding or going cold) teaches us about information, attention, and building technology that burns long instead of burning out.',
     pubDate: '2026-06-28T02:27:04Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'cosmos'],
@@ -233,7 +361,7 @@ const posts: BlogPost[] = [
     slug: 'data-should-work-like-soil',
     title: 'Data Should Work Like Soil',
     description:
-      'Beneath every forest runs a fungal network — the original internet. What mycelium, the human nervous system, and Tesla’s Warp teach us about building one worth living in, and how to heal one that’s gone sick.',
+      'Beneath every forest runs a fungal network: the original internet. What mycelium, the human nervous system, and Tesla’s Warp teach us about building one worth living in, and how to heal one that’s gone sick.',
     pubDate: '2026-06-28T01:23:39Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'nature'],
@@ -243,7 +371,7 @@ const posts: BlogPost[] = [
     slug: 'a-great-pirate-age',
     title: 'A Great Pirate Age for the Internet',
     description:
-      'What pirates — the real ones, and the ones in One Piece — can teach us about owning your data. An essay on freedom, self-governance, and why you are the cargo.',
+      'What pirates (the real ones, and the ones in One Piece) can teach us about owning your data. An essay on freedom, self-governance, and why you are the cargo.',
     pubDate: '2026-06-28T00:28:34Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'decentralization'],
@@ -290,6 +418,26 @@ export function postBySlug(slug: string): BlogPost | undefined {
 /** Resolve a post's author ids to full registry entries, in declared order. */
 export function postAuthors(post: BlogPost): BlogAuthor[] {
   return post.authors.map((id) => AUTHORS[id])
+}
+
+/**
+ * GitHub commit history for a post's own source file (exploration 0364).
+ *
+ * Essays get edited after publication — tone passes, fact corrections, en-GB
+ * and `xNet` naming sweeps — and a page that shows only `pubDate` presents the
+ * current text as if it were the original. This link is the honest minimum: it
+ * doesn't claim a post *has* changed, it just makes the record reachable.
+ *
+ * Derived purely from the slug, which `BlogPost` already defines as matching
+ * the page filename, so there is no git shell-out at build time and nothing to
+ * keep in sync — every future post gets the link for free. (A git-derived
+ * revision list was considered and deferred: post-publication commits here are
+ * dominated by chrome sweeps that change no prose, and preview deploys check
+ * out shallow, so a derived list would render empty exactly where it's
+ * reviewed. See exploration 0364.)
+ */
+export function postHistoryUrl(post: BlogPost): string {
+  return `https://github.com/crs48/xNet/commits/main/site/src/pages/blog/${post.slug}.astro`
 }
 
 /** Human-friendly date, e.g. "June 27, 2026", rendered from the ISO instant. */

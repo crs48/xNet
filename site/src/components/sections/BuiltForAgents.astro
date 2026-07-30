@@ -19,24 +19,14 @@ const agentCode = [
 
 const points = [
   {
-    title: 'Files first',
+    title: 'Files first, safe by construction',
     description:
-      'Agents already read, grep, and edit files brilliantly. xNet checks out a scoped slice of the workspace as Markdown, JSONL, and JSON Canvas — the store stays the source of truth.',
-  },
-  {
-    title: 'A ~500-token contract',
-    description:
-      'One cross-harness SKILL.md teaches Claude Code, Codex, Gemini CLI, or Cursor the whole workflow. That is the entire standing context cost — not thousands of tokens of tool definitions.',
-  },
-  {
-    title: 'Safe by construction',
-    description:
-      'File edits become schema-validated mutation plans. Conflicts quarantine with a human-readable note instead of overwriting. An agent cannot corrupt the workspace with a malformed write.',
+      'Agents already read, grep, and edit files brilliantly. xNet checks out a scoped slice of the workspace as Markdown and JSONL — edits become schema-validated mutation plans, so a malformed write can’t corrupt anything.',
   },
   {
     title: '~9x cheaper than MCP tools',
     description:
-      'On a 15-task benchmark, the files+CLI surface used 0.11x the tokens of a legacy MCP toolset with equal task success. A slim MCP server remains as the no-shell fallback.',
+      'One ~500-token SKILL.md teaches Claude Code, Codex, Gemini CLI, or Cursor the whole workflow. On a 15-task benchmark, files+CLI used 0.11x the tokens of an MCP toolset with equal success.',
   },
 ]
 ---
@@ -49,15 +39,12 @@ const points = [
       align="center"
     />
 
-    <div class="mt-16 grid items-start gap-10 lg:grid-cols-2">
+    <div class="mt-12 grid items-start gap-10 lg:grid-cols-2">
       <div class="animate-on-scroll min-w-0">
         <CodeBlock filename="terminal" code={agentCode} />
-        <p class="mt-4 text-center text-xs text-gray-500">
-          The same plan/validate/apply core sits behind files, the CLI, and MCP.
-        </p>
       </div>
 
-      <div class="grid gap-5 sm:grid-cols-2">
+      <div class="grid gap-5">
         {points.map((point) => (
           <div class="animate-on-scroll rounded-xl border border-border bg-surface p-5">
             <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-1.5">{point.title}</h4>

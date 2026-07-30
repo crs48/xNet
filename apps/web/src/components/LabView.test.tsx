@@ -9,21 +9,28 @@ import { generateIdentity } from '@xnetjs/identity'
 import { XNetProvider } from '@xnetjs/react'
 import { useMemo } from 'react'
 import { describe, expect, it } from 'vitest'
+import { createTestPlatform, TestPlatformProvider } from '../workbench/test-platform'
 import { LabView } from './LabView'
+
+// LabView publishes its title against the current route (0353), which now
+// reads the PlatformPort (0406) — provide a stub port instead of a router.
+const platform = createTestPlatform({ pathname: '/lab/lab-test-1' })
 
 function Harness({ children }: { children: ReactNode }) {
   const identity = useMemo(() => generateIdentity(), [])
   const storage = useMemo(() => new MemoryNodeStorageAdapter(), [])
   return (
-    <XNetProvider
-      config={{
-        nodeStorage: storage,
-        authorDID: identity.identity.did as `did:key:${string}`,
-        signingKey: identity.privateKey
-      }}
-    >
-      {children}
-    </XNetProvider>
+    <TestPlatformProvider platform={platform}>
+      <XNetProvider
+        config={{
+          nodeStorage: storage,
+          authorDID: identity.identity.did as `did:key:${string}`,
+          signingKey: identity.privateKey
+        }}
+      >
+        {children}
+      </XNetProvider>
+    </TestPlatformProvider>
   )
 }
 

@@ -3,7 +3,7 @@
  * transition helpers App.tsx and the boot hooks share. No React in here.
  */
 import type { BootFailure } from '../lib/boot-diagnostics'
-import type { BlobService, NodeStorageAdapter } from '@xnetjs/data'
+import type { BlobService, BlobTransferQueue, NodeStorageAdapter } from '@xnetjs/data'
 import type { Identity, KeyBundle } from '@xnetjs/identity'
 import type { XNetRuntimeConfig } from '@xnetjs/react'
 import type { PersistentStorageStatus, SQLiteAdapter } from '@xnetjs/sqlite'
@@ -41,6 +41,8 @@ export interface StorageContext {
   storageAdapter: SQLiteStorageAdapter
   blobStore: BlobStore
   blobService: BlobService
+  /** Moves attachment bytes to/from the hub (exploration 0385 W3) */
+  blobTransfers: BlobTransferQueue
   /** SQLite worker port for the data worker (worker runtime flag only) */
   dataWorkerStoragePort?: MessagePort
 }

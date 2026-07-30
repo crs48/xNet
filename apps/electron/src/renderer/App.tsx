@@ -1,68 +1,86 @@
 /**
  * Electron App - Main component
  *
- * The shell orchestration lives in `./shell/`: `shell-state.ts` is the pure
- * ShellState reducer, `useDocumentShell` owns the shell state, home canvas,
- * document queries and transition handlers, and `useShellPaletteCommands`
- * the command-palette table. This component composes those hooks and renders
- * per shell state.
+ * The desktop app mounts the shared `<Workbench/>` chrome (exploration 0406)
+ * over the desktop PlatformPort + WorkbenchHost. `./shell/` keeps the
+ * orchestration: `shell-state.ts` is the pure ShellState reducer and
+ * `useDocumentShell` owns the shell state, home canvas, document queries and
+ * transition handlers — surviving as the navigation *implementation* behind
+ * the port, exactly the deal the exploration drew.
  */
 
 import type { ConnectHubRequest } from './components/ConnectHubDialog'
-import { useCommandPalette, CommandPalette } from '@xnetjs/ui'
-import React, { useCallback, useEffect, useState } from 'react'
+import { getCommandRegistry } from '@xnetjs/plugins'
+import { PlatformProvider, setWorkbenchHost, Workbench } from '@xnetjs/workbench'
+import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { ActionDock } from './components/ActionDock'
 import { AddSharedDialog } from './components/AddSharedDialog'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { CanvasView } from './components/CanvasView'
 import { ConnectHubDialog } from './components/ConnectHubDialog'
-import { DatabaseView } from './components/DatabaseView'
-import { DataWorkspaceView } from './components/DataWorkspaceView'
-import { MeetingsView } from './components/MeetingsView'
-import { PageView } from './components/PageView'
-import { SettingsView } from './components/SettingsView'
-import { SocialImportView } from './components/SocialImportView'
-import { StorybookView } from './components/StorybookView'
-import { SystemMenu } from './components/SystemMenu'
 import { setPersistedHubUrl } from './lib/hub-url'
+import { useDesktopPlatformPort } from './shell/desktop-platform'
+import { registerDesktopHostedViews } from './shell/hosted-views'
 import { STORIES_ENABLED, useDocumentShell } from './shell/use-document-shell'
-import { useShellPaletteCommands } from './shell/use-shell-palette-commands'
+import { useDesktopWorkbenchHost } from './shell/workbench-host'
+
+// Every surface other than the home canvas loads on demand (0406 cold-open
+// budget): the editor, database-view, meetings, social-import and WebLLM
+// graphs are megabytes of parse the first paint never executes. CanvasView
+// stays static above — it IS first paint.
+const AiChatPanel = lazy(() =>
+  import('@xnetjs/workbench/ai').then((m) => ({ default: m.AiChatPanel }))
+)
+const DatabaseView = lazy(() =>
+  import('./components/DatabaseView').then((m) => ({ default: m.DatabaseView }))
+)
+const DataWorkspaceView = lazy(() =>
+  import('./components/DataWorkspaceView').then((m) => ({ default: m.DataWorkspaceView }))
+)
+const MeetingsView = lazy(() =>
+  import('./components/MeetingsView').then((m) => ({ default: m.MeetingsView }))
+)
+const PageView = lazy(() => import('./components/PageView').then((m) => ({ default: m.PageView })))
+const SettingsView = lazy(() =>
+  import('./components/SettingsView').then((m) => ({ default: m.SettingsView }))
+)
+const SocialImportView = lazy(() =>
+  import('./components/SocialImportView').then((m) => ({ default: m.SocialImportView }))
+)
+const StorybookView = lazy(() =>
+  import('./components/StorybookView').then((m) => ({ default: m.StorybookView }))
+)
 
 export function App(): React.ReactElement {
   const {
     shellState,
-    overlayTitle,
-    isCanvasInteractiveShell,
-    prefersReducedMotion,
     homeCanvasId,
     homeCanvasBootstrapError,
     documents,
-    recentDocuments,
     isLoading,
     pendingCanvasInsert,
-    canvasCommandState,
     canvasViewRef,
     bootstrapHomeCanvas,
     focusDocument,
-    handleOpenDocument,
     handleCreateLinkedDocument,
     handleCreateCanvasNote,
     handleReturnHome,
     handleAddShared,
     openDatabaseSplit,
-    handleOpenSettings,
-    handleOpenSocialImport,
     handleOpenDataWorkspace,
-    handleOpenMeetings,
     handleOpenStories,
     handleInsertSavedLensAsCanvasFrame,
     handleCommandStateChange,
-    handlePendingInsertConsumed
+    handlePendingInsertConsumed,
+    handleOpenDocument,
+    handleOpenSettings,
+    handleOpenMeetings,
+    handleOpenAssistant,
+    handleOpenSocialImport
   } = useDocumentShell()
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const [prefilledShareValue, setPrefilledShareValue] = useState('')
   const [connectRequest, setConnectRequest] = useState<ConnectHubRequest | null>(null)
-  const { open: paletteOpen, setOpen: setPaletteOpen, show: showPalette } = useCommandPalette()
 
   useEffect(() => {
     const cleanup = window.xnet.onSharePayload((payload) => {
@@ -90,142 +108,32 @@ export function App(): React.ReactElement {
     await window.__xnetIpcSyncManager?.configureShareSession({ signalingUrl: request.hub })
   }, [])
 
-  const paletteCommands = useShellPaletteCommands({
-    canvasViewRef,
-    canvasCommandState,
-    isCanvasInteractiveShell,
-    shellKind: shellState.kind,
-    recentDocuments,
-    handleCreateLinkedDocument,
-    handleCreateCanvasNote,
-    handleOpenDocument,
-    handleOpenSettings,
-    handleOpenSocialImport,
-    handleOpenDataWorkspace,
-    handleOpenStories
+  // The desktop PlatformPort (0406 phase 3): shared workbench modules navigate
+  // by intent; this host resolves intents to ShellState transitions.
+  const platform = useDesktopPlatformPort({
+    shellState,
+    returnHome: handleReturnHome,
+    openDocument: handleOpenDocument,
+    openAssistant: handleOpenAssistant,
+    openSettings: handleOpenSettings,
+    openMeetings: handleOpenMeetings,
+    openDataWorkspace: handleOpenDataWorkspace,
+    openSocialImport: handleOpenSocialImport
   })
 
-  const renderOverlay = () => {
-    const overlaySurfaceClassName = [
-      'flex h-full overflow-hidden rounded-[32px] border border-border/70 bg-background shadow-2xl shadow-black/10',
-      prefersReducedMotion ? '' : 'animate-in fade-in zoom-in-95 duration-200'
-    ].join(' ')
+  const desktopHost = useDesktopWorkbenchHost(platform.navigate, { addShared: handleAddShared })
 
-    if (shellState.kind === 'canvas-home') {
-      return null
-    }
-
-    if (shellState.kind === 'settings') {
-      return (
-        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
-          <div className={overlaySurfaceClassName}>
-            <SettingsView onClose={handleReturnHome} />
-          </div>
-        </div>
-      )
-    }
-
-    if (shellState.kind === 'stories') {
-      return (
-        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
-          <div className={overlaySurfaceClassName}>
-            <StorybookView />
-          </div>
-        </div>
-      )
-    }
-
-    if (shellState.kind === 'social-import') {
-      return (
-        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
-          <div className={overlaySurfaceClassName}>
-            <SocialImportView
-              onClose={handleReturnHome}
-              onOpenDataWorkspace={handleOpenDataWorkspace}
-            />
-          </div>
-        </div>
-      )
-    }
-
-    if (shellState.kind === 'meetings') {
-      return (
-        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
-          <div className={overlaySurfaceClassName}>
-            <MeetingsView onClose={handleReturnHome} />
-          </div>
-        </div>
-      )
-    }
-
-    if (shellState.kind === 'data-workspace') {
-      return (
-        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
-          <div className={overlaySurfaceClassName}>
-            <DataWorkspaceView
-              onClose={handleReturnHome}
-              onInsertSavedLensAsCanvasFrame={handleInsertSavedLensAsCanvasFrame}
-            />
-          </div>
-        </div>
-      )
-    }
-
-    if (shellState.kind === 'database-split') {
-      return (
-        <div className="pointer-events-none absolute inset-0 z-30 px-4 pb-28 pt-6">
-          <div className="flex h-full justify-end">
-            <div className="pointer-events-auto flex h-full w-[min(48vw,780px)] min-w-[420px] flex-col gap-4">
-              <div className="flex justify-end">
-                <div
-                  className="flex items-center gap-3 rounded-full border border-border/70 bg-background/82 px-4 py-2 shadow-lg backdrop-blur-xl"
-                  data-database-split-view="true"
-                >
-                  <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                    Canvas + Database
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleReturnHome}
-                    className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                  >
-                    Close split
-                  </button>
-                </div>
-              </div>
-
-              <div
-                className={['min-h-0 flex-1', overlaySurfaceClassName].join(' ')}
-                data-database-split-panel="true"
-              >
-                <DatabaseView docId={shellState.docId} minimalChrome />
-              </div>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    return (
-      <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
-        <div className="flex h-full flex-col gap-4">
-          <div className="pointer-events-none flex justify-center">
-            <div className="rounded-full border border-border/70 bg-background/80 px-4 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground shadow-lg backdrop-blur-xl">
-              {overlayTitle}
-            </div>
-          </div>
-
-          <div className={['min-h-0 flex-1', overlaySurfaceClassName].join(' ')}>
-            {shellState.kind === 'page-focus' ? (
-              <PageView docId={shellState.docId} minimalChrome />
-            ) : (
-              <DatabaseView docId={shellState.docId} minimalChrome />
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Embedded Storybook (rung 1 of the prototyping ladder) is dev-only; the
+  // workbench palette is its entry now that the bespoke menu is gone.
+  useEffect(() => {
+    if (!STORIES_ENABLED) return
+    const disposable = getCommandRegistry().register({
+      id: 'desktop.openStories',
+      title: 'Open Stories',
+      run: () => handleOpenStories()
+    })
+    return () => disposable.dispose()
+  }, [handleOpenStories])
 
   if (homeCanvasBootstrapError && !homeCanvasId) {
     return (
@@ -255,112 +163,125 @@ export function App(): React.ReactElement {
     )
   }
 
+  // Fill both registries before the first chrome render (same boot rule as
+  // web's __root): views + host, then the shared shell.
+  registerDesktopHostedViews()
+  setWorkbenchHost(desktopHost)
+
   return (
-    <div className="relative h-screen overflow-hidden bg-background">
-      <header className="absolute inset-x-0 top-0 z-50 h-[38px]">
-        <div className="absolute inset-0 titlebar-drag" />
-        <div className="relative flex h-full items-center justify-end px-3">
-          <SystemMenu
-            recentDocuments={recentDocuments}
-            onOpenDocument={handleOpenDocument}
-            onOpenSettings={handleOpenSettings}
-            onOpenDataWorkspace={handleOpenDataWorkspace}
-            onOpenMeetings={handleOpenMeetings}
-            onOpenSocialImport={handleOpenSocialImport}
-            onOpenStories={STORIES_ENABLED ? handleOpenStories : undefined}
-            onAddShared={() => {
-              setPrefilledShareValue('')
-              setShowAddSharedDialog(true)
-            }}
-            onToggleDebugPanel={() => {
-              window.dispatchEvent(new CustomEvent('xnet-devtools-toggle'))
-            }}
-          />
+    <PlatformProvider value={platform}>
+      <div
+        className="flex h-screen flex-col overflow-hidden bg-background"
+        style={{ '--titlebar-height': '38px' } as React.CSSProperties}
+      >
+        {/* hiddenInset window: the traffic lights sit at (16,16), so the shell
+            starts below a slim drag strip instead of underneath them. The
+            frames subtract --titlebar-height so the bottom islands stay
+            on-screen. */}
+        <header className="titlebar-drag h-[38px] shrink-0" />
+        <div className="min-h-0 flex-1">
+          <Workbench>
+            {/* Focused surfaces are lazy chunks (cold-open budget); the null
+                fallback is fine because the shell frame stays mounted. */}
+            <Suspense fallback={null}>
+              {shellState.kind === 'page-focus' ? (
+                <PageView docId={shellState.docId} minimalChrome />
+              ) : shellState.kind === 'database-focus' || shellState.kind === 'database-split' ? (
+                <DatabaseView docId={shellState.docId} minimalChrome />
+              ) : shellState.kind === 'meetings' ? (
+                <MeetingsView onClose={handleReturnHome} />
+              ) : shellState.kind === 'data-workspace' ? (
+                <DataWorkspaceView
+                  onClose={handleReturnHome}
+                  onInsertSavedLensAsCanvasFrame={handleInsertSavedLensAsCanvasFrame}
+                />
+              ) : shellState.kind === 'social-import' ? (
+                <SocialImportView
+                  onClose={handleReturnHome}
+                  onOpenDataWorkspace={handleOpenDataWorkspace}
+                />
+              ) : shellState.kind === 'settings' ? (
+                <SettingsView onClose={handleReturnHome} />
+              ) : shellState.kind === 'assistant' ? (
+                <AiChatPanel />
+              ) : shellState.kind === 'stories' ? (
+                <StorybookView />
+              ) : (
+                // canvas-home: the desktop differentiator stays the default
+                // surface inside the unified shell (0406 open question 1 —
+                // "default preset, not a different shell"). The ActionDock is
+                // the canvas's tool dock, not shell chrome, so it rides inside
+                // the editor area with its canvas.
+                <div className="relative h-full">
+                  <CanvasView
+                    ref={canvasViewRef}
+                    docId={homeCanvasId}
+                    documents={documents}
+                    pendingInsert={pendingCanvasInsert}
+                    onCreatePage={() => void handleCreateLinkedDocument('page')}
+                    onCreateDatabase={() => void handleCreateLinkedDocument('database')}
+                    onCreateNote={handleCreateCanvasNote}
+                    onCommandStateChange={handleCommandStateChange}
+                    onPendingInsertConsumed={handlePendingInsertConsumed}
+                    onOpenDocument={(docId, docType) => focusDocument(docId, docType, true)}
+                    onOpenDatabaseSplit={openDatabaseSplit}
+                  />
+                  <ActionDock
+                    mode="canvas-home"
+                    onCreatePage={() => void handleCreateLinkedDocument('page')}
+                    onCreateDatabase={() => void handleCreateLinkedDocument('database')}
+                    onCreateNote={handleCreateCanvasNote}
+                    onCreateShape={() => {
+                      canvasViewRef.current?.createShape('rectangle')
+                    }}
+                    onCreateFrame={() => {
+                      canvasViewRef.current?.createFrame()
+                    }}
+                    onCreateReference={() => {
+                      canvasViewRef.current?.createExternalReference()
+                    }}
+                    onCreateMedia={() => {
+                      canvasViewRef.current?.createMediaFile()
+                    }}
+                    onOpenSearch={() => void getCommandRegistry().runCommand('search.open')}
+                    onReturnHome={handleReturnHome}
+                    onZoomOut={() => {
+                      canvasViewRef.current?.zoomOut()
+                    }}
+                    onZoomIn={() => {
+                      canvasViewRef.current?.zoomIn()
+                    }}
+                    onFitToContent={() => {
+                      canvasViewRef.current?.fitCanvasContent()
+                    }}
+                    onResetView={() => {
+                      canvasViewRef.current?.resetCanvasView()
+                    }}
+                  />
+                </div>
+              )}
+            </Suspense>
+          </Workbench>
         </div>
-      </header>
 
-      <main className="relative h-full overflow-hidden pt-[38px]">
-        <div
-          className={[
-            'absolute inset-0',
-            prefersReducedMotion ? '' : 'transition-all duration-200',
-            isCanvasInteractiveShell
-              ? 'opacity-100'
-              : prefersReducedMotion
-                ? 'pointer-events-none opacity-70'
-                : 'pointer-events-none scale-[0.985] opacity-70'
-          ].join(' ')}
-        >
-          <CanvasView
-            ref={canvasViewRef}
-            docId={homeCanvasId}
-            documents={documents}
-            pendingInsert={pendingCanvasInsert}
-            onCreatePage={() => void handleCreateLinkedDocument('page')}
-            onCreateDatabase={() => void handleCreateLinkedDocument('database')}
-            onCreateNote={handleCreateCanvasNote}
-            onCommandStateChange={handleCommandStateChange}
-            onPendingInsertConsumed={handlePendingInsertConsumed}
-            onOpenDocument={(docId, docType) => focusDocument(docId, docType, true)}
-            onOpenDatabaseSplit={openDatabaseSplit}
-          />
-        </div>
-
-        {renderOverlay()}
-
-        <ActionDock
-          mode={isCanvasInteractiveShell ? 'canvas-home' : 'focused'}
-          onCreatePage={() => void handleCreateLinkedDocument('page')}
-          onCreateDatabase={() => void handleCreateLinkedDocument('database')}
-          onCreateNote={handleCreateCanvasNote}
-          onCreateShape={() => {
-            canvasViewRef.current?.createShape('rectangle')
+        <AddSharedDialog
+          isOpen={showAddSharedDialog}
+          onClose={() => {
+            setShowAddSharedDialog(false)
+            setPrefilledShareValue('')
           }}
-          onCreateFrame={() => {
-            canvasViewRef.current?.createFrame()
-          }}
-          onCreateReference={() => {
-            canvasViewRef.current?.createExternalReference()
-          }}
-          onCreateMedia={() => {
-            canvasViewRef.current?.createMediaFile()
-          }}
-          onOpenSearch={showPalette}
-          onReturnHome={handleReturnHome}
-          onZoomOut={() => {
-            canvasViewRef.current?.zoomOut()
-          }}
-          onZoomIn={() => {
-            canvasViewRef.current?.zoomIn()
-          }}
-          onFitToContent={() => {
-            canvasViewRef.current?.fitCanvasContent()
-          }}
-          onResetView={() => {
-            canvasViewRef.current?.resetCanvasView()
-          }}
+          onAdd={handleAddShared}
+          initialValue={prefilledShareValue}
         />
-      </main>
 
-      <AddSharedDialog
-        isOpen={showAddSharedDialog}
-        onClose={() => {
-          setShowAddSharedDialog(false)
-          setPrefilledShareValue('')
-        }}
-        onAdd={handleAddShared}
-        initialValue={prefilledShareValue}
-      />
+        <ConnectHubDialog
+          request={connectRequest}
+          onCancel={() => setConnectRequest(null)}
+          onConfirm={handleCloudConnect}
+        />
 
-      <ConnectHubDialog
-        request={connectRequest}
-        onCancel={() => setConnectRequest(null)}
-        onConfirm={handleCloudConnect}
-      />
-
-      <CommandPalette commands={paletteCommands} open={paletteOpen} onOpenChange={setPaletteOpen} />
-
-      <BundledPluginInstaller />
-    </div>
+        <BundledPluginInstaller />
+      </div>
+    </PlatformProvider>
   )
 }

@@ -1,8 +1,8 @@
 {
   "id": "2026-06-20-swift-conformance-kernel",
   "date": "June 20, 2026",
-  "title": "A verified Swift kernel — XNet's protocol is provably portable to Apple platforms",
-  "summary": "The first step toward a native Swift SDK: an independent Swift implementation of XNet's interop kernel now reproduces the same did:key, canonical bytes, and BLAKE3 change hashes as the TypeScript reference, and verifies TypeScript-signed changes. The conformance corpus also grew new L2 (replication) and L3 (authorization) golden vectors, so the wire protocol stays honest across languages.",
+  "title": "A verified Swift kernel — xNet's protocol is provably portable to Apple platforms",
+  "summary": "The first step toward a native Swift SDK: an independent Swift implementation of xNet's interop kernel now reproduces the same did:key, canonical bytes, and BLAKE3 change hashes as the TypeScript reference, and verifies TypeScript-signed changes. The conformance corpus also grew new L2 (replication) and L3 (authorization) golden vectors, so the wire protocol stays honest across languages.",
   "highlights": [
     "New Swift reference kernel (conformance/reference/swift) passes 18/18 L0+L1 checks against the shared golden vectors — proof the protocol, not the TypeScript source, is what implementations follow",
     "Conformance corpus extended to L2 (version handshake, catch-up filtering, the byte-exact signed Yjs envelope) and L3 (authorization expression evaluation), drift-guarded in CI",

@@ -27,7 +27,7 @@ code; the driver is your hands for the mechanical parts.
 
 1. **Identify the spec.** If it's an exploration, get its path:
    ```bash
-   node .claude/skills/implement/driver.mjs find        # highest-numbered unimplemented [_] doc
+   node .claude/skills/implement/driver.mjs find        # highest-numbered unfinished [_] or [-] doc
    node .claude/skills/implement/driver.mjs find turso  # or match by number/title
    ```
    If the spec is a conversation plan or some other doc, use that as the
@@ -55,9 +55,18 @@ code; the driver is your hands for the mechanical parts.
 6. **Mark the doc done** once `status` shows 0 remaining (skip if the
    spec wasn't an exploration):
    ```bash
-   node .claude/skills/implement/driver.mjs done <doc>   # renames [_] -> [x], prints the commit msg
+   node .claude/skills/implement/driver.mjs done <doc>   # renames [_]/[-] -> [x], prints the commit msg
    git add -A && git commit -m "docs(exploration): check off <topic>"
    ```
+   **Stopping with items left?** If some checklist items are done but
+   others are deliberately deferred (blocked, out of scope for this PR),
+   mark the doc **partially implemented** instead of leaving it `[_]`:
+   ```bash
+   node .claude/skills/implement/driver.mjs partial <doc>   # renames [_] -> [-], prints the commit msg
+   git add -A && git commit -m "docs(exploration): partially check off <topic>"
+   ```
+   A `[-]` doc still counts as unfinished — `find` picks it up on a later
+   `/implement` run, and `done` renames `[-]` → `[x]` when the rest lands.
 7. **Ship it** — see below.
 
 ## Setup (once per fresh worktree)
@@ -72,10 +81,11 @@ pnpm install --frozen-lockfile --prefer-offline   # ~18s
 ## Driver commands
 
 ```
-find [query]              highest-numbered [_] doc, or match by number/title
+find [query]              highest-numbered [_] or [-] doc, or match by number/title
 status <doc>              Implementation/Validation progress + remaining items
 check <doc> "<substring>" flip the one unchecked item containing <substring>
-done  <doc>               rename [_] -> [x] (refuses if any box is unchecked)
+partial <doc>             rename [_] -> [-] (needs ≥1 box checked AND ≥1 unchecked)
+done  <doc>               rename [_]/[-] -> [x] (refuses if any box is unchecked)
 branch <doc>              suggest a branch name (claude/NNNN-slug)
 ```
 
@@ -143,7 +153,9 @@ gh pr merge <N> --merge --admin
   checks are the real gate, so the PR still can't merge broken. Don't
   use it to skip a failure your change actually caused.
 - **`docs(exploration): check off <topic>`** is the conventional message
-  for the `[_]`→`[x]` rename; `done` prints the exact line.
+  for the `[_]`/`[-]`→`[x]` rename;
+  **`docs(exploration): partially check off <topic>`** for `[_]`→`[-]`.
+  `done`/`partial` each print the exact line.
 - **Don't add scope beyond the checklist.** Implement the doc; resist
   gold-plating (AGENTS.md "DON'T: add features beyond what's requested").
 

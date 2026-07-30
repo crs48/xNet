@@ -1,4 +1,4 @@
-# 0143 - Why Might Public Markets Invest In XNet? Crypto, Web3, And Blockchain
+# 0143 - Why Might Public Markets Invest In xNet? Crypto, Web3, And Blockchain
 
 > **Status:** Exploration  
 > **Date:** 2026-06-03  
@@ -8,7 +8,7 @@
 
 ## Problem Statement 🧭
 
-Why might public markets invest in XNet if investors think about crypto, Web3, blockchain, tokens,
+Why might public markets invest in xNet if investors think about crypto, Web3, blockchain, tokens,
 DePIN, stablecoins, and tokenized market infrastructure?
 
 This is a different question from "why might venture capital invest?" Venture investors buy
@@ -17,56 +17,56 @@ investors need a liquid exposure, a clear narrative, observable metrics, and a d
 economic value. In crypto markets, they may also accept tokens as liquid network assets, but that
 creates a much harsher design question:
 
-> Can XNet become a useful decentralized resource economy before it becomes a publicly tradable
+> Can xNet become a useful decentralized resource economy before it becomes a publicly tradable
 > story?
 
-This exploration is strategic analysis for XNet. It is not investment advice, legal advice, a token
+This exploration is strategic analysis for xNet. It is not investment advice, legal advice, a token
 launch recommendation, or a securities-law conclusion.
 
 ## Exploration Status
 
 - [x] Determine the next exploration filename
-- [x] Review the XNet README, vision, hub architecture, federation code, NodeStore, auth grants, and
-      prior XNet market/economics explorations
+- [x] Review the xNet README, vision, hub architecture, federation code, NodeStore, auth grants, and
+      prior xNet market/economics explorations
 - [x] Research current public-market crypto wrappers, token regulation, stablecoin law, DePIN
       economics, decentralized storage, DID/UCAN standards, and crypto accounting context
-- [x] Map possible public-market investment paths for XNet
+- [x] Map possible public-market investment paths for xNet
 - [x] Compare equity, token, stablecoin, DePIN, and tokenized-security paths
 - [x] Include mermaid diagrams, scenarios, checklists, recommendations, example code, and references
 
 ## Executive Summary 🎯
 
-Public markets might invest in XNet if XNet becomes one of the few liquid ways to get exposure to a
+Public markets might invest in xNet if xNet becomes one of the few liquid ways to get exposure to a
 large shift:
 
 > **user-owned data, federated applications, and AI-era collaboration need an open infrastructure
 > layer with cryptographic identity, portable permissions, local-first sync, and service providers
 > that can be paid for real work.**
 
-The strongest public-market crypto thesis is not "XNet should put everything on a blockchain." It
+The strongest public-market crypto thesis is not "xNet should put everything on a blockchain." It
 is:
 
-> **XNet should keep user data and collaboration off-chain, then use crypto rails only where they
+> **xNet should keep user data and collaboration off-chain, then use crypto rails only where they
 > solve settlement, attribution, operator incentives, verifiable service receipts, and cross-border
 > payments better than ordinary SaaS billing.**
 
 That creates five possible public-market paths:
 
-1. **Public equity:** XNet becomes a public software/infrastructure company with XNet Cloud,
+1. **Public equity:** xNet becomes a public software/infrastructure company with xNet Cloud,
    managed hubs, enterprise workspaces, AI data services, and developer platform revenue.
-2. **Protocol/resource token:** XNet eventually supports a transferable network asset tied to hub
+2. **Protocol/resource token:** xNet eventually supports a transferable network asset tied to hub
    capacity, search indexing, storage, relay work, crawling, app-view APIs, or proof-of-service.
-3. **DePIN-style network:** XNet hubs become a digital resource network where operators earn for
+3. **DePIN-style network:** xNet hubs become a digital resource network where operators earn for
    providing verifiable infrastructure: storage, sync, search shards, federation routing, media
    caches, and agent execution.
-4. **Stablecoin/payment rail:** XNet uses stablecoins and/or non-transferable service credits for
+4. **Stablecoin/payment rail:** xNet uses stablecoins and/or non-transferable service credits for
    cross-hub settlement without making the core product depend on a speculative token.
-5. **Tokenized public security:** XNet equity, debt, revenue notes, or fund exposure eventually
+5. **Tokenized public security:** xNet equity, debt, revenue notes, or fund exposure eventually
    trades through regulated tokenized-market infrastructure.
 
 The recommendation is conservative:
 
-> **Do not launch a token now. Make XNet crypto-ready before making it crypto-native.**
+> **Do not launch a token now. Make xNet crypto-ready before making it crypto-native.**
 
 The first public-market proof should be boring and auditable:
 
@@ -79,14 +79,14 @@ The first public-market proof should be boring and auditable:
 - clear separation between private user data and public network services;
 - legal review before any transferable asset.
 
-If XNet later has a token, the token should exist because the network has a real cross-operator
+If xNet later has a token, the token should exist because the network has a real cross-operator
 settlement problem that fiat billing, subscriptions, and stablecoins cannot solve cleanly. A token
 should not exist because "public markets like crypto" or because it creates an early liquidity
 event.
 
 ```mermaid
 flowchart TD
-    XNet["XNet core<br/>local-first data + identity + sync + hubs"]
+    XNet["xNet core<br/>local-first data + identity + sync + hubs"]
     Usage["Real usage<br/>backup, files, search, federation, AI actions"]
     Metering["Metering + signed service receipts"]
     Payments["Payments<br/>fiat, invoices, stablecoins, credits"]
@@ -107,9 +107,9 @@ flowchart TD
 
 ## Current State In The Repository 🔎
 
-### XNet is crypto-adjacent, not blockchain-native
+### xNet is crypto-adjacent, not blockchain-native
 
-The root [`README.md`](../../README.md) positions XNet as decentralized data infrastructure and an
+The root [`README.md`](../../README.md) positions xNet as decentralized data infrastructure and an
 application: local-first, P2P-synced, user-owned data. The package graph includes:
 
 - `@xnetjs/crypto` for BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption, and key primitives;
@@ -120,7 +120,7 @@ application: local-first, P2P-synced, user-owned data. The package graph include
   crawling.
 
 That is enough to look familiar to Web3 investors: user-controlled keys, DIDs, capabilities,
-verifiable signatures, local-first data, content addressing, and federated services. But XNet does
+verifiable signatures, local-first data, content addressing, and federated services. But xNet does
 not currently have:
 
 - a blockchain;
@@ -135,13 +135,13 @@ not currently have:
 - proof-of-service receipts;
 - legal wrappers for public distribution.
 
-That absence is a strength if XNet uses it intentionally. XNet can avoid putting high-frequency
+That absence is a strength if xNet uses it intentionally. xNet can avoid putting high-frequency
 collaboration, private notes, enterprise documents, and user social data on-chain while preserving
 the option to add settlement rails later.
 
 ```mermaid
 graph TB
-    subgraph Present["Present in XNet"]
+    subgraph Present["Present in xNet"]
         DID["DID:key identity"]
         UCAN["UCAN grants"]
         Crypto["Signatures + hashes + encryption"]
@@ -172,7 +172,7 @@ service, federation gateway, shard participant, and crawler.
 That matters for public markets because tokens and public equities need measurable business
 activity. A hub can create visible units of work:
 
-| XNet service     | Public-market interpretation                                    | Tokenization fit        |
+| xNet service     | Public-market interpretation                                    | Tokenization fit        |
 | ---------------- | --------------------------------------------------------------- | ----------------------- |
 | Signaling        | Availability utility                                            | Weak by itself          |
 | Sync relay       | Reliability and low-latency collaboration                       | Moderate if metered     |
@@ -202,7 +202,7 @@ does several things that a future settlement layer would need:
 - federation queries are logged with source hub, query text, result count, execution time, and
   timestamp.
 
-That is not a billing ledger, but it is close to a proof boundary. A future XNet could add signed
+That is not a billing ledger, but it is close to a proof boundary. A future xNet could add signed
 service receipts without rewriting the architecture:
 
 ```mermaid
@@ -236,7 +236,7 @@ changes, hash verification, LWW conflict resolution, sparse updates, and materia
 grant API with UCAN delegation, revocation, proof-depth limits, grant rate limits, attenuation, and
 content-key recipient management.
 
-That makes XNet more credible than a generic "data ownership" slogan. The primitives can support:
+That makes xNet more credible than a generic "data ownership" slogan. The primitives can support:
 
 - user-owned namespace claims;
 - delegated app access;
@@ -246,7 +246,7 @@ That makes XNet more credible than a generic "data ownership" slogan. The primit
 - verifiable provenance for public artifacts;
 - audit trails for regulated teams.
 
-The public-market angle is that XNet can become a trusted substrate for AI and Web3 workflows
+The public-market angle is that xNet can become a trusted substrate for AI and Web3 workflows
 without requiring every user action to become a financial transaction.
 
 ### Prior explorations already imply the public-market thesis
@@ -261,12 +261,12 @@ Three prior documents are especially relevant:
   argues that wide adoption shifts canonical data toward users and organizations, while reach,
   ranking, workflows, moderation, compute, hosting, and UX become competitive service layers.
 - [`0142_[_]_WHY_MIGHT_VCS_INVEST_IN_XNET_COMPELLING_VENTURE_RETURNS_AND_TIMEFRAMES.md`](./0142_[_]_WHY_MIGHT_VCS_INVEST_IN_XNET_COMPELLING_VENTURE_RETURNS_AND_TIMEFRAMES.md)
-  argues that the venture case is strongest when XNet is framed as the local-first, AI-native
+  argues that the venture case is strongest when xNet is framed as the local-first, AI-native
   application platform for collaborative software, with hosted hubs as a revenue layer.
 
 The public-market version of the thesis is:
 
-> If XNet becomes a widely used app/data/hub network, public markets may invest because it offers
+> If xNet becomes a widely used app/data/hub network, public markets may invest because it offers
 > liquid exposure to a new internet resource layer: private data ownership plus paid public
 > infrastructure.
 
@@ -284,7 +284,7 @@ reflect bitcoin's price while simplifying custody and operational complexity, an
 $52 billion in net assets as of June 2, 2026. Source:
 [iShares Bitcoin Trust ETF](https://www.blackrock.com/us/individual/products/333011/ishare).
 
-Implication for XNet: public markets do not need every investor to self-custody a token. They need
+Implication for xNet: public markets do not need every investor to self-custody a token. They need
 regulated wrappers, disclosure, custody, liquidity, and a narrative that asset allocators can
 understand.
 
@@ -300,8 +300,8 @@ company can become a proxy for bitcoin exposure. It reported holding approximate
 as of February 13, 2026, while also disclosing concentration and liquidity risks. Source:
 [MicroStrategy 2025 Form 10-K](https://www.sec.gov/Archives/edgar/data/1050446/000105044626000020/mstr-20251231.htm).
 
-Implication for XNet: public markets will invest in crypto narratives, but they also punish opaque
-or purely reflexive value capture. XNet needs operating metrics that do not depend only on token
+Implication for xNet: public markets will invest in crypto narratives, but they also punish opaque
+or purely reflexive value capture. xNet needs operating metrics that do not depend only on token
 price, market volatility, or treasury assets.
 
 ### U.S. crypto policy is evolving, but staff statements are not a product plan
@@ -322,7 +322,7 @@ Sources:
 - [SEC statement on stablecoins](https://www.sec.gov/newsroom/speeches-statements/statement-stablecoins-040425)
 - [SEC statement on crypto securities offerings and registrations](https://www.sec.gov/newsroom/speeches-statements/cf-crypto-securities-041025)
 
-Implication for XNet: the environment may be more navigable than during peak enforcement
+Implication for xNet: the environment may be more navigable than during peak enforcement
 uncertainty, but it is still not safe to treat token issuance as a casual growth tactic. The SEC's
 own crypto securities statement exists because some offerings will still require securities-law
 disclosure and registration paths.
@@ -335,9 +335,9 @@ currency or similarly liquid assets, disclose redemption policies, publish reser
 and are subject to Bank Secrecy Act obligations. Source:
 [Congress.gov GENIUS Act summary](https://www.congress.gov/bill/119th-congress/senate-bill/1582).
 
-Implication for XNet: stablecoins are the most practical first crypto rail. They can support
+Implication for xNet: stablecoins are the most practical first crypto rail. They can support
 cross-border payments, creator payments, hub subscriptions, API credits, and operator settlement
-without requiring XNet to invent a volatile token.
+without requiring xNet to invent a volatile token.
 
 ### Europe is forcing crypto into a disclosure and authorization regime
 
@@ -345,7 +345,7 @@ ESMA describes MiCA as a uniform EU market framework for crypto-assets, with mea
 transparency, supervision, registers, white papers, and comparability of information. Source:
 [ESMA MiCA overview](https://www.esma.europa.eu/pl/node/201529).
 
-Implication for XNet: a public token strategy cannot be U.S.-only. If XNet wants global public
+Implication for xNet: a public token strategy cannot be U.S.-only. If xNet wants global public
 market participation, issuer disclosures, service-provider obligations, user protection, and
 jurisdiction-specific restrictions become product requirements.
 
@@ -356,7 +356,7 @@ disclosures because prior cost-less-impairment treatment did not give investors 
 information about changes in crypto asset value. Source:
 [FASB ASU 2023-08](https://storage.fasb.org/ASU%202023-08.pdf).
 
-Implication for XNet: public companies and institutions have a cleaner accounting path for some
+Implication for xNet: public companies and institutions have a cleaner accounting path for some
 crypto holdings than they did earlier in the cycle. That helps treasury, token, and reserve
 disclosure discussions, but it does not solve securities, custody, tax, or governance risk.
 
@@ -378,11 +378,11 @@ Filecoin-style deals specify data amount, duration, and cost. Sources:
 Arweave uses an endowment model where upload fees fund long-term miner payments for replicated
 storage. Source: [Arweave docs](https://docs.arweave.net/learn/what-is-arweave).
 
-Implication for XNet: if XNet ever uses token incentives, the model should be anchored in real
+Implication for xNet: if xNet ever uses token incentives, the model should be anchored in real
 resource work: bytes stored, query results served, index shards maintained, crawls completed, sync
 messages relayed, and uptime delivered.
 
-### DID and UCAN make XNet legible to Web3 without chains
+### DID and UCAN make xNet legible to Web3 without chains
 
 W3C made Decentralized Identifiers v1.0 a Recommendation in 2022, and DID Core defines globally
 unambiguous identifiers that are not tied to traditional identity roots. Source:
@@ -392,7 +392,7 @@ The UCAN specification describes UCAN as a trustless, local-first, user-originat
 scheme with public-key-verifiable and delegable capabilities. Source:
 [UCAN specification](https://ucan.xyz/specification/).
 
-Implication for XNet: XNet can be Web3-compatible at the identity and authorization layer before it
+Implication for xNet: xNet can be Web3-compatible at the identity and authorization layer before it
 is blockchain-native at the asset layer. That is valuable because identity and permissioning are
 often the missing bridge between real applications and crypto rails.
 
@@ -400,20 +400,20 @@ often the missing bridge between real applications and crypto rails.
 
 ### 1. Public markets buy liquid narratives plus measurable value
 
-Public markets may invest in XNet if they can answer four questions:
+Public markets may invest in xNet if they can answer four questions:
 
-| Investor question          | XNet answer needed                                                   |
+| Investor question          | xNet answer needed                                                   |
 | -------------------------- | -------------------------------------------------------------------- |
 | What is the category?      | Local-first AI data platform, decentralized cloud, DePIN, or Web3 OS |
 | What is the value capture? | Equity revenue, protocol fees, service credits, or token utility     |
 | What metrics prove demand? | ARR, active hubs, paid storage, queries, receipts, operator earnings |
 | Why will value compound?   | Network effects, switching costs, developer ecosystem, data gravity  |
 
-The current XNet architecture gives plausible answers, but not yet public-market-grade evidence.
+The current xNet architecture gives plausible answers, but not yet public-market-grade evidence.
 
 ### 2. The best crypto asset would be tied to resources, not vibes
 
-If XNet ever has a token, the strongest design would tie it to measurable service work:
+If xNet ever has a token, the strongest design would tie it to measurable service work:
 
 - backup byte-days;
 - file byte-days;
@@ -433,9 +433,9 @@ regulatory and capture risks.
 
 ```mermaid
 mindmap
-  root((XNet Public-Market Thesis))
+  root((xNet Public-Market Thesis))
     Equity
-      XNet Cloud revenue
+      xNet Cloud revenue
       Enterprise workspaces
       Developer platform
       AI data layer
@@ -462,7 +462,7 @@ mindmap
 
 ### 3. Token value capture is the hard part
 
-Public crypto markets punish protocols where usage grows but token value does not accrue. XNet
+Public crypto markets punish protocols where usage grows but token value does not accrue. xNet
 would need a precise answer to one of these mechanisms:
 
 | Mechanism                | How it works                                    | Main risk                                            |
@@ -475,9 +475,9 @@ would need a precise answer to one of these mechanisms:
 | Tokenized equity/revenue | Regulated security represents company economics | Disclosure, transfer restrictions, compliance        |
 
 The cleanest early path is **service credits plus off-chain payments**. It proves demand without
-turning XNet into a financial product.
+turning xNet into a financial product.
 
-### 4. Stablecoins are more useful to XNet than a native token in the first phase
+### 4. Stablecoins are more useful to xNet than a native token in the first phase
 
 Stablecoins could solve immediate problems:
 
@@ -489,12 +489,12 @@ Stablecoins could solve immediate problems:
 - bounties for crawling, indexing, translation, moderation, and archive pinning;
 - agent-to-service payments.
 
-Stablecoins let XNet support Web3 users and global operators while keeping XNet's own core token
+Stablecoins let xNet support Web3 users and global operators while keeping xNet's own core token
 question open.
 
 ### 5. Blockchain should be used for settlement and attestations, not primary data
 
-The data XNet cares about is often private, mutable, collaborative, high-frequency, legally
+The data xNet cares about is often private, mutable, collaborative, high-frequency, legally
 sensitive, and user-owned. That is a poor fit for public blockchains.
 
 Good blockchain candidates:
@@ -521,7 +521,7 @@ Poor blockchain candidates:
 
 ```mermaid
 quadrantChart
-    title "Where Blockchain Helps XNet"
+    title "Where Blockchain Helps xNet"
     x-axis "Private / high-frequency" --> "Public / low-frequency"
     y-axis "Weak settlement need" --> "Strong settlement need"
     quadrant-1 "Avoid chain"
@@ -538,7 +538,7 @@ quadrantChart
     "Search ranking snapshots": [0.64, 0.44]
 ```
 
-### 6. Public-market investors may like XNet because AI makes data ownership investable again
+### 6. Public-market investors may like xNet because AI makes data ownership investable again
 
 The AI angle matters. As agents become more capable, they need:
 
@@ -550,12 +550,12 @@ The AI angle matters. As agents become more capable, they need:
 - audit trails for organizations;
 - interoperability between apps.
 
-XNet's DID, UCAN, NodeStore, hub, plugin, MCP, and local-first stack can become a substrate where AI
+xNet's DID, UCAN, NodeStore, hub, plugin, MCP, and local-first stack can become a substrate where AI
 agents operate with verifiable user authority. Crypto markets may frame that as "wallet-native
 agent infrastructure." Public software markets may frame it as "AI-native work data platform."
-Both can be true if XNet avoids premature financialization.
+Both can be true if xNet avoids premature financialization.
 
-### 7. XNet has multiple liquid wrappers, not one
+### 7. xNet has multiple liquid wrappers, not one
 
 Potential public-market wrappers:
 
@@ -576,9 +576,9 @@ network economically legible.
 
 ### Scenario A: Public equity compounder
 
-XNet first becomes a public-market software company. It sells:
+xNet first becomes a public-market software company. It sells:
 
-- XNet Cloud for managed hubs;
+- xNet Cloud for managed hubs;
 - team and enterprise workspaces;
 - hosted sync, backup, files, search, and app views;
 - AI workspace services;
@@ -587,15 +587,15 @@ XNet first becomes a public-market software company. It sells:
 - marketplace/API revenue.
 
 Crypto remains optional: stablecoin payments, signed receipts, and future tokenized equity. This
-is the cleanest path if XNet can become a serious business before a protocol economy emerges.
+is the cleanest path if xNet can become a serious business before a protocol economy emerges.
 
-**Investor thesis:** XNet is an AI-era data cloud with local-first trust and federated expansion.
+**Investor thesis:** xNet is an AI-era data cloud with local-first trust and federated expansion.
 
 **Risk:** public software investors may discount decentralization if it limits margins or control.
 
 ### Scenario B: DePIN resource network
 
-XNet builds an operator marketplace. Independent operators provide:
+xNet builds an operator marketplace. Independent operators provide:
 
 - storage;
 - backup retention;
@@ -610,34 +610,34 @@ Operators publish signed offers, users and apps consume services, hubs issue rec
 settlement layer clears payments. A token may eventually coordinate staking, rewards, reputation,
 and resource credits.
 
-**Investor thesis:** XNet is decentralized cloud for user-owned data and AI collaboration.
+**Investor thesis:** xNet is decentralized cloud for user-owned data and AI collaboration.
 
 **Risk:** fake usage, subsidy farming, token emissions, and weak proof-of-service can destroy trust.
 
 ### Scenario C: Stablecoin-first network without native token
 
-XNet uses fiat and stablecoins for hub payments, creator payouts, bounties, and operator settlement.
+xNet uses fiat and stablecoins for hub payments, creator payouts, bounties, and operator settlement.
 Service credits are non-transferable and priced in USD. No transferable native token exists.
 
-**Investor thesis:** XNet captures value through equity and operating revenue, not protocol asset
+**Investor thesis:** xNet captures value through equity and operating revenue, not protocol asset
 speculation.
 
 **Risk:** crypto public markets may treat it as less exciting because there is no token beta.
 
 ### Scenario D: Tokenized public security
 
-XNet becomes a regulated issuer whose equity, debt, or revenue-linked securities can settle through
+xNet becomes a regulated issuer whose equity, debt, or revenue-linked securities can settle through
 tokenized market infrastructure. The token is not a protocol utility token; it is a compliant
 public-market security wrapper.
 
-**Investor thesis:** XNet is both a public company and an early adopter of tokenized market rails.
+**Investor thesis:** xNet is both a public company and an early adopter of tokenized market rails.
 
 **Risk:** complex compliance, limited market infrastructure maturity, and no protocol-network
 upside unless the operating business is strong.
 
 ### Scenario E: Premature token launch
 
-XNet launches a transferable token before product-market fit, usage receipts, operator demand, or
+xNet launches a transferable token before product-market fit, usage receipts, operator demand, or
 legal clarity. The community narrative becomes "price first, product later."
 
 **Investor thesis:** speculative beta to Web3 infrastructure.
@@ -650,7 +650,7 @@ This is the scenario to avoid.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ProductFirst: Build XNet app, SDK, hub reliability
+    [*] --> ProductFirst: Build xNet app, SDK, hub reliability
     ProductFirst --> MeteredNetwork: Add billing-grade metering
     MeteredNetwork --> StablecoinSettlement: Accept fiat/stablecoin payments
     StablecoinSettlement --> OperatorMarketplace: Publish hub offers + receipts
@@ -669,7 +669,7 @@ stateDiagram-v2
 
 ### Option 1: Stay equity-only
 
-XNet ignores native tokenization and focuses on becoming a public software infrastructure company.
+xNet ignores native tokenization and focuses on becoming a public software infrastructure company.
 
 **Pros**
 
@@ -684,9 +684,9 @@ XNet ignores native tokenization and focuses on becoming a public software infra
 - Less liquid crypto-native community participation.
 - Public-market upside depends on company execution, not protocol asset reflexivity.
 
-### Option 2: Use stablecoins and service credits, but no transferable XNet token
+### Option 2: Use stablecoins and service credits, but no transferable xNet token
 
-XNet accepts stablecoins and uses non-transferable service credits for network usage.
+xNet accepts stablecoins and uses non-transferable service credits for network usage.
 
 **Pros**
 
@@ -703,7 +703,7 @@ XNet accepts stablecoins and uses non-transferable service credits for network u
 
 ### Option 3: Launch a transferable resource token after metered usage
 
-XNet creates a protocol asset only after service receipts, operator marketplace, and user demand
+xNet creates a protocol asset only after service receipts, operator marketplace, and user demand
 exist.
 
 **Pros**
@@ -722,7 +722,7 @@ exist.
 
 ### Option 4: Tokenize equity or revenue under securities rules
 
-XNet uses blockchain rails for regulated securities rather than a native utility token.
+xNet uses blockchain rails for regulated securities rather than a native utility token.
 
 **Pros**
 
@@ -736,9 +736,9 @@ XNet uses blockchain rails for regulated securities rather than a native utility
 - Still immature market plumbing.
 - Does not solve operator incentives by itself.
 
-### Option 5: Build an XNet chain or L2
+### Option 5: Build an xNet chain or L2
 
-XNet creates its own chain, rollup, or appchain for settlement and registry state.
+xNet creates its own chain, rollup, or appchain for settlement and registry state.
 
 **Pros**
 
@@ -769,9 +769,9 @@ value needs real usage and credible disclosures.
 
 ## Recommendation ✅
 
-XNet should pursue a **crypto-ready, product-first** path:
+xNet should pursue a **crypto-ready, product-first** path:
 
-1. **Keep the XNet core off-chain.** Private user data, local-first documents, CRDT updates, and
+1. **Keep the xNet core off-chain.** Private user data, local-first documents, CRDT updates, and
    enterprise workspaces should remain local/federated, not blockchain-native.
 2. **Build billing-grade metering before token design.** Count resource units for storage, sync,
    search, federation, crawling, media, API, and plugin/agent execution.
@@ -781,25 +781,25 @@ XNet should pursue a **crypto-ready, product-first** path:
    pricing, public policy, uptime targets, accepted schemas, and payment methods.
 5. **Use fiat and stablecoins first.** Stablecoins are useful operating rails. A native token should
    wait.
-6. **Create a token-readiness gate.** XNet should only revisit a token if there is clear evidence
+6. **Create a token-readiness gate.** xNet should only revisit a token if there is clear evidence
    that independent operators need a neutral settlement/reputation/incentive asset.
 7. **If a token exists, make it resource-grounded.** It should support service credits, operator
    bonds, proof-of-service, settlement, or marketplace collateral, not vague governance.
-8. **Separate company economics from protocol economics.** XNet Cloud can be a strong public equity
+8. **Separate company economics from protocol economics.** xNet Cloud can be a strong public equity
    business even if the protocol never launches a token.
 
 ### Token-readiness gate
 
-XNet should not seriously design a transferable token until these questions have factual answers:
+xNet should not seriously design a transferable token until these questions have factual answers:
 
 - Are there at least several independent hub operators with meaningful non-subsidized usage?
 - Are users or apps paying for cross-operator services?
-- Can XNet measure work in privacy-preserving, auditable units?
+- Can xNet measure work in privacy-preserving, auditable units?
 - Can the network detect fake usage, wash queries, bogus storage, and Sybil operators?
 - Is there a legal path for the intended jurisdictions?
 - Does token ownership confer utility without implying unmanaged profit promises?
 - Can operator incentives work if token price falls 80%?
-- Can XNet Cloud remain a trusted enterprise product if the protocol asset is volatile?
+- Can xNet Cloud remain a trusted enterprise product if the protocol asset is volatile?
 
 If the answer to any of these is "not yet," the correct token answer is "not yet."
 
@@ -842,7 +842,7 @@ If the answer to any of these is "not yet," the correct token answer is "not yet
 - [ ] Verify that public network metrics label subsidized, internal, test, and organic usage
       separately.
 - [ ] Verify that the system still works with no blockchain dependency.
-- [ ] Verify that adding a payment rail does not weaken XNet's local-first privacy model.
+- [ ] Verify that adding a payment rail does not weaken xNet's local-first privacy model.
 
 ## Example Code: Receipts Before Tokenomics 🧾
 
@@ -936,12 +936,12 @@ eventual payment rail is fiat, stablecoin, service credit, or a future protocol 
 
 For public markets to invest aggressively, they would need to believe most of the following:
 
-- XNet can become a default local-first data layer for AI-era applications.
+- xNet can become a default local-first data layer for AI-era applications.
 - User-owned data and portable schemas create a durable network effect.
 - Hubs can become a large paid infrastructure market.
 - Federated search, social, wiki, video, and GitHub-like workflows create demand for public
   indexing and app-view services.
-- XNet Cloud can capture company-level revenue even while the protocol remains open.
+- xNet Cloud can capture company-level revenue even while the protocol remains open.
 - Independent operators can earn real revenue without requiring endless subsidies.
 - Crypto rails improve settlement and incentives instead of adding noise.
 - A token, if any, has clear utility and value accrual.
@@ -952,7 +952,7 @@ For public markets to invest aggressively, they would need to believe most of th
 
 ### Securities and public-offering risk
 
-If XNet sells a token to fund development and markets future appreciation based on team effort, it
+If xNet sells a token to fund development and markets future appreciation based on team effort, it
 may create securities-law risk. Even if the policy environment is more constructive, public token
 distribution still needs a careful legal path.
 
@@ -969,35 +969,35 @@ The product can succeed while the token fails if:
 
 ### Fake usage and subsidy farming
 
-DePIN networks can attract operators who optimize for rewards rather than service quality. XNet
+DePIN networks can attract operators who optimize for rewards rather than service quality. xNet
 would need proof-of-service, reputation, challenge mechanisms, cost-aware pricing, and subsidy caps.
 
 ### Privacy leakage
 
 Receipts, metrics, and public registries can accidentally leak sensitive behavior: who queried
-what, who stores what, who collaborates with whom, and which organizations are active. XNet must
+what, who stores what, who collaborates with whom, and which organizations are active. xNet must
 make receipts content-blind and aggregate carefully.
 
 ### Governance capture
 
-On-chain governance can be captured by whales, exchanges, insiders, or short-term speculators. XNet
+On-chain governance can be captured by whales, exchanges, insiders, or short-term speculators. xNet
 should not let token governance control private user data, identity rights, or safety-critical
 protocol behavior.
 
 ### Enterprise trust risk
 
-If XNet becomes known primarily as a speculative token project, serious enterprise customers may
+If xNet becomes known primarily as a speculative token project, serious enterprise customers may
 hesitate to adopt it for private work data. The public-market narrative must not poison the
 product-market narrative.
 
 ### Regulatory fragmentation
 
 MiCA, U.S. securities law, stablecoin rules, sanctions law, tax reporting, custody rules, consumer
-protection, and local licensing obligations can all shape what XNet may offer in each jurisdiction.
+protection, and local licensing obligations can all shape what xNet may offer in each jurisdiction.
 
 ## Strategic Next Actions 🚀
 
-1. **Write a token-negative operating policy for the next phase.** Make it explicit that XNet will
+1. **Write a token-negative operating policy for the next phase.** Make it explicit that xNet will
    not launch a transferable token until usage, metering, and legal gates are met.
 2. **Design the service receipt schema.** Start with federation queries, backup byte-days, file
    byte-days, and search index work.
@@ -1016,7 +1016,7 @@ protection, and local licensing obligations can all shape what XNet may offer in
 
 ## References 📚
 
-### XNet repository
+### xNet repository
 
 - [xNet README](../../README.md)
 - [xNet Vision](../VISION.md)
@@ -1025,8 +1025,8 @@ protection, and local licensing obligations can all shape what XNet may offer in
 - [NodeStore](../../packages/data/src/store/store.ts)
 - [Store auth grants](../../packages/data/src/auth/store-auth.ts)
 - [Economic Models For Hosting Federated Hubs](./0132_[_]_ECONOMIC_MODELS_FOR_HOSTING_FEDERATED_HUBS.md)
-- [Global Businesses And Markets If XNet Has Wide Adoption](./0141_[_]_GLOBAL_BUSINESSES_AND_MARKETS_IF_XNET_HAS_WIDE_ADOPTION.md)
-- [Why Might VCs Invest In XNet?](./0142_[_]_WHY_MIGHT_VCS_INVEST_IN_XNET_COMPELLING_VENTURE_RETURNS_AND_TIMEFRAMES.md)
+- [Global Businesses And Markets If xNet Has Wide Adoption](./0141_[_]_GLOBAL_BUSINESSES_AND_MARKETS_IF_XNET_HAS_WIDE_ADOPTION.md)
+- [Why Might VCs Invest In xNet?](./0142_[_]_WHY_MIGHT_VCS_INVEST_IN_XNET_COMPELLING_VENTURE_RETURNS_AND_TIMEFRAMES.md)
 
 ### External research
 

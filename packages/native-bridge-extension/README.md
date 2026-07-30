@@ -2,7 +2,7 @@
 
 **Spike — exploration [0289](../../docs/explorations/0289_%5B_%5D_SECURELY_CONNECTING_THE_BROWSER_TO_A_LOCAL_MODEL.md), Option C.** A browser
 extension + native-messaging host that lets the **pure-web PWA**
-(`https://app.xnet.fyi`, no bundled Electron host) reach a **local model** with
+(`https://xnet.fyi/app`, no bundled Electron host) reach a **local model** with
 the strongest origin binding available in a browser — **no loopback HTTP port,
 no CORS, no DNS-rebinding surface** (the 1Password pattern).
 
@@ -28,7 +28,7 @@ misconfigure.
 ## Architecture
 
 ```
- https://app.xnet.fyi (page)
+ https://xnet.fyi/app (page)
    │  chrome.runtime.sendMessage(<extId>, {v:1, kind, …})     ← gated by
    ▼                                                            externally_connectable
  background.js (extension service worker)                       (origin allowlist)

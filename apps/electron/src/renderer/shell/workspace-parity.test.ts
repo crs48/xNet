@@ -49,3 +49,30 @@ describe('workspace primitives parity (0280)', () => {
     expect(offenders).toEqual([])
   })
 })
+
+describe('unified shell parity (0406)', () => {
+  it('the desktop app mounts the shared <Workbench/> chrome', () => {
+    const app = readFileSync(join(RENDERER_DIR, 'App.tsx'), 'utf8')
+    expect(app).toMatch(/import\s*\{[^}]*\bWorkbench\b[^}]*\}\s*from\s*'@xnetjs\/workbench'/)
+    expect(app).toMatch(/<Workbench>/)
+  })
+
+  it('no desktop source resurrects a bespoke shell component', () => {
+    // The 0406 flag removal deleted these; a desktop-local reimplementation of
+    // shell chrome (menu, palette) is the re-divergence this guard exists for.
+    // ActionDock is NOT banned — it is the canvas tool dock, not shell chrome.
+    const banned = [
+      /\bSystemMenu\b/, // the "three dots" menu the shared sidebar replaced
+      /\buseShellPaletteCommands\b/, // the bespoke palette command table
+      /import\s*\{[^}]*\bCommandPalette\b[^}]*\}\s*from\s*'@xnetjs\/ui'/ // second palette beside GlobalSearch
+    ]
+    const offenders: string[] = []
+    for (const file of sourceFiles(RENDERER_DIR)) {
+      const source = readFileSync(file, 'utf8')
+      for (const pattern of banned) {
+        if (pattern.test(source)) offenders.push(`${file} :: ${pattern}`)
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+})

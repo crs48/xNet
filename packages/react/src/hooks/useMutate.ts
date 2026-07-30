@@ -254,6 +254,8 @@ export interface UseMutateResult {
  *
  * All operations update the local cache immediately, and subscribers
  * see changes synchronously. Background sync handles persistence.
+ *
+ * @public
  */
 export function useMutate(): UseMutateResult {
   const bridge = useDataBridge()

@@ -3,6 +3,11 @@
 The **agentic dev-loop core** — the verifiable spine of "vibe coding xNet from
 within xNet" ([exploration 0190](../../docs/explorations/0190_%5B_%5D_IN_APP_AGENTIC_VIBE_CODING_AND_SELF_MODIFICATION.md)).
 
+> **Alpha software.** xNet is released but early: this package is on npm and
+> usable today, but its API can change between releases, sometimes without a
+> migration path. Pin your version. See the
+> [project README](https://github.com/crs48/xNet#readme) for what alpha means here.
+
 It productizes the loop this very repo's contributors (human and agent) run on
 every change:
 

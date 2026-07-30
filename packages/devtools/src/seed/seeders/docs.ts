@@ -10,6 +10,7 @@
 import type { SeedDoc, SeederModule } from '../types'
 import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import { CommentSchema, PageSchema } from '@xnetjs/data'
+import { EDITOR_DOCUMENT_FRAGMENT_FIELD } from '@xnetjs/editor/react'
 import { buildRichPageDoc, type RichBlock } from '../docs/rich-pages'
 import { buildSamplePageDoc, buildTextAnchor } from '../docs/sample-page'
 import { PROJECT_NAMES, seedId } from '../seed-ids'
@@ -49,7 +50,7 @@ export const docsSeeder: SeederModule = {
     const sampleDoc = buildSamplePageDoc(sampleId, PageSchema._schemaId, SAMPLE_TITLE, SAMPLE_ICON)
     docs.push({ nodeId: sampleId, build: () => sampleDoc })
 
-    const fragment = sampleDoc.getXmlFragment('content')
+    const fragment = sampleDoc.getXmlFragment(EDITOR_DOCUMENT_FRAGMENT_FIELD)
     const commentTargets = [
       {
         slug: 'intro',
@@ -153,14 +154,13 @@ export const docsSeeder: SeederModule = {
           { kind: 'h', level: 1, text: 'Team Wiki' },
           { kind: 'p', text: 'Start here. Use #docs to find documentation.' },
           { kind: 'h', level: 2, text: 'Reference' },
-          { kind: 'pageEmbed', pageId: sampleId, title: SAMPLE_TITLE, icon: SAMPLE_ICON },
+          { kind: 'pageEmbed', pageId: sampleId, title: SAMPLE_TITLE },
           { kind: 'h', level: 2, text: 'Specs' },
           ...specPages.map(
             (s): RichBlock => ({
               kind: 'pageEmbed',
               pageId: s.id,
-              title: `${s.name} — Spec`,
-              icon: '📝'
+              title: `${s.name} — Spec`
             })
           )
         ])
@@ -227,14 +227,11 @@ export const docsSeeder: SeederModule = {
               { text: ', a ' },
               { pill: 'hashtag', id: fixtures.tag('docs'), name: 'docs' },
               { text: ' tag, a mention ' },
-              { pill: 'taskMention', id: fixtures.person(0), label: 'Ada' },
-              { text: ', and a ' },
-              {
-                pill: 'databaseReference',
-                databaseId: trackerDb,
-                title: 'Tasks Tracker',
-                icon: '✅'
-              },
+              { pill: 'mention', id: fixtures.person(0), label: 'Ada' },
+              { text: ', a wikilink to ' },
+              { text: 'Wiki Home', wikilink: { href: wikiId, title: 'Wiki Home' } },
+              { text: ', and inline math ' },
+              { pill: 'math', latex: '\\sqrt{a^2 + b^2}' },
               { text: '.' }
             ]
           },
@@ -242,7 +239,6 @@ export const docsSeeder: SeederModule = {
           {
             kind: 'toggle',
             summary: 'Expand for nested content',
-            open: true,
             children: [
               { kind: 'p', text: 'Toggles can hold any blocks:' },
               { kind: 'bullets', items: ['nested bullet one', 'nested bullet two'] }
@@ -263,28 +259,52 @@ export const docsSeeder: SeederModule = {
           },
           {
             kind: 'embed',
-            url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-            provider: 'youtube',
-            embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-            title: 'Demo video'
+            url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
           },
           {
             kind: 'richLink',
             url: 'https://github.com/xnetjs/xnet',
             title: 'xNet on GitHub',
-            subtitle: 'Local-first workspace',
-            icon: '🐙'
+            subtitle: 'Local-first workspace'
           },
           {
             kind: 'mermaid',
-            code: 'graph TD; A[Idea] --> B[Spec]; B --> C[Ship];',
-            theme: 'default'
+            code: 'graph TD; A[Idea] --> B[Spec]; B --> C[Ship];'
           },
           { kind: 'hr' },
           { kind: 'h', level: 2, text: 'Live database (board view)' },
           { kind: 'databaseEmbed', databaseId: trackerDb, viewType: 'board' },
           { kind: 'h', level: 2, text: 'My open tasks' },
-          { kind: 'taskViewEmbed', scope: 'all', status: 'open' }
+          { kind: 'taskViewEmbed', scope: 'workspace', status: 'open' }
+        ])
+    })
+
+    // ─── Composable frames demo (0346) — two live views of ONE database ──
+    // The accounts database has lat/lng columns and a map view; editing a
+    // coordinate in the table frame moves the pin in the map frame below
+    // it. One store, two subscriptions — no glue code.
+    const composeId = pageId('compose-demo')
+    page(composeId, 'Composable Frames Demo', '🧱', fixtures.spaces.org, 'notes', [
+      fixtures.tag('docs')
+    ])
+    const accountsDb = databaseId('accounts')
+    docs.push({
+      nodeId: composeId,
+      build: () =>
+        buildRichPageDoc(composeId, PageSchema._schemaId, 'Composable Frames Demo', '🧱', [
+          { kind: 'h', level: 1, text: 'Composable Frames Demo' },
+          {
+            kind: 'p',
+            text:
+              'Two live frames of the same database. Edit a lat/lng cell in the ' +
+              'table and the pin on the map below moves with it.'
+          },
+          { kind: 'h', level: 2, text: 'Accounts — table' },
+          { kind: 'databaseEmbed', databaseId: accountsDb, viewType: 'table' },
+          { kind: 'h', level: 2, text: 'Accounts — map' },
+          { kind: 'databaseEmbed', databaseId: accountsDb, viewType: 'map' },
+          { kind: 'h', level: 2, text: 'A transcluded page' },
+          { kind: 'pageEmbed', pageId: sampleId, title: SAMPLE_TITLE }
         ])
     })
 

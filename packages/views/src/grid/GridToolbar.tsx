@@ -532,6 +532,7 @@ export function GridToolbar({
               {onExportCsv && (
                 <button
                   type="button"
+                  title="Cell values only — relations, comments, and edit history do not survive CSV. Settings → Export data has the full lossless bundle."
                   className="w-full px-3 py-1.5 flex items-center gap-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-800"
                   onClick={() => {
                     onExportCsv()
@@ -544,6 +545,7 @@ export function GridToolbar({
               {onExportJson && (
                 <button
                   type="button"
+                  title="Re-importable as new rows; edit history and authorship do not survive JSON. Settings → Export data has the full lossless bundle."
                   className="w-full px-3 py-1.5 flex items-center gap-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-800"
                   onClick={() => {
                     onExportJson()

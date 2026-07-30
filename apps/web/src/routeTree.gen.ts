@@ -24,13 +24,16 @@ import { Route as DataRouteImport } from './routes/data'
 import { Route as CrmRouteImport } from './routes/crm'
 import { Route as CompanionRouteImport } from './routes/companion'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as AiRouteImport } from './routes/ai'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ViewViewIdRouteImport } from './routes/view.$viewId'
 import { Route as TagTagIdRouteImport } from './routes/tag.$tagId'
 import { Route as SpaceSpaceIdRouteImport } from './routes/space.$spaceId'
+import { Route as PostPostIdRouteImport } from './routes/post.$postId'
 import { Route as PersonDidRouteImport } from './routes/person.$did'
 import { Route as MapMapIdRouteImport } from './routes/map.$mapId'
 import { Route as LabLabIdRouteImport } from './routes/lab.$labId'
+import { Route as FrameFrameSpecRouteImport } from './routes/frame.$frameSpec'
 import { Route as DocDocIdRouteImport } from './routes/doc.$docId'
 import { Route as DbDbIdRouteImport } from './routes/db.$dbId'
 import { Route as DashboardDashboardIdRouteImport } from './routes/dashboard.$dashboardId'
@@ -112,6 +115,11 @@ const AnalyticsRoute = AnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AiRoute = AiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -132,6 +140,11 @@ const SpaceSpaceIdRoute = SpaceSpaceIdRouteImport.update({
   path: '/space/$spaceId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PostPostIdRoute = PostPostIdRouteImport.update({
+  id: '/post/$postId',
+  path: '/post/$postId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PersonDidRoute = PersonDidRouteImport.update({
   id: '/person/$did',
   path: '/person/$did',
@@ -145,6 +158,11 @@ const MapMapIdRoute = MapMapIdRouteImport.update({
 const LabLabIdRoute = LabLabIdRouteImport.update({
   id: '/lab/$labId',
   path: '/lab/$labId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrameFrameSpecRoute = FrameFrameSpecRouteImport.update({
+  id: '/frame/$frameSpec',
+  path: '/frame/$frameSpec',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocDocIdRoute = DocDocIdRouteImport.update({
@@ -175,6 +193,7 @@ const CanvasCanvasIdRoute = CanvasCanvasIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ai': typeof AiRoute
   '/analytics': typeof AnalyticsRoute
   '/companion': typeof CompanionRoute
   '/crm': typeof CrmRoute
@@ -195,15 +214,18 @@ export interface FileRoutesByFullPath {
   '/dashboard/$dashboardId': typeof DashboardDashboardIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
+  '/frame/$frameSpec': typeof FrameFrameSpecRoute
   '/lab/$labId': typeof LabLabIdRoute
   '/map/$mapId': typeof MapMapIdRoute
   '/person/$did': typeof PersonDidRoute
+  '/post/$postId': typeof PostPostIdRoute
   '/space/$spaceId': typeof SpaceSpaceIdRoute
   '/tag/$tagId': typeof TagTagIdRoute
   '/view/$viewId': typeof ViewViewIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ai': typeof AiRoute
   '/analytics': typeof AnalyticsRoute
   '/companion': typeof CompanionRoute
   '/crm': typeof CrmRoute
@@ -224,9 +246,11 @@ export interface FileRoutesByTo {
   '/dashboard/$dashboardId': typeof DashboardDashboardIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
+  '/frame/$frameSpec': typeof FrameFrameSpecRoute
   '/lab/$labId': typeof LabLabIdRoute
   '/map/$mapId': typeof MapMapIdRoute
   '/person/$did': typeof PersonDidRoute
+  '/post/$postId': typeof PostPostIdRoute
   '/space/$spaceId': typeof SpaceSpaceIdRoute
   '/tag/$tagId': typeof TagTagIdRoute
   '/view/$viewId': typeof ViewViewIdRoute
@@ -234,6 +258,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ai': typeof AiRoute
   '/analytics': typeof AnalyticsRoute
   '/companion': typeof CompanionRoute
   '/crm': typeof CrmRoute
@@ -254,9 +279,11 @@ export interface FileRoutesById {
   '/dashboard/$dashboardId': typeof DashboardDashboardIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
+  '/frame/$frameSpec': typeof FrameFrameSpecRoute
   '/lab/$labId': typeof LabLabIdRoute
   '/map/$mapId': typeof MapMapIdRoute
   '/person/$did': typeof PersonDidRoute
+  '/post/$postId': typeof PostPostIdRoute
   '/space/$spaceId': typeof SpaceSpaceIdRoute
   '/tag/$tagId': typeof TagTagIdRoute
   '/view/$viewId': typeof ViewViewIdRoute
@@ -265,6 +292,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ai'
     | '/analytics'
     | '/companion'
     | '/crm'
@@ -285,15 +313,18 @@ export interface FileRouteTypes {
     | '/dashboard/$dashboardId'
     | '/db/$dbId'
     | '/doc/$docId'
+    | '/frame/$frameSpec'
     | '/lab/$labId'
     | '/map/$mapId'
     | '/person/$did'
+    | '/post/$postId'
     | '/space/$spaceId'
     | '/tag/$tagId'
     | '/view/$viewId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ai'
     | '/analytics'
     | '/companion'
     | '/crm'
@@ -314,15 +345,18 @@ export interface FileRouteTypes {
     | '/dashboard/$dashboardId'
     | '/db/$dbId'
     | '/doc/$docId'
+    | '/frame/$frameSpec'
     | '/lab/$labId'
     | '/map/$mapId'
     | '/person/$did'
+    | '/post/$postId'
     | '/space/$spaceId'
     | '/tag/$tagId'
     | '/view/$viewId'
   id:
     | '__root__'
     | '/'
+    | '/ai'
     | '/analytics'
     | '/companion'
     | '/crm'
@@ -343,9 +377,11 @@ export interface FileRouteTypes {
     | '/dashboard/$dashboardId'
     | '/db/$dbId'
     | '/doc/$docId'
+    | '/frame/$frameSpec'
     | '/lab/$labId'
     | '/map/$mapId'
     | '/person/$did'
+    | '/post/$postId'
     | '/space/$spaceId'
     | '/tag/$tagId'
     | '/view/$viewId'
@@ -353,6 +389,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AiRoute: typeof AiRoute
   AnalyticsRoute: typeof AnalyticsRoute
   CompanionRoute: typeof CompanionRoute
   CrmRoute: typeof CrmRoute
@@ -373,9 +410,11 @@ export interface RootRouteChildren {
   DashboardDashboardIdRoute: typeof DashboardDashboardIdRoute
   DbDbIdRoute: typeof DbDbIdRoute
   DocDocIdRoute: typeof DocDocIdRoute
+  FrameFrameSpecRoute: typeof FrameFrameSpecRoute
   LabLabIdRoute: typeof LabLabIdRoute
   MapMapIdRoute: typeof MapMapIdRoute
   PersonDidRoute: typeof PersonDidRoute
+  PostPostIdRoute: typeof PostPostIdRoute
   SpaceSpaceIdRoute: typeof SpaceSpaceIdRoute
   TagTagIdRoute: typeof TagTagIdRoute
   ViewViewIdRoute: typeof ViewViewIdRoute
@@ -488,6 +527,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ai': {
+      id: '/ai'
+      path: '/ai'
+      fullPath: '/ai'
+      preLoaderRoute: typeof AiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -516,6 +562,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SpaceSpaceIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/post/$postId': {
+      id: '/post/$postId'
+      path: '/post/$postId'
+      fullPath: '/post/$postId'
+      preLoaderRoute: typeof PostPostIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/person/$did': {
       id: '/person/$did'
       path: '/person/$did'
@@ -535,6 +588,13 @@ declare module '@tanstack/react-router' {
       path: '/lab/$labId'
       fullPath: '/lab/$labId'
       preLoaderRoute: typeof LabLabIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/frame/$frameSpec': {
+      id: '/frame/$frameSpec'
+      path: '/frame/$frameSpec'
+      fullPath: '/frame/$frameSpec'
+      preLoaderRoute: typeof FrameFrameSpecRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/doc/$docId': {
@@ -577,6 +637,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AiRoute: AiRoute,
   AnalyticsRoute: AnalyticsRoute,
   CompanionRoute: CompanionRoute,
   CrmRoute: CrmRoute,
@@ -597,9 +658,11 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardDashboardIdRoute: DashboardDashboardIdRoute,
   DbDbIdRoute: DbDbIdRoute,
   DocDocIdRoute: DocDocIdRoute,
+  FrameFrameSpecRoute: FrameFrameSpecRoute,
   LabLabIdRoute: LabLabIdRoute,
   MapMapIdRoute: MapMapIdRoute,
   PersonDidRoute: PersonDidRoute,
+  PostPostIdRoute: PostPostIdRoute,
   SpaceSpaceIdRoute: SpaceSpaceIdRoute,
   TagTagIdRoute: TagTagIdRoute,
   ViewViewIdRoute: ViewViewIdRoute,

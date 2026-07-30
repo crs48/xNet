@@ -6,6 +6,11 @@ node-format validation, signing, encryption, SQLite-backed storage, and the live
 query/mutate/subscribe loop — is usable from **any** framework, a CLI, a worker,
 or a plain Node service.
 
+> **Alpha software.** xNet is released but early: this package is on npm and
+> usable today, but its API can change between releases, sometimes without a
+> migration path. Pin your version. See the
+> [project README](https://github.com/crs48/xNet#readme) for what alpha means here.
+
 Nothing here imports React. The `@xnetjs/react` hooks, the CLI, and other-framework
 adapters are thin bindings over this surface.
 

@@ -6,7 +6,7 @@
  *
  *   - {@link buildUnrealConnector} — a `@xnetjs/plugins` connector that syncs a
  *     title's durable player data (identity, inventory, achievements, matches,
- *     economy) into space-scoped XNet nodes;
+ *     economy) into space-scoped xNet nodes;
  *   - the **granularity guardrail** ({@link assertDurableCadence} /
  *     {@link assertDurableSchemas}) enforcing "save-file-grade, not netcode-packet";
  *   - the pure {@link mapGameEventToNode} event → node translation; and

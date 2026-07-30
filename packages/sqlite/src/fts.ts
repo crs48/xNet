@@ -26,6 +26,13 @@ export interface FTSSearchOptions {
   includeSnippets?: boolean
   /** Highlight markers for snippets */
   highlightMarkers?: { start: string; end: string }
+  /**
+   * Restrict matches to one schema. Pushed into SQL rather than filtered by
+   * the caller: post-filtering a cross-schema BM25 window silently returns
+   * fewer than `limit` rows whenever the matches for this schema sit past the
+   * window (exploration 0394).
+   */
+  schemaId?: string
 }
 
 // ─── FTS Index Management ────────────────────────────────────────────────────
@@ -91,35 +98,42 @@ export async function searchNodes(
   const hasFTS = await checkFTSSupport(db)
   if (!hasFTS) return []
 
-  const { limit = 50, offset = 0, includeSnippets = false, highlightMarkers } = options
+  const { limit = 50, offset = 0, includeSnippets = false, highlightMarkers, schemaId } = options
 
   // Escape and prepare query
   const escapedQuery = escapeFTSQuery(query)
   if (!escapedQuery) return []
 
+  // Schema scoping joins `nodes` so the LIMIT applies to matches *of that
+  // schema*; the unscoped path keeps its original single-table plan.
+  const snippetColumn = includeSnippets
+    ? `, snippet(nodes_fts, 2, '${highlightMarkers?.start ?? '<mark>'}', '${
+        highlightMarkers?.end ?? '</mark>'
+      }', '...', 32) as snippet`
+    : ''
+
   let sql: string
-  if (includeSnippets) {
-    const startMark = highlightMarkers?.start ?? '<mark>'
-    const endMark = highlightMarkers?.end ?? '</mark>'
+  const params: Array<string | number> = [escapedQuery]
+  if (schemaId) {
     sql = `
-      SELECT 
-        node_id,
-        rank,
-        snippet(nodes_fts, 2, '${startMark}', '${endMark}', '...', 32) as snippet
+      SELECT nodes_fts.node_id, nodes_fts.rank${snippetColumn}
       FROM nodes_fts
-      WHERE nodes_fts MATCH ?
-      ORDER BY rank
+      JOIN nodes ON nodes.id = nodes_fts.node_id
+      WHERE nodes_fts MATCH ? AND nodes.schema_id = ? AND nodes.deleted_at IS NULL
+      ORDER BY nodes_fts.rank
       LIMIT ? OFFSET ?
     `
+    params.push(schemaId)
   } else {
     sql = `
-      SELECT node_id, rank
+      SELECT node_id, rank${snippetColumn}
       FROM nodes_fts
       WHERE nodes_fts MATCH ?
       ORDER BY rank
       LIMIT ? OFFSET ?
     `
   }
+  params.push(limit, offset)
 
   interface FTSRow {
     node_id: string
@@ -128,7 +142,7 @@ export async function searchNodes(
     [key: string]: string | number | bigint | Uint8Array | null
   }
 
-  const rows = await db.query<FTSRow>(sql, [escapedQuery, limit, offset])
+  const rows = await db.query<FTSRow>(sql, params)
 
   return rows.map((row) => ({
     nodeId: row.node_id,

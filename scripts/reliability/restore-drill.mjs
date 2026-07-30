@@ -24,6 +24,13 @@
  *
  * Exit codes: 0 = drill passed, 2 = verification failed, 1 = usage/IO error.
  * Prints a JSON report to stdout either way.
+ *
+ * Never call process.exit() here: stdout is an async pipe when the drill is
+ * piped (to a test harness, to `jq`, to a log collector), and exiting drops
+ * whatever has not drained — 8KB on macOS, 64KB on Linux. The failure reports
+ * are the big ones, because a corrupt database makes integrity_check emit
+ * thousands of lines, so exiting eagerly truncates the JSON exactly when the
+ * news is bad. Set process.exitCode and let Node flush and exit on its own.
  */
 
 import { createRequire } from 'node:module'
@@ -101,7 +108,8 @@ async function main() {
   const args = parseArgs(process.argv.slice(2))
   if (!args.db) {
     console.error('usage: restore-drill.mjs --db <path> [--against <path>] [--scratch <dir>]')
-    process.exit(1)
+    process.exitCode = 1
+    return
   }
 
   let restoredPath = args.db
@@ -130,7 +138,8 @@ async function main() {
     console.log(
       JSON.stringify({ ok: false, failures: [`inspection failed: ${error.message}`] }, null, 2)
     )
-    process.exit(2)
+    process.exitCode = 2
+    return
   } finally {
     if (scratchDir && !args.scratch) rmSync(scratchDir, { recursive: true, force: true })
   }
@@ -155,10 +164,10 @@ async function main() {
       2
     )
   )
-  process.exit(failures.length === 0 ? 0 : 2)
+  process.exitCode = failures.length === 0 ? 0 : 2
 }
 
 main().catch((error) => {
   console.error(error)
-  process.exit(1)
+  process.exitCode = 1
 })

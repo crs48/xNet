@@ -29,6 +29,7 @@ import type {
   ShareLinkRecord,
   ShareLinkRole,
   SerializedNodeChange,
+  NodeChangePage,
   DatabaseRowRecord,
   DatabaseRowQueryOptions,
   DatabaseRowQueryResult,
@@ -38,6 +39,7 @@ import type {
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import Database from 'better-sqlite3'
+import { NODE_SYNC_PAGE_SIZE } from './interface'
 import { litestreamWalPragmas } from './litestream'
 
 const assertSafePath = (base: string, key: string): string => {
@@ -141,6 +143,22 @@ const SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS node_visibility (
     node_id TEXT PRIMARY KEY,
     visibility TEXT NOT NULL
+  );
+
+  -- Node ownership, learned from the relay path (exploration 0358 security
+  -- follow-up). doc_meta.owner_did cannot carry this: it is written ONLY by
+  -- the optional index-update message, which is off by default, so in
+  -- practice no Space ever had a recorded owner. Ownership must not depend on
+  -- a best-effort search-index publisher, so it gets its own table, written
+  -- from the authenticated node-change relay.
+  --
+  -- FIRST WRITER WINS: there is no UPDATE path. The DID that first relays a
+  -- node is its creator (a node is authored locally, then synced), so a later
+  -- DID that merely learns the node id can never seize ownership.
+  CREATE TABLE IF NOT EXISTS node_owner (
+    node_id TEXT PRIMARY KEY,
+    owner_did TEXT NOT NULL,
+    recorded_at INTEGER NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS backups (
@@ -366,6 +384,11 @@ const SCHEMA_SQL = `
   -- Backs getLatestProfileHash: resolve a member's profile for a shared channel.
   CREATE INDEX IF NOT EXISTS idx_node_changes_author_schema
     ON node_changes(author_did, schema_id);
+
+  -- Backs getNodeChangesByAuthor: the agent audit trail (exploration 0337)
+  -- pages an author's history on their per-author lamport without a scan.
+  CREATE INDEX IF NOT EXISTS idx_node_changes_author_lamport
+    ON node_changes(author_did, lamport_time);
 
   -- Share rooms (exploration 0298): index an existing change into extra rooms
   -- so a channel's nodes reach a grantee without duplicating content. seq is a
@@ -958,6 +981,22 @@ export const createSQLiteStorage = (
     `),
     clearNodeVisibility: db.prepare('DELETE FROM node_visibility WHERE node_id = ?'),
     getNodeVisibility: db.prepare('SELECT visibility FROM node_visibility WHERE node_id = ?'),
+    // DO NOTHING, never DO UPDATE — first writer wins is the security property.
+    setNodeOwnerIfAbsent: db.prepare(`
+      INSERT INTO node_owner (node_id, owner_did, recorded_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(node_id) DO NOTHING
+    `),
+    getNodeOwner: db.prepare('SELECT owner_did FROM node_owner WHERE node_id = ?'),
+    // Earliest change for a node = its creation. Rides
+    // idx_node_changes_node(node_id, lamport_time); hash breaks ties
+    // deterministically so concurrent lamports resolve the same way everywhere.
+    getNodeCreatorDid: db.prepare(`
+      SELECT author_did FROM node_changes
+      WHERE node_id = ?
+      ORDER BY lamport_time ASC, hash ASC
+      LIMIT 1
+    `),
     insertShareLink: db.prepare(`
       INSERT INTO share_links
         (link_id, doc_id, doc_type, role, secret_hash, created_by_did, label, expires_at, max_uses, use_count, disabled, created_at)
@@ -1203,12 +1242,23 @@ export const createSQLiteStorage = (
       SELECT * FROM node_changes
       WHERE room = ? AND lamport_time > ?
       ORDER BY lamport_time ASC, lamport_author ASC
-      LIMIT 1000
+      LIMIT ?
+    `),
+    getNodeChangesAtLamport: db.prepare(`
+      SELECT * FROM node_changes
+      WHERE room = ? AND lamport_time = ?
+      ORDER BY lamport_author ASC
     `),
     getNodeChangesForNode: db.prepare(`
       SELECT * FROM node_changes
       WHERE room = ? AND node_id = ?
       ORDER BY lamport_time ASC
+    `),
+    getNodeChangesByAuthor: db.prepare(`
+      SELECT * FROM node_changes
+      WHERE author_did = ? AND lamport_time > ?
+      ORDER BY lamport_time ASC
+      LIMIT ?
     `),
     getHighWaterMark: db.prepare(`
       SELECT MAX(lamport_time) as hwm FROM node_changes WHERE room = ?
@@ -1235,6 +1285,9 @@ export const createSQLiteStorage = (
     `),
     clearNodeChanges: db.prepare(`
       DELETE FROM node_changes WHERE room = ?
+    `),
+    deleteNodeChangesByAuthor: db.prepare(`
+      DELETE FROM node_changes WHERE author_did = ?
     `),
     // Database row statements
     insertDatabaseRow: db.prepare(`
@@ -2049,6 +2102,21 @@ export const createSQLiteStorage = (
     return rows.map((row) => row.node_id)
   }
 
+  const setNodeOwnerIfAbsent = async (nodeId: string, ownerDid: string): Promise<boolean> => {
+    if (!nodeId || !ownerDid || ownerDid === 'did:key:anonymous') return false
+    return stmts.setNodeOwnerIfAbsent.run(nodeId, ownerDid, Date.now()).changes > 0
+  }
+
+  const getNodeOwner = async (nodeId: string): Promise<string | null> => {
+    const row = stmts.getNodeOwner.get(nodeId) as { owner_did: string } | undefined
+    return row?.owner_did ?? null
+  }
+
+  const getNodeCreatorDid = async (nodeId: string): Promise<string | null> => {
+    const row = stmts.getNodeCreatorDid.get(nodeId) as { author_did: string } | undefined
+    return row?.author_did ?? null
+  }
+
   const setNodeVisibility = async (nodeId: string, visibility: string | null): Promise<void> => {
     if (visibility) stmts.setNodeVisibility.run(nodeId, visibility)
     else stmts.clearNodeVisibility.run(nodeId)
@@ -2201,10 +2269,57 @@ export const createSQLiteStorage = (
 
   const getNodeChangesSince = async (
     room: string,
-    sinceLamport: number
-  ): Promise<SerializedNodeChange[]> => {
-    const rows = stmts.getNodeChangesSince.all(room, sinceLamport) as NodeChangeRow[]
-    return rows.map(rowToSerializedChange)
+    sinceLamport: number,
+    limit = NODE_SYNC_PAGE_SIZE
+  ): Promise<NodeChangePage> => {
+    const pageSize = Math.min(Math.max(limit, 1), NODE_SYNC_PAGE_SIZE)
+    const rows = stmts.getNodeChangesSince.all(room, sinceLamport, pageSize) as NodeChangeRow[]
+
+    // Short page: the client now holds everything the room has, so report the
+    // room-wide mark. The client's rollback guard (0254/0260) compares this
+    // against its own cursor to spot a hub that lost history, so it must stay
+    // room-wide here even when the page is empty.
+    if (rows.length < pageSize) {
+      const row = stmts.getHighWaterMark.get(room) as { hwm: number | null } | undefined
+      return {
+        changes: rows.map(rowToSerializedChange),
+        // 0 for an empty room, exactly as `getHighWaterMark` reports it: the
+        // client's rollback guard reads 0 as "fresh/wiped hub" and deliberately
+        // declines to re-offer, so this must not be softened to the cursor.
+        highWaterMark: row?.hwm ?? 0,
+        hasMore: false
+      }
+    }
+
+    // Full page: more rows remain, so the mark must be the last change actually
+    // handed back — NOT the room-wide max. The client persists this mark as its
+    // cursor and only ever asks for `lamport > cursor`, so a mark that runs past
+    // the page skips everything in between, permanently.
+    //
+    // The boundary also must not fall inside a group of changes sharing one
+    // lamport (different authors advance their counters independently, so ties
+    // are normal). Drop the trailing tie group and let the next page re-fetch it
+    // whole; otherwise its far-side siblings sit below the new cursor forever.
+    const lastLamport = rows[rows.length - 1].lamport_time
+    const trimmed = rows.filter((row) => row.lamport_time < lastLamport)
+
+    if (trimmed.length > 0) {
+      return {
+        changes: trimmed.map(rowToSerializedChange),
+        highWaterMark: trimmed[trimmed.length - 1].lamport_time,
+        hasMore: true
+      }
+    }
+
+    // Pathological: a single lamport's tie group is itself larger than a page.
+    // Trimming would return nothing and stall the catch-up, so serve the whole
+    // group in one over-sized page — it is bounded by the tie width.
+    const group = stmts.getNodeChangesAtLamport.all(room, lastLamport) as NodeChangeRow[]
+    return {
+      changes: group.map(rowToSerializedChange),
+      highWaterMark: lastLamport,
+      hasMore: true
+    }
   }
 
   const getNodeChangesForNode = async (
@@ -2215,6 +2330,19 @@ export const createSQLiteStorage = (
     return rows.map(rowToSerializedChange)
   }
 
+  const getNodeChangesByAuthor = async (
+    authorDid: string,
+    sinceLamport: number,
+    limit = 200
+  ): Promise<SerializedNodeChange[]> => {
+    const rows = stmts.getNodeChangesByAuthor.all(
+      authorDid,
+      sinceLamport,
+      Math.min(Math.max(limit, 1), 1000)
+    ) as NodeChangeRow[]
+    return rows.map(rowToSerializedChange)
+  }
+
   const getHighWaterMark = async (room: string): Promise<number> => {
     const row = stmts.getHighWaterMark.get(room) as { hwm: number | null } | undefined
     return row?.hwm ?? 0
@@ -2222,6 +2350,11 @@ export const createSQLiteStorage = (
 
   const clearNodeChanges = async (room: string): Promise<number> => {
     const info = stmts.clearNodeChanges.run(room)
+    return info.changes
+  }
+
+  const deleteNodeChangesByAuthor = async (authorDid: string): Promise<number> => {
+    const info = stmts.deleteNodeChangesByAuthor.run(authorDid)
     return info.changes
   }
 
@@ -2237,14 +2370,14 @@ export const createSQLiteStorage = (
   const getRoomChangesSince = async (
     room: string,
     sinceSeq: number,
-    limit = 1000
-  ): Promise<{ changes: SerializedNodeChange[]; highWaterMark: number }> => {
+    limit = NODE_SYNC_PAGE_SIZE
+  ): Promise<NodeChangePage> => {
     const rows = stmts.getRoomChangesSince.all(room, sinceSeq, limit) as (NodeChangeRow & {
       room_seq: number
     })[]
     const changes = rows.map(rowToSerializedChange)
     const highWaterMark = rows.length > 0 ? rows[rows.length - 1].room_seq : sinceSeq
-    return { changes, highWaterMark }
+    return { changes, highWaterMark, hasMore: rows.length >= limit }
   }
 
   const getLatestProfileHash = async (did: string): Promise<string | null> => {
@@ -2270,6 +2403,7 @@ export const createSQLiteStorage = (
     'share_link_previews',
     'node_container',
     'node_visibility',
+    'node_owner',
     'awareness_state',
     'backups',
     'file_meta'
@@ -2615,6 +2749,9 @@ export const createSQLiteStorage = (
     listContainedNodes,
     setNodeVisibility,
     getNodeVisibility,
+    setNodeOwnerIfAbsent,
+    getNodeOwner,
+    getNodeCreatorDid,
     insertShareLink,
     getShareLink,
     listShareLinks,
@@ -2680,8 +2817,10 @@ export const createSQLiteStorage = (
     resetAllUserData,
     getNodeChangesSince,
     getNodeChangesForNode,
+    getNodeChangesByAuthor,
     getHighWaterMark,
     clearNodeChanges,
+    deleteNodeChangesByAuthor,
     updateSearchBody: async (docId: string, text: string): Promise<void> => {
       const updateFn = db.transaction(() => {
         stmts.updateSearchBody.run(docId)

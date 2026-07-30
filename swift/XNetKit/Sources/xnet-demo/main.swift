@@ -1,6 +1,6 @@
 import XNetKit
 
-// A headless walkthrough of the native-Swift XNet experience: define schemas in
+// A headless walkthrough of the native-Swift xNet experience: define schemas in
 // Swift, write and query the database in Swift, and observe a reactive query —
 // no JavaScript, no React. Run with `swift run xnet-demo`.
 

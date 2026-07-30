@@ -1277,7 +1277,7 @@ block-beta
 | **Onboarding**     | None                                                              | None                               | None                                                 | N/A (exists in @xnetjs/react but unused)   |
 | **Search**         | None                                                              | GlobalSearch (240 lines)           | None                                                 | No                                         |
 | **Presence**       | DIDAvatar from @xnetjs/ui                                         | Inline colored spans               | None                                                 | No                                         |
-| **Provider stack** | XNet + Blob + Theme + Telemetry + DevTools                        | XNet + Blob + Theme                | React Navigation only                                | Minimal                                    |
+| **Provider stack** | xNet + Blob + Theme + Telemetry + DevTools                        | xNet + Blob + Theme                | React Navigation only                                | Minimal                                    |
 
 ### Package Usage Per Platform
 

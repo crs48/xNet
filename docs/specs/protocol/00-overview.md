@@ -1,10 +1,10 @@
-# XNet Protocol — Overview & Conformance
+# xNet Protocol — Overview & Conformance
 
 **Status:** Draft · **Umbrella version:** `xnet/1.0` · **This document is normative.**
 
 ## 1. Purpose
 
-XNet is a local‑first data protocol: a graph of schema‑typed, signed, encrypted
+xNet is a local‑first data protocol: a graph of schema‑typed, signed, encrypted
 **nodes** that replicate peer‑to‑peer and through relays, owned by
 self‑sovereign **identities**, governed by data‑defined **authorization**. This
 specification defines the boundaries an independent implementation MUST honour to
@@ -50,7 +50,7 @@ flowchart TB
 | **L3 Authorization** | [04](04-authorization.md) | Reach identical allow/deny decisions for the L3 decision‑trace vectors |
 | **L4 Application** | — | None. Documented for compatibility, never required for conformance. |
 
-## 4. The interop kernel (the minimum that makes it XNet)
+## 4. The interop kernel (the minimum that makes it xNet)
 
 An implementation that does **only** L0 + L1 can already participate in the node
 graph: create, sign, verify, and converge nodes. It is the irreducible core.
@@ -70,7 +70,7 @@ top of this kernel and is **optional to interpret** (though L2 messages MUST be
 relayed faithfully even when not interpreted; see the document‑codec rule in
 [L1 §Document Codec](02-data-model.md)).
 
-## 5. The umbrella XNet Protocol Version
+## 5. The umbrella xNet Protocol Version
 
 Five subsystems version independently today (change record `3`, sync envelope
 `2`, awareness `1`, schema `1.0.0`, crypto level `0`). To avoid a five‑way
@@ -110,7 +110,7 @@ interoperability:
 - **The built‑in `xnet.fyi` application schemas** (Page, Task, Space, CRM, …) —
   these are an **L4 profile**, documented for compatibility, not required for
   conformance. A conforming implementation can define an entirely different
-  schema vocabulary and still be an XNet implementation.
+  schema vocabulary and still be an xNet implementation.
 
 ## 7. Versioning of this specification
 
@@ -123,10 +123,10 @@ important defence against spec/implementation drift.
 
 ## 8. Relationship to external standards
 
-XNet's L0 is mostly a **profile over existing standards**; implementations
+xNet's L0 is mostly a **profile over existing standards**; implementations
 SHOULD reuse audited libraries rather than re‑implement primitives:
 
-| XNet uses | External standard |
+| xNet uses | External standard |
 |---|---|
 | `did:key` (Ed25519) | [W3C DID](https://www.w3.org/TR/did-core/) + [did:key method](https://w3c-ccg.github.io/did-key-spec/) |
 | Capability tokens | [UCAN](https://github.com/ucan-wg/spec) (pin the version) |

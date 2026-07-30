@@ -1,7 +1,7 @@
 /**
  * Hooks for managing share links and grants against the connected hub
  * (exploration 0169). All calls authenticate with this identity's UCAN via
- * `getHubAuthToken` from XNet context.
+ * `getHubAuthToken` from xNet context.
  */
 
 import { useXNet } from '@xnetjs/react'

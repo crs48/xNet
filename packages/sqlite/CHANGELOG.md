@@ -1,5 +1,73 @@
 # @xnetjs/sqlite
 
+## 3.0.0
+
+### Patch Changes
+
+- [#571](https://github.com/crs48/xNet/pull/571) [`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6) Thanks [@crs48](https://github.com/crs48)! - Document alpha status in every package README. xNet is released — these packages
+  are on npm and usable today — but it is early software: APIs can change between
+  releases, sometimes without a migration path. Each README now says so up front,
+  so the notice is visible on the npm package page. Docs only; no code changes.
+
+- [#587](https://github.com/crs48/xNet/pull/587) [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe) Thanks [@crs48](https://github.com/crs48)! - Fix TypeScript type resolution for every package's export map, and ship
+  `@xnetjs/data/portability`.
+
+  `types` was ordered after `import` in 48 export subpaths across 19 packages.
+  Export conditions are order-sensitive, so TypeScript could resolve the wrong
+  entry — or no types at all — depending on the consumer's `moduleResolution`.
+  `types` is now first everywhere.
+
+  `@xnetjs/data` also advertised a `./portability` subpath that was never added to
+  its build, so `@xnetjs/data/portability` — the `.xnetpack` export/import codec —
+  did not resolve at all for consumers. It now builds and ships.
+
+  Both were found by adding `publint` to CI.
+
+## 2.5.0
+
+## 2.4.0
+
+## 2.3.0
+
+## 2.2.0
+
+## 2.1.0
+
+## 2.0.0
+
+### Minor Changes
+
+- [#523](https://github.com/crs48/xNet/pull/523) [`0f7ef43`](https://github.com/crs48/xNet/commit/0f7ef435afab91022433ae6c60c3a71510a1d036) Thanks [@crs48](https://github.com/crs48)! - Time Machine P1 (exploration 0329): frontiers, checkpoints, pins, prune horizon, scope timelines, production Yjs snapshot capture, and a React scrub hook.
+  - `@xnetjs/history`: new `Frontier` primitive (hash-anchored per-node positions:
+    `captureFrontier`, `frontierAtWallTime`, `frontierTarget`,
+    `materializeAtFrontier`, Yjs snapshot refs + pin keys); named checkpoints
+    (`createCheckpoint`, `listCheckpoints`, `deleteCheckpoint`, `pinFrontier`,
+    `restoreToFrontier`); `ScopeTimeline`/`ScopeScrubCache` generalizing
+    `SchemaTimeline` to arbitrary node sets; `HistoryHorizonError` +
+    `HistoryEngine.getHorizon` — targets below the prune horizon now fail loudly
+    instead of silently remapping to the wrong change.
+  - `@xnetjs/data`: `Checkpoint` node schema (`CHECKPOINT_SCHEMA_IRI`); pin
+    registry on storage adapters (`NodeStorageAdapter.pins`, `PinEntry`,
+    `PinRegistry`) protecting pinned changes and Yjs snapshots from pruning and
+    eviction (memory + SQLite implementations).
+  - `@xnetjs/sqlite`: `pinned_changes` table (additive migration).
+  - `@xnetjs/runtime`: Yjs history snapshots are now captured on production doc
+    persists (throttled session-boundary/min-interval capture in NodePool).
+  - `@xnetjs/react`: new `useTimeMachine` hook (hooks sub-barrel) binding a
+    scrubber UI to the merged scope timeline: position/step navigation, preview +
+    property diff at the scrub position, named versions, one-transaction restore,
+    and history-horizon reporting.
+
+### Patch Changes
+
+- [#498](https://github.com/crs48/xNet/pull/498) [`e2e78cd`](https://github.com/crs48/xNet/commit/e2e78cd319723972591e1aae9d87af4588edfda3) Thanks [@crs48](https://github.com/crs48)! - Fix "no such column: p.tiebreak_key" on databases created before schema v8. The
+  `tiebreak_key` column repair now runs before the first `node_properties` read
+  (`getNode`/`getNodes`/`listNodes`/`queryNodes`), not just before writes — a
+  fresh session that opened a document page hit the missing column on its first
+  hydrate query before any write could trigger the lazy guard. Also adds the
+  missing v8 entry to `SCHEMA_MIGRATIONS` (`ALTER TABLE node_properties ADD
+COLUMN tiebreak_key TEXT`).
+
 ## 1.0.0
 
 ### Major Changes

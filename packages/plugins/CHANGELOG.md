@@ -1,5 +1,229 @@
 # @xnetjs/plugins
 
+## 3.0.0
+
+### Minor Changes
+
+- [#564](https://github.com/crs48/xNet/pull/564) [`a4097e5`](https://github.com/crs48/xNet/commit/a4097e58bf568a19a737ce78783838913fd89fc3) Thanks [@crs48](https://github.com/crs48)! - Workspace layout presets drop the retired shell views (exploration
+  0353): `createDefaultTree` and the `bench` preset no longer place the
+  `sidebar` / `rail` slot views (both deleted — the shipping shell renders
+  its own sidebar islands), and the default tree's left dock now leads
+  with the unified `tree` view. The `rail` region remains as a placement
+  target for user-moved views.
+
+### Patch Changes
+
+- [#571](https://github.com/crs48/xNet/pull/571) [`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6) Thanks [@crs48](https://github.com/crs48)! - Document alpha status in every package README. xNet is released — these packages
+  are on npm and usable today — but it is early software: APIs can change between
+  releases, sometimes without a migration path. Each README now says so up front,
+  so the notice is visible on the npm package page. Docs only; no code changes.
+
+- [#587](https://github.com/crs48/xNet/pull/587) [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe) Thanks [@crs48](https://github.com/crs48)! - Fix TypeScript type resolution for every package's export map, and ship
+  `@xnetjs/data/portability`.
+
+  `types` was ordered after `import` in 48 export subpaths across 19 packages.
+  Export conditions are order-sensitive, so TypeScript could resolve the wrong
+  entry — or no types at all — depending on the consumer's `moduleResolution`.
+  `types` is now first everywhere.
+
+  `@xnetjs/data` also advertised a `./portability` subpath that was never added to
+  its build, so `@xnetjs/data/portability` — the `.xnetpack` export/import codec —
+  did not resolve at all for consumers. It now builds and ships.
+
+  Both were found by adding `publint` to CI.
+
+- [#565](https://github.com/crs48/xNet/pull/565) [`649cdf7`](https://github.com/crs48/xNet/commit/649cdf74eaf62aa2c08186857b3cd695efa5e3f6) Thanks [@crs48](https://github.com/crs48)! - Spell the brand `xNet` consistently in user-visible copy
+
+  The repo had drifted between `xNet` and `XNet` in prose. Everything a
+  consumer can read now uses the lowercase-x, uppercase-N form.
+  - `@xnetjs/plugins`: the managed AI provider's display name is now
+    `'xNet Cloud'` (was `'XNet Cloud'`), along with its connector label and
+    setup hints. Cosmetic — the managed tier is selected by its `'managed'`
+    id, not by this string, and nothing persists it.
+  - `@xnetjs/cli`: `xnet bridge` help text and its pairing instructions.
+  - `@xnetjs/slack-compat`: published package description.
+
+  No exported names, signatures, or wire contracts changed. Code identifiers
+  (`XNetProvider`, `useXNet`, `XNetKit`) keep their existing casing.
+
+- Updated dependencies [[`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6), [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe), [`33f4b9e`](https://github.com/crs48/xNet/commit/33f4b9ef38c72b2e898f7a4a4de83cc08b0aea88), [`0edfbee`](https://github.com/crs48/xNet/commit/0edfbeefb6b7cf50c0f6a4c2a638bfe5d79ce6ce), [`e48eb34`](https://github.com/crs48/xNet/commit/e48eb345832db3fab41dd7e3ac70a08f8c86c343), [`22892a6`](https://github.com/crs48/xNet/commit/22892a674e2dc3ae7a86ac81d6c20de559b852ed), [`0f26bc9`](https://github.com/crs48/xNet/commit/0f26bc96b9261a8ee0589d94dd276c78017dcc1a), [`60337df`](https://github.com/crs48/xNet/commit/60337dfa61ab7afaa5768169d1a89e7398827b6c), [`649cdf7`](https://github.com/crs48/xNet/commit/649cdf74eaf62aa2c08186857b3cd695efa5e3f6), [`649cdf7`](https://github.com/crs48/xNet/commit/649cdf74eaf62aa2c08186857b3cd695efa5e3f6)]:
+  - @xnetjs/abuse@3.0.0
+  - @xnetjs/core@3.0.0
+  - @xnetjs/data@3.0.0
+  - @xnetjs/slack-compat@0.0.3
+  - @xnetjs/trust@0.0.3
+
+## 2.5.0
+
+### Minor Changes
+
+- [#552](https://github.com/crs48/xNet/pull/552) [`c7ef045`](https://github.com/crs48/xNet/commit/c7ef0456bfc75b5813d8a9d34f465f13a1e088ae) Thanks [@crs48](https://github.com/crs48)! - Composable UI frames (exploration 0346). The `@xnetjs/editor` and
+  `@xnetjs/views` surfaces are release-ignored packages; their changes ship
+  with the app. Live embeds in documents (Phase 1): `databaseEmbed` blocks
+  now pass any registry view type through to the host (map, timeline, plugin
+  views — not just the built-in six), `pageEmbed` blocks render a host-provided
+  live summary transclusion via the new `renderPageEmbed` host callback, and the
+  slash menu gains a `/view of…` command backed by the new
+  `onSelectDatabaseView` host picker. Adds `extractDocPreviewLines` for
+  summary-tier text extraction from a v4 document fragment.
+
+  `@xnetjs/views` gains the Frame contract (0346 Phase 2): `FrameDef` /
+  `FrameSource` / `FrameTier`, the `FrameRenderer` + `frameSourceRegistry`
+  (schema-dispatched node frames, saved-query frames, curated collection
+  frames, depth-clamped transclusion), container adapters
+  (`frameFromDatabaseEmbed` / `frameFromPageEmbed` / `frameFromCanvasNode`),
+  and the generic dashboard frame widget (`registerFrameWidget`).
+
+  `@xnetjs/react` gains the entangle bus (0346 Phase 3): `EntangleProvider`
+  / `useEntangledHighlight` / `useEntangleBind` — page-scoped hover/select
+  co-presence so frames on one page (grid rows, board cards, calendar
+  chips, map pins, wikilink chips) highlight the same node together.
+  `ReverseRelationsPanel` gains an `onOpenAsFrame` action.
+
+  `@xnetjs/plugins` (0346 Phase 5): new agent tools
+  `xnet_plan_frame_placement` / `xnet_apply_frame_placement` /
+  `xnet_compose_page` — the agent composes pages of live frames through
+  the standard plan → validate → apply pipeline (declarative tier only).
+  Plugins gain `registerFrameRenderer` with the own-views-only namespacing
+  rule.
+
+  `@xnetjs/data` (0346 Phase 5): cross-node formula scope — `RELATED()`
+  and `NODE()` context functions widen the one formula language from row →
+  relations → named nodes (host-resolved, cache-bypassed until 0317's
+  precise invalidation). Pages gain an additive
+  `geometry: stack | grid | space` property (default `stack`).
+
+### Patch Changes
+
+- Updated dependencies [[`c7ef045`](https://github.com/crs48/xNet/commit/c7ef0456bfc75b5813d8a9d34f465f13a1e088ae)]:
+  - @xnetjs/data@2.5.0
+  - @xnetjs/abuse@2.5.0
+  - @xnetjs/core@2.5.0
+
+## 2.4.0
+
+### Patch Changes
+
+- Updated dependencies [[`1c7b9c9`](https://github.com/crs48/xNet/commit/1c7b9c9c3804fc0d4c80b032ae0ebc0163714c52)]:
+  - @xnetjs/data@2.4.0
+  - @xnetjs/abuse@2.4.0
+  - @xnetjs/core@2.4.0
+
+## 2.3.0
+
+### Patch Changes
+
+- Updated dependencies [[`e2ec439`](https://github.com/crs48/xNet/commit/e2ec43932ec3b05e74765a537ae9b94a219c7c36), [`735d491`](https://github.com/crs48/xNet/commit/735d491217a964c5210140ac58925db0ecdd765e), [`d246195`](https://github.com/crs48/xNet/commit/d2461957723cc4c9e6366192670127f8bd1d458d), [`3ea44c6`](https://github.com/crs48/xNet/commit/3ea44c6354e3f55443d3c3b49d8ca1f9c0941987)]:
+  - @xnetjs/data@2.3.0
+  - @xnetjs/abuse@2.3.0
+  - @xnetjs/core@2.3.0
+
+## 2.2.0
+
+### Patch Changes
+
+- Updated dependencies [[`2962c28`](https://github.com/crs48/xNet/commit/2962c28afd0b5c15ce42ee1b42e58e6c55868d5a)]:
+  - @xnetjs/data@2.2.0
+  - @xnetjs/abuse@2.2.0
+  - @xnetjs/core@2.2.0
+
+## 2.1.0
+
+### Minor Changes
+
+- [#533](https://github.com/crs48/xNet/pull/533) [`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708) Thanks [@crs48](https://github.com/crs48)! - Agent Passports and signed agent audit trails (exploration 0337).
+  - `@xnetjs/data`: new agent schema pack — `AgentPassport`, `AgentSession`,
+    `AgentAction`, `AgentApproval`, `AgentNotification` — with deterministic id
+    helpers (`agentActionId`, …) and `redactInstruction`.
+  - `@xnetjs/identity`: `mintAgentPassport` / `verifyAgentPassport` (per-agent
+    `did:key` + operator-delegated, attenuation-checked UCAN; wildcards
+    rejected) and `rootIssuers` for delegation-chain root inspection.
+  - `@xnetjs/plugins`: `AgentAuditRecorder` wraps the AI surface so every tool
+    call lands as an `AgentAction` node and medium+ risk calls park behind a
+    risk-tiered approval ceremony (chat nonce with TTL for medium; xNet-surface
+    only for high/critical); ceremony tools (`xnet_approve`, `xnet_deny`,
+    `xnet_pending_approvals`, `xnet_undo`) and the `xnet_poll_notifications`
+    outbox tool; `MCPServerConfig.agentAudit` wires it into the MCP server;
+    `NodeStoreAPI.create` now accepts an optional deterministic `id`; new AI
+    scopes `agent.approve` and `agent.notifications`.
+  - `@xnetjs/cli`: `xnet agent enroll <name>` mints and stores passports
+    (`~/.xnet/agents`, 0600) and prints OpenClaw/Hermes config; `xnet mcp serve
+--agent <name> [--db <path>]` serves an agent-scoped session over an
+    agent-signed local store.
+
+- [#525](https://github.com/crs48/xNet/pull/525) [`fa93e2f`](https://github.com/crs48/xNet/commit/fa93e2f7177367e7336f6a825f8c3436a2165833) Thanks [@crs48](https://github.com/crs48)! - Add the workspace-plugin runtime (exploration 0331): author, hot-load, and
+  compose plugins whose source lives in the workspace as a `PluginSource` node.
+  New public surface: `PluginSourceSchema` + `readPluginSourceNode`, an in-browser
+  module builder (`buildPluginModuleGraph`) with a pinned import map, the
+  `SandboxedPluginHost` (`activateWorkspacePlugin`) that loads plugin code only in
+  an opaque-origin iframe and registers data-declared contributions over
+  MessagePort RPC, a gated store RPC (`createPluginStoreRpc`, denylist-wins), a
+  250ms-debounce hot reloader (`createWorkspacePluginHotReloader`), content-hash
+  pinning + drift diffing (`computePluginSourceHash`, `assessPluginUpdate`), the
+  `plugin_*` agent tools (`createWorkspacePluginAgentTools`) and the
+  `WRITING_XNET_PLUGINS_SKILL_MD` authoring skill, and both publish paths
+  (`requestWorkspacePluginPublish`, `buildCommunityRegistryEntry`). `MCPServerConfig`
+  gains an `extraTools` field to expose the new tools beside the built-ins.
+
+### Patch Changes
+
+- Updated dependencies [[`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708)]:
+  - @xnetjs/data@2.1.0
+  - @xnetjs/abuse@2.1.0
+  - @xnetjs/core@2.1.0
+
+## 2.0.0
+
+### Major Changes
+
+- [#496](https://github.com/crs48/xNet/pull/496) [`6a5a15e`](https://github.com/crs48/xNet/commit/6a5a15e5d7693f54a0c859b1f096dc6405694574) Thanks [@crs48](https://github.com/crs48)! - AI page-markdown surface re-targeted to the BlockNote editor (exploration 0312).
+  - **Breaking**: the page-markdown apply adapter mode `'tiptap-yjs'` is renamed
+    to `'blocknote-yjs'` in `AiPageMarkdownApplyAdapterResult['mode']` and
+    `AiPageMarkdownApplyResult['mode']`. Adapters that returned
+    `mode: 'tiptap-yjs'` must return `'blocknote-yjs'` (or `'yjs'`/`'custom'`).
+  - New Yjs-fragment ↔ markdown conversion for BlockNote (`content-v4`)
+    documents, dependency-light (walks the Yjs XML tree directly, no editor/DOM):
+    - `xnetPageFragmentToMarkdown(doc)` reads the BlockNote fragment
+      (paragraph/heading/lists/check items/code/quote/callout/table + inline
+      `mention`/`hashtag`/`wikilink`/`inlineMath` atoms), falling back to the
+      legacy TipTap `content` fragment when `content-v4` is empty
+      (`blockNoteFragmentToMarkdown` / `legacyFragmentToMarkdown` are also
+      exported).
+    - `replaceXNetPageFragmentWithMarkdown(doc, markdown)` writes the AI
+      markdown subset (paragraphs, headings, bullet/numbered/check lists with
+      nesting, fenced code, quotes, callouts, wikilinks) as BlockNote PM XML —
+      `blockGroup > blockContainer` (unique `id` per block) wrappers — in one
+      Yjs transaction.
+    - `createBlockNotePageMarkdownAdapter({ resolveDoc })` packages both as an
+      `AiPageMarkdownApplyAdapter` (plus `readMarkdown`) for
+      `xnet_apply_page_markdown`, replacing the TipTap-era document bridge.
+    - `XNET_PAGE_FRAGMENT_FIELD` (`'content-v4'`) and
+      `XNET_PAGE_LEGACY_FRAGMENT_FIELD` (`'content'`) constants.
+  - `@xnetjs/plugins` now depends on `yjs`; the unused `@tiptap/core`
+    devDependency is gone.
+
+- [#496](https://github.com/crs48/xNet/pull/496) [`2a7b80f`](https://github.com/crs48/xNet/commit/2a7b80f613d1c7b5db637639d4a3176df23ae1f3) Thanks [@crs48](https://github.com/crs48)! - `EditorContribution` carries BlockNote specs instead of TipTap extensions (exploration 0312).
+  - **Breaking**: `EditorContribution.extension` (TipTap `Extension`) and
+    `EditorContribution.toolbar` (`ToolbarContribution`, removed entirely) are
+    gone. Plugins now contribute `blockSpecs` / `inlineContentSpecs` /
+    `styleSpecs` (opaque BlockNote spec objects keyed by spec name) plus
+    behavior-only `slashMenuItems`.
+  - **Breaking**: the editor schema-skew guard is spec-based —
+    `isSchemaDefiningExtension` is replaced by `isSchemaDefiningContribution`,
+    and `findEditorSchemaRisks` / `warnOnEditorSchemaRisks` take the host's
+    statically bundled spec names and flag any contributed spec outside that
+    set (0205 invariant: schema specs must be identical across all
+    collaborators or Yjs silently drops content).
+  - `SlashCommandContext.editor` is now a BlockNote editor instance.
+  - The `@tiptap/core` dependency is removed.
+
+### Patch Changes
+
+- Updated dependencies [[`85c9700`](https://github.com/crs48/xNet/commit/85c9700d6de11459f39083a1824f9cbf79cdb7bd), [`a91f278`](https://github.com/crs48/xNet/commit/a91f278ac122c588145ebb5f3981f6745b30ba66), [`dd956e5`](https://github.com/crs48/xNet/commit/dd956e512b60f3b4288ae4fb0cb2ade875da1f9f), [`e4cb876`](https://github.com/crs48/xNet/commit/e4cb876cc49fcf94a71d015dd60683ff038b367c), [`e2e78cd`](https://github.com/crs48/xNet/commit/e2e78cd319723972591e1aae9d87af4588edfda3), [`0f7ef43`](https://github.com/crs48/xNet/commit/0f7ef435afab91022433ae6c60c3a71510a1d036)]:
+  - @xnetjs/data@2.0.0
+  - @xnetjs/abuse@2.0.0
+  - @xnetjs/core@2.0.0
+
 ## 1.0.0
 
 ### Patch Changes

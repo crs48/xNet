@@ -1,8 +1,8 @@
 # L3 · Authorization
 
-**This document is normative.** Part of [XNet Protocol `xnet/1.0`](00-overview.md).
+**This document is normative.** Part of [xNet Protocol `xnet/1.0`](00-overview.md).
 
-Authorization in XNet is **data, not application logic**: access rules are
+Authorization in xNet is **data, not application logic**: access rules are
 declared on schemas and delegated through `Grant` nodes and UCAN tokens, and they
 are enforced at the [sync boundary](03-replication.md). Because two
 implementations that disagree on policy evaluation will make different read/write
@@ -118,7 +118,7 @@ _after_ decryption.
 
 Authority is delegated two ways:
 
-**Grant nodes** — a `Grant` is an ordinary XNet node (schema
+**Grant nodes** — a `Grant` is an ordinary xNet node (schema
 [`grant.ts`](../../../packages/data/src/schema/schemas/grant.ts)) recording
 `{ issuer, grantee, resource, resourceSchema, actions, expiresAt, revokedAt,
 ucanToken?, parentGrantId? }`. A grant is **active** iff not revoked and not

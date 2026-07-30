@@ -92,6 +92,37 @@ export function getRichTextPlainText(doc: Y.Doc, columnId: string): string {
 }
 
 /**
+ * Block-level node names that terminate a line of extracted text.
+ * Covers HTML-ish names, legacy TipTap names, and BlockNote (v4, 0312)
+ * block-content names. BlockNote's blockGroup/blockContainer wrappers are
+ * plain containers handled by the generic recursion.
+ */
+const BLOCK_ELEMENT_NAMES = new Set([
+  // HTML-ish / legacy names
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'li',
+  'blockquote',
+  // TipTap / BlockNote shared names
+  'paragraph',
+  'heading',
+  'codeBlock',
+  'listItem',
+  'taskItem',
+  // BlockNote (v4) block-content names
+  'bulletListItem',
+  'numberedListItem',
+  'checkListItem',
+  'toggleListItem',
+  'quote'
+])
+
+/**
  * Extract plain text from a Y.XmlFragment.
  */
 function extractPlainText(fragment: Y.XmlFragment): string {
@@ -111,9 +142,43 @@ function extractPlainText(fragment: Y.XmlFragment): string {
 }
 
 /**
+ * Readable text for BlockNote inline atoms (content: 'none') whose text
+ * lives in attributes rather than child text nodes (0312).
+ */
+function inlineAtomText(element: Y.XmlElement): string | null {
+  const attr = (key: string): string => {
+    const value = element.getAttribute(key)
+    return typeof value === 'string' ? value : ''
+  }
+
+  switch (element.nodeName) {
+    case 'mention': {
+      const label = attr('label') || attr('id')
+      return label ? `@${label}` : ''
+    }
+    case 'hashtag': {
+      const name = attr('name')
+      return name ? `#${name}` : ''
+    }
+    case 'wikilink':
+      // Legacy wikilinks carry child text; only childless atoms need the attr.
+      return element.length === 0 ? attr('title') : null
+    case 'inlineMath':
+      return attr('latex')
+    default:
+      return null
+  }
+}
+
+/**
  * Extract plain text from a Y.XmlElement.
  */
 function extractPlainTextFromElement(element: Y.XmlElement): string {
+  const atomText = inlineAtomText(element)
+  if (atomText !== null) {
+    return atomText
+  }
+
   const parts: string[] = []
 
   for (let i = 0; i < element.length; i++) {
@@ -126,8 +191,7 @@ function extractPlainTextFromElement(element: Y.XmlElement): string {
   }
 
   // Add newlines for block elements
-  const blockElements = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote']
-  if (blockElements.includes(element.nodeName)) {
+  if (BLOCK_ELEMENT_NAMES.has(element.nodeName)) {
     parts.push('\n')
   }
 

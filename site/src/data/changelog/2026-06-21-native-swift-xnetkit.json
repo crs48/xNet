@@ -1,7 +1,7 @@
 {
   "id": "2026-06-21-native-swift-xnetkit",
   "date": "June 21, 2026",
-  "title": "XNetKit — define schemas, query, and observe XNet from native Swift",
+  "title": "XNetKit — define schemas, query, and observe xNet from native Swift",
   "summary": "A real, runnable native Swift SDK lands. Define schemas in Swift, write and query the database in Swift, and bind results into a SwiftUI re-rendering loop — no JavaScript, no React. It's built on the conformance-pinned protocol kernel, so identity, signed change hashes, and LWW convergence match the TypeScript reference. This is the native-authoring slice of the Swift exploration (0210); live hub sync and persistence are the next steps.",
   "highlights": [
     "Swift schema DSL (Schema { text(…); select(…) }) emits the same SchemaIRI as TS defineSchema; a native NodeStore signs every write into a Change and folds it via per-property LWW",

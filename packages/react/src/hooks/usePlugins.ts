@@ -1,6 +1,7 @@
 /**
  * Plugin system hooks for accessing the PluginRegistry and contributions
  */
+import { warnOnEditorSchemaRisks } from '@xnetjs/plugins'
 import type {
   PluginRegistry,
   RegisteredPlugin,
@@ -15,7 +16,7 @@ import type {
   SettingContribution,
   ImporterContribution
 } from '@xnetjs/plugins'
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo } from 'react'
 
 // ─── Context ────────────────────────────────────────────────────────────────
 
@@ -250,6 +251,91 @@ export function useEditorExtensionsSafe(): EditorContribution[] {
   }, [registry])
 
   return items
+}
+
+// ─── Merged editor specs (BlockNote, 0312) ─────────────────────────────────
+
+/**
+ * Plugin-contributed BlockNote specs and slash menu items, merged across
+ * all editor contributions in priority order.
+ */
+export interface MergedEditorContributions {
+  /** BlockNote block specs, keyed by block type name */
+  blockSpecs: Record<string, unknown>
+  /** BlockNote inline content specs, keyed by type name */
+  inlineContentSpecs: Record<string, unknown>
+  /** BlockNote style specs, keyed by style name */
+  styleSpecs: Record<string, unknown>
+  /** Behavior-only slash menu items (skew-safe) */
+  slashMenuItems: SlashCommandContribution[]
+}
+
+/**
+ * Merge editor contributions (priority order; lower = earlier, later wins
+ * on spec-name collision) and run the schema-skew guard (0205/0312).
+ *
+ * `bundledSpecNames` is the host editor's statically bundled spec list
+ * (`XNET_SCHEMA_SPEC_NAMES` from `@xnetjs/editor/react` — passed by the
+ * caller because this package must not depend on the editor). Specs NOT in
+ * that list change the persisted document schema for only some peers, so
+ * they are warned about and excluded from the merge.
+ */
+export function mergeEditorContributions(
+  contributions: readonly EditorContribution[],
+  bundledSpecNames: readonly string[] = []
+): MergedEditorContributions {
+  // Skew-safety guard (0205): warn if a contribution adds persisted schema
+  // beyond the statically bundled specs.
+  const risks = warnOnEditorSchemaRisks('plugin-host', contributions, bundledSpecNames)
+  const risky = new Set(risks.map((risk) => `${risk.kind}:${risk.name}`))
+
+  const sorted = [...contributions].sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100))
+
+  const merged: MergedEditorContributions = {
+    blockSpecs: {},
+    inlineContentSpecs: {},
+    styleSpecs: {},
+    slashMenuItems: []
+  }
+
+  for (const contribution of sorted) {
+    for (const [name, spec] of Object.entries(contribution.blockSpecs ?? {})) {
+      if (!risky.has(`block:${name}`)) merged.blockSpecs[name] = spec
+    }
+    for (const [name, spec] of Object.entries(contribution.inlineContentSpecs ?? {})) {
+      if (!risky.has(`inlineContent:${name}`)) merged.inlineContentSpecs[name] = spec
+    }
+    for (const [name, spec] of Object.entries(contribution.styleSpecs ?? {})) {
+      if (!risky.has(`style:${name}`)) merged.styleSpecs[name] = spec
+    }
+    if (contribution.slashMenuItems) {
+      merged.slashMenuItems.push(...contribution.slashMenuItems)
+    }
+  }
+
+  return merged
+}
+
+/**
+ * Collect and merge all plugin editor contributions (BlockNote specs +
+ * slash menu items) from the registry, with reactive updates. Safe when
+ * the plugin system isn't enabled (returns empty results).
+ *
+ * @example
+ * ```tsx
+ * import { XNET_SCHEMA_SPEC_NAMES } from '@xnetjs/editor/react'
+ *
+ * const { slashMenuItems } = useMergedEditorContributions(XNET_SCHEMA_SPEC_NAMES)
+ * ```
+ */
+export function useMergedEditorContributions(
+  bundledSpecNames: readonly string[] = []
+): MergedEditorContributions {
+  const contributions = useEditorExtensionsSafe()
+  return useMemo(
+    () => mergeEditorContributions(contributions, bundledSpecNames),
+    [contributions, bundledSpecNames]
+  )
 }
 
 /**

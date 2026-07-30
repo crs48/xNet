@@ -1,4 +1,4 @@
-//! Run the shared XNet golden-vector corpus through `xnet-core`.
+//! Run the shared xNet golden-vector corpus through `xnet-core`.
 //!
 //! This proves the Rust kernel reproduces the protocol byte-for-byte — the same
 //! corpus the TypeScript reference and the Python/Swift kernels pass. Unlike the

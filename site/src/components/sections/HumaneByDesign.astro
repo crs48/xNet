@@ -1,18 +1,29 @@
 ---
+import SectionHeader from '../ui/SectionHeader.astro'
 import { commitments } from '../../data/commitments'
+import { siteMetrics } from '../../data/siteMetrics'
+
+const stats = [
+  { value: `${siteMetrics.packages}`, label: 'packages' },
+  { value: `${siteMetrics.tests.toLocaleString('en-US')}+`, label: 'tests' },
+  { value: `${siteMetrics.devtoolsPanels}`, label: 'devtools panels' },
+  { value: 'MIT', label: 'open source' },
+]
 ---
 
-<section id="humane" class="py-24 lg:py-32">
+<section id="humane" class="py-24 lg:py-32 border-t border-border/50">
+  <span id="vision" class="sr-only" aria-hidden="true"></span>
+  <span id="community" class="sr-only" aria-hidden="true"></span>
+  <span id="roadmap" class="sr-only" aria-hidden="true"></span>
   <div class="mx-auto max-w-4xl px-6">
-    <div class="animate-on-scroll rounded-2xl border border-border bg-surface/30 dark:bg-surface/50 p-8 sm:p-10 text-center">
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">Built to be left.</h2>
-      <p class="mx-auto mt-3 max-w-2xl text-gray-500 dark:text-gray-400">
-        xNet keeps no behavioral surplus and has no ad model — you are not the product.
-        Six commitments hold us to it, several enforced by a CI gate that fails the build
-        on regression.
-      </p>
+    <SectionHeader
+      title="Built to be left."
+      subtitle="xNet keeps no behavioral surplus and has no ad model — you are not the product. Six commitments hold us to it, several enforced by a CI gate that fails the build on regression."
+      align="center"
+    />
 
-      <ul class="mx-auto mt-8 grid max-w-2xl gap-x-8 gap-y-3 text-left sm:grid-cols-2">
+    <div class="animate-on-scroll mt-10 rounded-2xl border border-border bg-surface/30 dark:bg-surface/50 p-8 sm:p-10 text-center">
+      <ul class="mx-auto grid max-w-2xl gap-x-8 gap-y-3 text-left sm:grid-cols-2">
         {
           commitments.map((c) => (
             <li class="flex items-baseline gap-2.5 text-sm">
@@ -22,6 +33,14 @@ import { commitments } from '../../data/commitments'
           ))
         }
       </ul>
+
+      <p class="mx-auto mt-8 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+        The long game: an open data layer where all your apps share data —
+        offline, private, yours.
+        <a href="/roadmap" class="text-indigo-600 dark:text-indigo-400 underline decoration-dotted underline-offset-2 hover:text-indigo-500">
+          See where this is going →
+        </a>
+      </p>
 
       <div class="mt-9 flex flex-wrap justify-center gap-4">
         <a
@@ -37,6 +56,24 @@ import { commitments } from '../../data/commitments'
           Why this matters
         </a>
       </div>
+    </div>
+
+    <!-- Honest, build-verified scale — full metrics live on /open -->
+    <div class="mt-10">
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {stats.map((s) => (
+          <div class="animate-on-scroll rounded-xl border border-border bg-surface/30 dark:bg-surface/50 px-4 py-5 text-center">
+            <div class="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">{s.value}</div>
+            <div class="mt-1 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">{s.label}</div>
+          </div>
+        ))}
+      </div>
+      <p class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        Alpha software, honestly labelled.
+        <a href="/open" class="text-indigo-600 dark:text-indigo-400 underline decoration-dotted underline-offset-2 hover:text-indigo-500">
+          See the open metrics →
+        </a>
+      </p>
     </div>
   </div>
 </section>

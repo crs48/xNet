@@ -11,12 +11,15 @@
  */
 
 import type {
+  CheckedOutDraftOverlay,
   NodeId,
   NodePayload,
   NodeChange,
   NodeState,
   NodeStorageAdapter,
   NodeStoreOptions,
+  NodeTextSearchOptions,
+  NodeTextSearchResult,
   CreateNodeOptions,
   UpdateNodeOptions,
   PropertyTimestamp,
@@ -66,8 +69,15 @@ import {
   type LamportClock,
   type UnsignedChange
 } from '@xnetjs/sync'
-import { verifyChange, verifyChangeHash } from '@xnetjs/sync'
+import { verifyChange, verifyChangeHash, verifyChangesFast } from '@xnetjs/sync'
 import { createNodeId, getBaseSchemaIRI, type SchemaIRI } from '../schema/node'
+import { accountRecordId, revocationRecordId } from '../schema/schemas/account-ledger'
+import {
+  evaluateLedgerWrite,
+  foldAccountRecord,
+  ledgerAccountId,
+  ledgerWriteKind
+} from '../schema/schemas/account-ledger-enforce'
 import { isSystemNamespaceResource, isSystemSchemaIri } from '../schema/schemas/system'
 import {
   executeDeterministicNodeImport,
@@ -78,6 +88,7 @@ import {
 import { PermissionError } from './permission-error'
 import {
   applyNodeQueryDescriptor,
+  withoutNodeQueryMaterializedView,
   withoutNodeQueryPagination,
   type NodeQueryDescriptor,
   type NodeQueryResult
@@ -126,6 +137,15 @@ type DeterministicNodeImportExecution = ImportDeterministicNodesResult & {
 /**
  * NodeStore manages event-sourced Nodes with LWW conflict resolution.
  */
+/**
+ * Internal options for {@link NodeStore.applyRemoteChange}. Not exported from
+ * the package: `preVerified` skips signature checking and is only sound when
+ * the caller ran {@link NodeStore.verifyRemoteChanges} over the same change.
+ */
+type ApplyRemoteChangeOptions = {
+  preVerified?: boolean
+}
+
 export class NodeStore {
   private storage: NodeStorageAdapter
   private authorDID: DID
@@ -137,6 +157,14 @@ export class NodeStore {
   private listeners: Set<NodeChangeListener> = new Set()
   private nodeListeners: Map<NodeId, Set<NodeChangeListener>> = new Map()
   private batchListeners: Set<NodeBatchChangeListener> = new Set()
+  // Draft overlay (exploration 0329)
+  private checkedOutDraft: CheckedOutDraftOverlay | null = null
+  private cloneToOriginal: Map<NodeId, NodeId> = new Map()
+  private draftMemberSet: Set<NodeId> = new Set()
+  private draftDynamicMembers = false
+  /** null = conservative "all schemas" (memberSchemaIds omitted). */
+  private draftMemberSchemaSet: Set<string> | null = null
+  private draftOverlayListeners: Set<() => void> = new Set()
   private schemaLookup?: SchemaLookup
   private propertyLookup?: PropertyLookup
   private lensRegistry?: LensRegistry
@@ -241,6 +269,7 @@ export class NodeStore {
 
         this.emit(change, node, null, false)
         this.authEvaluator?.invalidate(node.id)
+        this.notifyDraftNodeCreated(node.id, node.schemaId)
 
         if (this.telemetry) {
           this.telemetry.reportPerformance('data.create', Date.now() - start)
@@ -291,6 +320,7 @@ export class NodeStore {
       // Emit change event
       this.emit(change, node, null, false)
       this.authEvaluator?.invalidate(node.id)
+      this.notifyDraftNodeCreated(node.id, node.schemaId)
 
       // Track performance
       if (this.telemetry) {
@@ -312,9 +342,228 @@ export class NodeStore {
    * Get a Node by ID.
    */
   async get(id: NodeId): Promise<NodeState | null> {
+    // Draft overlay (exploration 0329): a checked-out member reads as its
+    // clone's content under the original id. Zero-cost when no draft is
+    // checked out (the common case).
+    const cloneId = this.checkedOutDraft?.clones[id]
+    if (cloneId) {
+      const clone = await this.getRaw(cloneId)
+      if (clone) return { ...clone, id }
+    }
+    return this.getRaw(id)
+  }
+
+  /**
+   * Read a node WITHOUT the draft overlay (exploration 0329) — merge review
+   * and diff surfaces use this to see main's true state while checked out.
+   */
+  async getRaw(id: NodeId): Promise<NodeState | null> {
     const node = await this.storage.getNode(id)
     const decrypted = await this.decryptNodeSnapshotIfPresent(node)
     return (await this.canReadNode(decrypted)) ? decrypted : null
+  }
+
+  // ==========================================================================
+  // Draft overlay (exploration 0329)
+  // ==========================================================================
+
+  /**
+   * Check a draft out (or pass null to return to main). While checked out,
+   * member reads swap to clone content under original ids, member writes
+   * redirect to clones (lazily forking via `onMissingMember`), and clone
+   * change events mirror to original-id subscribers.
+   */
+  setCheckedOutDraft(overlay: CheckedOutDraftOverlay | null): void {
+    this.checkedOutDraft = overlay
+    this.cloneToOriginal = new Map(
+      overlay
+        ? Object.entries(overlay.clones).map(([orig, clone]) => [clone as NodeId, orig as NodeId])
+        : []
+    )
+    this.draftMemberSet =
+      overlay && overlay.members !== 'dynamic' ? new Set(overlay.members) : new Set()
+    this.draftDynamicMembers = overlay?.members === 'dynamic'
+    this.draftMemberSchemaSet = overlay?.memberSchemaIds ? new Set(overlay.memberSchemaIds) : null
+    this.notifyDraftOverlayListeners()
+  }
+
+  /** Report a locally-created node to the checkout's draft-born hook (0329 P4). */
+  private notifyDraftNodeCreated(nodeId: NodeId, schemaId: string): void {
+    const overlay = this.checkedOutDraft
+    if (!overlay?.onNodeCreated) return
+    if (nodeId === overlay.draftId || this.cloneToOriginal.has(nodeId)) return
+    try {
+      overlay.onNodeCreated(nodeId, schemaId)
+    } catch (err) {
+      console.error('Error in draft onNodeCreated hook:', err)
+    }
+  }
+
+  private notifyDraftOverlayListeners(): void {
+    for (const listener of this.draftOverlayListeners) {
+      try {
+        listener()
+      } catch (err) {
+        console.error('Error in draft overlay listener:', err)
+      }
+    }
+  }
+
+  getCheckedOutDraft(): CheckedOutDraftOverlay | null {
+    return this.checkedOutDraft
+  }
+
+  /**
+   * Device-local draft privacy (exploration 0329): ids marked here (draft
+   * bookkeeping nodes, clones, draft-born nodes) are excluded from outbound
+   * sync publication by the personal node-sync room's `shouldPublish`
+   * predicate. In-memory only — the draft module rehydrates it from open
+   * Draft nodes at boot, BEFORE sync starts.
+   */
+  private draftPrivateNodeIds: Set<NodeId> = new Set()
+
+  markDraftPrivate(ids: readonly NodeId[]): void {
+    for (const id of ids) this.draftPrivateNodeIds.add(id)
+  }
+
+  unmarkDraftPrivate(ids: readonly NodeId[]): void {
+    for (const id of ids) this.draftPrivateNodeIds.delete(id)
+  }
+
+  isDraftPrivate(id: NodeId): boolean {
+    return this.draftPrivateNodeIds.has(id)
+  }
+
+  /** Notified on every checkout change (including clone-map refreshes). */
+  subscribeToDraftOverlay(listener: () => void): () => void {
+    this.draftOverlayListeners.add(listener)
+    return () => this.draftOverlayListeners.delete(listener)
+  }
+
+  /**
+   * Swap checked-out members' content to their clones (original ids kept, so
+   * MV id lists and grid ordering are untouched). No-op without a checkout.
+   */
+  private async overlayStates(states: NodeState[]): Promise<NodeState[]> {
+    const overlay = this.checkedOutDraft
+    if (!overlay) return states
+
+    // Clone rows never render as themselves — the member shows their content.
+    const visible =
+      this.cloneToOriginal.size > 0
+        ? states.filter((state) => !this.cloneToOriginal.has(state.id))
+        : states
+
+    const cloneIds = visible
+      .map((s) => overlay.clones[s.id])
+      .filter((cloneId): cloneId is NodeId => cloneId !== undefined)
+    if (cloneIds.length === 0) return visible
+
+    const cloneMap = await this.getNodesById(cloneIds, this.storage)
+    return Promise.all(
+      visible.map(async (state) => {
+        const cloneId = overlay.clones[state.id]
+        const clone = cloneId ? cloneMap.get(cloneId) : undefined
+        if (!clone) return state
+        const decrypted = await this.decryptNodeSnapshotIfPresent(clone)
+        return decrypted ? { ...decrypted, id: state.id } : state
+      })
+    )
+  }
+
+  /**
+   * Draft-aware query path (0329 P5): candidates from storage WITHOUT
+   * pagination, unioned with checked-out members the predicate may have
+   * missed (their clone values can change membership), content-swapped,
+   * clone rows hidden, then the full descriptor re-applied in JS so
+   * filter/sort/pagination reflect draft values.
+   */
+  private async draftAwareQuery(
+    descriptor: NodeQueryDescriptor,
+    start: number
+  ): Promise<NodeQueryResult> {
+    const overlay = this.checkedOutDraft
+    const unpaginated = withoutNodeQueryMaterializedView(withoutNodeQueryPagination(descriptor))
+
+    let candidates: NodeState[]
+    if (this.storage.queryNodes && !this.nodeContentCipher) {
+      candidates = (await this.storage.queryNodes(unpaginated)).nodes
+    } else {
+      const fallback = await this.loadQueryFallbackCandidates(unpaginated)
+      const decrypted = await Promise.all(
+        fallback.nodes.map((node) => this.decryptNodeSnapshotIfPresent(node))
+      )
+      candidates = decrypted.filter((node): node is NodeState => node !== null)
+    }
+
+    // Union in members the storage predicate skipped: a member whose ORIGINAL
+    // doesn't match `where` may match under its clone's values.
+    if (overlay) {
+      const present = new Set(candidates.map((node) => node.id))
+      const missing = Object.keys(overlay.clones).filter(
+        (id) => !present.has(id as NodeId)
+      ) as NodeId[]
+      if (missing.length > 0) {
+        const extra = await this.getNodesById(missing, this.storage)
+        for (const node of extra.values()) {
+          const decrypted = await this.decryptNodeSnapshotIfPresent(node)
+          if (!decrypted) continue
+          if (decrypted.schemaId !== descriptor.schemaId) continue
+          if (decrypted.deleted && !descriptor.includeDeleted) continue
+          candidates.push(decrypted)
+        }
+      }
+    }
+
+    const readable = await this.filterReadableNodes(candidates)
+    const swapped = await this.overlayStates(readable)
+    const filtered = applyNodeQueryDescriptor(swapped, withoutNodeQueryPagination(descriptor))
+    const result = applyNodeQueryDescriptor(swapped, descriptor)
+
+    return {
+      nodes: result,
+      totalCount: filtered.length,
+      plan: {
+        strategy: 'draft-overlay',
+        candidateNodeCount: readable.length,
+        hydratedNodeCount: swapped.length,
+        returnedNodeCount: result.length,
+        durationMs: Date.now() - start
+      }
+    }
+  }
+
+  /**
+   * Resolve where a write to `id` lands under the checkout: an existing
+   * clone, a lazily-forked one (`onMissingMember`), or — for non-members,
+   * clone ids, and declined forks — the id itself.
+   */
+  private async resolveDraftWriteTarget(id: NodeId): Promise<NodeId> {
+    const overlay = this.checkedOutDraft
+    if (!overlay) return id
+    const existing = overlay.clones[id]
+    if (existing) return existing
+    // Dynamic (agent-PR) sessions consult the fork callback for every id
+    // except the draft's own bookkeeping and already-created clones.
+    if (this.draftDynamicMembers) {
+      if (id === overlay.draftId || this.cloneToOriginal.has(id)) return id
+    } else if (!this.draftMemberSet.has(id)) {
+      return id
+    }
+    if (overlay.onMissingMember) {
+      const cloneId = await overlay.onMissingMember(id)
+      if (cloneId && this.checkedOutDraft === overlay) {
+        // Keep the live overlay self-consistent so the very next read of the
+        // original resolves to the fresh clone without waiting for the UI
+        // layer to re-checkout.
+        this.checkedOutDraft = { ...overlay, clones: { ...overlay.clones, [id]: cloneId } }
+        this.cloneToOriginal.set(cloneId, id)
+        this.notifyDraftOverlayListeners()
+        return cloneId
+      }
+      if (cloneId) return cloneId
+    }
+    return id
   }
 
   /**
@@ -419,6 +668,8 @@ export class NodeStore {
    */
   async update(id: NodeId, options: UpdateNodeOptions): Promise<NodeState> {
     const start = this.telemetry ? Date.now() : 0
+    // Draft overlay (0329): member writes land on the clone (lazy COW).
+    id = await this.resolveDraftWriteTarget(id)
 
     try {
       if (this.canUseSingleWriteFastPath()) {
@@ -526,6 +777,8 @@ export class NodeStore {
    */
   async delete(id: NodeId): Promise<void> {
     const start = this.telemetry ? Date.now() : 0
+    // Draft overlay (0329): member deletes tombstone the clone, not main.
+    id = await this.resolveDraftWriteTarget(id)
 
     try {
       if (this.canUseSingleWriteFastPath()) {
@@ -612,6 +865,8 @@ export class NodeStore {
    * Restore a deleted Node.
    */
   async restore(id: NodeId): Promise<NodeState> {
+    // Draft overlay (0329): member restores un-tombstone the clone.
+    id = await this.resolveDraftWriteTarget(id)
     if (this.canUseSingleWriteFastPath()) {
       const { node, previousNode, change } = await this.applySingleNodeWrite({
         nodeId: id,
@@ -701,7 +956,8 @@ export class NodeStore {
       const readable = await this.filterReadableNodes(
         decrypted.filter((node): node is NodeState => node !== null)
       )
-      const result = this.authEvaluator ? this.applyListPagination(readable, options) : readable
+      const paged = this.authEvaluator ? this.applyListPagination(readable, options) : readable
+      const result = await this.overlayStates(paged)
 
       // Track performance
       if (this.telemetry) {
@@ -720,16 +976,49 @@ export class NodeStore {
   }
 
   /**
+   * Cross-schema full-text search over the FTS5 index (exploration 0391 — the
+   * AI retrieval entry point). Returns `null` when the backing storage has no
+   * FTS support so callers can fall back to a scan. Results are id + rank
+   * only; loading the nodes (and thus read authorization + decryption) stays
+   * with the caller's `get()` calls.
+   */
+  async searchText(
+    query: string,
+    limit: number,
+    options?: NodeTextSearchOptions
+  ): Promise<NodeTextSearchResult[] | null> {
+    if (!this.storage.searchText) return null
+    const trimmed = query.trim()
+    if (!trimmed) return []
+    return this.storage.searchText(trimmed, limit, options)
+  }
+
+  /**
    * Query nodes with descriptor semantics and storage-level pushdown when available.
    */
   async query(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> {
     const start = Date.now()
 
     try {
+      // Draft-aware queries (0329 P5): while a draft with forked members is
+      // checked out, filters/sorts/pagination must see CLONE values for
+      // members (and never show clone rows themselves). Predicate pushdown
+      // and MV id lists are computed from the originals' scalars, so this
+      // path re-applies the descriptor in JS over the content-swapped set.
+      // Scoped to the members' schemas — other grids keep the indexed fast
+      // path; drafts are small, transient sessions (correctness > pushdown).
+      if (
+        this.checkedOutDraft &&
+        Object.keys(this.checkedOutDraft.clones).length > 0 &&
+        (this.draftMemberSchemaSet === null || this.draftMemberSchemaSet.has(descriptor.schemaId))
+      ) {
+        return this.draftAwareQuery(descriptor, start)
+      }
+
       if (this.storage.queryNodes && !this.nodeContentCipher && !this.authEvaluator) {
         const result = await this.storage.queryNodes(descriptor)
         return {
-          nodes: result.nodes,
+          nodes: await this.overlayStates(result.nodes),
           totalCount: result.totalCount,
           plan: {
             ...result.plan,
@@ -756,7 +1045,7 @@ export class NodeStore {
         const authFingerprint = await this.authFingerprint()
         const result = await this.storage.queryNodes({ ...descriptor, authFingerprint })
         return {
-          nodes: result.nodes,
+          nodes: await this.overlayStates(result.nodes),
           totalCount: result.totalCount,
           plan: {
             ...result.plan,
@@ -782,7 +1071,7 @@ export class NodeStore {
       ) {
         const candidates = await this.storage.queryNodes(withoutNodeQueryPagination(descriptor))
         const readable = await this.filterReadableNodes(candidates.nodes)
-        const result = applyNodeQueryDescriptor(readable, descriptor)
+        const result = await this.overlayStates(applyNodeQueryDescriptor(readable, descriptor))
         return {
           nodes: result,
           totalCount: readable.length,
@@ -807,7 +1096,9 @@ export class NodeStore {
       const readable = await this.filterReadableNodes(
         decrypted.filter((node): node is NodeState => node !== null)
       )
-      const result = applyNodeQueryDescriptor(readable, fallback.postFilterDescriptor)
+      const result = await this.overlayStates(
+        applyNodeQueryDescriptor(readable, fallback.postFilterDescriptor)
+      )
       // When pagination was pushed to storage, `readable` holds only the window,
       // so an in-memory count would report the page size, not the true total —
       // leave it undefined (the bridge derives a cheap value). Only count the
@@ -1571,39 +1862,105 @@ export class NodeStore {
    *
    * @throws Error if signature verification fails
    */
-  async applyRemoteChange(change: NodeChange): Promise<void> {
+  /**
+   * Account-ledger enforcement for inbound changes (0149/0243, wired by 0337):
+   * hydrate the account's controllers/epoch and the author's revocation status
+   * from local storage, then require the write to pass `evaluateLedgerWrite`.
+   * Mirrors the hub's `enforceLedgerWrite` so a hostile or auth-less hub still
+   * cannot push unauthorized ledger records into a client.
+   */
+  private async enforceRemoteLedgerWrite(change: NodeChange): Promise<void> {
+    const schemaId = change.payload.schemaId
+    const kind = ledgerWriteKind(schemaId)
+    if (!kind) return
+    const properties = (change.payload.properties ?? {}) as Record<string, unknown>
+    const accountId = ledgerAccountId(kind, properties)
+
+    let account: ReturnType<typeof foldAccountRecord> | null = null
+    let authorRevoked = false
+    if (accountId) {
+      const accountNode = await this.storage.getNode(accountRecordId(accountId))
+      if (accountNode) {
+        account = foldAccountRecord(accountNode.properties as Record<string, unknown>)
+      }
+      const revocationNode = await this.storage.getNode(
+        revocationRecordId(accountId, change.authorDID)
+      )
+      authorRevoked = revocationNode !== null && revocationNode !== undefined
+    }
+
+    const decision = evaluateLedgerWrite({
+      schemaId,
+      authorDid: change.authorDID,
+      properties,
+      state: { account, authorRevoked }
+    })
+    if (!decision.allowed) {
+      this.telemetry?.reportSecurityEvent('data.ledger_write_rejected', 'high')
+      throw new PermissionError({
+        allowed: false,
+        action: 'update',
+        subject: change.authorDID,
+        resource: change.payload.nodeId,
+        roles: [],
+        grants: [],
+        reasons: ['DENY_NODE_POLICY'],
+        cached: false,
+        evaluatedAt: Date.now(),
+        duration: 0
+      })
+    }
+  }
+
+  async applyRemoteChange(
+    change: NodeChange,
+    options: ApplyRemoteChangeOptions = {}
+  ): Promise<void> {
     const start = this.telemetry ? Date.now() : 0
 
     try {
-      // Verify hash integrity (no tampering)
-      if (!verifyChangeHash(change)) {
-        const error = new Error(
-          `[NodeStore] Remote change ${change.id} failed hash verification - data may be corrupted`
-        )
-        this.telemetry?.reportSecurityEvent('data.hash_verification_failed', 'high')
-        throw error
-      }
-
-      // Verify signature matches the author's public key
-      try {
-        const publicKey = parseDID(change.authorDID)
-        if (!verifyChange(change, publicKey)) {
+      // `preVerified` is an INTERNAL fast path for callers that already ran
+      // the identical hash + signature checks over a whole batch (see
+      // verifyRemoteChanges). It skips only the crypto — ledger enforcement,
+      // authorization, dedup, and LWW still run per change. Never set it from
+      // data that hasn't been verified in this process.
+      if (!options.preVerified) {
+        // Verify hash integrity (no tampering)
+        if (!verifyChangeHash(change)) {
           const error = new Error(
-            `[NodeStore] Remote change ${change.id} failed signature verification - ` +
-              `signature does not match author ${change.authorDID}`
+            `[NodeStore] Remote change ${change.id} failed hash verification - data may be corrupted`
           )
-          this.telemetry?.reportSecurityEvent('data.signature_verification_failed', 'high')
+          this.telemetry?.reportSecurityEvent('data.hash_verification_failed', 'high')
           throw error
         }
-      } catch (err) {
-        // Re-throw verification errors, wrap other errors
-        if (err instanceof Error && err.message.includes('failed')) {
-          throw err
+
+        // Verify signature matches the author's public key
+        try {
+          const publicKey = parseDID(change.authorDID)
+          if (!verifyChange(change, publicKey)) {
+            const error = new Error(
+              `[NodeStore] Remote change ${change.id} failed signature verification - ` +
+                `signature does not match author ${change.authorDID}`
+            )
+            this.telemetry?.reportSecurityEvent('data.signature_verification_failed', 'high')
+            throw error
+          }
+        } catch (err) {
+          // Re-throw verification errors, wrap other errors
+          if (err instanceof Error && err.message.includes('failed')) {
+            throw err
+          }
+          throw new Error(
+            `[NodeStore] Remote change ${change.id} failed verification: ${err instanceof Error ? err.message : String(err)}`
+          )
         }
-        throw new Error(
-          `[NodeStore] Remote change ${change.id} failed verification: ${err instanceof Error ? err.message : String(err)}`
-        )
       }
+
+      // Account-ledger enforcement (0149/0243, wired by 0337): always-on, no
+      // config — ledger records decide who may act as an account, so a remote
+      // change writing one must itself be signed by an active controller of
+      // that account. Evaluated against this store's local ledger state.
+      await this.enforceRemoteLedgerWrite(change)
 
       if (this.authEvaluator) {
         const stored = await this.storage.getNode(change.payload.nodeId)
@@ -1674,6 +2031,43 @@ export class NodeStore {
   }
 
   /**
+   * Verify hash + signature for many remote changes at once.
+   *
+   * Results are positional and never short-circuit, so a caller can quarantine
+   * exactly the changes that failed and still apply the rest. This runs the
+   * SAME checks as {@link applyRemoteChange} — it just amortizes the native
+   * crypto setup across the batch (exploration 0357).
+   */
+  async verifyRemoteChanges(changes: readonly NodeChange[]): Promise<boolean[]> {
+    const entries: { change: NodeChange; publicKey: Uint8Array }[] = []
+    // Positional map from input index → index within `entries`; -1 means the
+    // change already failed (bad hash or unparseable DID) and needs no
+    // signature check.
+    const slots: number[] = []
+
+    for (const change of changes) {
+      if (!verifyChangeHash(change)) {
+        this.telemetry?.reportSecurityEvent('data.hash_verification_failed', 'high')
+        slots.push(-1)
+        continue
+      }
+      try {
+        slots.push(entries.push({ change, publicKey: parseDID(change.authorDID) }) - 1)
+      } catch {
+        slots.push(-1)
+      }
+    }
+
+    const signatureResults = await verifyChangesFast(entries)
+    for (const [index, ok] of signatureResults.entries()) {
+      if (!ok) this.telemetry?.reportSecurityEvent('data.signature_verification_failed', 'high')
+      void index
+    }
+
+    return slots.map((slot) => (slot === -1 ? false : signatureResults[slot]))
+  }
+
+  /**
    * Apply multiple remote changes (from sync).
    */
   async applyRemoteChanges(changes: NodeChange[]): Promise<void> {
@@ -1686,9 +2080,21 @@ export class NodeStore {
       )
     )
 
-    for (const change of sorted) {
+    // Verify the whole set up front (exploration 0357): one native-support
+    // probe and one key import per distinct author, instead of N cold
+    // pure-JS verifies. Identical checks, ~13x less time on bulk paths.
+    const verdicts = await this.verifyRemoteChanges(sorted)
+
+    for (const [index, change] of sorted.entries()) {
+      if (!verdicts[index]) {
+        console.warn(
+          `[NodeStore] skipping remote change ${change.hash} for node ` +
+            `${change.payload?.nodeId}: failed hash or signature verification`
+        )
+        continue
+      }
       try {
-        await this.applyRemoteChange(change)
+        await this.applyRemoteChange(change, { preVerified: true })
       } catch (err) {
         // A single un-appliable remote change (e.g. a first change missing its
         // schemaId) must not abort the whole batch — skip it and keep applying
@@ -1713,6 +2119,19 @@ export class NodeStore {
    */
   async getAllChanges(): Promise<NodeChange[]> {
     return this.storage.getAllChanges()
+  }
+
+  /**
+   * Whether a change with this hash is already in the local log. Cheap
+   * existence probe (falls back to a full fetch when the adapter lacks the
+   * optional fast path) — used for idempotent import and bundle
+   * prerequisite checks (exploration 0344).
+   */
+  async hasChange(hash: ContentId): Promise<boolean> {
+    if (this.storage.hasChange) {
+      return this.storage.hasChange(hash)
+    }
+    return (await this.storage.getChangeByHash(hash)) !== null
   }
 
   /**
@@ -1864,6 +2283,30 @@ export class NodeStore {
           listener(event)
         } catch (err) {
           console.error('Error in NodeStore node listener:', err)
+        }
+      }
+    }
+
+    // Draft overlay (0329): a clone's change also notifies subscribers of its
+    // ORIGINAL id, with node content re-keyed, so `useNode(originalId)`
+    // consumers refresh while the draft is checked out.
+    const originalId = this.cloneToOriginal.get(change.payload.nodeId)
+    if (originalId) {
+      const originalListeners = this.nodeListeners.get(originalId)
+      if (originalListeners) {
+        const mirrored = {
+          ...event,
+          node: event.node ? { ...event.node, id: originalId } : event.node,
+          previousNode: event.previousNode
+            ? { ...event.previousNode, id: originalId }
+            : event.previousNode
+        }
+        for (const listener of originalListeners) {
+          try {
+            listener(mirrored)
+          } catch (err) {
+            console.error('Error in NodeStore draft-mirror listener:', err)
+          }
         }
       }
     }

@@ -1,6 +1,6 @@
 # Schema Evolution & Cross‑Version Coexistence
 
-**This document is normative.** Part of [XNet Protocol `xnet/1.0`](00-overview.md).
+**This document is normative.** Part of [xNet Protocol `xnet/1.0`](00-overview.md).
 
 Schemas are versioned (`xnet://authority/Name@semver`,
 [L1 §4](02-data-model.md)). This document specifies how a schema may change and

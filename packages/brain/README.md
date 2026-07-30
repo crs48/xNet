@@ -3,7 +3,7 @@
 The AI second-brain layer (exploration
 [0211](../../docs/explorations/0211_[_]_AI_SECOND_BRAIN_GRAPHRAG_MEMORY_AND_TIERING.md)).
 
-XNet already had the three hard pieces of a great AI second brain — a governed
+xNet already had the three hard pieces of a great AI second brain — a governed
 node graph (`@xnetjs/data`), full-text search, and a vector engine
 (`@xnetjs/vectors`) — but they were never wired together, and retrieval into the
 agent was keyword-only. This package is the thin layer that connects them into a

@@ -279,6 +279,26 @@ export type SerializedNodeChange = {
   batchSize?: number
 }
 
+/** Largest node-change page the pull path will assemble in one response. */
+export const NODE_SYNC_PAGE_SIZE = 1000
+
+/**
+ * One page of a room's node-change log.
+ *
+ * `highWaterMark` is the cursor the client persists, so it may never run ahead
+ * of the last change in `changes` — the client only re-requests `lamport >
+ * cursor`, so anything between the page and a further-ahead mark is skipped for
+ * good. When the page is short the mark IS the room-wide max (nothing was left
+ * behind, and the client's rollback guard needs the room-wide value to detect a
+ * hub that lost history). `hasMore` tells the client to come straight back for
+ * the next page instead of waiting for the next reconnect.
+ */
+export type NodeChangePage = {
+  changes: SerializedNodeChange[]
+  highWaterMark: number
+  hasMore: boolean
+}
+
 // ─── Database Row Types ──────────────────────────────────────────────────────
 
 export type DatabaseRowRecord = {
@@ -393,6 +413,33 @@ export type HubStorage = {
   /** A node's own visibility, or null when unset/inherited. */
   getNodeVisibility: (nodeId: string) => Promise<string | null>
 
+  // ─── Node ownership (exploration 0358 security follow-up) ──────────────────
+  // Learned from the authenticated `node-change` relay, NOT from `doc_meta`:
+  // `doc_meta.ownerDid` is written only by the optional `index-update` message
+  // (`enableSearchIndex`, off by default and set by no shipped app), so relying
+  // on it meant every Space was ownerless. Authorization must not depend on a
+  // best-effort search-index publisher having run.
+  /**
+   * Record `ownerDid` as the node's owner IFF no owner is recorded yet.
+   * Returns whether this call was the one that recorded it.
+   *
+   * FIRST WRITER WINS, deliberately: the creator is always the first DID to
+   * relay a node, so an existing owner is never overwritten and a DID that
+   * merely learns a node id cannot seize ownership. There is no update path.
+   */
+  setNodeOwnerIfAbsent: (nodeId: string, ownerDid: string) => Promise<boolean>
+  /** The recorded owner DID, or null when ownership was never observed. */
+  getNodeOwner: (nodeId: string) => Promise<string | null>
+  /**
+   * The author of the node's EARLIEST recorded change — i.e. whoever created
+   * it. Signatures are verified on ingest (`NodeRelayService.handleNodeChange`
+   * → `verifyChangeFast`), so this is attested, not self-declared.
+   *
+   * Covers nodes that synced before ownership was recorded, so the fix for
+   * ownerless Spaces needs no backfill migration.
+   */
+  getNodeCreatorDid: (nodeId: string) => Promise<string | null>
+
   insertShareLink: (record: ShareLinkRecord) => Promise<void>
   getShareLink: (linkId: string) => Promise<ShareLinkRecord | null>
   listShareLinks: (docId: string) => Promise<ShareLinkRecord[]>
@@ -483,8 +530,27 @@ export type HubStorage = {
 
   hasNodeChange: (hash: string) => Promise<boolean>
   appendNodeChange: (room: string, change: SerializedNodeChange) => Promise<void>
-  getNodeChangesSince: (room: string, sinceLamport: number) => Promise<SerializedNodeChange[]>
+  /**
+   * One page of a room's log after `sinceLamport`, for the WS pull path.
+   * Pages on the author lamport; see {@link NodeChangePage} for why the
+   * returned mark is page-relative rather than room-wide.
+   */
+  getNodeChangesSince: (
+    room: string,
+    sinceLamport: number,
+    limit?: number
+  ) => Promise<NodeChangePage>
   getNodeChangesForNode: (room: string, nodeId: string) => Promise<SerializedNodeChange[]>
+  /**
+   * Agent audit trail (exploration 0337): an author's changes across all
+   * rooms, paged on the per-author lamport cursor. Backed by
+   * `idx_node_changes_author_lamport` — never a scan.
+   */
+  getNodeChangesByAuthor: (
+    authorDid: string,
+    sinceLamport: number,
+    limit?: number
+  ) => Promise<SerializedNodeChange[]>
   getHighWaterMark: (room: string) => Promise<number>
 
   // ─── Share rooms (exploration 0298) ─────────────────────────────────────────
@@ -501,11 +567,11 @@ export type HubStorage = {
    * Share-room changes with `seq > sinceSeq`, oldest-first, plus the highest
    * `seq` in the returned batch (the client's next cursor). Bounded by `limit`.
    */
-  getRoomChangesSince: (
-    room: string,
-    sinceSeq: number,
-    limit?: number
-  ) => Promise<{ changes: SerializedNodeChange[]; highWaterMark: number }>
+  /**
+   * One page of a share room, cursored on the per-room `seq`. `seq` is unique
+   * per mapping, so unlike the lamport path there is no tie group to keep whole.
+   */
+  getRoomChangesSince: (room: string, sinceSeq: number, limit?: number) => Promise<NodeChangePage>
   /** Latest Profile node-change hash authored by a DID, or null. */
   getLatestProfileHash: (did: string) => Promise<string | null>
   /**
@@ -521,6 +587,13 @@ export type HubStorage = {
    * on `hub/relay` for that room (you can only wipe rooms you can write to).
    */
   clearNodeChanges: (room: string) => Promise<number>
+  /**
+   * Delete every stored node-change authored by a DID across all rooms and
+   * return how many were removed. The Right-to-Leave hub-purge port
+   * (explorations 0234/0344): a departing identity's `DELETE
+   * /export/changes` removes its authored content from this hub.
+   */
+  deleteNodeChangesByAuthor: (authorDid: string) => Promise<number>
   /**
    * Wipe all user-content data (node changes, doc state, doc meta, database
    * rows, blobs, files, grants, share links, containment/visibility, awareness)

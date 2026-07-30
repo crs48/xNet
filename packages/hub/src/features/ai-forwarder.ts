@@ -2,7 +2,7 @@
  * @xnetjs/hub — managed-AI forwarder feature (exploration 0208).
  *
  * The hub-side hop for **managed** AI. The client's `ManagedProvider` posts to the
- * hub's `/ai/chat` (carrying no key); this feature forwards it to the XNet Cloud
+ * hub's `/ai/chat` (carrying no key); this feature forwards it to the xNet Cloud
  * control plane's metered gateway, **injecting the per-tenant credential**
  * (`x-internal-secret` + `x-tenant-id`) server-side. So the client never holds a
  * provider key and the hub never re-implements metering — it's a thin, authed proxy.

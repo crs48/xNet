@@ -20,6 +20,8 @@ export {
   createAIProviderRouter,
   isOllamaAvailable,
   listOllamaModels,
+  isOpenRouterBaseUrl,
+  OPENROUTER_ATTRIBUTION_HEADERS,
   AIGenerationError
 } from './providers'
 export type {
@@ -47,6 +49,16 @@ export type {
   AIUsage,
   OpenAICompatibleProviderOptions
 } from './providers'
+
+// models.dev catalog (exploration 0392)
+export {
+  fetchModelsDevCatalog,
+  parseModelsDevCatalog,
+  modelsForProvider,
+  MODELS_DEV_API_URL,
+  MODELS_DEV_SNAPSHOT
+} from './models-dev'
+export type { ModelCatalogEntry, ModelCatalogResult, FetchModelsDevOptions } from './models-dev'
 
 // Generator
 export { ScriptGenerator, ScriptGenerationError, generateScript } from './generator'

@@ -13,6 +13,7 @@
  * - skill:    print the cross-harness SKILL.md
  */
 
+import type { AgentBackend } from '../utils/agent-remote.js'
 import type {
   AiMutationPlan,
   AiSurfaceService,
@@ -38,7 +39,7 @@ import {
   toTsv
 } from '@xnetjs/plugins/node'
 import { Command } from 'commander'
-import { createRemoteAgentBackend, type AgentBackend } from '../utils/agent-remote.js'
+import { resolveAgentBackend, type BackendLadderOptions } from '../utils/agent-backend.js'
 
 // ─── Services ────────────────────────────────────────────────────────────────
 
@@ -48,9 +49,14 @@ export type AgentCliServices = {
   aiSurface: AiSurfaceService
   exporter: AiWorkspaceExporter
   watcher: AiWorkspaceWatcher
+  /** Release backend resources (closes the SQLite client in local mode). */
+  dispose?: () => Promise<void>
 }
 
-export type AgentServicesFactory = (options: { apiUrl?: string }) => Promise<AgentCliServices>
+/** Options the CLI threads to the backend ladder, plus a per-command write hint. */
+export type AgentCommandOptions = BackendLadderOptions & { forWrites?: boolean }
+
+export type AgentServicesFactory = (options: AgentCommandOptions) => Promise<AgentCliServices>
 
 export function createAgentServices(backend: AgentBackend): AgentCliServices {
   const aiSurface = createAiSurfaceService({ store: backend.store, schemas: backend.schemas })
@@ -63,8 +69,12 @@ export function createAgentServices(backend: AgentBackend): AgentCliServices {
   }
 }
 
-const defaultServicesFactory: AgentServicesFactory = async ({ apiUrl }) =>
-  createAgentServices(await createRemoteAgentBackend({ apiUrl }))
+const defaultServicesFactory: AgentServicesFactory = async (options) => {
+  const backend = await resolveAgentBackend(options)
+  const services = createAgentServices(backend)
+  services.dispose = () => backend.dispose()
+  return services
+}
 
 export type AgentOutputFormat = 'tsv' | 'jsonl' | 'json' | 'md'
 
@@ -497,129 +507,155 @@ export function registerAgentCommands(
   program: Command,
   createServices: AgentServicesFactory = defaultServicesFactory
 ): void {
-  const services = (options: { apiUrl?: string }): Promise<AgentCliServices> =>
-    createServices(options)
-
   const print = (text: string): void => {
     console.log(text)
   }
 
-  program
-    .command('checkout')
-    .description('Materialize a scoped slice of the workspace into a vault folder')
-    .option('-q, --query <text>', 'Search query scope')
-    .option('-s, --schema <iri...>', 'Schema IRI scope')
-    .option('-n, --node <id...>', 'Node id scope')
-    .option('-k, --kind <kind...>', 'Kind folder scope: page|database|canvas')
-    .option('-l, --limit <n>', 'Max nodes to materialize', parseIntOption)
-    .option('-d, --dir <path>', 'Checkout directory', '.')
-    .option('--name <name>', 'Workspace display name')
-    .option('--api-url <url>', 'xNet local API URL')
-    .action(async (options) => {
-      print(await runCheckout(await services(options), options))
-    })
+  /**
+   * Resolve services via the backend ladder, run `fn`, and always dispose the
+   * backend afterwards (closing the SQLite client in local mode).
+   */
+  const withServices = async (
+    options: AgentCommandOptions,
+    fn: (services: AgentCliServices) => Promise<string>
+  ): Promise<void> => {
+    const services = await createServices(options)
+    try {
+      print(await fn(services))
+    } finally {
+      await services.dispose?.()
+    }
+  }
 
-  program
-    .command('status')
-    .description('List pending plans and conflicts for a checkout')
-    .option('-d, --dir <path>', 'Checkout directory', '.')
-    .option('--format <format>', 'Output format: tsv|json', 'tsv')
-    .option('--api-url <url>', 'xNet local API URL')
-    .action(async (options) => {
-      print(await runStatus(await services(options), options))
-    })
+  /** Flags shared by every agent verb: which backend to talk to. */
+  const withBackendFlags = (command: Command): Command =>
+    command
+      .option('--api-url <url>', 'xNet local API URL (default http://127.0.0.1:31415)')
+      .option('--db <path>', 'Standalone SQLite store (skips the app; also $XNET_DB)')
+      .option('--agent <name>', 'Sign local-store writes as an enrolled agent passport')
+      .option('--key <hex>', 'Ed25519 signing key for the local store ($XNET_SIGNING_KEY)')
 
-  program
-    .command('commit')
-    .description('Lift file edits into mutation plans; --apply applies them')
-    .option('-d, --dir <path>', 'Checkout directory', '.')
-    .option('--apply', 'Apply valid plans through the plan pipeline')
-    .option('--actor <actor>', 'Actor recorded on plans', 'xnet-cli')
-    .option('--api-url <url>', 'xNet local API URL')
-    .action(async (options) => {
-      print(await runCommit(await services(options), options))
-    })
+  withBackendFlags(
+    program
+      .command('checkout')
+      .description('Materialize a scoped slice of the workspace into a vault folder')
+      .option('-q, --query <text>', 'Search query scope')
+      .option('-s, --schema <iri...>', 'Schema IRI scope')
+      .option('-n, --node <id...>', 'Node id scope')
+      .option('-k, --kind <kind...>', 'Kind folder scope: page|database|canvas')
+      .option('-l, --limit <n>', 'Max nodes to materialize', parseIntOption)
+      .option('-d, --dir <path>', 'Checkout directory', '.')
+      .option('--name <name>', 'Workspace display name')
+  ).action(async (options) => {
+    await withServices(options, (services) => runCheckout(services, options))
+  })
 
-  program
-    .command('search <text>')
-    .description('Ranked workspace search (TSV: id, schema, title, snippet)')
-    .option('-s, --schema <iri>', 'Schema IRI filter')
-    .option('-l, --limit <n>', 'Max results', parseIntOption)
-    .option('--format <format>', 'Output format: tsv|jsonl|json', 'tsv')
-    .option('--api-url <url>', 'xNet local API URL')
-    .action(async (text, options) => {
-      print(await runSearch(await services(options), { ...options, text }))
-    })
+  withBackendFlags(
+    program
+      .command('status')
+      .description('List pending plans and conflicts for a checkout')
+      .option('-d, --dir <path>', 'Checkout directory', '.')
+      .option('--format <format>', 'Output format: tsv|json', 'tsv')
+  ).action(async (options) => {
+    await withServices(options, (services) => runStatus(services, options))
+  })
 
-  program
-    .command('query <databaseId>')
-    .description('Query database rows (TSV by default)')
-    .option('-w, --where <expr...>', 'Filters as field=value')
-    .option('-l, --limit <n>', 'Max rows', parseIntOption)
-    .option('-o, --offset <n>', 'Row offset', parseIntOption)
-    .option('--format <format>', 'Output format: tsv|jsonl|json', 'tsv')
-    .option('--detailed', 'Include descriptor and query plan in json output')
-    .option('--api-url <url>', 'xNet local API URL')
-    .action(async (databaseId, options) => {
-      print(await runQuery(await services(options), { ...options, databaseId }))
-    })
+  withBackendFlags(
+    program
+      .command('commit')
+      .description('Lift file edits into mutation plans; --apply applies them')
+      .option('-d, --dir <path>', 'Checkout directory', '.')
+      .option('--apply', 'Apply valid plans through the plan pipeline')
+      .option('--actor <actor>', 'Actor recorded on plans', 'xnet-cli')
+  ).action(async (options) => {
+    await withServices({ ...options, forWrites: Boolean(options.apply) }, (services) =>
+      runCommit(services, options)
+    )
+  })
+
+  withBackendFlags(
+    program
+      .command('search <text>')
+      .description('Ranked workspace search (TSV: id, schema, title, snippet)')
+      .option('-s, --schema <iri>', 'Schema IRI filter')
+      .option('-l, --limit <n>', 'Max results', parseIntOption)
+      .option('--format <format>', 'Output format: tsv|jsonl|json', 'tsv')
+  ).action(async (text, options) => {
+    await withServices(options, (services) => runSearch(services, { ...options, text }))
+  })
+
+  withBackendFlags(
+    program
+      .command('query <databaseId>')
+      .description('Query database rows (TSV by default)')
+      .option('-w, --where <expr...>', 'Filters as field=value')
+      .option('-l, --limit <n>', 'Max rows', parseIntOption)
+      .option('-o, --offset <n>', 'Row offset', parseIntOption)
+      .option('--format <format>', 'Output format: tsv|jsonl|json', 'tsv')
+      .option('--detailed', 'Include descriptor and query plan in json output')
+  ).action(async (databaseId, options) => {
+    await withServices(options, (services) => runQuery(services, { ...options, databaseId }))
+  })
 
   const db = program.command('db').description('Direct node and row access')
 
-  db.command('get <nodeId>')
-    .description('Read a node as compact JSON')
-    .option('--detailed', 'Include full node record')
-    .option('--api-url <url>', 'xNet local API URL')
-    .action(async (nodeId, options) => {
-      print(await runDbGet(await services(options), { ...options, nodeId }))
-    })
+  withBackendFlags(
+    db
+      .command('get <nodeId>')
+      .description('Read a node as compact JSON')
+      .option('--detailed', 'Include full node record')
+  ).action(async (nodeId, options) => {
+    await withServices(options, (services) => runDbGet(services, { ...options, nodeId }))
+  })
 
-  db.command('set <databaseId> <rowId> <assignments...>')
-    .description('Update row properties through the plan/apply pipeline')
-    .option('--plan-only', 'Print the mutation plan without applying')
-    .option('--actor <actor>', 'Actor recorded on the plan', 'xnet-cli')
-    .option('--api-url <url>', 'xNet local API URL')
-    .action(async (databaseId, rowId, assignments, options) => {
-      print(
-        await runDbSet(await services(options), {
-          databaseId,
-          rowId,
-          assignments,
-          actor: options.actor,
-          planOnly: options.planOnly
-        })
-      )
-    })
-
-  program
-    .command('run <file>')
-    .description('Run a sandboxed agent script with the @xnet/agent-api surface')
-    .option('-s, --schema <iri>', 'Preload nodes of this schema')
-    .option('-l, --limit <n>', 'Max nodes to preload', parseIntOption)
-    .option('-n, --node <id>', 'Current node id')
-    .option('-d, --dir <path>', 'Checkout directory for proposal plans')
-    .option('--actor <actor>', 'Actor recorded on proposal plans', 'xnet-cli-script')
-    .option('--api-url <url>', 'xNet local API URL')
-    .action(async (file, options) => {
-      print(await runScript(await services(options), { ...options, file }))
-    })
-
-  program
-    .command('daemon')
-    .description('Watch a checkout and lift saves into mutation plans')
-    .option('-d, --dir <path>', 'Checkout directory', '.')
-    .option('--poll', 'Use interval polling instead of fs.watch')
-    .option('--apply', 'Auto-apply valid plans (watcher autocommit)')
-    .option('--actor <actor>', 'Actor recorded on plans', 'xnet-daemon')
-    .option('--api-url <url>', 'xNet local API URL')
-    .action(async (options) => {
-      const handle = startDaemon(await services(options), options)
-      console.log(`watching ${resolve(options.dir)} (ctrl-c to stop)`)
-      process.on('SIGINT', () => {
-        handle.close()
-        process.exit(0)
+  withBackendFlags(
+    db
+      .command('set <databaseId> <rowId> <assignments...>')
+      .description('Update row properties through the plan/apply pipeline')
+      .option('--plan-only', 'Print the mutation plan without applying')
+      .option('--actor <actor>', 'Actor recorded on the plan', 'xnet-cli')
+  ).action(async (databaseId, rowId, assignments, options) => {
+    await withServices({ ...options, forWrites: !options.planOnly }, (services) =>
+      runDbSet(services, {
+        databaseId,
+        rowId,
+        assignments,
+        actor: options.actor,
+        planOnly: options.planOnly
       })
+    )
+  })
+
+  withBackendFlags(
+    program
+      .command('run <file>')
+      .description('Run a sandboxed agent script with the @xnet/agent-api surface')
+      .option('-s, --schema <iri>', 'Preload nodes of this schema')
+      .option('-l, --limit <n>', 'Max nodes to preload', parseIntOption)
+      .option('-n, --node <id>', 'Current node id')
+      .option('-d, --dir <path>', 'Checkout directory for proposal plans')
+      .option('--actor <actor>', 'Actor recorded on proposal plans', 'xnet-cli-script')
+  ).action(async (file, options) => {
+    await withServices(options, (services) => runScript(services, { ...options, file }))
+  })
+
+  withBackendFlags(
+    program
+      .command('daemon')
+      .description('Watch a checkout and lift saves into mutation plans')
+      .option('-d, --dir <path>', 'Checkout directory', '.')
+      .option('--poll', 'Use interval polling instead of fs.watch')
+      .option('--apply', 'Auto-apply valid plans (watcher autocommit)')
+      .option('--actor <actor>', 'Actor recorded on plans', 'xnet-daemon')
+  ).action(async (options) => {
+    const services = await createServices({ ...options, forWrites: Boolean(options.apply) })
+    const handle = startDaemon(services, options)
+    console.log(`watching ${resolve(options.dir)} (ctrl-c to stop)`)
+    process.on('SIGINT', () => {
+      handle.close()
+      void services.dispose?.().finally(() => process.exit(0))
     })
+  })
 
   program
     .command('skill')

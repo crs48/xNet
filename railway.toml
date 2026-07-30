@@ -17,7 +17,7 @@ dockerfilePath = "packages/hub/Dockerfile"
 # variable: recreating the Railway service silently drops variables, and
 # without a public URL share links mint as http://localhost:<port>/s/...
 # (2026-07-10 outage recovery). HUB_PUBLIC_URL still overrides when set.
-startCommand = "sh -c 'cd /app && node packages/hub/dist/cli.js --port $PORT --data /data --demo --public-url wss://hub.xnet.fyi'"
+startCommand = "sh -c 'cd /app && node packages/hub/dist/cli.js --port $PORT --data /data --role demo --public-url wss://hub.xnet.fyi'"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"

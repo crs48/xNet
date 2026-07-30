@@ -9,51 +9,82 @@ import type { IncomingMessage } from 'http'
 import type { RawData, WebSocket } from 'ws'
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { serve } from '@hono/node-server'
-import { DatabaseSchema, PageSchema, TaskSchema } from '@xnetjs/data'
-import { generateIdentity } from '@xnetjs/identity'
+import {
+  DatabaseSchema,
+  PageSchema,
+  TaskSchema,
+  profileNodeId as profileNodeIdForDid
+} from '@xnetjs/data'
+import { ucanTokenId, verifyUCAN } from '@xnetjs/identity'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { WebSocketServer } from 'ws'
 import { createHubAuthError } from './auth/errors'
+import { RevocationService } from './auth/revocation'
 import {
   authenticateConnection,
   authenticateHttpRequest,
   removeSession,
   toAuthContext
 } from './auth/ucan'
+import {
+  resolveDiskWatchdogBytes,
+  resolveHandshakeDemoLimits,
+  resolveMaxBlobBytes,
+  resolvePerUserQuota,
+  resolveResetIntervalMs,
+  resolveResetOnCorruption
+} from './config'
 import { measureDataUsage, type DataUsage } from './data-usage'
+import { loadOrCreateHubIdentity } from './hub-identity'
 import { aiForwarderFeature } from './features/ai-forwarder'
+import { diagnosticsInboxFeature } from './features/diagnostics-inbox'
 import { diagnosticsSharingFeature } from './features/diagnostics-sharing'
 import { billingFeature, tasksFeature, unfurlFeature } from './features/first-party'
 import { formInboxFeature } from './features/form-inbox'
+import { mountOidcProvider } from './features/oidc-provider'
 import { mountFeatures } from './features/registry'
+import { assertDerivedOnlyDataDir, atprotoIndexFeature } from './features/atproto-index'
+import { hubSubscriberFeature } from './features/hub-subscriber'
+import { publicInteractionsFeature } from './features/public-interactions'
+import type { HubFeature } from './features/types'
 import { pagerdutyFeature, sentryFeature, stripeFeature } from './features/webhook-integrations'
+import { createLogger } from './logger'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
+import { createAtprotoRoutes } from './routes/atproto'
+import { createKnotRoutes } from './routes/knot'
+import { createAuditRoutes } from './routes/audit'
 import { createBackupRoutes } from './routes/backup'
 import { createCrawlRoutes } from './routes/crawl'
 import { createDiscoveryRoutes } from './routes/dids'
+import { createExportRoutes } from './routes/export'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
 import { createKeyRegistryRoutes } from './routes/keys'
 import { createPublicRoutes } from './routes/public'
+import { createRecoveryAnchorRoutes } from './routes/recovery-anchor'
 import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
 import { createShareInterstitialRoutes, DEFAULT_APP_URL } from './routes/share-interstitial'
 import { createShareLinkRoutes } from './routes/share-links'
 import { createTelemetryRoutes } from './routes/telemetry'
+import { AtprotoBindingVerifier } from './services/atproto-binding'
+import { AtprotoRecoveryAnchor } from './services/atproto-recovery-anchor'
+import { RecoveryChallengeStore } from './services/atproto-challenge'
 import { AwarenessService } from './services/awareness'
 import { BackupService } from './services/backup'
 import { CrawlCoordinator } from './services/crawl'
 import { RobotsChecker } from './services/crawl-robots'
 import { DiscoveryService } from './services/discovery'
+import { DiskWatchdog } from './services/disk-watchdog'
+import { EscrowStore } from './services/escrow-store'
 import { FederationService, type FederationConfig } from './services/federation'
 import { FederationHealthChecker } from './services/federation-health'
 import { FileService } from './services/files'
 import { ShardRegistry } from './services/index-shards'
 import { KeyRegistryService } from './services/key-registry'
-import { DiskWatchdog } from './services/disk-watchdog'
 import { NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
 import { RelayService } from './services/relay'
@@ -100,6 +131,25 @@ const safeParseJson = (payload: string): unknown | null => {
   }
 }
 
+/**
+ * How many node-changes a frame carries, for the per-connection change budget.
+ *
+ * A batch frame is charged for every change inside it, so batching removes the
+ * per-frame ceiling without becoming a way around the per-change one
+ * (exploration 0357).
+ */
+const frameChangeCount = (payload: unknown): number => {
+  if (!payload || typeof payload !== 'object') return 0
+  const data = (payload as { data?: unknown }).data
+  if (!data || typeof data !== 'object') return 0
+  const message = data as { type?: unknown; changes?: unknown }
+  if (message.type === 'node-change') return 1
+  if (message.type === 'node-change-batch' && Array.isArray(message.changes)) {
+    return message.changes.length
+  }
+  return 0
+}
+
 type ShareHandleDocType = 'page' | 'database' | 'canvas'
 
 type ShareHandleRecord = {
@@ -144,41 +194,63 @@ const endpointClaimFor = (endpoint: string, resource: string, exp: number): stri
 
 export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const app = new Hono()
+  const log = createLogger({ level: config.logLevel, base: { service: 'xnet-hub' } })
   // Browser clients live on other origins than the hub (the deployed app on
   // xnet.fyi, Electron/Capacitor shells, self-hosted apps) and call the hub's
   // HTTP APIs with a Bearer UCAN token, which forces a CORS preflight. Auth is
   // token-based — never cookies — so a wildcard origin grants nothing a
   // malicious page could use without already holding a token.
   app.use('*', cors())
+  // Global safety net (exploration 0315 P0): routes do their own try/catch, so
+  // this only fires on a genuinely uncaught throw — log one structured line and
+  // return a clean 500 instead of leaking a stack to the client.
+  app.onError((err, c) => {
+    log.error('unhandled', {
+      method: c.req.method,
+      path: c.req.path,
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined
+    })
+    return c.json({ error: 'internal_error' }, 500)
+  })
   const signaling = createSignalingService()
   // The demo hub's data is disposable, so let it auto-reset a corrupt base DB
   // and boot rather than crash-loop (exploration 0206 follow-up). A real
   // self-host / production hub never does this.
+  // Index-plane state discipline (0383 W3): a derived-only hub refuses a data
+  // dir holding tenant state, BEFORE any storage is opened.
+  if (config.atprotoIndex?.enabled && config.atprotoIndex.derivedOnly !== false) {
+    assertDerivedOnlyDataDir(config.dataDir)
+  }
   const storage = await createStorage(config.storage, config.dataDir, {
-    resetOnCorruption: !!config.demo
+    resetOnCorruption: resolveResetOnCorruption(config)
   })
-  // In demo mode, every per-user cap comes from the demo overrides (10 MB /
-  // 2 MB by default), not the 1 GB plan quota — otherwise a single visitor can
-  // fill the small demo volume (exploration 0291).
-  const demo = config.demo ? config.demoOverrides : undefined
-  const perUserQuota = demo ? demo.quota : config.defaultQuota
-  const maxBlobBytes = demo ? demo.maxBlob : config.maxBlobSize
-  // Demo-only: watch the data dir and shed relay writes before the volume fills
-  // (a full SQLite volume crashes the hub — exploration 0291 / the 0290 502).
-  const diskWatchdog = demo
-    ? new DiskWatchdog({ dataDir: config.dataDir, maxBytes: demo.diskLimitBytes })
-    : null
+  // Every per-user cap goes through a config resolver — the single place the
+  // demo-override-vs-plan choice is made (#603's rule; 0383 W1). Server code
+  // never re-derives `demo ? x : y` inline.
+  const perUserQuota = resolvePerUserQuota(config)
+  const maxBlobBytes = resolveMaxBlobBytes(config)
+  // Watchdog budget is demo-only (0291): watch the data dir and shed relay
+  // writes before the small disposable volume fills (the 0290 502).
+  const diskWatchdogBytes = resolveDiskWatchdogBytes(config)
+  const diskWatchdog =
+    diskWatchdogBytes !== null
+      ? new DiskWatchdog({ dataDir: config.dataDir, maxBytes: diskWatchdogBytes })
+      : null
   const isStorageFull = diskWatchdog ? () => diskWatchdog.isFull() : undefined
   const pool = new NodePool(storage, { isStorageFull })
-  const relayIdentity = generateIdentity()
+  // The hub's persistent system identity (0371/0383 W4): stable across
+  // restarts, surfaced on /health and used for relay envelope signing. It
+  // signs TRANSPORT only — never node authorship (0371's rule).
+  const hubIdentity = loadOrCreateHubIdentity(config.dataDir)
   const relay = new RelayService(pool, {
     replication: config.sync,
     verifyV2Envelope: config.syncVerification?.verifyV2Envelope,
     telemetry: config.telemetry,
     telemetryPeerHashSalt: config.telemetryPeerHashSalt,
     signing: {
-      authorDID: relayIdentity.identity.did,
-      signingKey: relayIdentity.privateKey
+      authorDID: hubIdentity.did,
+      signingKey: hubIdentity.privateKey
     }
   })
   const backup = new BackupService(storage, {
@@ -191,6 +263,13 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // quota the dashboard meter shows (exploration 0216).
   const files = new FileService(storage, { maxStoragePerUser: perUserQuota })
   const keyRegistry = new KeyRegistryService()
+  const atprotoBindingVerifier = new AtprotoBindingVerifier()
+  const recoveryChallenges = new RecoveryChallengeStore()
+  const atprotoRecoveryAnchor = new AtprotoRecoveryAnchor(
+    atprotoBindingVerifier,
+    recoveryChallenges
+  )
+  const escrowStore = new EscrowStore()
   const taskIdentifiers = new TaskIdentifierService()
   const query = new QueryService(storage)
   const federationDefaults = {
@@ -273,8 +352,13 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     telemetryPeerHashSalt: config.telemetryPeerHashSalt
   }
   const shareAccess = new ShareAccessService(storage)
+  // The append-only change log is the primary grower and was metered only in
+  // demo mode, so a paying tenant's log could grow without bound while backups
+  // and files were capped (exploration 0381, R3). It shares the same per-user
+  // quota as those — the plan's, not the demo default. Eviction and the disk
+  // watchdog stay demo-only; this is the append gate alone.
   const nodeRelay = new NodeRelayService(storage, remoteMutationTelemetry, {
-    quotaBytes: demo ? demo.quota : undefined,
+    quotaBytes: perUserQuota,
     isStorageFull,
     // Fan channel nodes into their share room so grantees receive them (0298).
     shareAccess,
@@ -304,6 +388,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   })
   const rateLimiter = new RateLimiter({
     perConnectionRate: config.rateLimit?.perConnectionRate ?? 100,
+    perConnectionChangeRate: config.rateLimit?.perConnectionChangeRate ?? 5000,
     maxConnections: config.rateLimit?.maxConnections ?? config.maxConnections,
     maxMessageSize: config.rateLimit?.maxMessageSize ?? config.maxMessageSize,
     windowMs: config.rateLimit?.windowMs ?? 1000
@@ -408,6 +493,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     const lastSyncMs = syncTracker.value
     return c.json({
       status: 'ok',
+      role: config.role ?? 'personal',
       uptime: Math.floor((Date.now() - startTime) / 1000),
       timestamp: Date.now(),
       rooms: signaling.getRoomCount(),
@@ -432,6 +518,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       platform: config.runtime?.platform ?? 'unknown',
       region: config.runtime?.region,
       machineId: config.runtime?.machineId,
+      // Hub identity (0307-B): clients mint UCANs with `aud` = this DID so a
+      // token stolen for one hub is useless at another.
+      // The persistent system identity (0371/0383 W4) unless the operator
+      // pinned an explicit hubDid for UCAN audience checks.
+      hubDid: config.hubDid ?? hubIdentity.did,
       version: '0.0.1'
     })
   })
@@ -446,7 +537,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
     return c.json({
       schemaVersion: 1,
-      label: 'demo hub',
+      label: `${config.role ?? 'personal'} hub`,
       message: `online · ${uptimeStr}`,
       color: 'brightgreen'
     })
@@ -476,9 +567,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     })
   })
 
+  const revocation = new RevocationService()
+
   const requireAuth: MiddlewareHandler = async (c, next) => {
     const authHeader = c.req.header('authorization') ?? c.req.header('Authorization')
-    const auth = authenticateHttpRequest(authHeader ?? null, config)
+    const auth = authenticateHttpRequest(authHeader ?? null, config, revocation)
     if (!auth) {
       return c.json(
         createHubAuthError({
@@ -502,7 +595,48 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   app.route('/files', createFileRoutes(files))
 
   app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
+  app.route('/audit', createAuditRoutes(storage, { requireAuth }))
+  // Data portability (exploration 0344): stream/restore/purge your own
+  // signed changes — the hub-side counterpart of the .xnetpack bundle.
+  app.route('/export', createExportRoutes(storage, { requireAuth }))
   app.route('/keys', createKeyRegistryRoutes(keyRegistry))
+  // ATProto binding verification (0301/0322/0338): the hub resolves DID docs
+  // and binding records so clients can render verified handles.
+  app.use('/atproto/*', requireAuth)
+  app.route('/atproto', createAtprotoRoutes(atprotoBindingVerifier))
+
+  // Knot handshake (0372/0389): unauthenticated discovery — a self-hosted hub
+  // announces its owner + a hostname attestation so the ATmosphere can
+  // enumerate it via the owner's `fyi.xnet.hub` records, with no registry.
+  app.route(
+    '/xrpc',
+    createKnotRoutes({
+      hubDid: hubIdentity.did,
+      hubSigningKey: hubIdentity.privateKey,
+      ownerDid: config.ownerDid
+    })
+  )
+
+  // Recovery-anchor escrow (0243/0322/0338): enroll requires auth (a DID may
+  // only enroll for itself); release is the recovery path and is public (the
+  // caller has, by definition, lost their key) but gated by full server-side
+  // ceremony verification + the user's PIN applied client-side.
+  app.use('/recovery-anchor/enroll', requireAuth)
+  app.route(
+    '/recovery-anchor',
+    createRecoveryAnchorRoutes({
+      store: escrowStore,
+      anchor: atprotoRecoveryAnchor,
+      challenges: recoveryChallenges,
+      callerDid: (ctx) => {
+        const header =
+          (ctx as { req: { header(name: string): string | undefined } }).req.header(
+            'authorization'
+          ) ?? null
+        return authenticateHttpRequest(header, config, revocation)?.did ?? null
+      }
+    })
+  )
   // First-party hub features mount through the feature registry (exploration
   // 0189). Each receives a broker-scoped env — only the secrets it declared — so
   // billing reads STRIPE_SECRET_KEY/STRIPE_WEBHOOK_SECRET/BTCPAY_* but never the
@@ -516,8 +650,121 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // not yet have. Until then the actions are reported (`{ ok, actions }`) but not
   // applied — matching the previous hand-written route, which also never wired
   // apply. See exploration 0189 (deferred: server-side action application).
-  mountFeatures(
+  // ── Infra subsystems as feature modules (0383 W2) ─────────────────────────
+  // Federation, shards and crawl assemble through the same registry as the
+  // integrations: mount + loops, with the REGISTRY owning start/stop. The
+  // services themselves are constructed above (they are interdependent —
+  // crawl feeds shard ingest) and the features close over them, the same
+  // pattern the integration features already use.
+  const federationFeature: HubFeature = {
+    id: 'fyi.xnet.hub.federation',
+    // Mounted even when disabled — the route 404s, preserving the previous
+    // always-mounted behaviour.
+    mount: ({ app, requireAuth }) =>
+      app.route('/federation', createFederationRoutes(federation, { requireAuth })),
+    loops: federationConfig.enabled
+      ? [
+          {
+            id: 'peer-health',
+            start: async () => {
+              await federation.loadPeers()
+              federationHealth.start()
+            },
+            stop: () => federationHealth.stop()
+          }
+        ]
+      : []
+  }
+  const shardsFeature: HubFeature = {
+    id: 'fyi.xnet.hub.shards',
+    mount: ({ app, requireAuth }) => {
+      if (!shardConfig.enabled) return
+      app.route(
+        '/shards',
+        createShardRoutes({
+          registry: shardRegistry,
+          ingest: shardIngest,
+          router: shardRouter,
+          rebalancer: shardRebalancer ?? undefined,
+          requireAuth
+        })
+      )
+    },
+    loops: shardConfig.enabled
+      ? [
+          {
+            id: 'shard-registry',
+            start: async () => {
+              await shardRegistry.init()
+              if (
+                shardConfig.isRegistry &&
+                shardRebalancer &&
+                shardConfig.hubDid &&
+                shardConfig.hubUrl
+              ) {
+                await shardRebalancer.registerHost({
+                  hubDid: shardConfig.hubDid,
+                  url: shardConfig.hubUrl,
+                  capacity: shardConfig.maxDocsPerShard
+                })
+              }
+            },
+            stop: () => shardRegistry.stop()
+          }
+        ]
+      : []
+  }
+  const crawlFeature: HubFeature = {
+    id: 'fyi.xnet.hub.crawl',
+    mount: ({ app, requireAuth }) => {
+      if (!crawlConfig.enabled) return
+      app.route(
+        '/crawl',
+        createCrawlRoutes({
+          coordinator: crawlCoordinator,
+          requireAuth,
+          userAgent: crawlConfig.userAgent
+        })
+      )
+    },
+    loops: crawlConfig.enabled
+      ? [
+          {
+            id: 'crawl-coordinator',
+            start: async () => {
+              crawlCoordinator.start()
+              if (crawlConfig.seedUrls && crawlConfig.seedUrls.length > 0) {
+                await crawlCoordinator.seedUrls(crawlConfig.seedUrls)
+              }
+            },
+            stop: () => crawlCoordinator.stop()
+          }
+        ]
+      : []
+  }
+
+  const mounted = await mountFeatures(
     [
+      federationFeature,
+      shardsFeature,
+      crawlFeature,
+      // Public-interaction policy surface (0378/0383 W2) — on in the
+      // community and index roles.
+      ...(config.publicInteractions?.enabled ? [publicInteractionsFeature(storage)] : []),
+      // The atproto index engine (0374/0383 W3) — the index role's plane;
+      // derived-only, deterministic, never the legacy search stack (0367).
+      ...(config.atprotoIndex?.enabled
+        ? [atprotoIndexFeature(config.dataDir, config.atprotoIndex)]
+        : []),
+      // Hub-to-hub subscription (0258/0383 W4) — the gateway role's plane.
+      ...(config.subscriptions?.enabled
+        ? [
+            hubSubscriberFeature(config.dataDir, config.subscriptions, {
+              publicUrl: config.publicUrl,
+              port: config.port
+            })
+          ]
+        : []),
       billingFeature(),
       tasksFeature(taskIdentifiers),
       unfurlFeature(crawlConfig.userAgent),
@@ -529,6 +776,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       // XNET_DIAGNOSTICS_URL/SECRET, forwards scrubbed, content-free crash
       // reports upstream so we can help debug their hub.
       diagnosticsSharingFeature(),
+      // Diagnostics inbox (0341): default-on first-party crash quarantine —
+      // this deployment's own clients report here, the operator drains into
+      // debug-report nodes. Nothing leaves the deployment unless sharing
+      // (above) is separately enabled.
+      diagnosticsInboxFeature(),
       // Signed integration webhooks (exploration 0213): Stripe/Sentry/PagerDuty.
       // Each is secret-gated (503 until its *_WEBHOOK_SECRET is set), verifies the
       // provider HMAC, and normalizes deliveries into ExternalItem-shaped actions.
@@ -550,7 +802,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       requireAuth,
       storage: config.storage,
       dataDir: config.dataDir,
-      appUrl: config.appUrl ?? DEFAULT_APP_URL
+      appUrl: config.appUrl ?? DEFAULT_APP_URL,
+      hubStorage: storage
     }
   )
   app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
@@ -562,30 +815,6 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       requireAuth
     })
   )
-  app.route('/federation', createFederationRoutes(federation, { requireAuth }))
-  if (shardConfig.enabled) {
-    app.route(
-      '/shards',
-      createShardRoutes({
-        registry: shardRegistry,
-        ingest: shardIngest,
-        router: shardRouter,
-        rebalancer: shardRebalancer ?? undefined,
-        requireAuth
-      })
-    )
-  }
-  if (crawlConfig.enabled) {
-    app.route(
-      '/crawl',
-      createCrawlRoutes({
-        coordinator: crawlCoordinator,
-        requireAuth,
-        userAgent: crawlConfig.userAgent
-      })
-    )
-  }
-
   app.route(
     '/shares',
     createShareLinkRoutes({
@@ -610,6 +839,47 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       androidCertSha256: config.androidCertSha256
     })
   )
+  // UCAN revocation (0307-B): admins kill a leaked/over-broad token by id
+  // (sha256 of the compact JWT — `ucanTokenId`), a raw token, or a whole DID.
+  // Enforced on every subsequent WS connect and HTTP request.
+  app.post('/auth/revoke', requireAuth, async (c) => {
+    // The root app is an untyped Hono; re-derive the context the middleware
+    // just validated instead of reading the untyped variable bag.
+    const authHeader = c.req.header('authorization') ?? c.req.header('Authorization')
+    const auth = authenticateHttpRequest(authHeader ?? null, config, revocation)
+    if (!auth || !auth.can('hub/admin', '*')) {
+      return c.json(
+        createHubAuthError({
+          code: 'FORBIDDEN',
+          message: 'hub/admin capability required to revoke tokens',
+          action: 'hub/admin'
+        }),
+        403
+      )
+    }
+    const body = await c.req.json().catch(() => null)
+    if (!isRecord(body)) {
+      return c.json({ error: 'Invalid request body' }, 400)
+    }
+    if (typeof body.token === 'string' && body.token.length > 0) {
+      const parsed = verifyUCAN(body.token)
+      const exp = parsed.payload?.exp ?? Math.floor(Date.now() / 1000) + 24 * 60 * 60
+      revocation.revokeToken(ucanTokenId(body.token), exp)
+      return c.json({ ok: true, revoked: 'token' })
+    }
+    if (typeof body.tokenId === 'string' && body.tokenId.length > 0) {
+      const exp =
+        typeof body.exp === 'number' ? body.exp : Math.floor(Date.now() / 1000) + 24 * 60 * 60
+      revocation.revokeToken(body.tokenId, exp)
+      return c.json({ ok: true, revoked: 'tokenId' })
+    }
+    if (typeof body.did === 'string' && body.did.startsWith('did:')) {
+      revocation.revokeDid(body.did, typeof body.beforeMs === 'number' ? body.beforeMs : Date.now())
+      return c.json({ ok: true, revoked: 'did' })
+    }
+    return c.json({ error: 'Provide token, tokenId, or did' }, 400)
+  })
+
   app.post('/shares/issue', requireAuth, async (c) => {
     const body = await c.req.json().catch(() => null)
     if (!isRecord(body)) {
@@ -716,41 +986,74 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
   const start = async (): Promise<void> => {
     if (httpServer) return
+    // 0307: an unauthenticated hub is an OPEN RELAY — anyone can read/write any
+    // room. Never run this outside local development.
+    if (!config.auth) {
+      log.warn(
+        '⚠️  AUTH DISABLED (auth: false): this hub is an OPEN RELAY. ' +
+          'Every connection gets wildcard capabilities — any peer can read and ' +
+          'write every room. Do NOT expose this hub to the internet. (0307)'
+      )
+    } else if (!config.hubDid) {
+      log.warn(
+        'UCAN audience enforcement is OFF: hubDid is not configured, so tokens ' +
+          'minted for other hubs are accepted here. Set hubDid to bind tokens ' +
+          'to this hub. (0307-B)'
+      )
+    }
+
+    // Embedded OIDC provider (0338 Phase 3): the hub as an identity provider
+    // for the org's other self-hosted apps. Opt-in; throws loud if misconfigured.
+    if (config.identity?.oidcProvider?.enabled) {
+      const mounted = await mountOidcProvider({
+        app,
+        config,
+        storage,
+        loadProfileClaims: async (did: string) => {
+          const room = profileNodeIdForDid(did)
+          const changes = await storage.getNodeChangesForNode(room, room)
+          if (changes.length === 0) return null
+          const merged: Record<string, unknown> = {}
+          for (const ch of [...changes].sort((a, b) => a.lamportTime - b.lamportTime)) {
+            Object.assign(merged, ch.payload.properties ?? {})
+          }
+          const name = typeof merged.displayName === 'string' ? merged.displayName : undefined
+          const handle =
+            typeof merged.atprotoHandle === 'string'
+              ? merged.atprotoHandle
+              : typeof merged.handle === 'string'
+                ? merged.handle
+                : undefined
+          return {
+            ...(name ? { name } : {}),
+            ...(handle ? { preferred_username: handle } : {})
+          }
+        }
+      })
+      if (mounted) log.info(`OIDC provider mounted (issuer ${mounted.issuer})`)
+    }
+
     telemetry.start()
     awareness.start()
     discovery.start()
-    if (federationConfig.enabled) {
-      await federation.loadPeers()
-      federationHealth.start()
-    }
-    if (shardConfig.enabled) {
-      await shardRegistry.init()
-      if (shardConfig.isRegistry && shardRebalancer && shardConfig.hubDid && shardConfig.hubUrl) {
-        await shardRebalancer.registerHost({
-          hubDid: shardConfig.hubDid,
-          url: shardConfig.hubUrl,
-          capacity: shardConfig.maxDocsPerShard
-        })
-      }
-    }
-    if (crawlConfig.enabled) {
-      crawlCoordinator.start()
-      if (crawlConfig.seedUrls && crawlConfig.seedUrls.length > 0) {
-        await crawlCoordinator.seedUrls(crawlConfig.seedUrls)
-      }
-    }
+    // Feature loops (0383 W2): federation health, shard registry, crawl —
+    // started by the registry in feature order.
+    await mounted.start()
     // Demo hub: guard the small disposable volume — watch disk usage and wipe
     // all user data on a fixed cadence so it can't grow unbounded (0291).
-    if (demo && diskWatchdog) {
+    const resetIntervalMs = resolveResetIntervalMs(config)
+    if (resetIntervalMs !== null && diskWatchdog) {
       diskWatchdog.start()
       demoResetInterval = setInterval(() => {
         storage
           .resetAllUserData()
-          .then(({ nodeChanges, docStates }) =>
-            console.log(`[demo-reset] wiped ${nodeChanges} node changes, ${docStates} doc states`)
+          .then(({ nodeChanges, docStates }) => log.info('demo-reset', { nodeChanges, docStates }))
+          .catch((err) =>
+            log.error('demo-reset failed', {
+              error: err instanceof Error ? err.message : String(err)
+            })
           )
-          .catch((err) => console.error('[demo-reset] failed:', err))
-      }, demo.resetInterval)
+      }, resetIntervalMs)
       demoResetInterval.unref?.()
     }
     await schemas.seedBuiltInSchemas([
@@ -799,7 +1102,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
           return
         }
 
-        const session = await authenticateConnection(ws, req, config)
+        const session = await authenticateConnection(ws, req, config, revocation)
         if (!session) return
         socketSessions.set(ws, session)
         const authContext = toAuthContext(session)
@@ -851,18 +1154,15 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
             'node-changes', // NodeChange sync
             'yjs-updates', // Yjs CRDT sync
             'signed-yjs-envelopes', // Signed Yjs updates
-            'batch-changes' // Transaction batching
+            'batch-changes', // Transaction batching
+            'batch-push' // Batched node-change push frames (exploration 0357)
           ],
           hubDid: config.hubDid,
           isDemo: !!config.demo
         }
-        if (config.demo && config.demoOverrides) {
-          handshake.demoLimits = {
-            quotaBytes: config.demoOverrides.quota,
-            maxDocs: config.demoOverrides.maxDocs,
-            maxBlobBytes: config.demoOverrides.maxBlob,
-            evictionTtlMs: config.demoOverrides.evictionTtl
-          }
+        const demoLimits = resolveHandshakeDemoLimits(config)
+        if (demoLimits) {
+          handshake.demoLimits = demoLimits
         }
         if (ws.readyState === 1) {
           ws.send(JSON.stringify(handshake))
@@ -897,20 +1197,36 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
             if (session.did !== 'did:key:anonymous') {
               void discovery.heartbeat(session.did)
             }
-            const check = rateLimiter.checkMessage(connId, getMessageSize(data))
-            if (!check.allowed) {
+            const messageSize = getMessageSize(data)
+            const rejectRateLimit = (reason?: string): void => {
               metrics.increment(HUB_METRICS.RATE_LIMIT_REJECTIONS)
               metrics.increment(HUB_METRICS.WS_MESSAGES_REJECTED)
-              if (check.reason?.includes('will be closed')) {
+              if (reason?.includes('will be closed')) {
                 ws.close(1008, 'Rate limit exceeded')
                 return
               }
-              ws.send(JSON.stringify(buildWsError({ kind: 'error', message: check.reason })))
+              ws.send(JSON.stringify(buildWsError({ kind: 'error', message: reason })))
+            }
+
+            // Size guard runs pre-parse so an oversized frame is dropped
+            // without paying to parse it.
+            const sizeCheck = rateLimiter.checkSize(messageSize)
+            if (!sizeCheck.allowed) {
+              rejectRateLimit(sizeCheck.reason)
               return
             }
 
             const payload = safeParseJson(dataToString(data))
             if (!payload) return
+
+            // Charge both budgets: one frame, plus every change it carries.
+            // Batching lifts the per-frame ceiling without lifting the
+            // per-change one (exploration 0357).
+            const check = rateLimiter.checkMessage(connId, messageSize, frameChangeCount(payload))
+            if (!check.allowed) {
+              rejectRateLimit(check.reason)
+              return
+            }
 
             await messageRouter.dispatch(payload, { ws, session, authContext })
           })()
@@ -953,9 +1269,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     telemetry.stop()
     awareness.stop()
     discovery.stop()
-    federationHealth.stop()
-    shardRegistry.stop()
-    crawlCoordinator.stop()
+    await mounted.stop()
     signaling.destroy()
   }
 

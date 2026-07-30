@@ -1,4 +1,4 @@
-// A minimal, second-language implementation of the XNet L0 + L1 interop kernel.
+// A minimal, second-language implementation of the xNet L0 + L1 interop kernel.
 //
 // This mirrors `conformance/reference/python/xnet_kernel.py` and exists to prove
 // the same thing on the Apple platform: that the written spec in
@@ -68,7 +68,7 @@ public enum XNetKernel {
 
     /// The content id of an unsigned change: "cid:blake3:" + hex(BLAKE3(canonical)).
     /// Legacy changes (protocolVersion 0/absent) drop the field before hashing;
-    /// xnet/1.0 (protocolVersion 3) keeps it. [L1 §6]
+    /// xnet/1.0 (protocolVersion 4) keeps it. [L1 §6]
     public static func changeHash(_ unsignedChange: [String: Any]) -> String {
         var toHash = unsignedChange
         if let pv = toHash["protocolVersion"] as? NSNumber, pv.int64Value == 0 {
@@ -98,6 +98,58 @@ public enum XNetKernel {
         else { return false }
         let message = Data(changeHash(unsignedChange).utf8)
         return pub.isValidSignature(Data(signature), for: message)
+    }
+
+    // MARK: - batch commits (one signature over many changes) [L1 §6.1]
+
+    /// Root over an ORDERED list of change hashes: "cid:blake3:" +
+    /// hex(BLAKE3(hashes joined by "\n")). Order is part of the commitment,
+    /// so a permuted batch yields a different root. [L1 §6.1]
+    public static func batchRoot(_ changeHashes: [String]) -> String {
+        let bytes = Array(changeHashes.joined(separator: "\n").utf8)
+        var hasher = BLAKE3()
+        hasher.absorb(contentsOf: bytes)
+        return "cid:blake3:" + hexEncode(hasher.squeeze(outputByteCount: 32))
+    }
+
+    /// A commit is hashed with the SAME recipe as a change: canonical JSON,
+    /// BLAKE3, "cid:blake3:" prefix. Unlike a change there is no legacy
+    /// unversioned form. [L1 §6.1]
+    public static func batchCommitHash(_ unsignedCommit: [String: Any]) -> String {
+        let bytes = Array(canonicalJSON(unsignedCommit).utf8)
+        var hasher = BLAKE3()
+        hasher.absorb(contentsOf: bytes)
+        return "cid:blake3:" + hexEncode(hasher.squeeze(outputByteCount: 32))
+    }
+
+    /// A commit is valid iff its root matches its own ordered hash list AND
+    /// its signature matches its author. [L1 §6.1]
+    public static func verifyBatchCommit(
+        _ unsignedCommit: [String: Any], signature: [UInt8], publicKey: [UInt8]
+    ) -> Bool {
+        guard let hashes = unsignedCommit["changeHashes"] as? [String],
+              let root = unsignedCommit["root"] as? String,
+              batchRoot(hashes) == root,
+              let pub = try? Curve25519.Signing.PublicKey(rawRepresentation: Data(publicKey))
+        else { return false }
+        let message = Data(batchCommitHash(unsignedCommit).utf8)
+        return pub.isValidSignature(Data(signature), for: message)
+    }
+
+    /// Membership rules that keep a commit from being weaker than a per-change
+    /// signature: the change must hash to its claimed hash, that hash must be
+    /// in the commit's list, and the change's author must be the commit's
+    /// author (so a commit cannot launder someone else's change). [L1 §6.1]
+    public static func batchMemberOK(
+        _ unsignedChange: [String: Any], claimedHash: String, commit: [String: Any]
+    ) -> Bool {
+        guard changeHash(unsignedChange) == claimedHash,
+              let hashes = commit["changeHashes"] as? [String],
+              hashes.contains(claimedHash),
+              let changeAuthor = unsignedChange["authorDID"] as? String,
+              let commitAuthor = commit["authorDID"] as? String
+        else { return false }
+        return changeAuthor == commitAuthor
     }
 
     // MARK: - inline encodings

@@ -2,32 +2,35 @@
  * Page View - Rich text editor using @xnetjs/react hooks
  *
  * Features:
- * - Collaborative editing via Yjs
- * - Comment system with inline popover
- *   (state machine shared with web via usePageComments, 0276)
+ * - Collaborative editing via Yjs (BlockNote-based XNetEditor, 0312)
+ * - Comment threads sidebar (reads comment nodes; inline text anchors
+ *   are retired with the TipTap editor — see exploration 0312)
  * - Real-time presence indicators
  */
 
 import type { SyncStatus } from '@xnetjs/react'
+import type { CommentThreadData } from '@xnetjs/ui'
 import { PageSchema } from '@xnetjs/data'
 import {
-  EditorSurface,
+  XNetEditor,
   buildTaskMentionSuggestions,
   useImageUpload,
   useFileUpload,
   useFileDownload,
-  usePageComments
+  type PageTaskSnapshot,
+  type TaskViewConfig,
+  type XNetEditorInstance
 } from '@xnetjs/editor/react'
 import {
   TaskCollectionEmbed,
+  useComments,
   useNode,
   useIdentity,
-  useEditorExtensionsSafe,
-  usePluginRegistryOptional,
-  usePageTaskSync
+  usePageTaskSync,
+  type PageTaskInput
 } from '@xnetjs/react'
-import { CommentPopover, CommentsSidebar, OrphanedThreadList } from '@xnetjs/ui'
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { CommentsSidebar } from '@xnetjs/ui'
+import React, { useState, useCallback, useMemo, useRef } from 'react'
 import { DocumentHeader } from './DocumentHeader'
 import { resolvePageEditorFocusPosition } from './page-editor-focus'
 import { PageTasksPanel } from './PageTasksPanel'
@@ -38,27 +41,38 @@ interface PageViewProps {
   minimalChrome?: boolean
 }
 
-type EditorExtensions = NonNullable<React.ComponentProps<typeof EditorSurface>['extensions']>
+type TaskEmbedFilters = Parameters<typeof TaskCollectionEmbed>[0]
+
+/**
+ * Map the BlockNote task-view embed config (0312 vocabulary) onto the
+ * filters TaskCollectionEmbed expects (the pre-0312 vocabulary). Defaults
+ * match the old task-view extension: open tasks, hierarchy on. (Same
+ * adapter as the web Editor.)
+ */
+function toTaskEmbedFilters(
+  viewConfig: TaskViewConfig
+): Pick<TaskEmbedFilters, 'scope' | 'assignee' | 'dueDate' | 'status' | 'showHierarchy'> {
+  const dueMap = {
+    overdue: 'overdue',
+    today: 'today',
+    week: 'next-7-days',
+    all: 'any'
+  } as const
+  const statusMap = { open: 'open', completed: 'done', all: 'all' } as const
+  return {
+    scope: viewConfig.scope === 'page' ? 'current-page' : 'all',
+    assignee: viewConfig.scope === 'assigned' ? 'me' : 'any',
+    dueDate: viewConfig.dueDate ? dueMap[viewConfig.dueDate] : 'any',
+    status: viewConfig.status ? statusMap[viewConfig.status] : 'open',
+    showHierarchy: viewConfig.showHierarchy ?? true
+  }
+}
 
 export function PageView({ docId, minimalChrome = false }: PageViewProps) {
   const { did } = useIdentity()
   const onImageUpload = useImageUpload()
   const onFileUpload = useFileUpload()
   const onFileDownload = useFileDownload()
-
-  // Get editor extensions from plugins (reactive - updates when plugins change)
-  // Uses safe version that returns [] if plugin system isn't ready
-  const editorContributions = useEditorExtensionsSafe()
-  const pluginExtensions = editorContributions.map((c) => c.extension) as EditorExtensions
-
-  // Wait for plugin-contributed editor extensions to be registered before
-  // mounting the editor. BundledPluginInstaller installs plugins (like Mermaid)
-  // asynchronously. If the editor mounts before Mermaid is registered, Yjs
-  // content containing mermaid nodes will crash ProseMirror ("toDOM is not a
-  // function"). We gate on editorContributions being populated, which means
-  // the plugin's activate() has run and contributions are registered.
-  const pluginRegistry = usePluginRegistryOptional()
-  const pluginsReady = pluginRegistry ? editorContributions.length > 0 : false
 
   // Page data and Y.Doc
   const {
@@ -75,52 +89,97 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
     did: did ?? undefined
   })
   const { handleTasksChange } = usePageTaskSync({ pageId: docId })
+  // Adapt the editor's checklist snapshot (0312 BlockNote shape — references
+  // carry url/title only) to the task projection input.
+  const handlePageTasksChange = useCallback(
+    (tasks: PageTaskSnapshot[]) => {
+      handleTasksChange(
+        tasks.map<PageTaskInput>((task) => ({
+          ...task,
+          references: task.references.map((reference) => ({
+            url: reference.url,
+            title: reference.title,
+            provider: null,
+            kind: null,
+            refId: null,
+            subtitle: null,
+            icon: null,
+            embedUrl: null,
+            metadata: '{}'
+          }))
+        }))
+      )
+    },
+    [handleTasksChange]
+  )
   const mentionSuggestions = useMemo(
     () => buildTaskMentionSuggestions(presence, did),
     [did, presence]
   )
 
-  // ─── Comments Integration (shared state machine, 0276) ───────────────────────
+  // ─── Comments (0312: node-backed thread panel only) ──────────────────────────
+  //
+  // Inline comment anchors (text marks in the document) were retired with the
+  // TipTap editor. Threads still live as comment nodes and stay readable and
+  // actionable from the sidebar; creating new inline comments returns with the
+  // BlockNote ThreadStore spike (0312 Phase 4).
 
   const {
     threads,
-    unresolvedCount,
-    threadDataMap,
-    sidebarThreads,
-    currentThread,
-    orphanedThreads,
-    orphanedCollapsed,
-    toggleOrphanedCollapsed,
-    popoverState,
-    newCommentState,
-    editorRef,
-    handleEditorReady,
-    commentExtensions,
-    showThreadPopover,
-    handlePopoverMouseEnter,
-    handlePopoverMouseLeave,
-    handleDismiss,
-    handleUpgradeToFull,
-    handleReply,
-    handleResolve,
-    handleReopen,
-    handleDelete,
-    handleEdit,
-    handleCreateComment,
-    handleSubmitNewComment,
-    handleCancelNewComment,
-    handleSidebarSelectThread,
-    handleSidebarReply,
-    handleSidebarResolve,
-    handleSidebarReopen,
-    handleSidebarDelete,
-    handleSidebarEdit,
-    handleDismissOrphaned,
-    handleReattachOrphaned
-  } = usePageComments({ docId, dismissPopoverOnCaretExit: true })
+    replyTo,
+    resolveThread,
+    reopenThread,
+    deleteComment,
+    editComment,
+    unresolvedCount
+  } = useComments({ nodeId: docId, anchorType: 'text' })
+
+  const sidebarThreads = useMemo<CommentThreadData[]>(
+    () =>
+      threads.map((thread) => ({
+        root: {
+          id: thread.root.id,
+          author: thread.root.properties.createdBy,
+          content: thread.root.properties.content,
+          createdAt: thread.root.createdAt,
+          edited: thread.root.properties.edited,
+          editedAt: thread.root.properties.editedAt,
+          replyToUser: thread.root.properties.replyToUser,
+          replyToCommentId: thread.root.properties.replyToCommentId
+        },
+        replies: thread.replies.map((r) => ({
+          id: r.id,
+          author: r.properties.createdBy,
+          content: r.properties.content,
+          createdAt: r.createdAt,
+          edited: r.properties.edited,
+          editedAt: r.properties.editedAt,
+          replyToUser: r.properties.replyToUser,
+          replyToCommentId: r.properties.replyToCommentId
+        })),
+        resolved: thread.root.properties.resolved
+      })),
+    [threads]
+  )
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement | null>(null)
+  const editorRef = useRef<XNetEditorInstance | null>(null)
+
+  const handleEditorReady = useCallback((editor: XNetEditorInstance) => {
+    editorRef.current = editor
+  }, [])
+
+  const focusEditor = useCallback((position: 'start' | 'end') => {
+    const editor = editorRef.current
+    if (!editor) return
+    const blocks = editor.document
+    const target = position === 'start' ? blocks[0] : blocks[blocks.length - 1]
+    if (!target) return
+    editor.setTextCursorPosition(target, position)
+    editor.focus()
+  }, [])
 
   const handleEditorSurfaceMouseDown = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -140,23 +199,24 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
         ].join(',')
       )
 
-      if (interactiveTarget || !editorRef.current) {
+      const editorDom = editorRef.current?.domElement
+      if (interactiveTarget || !editorDom) {
         return
       }
 
       event.preventDefault()
       const focusPosition = resolvePageEditorFocusPosition(
         event.clientY,
-        editorRef.current.view.dom.getBoundingClientRect()
+        editorDom.getBoundingClientRect()
       )
-      editorRef.current.commands.focus(focusPosition)
+      focusEditor(focusPosition)
     },
-    [editorRef]
+    [focusEditor]
   )
 
   const handleTitleSubmit = useCallback(() => {
-    editorRef.current?.commands.focus('start')
-  }, [editorRef])
+    focusEditor('start')
+  }, [focusEditor])
 
   const handleBodyBackspaceAtStart = useCallback(() => {
     const titleInput = titleInputRef.current
@@ -168,79 +228,46 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
     return true
   }, [])
 
-  // ─── Sidebar hover highlights (desktop-only affordance) ──────────────────────
-
-  const hoveredThreadRef = useRef<string | null>(null)
-  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const handleSidebarHoverThread = useCallback((threadId: string) => {
-    // Cancel any pending leave — user moved to another thread or re-entered
-    if (leaveTimerRef.current) {
-      clearTimeout(leaveTimerRef.current)
-      leaveTimerRef.current = null
-    }
-
-    // Clear previous thread's highlights if switching threads
-    if (hoveredThreadRef.current && hoveredThreadRef.current !== threadId) {
-      document.querySelectorAll('.xnet-comment-sidebar-hover').forEach((el) => {
-        el.classList.remove('xnet-comment-sidebar-hover')
-      })
-    }
-
-    hoveredThreadRef.current = threadId
-
-    // Find all mark elements for this thread and add the hover class
-    const marks = document.querySelectorAll(`[data-comment-id="${threadId}"]`)
-    marks.forEach((el) => el.classList.add('xnet-comment-sidebar-hover'))
-    // Scroll the first mark into view
-    if (marks.length > 0) {
-      marks[0].scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
+  const handleSidebarSelectThread = useCallback((threadId: string) => {
+    setSelectedThreadId((prev) => (prev === threadId ? null : threadId))
   }, [])
 
-  const handleSidebarLeaveThread = useCallback(() => {
-    // Delay removal to avoid flicker from scroll-induced spurious mouseLeave events.
-    // If the user re-enters the same thread (or enters another) within the window,
-    // handleSidebarHoverThread will cancel this timer.
-    if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current)
-    leaveTimerRef.current = setTimeout(() => {
-      hoveredThreadRef.current = null
-      document.querySelectorAll('.xnet-comment-sidebar-hover').forEach((el) => {
-        el.classList.remove('xnet-comment-sidebar-hover')
-      })
-    }, 150)
-  }, [])
-
-  // Combine plugin extensions with comment extensions
-  const allExtensions = useMemo(
-    () => [...pluginExtensions, ...commentExtensions],
-    [pluginExtensions, commentExtensions]
-  )
-
-  // Debug: log when popover should show but thread not found
-  useEffect(() => {
-    if (popoverState.visible && popoverState.threadId && !currentThread) {
-      console.log('[Comments] Popover visible but thread not found yet:', popoverState.threadId)
-      console.log(
-        '[Comments] Available threads:',
-        threads.map((t) => t.root.id)
-      )
-    }
-  }, [popoverState, currentThread, threads])
-
-  const handleSelectOrphaned = useCallback(
-    (commentId: string) => {
-      // Open the popover for this orphaned comment
-      const thread = threadDataMap.get(commentId)
-      if (thread) {
-        // Since orphaned comments don't have anchor elements, use coordinates
-        showThreadPopover(commentId, null) // Will need to position differently
-      }
+  const handleSidebarReply = useCallback(
+    (threadId: string, content: string) => {
+      void replyTo(threadId, content)
     },
-    [threadDataMap, showThreadPopover]
+    [replyTo]
   )
 
-  if (loading || !doc || !pluginsReady) {
+  const handleSidebarResolve = useCallback(
+    (threadId: string) => {
+      void resolveThread(threadId)
+    },
+    [resolveThread]
+  )
+
+  const handleSidebarReopen = useCallback(
+    (threadId: string) => {
+      void reopenThread(threadId)
+    },
+    [reopenThread]
+  )
+
+  const handleSidebarDelete = useCallback(
+    (commentId: string) => {
+      void deleteComment(commentId)
+    },
+    [deleteComment]
+  )
+
+  const handleSidebarEdit = useCallback(
+    (commentId: string, newContent: string) => {
+      void editComment(commentId, newContent)
+    },
+    [editComment]
+  )
+
+  if (loading || !doc) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-muted-foreground">Loading...</p>
@@ -282,56 +309,36 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
       {/* Editor + Sidebar horizontal layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Editor */}
-        <EditorSurface
-          surfaceMode="page"
-          surfaceDensity={minimalChrome ? 'compact' : 'default'}
-          onSurfaceMouseDown={handleEditorSurfaceMouseDown}
-          ydoc={doc}
-          field="content"
-          placeholder="Start typing..."
-          showToolbar={true}
-          toolbarMode="desktop"
-          awareness={awareness ?? undefined}
-          did={did ?? undefined}
-          onImageUpload={onImageUpload ?? undefined}
-          onFileUpload={onFileUpload ?? undefined}
-          onFileDownload={onFileDownload ?? undefined}
-          extensions={allExtensions}
-          onCreateComment={handleCreateComment}
-          onEditorReady={handleEditorReady}
-          onBackspaceAtStart={handleBodyBackspaceAtStart}
-          mentionSuggestions={mentionSuggestions}
-          onPageTasksChange={handleTasksChange}
-          taskViewPageId={docId}
-          className="min-h-[480px]"
-          renderTaskView={({ viewConfig, currentPageId }) => (
-            <TaskCollectionEmbed
-              currentPageId={currentPageId}
-              currentDid={did ?? null}
-              scope={viewConfig.scope}
-              assignee={viewConfig.assignee}
-              dueDate={viewConfig.dueDate}
-              status={viewConfig.status}
-              showHierarchy={viewConfig.showHierarchy}
-            />
-          )}
+        <div
+          className="flex-1 min-w-0 overflow-y-auto"
+          data-page-editor-surface={minimalChrome ? 'compact' : 'default'}
+          onMouseDown={handleEditorSurfaceMouseDown}
         >
-          {/* Orphaned Comments Section */}
-          {orphanedThreads.length > 0 && (
-            <div className="mt-6" data-page-editor-ignore-focus="true">
-              <OrphanedThreadList
-                orphanedThreads={orphanedThreads}
-                collapsed={orphanedCollapsed}
-                onToggleCollapse={toggleOrphanedCollapsed}
-                onDismiss={handleDismissOrphaned}
-                onReattach={handleReattachOrphaned}
-                onSelect={handleSelectOrphaned}
+          <XNetEditor
+            ydoc={doc}
+            placeholder="Start typing..."
+            awareness={awareness ?? undefined}
+            did={did ?? undefined}
+            onImageUpload={onImageUpload ?? undefined}
+            onFileUpload={onFileUpload ?? undefined}
+            onFileDownload={onFileDownload ?? undefined}
+            onEditorReady={handleEditorReady}
+            onBackspaceAtStart={handleBodyBackspaceAtStart}
+            mentionSuggestions={mentionSuggestions}
+            onPageTasksChange={handlePageTasksChange}
+            taskViewPageId={docId}
+            className="min-h-[480px]"
+            renderTaskView={({ viewConfig, currentPageId }) => (
+              <TaskCollectionEmbed
+                currentPageId={currentPageId}
+                currentDid={did ?? null}
+                {...toTaskEmbedFilters(viewConfig)}
               />
-            </div>
-          )}
+            )}
+          />
 
           <PageTasksPanel pageId={docId} />
-        </EditorSurface>
+        </div>
 
         {/* Comments Sidebar */}
         <CommentsSidebar
@@ -339,53 +346,14 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           onSelectThread={handleSidebarSelectThread}
-          selectedThreadId={popoverState.threadId}
+          selectedThreadId={selectedThreadId}
           onReply={handleSidebarReply}
           onResolve={handleSidebarResolve}
           onReopen={handleSidebarReopen}
           onDelete={handleSidebarDelete}
           onEdit={handleSidebarEdit}
-          onHoverThread={handleSidebarHoverThread}
-          onLeaveThread={handleSidebarLeaveThread}
         />
       </div>
-
-      {/* Comment Popover */}
-      {popoverState.visible &&
-        popoverState.anchor &&
-        (currentThread ? (
-          <CommentPopover
-            thread={currentThread}
-            anchor={popoverState.anchor}
-            mode={popoverState.mode}
-            open={popoverState.visible}
-            side="right"
-            onReply={handleReply}
-            onResolve={handleResolve}
-            onReopen={handleReopen}
-            onDelete={handleDelete}
-            onEdit={handleEdit}
-            onDismiss={handleDismiss}
-            onUpgradeToFull={handleUpgradeToFull}
-            onMouseEnter={handlePopoverMouseEnter}
-            onMouseLeave={handlePopoverMouseLeave}
-          />
-        ) : (
-          <div
-            className="fixed z-50 w-64 p-4 rounded-lg border bg-popover text-popover-foreground shadow-lg"
-            style={{
-              left: popoverState.anchor.getBoundingClientRect().right + 8,
-              top: popoverState.anchor.getBoundingClientRect().top
-            }}
-          >
-            <div className="text-sm text-muted-foreground">Loading comment...</div>
-          </div>
-        ))}
-
-      {/* New Comment Input */}
-      {newCommentState?.visible && (
-        <NewCommentInput onSubmit={handleSubmitNewComment} onCancel={handleCancelNewComment} />
-      )}
     </div>
   )
 }
@@ -409,73 +377,6 @@ function SyncIndicator({ status, peerCount }: { status: SyncStatus; peerCount: n
     <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title={labels[status]}>
       <div className={`w-2 h-2 rounded-full ${colors[status]}`} />
       <span>{labels[status]}</span>
-    </div>
-  )
-}
-
-// ─── New Comment Input ─────────────────────────────────────────────────────────
-
-interface NewCommentInputProps {
-  onSubmit: (content: string) => void
-  onCancel: () => void
-}
-
-function NewCommentInput({ onSubmit, onCancel }: NewCommentInputProps) {
-  const [content, setContent] = useState('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-  // Focus on mount
-  useEffect(() => {
-    textareaRef.current?.focus()
-  }, [])
-
-  const handleSubmit = () => {
-    if (content.trim()) {
-      onSubmit(content)
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault()
-      handleSubmit()
-    }
-    if (e.key === 'Escape') {
-      onCancel()
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-      <div className="w-80 rounded-lg border bg-popover text-popover-foreground shadow-lg p-4">
-        <div className="text-sm font-medium mb-2">Add Comment</div>
-        <textarea
-          ref={textareaRef}
-          className="w-full p-2 text-sm rounded border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring min-h-[80px]"
-          placeholder="Write a comment..."
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-        <div className="flex justify-end gap-2 mt-3">
-          <button
-            onClick={onCancel}
-            className="px-3 py-1.5 text-sm rounded border hover:bg-accent transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!content.trim()}
-            className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Comment
-          </button>
-        </div>
-        <div className="text-xs text-muted-foreground mt-2">
-          Press Cmd+Enter to submit, Esc to cancel
-        </div>
-      </div>
     </div>
   )
 }

@@ -243,6 +243,10 @@ export function coerceCellValueForType(value: unknown, type: FieldType): CellVal
       return isObject(value) && 'start' in value && 'end' in value
         ? (value as unknown as CellValue)
         : null
+    case 'geo':
+      return isObject(value) && 'lat' in value && 'lng' in value
+        ? (value as unknown as CellValue)
+        : null
     case 'file':
       return isObject(value) && 'cid' in value ? (value as unknown as CellValue) : null
     case 'multiSelect':

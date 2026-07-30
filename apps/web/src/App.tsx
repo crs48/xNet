@@ -30,10 +30,15 @@ import { useStorageDurability } from './boot/use-storage-durability'
 import { BootTimelineProbe } from './components/BootTimelineProbe'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { ConsentBanner } from './components/ConsentBanner'
+import { DemoSeed } from './components/DemoSeed'
+import { ReportProblemDialog } from './components/ReportProblemDialog'
 import { StorageOptimiseHint } from './components/StorageOptimiseHint'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
 import { WarmStartSnapshots } from './components/WarmStartSnapshots'
 import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
+import { runAtprotoCeremony } from './identity/atproto-ceremony'
+import { AtprotoProfileLinker } from './identity/AtprotoProfileLinker'
+import { reportBootFailure } from './lib/boot-diagnostics'
 import {
   clearXNetBrowserStorage,
   requestXNetBrowserStorageReset
@@ -71,6 +76,7 @@ export function App(): JSX.Element {
   const [isRequestingStorage, setIsRequestingStorage] = useState(false)
   const [isInstallingApp, setIsInstallingApp] = useState(false)
   const [isResettingStorage, setIsResettingStorage] = useState(false)
+  const [reportingProblem, setReportingProblem] = useState(false)
   const [browserFamily] = useState(() => detectBrowserFamily())
   const {
     canInstall: canInstallApp,
@@ -269,8 +275,15 @@ export function App(): JSX.Element {
                 {isResettingStorage ? 'Resetting…' : 'Reset local data'}
               </button>
             </div>
+            <button
+              onClick={() => setReportingProblem(true)}
+              className="mt-4 text-xs text-muted-foreground underline hover:text-foreground"
+            >
+              Report a problem
+            </button>
           </div>
         </div>
+        {reportingProblem && <ReportProblemDialog onClose={() => setReportingProblem(false)} />}
       </ThemeProvider>
     )
   }
@@ -332,7 +345,11 @@ export function App(): JSX.Element {
             onSecondaryAction={storageBanner.secondaryActionLabel ? handleInstallApp : undefined}
           />
         )}
-        <OnboardingProvider defaultHubUrl={hubUrl} onComplete={handleOnboardingComplete}>
+        <OnboardingProvider
+          defaultHubUrl={hubUrl}
+          onComplete={handleOnboardingComplete}
+          runAtprotoCeremony={runAtprotoCeremony}
+        >
           <OnboardingFlow />
         </OnboardingProvider>
       </ThemeProvider>
@@ -364,7 +381,7 @@ export function App(): JSX.Element {
       {/* "Optimising storage" pill while the interrupted-retry conversion
           VACUUM is in flight (lib/db-vacuum.ts) — reloading cancels it. */}
       <StorageOptimiseHint />
-      <ErrorBoundary>
+      <ErrorBoundary onError={(error) => reportBootFailure('render', error)}>
         <XNetProvider
           config={{
             nodeStorage: storage.nodeStorage,
@@ -379,9 +396,11 @@ export function App(): JSX.Element {
           }}
         >
           <BootTimelineProbe />
+          <AtprotoProfileLinker />
           <WarmStartSnapshots did={identity.did} />
           <WorkingSetPrewarm />
           <BundledPluginInstaller />
+          <DemoSeed />
           <XNetDevToolsProvider
             position="bottom"
             defaultOpen={false}
@@ -390,7 +409,7 @@ export function App(): JSX.Element {
             traceCollector={traceCollector}
             onResetLocalData={requestXNetBrowserStorageReset}
           >
-            <BlobProvider blobService={storage.blobService}>
+            <BlobProvider blobService={storage.blobService} blobTransfers={storage.blobTransfers}>
               <OfflineIndicator />
               <RouterProvider router={router} />
             </BlobProvider>

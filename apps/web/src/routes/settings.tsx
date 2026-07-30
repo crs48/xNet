@@ -6,10 +6,20 @@
  * and panels come from the shared settings kit in @xnetjs/ui; booleans use
  * the design-system <Switch>; data atoms (DID, version, hub URL) read mono.
  */
-import { createFileRoute } from '@tanstack/react-router'
-import { serializeShare } from '@xnetjs/identity'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { sign } from '@xnetjs/crypto'
+import { DebugReportSchema, ProfileSchema, profileNodeId } from '@xnetjs/data'
+import {
+  MIN_ESCROW_PIN_LENGTH,
+  createUCAN,
+  deriveKeysFromSeed,
+  sealEscrow,
+  serializeEscrow,
+  serializeShare
+} from '@xnetjs/identity'
 import { deleteDay, getCommandRegistry, leaveWithEverything } from '@xnetjs/plugins'
-import { useIdentity } from '@xnetjs/react'
+import { useIdentity, useNodeStore, useQuery, useXNet } from '@xnetjs/react'
+import { useXNetInternal } from '@xnetjs/react/internal'
 import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle, useTheme } from '@xnetjs/ui'
 import { MeetingEngineSettings } from '@xnetjs/views'
 import {
@@ -29,23 +39,42 @@ import { useState, useCallback, useEffect } from 'react'
 import { resetCoachSession } from '../coachmarks'
 import { ProfileSettings } from '../comms/ProfileSettings'
 import { ContentSafetySettings } from '../components/ContentSafetySettings'
+import { EscalateReportDialog } from '../components/EscalateReportDialog'
 import { PluginsPanel } from '../components/PluginsPanel'
+import { ReportProblemDialog } from '../components/ReportProblemDialog'
 import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
+import { useDiagnosticsInbox } from '../hooks/useDiagnosticsInbox'
 import { isAnalyticsConfigured } from '../lib/analytics'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
+import {
+  downloadBytes,
+  exportXnetpack,
+  importXnetpackFile,
+  verifyXnetpackFile
+} from '../lib/bundle-export'
 import { useDerivedData } from '../lib/data-dignity'
-import { getTelemetryCollector } from '../lib/error-reporter'
-import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
+import { DIAGNOSTICS_CONSOLE_VIEW_ID } from '../lib/diagnostics-console'
+import { getTelemetryCollector, isDiagnosticsConfigured } from '../lib/error-reporter'
+import { configuredHubUrl, persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { identityManager, logout } from '../lib/identity'
 import { isLabEnabled, LABS_FLAGS, setLabEnabled } from '../lib/labs'
 import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/leave'
-import { isSentryConfigured } from '../lib/sentry'
 import {
   DEFAULT_SETTINGS_SECTION,
   asSettingsSection,
   type SettingsSection
 } from '../lib/settings-sections'
+import { hubApiFetch, normalizeHubHttpUrl } from '../lib/share-links'
+import {
+  getSupportAccess,
+  grantSupportAccess,
+  revokeSupportAccess,
+  supportIdentityDid,
+  sweepExpiredSupportAccess,
+  type SupportAccessState
+} from '../lib/support-access'
 import { useConsent } from '../lib/use-consent'
+import { useReportBreadcrumbs } from '../lib/use-report-breadcrumbs'
 import { WINDDOWN_DURATION_CHOICES, useWinddownPreferences } from '../lib/winddown'
 import { useWorkbench } from '../workbench/state'
 
@@ -67,6 +96,20 @@ export const Route = createFileRoute('/settings')({
 /** Quiet bordered button — the workbench's default action affordance. */
 const QUIET_BUTTON =
   'flex items-center gap-2 rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2 disabled:cursor-default disabled:opacity-50'
+
+/** Base64url-encode bytes (avoids a direct @xnetjs/crypto dep in the app). */
+function bytesToBase64url(bytes: Uint8Array): string {
+  let binary = ''
+  for (const b of bytes) binary += String.fromCharCode(b)
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+/** The hub's HTTPS base (recovery-anchor endpoints), from the ws hub URL. */
+function atprotoHubHttpUrl(): string | undefined {
+  const ws = configuredHubUrl()
+  if (!ws) return undefined
+  return ws.replace(/^wss:\/\//, 'https://').replace(/^ws:\/\//, 'http://')
+}
 
 /** Browser capabilities for the Right-to-Leave service (Charter §Exit, 0234). */
 const LEAVE_DEPS: LeaveDeps = {
@@ -347,23 +390,44 @@ function ThemeButton({
 
 function DataSettings() {
   const { identity } = useIdentity()
+  const { store: nodeStore } = useNodeStore()
+  const { getHubAuthToken, authorDID } = useXNet()
+  const { signingKey } = useXNetInternal()
   const [clearing, setClearing] = useState(false)
   const [cleared, setCleared] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importReport, setImportReport] = useState<string | null>(null)
 
-  // Charter §Exit: take everything and go — workspace + portable identity +
-  // a re-import README, bundled by the tested @xnetjs/plugins leave service.
+  /**
+   * Manifest signer backed by the provider's in-memory signing key (0344) —
+   * the same key the store signs changes with, no unlock ceremony needed.
+   */
+  const getSignBytes = useCallback(async () => {
+    if (!signingKey) return undefined
+    return (bytes: Uint8Array) => sign(bytes, signingKey)
+  }, [signingKey])
+
+  // Charter §Exit: take everything and go — the signed .xnetpack change log
+  // (the OPFS SQLite master, not the IndexedDB sidecars), portable identity,
+  // and a re-import README, bundled by the tested @xnetjs/plugins service.
   const handleLeaveWithEverything = useCallback(async () => {
     setLeaving(true)
     try {
       const now = new Date().toISOString()
+      // authorDID (the provider's signing identity) — useIdentity() may not
+      // be hydrated on this route, and the bundle owner must match the key
+      // that signs it anyway.
+      const did = authorDID ?? identity?.did ?? undefined
       const bundle = await leaveWithEverything(
-        createLeavePorts({ did: identity?.did }, now, LEAVE_DEPS),
-        {
-          now
-        }
+        createLeavePorts({ did }, now, {
+          ...LEAVE_DEPS,
+          store: nodeStore,
+          signBytes: did ? await getSignBytes() : undefined
+        }),
+        { now }
       )
       downloadLeaveBundle(bundle)
     } catch (err) {
@@ -371,65 +435,62 @@ function DataSettings() {
     } finally {
       setLeaving(false)
     }
-  }, [identity?.did])
+  }, [authorDID, identity?.did, nodeStore, getSignBytes])
 
+  // The real backup (0344): the signed change log + document states from the
+  // OPFS SQLite master, zipped as one verifiable .xnetpack file.
+  const [exportReport, setExportReport] = useState<string | null>(null)
   const handleExportData = useCallback(async () => {
+    if (!nodeStore || !authorDID) return
     setExporting(true)
+    setExportReport(null)
     try {
-      const databases = await indexedDB.databases()
-      const exportData: {
-        exportedAt: string
-        version: string
-        databases: Record<string, Record<string, unknown[]>>
-      } = {
-        exportedAt: new Date().toISOString(),
-        version: '1.0.0',
-        databases: {}
-      }
-
-      // Export each database
-      for (const dbInfo of databases) {
-        if (!dbInfo.name) continue
-
-        const db = await new Promise<IDBDatabase>((resolve, reject) => {
-          const request = indexedDB.open(dbInfo.name!)
-          request.onsuccess = () => resolve(request.result)
-          request.onerror = () => reject(request.error)
-        })
-
-        const dbExport: Record<string, unknown[]> = {}
-
-        for (const storeName of Array.from(db.objectStoreNames)) {
-          const tx = db.transaction(storeName, 'readonly')
-          const store = tx.objectStore(storeName)
-          const items = await new Promise<unknown[]>((resolve, reject) => {
-            const request = store.getAll()
-            request.onsuccess = () => resolve(request.result)
-            request.onerror = () => reject(request.error)
-          })
-          dbExport[storeName] = items
-        }
-
-        exportData.databases[dbInfo.name] = dbExport
-        db.close()
-      }
-
-      // Download as JSON
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `xnet-export-${new Date().toISOString().split('T')[0]}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      const signBytes = await getSignBytes()
+      const { bytes, filename, manifest } = await exportXnetpack(nodeStore, authorDID, signBytes)
+      downloadBytes(filename, bytes)
+      setExportReport(`Exported ${manifest.counts.changes} change(s) as ${filename}`)
     } catch (err) {
       console.error('Failed to export data:', err)
+      setExportReport(err instanceof Error ? err.message : String(err))
     } finally {
       setExporting(false)
     }
-  }, [])
+  }, [nodeStore, identity?.did, getSignBytes])
+
+  // Restore: verify first (signatures, hash chain, owner DID), then replay
+  // through the same apply path a sync peer uses. Dry-run report on failure.
+  const handleImportFile = useCallback(
+    async (file: File) => {
+      if (!nodeStore || !authorDID) return
+      setImporting(true)
+      setImportReport(null)
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer())
+        const report = await verifyXnetpackFile(bytes)
+        if (!report.ok) {
+          const errors = report.issues
+            .filter((i) => i.severity === 'error')
+            .map((i) => i.detail)
+            .join('; ')
+          setImportReport(`Bundle failed verification — nothing imported. ${errors}`)
+          return
+        }
+        const result = await importXnetpackFile(nodeStore, bytes, {
+          importerDid: authorDID
+        })
+        const quarantineNote =
+          result.quarantined.length > 0 ? `, ${result.quarantined.length} quarantined` : ''
+        setImportReport(
+          `Restored ${result.applied} change(s); ${result.duplicates} already present${quarantineNote}.`
+        )
+      } catch (err) {
+        setImportReport(err instanceof Error ? err.message : String(err))
+      } finally {
+        setImporting(false)
+      }
+    },
+    [nodeStore, identity?.did]
+  )
 
   const handleClearData = useCallback(async () => {
     if (!confirmClear) {
@@ -441,18 +502,29 @@ function DataSettings() {
     try {
       // Honest Delete Day via the tested leave service: wipe the local master
       // and emit only an anonymous account.left signal — no guilt, no nagging.
+      // When a hub is configured, also purge our authored changes from it
+      // (the hub-purge port, exploration 0344).
       const now = new Date().toISOString()
-      await deleteDay(createLeavePorts({ did: identity?.did }, now, LEAVE_DEPS), {
-        keepLocal: false,
-        now
-      })
+      const httpHub = atprotoHubHttpUrl()
+      const purgeRemote =
+        httpHub && getHubAuthToken
+          ? async () => {
+              await hubApiFetch(httpHub, await getHubAuthToken(), '/export/changes', {
+                method: 'DELETE'
+              })
+            }
+          : undefined
+      await deleteDay(
+        createLeavePorts({ did: identity?.did }, now, { ...LEAVE_DEPS, purgeRemote }),
+        { keepLocal: false, now }
+      )
       setCleared(true)
       setConfirmClear(false)
     } catch (err) {
       console.error('Failed to clear data:', err)
       setClearing(false)
     }
-  }, [confirmClear, identity?.did])
+  }, [confirmClear, identity?.did, getHubAuthToken])
 
   const handleCancelClear = useCallback(() => {
     setConfirmClear(false)
@@ -474,11 +546,45 @@ function DataSettings() {
           </span>
         </SettingRow>
 
-        <SettingRow label="Export data" description="Download a backup of all your documents">
-          <button onClick={handleExportData} disabled={exporting} className={QUIET_BUTTON}>
-            <Download size={14} strokeWidth={1.5} />
-            {exporting ? 'Exporting…' : 'Export'}
-          </button>
+        <SettingRow
+          label="Export data"
+          description="Download your workspace as a signed .xnetpack bundle — the full change log with history and document contents, re-importable here or on any xNet"
+        >
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={handleExportData}
+              disabled={exporting || !nodeStore || !authorDID}
+              className={QUIET_BUTTON}
+            >
+              <Download size={14} strokeWidth={1.5} />
+              {exporting ? 'Exporting…' : 'Export'}
+            </button>
+            {exportReport ? <span className="text-xs text-ink-3">{exportReport}</span> : null}
+          </div>
+        </SettingRow>
+
+        <SettingRow
+          label="Restore from bundle"
+          description="Verify and import an .xnetpack bundle. Records are checked (signatures, hash chain, owner) before anything is written"
+        >
+          <div className="flex flex-col items-end gap-1">
+            <label className={QUIET_BUTTON} style={{ cursor: 'pointer' }}>
+              <Download size={14} strokeWidth={1.5} className="rotate-180" />
+              {importing ? 'Importing…' : 'Choose file'}
+              <input
+                type="file"
+                accept=".xnetpack,.zip"
+                className="hidden"
+                disabled={importing || !nodeStore}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void handleImportFile(file)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+            {importReport ? <span className="text-xs text-ink-3">{importReport}</span> : null}
+          </div>
         </SettingRow>
 
         <SettingRow
@@ -658,6 +764,8 @@ function PrivacySettings() {
   const { allows, setTier } = useConsent()
   const crashes = allows('crashes')
   const anonymous = allows('anonymous')
+  const breadcrumbs = useReportBreadcrumbs()
+  const [reporting, setReporting] = useState(false)
 
   return (
     <SettingsPanel
@@ -682,13 +790,13 @@ function PrivacySettings() {
         <SettingRow
           label="Crash reporting"
           description={
-            isSentryConfigured()
-              ? 'Reports route to Sentry (EU region, PII scrubbed) when enabled above.'
-              : 'Stored locally only on this build — no external crash service is configured.'
+            isDiagnosticsConfigured()
+              ? 'Scrubbed reports go to our own first-party endpoint (no third-party error service) when enabled above.'
+              : 'Stored locally only on this build — no diagnostics endpoint is configured.'
           }
         >
           <span className="text-xs text-ink-2">
-            {isSentryConfigured() ? 'Sentry' : 'Local only'}
+            {isDiagnosticsConfigured() ? 'First-party' : 'Local only'}
           </span>
         </SettingRow>
         <SettingRow
@@ -698,6 +806,14 @@ function PrivacySettings() {
           <span className="text-xs text-ink-2">
             {isAnalyticsConfigured() ? 'Cookieless' : 'Off'}
           </span>
+        </SettingRow>
+        <SettingRow
+          label="Report a problem"
+          description="Send us a one-off debug report. You'll see exactly what's included and can edit it before anything is sent."
+        >
+          <button type="button" onClick={() => setReporting(true)} className={QUIET_BUTTON}>
+            Report a problem
+          </button>
         </SettingRow>
         <SettingRow label="Privacy policy" description="How we handle data, in plain language.">
           <a
@@ -710,7 +826,239 @@ function PrivacySettings() {
           </a>
         </SettingRow>
       </SettingsGroup>
+      {reporting && (
+        <ReportProblemDialog breadcrumbs={breadcrumbs} onClose={() => setReporting(false)} />
+      )}
+      <DiagnosticsConsoleSettings />
     </SettingsPanel>
+  )
+}
+
+/**
+ * Operator console for the hub's diagnostics inbox (exploration 0341). Only
+ * renders content when the connected hub answers the admin-gated summary —
+ * non-operators and hubless builds see nothing. "Import reports" drains the
+ * quarantine into the Diagnostics Space (bootstrapping it plus the Inbox /
+ * By release / By fingerprint saved views on first run). Below it: the two
+ * operator-facing escalation switches — per-report "Send to xNet" (preview →
+ * hub forwarder, only when sharing is configured) and time-boxed support
+ * access to the Diagnostics Space (red while active, one-click revoke).
+ */
+function DiagnosticsConsoleSettings() {
+  const { ready, summary, imported, importing, error, importReports } = useDiagnosticsInbox()
+  const navigate = useNavigate()
+
+  if (!ready || !summary) return null
+
+  const lastSeen = summary.lastSeenMs ? new Date(summary.lastSeenMs).toLocaleString() : null
+  return (
+    <SettingsGroup>
+      <SettingRow
+        label="Deployment diagnostics"
+        description={
+          summary.pending > 0
+            ? `${summary.pending} report${summary.pending === 1 ? '' : 's'} waiting on your hub${lastSeen ? ` · last seen ${lastSeen}` : ''}. Importing writes them into your Diagnostics Space — nothing has left your deployment.`
+            : 'No reports waiting on your hub. Crashes from this deployment land here, not on anyone else’s servers.'
+        }
+      >
+        <button
+          type="button"
+          onClick={() => void importReports()}
+          disabled={importing || summary.pending === 0}
+          className={QUIET_BUTTON}
+        >
+          {importing ? 'Importing…' : 'Import reports'}
+        </button>
+      </SettingRow>
+      {summary.topIssues.length > 0 && (
+        <SettingRow
+          label="Top issue"
+          description={`${summary.topIssues[0].errorName} (${summary.topIssues[0].shortId}) — seen ${summary.topIssues[0].occurrences}×`}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              void navigate({
+                to: '/view/$viewId',
+                params: { viewId: DIAGNOSTICS_CONSOLE_VIEW_ID }
+              })
+            }
+            className={QUIET_BUTTON}
+          >
+            Open console
+          </button>
+        </SettingRow>
+      )}
+      {imported !== null && !error && (
+        <SettingRow
+          label="Last import"
+          description={`${imported} report${imported === 1 ? '' : 's'} imported into the Diagnostics Space.`}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              void navigate({
+                to: '/view/$viewId',
+                params: { viewId: DIAGNOSTICS_CONSOLE_VIEW_ID }
+              })
+            }
+            className={QUIET_BUTTON}
+          >
+            Open console
+          </button>
+        </SettingRow>
+      )}
+      {error && <SettingRow label="Import failed" description={error} />}
+      <EscalationSettings />
+      <SupportAccessSettings />
+    </SettingsGroup>
+  )
+}
+
+/**
+ * Per-report escalation (0341 P4, switch 1 of 3): recent unescalated reports
+ * from the Diagnostics Space, each with a previewed "Send to xNet". Rendered
+ * only when the hub's diagnostics-sharing forwarder is configured — with
+ * sharing off, the forward route does not exist and neither does this UI.
+ */
+function EscalationSettings() {
+  const { hubUrl, getHubAuthToken } = useXNet()
+  const { store, isReady } = useNodeStore()
+  const [sharing, setSharing] = useState(false)
+  const [escalating, setEscalating] = useState<{
+    id: string
+    properties: Record<string, unknown>
+  } | null>(null)
+  const { data: reports } = useQuery(DebugReportSchema, {
+    orderBy: { lastSeen: 'desc' },
+    limit: 25
+  })
+
+  useEffect(() => {
+    if (!hubUrl) return
+    let cancelled = false
+    void fetch(`${normalizeHubHttpUrl(hubUrl)}/diagnostics/health`, { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((body: { sharing?: boolean }) => {
+        if (!cancelled) setSharing(Boolean(body.sharing))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [hubUrl])
+
+  // useQuery returns flattened nodes (properties on the node itself); the
+  // escalation payload composer allowlists, so passing the flat node is safe.
+  const pendingEscalation = (reports ?? []).filter((node) => !node.escalatedId).slice(0, 5)
+
+  if (!sharing || !store || !isReady || !hubUrl || !getHubAuthToken) return null
+  if (pendingEscalation.length === 0) return null
+
+  const request = async (path: string, init?: { method?: string; body?: unknown }) => {
+    const token = await getHubAuthToken()
+    if (!token) throw new Error('Not authenticated with the hub')
+    return hubApiFetch(normalizeHubHttpUrl(hubUrl), token, path, init)
+  }
+
+  return (
+    <>
+      {pendingEscalation.map((node) => (
+        <SettingRow
+          key={node.id}
+          label={String(node.errorName ?? 'Report')}
+          description={`Seen ${node.occurrences ?? 1}× · not shared with xNet. You'll preview the exact payload first.`}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              setEscalating({ id: node.id, properties: node as unknown as Record<string, unknown> })
+            }
+            className={QUIET_BUTTON}
+          >
+            Send to xNet…
+          </button>
+        </SettingRow>
+      ))}
+      {escalating && (
+        <EscalateReportDialog
+          nodeId={escalating.id}
+          properties={escalating.properties}
+          store={store}
+          request={request}
+          onClose={() => setEscalating(null)}
+        />
+      )}
+    </>
+  )
+}
+
+const SUPPORT_DURATIONS = [
+  { label: '24 hours', ms: 24 * 60 * 60 * 1000 },
+  { label: '7 days', ms: 7 * 24 * 60 * 60 * 1000 }
+] as const
+
+/**
+ * Time-boxed support access (0341 P4, switch 3 of 3). Red while a grant is
+ * live; expiry is enforced by the sweep on every render of this section.
+ */
+function SupportAccessSettings() {
+  const { store, isReady } = useNodeStore()
+  const { did } = useIdentity()
+  const supportDid = supportIdentityDid()
+  const [state, setState] = useState<SupportAccessState | null>(null)
+
+  const reload = useCallback(async () => {
+    if (!store || !supportDid) return
+    await sweepExpiredSupportAccess(store, supportDid)
+    setState(await getSupportAccess(store, supportDid))
+  }, [store, supportDid])
+
+  useEffect(() => {
+    if (isReady) void reload()
+  }, [isReady, reload])
+
+  if (!supportDid || !store || !isReady || !state) return null
+
+  if (state.active) {
+    return (
+      <SettingRow
+        label="xNet support access"
+        description={`xNet can currently read your Diagnostics Space${state.expiresAt ? ` until ${new Date(state.expiresAt).toLocaleString()}` : ''}. Only that Space — nothing else.`}
+      >
+        <button
+          type="button"
+          onClick={() => void revokeSupportAccess(store, supportDid).then(reload)}
+          className="rounded-md border border-red-500/50 px-3 py-1.5 text-xs text-red-500 hover:bg-red-500/10"
+        >
+          Revoke now
+        </button>
+      </SettingRow>
+    )
+  }
+
+  return (
+    <SettingRow
+      label="Let xNet help debug"
+      description="Grant xNet support read access to your Diagnostics Space only, for a fixed time. It expires by itself and you can revoke it any moment."
+    >
+      <div className="flex gap-2">
+        {SUPPORT_DURATIONS.map((duration) => (
+          <button
+            key={duration.label}
+            type="button"
+            onClick={() =>
+              void (did
+                ? grantSupportAccess(store, did, supportDid, duration.ms).then(reload)
+                : Promise.resolve())
+            }
+            className={QUIET_BUTTON}
+          >
+            {duration.label}
+          </button>
+        ))}
+      </div>
+    </SettingRow>
   )
 }
 
@@ -1036,6 +1384,108 @@ function GuardianSetupRow() {
   )
 }
 
+/**
+ * Recovery-anchor enrollment (0243/0322/0338). Once a user has linked an
+ * ATProto identity, they can protect their account with "Bluesky identity +
+ * PIN": we seal the recovery backup key under the PIN (`sealEscrow`) and enroll
+ * the sealed blob at the hub under the ATProto anchor. The hub can never open
+ * it; recovery needs both a proof of the ATProto account AND the PIN.
+ */
+function RecoveryAnchorRow() {
+  const { authorDID } = useXNet()
+  const did = authorDID ?? ''
+  const { data: profiles } = useQuery(ProfileSchema, {
+    where: { did: did as `did:key:${string}` }
+  })
+  const [pin, setPin] = useState('')
+  const [status, setStatus] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
+  const [message, setMessage] = useState('')
+
+  const profile = (profiles ?? []).find((p) => String(p.id) === profileNodeId(did)) as
+    | Record<string, unknown>
+    | undefined
+  const atprotoHandle = typeof profile?.atprotoHandle === 'string' ? profile.atprotoHandle : ''
+  const atprotoDid = typeof profile?.atprotoDid === 'string' ? profile.atprotoDid : ''
+
+  const enroll = useCallback(async () => {
+    if (pin.length < MIN_ESCROW_PIN_LENGTH || !did || !atprotoDid) return
+    setStatus('busy')
+    setMessage('')
+    try {
+      const phrase = await identityManager.exportRecoveryPhrase()
+      if (!phrase) throw new Error('This identity has no recovery phrase to protect.')
+      const { backupKey } = deriveKeysFromSeed(phrase)
+      const sealed = serializeEscrow(sealEscrow(backupKey, pin))
+      const bundle = await identityManager.unlock()
+      const httpHub = atprotoHubHttpUrl()
+      if (!httpHub) throw new Error('No hub configured to hold the escrow.')
+      const token = createUCAN({
+        issuer: did,
+        issuerKey: bundle.signingKey,
+        audience: configuredHubUrl(),
+        capabilities: [{ with: '*', can: 'backup/write' }],
+        expiration: Math.floor(Date.now() / 1000) + 300
+      })
+      const res = await fetch(`${httpHub}/recovery-anchor/enroll`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          xnetDid: did,
+          anchorSubject: atprotoDid,
+          sealedEscrowB64: bytesToBase64url(sealed)
+        })
+      })
+      if (!res.ok) throw new Error(`Hub rejected enrollment (${res.status})`)
+      setStatus('done')
+      setPin('')
+    } catch (err) {
+      setStatus('error')
+      setMessage(err instanceof Error ? err.message : String(err))
+    }
+  }, [pin, did, atprotoDid])
+
+  if (!atprotoHandle) {
+    return (
+      <SettingRow
+        label="Recovery anchor"
+        description="Link a Bluesky (ATProto) identity from your profile to protect your account with your global identity + a PIN. The hub never holds a key it could use alone."
+      >
+        <span className="text-[11px] text-ink-3">No linked identity yet</span>
+      </SettingRow>
+    )
+  }
+
+  return (
+    <SettingRow
+      label="Recovery anchor"
+      description={`Protect your account with @${atprotoHandle} + a PIN. We seal your recovery key under the PIN; the hub stores only the sealed blob and can never open it.`}
+    >
+      {status === 'done' ? (
+        <span className="text-[11px] text-green-600">Enrolled with @{atprotoHandle}</span>
+      ) : (
+        <div className="flex max-w-[300px] flex-col items-end gap-2">
+          <input
+            type="password"
+            inputMode="numeric"
+            placeholder={`PIN (min ${MIN_ESCROW_PIN_LENGTH})`}
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            className="h-8 w-40 rounded-md border border-hairline bg-surface-0 px-2 text-sm text-ink-1 outline-none"
+          />
+          <button
+            onClick={() => void enroll()}
+            disabled={status === 'busy' || pin.length < MIN_ESCROW_PIN_LENGTH}
+            className={QUIET_BUTTON}
+          >
+            {status === 'busy' ? 'Enrolling…' : 'Enroll recovery anchor'}
+          </button>
+          {status === 'error' && <span className="text-[11px] text-red-500">{message}</span>}
+        </div>
+      )}
+    </SettingRow>
+  )
+}
+
 function AccountSettings() {
   const { identity } = useIdentity()
   const [loggingOut, setLoggingOut] = useState(false)
@@ -1062,6 +1512,8 @@ function AccountSettings() {
         <RecoveryPhraseRow />
 
         <GuardianSetupRow />
+
+        <RecoveryAnchorRow />
 
         <SettingRow
           label="Log out"

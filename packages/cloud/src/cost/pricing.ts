@@ -154,6 +154,22 @@ export const PLAN_PRICING: Partial<Record<PlanId, PricingScenario>> = {
     period: 'month',
     inputs: { storageGbTypical: 95, activeHoursPerMonth: 0, warm: true, hotDbGb: 5, volume: 'fly' }
   },
+  community: {
+    // Flat, NOT per-member (exploration 0359). A community host pays for the
+    // operations we run — dedicated-project isolation, two warm units for the
+    // 2000-connection ceiling, 99.9 SLA — and grows their membership for free.
+    // Per-member pricing would rent them their own audience (Charter §6).
+    priceUsd: 99,
+    period: 'month',
+    inputs: {
+      storageGbTypical: 150,
+      activeHoursPerMonth: 0,
+      warm: true,
+      warmUnits: 2,
+      hotDbGb: 10,
+      volume: 'fly'
+    }
+  },
   enterprise: {
     priceUsd: 2000,
     period: 'month',

@@ -19,7 +19,7 @@ async function advanceOnboarding(page: import('@playwright/test').Page): Promise
       break
     }
 
-    const homeHeading = page.getByRole('heading', { name: /all documents/i })
+    const homeHeading = page.getByRole('heading', { name: /all documents|everything/i })
     const pagesText = page.getByText('Pages', { exact: true })
     if (
       ((await homeHeading.count()) > 0 && (await homeHeading.first().isVisible())) ||
@@ -40,7 +40,7 @@ test.describe('Editor UX mobile', () => {
     await advanceOnboarding(page)
     await expect(
       page
-        .getByRole('heading', { name: /all documents/i })
+        .getByRole('heading', { name: /all documents|everything/i })
         .or(page.getByText('Pages', { exact: true }))
     ).toBeVisible({ timeout: 30_000 })
 
@@ -52,22 +52,20 @@ test.describe('Editor UX mobile', () => {
     const editor = page.locator('[contenteditable="true"]').first()
     await editor.click()
     await page.keyboard.type('mobile toolbar slash test')
-    await page.keyboard.down('Shift')
-    await page.keyboard.press('ArrowLeft')
-    await page.keyboard.press('ArrowLeft')
-    await page.keyboard.press('ArrowLeft')
-    await page.keyboard.up('Shift')
+    // BlockNote's formatting toolbar opens on pointer selections (0312);
+    // double-click selects the last word.
+    await editor.getByText('mobile toolbar slash test').dblclick()
 
-    const toolbar = page.locator(
-      '[data-testid="editor-mobile-toolbar"], [data-testid="editor-desktop-toolbar"]'
-    )
+    const toolbar = page.locator('.bn-formatting-toolbar')
     await expect(toolbar.first()).toBeVisible()
     await page.screenshot({
       path: 'tmp/playwright/editor-mobile-toolbar-anchored.png',
       fullPage: true
     })
 
-    await page.keyboard.type('/code')
+    // Collapse the selection to the end before opening the slash menu.
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.type('\n/code')
     await page.keyboard.press('Enter')
     await page.screenshot({
       path: 'tmp/playwright/editor-mobile-codeblock-focus.png',

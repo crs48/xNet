@@ -1,0 +1,19 @@
+{
+  "id": "2026-07-18-documents-now-embed-live-databases-maps-",
+  "date": "July 18, 2026",
+  "title": "Documents now embed live databases, maps, and pages",
+  "summary": "Pages compose like Lego: slash in a live view of any database (table, board, map, calendar and plugin views), transclude other pages, and drop nodes onto frames to link or add rows. Hovering a row lights the same item up in every frame on the page, every surface carries the same node passport, and the assistant can compose whole pages of live frames with a reviewable plan.",
+  "highlights": [],
+  "tags": [
+    "editor",
+    "app",
+    "ai"
+  ],
+  "pr": 552,
+  "mergedAt": "2026-07-18T17:46:54Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

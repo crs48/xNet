@@ -17,6 +17,7 @@ import {
   Activity,
   ArrowLeftRight,
   BarChart3,
+  Bot,
   Boxes,
   Braces,
   Clock,
@@ -190,6 +191,15 @@ export const DEVTOOLS_PANELS: DevtoolsPanelDef[] = [
     tier: 'secondary',
     keywords: ['moderation', 'labels', 'reputation', 'quota', 'policy'],
     description: 'Policy decisions, labels, and peer scores'
+  },
+  {
+    id: 'agent-audit',
+    label: 'Agent Audit',
+    icon: Bot,
+    group: 'activity',
+    tier: 'secondary',
+    keywords: ['agent', 'openclaw', 'hermes', 'audit', 'approval', 'passport', 'ceremony'],
+    description: 'Every agent tool call, its risk tier, and its approval trail'
   },
   {
     id: 'security',

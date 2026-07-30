@@ -1,0 +1,74 @@
+---
+import SectionHeader from '../ui/SectionHeader.astro'
+
+// The positive half of the argument: after The Turn shows what xNet refuses
+// to do, this says what the open foundation is *for*. Moved here from the
+// landing page's TheVision section (exploration 0384).
+const enables = [
+  {
+    title: 'Apps that work together',
+    description: 'Shared contacts, unified search, data that flows between tools.',
+  },
+  {
+    title: 'Data portability',
+    description: 'Export everything, anytime. Your data, your format, your choice.',
+  },
+  {
+    title: 'Community schemas',
+    description: 'Like npm for data types. Share and reuse data structures.',
+  },
+  {
+    title: 'Decentralized social',
+    description: 'Follows, feeds, comments — without a platform in the middle.',
+  },
+]
+---
+
+<section id="vision" class="py-24 lg:py-32 border-t border-border/50">
+  <div class="mx-auto max-w-6xl px-6">
+    <SectionHeader
+      title="Imagine if all your apps could share data"
+      subtitle="Your task manager, your notes, your calendar, your CRM — all on the same underlying data layer. Offline. Private. Yours."
+      align="center"
+    />
+
+    <div class="mx-auto mt-12 max-w-3xl">
+      <div class="animate-on-scroll rounded-xl border border-purple-500/20 bg-purple-500/[0.03] p-8">
+        <p class="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
+          Tesla built Warp — their own ERP connecting every bolt, every person, every decision.
+          Love them or hate them, it's why they're the most vertically integrated company on the planet.
+          <strong class="text-purple-400">They own their nervous system and can adapt it as needed. We don't own ours.</strong>
+        </p>
+        <p class="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
+          Beneath every forest, a mycelial network connects the trees — sharing water, nutrients, signals.
+          Data should work like soil: an open foundation that lets everything grow.
+        </p>
+        <p class="text-gray-500 dark:text-gray-400 text-sm">
+          xNet is an open protocol for local-first apps where data flows freely between devices, users, and applications.
+          Not blockchain. Not Web3. Just good architecture that puts you in control.
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {enables.map((item) => (
+        <div class="animate-on-scroll rounded-lg border border-border bg-surface/30 dark:bg-surface/50 p-5 text-center transition-all hover:border-purple-500/30">
+          <h4 class="font-semibold text-gray-700 dark:text-gray-200 mb-1">{item.title}</h4>
+          <p class="text-xs text-gray-500 dark:text-gray-400">{item.description}</p>
+        </div>
+      ))}
+    </div>
+
+    <div class="mt-10 flex justify-center">
+      <a
+        href="/roadmap"
+        class="inline-flex items-center gap-2 text-sm font-medium text-purple-500 hover:text-purple-400 transition-colors"
+      >
+        Read the roadmap
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>

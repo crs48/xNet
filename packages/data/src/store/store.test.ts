@@ -610,6 +610,75 @@ describe('NodeStore', () => {
       expect(await target.store.get('bad-node')).toBeNull()
     })
 
+    it('verifyRemoteChanges reports per-change verdicts positionally (0357)', async () => {
+      const source = createTestStore()
+      const target = createTestStore()
+      await source.store.initialize()
+      await target.store.initialize()
+
+      const first = await source.store.create({
+        id: 'verify-1',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'One' }
+      })
+      const second = await source.store.create({
+        id: 'verify-2',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Two' }
+      })
+      const [changeOne] = await source.store.getChanges(first.id)
+      const [changeTwo] = await source.store.getChanges(second.id)
+
+      // Tampered payload → hash no longer matches.
+      const tampered: NodeChange = {
+        ...changeOne,
+        payload: { ...changeOne.payload, properties: { title: 'Forged' } }
+      }
+      // Intact hash, but the signature is garbage.
+      const forgedSignature: NodeChange = {
+        ...changeTwo,
+        signature: new Uint8Array(64)
+      }
+
+      const verdicts = await target.store.verifyRemoteChanges([
+        changeOne,
+        tampered,
+        forgedSignature,
+        changeTwo
+      ])
+
+      expect(verdicts).toEqual([true, false, false, true])
+    })
+
+    it('preVerified never bypasses authorization (0357)', async () => {
+      // The preVerified seam skips ONLY crypto. A change that passes
+      // verification but fails authz must still be refused.
+      const source = createTestStore()
+      await source.store.initialize()
+
+      const node = await source.store.create({
+        id: 'authz-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Guarded' }
+      })
+      const [change] = await source.store.getChanges(node.id)
+
+      const target = createTestStore()
+      const guarded = new NodeStore({
+        storage: target.adapter,
+        authorDID: target.did,
+        signingKey: target.privateKey,
+        authEvaluator: createAuthEvaluator(() => false)
+      })
+      await guarded.initialize()
+
+      const verdicts = await guarded.verifyRemoteChanges([change])
+      expect(verdicts).toEqual([true])
+
+      await guarded.applyRemoteChange(change, { preVerified: true })
+      expect(await guarded.get('authz-node')).toBeNull()
+    })
+
     it('should track conflicts', async () => {
       const store1Setup = createTestStore()
       const store2Setup = createTestStore()

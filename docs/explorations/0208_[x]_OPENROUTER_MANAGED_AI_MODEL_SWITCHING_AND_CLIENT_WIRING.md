@@ -4,12 +4,12 @@
 
 The ask, in the user's words:
 
-> Integrate **OpenRouter** into the XNet cloud offering so we can have **metered
+> Integrate **OpenRouter** into the xNet cloud offering so we can have **metered
 > billing of AI** and the **ability to switch between models**. Wire it up so it
-> works with the **existing web APIs for AI through XNet Cloud**.
+> works with the **existing web APIs for AI through xNet Cloud**.
 
 There are three intertwined goals: (1) metered billing of AI, (2) model
-switching, and (3) make it work through the AI web APIs XNet already has.
+switching, and (3) make it work through the AI web APIs xNet already has.
 
 The honest starting point is that **the metered-billing half is already built and
 merged**. Exploration
@@ -404,7 +404,7 @@ sequenceDiagram
 export type AIProviderType =
   | 'anthropic' | 'openai' | 'ollama' | 'openai-compatible'
   | 'openrouter' | 'ollama-openai' | 'lmstudio' | 'vllm' | 'litellm'
-  | 'managed' // ← XNet Cloud metered AI, routed through the hub; no API key
+  | 'managed' // ← xNet Cloud metered AI, routed through the hub; no API key
   | 'custom'
 
 export interface ManagedProviderOptions {

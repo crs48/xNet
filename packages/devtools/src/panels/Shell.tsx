@@ -15,6 +15,7 @@ import { useEffect, useState, type MouseEvent as ReactMouseEvent, type CSSProper
 import { DEFAULTS } from '../core/constants'
 import { useDevTools } from '../provider/useDevTools'
 import { AbusePanel } from './AbusePanel/AbusePanel'
+import { AgentAuditPanel } from './AgentAuditPanel/AgentAuditPanel'
 import { AuthZPanel } from './AuthZPanel/AuthZPanel'
 import { ChangeTimeline } from './ChangeTimeline/ChangeTimeline'
 import { DevToolsPalette } from './CommandPalette/DevToolsPalette'
@@ -128,7 +129,7 @@ export function DevToolsPanel() {
               </button>
             }
           >
-            <div className="w-56 max-h-[50vh] overflow-y-auto py-1">
+            <div className="scroll-fade w-56 max-h-[50vh] overflow-y-auto py-1">
               {secondaryPanelsByGroup().map(({ group, panels }) => (
                 <div key={group} className="py-1">
                   <div className="px-3 py-0.5 text-[9px] font-bold uppercase tracking-wide text-ink-3">
@@ -251,6 +252,8 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
       return <AuthZPanel />
     case 'abuse':
       return <AbusePanel />
+    case 'agent-audit':
+      return <AgentAuditPanel />
     case 'telemetry':
       return <TelemetryPanel />
     case 'schemas':

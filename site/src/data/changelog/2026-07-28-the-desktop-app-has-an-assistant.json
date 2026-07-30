@@ -1,0 +1,18 @@
+{
+  "id": "2026-07-28-the-desktop-app-has-an-assistant",
+  "date": "July 28, 2026",
+  "title": "The desktop app has an Assistant",
+  "summary": "Open Assistant from the system menu or command palette to chat with your workspace on desktop. It finds your Claude Code or Codex subscription automatically and pairs with one click — your model, your machine, and it can search and read your actual pages and data.",
+  "highlights": [],
+  "tags": [
+    "ai",
+    "app"
+  ],
+  "pr": 648,
+  "mergedAt": "2026-07-28T20:33:29Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

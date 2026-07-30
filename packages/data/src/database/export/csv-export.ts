@@ -119,6 +119,13 @@ export function formatValue(
       return start && end ? `${start} - ${end}` : start || end
     }
 
+    case 'geo': {
+      const point = value as { lat?: number; lng?: number }
+      return typeof point.lat === 'number' && typeof point.lng === 'number'
+        ? `${point.lat}, ${point.lng}`
+        : ''
+    }
+
     case 'checkbox':
       return value ? 'true' : 'false'
 

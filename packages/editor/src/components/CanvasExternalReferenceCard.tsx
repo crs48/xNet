@@ -10,7 +10,7 @@ import {
   type ExternalReferenceMetadataResult
 } from '@xnetjs/data'
 import React, { useEffect, useMemo, useState } from 'react'
-import { EMBED_PROVIDERS, parseEmbedUrl, type EmbedProvider } from '../extensions/embed'
+import { EMBED_PROVIDERS, parseEmbedUrl, type EmbedProvider } from '@xnetjs/data'
 import { cn } from '../utils'
 import {
   createCanvasExternalReferenceCardRenderer,

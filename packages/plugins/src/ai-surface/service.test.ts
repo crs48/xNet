@@ -197,7 +197,11 @@ const EXPECTED_BUILT_IN_TOOLS: Record<string, { risk: string; requiredScopes: st
     requiredScopes: ['canvas.read', 'canvas.propose']
   },
   xnet_plan_canvas_mutation: { risk: 'medium', requiredScopes: ['canvas.read', 'canvas.propose'] },
-  xnet_validate_mutation_plan: { risk: 'medium', requiredScopes: ['workspace.read'] }
+  xnet_validate_mutation_plan: { risk: 'medium', requiredScopes: ['workspace.read'] },
+  // Frame placement (0346) — the agent as declarative composer.
+  xnet_plan_frame_placement: { risk: 'medium', requiredScopes: ['page.read', 'page.propose'] },
+  xnet_apply_frame_placement: { risk: 'high', requiredScopes: ['page.write'] },
+  xnet_compose_page: { risk: 'high', requiredScopes: ['page.write'] }
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
@@ -480,6 +484,56 @@ describe('AiSurfaceService characterization (0276)', () => {
       expect(result.planId).toBe('plan_bogus')
       expect(result.validation.valid).toBe(false)
       expect(result.validation.errors.length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('frame placement (0346: plan → apply, compose)', () => {
+    it('plans frame directives appended to the page and applies them', async () => {
+      const plan = (await service.callTool('xnet_plan_frame_placement', {
+        pageId: 'page-1',
+        placements: [
+          { nodeId: 'db-1', kind: 'database', viewType: 'map' },
+          { nodeId: 'page-1', kind: 'page', title: 'Self reference' }
+        ]
+      })) as AiMutationPlan
+
+      expect(plan.validation.valid).toBe(true)
+      expect(plan.requiredScopes).toEqual(['page.read', 'page.propose'])
+      const markdown = (plan.changes[0].operations[0].args as { markdown: string }).markdown
+      expect(markdown).toContain(':::xnet-database')
+      expect(markdown).toContain('"viewType":"map"')
+      expect(markdown).toContain(':::xnet-page')
+
+      const applied = (await service.callTool('xnet_apply_frame_placement', {
+        plan,
+        confirmApply: true
+      })) as AiPageMarkdownApplyResult
+      expect(applied.applied).toBe(true)
+      expect(applied.auditEventId).toBeTruthy()
+    })
+
+    it('composes a new page of frames in one audited step', async () => {
+      const result = (await service.callTool('xnet_compose_page', {
+        title: 'Trip planner',
+        intro: 'Everything about the trip.',
+        placements: [{ nodeId: 'db-1', kind: 'database', viewType: 'table' }],
+        confirmApply: true
+      })) as { pageId: string; applied: boolean }
+
+      expect(result.applied).toBe(true)
+      const created = store.nodes.get(result.pageId)
+      expect(created?.schemaId).toBe(PAGE_SCHEMA)
+      expect(created?.properties.title).toBe('Trip planner')
+    })
+
+    it('refuses to compose without confirmApply', async () => {
+      await expect(
+        service.callTool('xnet_compose_page', {
+          title: 'Nope',
+          placements: [{ nodeId: 'db-1' }],
+          confirmApply: false
+        })
+      ).rejects.toThrow('confirmApply must be true to compose a page')
     })
   })
 

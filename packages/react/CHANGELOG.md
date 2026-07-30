@@ -1,5 +1,273 @@
 # @xnetjs/react
 
+## 3.0.0
+
+### Patch Changes
+
+- [#571](https://github.com/crs48/xNet/pull/571) [`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6) Thanks [@crs48](https://github.com/crs48)! - Document alpha status in every package README. xNet is released — these packages
+  are on npm and usable today — but it is early software: APIs can change between
+  releases, sometimes without a migration path. Each README now says so up front,
+  so the notice is visible on the npm package page. Docs only; no code changes.
+
+- [#587](https://github.com/crs48/xNet/pull/587) [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe) Thanks [@crs48](https://github.com/crs48)! - Fix TypeScript type resolution for every package's export map, and ship
+  `@xnetjs/data/portability`.
+
+  `types` was ordered after `import` in 48 export subpaths across 19 packages.
+  Export conditions are order-sensitive, so TypeScript could resolve the wrong
+  entry — or no types at all — depending on the consumer's `moduleResolution`.
+  `types` is now first everywhere.
+
+  `@xnetjs/data` also advertised a `./portability` subpath that was never added to
+  its build, so `@xnetjs/data/portability` — the `.xnetpack` export/import codec —
+  did not resolve at all for consumers. It now builds and ships.
+
+  Both were found by adding `publint` to CI.
+
+- [#565](https://github.com/crs48/xNet/pull/565) [`649cdf7`](https://github.com/crs48/xNet/commit/649cdf74eaf62aa2c08186857b3cd695efa5e3f6) Thanks [@crs48](https://github.com/crs48)! - Spell the brand `xNet` consistently in source comments
+
+  Doc-comment and JSDoc prose only — no exported names, signatures, runtime
+  values, or wire contracts changed. Included so the release notes record why
+  these packages show a diff.
+
+- Updated dependencies [[`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6), [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe), [`215d61d`](https://github.com/crs48/xNet/commit/215d61d586048c7d7d2221947bdcde7966172907), [`33f4b9e`](https://github.com/crs48/xNet/commit/33f4b9ef38c72b2e898f7a4a4de83cc08b0aea88), [`0edfbee`](https://github.com/crs48/xNet/commit/0edfbeefb6b7cf50c0f6a4c2a638bfe5d79ce6ce), [`e48eb34`](https://github.com/crs48/xNet/commit/e48eb345832db3fab41dd7e3ac70a08f8c86c343), [`22892a6`](https://github.com/crs48/xNet/commit/22892a674e2dc3ae7a86ac81d6c20de559b852ed), [`ee9f4dc`](https://github.com/crs48/xNet/commit/ee9f4dcb66d52edcf73216a03b068de8555e57d7), [`0f26bc9`](https://github.com/crs48/xNet/commit/0f26bc96b9261a8ee0589d94dd276c78017dcc1a), [`60337df`](https://github.com/crs48/xNet/commit/60337dfa61ab7afaa5768169d1a89e7398827b6c), [`a4097e5`](https://github.com/crs48/xNet/commit/a4097e58bf568a19a737ce78783838913fd89fc3), [`649cdf7`](https://github.com/crs48/xNet/commit/649cdf74eaf62aa2c08186857b3cd695efa5e3f6), [`649cdf7`](https://github.com/crs48/xNet/commit/649cdf74eaf62aa2c08186857b3cd695efa5e3f6)]:
+  - @xnetjs/billing@0.0.3
+  - @xnetjs/core@3.0.0
+  - @xnetjs/crypto@3.0.0
+  - @xnetjs/data@3.0.0
+  - @xnetjs/data-bridge@3.0.0
+  - @xnetjs/history@3.0.0
+  - @xnetjs/identity@3.0.0
+  - @xnetjs/plugins@3.0.0
+  - @xnetjs/runtime@0.6.0
+  - @xnetjs/sync@3.0.0
+
+## 2.5.0
+
+### Minor Changes
+
+- [#552](https://github.com/crs48/xNet/pull/552) [`c7ef045`](https://github.com/crs48/xNet/commit/c7ef0456bfc75b5813d8a9d34f465f13a1e088ae) Thanks [@crs48](https://github.com/crs48)! - Composable UI frames (exploration 0346). The `@xnetjs/editor` and
+  `@xnetjs/views` surfaces are release-ignored packages; their changes ship
+  with the app. Live embeds in documents (Phase 1): `databaseEmbed` blocks
+  now pass any registry view type through to the host (map, timeline, plugin
+  views — not just the built-in six), `pageEmbed` blocks render a host-provided
+  live summary transclusion via the new `renderPageEmbed` host callback, and the
+  slash menu gains a `/view of…` command backed by the new
+  `onSelectDatabaseView` host picker. Adds `extractDocPreviewLines` for
+  summary-tier text extraction from a v4 document fragment.
+
+  `@xnetjs/views` gains the Frame contract (0346 Phase 2): `FrameDef` /
+  `FrameSource` / `FrameTier`, the `FrameRenderer` + `frameSourceRegistry`
+  (schema-dispatched node frames, saved-query frames, curated collection
+  frames, depth-clamped transclusion), container adapters
+  (`frameFromDatabaseEmbed` / `frameFromPageEmbed` / `frameFromCanvasNode`),
+  and the generic dashboard frame widget (`registerFrameWidget`).
+
+  `@xnetjs/react` gains the entangle bus (0346 Phase 3): `EntangleProvider`
+  / `useEntangledHighlight` / `useEntangleBind` — page-scoped hover/select
+  co-presence so frames on one page (grid rows, board cards, calendar
+  chips, map pins, wikilink chips) highlight the same node together.
+  `ReverseRelationsPanel` gains an `onOpenAsFrame` action.
+
+  `@xnetjs/plugins` (0346 Phase 5): new agent tools
+  `xnet_plan_frame_placement` / `xnet_apply_frame_placement` /
+  `xnet_compose_page` — the agent composes pages of live frames through
+  the standard plan → validate → apply pipeline (declarative tier only).
+  Plugins gain `registerFrameRenderer` with the own-views-only namespacing
+  rule.
+
+  `@xnetjs/data` (0346 Phase 5): cross-node formula scope — `RELATED()`
+  and `NODE()` context functions widen the one formula language from row →
+  relations → named nodes (host-resolved, cache-bypassed until 0317's
+  precise invalidation). Pages gain an additive
+  `geometry: stack | grid | space` property (default `stack`).
+
+### Patch Changes
+
+- Updated dependencies [[`c7ef045`](https://github.com/crs48/xNet/commit/c7ef0456bfc75b5813d8a9d34f465f13a1e088ae)]:
+  - @xnetjs/plugins@2.5.0
+  - @xnetjs/data@2.5.0
+  - @xnetjs/runtime@0.5.5
+  - @xnetjs/data-bridge@2.5.0
+  - @xnetjs/history@2.5.0
+  - @xnetjs/sync@2.5.0
+  - @xnetjs/identity@2.5.0
+  - @xnetjs/crypto@2.5.0
+  - @xnetjs/core@2.5.0
+
+## 2.4.0
+
+### Patch Changes
+
+- Updated dependencies [[`1c7b9c9`](https://github.com/crs48/xNet/commit/1c7b9c9c3804fc0d4c80b032ae0ebc0163714c52)]:
+  - @xnetjs/data@2.4.0
+  - @xnetjs/data-bridge@2.4.0
+  - @xnetjs/history@2.4.0
+  - @xnetjs/plugins@2.4.0
+  - @xnetjs/runtime@0.5.4
+  - @xnetjs/sync@2.4.0
+  - @xnetjs/identity@2.4.0
+  - @xnetjs/crypto@2.4.0
+  - @xnetjs/core@2.4.0
+
+## 2.3.0
+
+### Minor Changes
+
+- [#536](https://github.com/crs48/xNet/pull/536) [`3ea44c6`](https://github.com/crs48/xNet/commit/3ea44c6354e3f55443d3c3b49d8ca1f9c0941987) Thanks [@crs48](https://github.com/crs48)! - OAuth + shared global identity (exploration 0338).
+
+  New, additive public surface — nothing removed or renamed:
+  - `@xnetjs/identity`: ATProto bridge (`@xnetjs/identity` re-exports
+    `parseAnyDid`/`isAtprotoDid`/`createAtprotoBinding`/`verifyAtprotoBinding`,
+    represent-only foreign DIDs — `parseDID` signing guarantees unchanged), the
+    `net.x.identity.binding` record, `derivePlcRotationKey` +
+    `withUserPriorityRotationKey` (user-priority did:plc rotation key from the
+    recovery seed), the `RecoveryAnchorProvider` contract, and `ucanTokenId` +
+    a per-token `nonce` on `createUCAN` (0307-B least-privilege/revocation).
+  - `@xnetjs/data`: `ProfileSchema` gains `atprotoDid`/`atprotoHandle`/
+    `atprotoBindingUri`; new `evaluateLedgerWrite` account-ledger enforcement
+    helpers.
+  - `@xnetjs/react`: onboarding gains the ATProto login-door state + the
+    injectable `RunAtprotoCeremony` contract ("Continue with Bluesky / any PDS").
+
+### Patch Changes
+
+- [#539](https://github.com/crs48/xNet/pull/539) [`e2ec439`](https://github.com/crs48/xNet/commit/e2ec43932ec3b05e74765a537ae9b94a219c7c36) Thanks [@crs48](https://github.com/crs48)! - docs(exploration): renumber database views 0337 -> 0339 (collision with OpenClaw 0337)
+
+  Two explorations claimed 0337; the OpenClaw agent-audit doc's first
+  commit (18:05:21) predates the database-views doc (18:07:01), so per the
+  collision rule the database-views doc renumbers. Comment references in
+  the code it introduced follow. No behavior change (empty changeset).
+
+  Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+
+  Signed-off-by: xNet Test <test@xnet.dev>
+
+- Updated dependencies [[`e2ec439`](https://github.com/crs48/xNet/commit/e2ec43932ec3b05e74765a537ae9b94a219c7c36), [`735d491`](https://github.com/crs48/xNet/commit/735d491217a964c5210140ac58925db0ecdd765e), [`d246195`](https://github.com/crs48/xNet/commit/d2461957723cc4c9e6366192670127f8bd1d458d), [`3ea44c6`](https://github.com/crs48/xNet/commit/3ea44c6354e3f55443d3c3b49d8ca1f9c0941987)]:
+  - @xnetjs/data@2.3.0
+  - @xnetjs/identity@2.3.0
+  - @xnetjs/data-bridge@2.3.0
+  - @xnetjs/history@2.3.0
+  - @xnetjs/plugins@2.3.0
+  - @xnetjs/runtime@0.5.3
+  - @xnetjs/sync@2.3.0
+  - @xnetjs/crypto@2.3.0
+  - @xnetjs/core@2.3.0
+
+## 2.2.0
+
+### Minor Changes
+
+- [#535](https://github.com/crs48/xNet/pull/535) [`2962c28`](https://github.com/crs48/xNet/commit/2962c28afd0b5c15ce42ee1b42e58e6c55868d5a) Thanks [@crs48](https://github.com/crs48)! - Database views (exploration 0337): `DatabaseViewSchema` gains a `map` view type and per-view presentation config — `colorBy`, `coverFit`, `groupMeta` (per-stack order/hidden overrides), `latField`/`lngField`, and a persisted `mapViewport`. `useGridDatabase` exposes the new config on `GridViewModel`, reports the fetch window (`rowWindow: { size, total }` for truncation-honest views), accepts a `spatial` query window option (map views fetch only the visible viewport), and adds `setViewConfig(patch)`, `updateRowCells(rowId, cells, { sortKey })` (one-write card moves), and `setGroupCollapsed` mutators. Timeline views now report `supportsGrouping` (swimlanes). All additions are optional fields — existing views are unaffected.
+
+### Patch Changes
+
+- Updated dependencies [[`2962c28`](https://github.com/crs48/xNet/commit/2962c28afd0b5c15ce42ee1b42e58e6c55868d5a)]:
+  - @xnetjs/data@2.2.0
+  - @xnetjs/data-bridge@2.2.0
+  - @xnetjs/history@2.2.0
+  - @xnetjs/plugins@2.2.0
+  - @xnetjs/runtime@0.5.2
+  - @xnetjs/sync@2.2.0
+  - @xnetjs/identity@2.2.0
+  - @xnetjs/crypto@2.2.0
+  - @xnetjs/core@2.2.0
+
+## 2.1.0
+
+### Minor Changes
+
+- [#534](https://github.com/crs48/xNet/pull/534) [`5473a29`](https://github.com/crs48/xNet/commit/5473a292597f0b47aa804af7ee2e38e25a549137) Thanks [@crs48](https://github.com/crs48)! - `useGridDatabase` now pages database rows through a growing window instead of a fixed 500-row page: new `fetchMoreRows()` grows the window by `pageSize` (default 500) up to `maxLoaded` (default 2000, configurable via options), and the result exposes `totalRowCount` (exact matching count), `hasMoreRows`, and `isFetchingMoreRows` so grids can render honest totals and infinite scroll. Existing consumers keep working unchanged — rows still arrive sorted by `sortKey` on the live query path.
+
+### Patch Changes
+
+- Updated dependencies [[`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708), [`fa93e2f`](https://github.com/crs48/xNet/commit/fa93e2f7177367e7336f6a825f8c3436a2165833)]:
+  - @xnetjs/data@2.1.0
+  - @xnetjs/identity@2.1.0
+  - @xnetjs/plugins@2.1.0
+  - @xnetjs/data-bridge@2.1.0
+  - @xnetjs/history@2.1.0
+  - @xnetjs/runtime@0.5.1
+  - @xnetjs/sync@2.1.0
+  - @xnetjs/crypto@2.1.0
+  - @xnetjs/core@2.1.0
+
+## 2.0.0
+
+### Minor Changes
+
+- [#496](https://github.com/crs48/xNet/pull/496) [`85c9700`](https://github.com/crs48/xNet/commit/85c9700d6de11459f39083a1824f9cbf79cdb7bd) Thanks [@crs48](https://github.com/crs48)! - Yjs fragment readers understand the BlockNote document schema (exploration 0312).
+
+  Documents now live in the `content-v4` fragment using BlockNote's ProseMirror
+  shape (`blockGroup > blockContainer > blockContent`); the legacy TipTap
+  `content` fragment remains readable as a fallback until each doc is lazily
+  imported.
+  - `@xnetjs/data`: `getRichTextPlainText` extracts text from BlockNote-shaped
+    rich-text cells, including the new inline atoms (`mention` → `@label`,
+    `hashtag` → `#name`, `wikilink` → title, `inlineMath` → latex), while still
+    reading legacy TipTap-shaped cells.
+  - `@xnetjs/history`: version-diff text extraction prefers `content-v4` (legacy
+    `content` fallback) and renders BlockNote inline atoms as readable text.
+  - `@xnetjs/react`: new `useMergedEditorContributions` /
+    `mergeEditorContributions` (+ `MergedEditorContributions` type) collect
+    plugin-contributed BlockNote `blockSpecs`/`inlineContentSpecs`/`styleSpecs`
+    and slash menu items from the plugin registry, running the editor
+    schema-skew guard (`warnOnEditorSchemaRisks`) against the host's statically
+    bundled spec names and excluding un-bundled (skew-hazard) specs.
+  - `@xnetjs/runtime`: blob-CID retention scanning now also walks the
+    `content-v4` and `content` fragments, so blobs referenced from page
+    documents are discovered.
+
+- [#523](https://github.com/crs48/xNet/pull/523) [`dd956e5`](https://github.com/crs48/xNet/commit/dd956e512b60f3b4288ae4fb0cb2ade875da1f9f) Thanks [@crs48](https://github.com/crs48)! - Drafts UI plumbing (exploration 0329 P2/P3).
+  - `@xnetjs/react`: new `useDraft(hostId)` hook (hooks sub-barrel) binding the
+    draft engine and the NodeStore checkout overlay — list/create open drafts
+    for a host, `checkout` (content-swap reads + lazy copy-on-write via
+    `onMissingMember` → `forkNodeIntoDraft`), `returnToMain`, `discard`
+    (leaves the checkout first), `merge` (merger-signed squash; returns
+    conflict cards), `refresh` (fold main into the draft; pauses on
+    conflicts), `setReviewRequested`, and `computeReview` — per-property
+    three-way review cards (base at fork vs main now vs draft now) plus Yjs
+    document-differs indicators, computed without applying anything. Database
+    hosts widen the member scope to their row nodes. Re-exports
+    `DraftMergeConflict`, `MergeDraftResult`, `RefreshDraftResult` for
+    consumers.
+  - `@xnetjs/data`: the `Draft` schema gains an optional `reviewRequested`
+    checkbox (default `false`) — the P4 request-surfacing flag the
+    Inbox/Requests surface lists open drafts by.
+
+- [#523](https://github.com/crs48/xNet/pull/523) [`0f7ef43`](https://github.com/crs48/xNet/commit/0f7ef435afab91022433ae6c60c3a71510a1d036) Thanks [@crs48](https://github.com/crs48)! - Time Machine P1 (exploration 0329): frontiers, checkpoints, pins, prune horizon, scope timelines, production Yjs snapshot capture, and a React scrub hook.
+  - `@xnetjs/history`: new `Frontier` primitive (hash-anchored per-node positions:
+    `captureFrontier`, `frontierAtWallTime`, `frontierTarget`,
+    `materializeAtFrontier`, Yjs snapshot refs + pin keys); named checkpoints
+    (`createCheckpoint`, `listCheckpoints`, `deleteCheckpoint`, `pinFrontier`,
+    `restoreToFrontier`); `ScopeTimeline`/`ScopeScrubCache` generalizing
+    `SchemaTimeline` to arbitrary node sets; `HistoryHorizonError` +
+    `HistoryEngine.getHorizon` — targets below the prune horizon now fail loudly
+    instead of silently remapping to the wrong change.
+  - `@xnetjs/data`: `Checkpoint` node schema (`CHECKPOINT_SCHEMA_IRI`); pin
+    registry on storage adapters (`NodeStorageAdapter.pins`, `PinEntry`,
+    `PinRegistry`) protecting pinned changes and Yjs snapshots from pruning and
+    eviction (memory + SQLite implementations).
+  - `@xnetjs/sqlite`: `pinned_changes` table (additive migration).
+  - `@xnetjs/runtime`: Yjs history snapshots are now captured on production doc
+    persists (throttled session-boundary/min-interval capture in NodePool).
+  - `@xnetjs/react`: new `useTimeMachine` hook (hooks sub-barrel) binding a
+    scrubber UI to the merged scope timeline: position/step navigation, preview +
+    property diff at the scrub position, named versions, one-transaction restore,
+    and history-horizon reporting.
+
+### Patch Changes
+
+- Updated dependencies [[`6a5a15e`](https://github.com/crs48/xNet/commit/6a5a15e5d7693f54a0c859b1f096dc6405694574), [`2a7b80f`](https://github.com/crs48/xNet/commit/2a7b80f613d1c7b5db637639d4a3176df23ae1f3), [`85c9700`](https://github.com/crs48/xNet/commit/85c9700d6de11459f39083a1824f9cbf79cdb7bd), [`a91f278`](https://github.com/crs48/xNet/commit/a91f278ac122c588145ebb5f3981f6745b30ba66), [`dd956e5`](https://github.com/crs48/xNet/commit/dd956e512b60f3b4288ae4fb0cb2ade875da1f9f), [`e4cb876`](https://github.com/crs48/xNet/commit/e4cb876cc49fcf94a71d015dd60683ff038b367c), [`e2e78cd`](https://github.com/crs48/xNet/commit/e2e78cd319723972591e1aae9d87af4588edfda3), [`0f7ef43`](https://github.com/crs48/xNet/commit/0f7ef435afab91022433ae6c60c3a71510a1d036)]:
+  - @xnetjs/plugins@2.0.0
+  - @xnetjs/data@2.0.0
+  - @xnetjs/history@2.0.0
+  - @xnetjs/runtime@0.5.0
+  - @xnetjs/data-bridge@2.0.0
+  - @xnetjs/sync@2.0.0
+  - @xnetjs/identity@2.0.0
+  - @xnetjs/crypto@2.0.0
+  - @xnetjs/core@2.0.0
+
 ## 1.0.0
 
 ### Minor Changes

@@ -2,24 +2,16 @@
  * usePageComments - the shared page-comment subsystem behind PageView
  * (exploration 0276, Theme 3: well-traveled code paths).
  *
- * The web and desktop PageViews carried ~800-line verbatim copies of the same
- * comment state machine: popover show/hide with hover grace timers, text-anchor
- * mark restoration, orphaned-thread assembly, thread-data conversion, and the
- * reply / resolve / reopen / delete / edit actions (inline popover + sidebar
- * variants). This hook owns all of that; the per-app PageViews keep only their
- * platform rendering (context panel vs. inline sidebar, editor surface wiring).
- *
- * Platform deltas preserved as options:
- * - `dismissPopoverOnCaretExit` (desktop): dismiss the popover when the caret
- *   moves outside the popover thread's comment mark.
+ * Since 0312 (TipTap → BlockNote) comments are node-backed (LWW log). The
+ * in-document marks came back with BlockNote's CommentsExtension, but
+ * nothing listened to them until 0375 — the thread popover could only be
+ * opened from the sidebar, so clicking a highlighted passage did nothing.
+ * A delegated document listener (below) closes that gap.
  */
-import type { AnyExtension } from '@tiptap/core'
-import type { Editor } from '@tiptap/react'
 import type { CommentThreadData, OrphanedThread } from '@xnetjs/ui'
 import { PageSchema } from '@xnetjs/data'
 import { useComments, type CommentThread } from '@xnetjs/react'
-import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
-import { CommentMark, CommentPlugin, restoreCommentMarks } from '../extensions/comment'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,23 +30,25 @@ const INITIAL_POPOVER_STATE: PageCommentPopoverState = {
   anchor: null
 }
 
+/** Hover dwell before a mark peeks its thread. Matches useCommentPopover. */
+const MARK_HOVER_DELAY_MS = 300
+
 /** State for creating a new comment (before submission). */
 export interface PageNewCommentState {
   visible: boolean
   anchorData: string
-  /** Selection range to restore when applying the mark */
-  selectionFrom: number
-  selectionTo: number
+  /**
+   * Viewport point of the selection the comment annotates, so the composer
+   * can anchor to it instead of floating in the middle of the screen (0375).
+   */
+  anchor: { x: number; y: number } | null
+  /** The selected text, echoed in the composer for context. */
+  quotedText?: string
 }
 
 export interface UsePageCommentsOptions {
   /** The page Node ID comments target. */
   docId: string
-  /**
-   * Dismiss the popover when the caret moves outside the popover thread's
-   * comment mark (TipTap `selectionUpdate`). Desktop PageView behavior.
-   */
-  dismissPopoverOnCaretExit?: boolean
   /**
    * Resolve an author DID to a display name (e.g. from synced Profile
    * nodes). Unresolved authors fall back to a DID fragment in the UI.
@@ -76,15 +70,9 @@ export interface UsePageCommentsResult {
   popoverState: PageCommentPopoverState
   newCommentState: PageNewCommentState | null
 
-  // Editor wiring
-  editorRef: MutableRefObject<Editor | null>
-  editorReady: boolean
-  handleEditorReady: (editor: Editor) => void
-  /** CommentMark + CommentPlugin wired to the popover handlers. */
-  commentExtensions: AnyExtension[]
-
   // Popover
   showThreadPopover: (threadId: string, anchor: HTMLElement | null) => void
+  previewThreadPopover: (threadId: string, anchor: HTMLElement | null) => void
   handlePopoverMouseEnter: () => void
   handlePopoverMouseLeave: () => void
   handleDismiss: () => void
@@ -113,13 +101,27 @@ export interface UsePageCommentsResult {
   // Orphaned threads
   handleDismissOrphaned: (commentId: string) => Promise<void>
   handleReattachOrphaned: (commentId: string) => void
+
+  /**
+   * Raw 0276 CRUD + live threads, for the inline-comments ThreadStore
+   * (0321): the host passes these straight into XNetEditor's `comments`
+   * prop alongside a resolveUsers profile lookup.
+   */
+  crud: {
+    threads: CommentThread[]
+    addComment: ReturnType<typeof useComments>['addComment']
+    replyTo: (threadId: string, content: string) => Promise<unknown>
+    editComment: (commentId: string, content: string) => Promise<unknown>
+    deleteComment: (commentId: string) => Promise<unknown>
+    resolveThread: (threadId: string) => Promise<unknown>
+    reopenThread: (threadId: string) => Promise<unknown>
+  }
 }
 
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
 export function usePageComments({
   docId,
-  dismissPopoverOnCaretExit = false,
   resolveAuthorName
 }: UsePageCommentsOptions): UsePageCommentsResult {
   // Load comments for this page, filtered to text anchors only
@@ -137,127 +139,15 @@ export function usePageComments({
   // Popover state for comment interactions
   const [popoverState, setPopoverState] = useState<PageCommentPopoverState>(INITIAL_POPOVER_STATE)
   const [newCommentState, setNewCommentState] = useState<PageNewCommentState | null>(null)
-  const [orphanedIds, setOrphanedIds] = useState<string[]>([])
   const [orphanedCollapsed, setOrphanedCollapsed] = useState(false)
-  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const editorRef = useRef<Editor | null>(null)
-  const marksRestoredRef = useRef(false)
-  const [editorReady, setEditorReady] = useState(false)
-
-  // Track hover state for mark and popover; the popover stays open as
-  // long as either is hovered.
-  const markHoveredRef = useRef(false)
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const popoverHoveredRef = useRef(false)
 
-  // Reset mark restoration state when switching documents. Skip the
-  // initial run: parent effects fire after the editor's ready
-  // notification, so an unconditional reset would null the ref the
-  // moment it was set.
-  const lastDocIdRef = useRef(docId)
-  useEffect(() => {
-    if (lastDocIdRef.current === docId) return
-    lastDocIdRef.current = docId
-    marksRestoredRef.current = false
-    editorRef.current = null
-    setEditorReady(false)
-  }, [docId])
-
-  // Handle editor ready - store ref and trigger mark restoration
-  const handleEditorReady = useCallback((editor: Editor) => {
-    editorRef.current = editor
-    setEditorReady(true)
-  }, [])
-
-  // Restore comment marks when editor is ready and threads are loaded.
-  // Both editorReady and threads are in the dependency array so the effect
-  // fires regardless of which one becomes available first.
-  useEffect(() => {
-    if (!editorRef.current || marksRestoredRef.current || threads.length === 0) return
-
-    const commentsToRestore = threads.map((t) => ({
-      id: t.root.id,
-      properties: {
-        anchorType: t.root.properties.anchorType,
-        anchorData: t.root.properties.anchorData,
-        resolved: t.root.properties.resolved
-      }
-    }))
-
-    const { resolved, orphaned } = restoreCommentMarks(editorRef.current, commentsToRestore)
-
-    if (resolved.length > 0 || orphaned.length > 0) {
-      marksRestoredRef.current = true
-      setOrphanedIds(orphaned)
-      console.log(`[Comments] Restored ${resolved.length} marks, ${orphaned.length} orphaned`)
-    }
-  }, [threads, editorReady])
-
-  // Dismiss the comment popover when the caret moves out of comment marks
-  // (opt-in; TipTap's onSelectionUpdate fires after every cursor movement).
-  useEffect(() => {
-    if (!dismissPopoverOnCaretExit) return
-    const editor = editorRef.current
-    if (!editor) return
-
-    const onSelectionUpdate = () => {
-      setPopoverState((prev) => {
-        if (!prev.visible || !prev.threadId) return prev
-        const { from } = editor.state.selection
-        const resolved = editor.state.doc.resolve(from)
-        const inComment = resolved.marks().some((mark) => {
-          const typedMark = mark as {
-            type?: { name?: string }
-            attrs?: { commentId?: string }
-          }
-          return typedMark.type?.name === 'comment' && typedMark.attrs?.commentId === prev.threadId
-        })
-        if (!inComment && !markHoveredRef.current && !popoverHoveredRef.current) {
-          return INITIAL_POPOVER_STATE
-        }
-        return prev
-      })
-    }
-
-    editor.on('selectionUpdate', onSelectionUpdate)
-    return () => {
-      editor.off('selectionUpdate', onSelectionUpdate)
-    }
-  }, [dismissPopoverOnCaretExit, editorReady])
-
-  // Build orphaned threads list for display
-  const orphanedThreads = useMemo((): OrphanedThread[] => {
-    const result: OrphanedThread[] = []
-
-    for (const id of orphanedIds) {
-      const thread = threads.find((t) => t.root.id === id)
-      if (!thread) continue
-
-      // Parse anchor data to get context
-      let context: string | undefined
-      try {
-        const anchor = JSON.parse(thread.root.properties.anchorData)
-        context = anchor.quotedText
-      } catch {
-        // Ignore parse errors
-      }
-
-      result.push({
-        comment: {
-          id: thread.root.id,
-          author: thread.root.properties.createdBy,
-          authorDisplayName: resolveAuthorName?.(thread.root.properties.createdBy),
-          content: thread.root.properties.content,
-          createdAt: thread.root.createdAt,
-          replyCount: thread.replies.length
-        },
-        reason: 'text-deleted',
-        context
-      })
-    }
-
-    return result
-  }, [orphanedIds, threads, resolveAuthorName])
+  // Without in-document marks there is no anchor-loss detection; the
+  // orphaned list stays empty until a ThreadStore integration re-anchors
+  // comments in the document.
+  const orphanedThreads = useMemo((): OrphanedThread[] => [], [])
 
   // Convert threads to format expected by CommentPopover/CommentsSidebar
   const threadDataMap = useMemo(() => {
@@ -294,56 +184,15 @@ export function usePageComments({
 
   // ─── Popover Handlers ─────────────────────────────────────────────────────────
 
-  /** Check if the editor caret is currently inside a comment mark. */
-  const isCaretInComment = useCallback((): boolean => {
-    const editor = editorRef.current
-    if (!editor) return false
-    const { from } = editor.state.selection
-    const resolved = editor.state.doc.resolve(from)
-    return resolved.marks().some((mark) => {
-      const typedMark = mark as { type?: { name?: string } }
-      return typedMark.type?.name === 'comment'
-    })
-  }, [])
-
-  /** Schedule a dismiss after a short delay, unless mark/popover is hovered or caret is in comment. */
+  /** Schedule a dismiss after a short delay, unless the popover is hovered. */
   const scheduleDismiss = useCallback(() => {
     if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
     dismissTimeoutRef.current = setTimeout(() => {
-      if (!markHoveredRef.current && !popoverHoveredRef.current && !isCaretInComment()) {
+      if (!popoverHoveredRef.current) {
         setPopoverState(INITIAL_POPOVER_STATE)
       }
     }, 200)
-  }, [isCaretInComment])
-
-  const handleClickComment = useCallback((commentId: string, anchorEl: HTMLElement) => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
-    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
-    setPopoverState((prev) => {
-      // Already showing for this comment — keep as-is to avoid flicker
-      if (prev.visible && prev.mode === 'full' && prev.threadId === commentId) return prev
-      return { visible: true, mode: 'full', threadId: commentId, anchor: anchorEl }
-    })
   }, [])
-
-  const handleHoverComment = useCallback((commentId: string, anchorEl: HTMLElement) => {
-    markHoveredRef.current = true
-    // Cancel any pending dismiss; delay showing to avoid flicker on quick passes
-    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
-    hoverTimeoutRef.current = setTimeout(() => {
-      setPopoverState((prev) => {
-        if (prev.visible && prev.threadId === commentId) return prev
-        return { visible: true, mode: 'full', threadId: commentId, anchor: anchorEl }
-      })
-    }, 300)
-  }, [])
-
-  const handleLeaveComment = useCallback(() => {
-    markHoveredRef.current = false
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
-    scheduleDismiss()
-  }, [scheduleDismiss])
 
   const handlePopoverMouseEnter = useCallback(() => {
     popoverHoveredRef.current = true
@@ -356,9 +205,7 @@ export function usePageComments({
   }, [scheduleDismiss])
 
   const handleDismiss = useCallback(() => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
     if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
-    markHoveredRef.current = false
     popoverHoveredRef.current = false
     setPopoverState(INITIAL_POPOVER_STATE)
   }, [])
@@ -367,10 +214,68 @@ export function usePageComments({
     setPopoverState((prev) => ({ ...prev, mode: 'full' }))
   }, [])
 
-  /** Show the popover for a thread (e.g. sidebar selection, orphaned threads). */
+  /** Show the popover for a thread (e.g. sidebar selection). */
   const showThreadPopover = useCallback((threadId: string, anchor: HTMLElement | null) => {
     setPopoverState({ visible: true, mode: 'full', threadId, anchor })
   }, [])
+
+  /** Peek at a thread on hover, without stealing focus from the document. */
+  const previewThreadPopover = useCallback((threadId: string, anchor: HTMLElement | null) => {
+    setPopoverState((prev) =>
+      // Never downgrade an open thread back to a hover peek.
+      prev.visible && prev.mode === 'full'
+        ? prev
+        : { visible: true, mode: 'preview', threadId, anchor }
+    )
+  }, [])
+
+  // Clicking (or hovering) a `.bn-thread-mark` in the document opens its
+  // thread. Delegated from the document rather than bound per mark: ProseMirror
+  // destroys and recreates mark spans on every doc update, so per-element
+  // listeners would be dropped constantly.
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const markFor = (target: EventTarget | null): HTMLElement | null => {
+      if (!(target instanceof HTMLElement)) return null
+      return target.closest<HTMLElement>('[data-bn-thread-id]')
+    }
+
+    const onClick = (event: MouseEvent) => {
+      const mark = markFor(event.target)
+      const threadId = mark?.dataset.bnThreadId
+      if (!mark || !threadId) return
+      showThreadPopover(threadId, mark)
+    }
+
+    const onOver = (event: MouseEvent) => {
+      const mark = markFor(event.target)
+      const threadId = mark?.dataset.bnThreadId
+      if (!mark || !threadId) return
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
+      hoverTimerRef.current = setTimeout(
+        () => previewThreadPopover(threadId, mark),
+        MARK_HOVER_DELAY_MS
+      )
+    }
+
+    const onOut = () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current)
+        hoverTimerRef.current = null
+      }
+    }
+
+    document.addEventListener('click', onClick)
+    document.addEventListener('mouseover', onOver)
+    document.addEventListener('mouseout', onOut)
+    return () => {
+      document.removeEventListener('click', onClick)
+      document.removeEventListener('mouseover', onOver)
+      document.removeEventListener('mouseout', onOut)
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
+    }
+  }, [showThreadPopover, previewThreadPopover])
 
   // ─── Comment Actions ──────────────────────────────────────────────────────────
 
@@ -385,38 +290,18 @@ export function usePageComments({
   const handleResolve = useCallback(async () => {
     if (!popoverState.threadId) return
     await resolveThread(popoverState.threadId)
-    // Update the mark visual state to resolved (amber -> green)
-    editorRef.current?.commands.setCommentResolved(popoverState.threadId, true)
   }, [popoverState.threadId, resolveThread])
 
   const handleReopen = useCallback(async () => {
     if (!popoverState.threadId) return
     await reopenThread(popoverState.threadId)
-    // Update the mark visual state back to active (green -> amber)
-    editorRef.current?.commands.setCommentResolved(popoverState.threadId, false)
   }, [popoverState.threadId, reopenThread])
 
   const handleDelete = useCallback(
     async (commentId: string) => {
       await deleteComment(commentId)
-      // If deleting root with no replies, remove the mark from the document and close popover
       const thread = threadDataMap.get(popoverState.threadId || '')
       if (thread && commentId === thread.root.id && thread.replies.length === 0) {
-        const editor = editorRef.current
-        if (editor) {
-          const { tr, doc: editorDoc } = editor.state
-          const markType = editor.schema.marks.comment
-          if (markType) {
-            editorDoc.descendants((node, pos) => {
-              node.marks.forEach((mark) => {
-                if (mark.type === markType && mark.attrs.commentId === commentId) {
-                  tr.removeMark(pos, pos + node.nodeSize, mark)
-                }
-              })
-            })
-            editor.view.dispatch(tr)
-          }
-        }
         handleDismiss()
       }
     },
@@ -430,66 +315,36 @@ export function usePageComments({
     [editComment]
   )
 
-  // Handler for initiating comment creation from toolbar selection.
-  // This shows the input UI; actual comment creation happens on submit.
+  // Handler for initiating comment creation (e.g. a panel affordance, or the
+  // editor's own "comment on selection" action). Shows the composer anchored
+  // to the current selection; the comment is created on submit.
   const handleCreateComment = useCallback(async (anchorData: string): Promise<string | null> => {
-    if (!editorRef.current) return null
-    // Capture the current selection range so we can apply the mark later
-    const { from, to } = editorRef.current.state.selection
-    if (from === to) return null
+    const selection = typeof window !== 'undefined' ? window.getSelection() : null
+    let anchor: { x: number; y: number } | null = null
+    let quotedText: string | undefined
 
-    setNewCommentState({
-      visible: true,
-      anchorData,
-      selectionFrom: from,
-      selectionTo: to
-    })
+    if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+      const rect = selection.getRangeAt(0).getBoundingClientRect()
+      anchor = { x: rect.left, y: rect.bottom }
+      const text = selection.toString().trim()
+      if (text) quotedText = text.length > 60 ? `${text.slice(0, 57)}…` : text
+    }
+
+    setNewCommentState({ visible: true, anchorData, anchor, quotedText })
     return null
   }, [])
 
   // Handler for submitting a new comment
   const handleSubmitNewComment = useCallback(
     async (content: string) => {
-      if (!newCommentState || !content.trim() || !editorRef.current) return
+      if (!newCommentState || !content.trim()) return
 
-      const commentId = await addComment({
+      await addComment({
         content: content.trim(),
         anchorType: 'text',
         anchorData: newCommentState.anchorData,
         targetSchema: PageSchema.schema['@id']
       })
-
-      if (commentId) {
-        // Apply the mark: set selection to the original range, then mark it
-        editorRef.current
-          .chain()
-          .focus()
-          .setTextSelection({
-            from: newCommentState.selectionFrom,
-            to: newCommentState.selectionTo
-          })
-          .setComment(commentId)
-          .run()
-
-        // After a short delay, find the mark element and show the popover.
-        // This gives time for the DOM and threads state to update.
-        const showPopover = () => {
-          const markEl = document.querySelector(
-            `[data-comment-id="${commentId}"]`
-          ) as HTMLElement | null
-          if (markEl) {
-            setPopoverState({
-              visible: true,
-              mode: 'full',
-              threadId: commentId,
-              anchor: markEl
-            })
-          }
-        }
-        // Try immediately, then retry after a delay if needed
-        setTimeout(showPopover, 50)
-        setTimeout(showPopover, 200)
-      }
 
       setNewCommentState(null)
     },
@@ -504,12 +359,13 @@ export function usePageComments({
 
   const handleSidebarSelectThread = useCallback(
     (threadId: string) => {
-      // Find and scroll to the comment mark in the editor
-      const markEl = document.querySelector(`[data-comment-id="${threadId}"]`) as HTMLElement | null
+      // Inline anchors are back (0321): scroll to the BlockNote comment
+      // mark when the thread is still anchored in the document.
+      const markEl = document.querySelector<HTMLElement>(`[data-bn-thread-id="${threadId}"]`)
       if (markEl) {
         markEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        showThreadPopover(threadId, markEl)
       }
+      showThreadPopover(threadId, markEl)
     },
     [showThreadPopover]
   )
@@ -524,7 +380,6 @@ export function usePageComments({
   const handleSidebarResolve = useCallback(
     async (threadId: string) => {
       await resolveThread(threadId)
-      editorRef.current?.commands.setCommentResolved(threadId, true)
     },
     [resolveThread]
   )
@@ -532,7 +387,6 @@ export function usePageComments({
   const handleSidebarReopen = useCallback(
     async (threadId: string) => {
       await reopenThread(threadId)
-      editorRef.current?.commands.setCommentResolved(threadId, false)
     },
     [reopenThread]
   )
@@ -555,43 +409,24 @@ export function usePageComments({
 
   const handleDismissOrphaned = useCallback(
     async (commentId: string) => {
-      // Delete the orphaned thread entirely
       const thread = threads.find((t) => t.root.id === commentId)
       if (thread) {
-        // Delete replies first, then root
         for (const reply of thread.replies) {
           await deleteComment(reply.id)
         }
         await deleteComment(commentId)
       }
-      // Remove from orphaned list
-      setOrphanedIds((prev) => prev.filter((id) => id !== commentId))
     },
     [threads, deleteComment]
   )
 
   const handleReattachOrphaned = useCallback((commentId: string) => {
-    // For now, just log - reattachment requires selecting new text
     console.log(`[Comments] Reattach not yet implemented for ${commentId}`)
   }, [])
 
   const toggleOrphanedCollapsed = useCallback(() => {
     setOrphanedCollapsed((prev) => !prev)
   }, [])
-
-  // ─── Comment Extensions ───────────────────────────────────────────────────────
-
-  const commentExtensions = useMemo<AnyExtension[]>(
-    () => [
-      CommentMark,
-      CommentPlugin.configure({
-        onClickComment: handleClickComment,
-        onHoverComment: handleHoverComment,
-        onLeaveComment: handleLeaveComment
-      })
-    ],
-    [handleClickComment, handleHoverComment, handleLeaveComment]
-  )
 
   // Get the current thread for the popover. If the thread is not in the map
   // yet (newly created), it will show once threads update.
@@ -611,11 +446,8 @@ export function usePageComments({
     toggleOrphanedCollapsed,
     popoverState,
     newCommentState,
-    editorRef,
-    editorReady,
-    handleEditorReady,
-    commentExtensions,
     showThreadPopover,
+    previewThreadPopover,
     handlePopoverMouseEnter,
     handlePopoverMouseLeave,
     handleDismiss,
@@ -635,6 +467,15 @@ export function usePageComments({
     handleSidebarDelete,
     handleSidebarEdit,
     handleDismissOrphaned,
-    handleReattachOrphaned
+    handleReattachOrphaned,
+    crud: {
+      threads,
+      addComment,
+      replyTo,
+      editComment,
+      deleteComment,
+      resolveThread,
+      reopenThread
+    }
   }
 }

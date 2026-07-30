@@ -1,6 +1,6 @@
 # L2 · Replication
 
-**This document is normative.** Part of [XNet Protocol `xnet/1.0`](00-overview.md).
+**This document is normative.** Part of [xNet Protocol `xnet/1.0`](00-overview.md).
 
 L2 defines how nodes and document bodies move between peers: the message types,
 the signed envelope, presence, the version handshake, and the transport

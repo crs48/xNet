@@ -41,6 +41,8 @@ export function autoValue(
       return BASE_TS
     case 'dateRange':
       return { start: BASE_TS, end: BASE_TS + 86_400_000 }
+    case 'geo':
+      return { lat: 37.7749, lng: -122.4194 }
     case 'select': {
       const options = config.options as Array<{ id: string }> | undefined
       return (config.default as string | undefined) ?? options?.[0]?.id

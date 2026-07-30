@@ -30,6 +30,18 @@ export interface ProvisionSpec {
    * exploration 0178). Set when reactivating a cold tenant whose DB lives only in R2.
    */
   restoreFromR2?: string
+  /**
+   * Sidecar containers placed NEXT TO the hub (0383 W5) — the PDS pattern
+   * (0365: the official `@atproto/pds` image, never a hub role). Adapters that
+   * cannot host sidecars yet must throw rather than silently drop them; the
+   * self-host equivalent is `deploy/hub-with-pds/docker-compose.yml`.
+   */
+  sidecars?: Array<{
+    name: string
+    /** Image reference — pin by digest in production. */
+    image: string
+    env?: Record<string, string>
+  }>
 }
 
 /** A handle to a provisioned hub. `substrateRef` is opaque to callers. */

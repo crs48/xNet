@@ -1,5 +1,54 @@
 # @xnetjs/licenses
 
+## 0.0.25
+
+### Patch Changes
+
+- Updated dependencies [[`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6), [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe), [`33f4b9e`](https://github.com/crs48/xNet/commit/33f4b9ef38c72b2e898f7a4a4de83cc08b0aea88)]:
+  - @xnetjs/crypto@3.0.0
+
+## 0.0.24
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.5.0
+
+## 0.0.23
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.4.0
+
+## 0.0.22
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.3.0
+
+## 0.0.21
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.2.0
+
+## 0.0.20
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.1.0
+
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.0.0
+
 ## 0.0.18
 
 ### Patch Changes

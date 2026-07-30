@@ -2,6 +2,11 @@
 
 DataBridge abstractions for moving xNet data operations off the main thread.
 
+> **Alpha software.** xNet is released but early: this package is on npm and
+> usable today, but its API can change between releases, sometimes without a
+> migration path. Pin your version. See the
+> [project README](https://github.com/crs48/xNet#readme) for what alpha means here.
+
 > **Status:** Experimental
 > Platform entrypoints: `@xnetjs/data-bridge/worker`, `@xnetjs/data-bridge/native`, `@xnetjs/data-bridge/types`
 

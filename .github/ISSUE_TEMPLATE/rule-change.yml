@@ -1,0 +1,104 @@
+name: Rule Change Proposal (RCP)
+description: Propose changing an xNet operational rule that binds you.
+title: 'RCP: <the rule> — <the change>'
+labels: ['rule-change']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this to propose a change to one of the **operational rules** listed
+        in [`docs/RULE_CHANGES.md`](https://github.com/crs48/xNet/blob/main/docs/RULE_CHANGES.md).
+
+        **You do not need to be a contributor.** Self-hosters, plugin authors,
+        hub operators and paying customers are exactly who this is for.
+
+        **Every RCP gets a public written accept / decline / defer with
+        reasoning within 30 days**, recorded in
+        [`docs/decisions/rule-changes.md`](https://github.com/crs48/xNet/blob/main/docs/decisions/rule-changes.md).
+
+        Wrong place for: **protocol** changes (use
+        [XPP](https://github.com/crs48/xNet/blob/main/docs/specs/protocol/xpp/README.md)), bugs, feature requests,
+        or conduct reports (see `CODE_OF_CONDUCT.md`).
+
+  - type: dropdown
+    id: rule
+    attributes:
+      label: Which rule?
+      description: The in-scope rules from `docs/RULE_CHANGES.md`.
+      options:
+        - The humane-patterns gate (scripts/check-humane-patterns.mjs)
+        - Allowed plugin licences (ALLOWED_PLUGIN_LICENSES)
+        - Marketplace terms (fees, takedown grounds, ranking neutrality)
+        - The Charter's refused rents and the four tests (CHARTER.md §6)
+        - The Moat Register (ECONOMICS.md §2)
+        - Plan quotas and limits (PLAN_CATALOG)
+        - Add a new rule to the in-scope list
+    validations:
+      required: true
+
+  - type: textarea
+    id: change
+    attributes:
+      label: What change do you want?
+      description: >-
+        Be concrete. "Allow MPL-2.0 in ALLOWED_PLUGIN_LICENSES" beats "the
+        licence policy is too strict".
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected
+    attributes:
+      label: Who is affected, including you?
+      description: >-
+        How does this rule bind you today? Who else does it bind — plugin
+        authors, self-hosters, hub operators, paying customers? This is the
+        only standing required.
+    validations:
+      required: true
+
+  - type: textarea
+    id: cost-of-inaction
+    attributes:
+      label: What breaks if we do nothing?
+      description: >-
+        The concrete cost of the status quo. If the honest answer is "nothing
+        breaks, I would just prefer it", say that — it is still a valid
+        proposal and it gets a real answer.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What else did you consider?
+      description: >-
+        Workarounds you tried, and why they are not enough. If a fork or a
+        self-hosted change would solve it for you but not for others, say so.
+    validations:
+      required: false
+
+  - type: input
+    id: implementation
+    attributes:
+      label: Reference implementation (optional)
+      description: >-
+        A PR making the change is the most persuasive form of the argument
+        (borrowed from XPP principle 1, "prove it before you spec it").
+      placeholder: 'https://github.com/.../pull/123'
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Before you file
+      options:
+        - label: >-
+            I have read [`docs/RULE_CHANGES.md`](https://github.com/crs48/xNet/blob/main/docs/RULE_CHANGES.md) and
+            this is an operational rule, not a protocol change or a bug.
+          required: true
+        - label: >-
+            I understand this is not a vote — the decision stays with the
+            maintainers, but the reasoning becomes a public record.
+          required: true

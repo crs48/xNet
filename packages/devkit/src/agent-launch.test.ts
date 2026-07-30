@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { buildAgentArgs, DEFAULT_XNET_ALLOWED_TOOLS, mcpConfigFor } from './agent-launch'
+import {
+  buildAgentArgs,
+  DEFAULT_XNET_ALLOWED_TOOLS,
+  mcpConfigFor,
+  mcpHttpConfigFor
+} from './agent-launch'
 
 describe('buildAgentArgs', () => {
   it('drives Claude Code headless with plain-text output by default', () => {
@@ -49,5 +54,34 @@ describe('mcpConfigFor', () => {
     const config = mcpConfigFor({ command: 'xnet', args }, 'workspace')
     expect(Object.keys(config.mcpServers)).toEqual(['workspace'])
     expect(config.mcpServers.workspace.args).not.toBe(args) // defensive copy
+  })
+})
+
+describe('mcpHttpConfigFor', () => {
+  it('marks the server as an http transport the agent connects to', () => {
+    expect(mcpHttpConfigFor({ url: 'http://127.0.0.1:5123/mcp' })).toEqual({
+      mcpServers: { xnet: { type: 'http', url: 'http://127.0.0.1:5123/mcp' } }
+    })
+  })
+
+  it('carries the pairing header the transport gates on', () => {
+    const config = mcpHttpConfigFor({
+      url: 'http://127.0.0.1:5123/mcp',
+      headers: { 'x-xnet-pairing': 'secret' }
+    })
+    expect(config.mcpServers.xnet.headers).toEqual({ 'x-xnet-pairing': 'secret' })
+  })
+
+  it('supports a custom server name and copies the headers', () => {
+    const headers = { 'x-xnet-pairing': 'secret' }
+    const config = mcpHttpConfigFor({ url: 'http://127.0.0.1:5123/mcp', headers }, 'workspace')
+    expect(Object.keys(config.mcpServers)).toEqual(['workspace'])
+    expect(config.mcpServers.workspace.headers).not.toBe(headers) // defensive copy
+  })
+
+  it('omits headers entirely when none are given', () => {
+    expect(
+      mcpHttpConfigFor({ url: 'http://127.0.0.1:5123/mcp' }).mcpServers.xnet
+    ).not.toHaveProperty('headers')
   })
 })

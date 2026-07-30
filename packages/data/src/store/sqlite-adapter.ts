@@ -15,12 +15,16 @@ import type {
   AuthorizationStateVersion,
   ListNodesOptions,
   CountNodesOptions,
+  NodeTextSearchOptions,
+  NodeTextSearchResult,
   SetNodeOptions,
   ImportNodesOptions,
   RebuildNodeIndexesOptions,
   ApplyNodeBatchInput,
   ApplyNodeBatchResult,
-  NodeBatchPreflightResult
+  NodeBatchPreflightResult,
+  PinEntry,
+  PinRegistry
 } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { ContentId, DID } from '@xnetjs/core'
@@ -38,6 +42,7 @@ import {
   detectSQLiteCapabilities,
   getIndexInfo,
   runAnalyze,
+  searchNodes,
   timeQuery
 } from '@xnetjs/sqlite'
 import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
@@ -1017,6 +1022,21 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return row?.count ?? 0
   }
 
+  /**
+   * Cross-schema BM25 search over `nodes_fts` (exploration 0391). `null` when
+   * this build has no FTS5 (sql.js), so callers fall back to scanning.
+   */
+  async searchText(
+    query: string,
+    limit: number,
+    options?: NodeTextSearchOptions
+  ): Promise<NodeTextSearchResult[] | null> {
+    const capabilities = await detectSQLiteCapabilities(this.db)
+    if (!capabilities.fts5) return null
+    const results = await searchNodes(this.db, query, { limit, schemaId: options?.schemaId })
+    return results.map((result) => ({ nodeId: result.nodeId, rank: result.rank }))
+  }
+
   async queryNodes(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> {
     const start = Date.now()
     // Every branch below hydrates via queries selecting `p.tiebreak_key` —
@@ -1265,6 +1285,49 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
          updated_at = excluded.updated_at`,
       [nodeId, content, Date.now()]
     )
+  }
+
+  // ─── Pin Registry (exploration 0329) ──────────────────────────────────────
+
+  readonly pins: PinRegistry = {
+    addPins: async (pins: readonly PinEntry[]): Promise<void> => {
+      if (pins.length === 0) return
+      await this.enqueueWrite(async () => {
+        const now = Date.now()
+        for (const chunk of chunkItems(pins, 200)) {
+          const placeholders = chunk.map(() => '(?, ?, ?, ?)').join(', ')
+          const params: SQLValue[] = []
+          for (const pin of chunk) params.push(pin.key, pin.ownerId, pin.reason, now)
+          await this.db.run(
+            `INSERT INTO pinned_changes (pin_key, owner_id, reason, created_at)
+             VALUES ${placeholders}
+             ON CONFLICT(pin_key, owner_id) DO NOTHING`,
+            params
+          )
+        }
+      })
+    },
+    removePinsByOwner: async (ownerId: string): Promise<void> => {
+      await this.enqueueWrite(async () => {
+        await this.db.run(`DELETE FROM pinned_changes WHERE owner_id = ?`, [ownerId])
+      })
+    },
+    getPinnedKeysAmong: async (keys: readonly string[]): Promise<Set<string>> => {
+      const pinned = new Set<string>()
+      for (const chunk of chunkItems(keys, 500)) {
+        const placeholders = chunk.map(() => '?').join(', ')
+        const rows = await this.db.query<{ pin_key: string }>(
+          `SELECT DISTINCT pin_key FROM pinned_changes WHERE pin_key IN (${placeholders})`,
+          [...chunk]
+        )
+        for (const row of rows) pinned.add(row.pin_key)
+      }
+      return pinned
+    },
+    countPins: async (): Promise<number> => {
+      const row = await this.db.queryOne<{ n: number }>(`SELECT COUNT(*) AS n FROM pinned_changes`)
+      return row?.n ?? 0
+    }
   }
 
   // ─── Yjs Snapshots (Extended) ─────────────────────────────────────────────

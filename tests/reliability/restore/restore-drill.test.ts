@@ -51,15 +51,34 @@ function nativeLoads(): boolean {
   }
 }
 
+/**
+ * Parse the drill's JSON report, failing with the raw stdout when it isn't
+ * parseable. A bare `JSON.parse` throws a SyntaxError naming only a byte
+ * offset, which tells you nothing about what the drill actually printed —
+ * and the drill's own diagnosis is exactly what you need at that moment.
+ */
+function parseReport(stdout: string, stderr: string, code: number): any {
+  if (!stdout) return null
+  try {
+    return JSON.parse(stdout)
+  } catch (error: any) {
+    throw new Error(
+      `restore-drill exited ${code} but its stdout is not valid JSON: ${error.message}\n` +
+        `--- stdout (${stdout.length} bytes) ---\n${stdout}\n` +
+        `--- stderr (${stderr.length} bytes) ---\n${stderr}\n--- end ---`
+    )
+  }
+}
+
 async function runDrill(args: string[]): Promise<{ code: number; report: any }> {
   try {
-    const { stdout } = await execFileAsync(process.execPath, [DRILL, ...args], {
+    const { stdout, stderr } = await execFileAsync(process.execPath, [DRILL, ...args], {
       env: { ...process.env }
     })
-    return { code: 0, report: JSON.parse(stdout) }
+    return { code: 0, report: parseReport(stdout, stderr, 0) }
   } catch (error: any) {
-    const stdout = error.stdout ?? ''
-    return { code: error.code ?? 1, report: stdout ? JSON.parse(stdout) : null }
+    const code = error.code ?? 1
+    return { code, report: parseReport(error.stdout ?? '', error.stderr ?? '', code) }
   }
 }
 

@@ -57,7 +57,7 @@ export interface CompareLayer {
   footnotes: Footnote[]
 }
 
-export const updated = 'June 2026'
+export const updated = 'July 2026'
 
 export const layers: CompareLayer[] = [
   // ─── Layer 1: Products ────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ export const layers: CompareLayer[] = [
         name: 'xNet App',
         url: 'https://github.com/crs48/xNet',
         highlight: true,
-        maturity: 'pre-release',
+        maturity: 'alpha',
         license: 'MIT',
         bestFor: 'A workspace you fully own — documents, databases, canvas, tasks, chat',
         dims: {
@@ -335,7 +335,7 @@ export const layers: CompareLayer[] = [
     footnotes: [
       {
         id: 'xnet-prerelease',
-        text: 'xNet is pre-release; its rows reflect shipped behavior (see the roadmap), not future plans.',
+        text: 'xNet is alpha software — released and usable, but early: APIs and formats still change. Its rows reflect shipped behavior (see the roadmap), not future plans.',
         sourceUrl: 'https://github.com/crs48/xNet'
       },
       {
@@ -387,7 +387,7 @@ export const layers: CompareLayer[] = [
         name: 'xNet',
         url: 'https://github.com/crs48/xNet',
         highlight: true,
-        maturity: 'pre-release',
+        maturity: 'alpha',
         license: 'MIT',
         bestFor: 'Full-stack local-first apps: typed data + rich text + canvas + comms',
         dims: {
@@ -652,7 +652,7 @@ export const layers: CompareLayer[] = [
     footnotes: [
       {
         id: 'fw-xnet-prerelease',
-        text: 'xNet is pre-release; rows reflect shipped behavior, not roadmap.',
+        text: 'xNet is alpha software — released but early; APIs and formats still change. Rows reflect shipped behavior, not roadmap.',
         sourceUrl: 'https://github.com/crs48/xNet'
       },
       {
@@ -1021,7 +1021,7 @@ export const layers: CompareLayer[] = [
       'Identity, transport, and federation primitives — the broader decentralized-data ecosystem. These are potential transports, identity systems, and federation peers rather than competitors.',
     xnetNote:
       'xNet both consumes and provides at this layer: it builds on WebRTC, DID:key and UCAN as primitives, and is itself a written, conformance-tested protocol (data model · replication · authorization) that anyone can re-implement — like AT Protocol or Matrix.',
-    lastVerified: 'June 2026',
+    lastVerified: 'July 2026',
     columns: [
       { key: 'scope', label: 'Scope' },
       { key: 'dataModel', label: 'Data model' },
@@ -1034,7 +1034,7 @@ export const layers: CompareLayer[] = [
         name: 'xNet',
         url: 'https://github.com/crs48/xNet',
         highlight: true,
-        maturity: 'pre-release',
+        maturity: 'alpha',
         license: 'MIT',
         bestFor: 'Owning a typed knowledge graph — protocol separate from any one app',
         dims: {
@@ -1056,7 +1056,22 @@ export const layers: CompareLayer[] = [
           dataModel: 'Signed repos (Lexicons)',
           sync: 'Federated relays',
           identity: 'DID:plc'
-        }
+        },
+        footnotes: ['atproto-complement']
+      },
+      {
+        name: 'Habitat',
+        url: 'https://habitat.network',
+        maturity: 'pre-release',
+        license: 'Apache-2.0',
+        bestFor: 'Orgs wanting one trusted server for all app data',
+        dims: {
+          scope: 'Org data server (atproto adaptation)',
+          dataModel: 'atproto records (Lexicons), private-only repos',
+          sync: 'Org-wide event stream (SSE) + backfill crawler',
+          identity: { v: 'DID:web, org-minted', fn: 'habitat-ods' }
+        },
+        footnotes: ['habitat-ods']
       },
       {
         name: 'Nostr',
@@ -1123,6 +1138,20 @@ export const layers: CompareLayer[] = [
           identity: 'Public keys'
         },
         footnotes: ['iroh-1-0']
+      },
+      {
+        name: 'Freenet',
+        url: 'https://freenet.org',
+        maturity: 'beta',
+        license: 'AGPL-3.0',
+        bestFor: 'Serverless apps on a global peer-to-peer key-value store',
+        dims: {
+          scope: 'Decentralized app platform',
+          dataModel: { v: 'Wasm "contracts" over CRDT state', fn: 'freenet-model' },
+          sync: 'Small-world routing; summary/delta',
+          identity: 'Cryptographic keys (anonymous)'
+        },
+        footnotes: ['freenet-model']
       },
       {
         name: 'libp2p',
@@ -1206,9 +1235,25 @@ export const layers: CompareLayer[] = [
         sourceUrl: 'https://github.com/crs48/xNet/tree/main/docs/specs/protocol'
       },
       {
+        id: 'atproto-complement',
+        text: 'Not a competitor — a complement. AT Protocol is a public broadcast network; xNet is the end-to-end encrypted workspace for your ATProto identity, the private half the atmosphere is not built to hold. xNet is to workspaces what Germ is to DMs: sign in with your Bluesky identity, keep your drafts and members-only spaces private and live, and publish a card to the atmosphere only when the work is ready. Identity, discovery and recovery ride on ATProto; the confidential body stays on a hub that never sees plaintext.',
+        sourceUrl: 'https://github.com/crs48/xNet/tree/main/docs/explorations'
+      },
+      {
+        id: 'habitat-ods',
+        text: "Habitat's Organizational Data Server hosts all member repositories on one org-owned server; member DIDs are minted by the org, and an OAuth credential for the org's DID can read every space on it. Access control is enforced at the server API, not by encryption — the inverse of xNet's hub, which never sees plaintext but also never gets a master read credential. Implements the draft atproto permissioned-spaces proposal (0016); pre-1.0 with breaking changes and a spaces→PDS migration announced.",
+        sourceUrl:
+          'https://github.com/habitat-network/habitat/blob/master/api-docs/docs/building/auth.mdx'
+      },
+      {
         id: 'iroh-1-0',
         text: '1.0 release candidates published; the final 1.0 was not yet confirmed at the time of writing.',
         sourceUrl: 'https://www.iroh.computer/blog/road-to-1-0'
+      },
+      {
+        id: 'freenet-model',
+        text: "A rebuilt Freenet (formerly 'Locutus'): a global key-value store where keys are WebAssembly contracts that define how their state merges (a commutative monoid / CRDT), reached by small-world routing with no servers. Shares xNet's merge-not-consensus premise; differs by removing accountable operators — data durability is demand-driven rather than an operator's promise, identity is anonymous rather than DID-accountable, and the transport is a bespoke stack rather than TLS. A live network ships pre-1.0 v0.2.x releases.",
+        sourceUrl: 'https://freenet.org/'
       }
     ]
   }

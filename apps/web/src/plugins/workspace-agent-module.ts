@@ -13,6 +13,7 @@
  */
 import type { FeatureModule, ModuleCapabilities } from '@xnetjs/plugins'
 import { evaluateInstallConsent, getCommandRegistry, scaffoldPlugin } from '@xnetjs/plugins'
+import { AGENT_LAYOUT_EVENT, getSlotView, getSlotViews } from '@xnetjs/workbench'
 import {
   REGION_IDS,
   regionOf,
@@ -20,11 +21,10 @@ import {
   type LayoutTree,
   type RegionId
 } from '../workbench/layout-tree'
-import { getSlotView, getSlotViews } from '../workbench/slot-registry'
 import { useWorkbench } from '../workbench/state'
 
 /** Fired after an agent-driven layout change; the shell shows an Undo toast. */
-export const AGENT_LAYOUT_EVENT = 'xnet:workspace:agent-change'
+export { AGENT_LAYOUT_EVENT } from '@xnetjs/workbench'
 
 const undoStack: LayoutTree[] = []
 const MAX_UNDO = 10

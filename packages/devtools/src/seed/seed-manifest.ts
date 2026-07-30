@@ -7,10 +7,11 @@
  * explicitly excluded here.
  */
 
-import type { SeederModule } from './types'
+import type { SeederModule, SeedScale } from './types'
 import type { DefinedSchema, SchemaIRI } from '@xnetjs/data'
 import {
   AccountRecordSchema,
+  DebugReportSchema,
   DeviceRecordSchema,
   ExtensionFieldSchema,
   GrantSchema,
@@ -32,6 +33,8 @@ import { docsSeeder } from './seeders/docs'
 import { integrationSeeder } from './seeders/integration'
 import { meetingsSeeder } from './seeders/meetings'
 import { metricsSeeder } from './seeders/metrics'
+import { savedViewsSeeder } from './seeders/saved-views'
+import { sceneSeeder } from './seeders/scene'
 import { spacesSeeder } from './seeders/spaces'
 import { vizSeeder } from './seeders/viz'
 import { workSeeder } from './seeders/work'
@@ -40,10 +43,12 @@ import { workspacesSeeder } from './seeders/workspaces'
 /** Ordered Tier-1 seeders. Spaces first; the rest only cross-link by id. */
 export const SEEDERS: readonly SeederModule[] = [
   spacesSeeder,
+  sceneSeeder,
   workSeeder,
   docsSeeder,
   meetingsSeeder,
   databaseSeeder,
+  savedViewsSeeder,
   vizSeeder,
   commsSeeder,
   metricsSeeder,
@@ -55,6 +60,27 @@ export const SEEDERS: readonly SeederModule[] = [
 
 /** Schemas a Tier-1 seeder is responsible for (canonical `_schemaId`s). */
 export const TIER1_SCHEMA_IDS: ReadonlySet<string> = new Set(SEEDERS.flatMap((s) => s.schemaIds))
+
+/**
+ * Curated first-visit demo profile for the landing-page "Try the app" flow
+ * (exploration 0384). A lived-in-looking subset — documents, tasks, a
+ * database, chat, CRM, and a canvas scene — small enough to seed in well
+ * under a second, without the auto-generated placeholder rows the full seed
+ * adds for exotic schemas. Pass to `runSeed`/`collectSeed`:
+ *
+ *   runSeed({ store, ...LANDING_SEED_PROFILE })
+ */
+export const LANDING_SEED_PROFILE: {
+  domains: string[]
+  scale: SeedScale
+  includeAuto: boolean
+} = {
+  // `saved-views` is in the demo set because the Views section of the left nav
+  // is otherwise empty on first contact (0388).
+  domains: ['spaces', 'scene', 'work', 'docs', 'database', 'saved-views', 'comms', 'crm'],
+  scale: 'small',
+  includeAuto: false
+}
 
 /**
  * System / meta schemas intentionally left unseeded — infrastructure, not
@@ -73,7 +99,10 @@ export const SEED_EXCLUDED_SCHEMA_IDS: ReadonlySet<string> = new Set([
   AccountRecordSchema._schemaId,
   DeviceRecordSchema._schemaId,
   RecoveryRecordSchema._schemaId,
-  RevocationRecordSchema._schemaId
+  RevocationRecordSchema._schemaId,
+  // Debug reports (0315) — operator triage infrastructure drained from the
+  // diagnostics ingest, not user-authored demo content.
+  DebugReportSchema._schemaId
 ])
 
 /**

@@ -1,7 +1,7 @@
 /**
  * @xnetjs/devkit — the agent bridge HTTP daemon (exploration 0194).
  *
- * Serves the loopback endpoint the XNet chat panel's `bridge` connector tier
+ * Serves the loopback endpoint the xNet chat panel's `bridge` connector tier
  * already probes at `http://127.0.0.1:31416`:
  *
  * - `GET  /health`              → {@link bridgeHealth} so the panel detects the
@@ -27,11 +27,18 @@
  * the bridge before pairing.
  */
 
-import type { ChatAgent, ChatMessage } from './chat-agent'
+import type { AgentFrame } from './agent-frames'
 import type { AgentTaskResult } from './dev-loop'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { bridgeHealth, type BridgeRunRequest } from './bridge'
+import { createBridgeSessionStore, type BridgeSessionStore } from './bridge-sessions'
+import {
+  isFramedChatAgent,
+  isStreamingChatAgent,
+  type ChatAgent,
+  type ChatMessage
+} from './chat-agent'
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
 /** Default port — the address the connector ladder (0174) probes. */
@@ -69,6 +76,12 @@ export interface BridgeServerConfig {
    * gate), so callers enable it explicitly.
    */
   run?: (request: BridgeRunRequest) => Promise<AgentTaskResult>
+  /**
+   * Conversation → CLI-session map. Defaults to an in-memory store (lost on
+   * restart); pass a durable one (see `createBridgeSessionStore` with
+   * {@link SessionPersistence}) so sessions survive a daemon restart.
+   */
+  sessions?: BridgeSessionStore
 }
 
 export interface BridgeServerHandle {
@@ -92,6 +105,10 @@ export function createBridgeServer(config: BridgeServerConfig): BridgeServerHand
   const pairingToken = config.pairingToken ?? randomBytes(24).toString('base64url')
   const agentName = config.agentName ?? 'agent'
   const version = config.version ?? '0.1.0'
+  // Conversation → CLI-session map. In-memory by default (a restart re-seeds a
+  // fresh session with full history); a durable store injected via config.sessions
+  // continues sessions across restarts (exploration 0392).
+  const sessions = config.sessions ?? createBridgeSessionStore()
   let boundPort = requestedPort
   let server: Server | undefined
 
@@ -144,6 +161,28 @@ export function createBridgeServer(config: BridgeServerConfig): BridgeServerHand
       const messages = parseMessages(body)
       const model = typeof body.model === 'string' ? body.model : agentName
       const stream = body.stream === true
+
+      // Streaming-capable agent (Claude Code): plan the turn against the
+      // session store (resume + suffix-only prompt when the conversation is
+      // known), forward deltas LIVE as SSE chunks, and record the finished
+      // turn so the next request resumes the CLI session (exploration 0391).
+      if (isStreamingChatAgent(config.agent)) {
+        const plan = sessions.plan(messages)
+        const sse = stream ? createSseStream(res, model) : undefined
+        try {
+          const result = await config.agent.streamTurn(plan, (delta) => sse?.delta(delta))
+          if (result.sessionId) sessions.record(messages, result.text, result.sessionId)
+          if (sse) sse.done()
+          else sendJson(res, 200, completion(result.text, model))
+        } catch (err) {
+          // Mid-stream failures can't become an HTTP error any more; surface
+          // them as visible text (the panel's SSE parser ignores error frames).
+          if (sse?.started) sse.fail(messageOf(err))
+          else sendJson(res, 502, { error: { message: messageOf(err) } })
+        }
+        return
+      }
+
       let text: string
       try {
         text = await config.agent.chat(messages)
@@ -153,6 +192,61 @@ export function createBridgeServer(config: BridgeServerConfig): BridgeServerHand
       }
       if (stream) sendSse(res, text, model)
       else sendJson(res, 200, completion(text, model))
+      return
+    }
+
+    // The framed endpoint (exploration 0392): same session planning and token
+    // discipline as the OpenAI endpoint, but forwards structured AgentFrames
+    // (tool calls, cost, session, permission requests) instead of flattening
+    // everything to text. The panel renders these; other OpenAI-compatible
+    // clients keep using /v1/chat/completions above.
+    if (req.method === 'POST' && path === '/v1/agent/stream') {
+      if (!isTokenValid(headerStr(req.headers.authorization), pairingToken)) {
+        sendJson(res, 401, { error: { message: 'invalid or missing pairing token' } })
+        return
+      }
+      let body: Record<string, unknown>
+      try {
+        body = await readJson(req)
+      } catch (err) {
+        sendJson(res, 400, { error: { message: messageOf(err) } })
+        return
+      }
+      const messages = parseMessages(body)
+      const plan = sessions.plan(messages)
+      const sse = createFrameStream(res)
+      try {
+        if (isFramedChatAgent(config.agent)) {
+          // The frame reducer emits its own terminal `result` frame.
+          const result = await config.agent.streamTurnFrames(plan, (frame) => sse.frame(frame))
+          if (result.sessionId) sessions.record(messages, result.text, result.sessionId)
+        } else if (isStreamingChatAgent(config.agent)) {
+          const result = await config.agent.streamTurn(plan, (delta) =>
+            sse.frame({ type: 'delta', text: delta })
+          )
+          if (result.sessionId) sessions.record(messages, result.text, result.sessionId)
+          sse.frame({
+            type: 'result',
+            ok: true,
+            ...(result.text ? { text: result.text } : {}),
+            ...(result.sessionId ? { sessionId: result.sessionId } : {})
+          })
+        } else {
+          const text = await config.agent.chat(messages)
+          if (text) sse.frame({ type: 'delta', text })
+          sse.frame({ type: 'result', ok: true, ...(text ? { text } : {}) })
+        }
+        sse.done()
+      } catch (err) {
+        // Mirror the OpenAI path: a pre-stream failure is a clean 502; a
+        // mid-stream one is surfaced as a terminal error `result` frame.
+        if (sse.started) {
+          sse.frame({ type: 'result', ok: false, error: messageOf(err) })
+          sse.done()
+        } else {
+          sendJson(res, 502, { error: { message: messageOf(err) } })
+        }
+      }
       return
     }
 
@@ -298,6 +392,110 @@ function completion(text: string, model: string): Record<string, unknown> {
     object: 'chat.completion',
     model,
     choices: [{ index: 0, message: { role: 'assistant', content: text }, finish_reason: 'stop' }]
+  }
+}
+
+interface SseStream {
+  readonly started: boolean
+  delta(text: string): void
+  done(): void
+  /** Surface an error as a visible content delta, then close the stream. */
+  fail(message: string): void
+}
+
+/**
+ * An incremental OpenAI-style SSE writer: headers + role chunk go out on the
+ * FIRST delta (so a pre-stream failure can still be a clean HTTP 502), then
+ * every delta is flushed live as its own chunk.
+ */
+function createSseStream(res: ServerResponse, model: string): SseStream {
+  let started = false
+  const writeChunk = (delta: Record<string, unknown>, finish: string | null = null): void => {
+    res.write(
+      `data: ${JSON.stringify({
+        id: 'bridge',
+        object: 'chat.completion.chunk',
+        model,
+        choices: [{ index: 0, delta, finish_reason: finish }]
+      })}\n\n`
+    )
+  }
+  const start = (): void => {
+    if (started) return
+    started = true
+    res.statusCode = 200
+    res.setHeader('content-type', 'text/event-stream')
+    res.setHeader('cache-control', 'no-cache')
+    res.setHeader('connection', 'keep-alive')
+    // Push the headers + role preamble immediately so the client's reader
+    // starts consuming before the first token lands.
+    res.flushHeaders?.()
+    writeChunk({ role: 'assistant' })
+  }
+  return {
+    get started() {
+      return started
+    },
+    delta(text) {
+      if (!text) return
+      start()
+      writeChunk({ content: text })
+    },
+    done() {
+      start()
+      writeChunk({}, 'stop')
+      res.write('data: [DONE]\n\n')
+      res.end()
+    },
+    fail(message) {
+      start()
+      writeChunk({ content: `\n\n[bridge error: ${message}]` })
+      writeChunk({}, 'stop')
+      res.write('data: [DONE]\n\n')
+      res.end()
+    }
+  }
+}
+
+interface FrameStream {
+  readonly started: boolean
+  /** Write one AgentFrame as an SSE `data:` line (starts the stream on first). */
+  frame(frame: AgentFrame): void
+  /** Close the stream with the `[DONE]` sentinel. */
+  done(): void
+}
+
+/**
+ * An SSE writer for the framed endpoint (exploration 0392): each
+ * {@link AgentFrame} is one `data: <json>` line, terminated by `[DONE]` (the
+ * same sentinel the OpenAI stream uses, so the panel's reader is symmetric).
+ * Headers flush on the first frame so a pre-stream failure can still be a clean
+ * HTTP 502.
+ */
+function createFrameStream(res: ServerResponse): FrameStream {
+  let started = false
+  const start = (): void => {
+    if (started) return
+    started = true
+    res.statusCode = 200
+    res.setHeader('content-type', 'text/event-stream')
+    res.setHeader('cache-control', 'no-cache')
+    res.setHeader('connection', 'keep-alive')
+    res.flushHeaders?.()
+  }
+  return {
+    get started() {
+      return started
+    },
+    frame(frame) {
+      start()
+      res.write(`data: ${JSON.stringify(frame)}\n\n`)
+    },
+    done() {
+      start()
+      res.write('data: [DONE]\n\n')
+      res.end()
+    }
   }
 }
 

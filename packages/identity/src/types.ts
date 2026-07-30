@@ -126,5 +126,6 @@ export interface UCANToken {
   exp: number // Expiration timestamp
   att: UCANCapability[] // Capabilities
   prf: string[] // Proof chain (parent UCANs)
+  nnc?: string // Per-token nonce (0307-B): makes each mint unique so revocation-by-id is exact
   sig: Uint8Array // Signature
 }

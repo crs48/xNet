@@ -10,7 +10,8 @@
     "validate:plugins": "tsx scripts/validate-plugins.ts",
     "validate:surveillance": "tsx scripts/validate-surveillance.ts",
     "validate:metrics": "tsx scripts/validate-metrics.ts",
-    "build": "pnpm validate:compare && pnpm validate:changelog && pnpm validate:plugins && pnpm validate:surveillance && pnpm validate:metrics && pnpm build:llms && astro build",
+    "validate:dist": "tsx scripts/validate-dist.ts",
+    "build": "pnpm validate:compare && pnpm validate:changelog && pnpm validate:plugins && pnpm validate:surveillance && pnpm validate:metrics && pnpm build:llms && astro build && pnpm validate:dist",
     "preview": "astro preview",
     "astro": "astro"
   },
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
     "@types/qrcode": "^1.5.6",
+    "mermaid": "^11.0.0",
     "qrcode": "^1.5.4",
     "tsx": "^4.0.0"
   },

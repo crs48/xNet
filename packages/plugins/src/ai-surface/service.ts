@@ -93,7 +93,12 @@ export type AiPageMarkdownApplyAdapterInput = {
 }
 
 export type AiPageMarkdownApplyAdapterResult = {
-  mode: 'tiptap-yjs' | 'yjs' | 'custom'
+  /**
+   * `blocknote-yjs` = applied into the BlockNote `content-v4` fragment
+   * (see `createBlockNotePageMarkdownAdapter`); `yjs` = another Yjs-backed
+   * document shape; `custom` = host-specific.
+   */
+  mode: 'blocknote-yjs' | 'yjs' | 'custom'
   yjsField?: string
   documentUpdate?: unknown
   warnings?: string[]
@@ -107,7 +112,7 @@ export type AiPageMarkdownApplyResult = {
   applied: boolean
   pageId: string
   planId: string
-  mode: 'tiptap-yjs' | 'yjs' | 'custom' | 'node-property'
+  mode: 'blocknote-yjs' | 'yjs' | 'custom' | 'node-property'
   baseRevision: string
   liveRevision: string
   markdownHash: string
@@ -252,6 +257,7 @@ export class AiSurfaceService {
     planPagePatch: (args) => this.planPagePatch(args),
     applyPageMarkdown: (args) => this.applyPageMarkdown(args),
     rollbackPageMarkdown: (args) => this.rollbackPageMarkdown(args),
+    composePage: (args) => this.composePage(args),
     getAuditLog: (options) => this.getAuditLog(options),
     describeDatabase: (databaseId, options) => this.describeDatabase(databaseId, options),
     readDatabaseViews: (databaseId) => this.readDatabaseViews(databaseId),
@@ -506,6 +512,57 @@ export class AiSurfaceService {
     const scanLimit = this.limits.maxSearchScan
     const resultLimit = clampLimit(options.limit, this.limits.maxSearchResults)
     const offset = Math.max(0, options.offset ?? 0)
+
+    // Indexed path first (exploration 0391): BM25 over `nodes_fts` instead of
+    // scanning `maxSearchScan` nodes. Falls through to the scan when the
+    // storage has no FTS (memory adapter) or the probe errors.
+    if (this.config.store.searchText) {
+      // `schemaId` is pushed into the index query (0394) so the window holds
+      // `limit` matches *of that schema* — post-filtering a cross-schema
+      // window under-returns whenever the schema's hits sit past it.
+      const ftsMatches = await this.config.store
+        .searchText(query, Math.min(scanLimit, offset + resultLimit * 4), {
+          schemaId: options.schemaId
+        })
+        .catch(() => null)
+      if (ftsMatches !== null && ftsMatches !== undefined) {
+        const loaded = await Promise.all(
+          ftsMatches.map((match) => this.config.store.get(match.nodeId))
+        )
+        const normalizedQuery = query.toLocaleLowerCase()
+        const results: AiSearchResult[] = []
+        for (const [index, node] of loaded.entries()) {
+          if (!node || node.deleted) continue
+          if (options.schemaId && node.schemaId !== options.schemaId) continue
+          // Preserve BM25 order; borrow the substring snippet when the match
+          // is visible in the node's property text, else lead with its head.
+          const scored = scoreNode(node, normalizedQuery)
+          results.push(
+            scored ?? {
+              id: node.id,
+              schemaId: node.schemaId,
+              title: nodeTitle(node),
+              snippet: createSnippet(searchableText(node), 0, 0),
+              score: -ftsMatches[index].rank,
+              revision: revisionForNode(node),
+              updatedAt: node.updatedAt
+            }
+          )
+        }
+        return {
+          query,
+          schemaId: options.schemaId,
+          count: results.length,
+          limit: resultLimit,
+          offset,
+          scanned: ftsMatches.length,
+          index: 'fts5',
+          degraded: false,
+          results: results.slice(offset, offset + resultLimit)
+        }
+      }
+    }
+
     const nodes = await this.config.store.list({
       schemaId: options.schemaId,
       limit: scanLimit,
@@ -519,6 +576,11 @@ export class AiSurfaceService {
       .filter((result): result is AiSearchResult => result !== null)
       .sort((a, b) => b.score - a.score || b.updatedAt - a.updatedAt)
 
+    // Reaching here means BM25 was unavailable, so recall is whatever a
+    // substring scan of the first `scanLimit` nodes found. Say so in the
+    // payload (0394): a silent scan reads to the model exactly like an
+    // exhaustive search, and it will state "no such node" with confidence.
+    const truncated = nodes.length >= scanLimit
     return {
       query,
       schemaId: options.schemaId,
@@ -526,6 +588,14 @@ export class AiSurfaceService {
       limit: resultLimit,
       offset,
       scanned: nodes.length,
+      index: 'scan',
+      degraded: true,
+      degradedReason: this.config.store.searchText
+        ? 'fts-unavailable'
+        : 'fts-unsupported-by-storage',
+      notice: truncated
+        ? `Full-text index unavailable — matched by substring over the first ${nodes.length} nodes only. Results may be incomplete; do not conclude that something does not exist from this search alone.`
+        : `Full-text index unavailable — matched by substring over all ${nodes.length} scanned nodes. Ranking is weaker than BM25.`,
       results: matches.slice(offset, offset + resultLimit)
     }
   }
@@ -771,6 +841,50 @@ export class AiSurfaceService {
       warnings: [...warnings, ...markdownValidation.validation.warnings],
       errors: markdownValidation.validation.errors
     })
+  }
+
+  /**
+   * Compose a page of frames (0346, Phase 5): create the Page node, then
+   * plan + apply its markdown content (intro + frame directives) through
+   * the standard page pipeline — one audited step, rollbackable via the
+   * page-markdown rollback handle (the created page itself is reported
+   * so a rejected compose can be cleaned up).
+   */
+  private async composePage(args: {
+    title: string
+    markdown: string
+    confirmApply: boolean
+    actor?: string
+    intent?: string
+    extra?: Record<string, unknown>
+  }): Promise<Record<string, unknown>> {
+    if (!args.confirmApply) {
+      throw new Error('confirmApply must be true to compose a page')
+    }
+    const created = await this.config.store.create({
+      schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+      properties: { title: args.title, ...(args.extra ?? {}) }
+    })
+    const frontmatterBody = args.markdown
+    const plan = await this.planPagePatch({
+      pageId: created.id,
+      markdown: frontmatterBody,
+      actor: args.actor ?? 'ai-agent',
+      intent: args.intent ?? `Compose page "${args.title}"`
+    })
+    if (plan.status !== 'validated') {
+      return { pageId: created.id, planId: plan.id, applied: false, plan }
+    }
+    const result = await this.applyPageMarkdown({
+      plan: plan as unknown as Record<string, unknown>,
+      confirmApply: true
+    })
+    return {
+      pageId: created.id,
+      planId: plan.id,
+      applied: result.applied ?? false,
+      result: result as unknown as Record<string, unknown>
+    }
   }
 
   private async applyPageMarkdown(

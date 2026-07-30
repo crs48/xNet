@@ -29,3 +29,7 @@ export {
 } from './provider'
 
 export { WorkOSAuthKitProvider, type WorkOSAuthKitConfig } from './workos'
+
+// Recovery anchor (0243/0322/0338): WorkOS as a RecoveryAnchorProvider sibling
+// of the ATProto anchor, both writing the same escrow envelope.
+export { WorkOSRecoveryAnchor } from './workos-anchor'

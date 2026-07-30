@@ -35,9 +35,11 @@ public struct NodePayload: Sendable, Equatable {
 }
 
 /// A signed, hash-chained change record — the atomic unit of replication
-/// (docs/specs/protocol §L1.5–§L1.6). `xnet/1.0` uses `protocolVersion = 3`.
+/// (docs/specs/protocol §L1.5–§L1.6). `xnet/1.0` uses `protocolVersion = 4`.
+/// Must equal `CURRENT_PROTOCOL_VERSION` in packages/sync/src/change.ts —
+/// enforced by packages/sync/src/__tests__/protocol-version-parity.test.ts.
 public struct Change: Sendable, Equatable {
-    public var protocolVersion: Int64 = 3
+    public var protocolVersion: Int64 = 4
     public var id: String
     public var type: String = "node-change"
     public var payload: NodePayload
@@ -67,7 +69,7 @@ public struct Change: Sendable, Equatable {
 
     /// `"cid:blake3:" + hex(BLAKE3(canonical(unsigned)))`. The `protocolVersion`
     /// field is dropped before hashing when it is 0/absent (legacy), kept for
-    /// `xnet/1.0` (= 3).
+    /// `xnet/1.0` (= 4).
     public static func hash(ofUnsigned object: JSONValue) -> String {
         var obj = object
         if case .object(var dict) = obj {

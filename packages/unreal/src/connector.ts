@@ -100,7 +100,7 @@ export function buildUnrealConnector(options: UnrealConnectorOptions): Connector
     name: options.name ?? DEFAULT_NAME,
     description:
       'Syncs an Unreal Engine 6 title’s durable player data (identity, inventory, ' +
-      'achievements, matches, economy) into governed XNet nodes (exploration 0200).',
+      'achievements, matches, economy) into governed xNet nodes (exploration 0200).',
     capabilities: {
       secrets: options.secrets ?? DEFAULT_SECRETS,
       schemaWrite,

@@ -52,7 +52,7 @@ Per tier, the disabled box has three distinct root causes:
 
 3. **Unavailable cloud / managed / bridge / local-server — by design, but
    indistinguishable.** With no API key, no Ollama/LM Studio, no `:31416`
-   bridge, and no managed XNet Cloud, those tiers correctly report
+   bridge, and no managed xNet Cloud, those tiers correctly report
    `available: false`. That's intended — but the *user-visible result* (a dead
    box) looks identical to the two genuine bugs above.
 
@@ -321,7 +321,7 @@ stateDiagram-v2
 | **WebLLM** (In-browser, WebGPU) | `'gpu' in navigator` | ✅ in Chrome/Dia | ❌ **never** (no case, no dep) | ❌ **never** | Unimplemented stub; needs `@mlc-ai/web-llm` engine injection or must be hidden/marked unavailable |
 | **Gemini Nano** (Prompt API) | `'LanguageModel' in globalThis` | ✅ only if flag/OT on | ⚠️ only if `availability()==='available'` | ⚠️ rarely | Presence ≠ readiness; model often `downloadable`; `create()` needs gesture/download |
 | **Cloud API key** | `apiKey.length > 0` | only after key pasted | ✅ with key | ✅ with key | Working; expected to require a key |
-| **Managed (XNet Cloud)** | `GET /ai/health` → `{ok,managed}` | only on AI-enabled cloud | ✅ on cloud | ✅ on cloud | Working; off-cloud it correctly hides |
+| **Managed (xNet Cloud)** | `GET /ai/health` → `{ok,managed}` | only on AI-enabled cloud | ✅ on cloud | ✅ on cloud | Working; off-cloud it correctly hides |
 | **Local server** (Ollama/LM Studio) | probe `:11434` / `:1234` | only if reachable + CORS | ✅ if reachable | ✅ if reachable | Working; needs `OLLAMA_ORIGINS`/LM Studio CORS |
 | **Local bridge** (`:31416`) | probe `/health` | only if daemon running | ✅ if running | ✅ if running | Working; needs the bridge daemon (Electron) |
 

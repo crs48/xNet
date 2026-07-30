@@ -6,11 +6,13 @@
 // component must never hotlink an avatar host.
 //
 // Two variants:
-//   - full (default): linked names + an Article JSON-LD block, for post pages.
+//   - full (default): linked names, a "History" link to the post's own commit
+//     history (exploration 0364), and an Article JSON-LD block, for post pages.
 //   - compact: smaller, link-free (index cards are wrapped in an <a>, and
 //     nested anchors are invalid HTML), no JSON-LD.
 import { postAuthors, type BlogPost } from '../../data/blog'
 import { postUrl } from '../../lib/blog-feed'
+import PostHistory from './PostHistory.astro'
 
 interface Props {
   post: BlogPost
@@ -82,6 +84,14 @@ const avatarSize = compact ? 18 : 24
         )}
       </>
     ))
+  }
+  {
+    !compact && (
+      <>
+        <span aria-hidden="true">·</span>
+        <PostHistory post={post} />
+      </>
+    )
   }
 </div>
 

@@ -3,8 +3,8 @@
  * are undoable via workspace.undoLayout, and announce themselves.
  */
 import { getCommandRegistry } from '@xnetjs/plugins'
+import { registerBuiltinSlotViews } from '@xnetjs/workbench'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { registerBuiltinSlotViews } from '../workbench/builtin-slot-views'
 import { regionOf } from '../workbench/layout-tree'
 import { useWorkbench } from '../workbench/state'
 import {

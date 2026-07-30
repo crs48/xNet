@@ -96,21 +96,85 @@ export const linkIdFromGrantId = (grantId: string): string | null => {
 }
 
 /**
- * Whether a DID may manage sharing for a doc: the recorded owner always can;
- * with a known owner, others need an explicit admin grant. Docs with no
- * recorded owner fall back to the legacy trust model (possession of the doc
- * id ≡ access) — matching what `/shares/issue` already allows.
+ * Doc types whose grant is a CONTAINER (subtree) grant rather than a grant on
+ * one document. Claiming a 'space' link writes a grant keyed on the Space id,
+ * which the hub resolves for every node beneath that Space — so mis-authorizing
+ * one of these leaks a whole subtree, not one doc.
+ *
+ * These types therefore never take the ownerless fallback below.
+ */
+const CONTAINER_GRANT_DOC_TYPES: ReadonlySet<string> = new Set(['space'])
+
+/**
+ * The DID that owns a doc, from the three records that can attest it, in
+ * descending order of trustworthiness. They are populated by different paths
+ * and any one alone is incomplete:
+ *
+ *  1. `getNodeOwner` — recorded from the signed author of the first relayed
+ *     change (first writer wins, never reassigned). The durable record.
+ *  2. `getNodeCreatorDid` — the author of the node's earliest change in the
+ *     log. Signature-verified at ingest, so this is attested rather than
+ *     claimed, and it resolves Spaces that synced before (1) existed — which
+ *     is why this fix needs no backfill migration.
+ *  3. `doc_meta.ownerDid` — written only by the optional `index-update`
+ *     message (`enableSearchIndex`, off by default and set by no shipped app),
+ *     so in practice it is almost never populated. Kept last for the deployments
+ *     that did enable it.
+ */
+const resolveOwnerDid = async (storage: HubStorage, docId: string): Promise<string | null> => {
+  const recorded = await storage.getNodeOwner(docId)
+  if (recorded) return recorded
+  const creator = await storage.getNodeCreatorDid(docId)
+  if (creator) return creator
+  return (await storage.getDocMeta(docId))?.ownerDid ?? null
+}
+
+/**
+ * Whether a DID may manage sharing for a doc: the owner always can; otherwise
+ * an explicit admin grant is required.
+ *
+ * Docs with NO owner attested by any of the three records fall back to the
+ * legacy trust model (possession of the doc id ≡ access), matching what
+ * `/shares/issue` allows — EXCEPT for container-granting types, where that
+ * fallback is a privilege-escalation path and is refused outright.
+ *
+ * Rationale: `doc_meta` was the only ownership record and was effectively
+ * never written, so before this check any authenticated DID that learned a
+ * Space id could mint invite links to that Space's whole subtree. The fallback
+ * is kept for ordinary docs, where a grant covers one document and legacy
+ * single-doc shares predating any ownership record still need to work.
  */
 const canManageShares = async (
   storage: HubStorage,
   did: string,
-  docId: string
+  docId: string,
+  docType?: string
 ): Promise<boolean> => {
-  const meta = await storage.getDocMeta(docId)
-  if (!meta) return true
-  if (meta.ownerDid === did) return true
-  const grant = await storage.getActiveGrant(did, docId)
-  return Boolean(grant?.actions.includes('admin'))
+  const ownerDid = await resolveOwnerDid(storage, docId)
+  if (ownerDid) {
+    if (ownerDid === did) return true
+    const grant = await storage.getActiveGrant(did, docId)
+    return Boolean(grant?.actions.includes('admin'))
+  }
+  // Ownerless. Container-granting types demand positive proof of authority.
+  if (docType && CONTAINER_GRANT_DOC_TYPES.has(docType)) {
+    const grant = await storage.getActiveGrant(did, docId)
+    return Boolean(grant?.actions.includes('admin'))
+  }
+  return true
+}
+
+/**
+ * The docType to authorize a doc-scoped request under, for endpoints that are
+ * keyed on a docId rather than a link. Callers never supply it, so it is read
+ * back from the doc's own share links — a Space that has any link recorded
+ * 'space' on it. Returns undefined when nothing is known, which only leaves
+ * the legacy fallback reachable for docs with no links at all; minting the
+ * first link goes through `POST /links`, which always knows its docType.
+ */
+const storedDocType = async (storage: HubStorage, docId: string): Promise<string | undefined> => {
+  const links = await storage.listShareLinks(docId)
+  return links.find((link) => CONTAINER_GRANT_DOC_TYPES.has(link.docType))?.docType
 }
 
 const serializeLink = (link: ShareLinkRecord): Record<string, unknown> => ({
@@ -176,7 +240,7 @@ export const createShareLinkRoutes = (deps: ShareLinkRouteDeps): Hono<Env> => {
       return c.json({ code: 'INVALID_BODY', error: 'maxUses must be >= 0' }, 400)
     }
 
-    if (!(await canManageShares(storage, auth.did, docId))) {
+    if (!(await canManageShares(storage, auth.did, docId, docType))) {
       return c.json({ code: 'FORBIDDEN', error: 'Not allowed to manage sharing for this doc' }, 403)
     }
 
@@ -211,7 +275,7 @@ export const createShareLinkRoutes = (deps: ShareLinkRouteDeps): Hono<Env> => {
     if (!docId) {
       return c.json({ code: 'INVALID_QUERY', error: 'docId query parameter is required' }, 400)
     }
-    if (!(await canManageShares(storage, auth.did, docId))) {
+    if (!(await canManageShares(storage, auth.did, docId, await storedDocType(storage, docId)))) {
       return c.json({ code: 'FORBIDDEN', error: 'Not allowed to manage sharing for this doc' }, 403)
     }
     const links = await storage.listShareLinks(docId)
@@ -254,7 +318,7 @@ export const createShareLinkRoutes = (deps: ShareLinkRouteDeps): Hono<Env> => {
     if (!link) {
       return c.json({ code: 'LINK_NOT_FOUND', error: 'Share link not found' }, 404)
     }
-    if (!(await canManageShares(storage, auth.did, link.docId))) {
+    if (!(await canManageShares(storage, auth.did, link.docId, link.docType))) {
       return c.json({ code: 'FORBIDDEN', error: 'Not allowed to manage sharing for this doc' }, 403)
     }
     const body = await c.req.json().catch(() => null)
@@ -281,7 +345,7 @@ export const createShareLinkRoutes = (deps: ShareLinkRouteDeps): Hono<Env> => {
     if (!link) {
       return c.json({ code: 'LINK_NOT_FOUND', error: 'Share link not found' }, 404)
     }
-    if (!(await canManageShares(storage, auth.did, link.docId))) {
+    if (!(await canManageShares(storage, auth.did, link.docId, link.docType))) {
       return c.json({ code: 'FORBIDDEN', error: 'Not allowed to manage sharing for this doc' }, 403)
     }
     await storage.deleteShareLinkPreview(link.linkId)
@@ -294,7 +358,7 @@ export const createShareLinkRoutes = (deps: ShareLinkRouteDeps): Hono<Env> => {
     if (!link) {
       return c.json({ code: 'LINK_NOT_FOUND', error: 'Share link not found' }, 404)
     }
-    if (!(await canManageShares(storage, auth.did, link.docId))) {
+    if (!(await canManageShares(storage, auth.did, link.docId, link.docType))) {
       return c.json({ code: 'FORBIDDEN', error: 'Not allowed to manage sharing for this doc' }, 403)
     }
     const body = await c.req.json().catch(() => null)
@@ -311,7 +375,7 @@ export const createShareLinkRoutes = (deps: ShareLinkRouteDeps): Hono<Env> => {
     if (!link) {
       return c.json({ code: 'LINK_NOT_FOUND', error: 'Share link not found' }, 404)
     }
-    if (!(await canManageShares(storage, auth.did, link.docId))) {
+    if (!(await canManageShares(storage, auth.did, link.docId, link.docType))) {
       return c.json({ code: 'FORBIDDEN', error: 'Not allowed to manage sharing for this doc' }, 403)
     }
     await storage.deleteShareLink(link.linkId)
@@ -355,8 +419,11 @@ export const createShareLinkRoutes = (deps: ShareLinkRouteDeps): Hono<Env> => {
       })
 
     // The doc owner clicking their own link should not restrict themselves.
-    const meta = await storage.getDocMeta(link.docId)
-    if (meta && meta.ownerDid === auth.did) {
+    // Resolves ownership the same way as `canManageShares`; reading only
+    // `doc_meta` here meant a Space owner claiming their own link was
+    // silently downgraded to the link's role.
+    const ownerDid = await resolveOwnerDid(storage, link.docId)
+    if (ownerDid && ownerDid === auth.did) {
       return respond('write')
     }
 
@@ -399,7 +466,7 @@ export const createShareLinkRoutes = (deps: ShareLinkRouteDeps): Hono<Env> => {
     if (!docId) {
       return c.json({ code: 'INVALID_QUERY', error: 'docId query parameter is required' }, 400)
     }
-    if (!(await canManageShares(storage, auth.did, docId))) {
+    if (!(await canManageShares(storage, auth.did, docId, await storedDocType(storage, docId)))) {
       return c.json({ code: 'FORBIDDEN', error: 'Not allowed to manage sharing for this doc' }, 403)
     }
     const grants = await storage.listGrantsForDoc(docId)
@@ -430,7 +497,8 @@ export const createShareLinkRoutes = (deps: ShareLinkRouteDeps): Hono<Env> => {
     if (!grant) {
       return c.json({ code: 'GRANT_NOT_FOUND', error: 'Grant not found for this doc' }, 404)
     }
-    if (!(await canManageShares(storage, auth.did, grant.resourceDocId))) {
+    const grantDocType = await storedDocType(storage, grant.resourceDocId)
+    if (!(await canManageShares(storage, auth.did, grant.resourceDocId, grantDocType))) {
       return c.json({ code: 'FORBIDDEN', error: 'Not allowed to manage sharing for this doc' }, 403)
     }
     await storage.revokeGrant(grantId)

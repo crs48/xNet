@@ -91,6 +91,13 @@ const COLUMN_TYPES: ColumnTypeOption[] = [
   { value: 'email', label: 'Email', icon: '@', description: 'Email addresses', category: 'basic' },
   { value: 'phone', label: 'Phone', icon: '☎', description: 'Phone numbers', category: 'basic' },
   { value: 'file', label: 'File', icon: '📎', description: 'File attachments', category: 'basic' },
+  {
+    value: 'geo',
+    label: 'Location',
+    icon: '📍',
+    description: 'Geographic coordinates (lat, lng)',
+    category: 'basic'
+  },
 
   // Selection types
   {

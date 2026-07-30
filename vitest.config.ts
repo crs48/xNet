@@ -31,15 +31,25 @@ const workspaceAliases = {
   '@xnetjs/cloud/cost': new URL('./packages/cloud/src/cost/index.ts', import.meta.url).pathname,
   '@xnetjs/cloud': new URL('./packages/cloud/src/index.ts', import.meta.url).pathname,
   '@xnetjs/dashboard': new URL('./packages/dashboard/src/index.ts', import.meta.url).pathname,
+  // Subpath export: MUST precede the bare '@xnetjs/data' below (Vite uses first
+  // match). Without it the specifier resolves through package `exports` into
+  // dist/ and only works after a build.
+  '@xnetjs/data/database': new URL('./packages/data/src/database/index.ts', import.meta.url)
+    .pathname,
   '@xnetjs/data': new URL('./packages/data/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data-bridge': new URL('./packages/data-bridge/src/index.ts', import.meta.url).pathname,
+  // Subpath export: MUST precede the bare '@xnetjs/devkit' (Vite uses first match).
+  // Browser-safe leaf — the devkit barrel reaches for node:child_process.
+  '@xnetjs/devkit/blast-radius': new URL('./packages/devkit/src/blast-radius.ts', import.meta.url)
+    .pathname,
   '@xnetjs/devkit': new URL('./packages/devkit/src/index.ts', import.meta.url).pathname,
+  // Subpath export: MUST precede the bare '@xnetjs/devtools' (Vite uses first match).
+  '@xnetjs/devtools/seed': new URL('./packages/devtools/src/seed/index.ts', import.meta.url)
+    .pathname,
   '@xnetjs/devtools': new URL('./packages/devtools/src/index.ts', import.meta.url).pathname,
   '@xnetjs/dictation': new URL('./packages/dictation/src/index.ts', import.meta.url).pathname,
   '@xnetjs/experiments': new URL('./packages/experiments/src/index.ts', import.meta.url).pathname,
   '@xnetjs/editor/react': new URL('./packages/editor/src/react.ts', import.meta.url).pathname,
-  '@xnetjs/editor/extensions': new URL('./packages/editor/src/extensions.ts', import.meta.url)
-    .pathname,
   '@xnetjs/editor': new URL('./packages/editor/src/index.ts', import.meta.url).pathname,
   '@xnetjs/formula': new URL('./packages/formula/src/index.ts', import.meta.url).pathname,
   '@xnetjs/history': new URL('./packages/history/src/index.ts', import.meta.url).pathname,
@@ -51,6 +61,7 @@ const workspaceAliases = {
   '@xnetjs/maps': new URL('./packages/maps/src/index.ts', import.meta.url).pathname,
   '@xnetjs/meetings': new URL('./packages/meetings/src/index.ts', import.meta.url).pathname,
   '@xnetjs/network': new URL('./packages/network/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/publish': new URL('./packages/publish/src/index.ts', import.meta.url).pathname,
   '@xnetjs/plugins/node': new URL('./packages/plugins/src/services/node.ts', import.meta.url)
     .pathname,
   '@xnetjs/plugins': new URL('./packages/plugins/src/index.ts', import.meta.url).pathname,
@@ -69,12 +80,17 @@ const workspaceAliases = {
   '@xnetjs/sqlite': new URL('./packages/sqlite/src/index.ts', import.meta.url).pathname,
   '@xnetjs/storage': new URL('./packages/storage/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sync': new URL('./packages/sync/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/telemetry/inbox': new URL('./packages/telemetry/src/inbox/index.ts', import.meta.url)
+    .pathname,
   '@xnetjs/telemetry': new URL('./packages/telemetry/src/index.ts', import.meta.url).pathname,
   '@xnetjs/trust': new URL('./packages/trust/src/index.ts', import.meta.url).pathname,
   '@xnetjs/ui': new URL('./packages/ui/src/index.ts', import.meta.url).pathname,
   '@xnetjs/unreal': new URL('./packages/unreal/src/index.ts', import.meta.url).pathname,
   '@xnetjs/vectors': new URL('./packages/vectors/src/index.ts', import.meta.url).pathname,
-  '@xnetjs/views': new URL('./packages/views/src/index.ts', import.meta.url).pathname
+  '@xnetjs/views': new URL('./packages/views/src/index.ts', import.meta.url).pathname,
+  // Subpath alias MUST precede the bare '@xnetjs/workbench' (Vite uses first match).
+  '@xnetjs/workbench/ai': new URL('./packages/workbench/src/views/ai.ts', import.meta.url).pathname,
+  '@xnetjs/workbench': new URL('./packages/workbench/src/index.ts', import.meta.url).pathname
 }
 
 export default defineConfig({
@@ -109,19 +125,26 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
-            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
+            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,publish,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
+            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,publish,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
             // Control-plane app logic (xNet Cloud — managed-hosting explorations 0174/0175)
             'apps/cloud/src/**/*.test.ts',
             // Demo apps — pure logic only (Connect Four fold, exploration 0314)
             'apps/demos/src/lib/**/*.test.ts',
+            // Build-time plugins for the web app (source stamping, 0399) — pure
+            // functions and a Babel visitor, so they run in the node project
+            // rather than dragging jsdom in.
+            'apps/web/vite-plugins/**/*.test.ts',
             // Social matching layer — pure connect modules only; the
             // social importer/view tests need package subpath resolution that
             // this shared pool doesn't provide, so they stay on the package config.
             'packages/social/src/connect/**/*.test.ts',
             // Feed-definition tests are pure (relative imports + @xnetjs/data
             // only), so they run safely in the shared pool (Charter §Calm, 0234).
-            'packages/social/src/feeds/**/*.test.ts'
+            'packages/social/src/feeds/**/*.test.ts',
+            // Community hosting primitives are pure and dependency-free
+            // (welcome queue — exploration 0359), same reasoning as feeds.
+            'packages/social/src/community/**/*.test.ts'
           ],
           // data-bridge tests run separately - they have Yjs module import order issues
           // when combined with other tests in the same worker thread
@@ -137,11 +160,18 @@ export default defineConfig({
           pool: 'threads',
           isolate: true,
           include: [
-            'packages/{canvas,react,views,devtools,ui,dashboard,charts,maps}/src/**/*.test.{ts,tsx}',
+            'packages/{canvas,react,views,devtools,ui,dashboard,charts,maps,workbench}/src/**/*.test.{ts,tsx}',
             'packages/{canvas,react,views,devtools,ui,dashboard,charts,maps}/test/**/*.test.{ts,tsx}',
             // App-level logic tests (workbench shell, 0166)
             'apps/web/src/**/*.test.{ts,tsx}'
-          ]
+          ],
+          server: {
+            deps: {
+              // @blocknote/mantine ships ESM that named-imports from CJS
+              // react; inline so Vite transforms the interop (0312).
+              inline: [/@blocknote\//, /@mantine\//]
+            }
+          }
         },
         resolve: {
           alias: {
@@ -184,7 +214,15 @@ export default defineConfig({
           pool: 'threads',
           isolate: true,
           setupFiles: ['./packages/editor/src/test/setup.ts'],
-          include: ['packages/editor/src/**/*.test.{ts,tsx}']
+          include: ['packages/editor/src/**/*.test.{ts,tsx}'],
+          server: {
+            deps: {
+              // Single prosemirror/tiptap instance for BlockNote (0312):
+              // tiptap v3 patches Transaction.prototype (changedRange), so
+              // BlockNote's bundled copy must resolve to the same modules.
+              inline: [/@blocknote\//, /@mantine\//, /@tiptap\//]
+            }
+          }
         }
       },
       {
@@ -265,7 +303,10 @@ export default defineConfig({
           exclude: ['apps/electron/src/__tests__/sqlite-batch.test.ts'],
           server: {
             deps: {
-              external: ['better-sqlite3', 'electron']
+              external: ['better-sqlite3', 'electron'],
+              // @blocknote/mantine ships ESM that named-imports from CJS
+              // react; inline so Vite transforms the interop (0312).
+              inline: [/@blocknote\//, /@mantine\//]
             }
           }
         },

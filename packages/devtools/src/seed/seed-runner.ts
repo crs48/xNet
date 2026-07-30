@@ -20,8 +20,9 @@ import type {
   SeedScale,
   SeedScaleConfig
 } from './types'
-import type { DeterministicNodeImportDraft, NodeStore } from '@xnetjs/data'
-import { SpaceSchema } from '@xnetjs/data'
+import type { DeterministicNodeImportDraft, NodeId, NodeStore } from '@xnetjs/data'
+import { DRAFT_SCHEMA_IRI, SpaceSchema } from '@xnetjs/data'
+import { discardDraft, forkNodeIntoDraft } from '@xnetjs/history'
 import * as Y from 'yjs'
 import { autoDraft } from './auto-generator'
 import { buildFixtures, ORG_SPACE_ID } from './fixtures'
@@ -225,6 +226,19 @@ export async function runSeed(opts: RunSeedOptions): Promise<SeedReport> {
     docsApplied++
   }
 
+  // ─── 5b. Agent-PR demo draft (exploration 0329 P4) ────────────────────────
+  // An "assistant" draft awaiting review on the sample page: forked member,
+  // AI-edited clone, reviewRequested — end-to-end food for the Requests
+  // surface, the Draft switcher, and the review panel. Idempotent: skipped
+  // when the demo draft already exists (converge re-runs add nothing).
+  progress('docs', 'Seeding agent draft demo…')
+  try {
+    await seedAgentDraftDemo(store, mode)
+  } catch (err) {
+    // The demo is garnish — never fail a seed over it.
+    console.warn('[seed] agent draft demo skipped:', err)
+  }
+
   // ─── 6. Rebuild deferred indexes ────────────────────────────────────────
   progress('index', 'Rebuilding indexes…')
   const affectedSchemas = [...new Set(drafts.map((d) => d.schemaId))]
@@ -279,3 +293,52 @@ function buildAccreteDrafts(
 }
 
 export { DEMO_SPACE_ID }
+
+/** Stable id for the seeded agent-PR demo draft (0329 P4). */
+export const DEMO_AGENT_DRAFT_ID = seedId('draft', 'agent-demo') as NodeId
+
+/**
+ * Seed the agent-PR demo: an assistant draft on the sample page with one
+ * forked member, an AI-edited clone, and reviewRequested set. Skipped when
+ * present (converge); recreated after teardown on reseed.
+ */
+async function seedAgentDraftDemo(store: NodeStore, mode: SeedMode): Promise<void> {
+  const storage = store.getStorageAdapter()
+  const existing = await store.getRaw(DEMO_AGENT_DRAFT_ID)
+  if (existing && !existing.deleted) {
+    if (mode !== 'reseed') return
+    // Reseed: tear the demo down (clones + pins) before recreating.
+    await discardDraft(store, storage, DEMO_AGENT_DRAFT_ID)
+    await store.delete(DEMO_AGENT_DRAFT_ID)
+  }
+
+  const samplePageId = seedId('page', 'sample') as NodeId
+  const page = await store.getRaw(samplePageId)
+  if (!page || page.deleted) return // docs domain not seeded — nothing to demo
+
+  if (existing?.deleted) await store.restore(DEMO_AGENT_DRAFT_ID)
+  const draftExists = await store.getRaw(DEMO_AGENT_DRAFT_ID)
+  if (!draftExists || draftExists.deleted) {
+    await store.create({
+      id: DEMO_AGENT_DRAFT_ID,
+      schemaId: DRAFT_SCHEMA_IRI as never,
+      properties: {
+        name: 'AI: tighten the sample page intro',
+        status: 'open',
+        target: samplePageId,
+        entries: {},
+        created: [],
+        deletedIds: []
+      }
+    })
+  }
+  store.markDraftPrivate([DEMO_AGENT_DRAFT_ID])
+
+  const entry = await forkNodeIntoDraft(store, storage, DEMO_AGENT_DRAFT_ID, samplePageId)
+  await store.update(entry.cloneId as NodeId, {
+    properties: {
+      title: `${String(page.properties.title ?? 'Sample page')} — AI edit pending review`
+    }
+  })
+  await store.update(DEMO_AGENT_DRAFT_ID, { properties: { reviewRequested: true } })
+}

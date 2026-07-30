@@ -41,7 +41,10 @@ describe('Health metadata', () => {
       color: string
     }
     expect(body.schemaVersion).toBe(1)
-    expect(body.label).toBe('demo hub')
+    // The badge label is role-aware (0383 W1). This hub boots with no role, so
+    // it reports the default; the live demo hub (--role demo) still reads
+    // "demo hub", byte-identical to the pre-role hardcoded label.
+    expect(body.label).toBe('personal hub')
     expect(body.message).toMatch(/^online · \d+m$|^online · \d+h \d+m$/)
     expect(body.color).toBe('brightgreen')
   })

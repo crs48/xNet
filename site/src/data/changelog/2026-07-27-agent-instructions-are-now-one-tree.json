@@ -1,0 +1,17 @@
+{
+  "id": "2026-07-27-agent-instructions-are-now-one-tree",
+  "date": "July 27, 2026",
+  "title": "Agent instructions are now one tree",
+  "summary": "Contributor-facing docs for AI agents are single-sourced in AGENTS.md, with surface-specific guidance loaded only where it applies.",
+  "highlights": [],
+  "tags": [
+    "devtools"
+  ],
+  "pr": 635,
+  "mergedAt": "2026-07-28T00:57:10Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

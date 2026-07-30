@@ -16,12 +16,20 @@ const config: StorybookConfig = {
     '../packages/canvas/src/**/*.stories.@(ts|tsx|mdx)',
     '../packages/dashboard/src/**/*.stories.@(ts|tsx|mdx)',
     '../apps/web/src/**/*.stories.@(ts|tsx|mdx)',
-    '../apps/electron/src/renderer/**/*.stories.@(ts|tsx|mdx)'
+    '../apps/electron/src/renderer/**/*.stories.@(ts|tsx|mdx)',
+    // Visual explorations (0403). Deliberately NARROW — `docs/explorations/**`
+    // would compile all 470 explorations on every `dev:stories` boot. Only the
+    // opt-in `visuals/NNNN/` companions render here; the canonical `.md`
+    // exploration stays on GitHub.
+    '../docs/explorations/visuals/**/*.mdx'
   ],
   addons: [
     '@storybook/addon-a11y',
     '@storybook/addon-links',
     '@storybook/addon-themes',
+    // Compiles `*.mdx` docs pages. The `mdx` extension was already in the story
+    // globs above but matched nothing without this addon (0403).
+    '@storybook/addon-docs',
     './performance-panel-preset.ts',
     '@storybook/addon-vitest'
   ],
@@ -36,7 +44,10 @@ const config: StorybookConfig = {
             ? viteConfig.build?.rollupOptions?.external
             : []) as string[]),
           'mermaid',
-          'web-worker'
+          'web-worker',
+          // Native Node HNSW addon — @xnetjs/vectors dynamic-imports it and
+          // falls back to the pure-JS index in the browser (same as apps/web).
+          'usearch'
         ]
       }
     },

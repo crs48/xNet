@@ -15,6 +15,8 @@ export interface UseIdentityResult {
 
 /**
  * Hook for accessing current identity
+ *
+ * @public
  */
 export function useIdentity(): UseIdentityResult {
   const { identity, authorDID } = useXNet()

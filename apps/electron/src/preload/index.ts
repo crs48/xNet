@@ -19,6 +19,10 @@ contextBridge.exposeInMainWorld('xnet', {
   getSeedPhrase: () => ipcRenderer.invoke('xnet:seed:get'),
   clearSeedPhrase: () => ipcRenderer.invoke('xnet:seed:clear'),
 
+  // Local main-process crash log (0315): read-only, so a user-triggered debug
+  // report can attach recent main failures. Nothing is transmitted from here.
+  readCrashLog: () => ipcRenderer.invoke('xnet:crashLog:read'),
+
   // Menu events
   onNewPage: (callback: () => void) => {
     ipcRenderer.on('menu:new-page', callback)
