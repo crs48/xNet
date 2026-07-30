@@ -1,0 +1,54 @@
+# Close stranded PRs (exploration 0410).
+#
+# This repo has no review queue — PRs are opened, driven to green and merged
+# inside one working session (median time-to-merge: 0 hours). So a quiet branch
+# is not "awaiting review", it is one whose session ended without merging. Left
+# alone they rot in two ways: the work gets re-derived and landed by another
+# route weeks later, or the code they patch moves and the diff becomes a hazard
+# to merge. Four of the eight PRs open in July 2026 were already in `main`.
+#
+# Consumer: the maintainer, weekly. Pass condition: touch the PR or label it
+# `keep-open`. Nothing else in CI depends on this job, and it never blocks a
+# merge — it only comments and closes.
+name: stale
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Mondays, 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          days-before-stale: 14
+          days-before-close: 21
+          exempt-pr-labels: keep-open
+          # Issues track work that has not started; only PRs go stale here.
+          days-before-issue-stale: -1
+          days-before-issue-close: -1
+          stale-pr-message: >
+            No activity on this PR for 14 days. In this repo PRs normally merge
+            within the hour, so a quiet branch is usually one whose work has
+            already landed another way.
+
+
+            Before picking it back up, check whether it is still a change at
+            all: `git diff origin/main <branch> -- <its files>`. An empty diff
+            means it is already on `main` and should just be closed. If the diff
+            is *not* empty, check whether its target files still exist — a
+            branch older than a refactor can delete live code when merged.
+
+
+            Add the `keep-open` label to keep it.
+          close-pr-message: >
+            Closing as stranded — no activity for 21 days. Nothing is lost: the
+            branch still exists and the PR can be reopened. See
+            `docs/explorations/0410_[x]_OPEN_PR_TRIAGE_AND_THE_STRANDED_BRANCH_PROBLEM.md`
+            for the triage rationale and the verification commands.

@@ -537,17 +537,17 @@ jobs:
 
 ### Pass 3 — real work (#449)
 
-- [ ] Reimplement the "Connect a hub…" CTA in `packages/workbench/src/SyncStatus.tsx`
+- [x] Reimplement the "Connect a hub…" CTA in `packages/workbench/src/SyncStatus.tsx`
       (not the deleted `apps/web/src/workbench/SyncStatus.tsx`).
-- [ ] Reimplement the `!ready` branch and local-only link confirm against today's
+- [x] Reimplement the `!ready` branch and local-only link confirm against today's
       `apps/web/src/components/ShareDialog.tsx` (+99 lines since the merge-base).
-- [ ] Write a changelog fragment; check off the corresponding 0290 items.
+- [x] Write a changelog fragment; check off the corresponding 0290 items.
 - [ ] Close **#449** linking to the replacement PR.
 
 ### Pass 4 — mechanism
 
-- [ ] Add `.github/workflows/stale.yml` (14d stale / 21d close, `keep-open` exemption).
-- [ ] Fix the next-number command in `.claude/skills/explore/SKILL.md` to scan all
+- [x] Add `.github/workflows/stale.yml` (14d stale / 21d close, `keep-open` exemption).
+- [x] Fix the next-number command in `.claude/skills/explore/SKILL.md` to scan all
       refs and sibling worktrees.
 - [ ] Open a follow-up to triage the five PR-less stranded explorations
       (0266, 0316, 0320, 0407, 0409).

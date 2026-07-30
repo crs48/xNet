@@ -21,8 +21,18 @@ docs/explorations/NNNN_[_]_TITLE_IN_CAPS.md
 - `NNNN` — zero-padded sequence number. Compute the next one:
 
   ```bash
-  ls docs/explorations | sed -n 's/^\([0-9]\{4\}\)_.*/\1/p' | sort -n | tail -1 | awk '{printf "%04d\n", $1+1}'
+  {
+    ls docs/explorations
+    git log --all --name-only --format= -- 'docs/explorations/*' | xargs -n1 basename
+    ls ../*/docs/explorations 2>/dev/null
+  } | sed -n 's/^\([0-9]\{4\}\)_.*/\1/p' | sort -n | tail -1 | awk '{printf "%04d\n", $1+1}'
   ```
+
+  **Scan every ref, not just the working tree.** Numbers are claimed when a
+  doc is written, not when it merges, so unmerged branches and sibling
+  worktrees hold numbers `ls docs/explorations` cannot see — exploration 0410
+  found seven stranded that way. A working-tree-only check hands out a number
+  someone else is already using.
 
 - `[_]` — always start unchecked. The box tracks implementation
   status and is renamed later by `/implement`:
