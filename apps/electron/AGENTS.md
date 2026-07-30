@@ -60,5 +60,24 @@ faithful version of rung 1, with real window chrome.
 
 ## Native rebuild
 
-`dev:electron` force-rebuilds `better-sqlite3`, `usearch` and `sharp` on every
-start (`@electron/rebuild -f`). Expect that cost on a cold loop.
+`scripts/rebuild-if-stale.mjs` rebuilds `better-sqlite3`, `usearch` and `sharp`
+for Electron's ABI, but only when Electron, those modules or the lockfile moved
+(0404). Expect the cost on a cold loop, not on every start. Force it with
+`XNET_FORCE_ELECTRON_REBUILD=1`, or `pnpm run deps:electron`.
+
+`dev` and `dev:both` run the rebuild **before** `concurrently`, so nothing boots
+against a binary that is still being written. `deps:node` rebuilds the same
+binary for system Node — `pnpm test` does this — and so drops the stamp on its
+way out, which sends the next `dev` back through the Electron rebuild.
+
+**One native module, one ABI.** pnpm links a single physical `better-sqlite3`
+into both `apps/electron` and `packages/hub`, so the Electron rebuild is also
+the hub's copy — the hub cannot load it under system Node
+(`NODE_MODULE_VERSION 130` vs `131`). The dev hub therefore runs on Electron's
+Node via `ELECTRON_RUN_AS_NODE=1` (`scripts/run-dev-hub.mjs`), which is Node
+20.18 on Electron 33. Do not "fix" a hub ABI error inside `pnpm dev` by
+rebuilding for Node — that just moves the breakage to the app.
+
+`pnpm --filter @xnetjs/hub dev` still runs on system Node. That is the right
+command when Electron is out of the picture, but it needs the binary built to
+match: run `pnpm --filter xnet-desktop run deps:node` first.
