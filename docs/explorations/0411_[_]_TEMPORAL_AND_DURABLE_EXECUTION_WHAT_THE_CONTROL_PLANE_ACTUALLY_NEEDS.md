@@ -732,12 +732,12 @@ export async function runIfDue(
 
 **G2 — leased periodic jobs**
 
-- [ ] Add `apps/cloud/src/jobs/leased.ts` (`claimable`, `stalenessMs`,
+- [x] Add `apps/cloud/src/jobs/leased.ts` (`claimable`, `stalenessMs`,
       `runIfDue`) over the existing `DocStore` port
-- [ ] Back it with a Firestore transaction in `apps/cloud/src/stores/firestore.ts`
-- [ ] Convert the restore drill, cold-demotion sweep, and fleet probe in
+- [x] Back it with a Firestore transaction in `apps/cloud/src/stores/firestore.ts`
+- [x] Convert the restore drill, cold-demotion sweep, and fleet probe in
       [`apps/cloud/src/index.ts`](../../apps/cloud/src/index.ts) to `runIfDue`
-- [ ] Emit job staleness into the observability surface and alert at
+- [x] Emit job staleness into the observability surface and alert at
       2× interval — **a drill that has not run must be loud**
 
 **G3 — durable rollout**
