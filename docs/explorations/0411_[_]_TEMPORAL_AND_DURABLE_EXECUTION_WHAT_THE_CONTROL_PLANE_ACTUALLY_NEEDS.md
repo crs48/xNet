@@ -742,9 +742,9 @@ export async function runIfDue(
 
 **G3 — durable rollout**
 
-- [ ] Add a `RolloutRun` record (target, wave index, promoted, rolledBack,
+- [x] Add a `RolloutRun` record (target, wave index, promoted, rolledBack,
       priorVersions) over `DocStore`
-- [ ] Make `rollWave` / `runRollout` checkpoint after each tenant and resume
+- [x] Make `rollWave` / `runRollout` checkpoint after each tenant and resume
       from the stored record on restart
 
 ---

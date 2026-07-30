@@ -13,6 +13,7 @@ import type { BindingStore, TenantBinding } from '@xnetjs/cloud/identity'
 import { Firestore, type CollectionReference, type DocumentData } from '@google-cloud/firestore'
 import { type JobRecord } from '../jobs/leased'
 import { nonceStoreFromDocs, type NonceRecord, type NonceStore } from '../nonce'
+import { type RolloutRun, type RolloutRunStore } from '../rollout/run-record'
 import { bindingStoreFromDocs, tenantStoreFromDocs, type DocStore } from './durable'
 
 export class FirestoreDocStore<T> implements DocStore<T> {
@@ -77,6 +78,8 @@ export interface DurableStores {
   nonces: NonceStore
   /** Periodic-job schedule state (0411 G2) — survives deploys so drills cannot be skipped. */
   jobs: DocStore<JobRecord>
+  /** Staged-rollout checkpoints (0411 G3) — lets a killed rollout resume mid-wave. */
+  rollouts: RolloutRunStore
 }
 
 /**
@@ -111,6 +114,7 @@ export function firestoreStoresFromEnv(env: NodeJS.ProcessEnv = process.env): Du
     nonces: nonceStoreFromDocs(
       new FirestoreDocStore<NonceRecord>(firestore.collection('claim_nonces'))
     ),
-    jobs: new FirestoreDocStore<JobRecord>(firestore.collection('jobs'))
+    jobs: new FirestoreDocStore<JobRecord>(firestore.collection('jobs')),
+    rollouts: new FirestoreDocStore<RolloutRun>(firestore.collection('rollouts'))
   }
 }

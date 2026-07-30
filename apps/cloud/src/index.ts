@@ -107,10 +107,25 @@ export {
   type RolloutEngineDeps,
   type RolloutPlan,
   type RolloutReport,
+  type RolloutDurability,
+  type WaveDurability,
   type WaveResult,
   type WaveOptions
 } from './rollout/engine'
 export { controlPlaneRolloutDeps } from './rollout/control-plane-deps'
+export {
+  checkpoint,
+  decidedTenants,
+  isDecided,
+  loadOrStart,
+  priorVersionOf,
+  startRun,
+  waveResultFor,
+  type RolloutRun,
+  type RolloutRunStore,
+  type TenantCheckpoint,
+  type TenantOutcome
+} from './rollout/run-record'
 export {
   StripeTenantBillingGateway,
   stripeGatewayFromEnv,
