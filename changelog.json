@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-30-connect-a-hub-straight-from-the-share-di",
+      "url": "https://xnet.fyi/changelog#2026-07-30-connect-a-hub-straight-from-the-share-di",
+      "title": "Connect a hub straight from the Share dialog",
+      "content_text": "Sharing with no hub connected now offers a Connect a hub button that opens the connection panel with an inline hub-URL form, instead of a dead-end message. Links from a private hub ask for confirmation before copying, so a LAN-only link is not pasted somewhere it cannot work.\n",
+      "date_published": "2026-07-30T16:38:28Z",
+      "tags": [
+        "app",
+        "sync"
+      ],
+      "_xnet": {
+        "date": "July 30, 2026",
+        "summary": "Sharing with no hub connected now offers a Connect a hub button that opens the connection panel with an inline hub-URL form, instead of a dead-end message. Links from a private hub ask for confirmation before copying, so a LAN-only link is not pasted somewhere it cannot work.",
+        "highlights": [],
+        "mergedAt": "2026-07-30T16:38:28Z",
+        "pr": 658,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-28-the-assistant-can-now-edit-your-workspac",
       "url": "https://xnet.fyi/changelog#2026-07-28-the-assistant-can-now-edit-your-workspac",
       "title": "The assistant can now edit your workspace — with your approval",

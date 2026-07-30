@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Connect a hub straight from the Share dialog</title>
+      <link>https://xnet.fyi/changelog#2026-07-30-connect-a-hub-straight-from-the-share-di</link>
+      <guid isPermaLink="false">2026-07-30-connect-a-hub-straight-from-the-share-di</guid>
+      <pubDate>Thu, 30 Jul 2026 16:38:28 GMT</pubDate>
+      <description>Sharing with no hub connected now offers a Connect a hub button that opens the connection panel with an inline hub-URL form, instead of a dead-end message. Links from a private hub ask for confirmation before copying, so a LAN-only link is not pasted somewhere it cannot work.</description>
+    </item>
+    <item>
       <title>The assistant can now edit your workspace — with your approval</title>
       <link>https://xnet.fyi/changelog#2026-07-28-the-assistant-can-now-edit-your-workspac</link>
       <guid isPermaLink="false">2026-07-28-the-assistant-can-now-edit-your-workspac</guid>
