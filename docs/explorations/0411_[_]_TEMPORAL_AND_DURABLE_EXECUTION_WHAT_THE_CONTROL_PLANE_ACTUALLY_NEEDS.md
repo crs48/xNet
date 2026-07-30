@@ -680,15 +680,25 @@ export async function runIfDue(
 | **Estimate is wrong** and this is 800 LOC, not 300.                                                |  Medium  | Ship G1 (`saga()`, ~60 LOC) first and re-measure before committing to G2/G3.                                                |
 | **We reject Temporal, then the index tier lands** and brings genuinely large fan-out workflows.    |   Low    | That is the "more than three sagas" tripwire firing. Revisit then — the decision is scoped to today's workload, explicitly. |
 
+**Answered during implementation**
+
+> [!NOTE]
+> **`destroy` reclaims the right things.** Verified against
+> [`packages/cloud/src/provisioner/adapters/cloud-run-litestream.ts`](../../packages/cloud/src/provisioner/adapters/cloud-run-litestream.ts):
+> `destroy` calls `client.delete(ref)` (→ `deleteService`) and
+> `allocator.release(ref.project)`. It removes the **billable compute** and the
+> shard slot, and touches **no R2 data** — under Litestream Model B the SQLite
+> data lives in R2, not on an attached volume, so there is no per-service disk
+> to reclaim. That split is exactly what compensation needs: stop the meter,
+> never delete data. The semantics are now documented at the method itself so
+> the next reader does not have to re-derive them.
+
 **Open questions**
 
-- Does `provisioner.destroy(substrateRef)` on the Cloud Run client fully remove
-  the attached volume, or only the service? G1's compensation is only as good
-  as that call. Needs verification against
-  [`apps/cloud/src/provisioner/google-cloud-run-client.ts`](../../apps/cloud/src/provisioner/google-cloud-run-client.ts).
 - Is there any orphaned Cloud Run service in the current project from a G1
-  failure that already happened? Worth an audit before assuming the leak is
-  theoretical.
+  failure that already happened? **Deferred — needs live GCP credentials this
+  branch does not have.** The audit query is recorded in the checklist below;
+  run it before the fleet carries paying tenants.
 - Should `LeasedJob` staleness feed the existing SLO surface in
   [`apps/cloud/src/observability/slo.ts`](../../apps/cloud/src/observability/slo.ts),
   or a separate internal alert? Prefer the former — one place operators look.
@@ -711,12 +721,12 @@ export async function runIfDue(
 
 **G1 — provisioning saga** (highest value, smallest change)
 
-- [ ] Add `apps/cloud/src/saga.ts` with `saga()` and `SagaFailure`
-- [ ] Unit-test: happy path, mid-saga throw unwinds in reverse, compensation
+- [x] Add `apps/cloud/src/saga.ts` with `saga()` and `SagaFailure`
+- [x] Unit-test: happy path, mid-saga throw unwinds in reverse, compensation
       failure is reported rather than swallowed
-- [ ] Rewrite `ControlPlane.provisionTenant` and `provisionForBilling` over
+- [x] Rewrite `ControlPlane.provisionTenant` and `provisionForBilling` over
       `saga()`, compensating hub provision with `provisioner.destroy`
-- [ ] Verify `google-cloud-run-client.destroy` removes the volume as well as
+- [x] Verify `google-cloud-run-client.destroy` removes the volume as well as
       the service; fix or document if not
 - [ ] Audit the live GCP project for services with no matching `TenantRecord`
 
