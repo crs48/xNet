@@ -528,8 +528,8 @@ jobs:
 - [x] Close **#463** — `main` has a 485-line `0298_[x]` version.
 - [x] Close **#13** — both fixes on `main`; the unique `CanvasView.test.tsx` is a
       UI test, which `AGENTS.md` now prohibits.
-- [ ] **#505**: add `skip-changelog`, rebase onto `main`, re-run CI.
-- [ ] **#505**: confirm `build-and-smoke-test` goes green after the rebase; if
+- [x] **#505**: add `skip-changelog`, rebase onto `main`, re-run CI.
+- [x] **#505**: confirm `build-and-smoke-test` goes green after the rebase; if
       not, investigate `scale-limits.bench.test.ts` before merging.
 - [x] **#505**: cite the `XNET_SCALE_BENCH` run command from the 0318 body so the
       bench has a named consumer, then merge.
@@ -542,7 +542,7 @@ jobs:
 - [x] Reimplement the `!ready` branch and local-only link confirm against today's
       `apps/web/src/components/ShareDialog.tsx` (+99 lines since the merge-base).
 - [x] Write a changelog fragment; check off the corresponding 0290 items.
-- [ ] Close **#449** linking to the replacement PR.
+- [x] Close **#449** linking to the replacement PR.
 
 ### Pass 4 — mechanism
 
