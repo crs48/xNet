@@ -568,7 +568,7 @@ jobs:
 - [x] The hub CTA is reachable from the Share dialog with no hub connected, on
       **both** the web app and the desktop app (proof the `packages/workbench`
       placement paid off).
-- [ ] `actions/stale` completes one scheduled run and comments on nothing
+- [x] `actions/stale` completes one scheduled run and comments on nothing
       (because nothing is stale).
 - [x] The corrected `/explore` number command skips every number already claimed
       on a branch or sibling worktree. **Result: returns `0412`** — while this
