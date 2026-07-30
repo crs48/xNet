@@ -19,11 +19,16 @@
  *   pnpm --filter xnet-desktop run deps:electron   # always rebuilds
  *   XNET_FORCE_ELECTRON_REBUILD=1 pnpm dev         # force through this script
  *
+ * `--invalidate` drops the stamp without rebuilding. `deps:node` uses it: that
+ * script rebuilds the SAME physical binary for Node's ABI, which none of the
+ * hashed inputs can see, so without this the next `dev` would trust the stamp
+ * and hand Electron a module it cannot load.
+ *
  * Run: `node scripts/rebuild-if-stale.mjs` from apps/electron.
  */
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -69,6 +74,12 @@ function rebuild(reason) {
     cwd: appDir,
     stdio: 'inherit'
   })
+}
+
+if (process.argv.includes('--invalidate')) {
+  rmSync(STAMP, { force: true })
+  console.log('[electron] native modules are no longer built for Electron — stamp dropped')
+  process.exit(0)
 }
 
 const key = stampKey()
