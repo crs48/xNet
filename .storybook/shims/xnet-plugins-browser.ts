@@ -32,7 +32,8 @@ export type {
   BlockProps,
   SettingContribution,
   SettingsPanelProps,
-  SchemaContribution
+  SchemaContribution,
+  StatusBarContribution
 } from '../../packages/plugins/src/contributions'
 export { TypedRegistry, ContributionRegistry } from '../../packages/plugins/src/contributions'
 
@@ -59,6 +60,7 @@ export type { PluginNode } from '../../packages/plugins/src/schemas/plugin'
 
 // Command registry — used by canvas-view's useCanvasCommands (0277)
 export { getCommandRegistry, installCommandHandler } from '../../packages/plugins/src/commands'
+export type { WorkspaceCommand } from '../../packages/plugins/src/commands'
 
 // Feature modules + capability guards — used by @xnetjs/meetings (0279)
 export { defineFeatureModule } from '../../packages/plugins/src/feature-module'
@@ -118,8 +120,28 @@ export type { EditorSchemaRisk } from '../../packages/plugins/src/editor-schema-
 
 // AI surface + connector exports (0406): the workbench chrome (and its lazy
 // AI panel) resolve these at build time; stories never run the engine.
-export { AiSurfaceService, createAiSurfaceService } from '../../packages/plugins/src/ai-surface'
-export type { AiSurfaceServiceConfig } from '../../packages/plugins/src/ai-surface'
+export {
+  AgentAuditRecorder,
+  AiSurfaceService,
+  createAiSurfaceService
+} from '../../packages/plugins/src/ai-surface'
+export type {
+  AgentCallOutcome,
+  AgentPendingApproval,
+  AiCallableTool,
+  AiContextPack,
+  AiContextRetriever,
+  AiRiskLevel,
+  AiSurfaceServiceConfig
+} from '../../packages/plugins/src/ai-surface'
+
+// Local-API interface types (0337 ceremony, 0394 schema tools). Type-only —
+// `export type` is erased, so the node-only `services` runtime never bundles.
+export type {
+  NodeStoreAPI,
+  SchemaData,
+  SchemaRegistryAPI
+} from '../../packages/plugins/src/services'
 export {
   createAIProvider,
   createAiAgentRuntime,
@@ -130,7 +152,8 @@ export {
   detectConnectors,
   downloadPromptApiModel,
   promptApiAvailability,
-  WebLLMProvider
+  WebLLMProvider,
+  writeModeFor
 } from '../../packages/plugins/src/ai'
 export type {
   AiAgentRuntime,
@@ -144,5 +167,6 @@ export type {
   PromptApiAvailability,
   ToolCallingFidelity,
   WebLLMEngineLike,
-  WebLLMProviderOptions
+  WebLLMProviderOptions,
+  WriteMode
 } from '../../packages/plugins/src/ai'
