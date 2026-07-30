@@ -524,9 +524,9 @@ jobs:
 
 ### Pass 2 — cheap wins
 
-- [ ] Close **#595** — verified byte-identical to `main`; landed in `fbc2965a2`.
-- [ ] Close **#463** — `main` has a 485-line `0298_[x]` version.
-- [ ] Close **#13** — both fixes on `main`; the unique `CanvasView.test.tsx` is a
+- [x] Close **#595** — verified byte-identical to `main`; landed in `fbc2965a2`.
+- [x] Close **#463** — `main` has a 485-line `0298_[x]` version.
+- [x] Close **#13** — both fixes on `main`; the unique `CanvasView.test.tsx` is a
       UI test, which `AGENTS.md` now prohibits.
 - [ ] **#505**: add `skip-changelog`, rebase onto `main`, re-run CI.
 - [ ] **#505**: confirm `build-and-smoke-test` goes green after the rebase; if
