@@ -8,8 +8,8 @@ tags: [cloud, architecture, reliability, dependencies]
 # Temporal And Durable Execution — What The Control Plane Actually Needs
 
 > [!TIP]
-> **TL;DR** — **No.** Temporal solves durable *execution*; xNet's hard problem
-> is durable *state*, and the one place Temporal could legitimately live
+> **TL;DR** — **No.** Temporal solves durable _execution_; xNet's hard problem
+> is durable _state_, and the one place Temporal could legitimately live
 > (`apps/cloud`, ~5% of the stack) is a pre-launch control plane whose entire
 > job runs in four `setInterval` loops. Adopting it means a four-service
 > cluster and a new datastore we do not otherwise have, for a workload that
@@ -24,7 +24,7 @@ tags: [cloud, architecture, reliability, dependencies]
 
 Should xNet take a dependency on [Temporal](https://temporal.io/)?
 
-The question is worth asking because the repo does have work that *looks*
+The question is worth asking because the repo does have work that _looks_
 workflow-shaped: provisioning a tenant hub touches four external systems in
 sequence, staged fleet rollouts bake-and-rollback across waves, nightly
 restore drills must actually run, and the non-payment lifecycle walks a tenant
@@ -40,7 +40,7 @@ exploration asks three separate questions and answers them separately:
 
 > [!IMPORTANT]
 > A fourth question — "should xNet ship a user-facing automations engine?" —
-> is a *different* topic and is explicitly out of scope here. A local-first
+> is a _different_ topic and is explicitly out of scope here. A local-first
 > automation engine runs on the user's device against their CRDTs. Temporal
 > cannot run there at all. That thread lives in
 > [0225](./0225_[_]_INTEGRATING_WITH_AGENT_AND_WORKFLOW_PLATFORMS_INKEEP_N8N.md)
@@ -50,22 +50,22 @@ exploration asks three separate questions and answers them separately:
 
 ## Executive Summary
 
-| Claim                                                              | Verdict                                                                  |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| Temporal could run in the client or the hub                        | 🛑 **False** — server-only, needs a cluster; would break a Charter receipt |
-| Temporal could run in `apps/cloud`                                 | ✅ True — and that is the *only* place                                     |
-| The control plane has real durability gaps                         | ✅ True — four of them, listed below with line numbers                     |
-| Temporal is the cheapest fix for those gaps                        | ❌ False — ~$1.2k/yr floor + a new datastore + a determinism sandbox tax   |
-| The repo already has a coherent alternative pattern                | ✅ True — pure decision functions + level-triggered reconcilers            |
-| We should adopt Temporal now                                       | 🛑 **No**                                                                 |
-| We should fix the gaps now                                         | ✅ **Yes** — G1 and G3 are live correctness bugs                           |
+| Claim                                               | Verdict                                                                    |
+| --------------------------------------------------- | -------------------------------------------------------------------------- |
+| Temporal could run in the client or the hub         | 🛑 **False** — server-only, needs a cluster; would break a Charter receipt |
+| Temporal could run in `apps/cloud`                  | ✅ True — and that is the _only_ place                                     |
+| The control plane has real durability gaps          | ✅ True — four of them, listed below with line numbers                     |
+| Temporal is the cheapest fix for those gaps         | ❌ False — ~$1.2k/yr floor + a new datastore + a determinism sandbox tax   |
+| The repo already has a coherent alternative pattern | ✅ True — pure decision functions + level-triggered reconcilers            |
+| We should adopt Temporal now                        | 🛑 **No**                                                                  |
+| We should fix the gaps now                          | ✅ **Yes** — G1 and G3 are live correctness bugs                           |
 
 The repo has, in fact, already written down the load-bearing sentence. From
 [0332](./0332_[_]_RAMA_REVISITED_FEDERATED_INDEX_TIER_AND_TS_EQUIVALENTS.md)'s
 landscape table (line 182):
 
-> Temporal / Inngest / Trigger.dev / DBOS / Vercel WDK — Durable *execution*,
-> explicitly not durable *state*; "use your own DB"
+> Temporal / Inngest / Trigger.dev / DBOS / Vercel WDK — Durable _execution_,
+> explicitly not durable _state_; "use your own DB"
 
 xNet is a durable-state company. The state layer is CRDTs and a signed change
 log on the user's own device. Nothing an orchestrator offers touches that.
@@ -127,7 +127,7 @@ category difference.
 **Hub.** [`packages/hub/package.json`](../../packages/hub/package.json) has
 zero external-service dependencies — Hono, `ws`, `yjs`, `better-sqlite3`,
 `jose`. That is deliberate, and it is a **Charter receipt**. From
-[`docs/CHARTER.md`](../CHARTER.md) §6, under *No global chokepoint tier*:
+[`docs/CHARTER.md`](../CHARTER.md) §6, under _No global chokepoint tier_:
 
 > relays are bounded, hubs are user-ownable. **Architectural:** the decision is
 > recorded in exploration 0333 and the hub is a single self-contained process
@@ -154,17 +154,17 @@ else. The design is explicit and documented in
 The dominant architectural pattern is **pure decision function + thin driver**,
 and it is applied consistently:
 
-| Module                                                                                  | Shape                                  | Restart-safe?                        |
-| --------------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------ |
-| [`apps/cloud/src/reconcile/billing.ts`](../../apps/cloud/src/reconcile/billing.ts)        | pure dunning decision over `TenantRecord` | ✅ level-triggered, derives from timestamps |
-| [`packages/cloud/src/cost/reconcile.ts:102`](../../packages/cloud/src/cost/reconcile.ts)  | `reconcileTenantMargin` — pure          | ✅ recomputed from measurements        |
-| [`apps/cloud/src/backup/schedule.ts`](../../apps/cloud/src/backup/schedule.ts)            | pure "which tenants are due"            | ✅ but the *driver* is not (see G2)    |
-| [`apps/cloud/src/rollout/engine.ts:38`](../../apps/cloud/src/rollout/engine.ts)           | `rollWave` — wave state in locals       | ❌ **G3**                             |
-| [`apps/cloud/src/control-plane.ts:226`](../../apps/cloud/src/control-plane.ts)            | `provisionTenant` — 4-step saga         | ❌ **G1**                             |
+| Module                                                                                   | Shape                                     | Restart-safe?                               |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------- |
+| [`apps/cloud/src/reconcile/billing.ts`](../../apps/cloud/src/reconcile/billing.ts)       | pure dunning decision over `TenantRecord` | ✅ level-triggered, derives from timestamps |
+| [`packages/cloud/src/cost/reconcile.ts:102`](../../packages/cloud/src/cost/reconcile.ts) | `reconcileTenantMargin` — pure            | ✅ recomputed from measurements             |
+| [`apps/cloud/src/backup/schedule.ts`](../../apps/cloud/src/backup/schedule.ts)           | pure "which tenants are due"              | ✅ but the _driver_ is not (see G2)         |
+| [`apps/cloud/src/rollout/engine.ts:38`](../../apps/cloud/src/rollout/engine.ts)          | `rollWave` — wave state in locals         | ❌ **G3**                                   |
+| [`apps/cloud/src/control-plane.ts:226`](../../apps/cloud/src/control-plane.ts)           | `provisionTenant` — 4-step saga           | ❌ **G1**                                   |
 
 > [!NOTE]
 > That table is the actual finding. Most of the control plane is already
-> restart-safe *by construction*, because it recomputes decisions from stored
+> restart-safe _by construction_, because it recomputes decisions from stored
 > state instead of remembering where it was. That is level-triggered
 > reconciliation — the Kubernetes-controller pattern — and it is a genuine
 > alternative to durable execution, not a poor cousin of it. Two modules
@@ -183,7 +183,7 @@ and it is applied consistently:
 > function throws, **no `TenantRecord` is written**, and a running, billable
 > Cloud Run service plus its volume are orphaned with nothing pointing at
 > them. Retrying hits `throw new Error('Tenant already exists')` only if the
-> record landed — which it did not — so the retry provisions a *second*
+> record landed — which it did not — so the retry provisions a _second_
 > service. This is a live money leak, not a hypothetical.
 
 ```mermaid
@@ -235,7 +235,6 @@ sequenceDiagram
 > and the fix is "persist leases to the hub's own SQLite", not "add an
 > orchestrator to the hub" — which is forbidden anyway.
 
-
 **Not a gap:** the process-local webhook LRU in
 [`packages/hub/src/features/idempotency.ts`](../../packages/hub/src/features/idempotency.ts)
 is bounded and documented as intentional — "webhook retries arrive within
@@ -244,8 +243,8 @@ call; leave it.
 
 **Also not a gap:** the dunning lifecycle. Reading
 [`apps/cloud/src/reconcile/billing.ts`](../../apps/cloud/src/reconcile/billing.ts),
-the 51-day grace → read-only → suspended → pending-deletion walk is a *pure
-function of timestamps on the tenant record*. It survives any restart, any
+the 51-day grace → read-only → suspended → pending-deletion walk is a _pure
+function of timestamps on the tenant record_. It survives any restart, any
 deploy, any outage, and it costs nothing.
 
 ```mermaid
@@ -281,14 +280,14 @@ The server is four independently scalable services (frontend, history,
 matching, worker) over Cassandra, PostgreSQL or MySQL, plus optional
 Elasticsearch for visibility.
 
-| Dimension          | Reality                                                                                                                             |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| License            | ✅ MIT — no licensing objection                                                                                                       |
-| Self-host infra    | 🛑 Four services + a datastore; practitioner reports put a small production self-host at **$2.5k–$4.5k/mo plus operational labour**    |
-| Temporal Cloud     | 🟡 **Essentials from $100/mo**; ~$50 per million Actions; retained storage $0.00105/GBh (~$766/mo/TB)                                  |
-| History shard count | 🛑 **Immutable once configured** — a genuine one-way door on a self-host                                                              |
-| TS SDK constraints | ⚠️ Webpack-bundled deterministic sandbox; no Node/DOM APIs in workflow code; must not minify (`keepNames`); patch/versioning per deploy |
-| Maturity           | ✅ Genuinely the most proven option for long multi-step workflows                                                                     |
+| Dimension           | Reality                                                                                                                                 |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| License             | ✅ MIT — no licensing objection                                                                                                         |
+| Self-host infra     | 🛑 Four services + a datastore; practitioner reports put a small production self-host at **$2.5k–$4.5k/mo plus operational labour**     |
+| Temporal Cloud      | 🟡 **Essentials from $100/mo**; ~$50 per million Actions; retained storage $0.00105/GBh (~$766/mo/TB)                                   |
+| History shard count | 🛑 **Immutable once configured** — a genuine one-way door on a self-host                                                                |
+| TS SDK constraints  | ⚠️ Webpack-bundled deterministic sandbox; no Node/DOM APIs in workflow code; must not minify (`keepNames`); patch/versioning per deploy |
+| Maturity            | ✅ Genuinely the most proven option for long multi-step workflows                                                                       |
 
 The Cloud path removes the cluster but not the tax: workflow code still lives
 in a determinism sandbox, and every non-additive edit to a workflow that has
@@ -298,20 +297,20 @@ timers.
 
 ### The 2026 alternatives
 
-| Option                     | Model                                     | Fit for xNet                                                             |
-| -------------------------- | ----------------------------------------- | ------------------------------------------------------------------------ |
+| Option                     | Model                                     | Fit for xNet                                                              |
+| -------------------------- | ----------------------------------------- | ------------------------------------------------------------------------- |
 | **Temporal**               | External cluster, event-history replay    | 🛑 Heaviest; only justified past the tripwires                            |
 | **Restate**                | Single Rust binary, durable services      | 🟡 Meaningfully simpler to operate; still a new always-on service         |
-| **DBOS**                   | In-process library, state in **Postgres** | ❌ **We have no Postgres.** SQLite + Firestore only                        |
+| **DBOS**                   | In-process library, state in **Postgres** | ❌ **We have no Postgres.** SQLite + Firestore only                       |
 | **pg_durable** (Microsoft) | Postgres extension + background worker    | ❌ Same blocker; also very new                                            |
 | **Inngest / Trigger.dev**  | Hosted, event-driven durable functions    | 🟡 Lowest friction of the SaaS options; adds a vendor in the control path |
-| **Cloudflare Workflows**   | Workers-native durable execution          | ❌ Wrong platform — we run on Cloud Run + Firestore                        |
+| **Cloudflare Workflows**   | Workers-native durable execution          | ❌ Wrong platform — we run on Cloud Run + Firestore                       |
 | **Google Cloud Tasks**     | Managed queue with retries + scheduling   | 🟡 Native to our platform; solves G2 specifically, not G1/G3              |
 
 > [!IMPORTANT]
 > The commonly-cited 2026 advice — "ship durable execution with DBOS and come
 > back to Temporal when you hit the wall" — **does not apply to us**, because
-> its whole appeal is *zero new infrastructure when you already run Postgres*.
+> its whole appeal is _zero new infrastructure when you already run Postgres_.
 > We do not. Every option in that table, including the "free" ones, adds a
 > datastore or a service to a stack that currently has neither.
 
@@ -328,7 +327,7 @@ timers.
    would be buying a floor, not capacity.
 3. **The repo already committed to the alternative pattern, and it works.**
    Dunning, cost reconciliation and demotion decisions are pure functions over
-   stored state; they are restart-safe *by construction* and need no engine.
+   stored state; they are restart-safe _by construction_ and need no engine.
 4. **Only two modules deviate, and both are simply bugs.** G1 lacks
    compensation; G3 keeps saga state in local variables. Neither needs an
    orchestrator to fix — G1 needs a `try`/compensate, G3 needs a stored record.
@@ -337,8 +336,8 @@ timers.
    `DocStore` we already ship — roughly 120 lines.
 6. **The nastiest failure here is silent, not loud.** A nightly restore drill
    that never runs looks exactly like a nightly restore drill that passed.
-   That violates the `AGENTS.md` rule directly: *"a truncated run is not a
-   completed one"*. Fixing G2 is as much an observability fix as a scheduling
+   That violates the `AGENTS.md` rule directly: _"a truncated run is not a
+   completed one"_. Fixing G2 is as much an observability fix as a scheduling
    one.
 7. **Adding a datastore is the real cost, not adding a library.** Temporal,
    DBOS and pg_durable all bottom out in "stand up and operate a database you
@@ -348,15 +347,15 @@ timers.
 
 ## Options And Tradeoffs
 
-| #   | Option                                                   | New infra                     | Fixes G1 | Fixes G2 | Fixes G3 | Verdict                    |
-| --- | -------------------------------------------------------- | ----------------------------- | :------: | :------: | :------: | -------------------------- |
-| A   | Temporal, self-hosted                                    | 4 services + Cassandra/PG     |    ✅    |    ✅    |    ✅    | 🛑 **Rejected**            |
-| B   | Temporal Cloud                                           | vendor + workers              |    ✅    |    ✅    |    ✅    | ❌ Not now — see tripwires  |
-| C   | DBOS / `pg_durable`                                      | **Postgres**                  |    ✅    |    ✅    |    ✅    | ❌ Blocked — no Postgres    |
-| D   | Restate                                                  | 1 always-on binary            |    ✅    |    ✅    |    ✅    | ❌ Not now — same reasoning |
-| E   | Google Cloud Tasks / Scheduler                           | managed, platform-native      |    ❌    |    ✅    |    ❌    | 🟡 Fallback for G2 only    |
-| F   | **In-repo `saga()` + `LeasedJob` + `RolloutRun` record** | **none** (reuses `DocStore`)  |    ✅    |    ✅    |    ✅    | ✅ **Recommended**          |
-| G   | Do nothing                                               | none                          |    ❌    |    ❌    |    ❌    | 🛑 Rejected — G1/G3 are bugs |
+| #   | Option                                                   | New infra                    | Fixes G1 | Fixes G2 | Fixes G3 | Verdict                      |
+| --- | -------------------------------------------------------- | ---------------------------- | :------: | :------: | :------: | ---------------------------- |
+| A   | Temporal, self-hosted                                    | 4 services + Cassandra/PG    |    ✅    |    ✅    |    ✅    | 🛑 **Rejected**              |
+| B   | Temporal Cloud                                           | vendor + workers             |    ✅    |    ✅    |    ✅    | ❌ Not now — see tripwires   |
+| C   | DBOS / `pg_durable`                                      | **Postgres**                 |    ✅    |    ✅    |    ✅    | ❌ Blocked — no Postgres     |
+| D   | Restate                                                  | 1 always-on binary           |    ✅    |    ✅    |    ✅    | ❌ Not now — same reasoning  |
+| E   | Google Cloud Tasks / Scheduler                           | managed, platform-native     |    ❌    |    ✅    |    ❌    | 🟡 Fallback for G2 only      |
+| F   | **In-repo `saga()` + `LeasedJob` + `RolloutRun` record** | **none** (reuses `DocStore`) |    ✅    |    ✅    |    ✅    | ✅ **Recommended**           |
+| G   | Do nothing                                               | none                         |    ❌    |    ❌    |    ❌    | 🛑 Rejected — G1/G3 are bugs |
 
 <details>
 <summary>Why not option D (Restate), which is the genuinely tempting one</summary>
@@ -373,7 +372,7 @@ is 300 lines with no new failure domain.** The gaps we have are three concrete
 bugs, not a missing capability. When the tripwires below start firing —
 particularly "more than three multi-step sagas" or "a workflow with a
 human-in-the-loop wait" — Restate should be re-evaluated as a peer of Temporal
-Cloud, not dismissed. Option D is *deferred*, not refused.
+Cloud, not dismissed. Option D is _deferred_, not refused.
 
 </details>
 
@@ -391,7 +390,7 @@ Two reasons it is a fallback rather than the recommendation:
    separate mechanism.
 2. It moves scheduling policy out of the repository and into cloud console
    configuration, which is invisible to tests and to
-   `pnpm test`. The current design keeps schedule *decisions* as pure,
+   `pnpm test`. The current design keeps schedule _decisions_ as pure,
    unit-tested functions (`pickDrillSample`, `demotionDue`); option F keeps
    that property and option E erodes it.
 
@@ -403,13 +402,13 @@ option E for G2 and keep F for G1/G3. That is a fine outcome.
 ### Charter tests
 
 This exploration proposes **no new revenue lane**, so §6's four tests do not
-formally apply. They *do* apply to the dependency question, and are worth
+formally apply. They _do_ apply to the dependency question, and are worth
 stating because the answer is the sharpest constraint in the document:
 
-| Test            | If Temporal ran in `apps/cloud`                                                                                     | If Temporal ran in `packages/hub`                                          |
-| --------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Test            | If Temporal ran in `apps/cloud`                                                                                       | If Temporal ran in `packages/hub`                                           |
+| --------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | **Improvement** | ✅ Neutral — an internal reliability tool, not a metered surface                                                      | ✅ Neutral                                                                  |
-| **BATNA**       | ✅ Unaffected — self-hosting a *hub* never touches the control plane                                                  | 🛑 **Fails** — self-hosting would require operating a workflow cluster      |
+| **BATNA**       | ✅ Unaffected — self-hosting a _hub_ never touches the control plane                                                  | 🛑 **Fails** — self-hosting would require operating a workflow cluster      |
 | **Vanish**      | 🟡 Partial — managed tenants' data survives (it is in R2 + on-device), but the fleet automation dies with the company | 🛑 **Fails** — a hub that needs an orchestrator we ran is not a hub you own |
 | **Sleep**       | ➖ N/A — not a revenue line                                                                                           | ➖ N/A                                                                      |
 
@@ -451,12 +450,12 @@ flowchart TD
 - **`saga()`** — a compensating-transaction helper. Each step registers its
   undo; a throw unwinds in reverse. Fixes G1 with no new state at all.
 - **`LeasedJob`** — a `DocStore`-backed record of `{ jobId, lastCompletedMs,
-  leaseUntilMs, holder }`. Loops become *due-based* (`now - lastCompletedMs >=
-  intervalMs`) rather than uptime-based, which makes them survive deploys and
+leaseUntilMs, holder }`. Loops become _due-based_ (`now - lastCompletedMs >=
+intervalMs`) rather than uptime-based, which makes them survive deploys and
   makes a second replica safe. Also emits a **staleness metric**, so a drill
   that has not run in 48h is loud instead of silent.
 - **`RolloutRun`** — persist `{ target, waveIndex, promoted[], rolledBack[],
-  priorVersions{} }` after each tenant, so a restart resumes the wave and
+priorVersions{} }` after each tenant, so a restart resumes the wave and
   rollback stays possible.
 
 All three reuse
@@ -466,27 +465,36 @@ emulator — matching the pattern the control plane already uses everywhere.
 
 ### 3. Tripwires — when to revisit
 
+See the dedicated section below. They are deliberately kept out of the
+implementation checklist: a checked tripwire means the decision needs
+re-opening, not that work got done.
+
+---
+
+## 🚨 Tripwires — When To Re-Open This Decision
+
+> [!IMPORTANT]
+> **These boxes are not implementation items and must stay unchecked.** Ticking
+> one records that a condition became true — it is a signal to re-open ADR-28,
+> not progress. `/implement` and the exploration status box ignore this section.
+
 Each is decidable, so this does not become a matter of taste. **If three or
 more are true, re-open the question**, evaluating Temporal Cloud and Restate as
 peers (skip self-hosting; skip DBOS unless Postgres has arrived for other
 reasons).
 
-- [ ] More than three distinct multi-step sagas with external side effects live
-      in `apps/cloud`
-- [ ] Any workflow needs a wait longer than one hour, or a human-in-the-loop
-      approval step
-- [ ] The control plane needs more than two replicas (leader election stops
-      being a lease and starts being a system)
-- [ ] A paying customer incident is traced to a lost or double-run background
-      job
-- [ ] Postgres enters the stack for an unrelated reason (this promotes DBOS
-      from ❌ to a serious contender)
-- [ ] Managed-tenant count exceeds ~500 (fleet operations stop being loopable
-      in a single pass)
+| #   | Tripwire                                                                                                    | State (2026-07-30)                            |
+| --- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| T1  | More than three distinct multi-step sagas with external side effects live in `apps/cloud`                   | ☐ No — one (`provisionTenant`)                |
+| T2  | Any workflow needs a wait longer than one hour, or a human-in-the-loop approval step                        | ☐ No — dunning waits are reconciled, not held |
+| T3  | The control plane needs more than two replicas (leader election stops being a lease, starts being a system) | ☐ No — single instance                        |
+| T4  | A paying customer incident is traced to a lost or double-run background job                                 | ☐ No                                          |
+| T5  | Postgres enters the stack for an unrelated reason (promotes DBOS from ❌ to a serious contender)            | ☐ No — SQLite + Firestore only                |
+| T6  | Managed-tenant count exceeds ~500 (fleet operations stop being loopable in a single pass)                   | ☐ No — pre-launch                             |
+| T7  | The in-repo primitives grow past ~500 LOC (we are building a worse Temporal)                                | ☐ No — see the LOC line in Validation         |
 
-> [!NOTE]
-> Today: **zero of six**. The honest summary is that this is a good technology
-> for a problem we have not earned yet.
+**Count: 0 of 7.** The honest summary is that this is a good technology for a
+problem we have not earned yet.
 
 ---
 
@@ -663,14 +671,14 @@ export async function runIfDue(
 
 ## Risks And Open Questions
 
-| Risk                                                                                                                    | Severity | Mitigation                                                                                                                |
-| ----------------------------------------------------------------------------------------------------------------------- | :------: | ------------------------------------------------------------------------------------------------------------------------- |
-| **Not-invented-here.** We write 300 lines that grow into a bad Temporal over two years.                                  |   High   | The tripwires exist precisely to stop this. Enforce the rule: if the primitives exceed ~500 LOC, that is itself a tripwire. |
-| **Firestore lease correctness.** Naive read-then-write is not atomic; two replicas can both claim.                       |  Medium  | Use a Firestore transaction in the adapter; keep `claimable()` pure and property-test it. Single replica today anyway.       |
-| **`provisioner.destroy` may itself fail**, leaving the orphan we set out to prevent.                                     |  Medium  | `SagaFailure` carries `compensationFailures` — surface it as an alert, not a log line. A failed undo must page.             |
-| **Compensation is not always possible** (a charged Stripe invoice cannot be un-charged).                                 |   Low    | Order steps so irreversible ones go last. Already true — billing precedes provisioning via webhook.                        |
-| **Estimate is wrong** and this is 800 LOC, not 300.                                                                      |  Medium  | Ship G1 (`saga()`, ~60 LOC) first and re-measure before committing to G2/G3.                                               |
-| **We reject Temporal, then the index tier lands** and brings genuinely large fan-out workflows.                           |   Low    | That is the "more than three sagas" tripwire firing. Revisit then — the decision is scoped to today's workload, explicitly. |
+| Risk                                                                                               | Severity | Mitigation                                                                                                                  |
+| -------------------------------------------------------------------------------------------------- | :------: | --------------------------------------------------------------------------------------------------------------------------- |
+| **Not-invented-here.** We write 300 lines that grow into a bad Temporal over two years.            |   High   | The tripwires exist precisely to stop this. Enforce the rule: if the primitives exceed ~500 LOC, that is itself a tripwire. |
+| **Firestore lease correctness.** Naive read-then-write is not atomic; two replicas can both claim. |  Medium  | Use a Firestore transaction in the adapter; keep `claimable()` pure and property-test it. Single replica today anyway.      |
+| **`provisioner.destroy` may itself fail**, leaving the orphan we set out to prevent.               |  Medium  | `SagaFailure` carries `compensationFailures` — surface it as an alert, not a log line. A failed undo must page.             |
+| **Compensation is not always possible** (a charged Stripe invoice cannot be un-charged).           |   Low    | Order steps so irreversible ones go last. Already true — billing precedes provisioning via webhook.                         |
+| **Estimate is wrong** and this is 800 LOC, not 300.                                                |  Medium  | Ship G1 (`saga()`, ~60 LOC) first and re-measure before committing to G2/G3.                                                |
+| **We reject Temporal, then the index tier lands** and brings genuinely large fan-out workflows.    |   Low    | That is the "more than three sagas" tripwire firing. Revisit then — the decision is scoped to today's workload, explicitly. |
 
 **Open questions**
 
@@ -693,12 +701,12 @@ export async function runIfDue(
 
 **Decision + guardrail**
 
-- [ ] Record the decision: no orchestrator dependency; scope any future one to
+- [x] Record the decision: no orchestrator dependency; scope any future one to
       `apps/cloud` only
-- [ ] Add the standing prohibition ("no workflow engine in `packages/hub`,
+- [x] Add the standing prohibition ("no workflow engine in `packages/hub`,
       `packages/server`, or any client package — Charter §6 BATNA receipt") to
       [`packages/AGENTS.md`](../../packages/AGENTS.md)
-- [ ] Add the six tripwires to this document's checklist as a durable
+- [x] Add the six tripwires to this document's checklist as a durable
       re-evaluation trigger
 
 **G1 — provisioning saga** (highest value, smallest change)

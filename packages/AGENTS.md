@@ -15,6 +15,22 @@ crypto → identity → storage → sync → data → react → sdk
 
 Lower packages cannot import from higher ones.
 
+## No workflow engine in a package (0411)
+
+**Never add a durable-execution / workflow orchestrator dependency (Temporal,
+Restate, DBOS, Inngest, …) to `packages/hub`, `packages/server`, or any client
+package.** An orchestrator may only ever be considered for `apps/cloud`.
+
+`packages/hub` has zero external-service dependencies, and `docs/CHARTER.md` §6
+cites "the hub is a single self-contained process" as the receipt for _No global
+chokepoint tier_. Requiring a self-hoster to operate a workflow cluster to run
+their own hub fails the **BATNA** test outright.
+
+Long-running or multi-step work inside a package is made restart-safe the way
+the rest of the repo already does it: a pure decision function over stored
+state, re-evaluated on a schedule (level-triggered), rather than an engine that
+remembers where it was. See ADR-28 and exploration 0411.
+
 ## Barrel exports (index.ts) — sub-barrel policy (0276)
 
 The `react`/`data`/`plugins` root barrels are the highest-churn files in the

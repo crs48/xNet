@@ -605,3 +605,42 @@ deployment of *our* server; `@xnetjs/server` remains the library for building
 
 **Tradeoff:** Two server documentation surfaces. Accepted; they answer
 different questions.
+
+## ADR-28: No durable-execution orchestrator; reconcilers instead
+
+**Status:** Accepted
+**Context:** Exploration 0411 evaluated adopting [Temporal](https://temporal.io/)
+(and Restate, DBOS, `pg_durable`, Inngest, Cloudflare Workflows) for the parts
+of the stack that look workflow-shaped: tenant provisioning, staged fleet
+rollouts, nightly restore drills, and the non-payment lifecycle.
+
+**Decision:** **Do not adopt a workflow engine.** Fix the three real durability
+gaps in-repo with primitives over the `DocStore` port the control plane already
+ships — a compensating `saga()`, a leased due-based job runner, and a durable
+`RolloutRun` checkpoint.
+
+**A workflow engine may only ever be considered for `apps/cloud`.** It must
+never enter `packages/hub`, `packages/server`, or any client package.
+
+**Rationale:**
+
+- Temporal and its peers provide durable *execution*; xNet's hard problem is
+  durable *state*, which CRDTs and the signed change log already solve. The
+  position was already recorded in exploration 0332's landscape survey.
+- It cannot run where most xNet work happens. The Temporal TypeScript SDK runs
+  workflow code in a Node-only deterministic sandbox against a server cluster —
+  there is no browser or offline story, and the device is xNet's primary.
+- In `packages/hub` it would break a Charter §6 receipt ("the hub is a single
+  self-contained process"), failing the **BATNA** test: a self-hoster would have
+  to operate a workflow cluster to run their own hub.
+- The control plane is deliberately built as pure decision functions plus
+  level-triggered reconcilers, which are restart-safe by construction. Only two
+  modules deviated, and both were ordinary bugs rather than a missing capability.
+- Every candidate bottoms out in a datastore we do not run. There is no Postgres
+  anywhere in the stack (SQLite + Firestore only), so the usual "just use DBOS"
+  answer is unavailable.
+
+**Tradeoff:** We maintain ~300 lines of scheduling and compensation logic
+ourselves. Accepted, and bounded: exploration 0411 records six decidable
+tripwires that re-open the question, and treats the primitives growing past
+~500 LOC as a tripwire in its own right.
