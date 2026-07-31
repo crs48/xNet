@@ -38,9 +38,18 @@ window chrome, real platform, real fonts.
 pnpm --filter xnet-desktop dev
 ```
 
-The main process opens CDP on `127.0.0.1:9223` in development
-(`src/main/index.ts`). Attach with the **`playwright-electron`** MCP server —
-registered in `.mcp.json`, already pointed at that endpoint. Then:
+**Ports are derived from the worktree (0413), not fixed.** Wait for the
+machine-readable ready line, which tells you where to attach:
+
+```text
+[xnet-dev] ready {"profile":"wt-…","renderer":23400,"cdp":23401,…,"branch":"…"}
+```
+
+The main checkout keeps the legacy `9223`; every linked worktree gets its own
+block. `pnpm --filter xnet-desktop dev:scope` prints this tree's ports without
+starting anything. Attach with the **`playwright-electron`** MCP server —
+registered in `.mcp.json`, pointed at `9223` — and pass `--cdp-endpoint` for a
+worktree's port. Then:
 
 ```javascript
 localStorage.setItem('xnet:test:bypass', 'true')
@@ -52,9 +61,34 @@ your first page`). Now `browser_snapshot`, `browser_click` and
 `browser_console_messages` drive the **real** desktop app: real preload, real
 IPC, real `better-sqlite3`.
 
-**Confirm which instance you attached to** before trusting anything. A stale
-Electron from a crashed run, or a second profile, will happily answer on 9223.
-The profile name in the title bar is the cheapest signal.
+## Confirm which instance you attached to
+
+Do this before trusting anything, and do it by asking — not by looking:
+
+```js
+window.__xnetDev // { worktree, branch, commit, profile, ports, pid, startedAt, logs() }
+```
+
+This used to be "check the profile name in the title bar," which could not
+work: the title was plain `xNet` for the `default` profile, so a stale instance
+and your own were indistinguishable — the exact case worth catching. The title
+now names the profile and commit in development, and `__xnetDev` is the
+authoritative answer.
+
+`pnpm dev` also refuses to report ready if its CDP port is serving another
+tree's renderer, and losing the single-instance lock is now a named error with
+**exit 1** rather than a silent exit 0.
+
+## Logs from all three processes
+
+CDP shows you the renderer. `main` and `data-process` records now reach the
+renderer console too, tagged `[main]` / `[data]`, so
+`browser_console_messages` covers the whole app. For failures from **before**
+the window existed — the ones that matter most — read the ring buffer:
+
+```js
+await window.__xnetDev.logs()
+```
 
 ## Never test Electron in a browser
 
@@ -66,21 +100,20 @@ already the browser-native surface.
 
 ## Ports
 
-| Port | What                        |
-| ---- | --------------------------- |
-| 5177 | renderer (Vite)             |
-| 9223 | CDP, dev only               |
-| 9224 | CDP for the `user2` profile |
-| 4444 | hub                         |
-
-Two instances for sync testing:
+Derived per worktree — `blockBase = 20000 + hash(worktree) % 500 * 10`, then
+`+0` renderer, `+1` CDP, `+2` hub, `+3` local API. The main checkout keeps
+5177 / 9223 / 4444 / 31415 and the `default` profile.
 
 ```bash
-pnpm --filter xnet-desktop dev:both
+pnpm --filter xnet-desktop dev:scope   # this tree's profile and ports
+pnpm --filter xnet-desktop dev:clean   # prune profiles whose worktree is gone
+pnpm --filter xnet-desktop dev:both    # two instances for sync testing
 ```
 
-`dev:user2` sets `ELECTRON_CDP_PORT=9224`, so the two instances no longer
-collide on 9223.
+Because each worktree also gets its own `userData`, it gets its own Chromium
+single-instance lock — which is what lets two trees run at once. Override one
+service with `VITE_PORT` / `ELECTRON_CDP_PORT` / `XNET_HUB_PORT` /
+`XNET_LOCAL_API_PORT`, or the profile with `XNET_PROFILE`.
 
 ## The native rebuild
 

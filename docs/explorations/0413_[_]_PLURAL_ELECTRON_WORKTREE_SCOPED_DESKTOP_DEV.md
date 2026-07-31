@@ -778,7 +778,7 @@ if (!mine) {
 
 ### Then, the instructions
 
-- [ ] Rewrite the port tables in `apps/electron/AGENTS.md` and
+- [x] Rewrite the port tables in `apps/electron/AGENTS.md` and
       `.claude/skills/electron-prototype/SKILL.md` as the derivation rule plus the
       `window.__xnetDev` check; add `pnpm dev:clean` and delete the hand-cut
       `electron-renderer-worktree (vite 5178)` launch entry.
