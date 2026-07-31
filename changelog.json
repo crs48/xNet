@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-31-two-worktrees-can-run-the-desktop-app-at",
+      "url": "https://xnet.fyi/changelog#2026-07-31-two-worktrees-can-run-the-desktop-app-at",
+      "title": "Two worktrees can run the desktop app at once",
+      "content_text": "The desktop dev app now takes its profile and ports from the git worktree it was started in, so parallel checkouts no longer fight over one set of ports and one data directory. Collisions that used to exit silently now fail with a message naming what holds the lock.\n",
+      "date_published": "2026-07-31T15:31:24Z",
+      "tags": [
+        "devtools",
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 31, 2026",
+        "summary": "The desktop dev app now takes its profile and ports from the git worktree it was started in, so parallel checkouts no longer fight over one set of ports and one data directory. Collisions that used to exit silently now fail with a message naming what holds the lock.",
+        "highlights": [],
+        "mergedAt": "2026-07-31T15:31:24Z",
+        "pr": 664,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-30-cloud-provisioning-no-longer-leaves-stra",
       "url": "https://xnet.fyi/changelog#2026-07-30-cloud-provisioning-no-longer-leaves-stra",
       "title": "Cloud provisioning no longer leaves stray hubs behind",

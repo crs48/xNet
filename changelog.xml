@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Two worktrees can run the desktop app at once</title>
+      <link>https://xnet.fyi/changelog#2026-07-31-two-worktrees-can-run-the-desktop-app-at</link>
+      <guid isPermaLink="false">2026-07-31-two-worktrees-can-run-the-desktop-app-at</guid>
+      <pubDate>Fri, 31 Jul 2026 15:31:24 GMT</pubDate>
+      <description>The desktop dev app now takes its profile and ports from the git worktree it was started in, so parallel checkouts no longer fight over one set of ports and one data directory. Collisions that used to exit silently now fail with a message naming what holds the lock.</description>
+    </item>
+    <item>
       <title>Cloud provisioning no longer leaves stray hubs behind</title>
       <link>https://xnet.fyi/changelog#2026-07-30-cloud-provisioning-no-longer-leaves-stra</link>
       <guid isPermaLink="false">2026-07-30-cloud-provisioning-no-longer-leaves-stra</guid>
