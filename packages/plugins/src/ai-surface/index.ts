@@ -63,6 +63,13 @@ export {
   createAgentNotificationTools,
   type AgentNotificationToolsOptions
 } from './agent-ceremony-tools'
+export {
+  createApprovalBroker,
+  type ApprovalBroker,
+  type ApprovalBrokerOptions,
+  type ApprovalResolution,
+  type ParkedApproval
+} from './approval-broker'
 export { XNET_AGENT_SKILL_MD } from './skill'
 export { WRITING_XNET_PLUGINS_SKILL_MD } from './plugin-skill'
 export { flattenRowForTsv, toTsv } from './format'

@@ -24,6 +24,11 @@ import {
   createAgentCeremonyTools,
   createAgentNotificationTools
 } from '../ai-surface/agent-ceremony-tools'
+import {
+  createApprovalBroker,
+  type ApprovalBroker,
+  type ParkedApproval
+} from '../ai-surface/approval-broker'
 import { McpWriteGuardrail, type McpWriteRequest } from './mcp-guardrail'
 
 /** Schema IRIs for the first-class write tools (exploration 0174/0175). */
@@ -157,9 +162,23 @@ export interface MCPServerConfig {
    * (`xnet_poll_notifications`) tools. The store this server was built with
    * should be signing as the enrolled agent's DID — that is what makes the
    * kernel change log the tamper-evident half of the trail.
+   *
+   * Medium+ calls **park**: the tool promise is held until the operator
+   * decides, so an approval resumes the agent's turn with the real result.
+   * `approvalWaitMs` bounds how long the transport waits before answering
+   * "still pending" — the action itself stays parked until `approvalTtlMs`.
    */
-  agentAudit?: AgentAuditContext & { approvalTtlMs?: number }
+  agentAudit?: AgentAuditContext & { approvalTtlMs?: number; approvalWaitMs?: number }
 }
+
+/**
+ * Default bound on how long a parked tool call holds its MCP response.
+ *
+ * Shorter than any plausible client request timeout, and far shorter than the
+ * 5-minute approval TTL: the operator keeps the full window to decide, but the
+ * agent is never left holding a socket open waiting for them.
+ */
+const DEFAULT_APPROVAL_WAIT_MS = 55_000
 
 // ─── MCP Server Implementation ───────────────────────────────────────────────
 
@@ -199,6 +218,8 @@ export class MCPServer {
   private running = false
   /** Present when `agentAudit` is configured (exploration 0337). */
   private recorder: AgentAuditRecorder | null = null
+  /** Park/settle over {@link recorder} — the host's handle on parked actions. */
+  private broker: ApprovalBroker | null = null
   private agentExtraTools: Map<string, AiExtraTool> = new Map()
 
   constructor(config: MCPServerConfig) {
@@ -224,15 +245,21 @@ export class MCPServer {
     }
 
     if (config.agentAudit) {
-      const { approvalTtlMs, ...context } = config.agentAudit
+      const { approvalTtlMs, approvalWaitMs, ...context } = config.agentAudit
       this.recorder = new AgentAuditRecorder({
         surface: aiSurface,
         store: config.store,
         context,
         approvalTtlMs
       })
+      this.broker = createApprovalBroker(this.recorder, {
+        maxWaitMs: approvalWaitMs ?? DEFAULT_APPROVAL_WAIT_MS
+      })
       for (const tool of [
-        ...createAgentCeremonyTools(this.recorder),
+        // The ceremony tools release through the broker, not the recorder
+        // directly: approving has to settle the parked call, or the agent's
+        // original tool would wait out its TTL beside an action already applied.
+        ...createAgentCeremonyTools(this.recorder, this.broker),
         ...createAgentNotificationTools(config.store)
       ]) {
         this.agentExtraTools.set(tool.name, tool)
@@ -250,6 +277,42 @@ export class MCPServer {
       name: this.config.name,
       version: this.config.version
     }
+  }
+
+  // ─── Parked approvals (0337 / 0394 Phase 2) ────────────────────────────────
+  //
+  // High and critical actions carry no chat code by design: only an xNet
+  // surface can release them. That surface needs a way in, and this is it —
+  // the host projects `listParkedApprovals()` into its UI and calls
+  // `approveParkedApproval` with the operator's own DID. Without it a bridged
+  // agent's high-risk write parks where nothing can reach it and expires.
+
+  /** Actions waiting on the operator, oldest first. Empty without `agentAudit`. */
+  listParkedApprovals(): ParkedApproval[] {
+    return this.broker?.listParked() ?? []
+  }
+
+  /** Subscribe to parked-approval changes. Returns an unsubscribe function. */
+  onParkedApprovalsChanged(listener: (parked: ParkedApproval[]) => void): () => void {
+    return this.broker?.subscribe(listener) ?? (() => undefined)
+  }
+
+  /**
+   * Release a parked action. `approverDID` must be the operator's own DID —
+   * it signs the resulting `AgentApproval` node, which is what makes the audit
+   * trail structurally prove a human was in the loop. Never expose this as an
+   * agent-callable tool.
+   *
+   * Returns false when nothing is parked under that id (already decided, or
+   * expired).
+   */
+  async approveParkedApproval(actionId: string, approverDID: string): Promise<boolean> {
+    return (await this.broker?.approve(actionId, approverDID)) ?? false
+  }
+
+  /** Deny a parked action. Returns false when nothing is parked under that id. */
+  async denyParkedApproval(actionId: string, approverDID?: string): Promise<boolean> {
+    return (await this.broker?.deny(actionId, approverDID)) ?? false
   }
 
   /**
@@ -718,14 +781,15 @@ export class MCPServer {
           break
         }
         if (this.aiToolNames.has(name)) {
-          if (this.recorder) {
+          if (this.broker) {
             const { _instruction, ...rest } = toolArgs
-            const outcome = await this.recorder.callTool(
+            // Parks on medium+ risk and resolves when the operator decides, so
+            // an approval lands the real result in the same turn.
+            result = await this.broker.callTool(
               name,
               rest,
               typeof _instruction === 'string' ? _instruction : undefined
             )
-            result = outcome.pending ? outcome : outcome.result
           } else {
             result = await this.config.aiSurface.callTool(name, toolArgs)
           }

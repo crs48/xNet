@@ -338,7 +338,20 @@ contextBridge.exposeInMainWorld('xnetMeetings', {
 contextBridge.exposeInMainWorld('xnetAgentBridge', {
   status: () => ipcRenderer.invoke('xnet:agent-bridge:status'),
   start: (agent?: string) => ipcRenderer.invoke('xnet:agent-bridge:start', agent),
-  stop: () => ipcRenderer.invoke('xnet:agent-bridge:stop')
+  stop: () => ipcRenderer.invoke('xnet:agent-bridge:stop'),
+  // Parked approvals (0414). High/critical agent actions can only be released
+  // from an xNet surface — this is how the shell reaches the ones parked in the
+  // main-process recorder, which otherwise expire unseen.
+  pendingApprovals: () => ipcRenderer.invoke('xnet:agent-approvals:list'),
+  approveAction: (actionId: string, approverDID: string) =>
+    ipcRenderer.invoke('xnet:agent-approvals:approve', actionId, approverDID),
+  denyAction: (actionId: string, approverDID?: string) =>
+    ipcRenderer.invoke('xnet:agent-approvals:deny', actionId, approverDID),
+  onPendingApprovalsChanged: (handler: (parked: unknown[]) => void) => {
+    const listener = (_: unknown, parked: unknown[]): void => handler(parked)
+    ipcRenderer.on('xnet:agent-approvals:changed', listener)
+    return () => ipcRenderer.removeListener('xnet:agent-approvals:changed', listener)
+  }
 })
 
 contextBridge.exposeInMainWorld('xnetLocalAPI', {

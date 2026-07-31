@@ -22,34 +22,27 @@
  */
 
 import type {
-  AgentCallOutcome,
-  AgentPendingApproval,
-  AiRiskLevel,
   AiSurfaceService,
   AIToolCall,
-  NodeStoreAPI
+  ApprovalResolution,
+  NodeStoreAPI,
+  ParkedApproval
 } from '@xnetjs/plugins'
-import { AgentAuditRecorder } from '@xnetjs/plugins'
+import { AgentAuditRecorder, createApprovalBroker } from '@xnetjs/plugins'
 import { WRITE_TOOL_NAMES } from './ai-chat-write-tools'
 
 const WRITE_SET = new Set<string>(WRITE_TOOL_NAMES)
 
-/** What the panel renders while an action waits on the operator. */
-export type CeremonyPending = {
-  actionId: string
-  tool: string
-  args: Record<string, unknown>
-  risk: AiRiskLevel
-  /** `chat` = medium (code reply releases it); `app` = high/critical. */
-  surface: 'chat' | 'app'
-  /** The recorder's ceremony message, rendered verbatim on the card. */
-  message: string
-  /** Present only on the chat tier — the code the operator replies with. */
-  code?: string
-  expiresAt: number
-}
+/**
+ * What the panel renders while an action waits on the operator.
+ *
+ * Structurally the shared {@link ParkedApproval} — the panel and the desktop's
+ * global approvals layer render the same card from the same shape, whether the
+ * action parked in this renderer or in the bridge's main-process recorder.
+ */
+export type CeremonyPending = ParkedApproval
 
-export type CeremonyResolution = 'approved' | 'denied' | 'expired'
+export type CeremonyResolution = ApprovalResolution
 
 export type ChatCeremonyConfig = {
   surface: AiSurfaceService
@@ -64,12 +57,6 @@ export type ChatCeremonyConfig = {
   onResolved: (actionId: string, resolution: CeremonyResolution) => void
   clock?: () => number
   approvalTtlMs?: number
-}
-
-type Waiter = {
-  pending: CeremonyPending
-  resolve: (toolResult: unknown) => void
-  timer: ReturnType<typeof setTimeout>
 }
 
 export type ChatCeremony = {
@@ -107,104 +94,39 @@ export function createChatCeremony(config: ChatCeremonyConfig): ChatCeremony {
     ...(config.clock ? { clock: config.clock } : {}),
     ...(config.approvalTtlMs ? { approvalTtlMs: config.approvalTtlMs } : {})
   })
-  const clock = config.clock ?? (() => Date.now())
-  const waiters = new Map<string, Waiter>()
-
-  const settle = (actionId: string, resolution: CeremonyResolution, toolResult: unknown): void => {
-    const waiter = waiters.get(actionId)
-    if (!waiter) return
-    waiters.delete(actionId)
-    clearTimeout(waiter.timer)
-    config.onResolved(actionId, resolution)
-    waiter.resolve(toolResult)
-  }
-
-  const park = (outcome: AgentPendingApproval, args: Record<string, unknown>): Promise<unknown> => {
-    const pending: CeremonyPending = {
-      actionId: outcome.actionId,
-      tool: nameOfPending(outcome),
-      args,
-      risk: outcome.risk,
-      surface: outcome.surface === 'chat' ? 'chat' : 'app',
-      message: outcome.message,
-      ...(outcome.nonce ? { code: outcome.nonce } : {}),
-      expiresAt: outcome.expiresAt
-    }
-    return new Promise<unknown>((resolve) => {
-      const timer = setTimeout(
-        () => {
-          void recorder.expireStale().catch(() => undefined)
-          settle(outcome.actionId, 'expired', {
-            expired: true,
-            message: 'The approval window expired before the operator decided. Nothing was applied.'
-          })
-        },
-        Math.max(0, outcome.expiresAt - clock())
-      )
-      waiters.set(outcome.actionId, { pending, resolve, timer })
-      config.onPending(pending)
-    })
-  }
-
-  // The recorder keys pending entries by actionId; it does not echo the tool
-  // name in the outcome, so carry it alongside via listPending().
-  const nameOfPending = (outcome: AgentPendingApproval): string =>
-    recorder.listPending().find((entry) => entry.actionId === outcome.actionId)?.name ?? 'tool'
+  // No `maxWaitMs`: the panel's runtime is in-process, so a parked call can
+  // hold for the whole TTL without a transport timing out under it.
+  const broker = createApprovalBroker(recorder, {
+    ...(config.clock ? { clock: config.clock } : {}),
+    onParked: config.onPending,
+    onResolved: config.onResolved
+  })
 
   return {
     async executeTool(call: AIToolCall): Promise<unknown> {
       const args = call.arguments ?? {}
+      // Reads bypass the recorder entirely — auditing every search would
+      // flood the store with action nodes for activity already visible in chat.
       if (!WRITE_SET.has(call.name)) {
         return await config.surface.callTool(call.name, args)
       }
-      const outcome = await recorder.callTool(call.name, args)
-      if (!outcome.pending) return outcome.result
-      return await park(outcome, args)
+      return await broker.callTool(call.name, args)
     },
 
     async tryApproveFromChat(text: string): Promise<boolean> {
       const match = APPROVE_REPLY.exec(text)
       if (!match) return false
-      let outcome: AgentCallOutcome
-      try {
-        outcome = await recorder.approveFromChat(match[1])
-      } catch {
-        // Wrong or expired code: not a ceremony reply we can act on. The
-        // caller sends the text to the model, which sees the failed attempt.
-        return false
-      }
-      if (!outcome.pending) settle(outcome.actionId, 'approved', outcome.result)
-      return true
+      // An unknown or expired code is not a ceremony reply we can act on: the
+      // caller sends the text to the model, which sees the failed attempt.
+      return await broker.approveWithCode(match[1])
     },
 
-    async approveFromApp(actionId: string): Promise<boolean> {
-      if (!waiters.has(actionId)) return false
-      const outcome = await recorder.approveFromApp(actionId, config.operatorDID)
-      if (!outcome.pending) settle(actionId, 'approved', outcome.result)
-      return true
-    },
+    approveFromApp: (actionId: string) => broker.approve(actionId, config.operatorDID),
 
-    async deny(actionId: string): Promise<boolean> {
-      if (!waiters.has(actionId)) return false
-      await recorder.deny(actionId, config.operatorDID)
-      settle(actionId, 'denied', {
-        denied: true,
-        message: 'The operator denied this action. Nothing was applied.'
-      })
-      return true
-    },
+    deny: (actionId: string) => broker.deny(actionId, config.operatorDID),
 
-    listPending(): CeremonyPending[] {
-      return [...waiters.values()].map((waiter) => waiter.pending)
-    },
+    listPending: () => broker.listParked(),
 
-    dispose(): void {
-      for (const [actionId] of [...waiters]) {
-        settle(actionId, 'expired', {
-          expired: true,
-          message: 'The conversation was reset before the operator decided. Nothing was applied.'
-        })
-      }
-    }
+    dispose: () => broker.dispose()
   }
 }
