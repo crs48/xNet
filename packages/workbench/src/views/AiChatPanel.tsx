@@ -80,19 +80,11 @@ import { schemaRegistryApi } from './ai-schemas'
 import { createVectorEntrySearch } from './ai-vector-search'
 import { createVectorBlobStore } from './ai-vector-storage'
 import { buildWebLLMProvider, type WebLLMProgress } from './ai-webllm-engine'
+import { ApprovalCard, TOOL_LABELS } from './ApprovalCard'
 
-/** Electron preload control channel for the local agent bridge (absent on web). */
-interface AgentBridgeControl {
-  start: (agent?: string) => Promise<unknown>
-  /** Current daemon status, including the pairing token (IPC only, never HTTP). */
-  status?: () => Promise<{ running?: boolean; token?: string } | undefined>
-}
-
-declare global {
-  interface Window {
-    xnetAgentBridge?: AgentBridgeControl
-  }
-}
+// The Electron preload control channel for the local agent bridge (absent on
+// web) is declared in `AgentApprovals.tsx` — one global for the namespace,
+// since the same preload object also carries parked approvals.
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -757,21 +749,22 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
 
       <ChatBody messages={messages} streaming={streaming} />
       {pendingApprovals.map((pending) => (
-        <ApprovalCard
-          key={pending.actionId}
-          pending={pending}
-          operatorDID={operatorDID}
-          onApprove={() => {
-            const ceremony = ceremonyRef.current
-            if (!ceremony) return
-            if (pending.surface === 'chat' && pending.code) {
-              void ceremony.tryApproveFromChat(`APPROVE ${pending.code}`)
-            } else {
-              void ceremony.approveFromApp(pending.actionId)
-            }
-          }}
-          onDeny={() => void ceremonyRef.current?.deny(pending.actionId)}
-        />
+        <div key={pending.actionId} className="mx-3 my-1.5">
+          <ApprovalCard
+            pending={pending}
+            operatorDID={operatorDID}
+            onApprove={() => {
+              const ceremony = ceremonyRef.current
+              if (!ceremony) return
+              if (pending.surface === 'chat' && pending.code) {
+                void ceremony.tryApproveFromChat(`APPROVE ${pending.code}`)
+              } else {
+                void ceremony.approveFromApp(pending.actionId)
+              }
+            }}
+            onDeny={() => void ceremonyRef.current?.deny(pending.actionId)}
+          />
+        </div>
       ))}
       {activity && <ToolActivityLine activity={activity} />}
       {error && <p className="px-3 py-1 text-[11px] text-rose-500">{error}</p>}
@@ -1155,122 +1148,6 @@ function CapabilityBadge({ searches, edits }: { searches: boolean; edits: boolea
     >
       {label}
     </span>
-  )
-}
-
-/** What the assistant is doing right now, in the user's words not the tool's. */
-const TOOL_LABELS: Record<string, string> = {
-  xnet_search: 'Searching your workspace',
-  xnet_graph_expand: 'Following links between your notes',
-  xnet_read_page_markdown: 'Reading a page',
-  xnet_database_describe: 'Looking at a database',
-  xnet_database_query: 'Querying a database',
-  xnet_database_sample: 'Sampling a database',
-  xnet_canvas_list: 'Listing your canvases',
-  xnet_canvas_read_viewport: 'Reading a canvas',
-  xnet_canvas_search: 'Searching a canvas',
-  xnet_get_audit_log: 'Checking the audit log',
-  xnet_validate_page_markdown: 'Checking a page edit',
-  xnet_plan_page_patch: 'Planning a page edit',
-  xnet_apply_page_markdown: 'Editing a page',
-  xnet_compose_page: 'Creating a page'
-}
-
-/**
- * A parked write waiting on the operator (0394 Phase 2). Medium risk shows
- * the approval code (the reply `APPROVE <code>` — or the button, which
- * submits the same code through the same nonce machinery). High risk refuses
- * the chat path: approval is the deliberate in-app kind, stamped with the
- * operator's DID, and the button stays disabled until the change has been
- * reviewed — seeing what you release is the point, not a speed bump.
- */
-function ApprovalCard({
-  pending,
-  operatorDID,
-  onApprove,
-  onDeny
-}: {
-  pending: CeremonyPending
-  operatorDID: string | null
-  onApprove: () => void
-  onDeny: () => void
-}) {
-  const [reviewed, setReviewed] = useState(false)
-  const needsReview = pending.surface === 'app'
-  const canApprove = !needsReview || reviewed
-  const riskTone =
-    pending.surface === 'app'
-      ? 'border-rose-400/60 bg-rose-500/5'
-      : 'border-amber-400/60 bg-amber-500/5'
-  return (
-    <div
-      className={`mx-3 my-1.5 rounded-lg border p-2.5 text-[12px] ${riskTone}`}
-      data-approval-card={pending.surface}
-    >
-      <div className="flex items-center gap-2">
-        <span className="rounded-full border border-hairline px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-ink-3">
-          {pending.risk} risk
-        </span>
-        <span className="font-medium text-ink-1">{TOOL_LABELS[pending.tool] ?? pending.tool}</span>
-      </div>
-      <p className="mt-1 text-ink-2">
-        {pending.surface === 'chat' && pending.code ? (
-          <>
-            Reply <code className="rounded bg-surface-2 px-1">APPROVE {pending.code}</code> to run
-            this, or use the buttons.
-          </>
-        ) : (
-          <>
-            This is a {pending.risk}-risk change and needs your explicit in-app approval
-            {operatorDID ? ` as ${operatorDID.slice(0, 24)}…` : ''}.
-          </>
-        )}
-      </p>
-      {needsReview ? (
-        <details
-          className="mt-1.5"
-          onToggle={(event) => {
-            if ((event.target as HTMLDetailsElement).open) setReviewed(true)
-          }}
-        >
-          <summary className="cursor-pointer text-[11px] text-ink-3">
-            Review the change before approving
-          </summary>
-          <pre className="mt-1 max-h-48 overflow-auto rounded bg-surface-2 p-2 text-[10px] leading-relaxed text-ink-2">
-            {JSON.stringify(pending.args, null, 2)}
-          </pre>
-        </details>
-      ) : (
-        <pre className="mt-1.5 max-h-32 overflow-auto rounded bg-surface-2 p-2 text-[10px] leading-relaxed text-ink-3">
-          {JSON.stringify(pending.args, null, 2)}
-        </pre>
-      )}
-      <div className="mt-2 flex items-center gap-2">
-        <button
-          type="button"
-          disabled={!canApprove}
-          onClick={onApprove}
-          title={canApprove ? undefined : 'Open the review above first'}
-          className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-            canApprove
-              ? 'cursor-pointer border-hairline bg-surface-0 text-ink-1 hover:bg-surface-2'
-              : 'cursor-not-allowed border-hairline bg-surface-2 text-ink-3'
-          }`}
-        >
-          {pending.surface === 'app' ? 'Approve in app' : 'Approve'}
-        </button>
-        <button
-          type="button"
-          onClick={onDeny}
-          className="cursor-pointer rounded-md border border-hairline bg-surface-0 px-2.5 py-1 text-[11px] text-ink-2 hover:bg-surface-2"
-        >
-          Deny
-        </button>
-        <span className="ml-auto text-[10px] text-ink-3">
-          expires {new Date(pending.expiresAt).toLocaleTimeString()}
-        </span>
-      </div>
-    </div>
   )
 }
 

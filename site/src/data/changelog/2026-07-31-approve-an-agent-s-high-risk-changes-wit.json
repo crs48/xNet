@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-31-approve-an-agent-s-high-risk-changes-wit",
+  "date": "July 31, 2026",
+  "title": "Approve an agent's high-risk changes without leaving the app",
+  "summary": "When a connected coding agent asks to make a high-risk change — creating a page, editing one — an approval card now appears in the app with the change to review, and Approve and Deny buttons. Previously those requests waited invisibly and expired after five minutes, so the change never happened and nothing said why. Approving now also hands the result straight back to the agent, so it can carry on in the same turn.",
+  "highlights": [],
+  "tags": [
+    "ai"
+  ]
+}

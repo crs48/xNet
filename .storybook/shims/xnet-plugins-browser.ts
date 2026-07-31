@@ -123,7 +123,8 @@ export type { EditorSchemaRisk } from '../../packages/plugins/src/editor-schema-
 export {
   AgentAuditRecorder,
   AiSurfaceService,
-  createAiSurfaceService
+  createAiSurfaceService,
+  createApprovalBroker
 } from '../../packages/plugins/src/ai-surface'
 export type {
   AgentCallOutcome,
@@ -132,7 +133,9 @@ export type {
   AiContextPack,
   AiContextRetriever,
   AiRiskLevel,
-  AiSurfaceServiceConfig
+  AiSurfaceServiceConfig,
+  ApprovalResolution,
+  ParkedApproval
 } from '../../packages/plugins/src/ai-surface'
 
 // Local-API interface types (0337 ceremony, 0394 schema tools). Type-only —

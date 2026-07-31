@@ -14,18 +14,34 @@
  * over the Streamable-HTTP MCP transport on an ephemeral loopback port.
  */
 
+import type { ParkedApproval } from '@xnetjs/plugins'
 import {
   createMCPServer,
   createMcpHttpServer,
   type McpHttpServerHandle,
   type MCPServer
 } from '@xnetjs/plugins/node'
+import { BrowserWindow, ipcMain } from 'electron'
 import {
   createNodeStoreProxy,
   createSchemaRegistryProxy,
   setupStoreResponseHandler,
   type SchemaRegistryProxy
 } from './renderer-store-proxy'
+
+/** Renderer-facing channels for the parked-approval ceremony (0414). */
+export const AGENT_APPROVAL_CHANNELS = {
+  list: 'xnet:agent-approvals:list',
+  approve: 'xnet:agent-approvals:approve',
+  deny: 'xnet:agent-approvals:deny',
+  changed: 'xnet:agent-approvals:changed'
+} as const
+
+const broadcastApprovals = (parked: ParkedApproval[]): void => {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send(AGENT_APPROVAL_CHANNELS.changed, parked)
+  }
+}
 
 export interface AgentMcpServerHandle {
   /** Full JSON-RPC endpoint, e.g. `http://127.0.0.1:52341/mcp`. */
@@ -71,6 +87,12 @@ export async function startAgentMcpServer(): Promise<AgentMcpServerHandle> {
       channel: 'cli'
     }
   })
+  // High/critical actions carry no chat code by design — only an xNet surface
+  // can release them, and this is the wire that lets one (0414). Without it a
+  // bridged agent's page write parks in this process where nothing can reach
+  // it and expires five minutes later looking like nothing ever happened.
+  const unsubscribe = server.onParkedApprovalsChanged(broadcastApprovals)
+
   const http = createMcpHttpServer({ server, port: 0 })
   await http.start()
 
@@ -78,9 +100,32 @@ export async function startAgentMcpServer(): Promise<AgentMcpServerHandle> {
     endpoint: `${http.url}${http.path}`,
     pairingToken: http.pairingToken,
     server,
-    stop: () => stopHttp(http)
+    stop: async () => {
+      unsubscribe()
+      broadcastApprovals([])
+      await stopHttp(http)
+    }
   }
   return handle
+}
+
+/**
+ * Wire the parked-approval channels. Registered once at startup, not with the
+ * server: the bridge starts on demand, and a renderer asking before then must
+ * get an empty list rather than an "unhandled channel" throw.
+ */
+export function setupAgentApprovalIPC(): void {
+  ipcMain.handle(AGENT_APPROVAL_CHANNELS.list, () => handle?.server.listParkedApprovals() ?? [])
+  ipcMain.handle(
+    AGENT_APPROVAL_CHANNELS.approve,
+    async (_event, actionId: string, approverDID: string) =>
+      (await handle?.server.approveParkedApproval(actionId, approverDID)) ?? false
+  )
+  ipcMain.handle(
+    AGENT_APPROVAL_CHANNELS.deny,
+    async (_event, actionId: string, approverDID?: string) =>
+      (await handle?.server.denyParkedApproval(actionId, approverDID)) ?? false
+  )
 }
 
 async function stopHttp(http: McpHttpServerHandle): Promise<void> {

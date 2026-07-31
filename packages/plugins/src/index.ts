@@ -691,6 +691,7 @@ export {
   AgentAuditRecorder,
   createAgentCeremonyTools,
   createAgentNotificationTools,
+  createApprovalBroker,
   hashNonce,
   reversibilityForTool,
   riskForTool,
@@ -700,7 +701,11 @@ export {
   type AgentCallOutcome,
   type AgentExecutedResult,
   type AgentNotificationToolsOptions,
-  type AgentPendingApproval
+  type AgentPendingApproval,
+  type ApprovalBroker,
+  type ApprovalBrokerOptions,
+  type ApprovalResolution,
+  type ParkedApproval
 } from './ai-surface'
 
 // Services (Background process management)

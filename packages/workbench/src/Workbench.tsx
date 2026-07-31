@@ -8,6 +8,7 @@
  * "focus" (hide chrome) is a store toggle, not a separate shell.
  */
 import type { ReactNode } from 'react'
+import { AgentApprovalsLayer } from './AgentApprovals'
 import { workbenchHost } from './host'
 import { MobileShell } from './MobileShell'
 import { ShellFrame } from './ShellFrame'
@@ -35,6 +36,9 @@ export function Workbench({ children }: { children: ReactNode }) {
       <WorkspaceSwitcher />
       {/* Slot-move announcements + landing flash + focus (0282). */}
       <SlotAnnouncer />
+      {/* Agent actions parked on the operator (0414) — shell-level, because a
+          bridged agent's high-risk write must be reachable with no panel open. */}
+      <AgentApprovalsLayer />
       {/* First-run coachmarks (0206) — portals to <body>, so position is moot. */}
       <CoachmarkLayer />
       {/* Opt-in "time well spent" wind-down (Charter §Calm, 0234); off by default. */}

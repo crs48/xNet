@@ -16,11 +16,21 @@
 
 import type { NodeStoreAPI } from '../services/local-api'
 import type { AgentAuditRecorder } from './agent-audit'
+import type { ApprovalBroker } from './approval-broker'
 import type { AiExtraTool } from './types'
 import { AGENT_NOTIFICATION_SCHEMA_IRI } from '@xnetjs/data'
 import { readOptionalNumber, readOptionalString, readRequiredString } from './args'
 
-export function createAgentCeremonyTools(recorder: AgentAuditRecorder): AiExtraTool[] {
+/**
+ * @param broker When the host parks tool calls (see {@link ApprovalBroker}),
+ * pass it: approving has to settle the parked call so its result reaches the
+ * agent that made it. Releasing straight through the recorder would apply the
+ * action while the original call sat waiting out its TTL.
+ */
+export function createAgentCeremonyTools(
+  recorder: AgentAuditRecorder,
+  broker?: ApprovalBroker
+): AiExtraTool[] {
   return [
     {
       name: 'xnet_approve',
@@ -40,7 +50,14 @@ export function createAgentCeremonyTools(recorder: AgentAuditRecorder): AiExtraT
       invoke: async (args) => {
         const code = readRequiredString(args, 'code')
         const peer = readOptionalString(args, 'peer')
-        return await recorder.approveFromChat(code, peer)
+        if (!broker) return await recorder.approveFromChat(code, peer)
+        // The parked call receives the tool result; this one only reports the
+        // decision, so a relayed code never duplicates the payload into chat.
+        const released = await broker.approveWithCode(code, peer)
+        if (!released) {
+          throw new Error('No pending chat approval matches that code (wrong or expired nonce)')
+        }
+        return { approved: true }
       }
     },
     {
@@ -57,7 +74,15 @@ export function createAgentCeremonyTools(recorder: AgentAuditRecorder): AiExtraT
         required: ['actionId']
       },
       invoke: async (args) => {
-        await recorder.deny(readRequiredString(args, 'actionId'))
+        const actionId = readRequiredString(args, 'actionId')
+        // `deny` returning false means nothing was parked under that id —
+        // reporting `{ denied: true }` there would tell the agent an action
+        // was refused when it may have already applied.
+        if (broker) {
+          if (!(await broker.deny(actionId))) {
+            throw new Error(`No pending approval for action ${actionId}`)
+          }
+        } else await recorder.deny(actionId)
         return { denied: true }
       }
     },
