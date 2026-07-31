@@ -259,6 +259,17 @@ async function createWindow() {
     )
   }
 
+  // The `title` option above is only the *initial* title: Electron discards it
+  // as soon as the loaded document declares its own `<title>`, which
+  // `renderer/index.html` does. Own the title instead, or the instance label is
+  // silently reverted to plain `xNet` — the very thing 0413 is fixing.
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.webContents.on('page-title-updated', (event) => {
+      event.preventDefault()
+      mainWindow?.setTitle(title)
+    })
+  }
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })
