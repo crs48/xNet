@@ -9,7 +9,11 @@
  *      if that came back as "the main checkout", an agent reading provenance
  *      would trust a value nobody set.
  */
-import { describe, expect, it } from 'vitest'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   BLOCK_BASE,
   BLOCK_COUNT,
@@ -20,7 +24,49 @@ import {
   scopeEnv
 } from '../../scripts/dev-scope.mjs'
 
-const MAIN = '/Users/crs/Code/xNet/apps/electron'
+/**
+ * A throwaway repo with a real linked worktree.
+ *
+ * The first version of this file resolved against the *running* checkout, which
+ * passed locally (a worktree) and failed in CI (a plain clone) — the test was
+ * asserting a property of the machine, not of the code. Build both shapes
+ * instead, so the same assertions hold anywhere git exists.
+ */
+let root: string
+/** A plain, non-worktree checkout — stands in for the main repo. */
+let mainCheckout: string
+/** A linked worktree of it. */
+let worktree: string
+
+/**
+ * Scrubbed exactly like `dev-scope.mjs`'s own helper, and for the same reason:
+ * run from a git hook, `GIT_DIR`/`GIT_INDEX_FILE` are exported and these
+ * commands would operate on the *hook's* repository instead of the temp one.
+ * (Observed: `git commit` here failed under pre-commit until this was added.)
+ */
+function git(args: string[], cwd: string): void {
+  const env = { ...process.env }
+  for (const key of Object.keys(env)) {
+    if (key.startsWith('GIT_')) delete env[key]
+  }
+  execFileSync('git', args, { cwd, env, stdio: 'ignore' })
+}
+
+beforeAll(() => {
+  root = mkdtempSync(join(tmpdir(), 'xnet-dev-scope-'))
+  mainCheckout = join(root, 'main')
+  worktree = join(root, 'wt-example')
+
+  git(['init', '-q', '-b', 'main', mainCheckout], root)
+  git(['config', 'user.email', 'test@example.com'], mainCheckout)
+  git(['config', 'user.name', 'xNet Test'], mainCheckout)
+  git(['commit', '-q', '--allow-empty', '-m', 'root'], mainCheckout)
+  git(['worktree', 'add', '-q', '-b', 'feature', worktree], mainCheckout)
+})
+
+afterAll(() => {
+  if (root) rmSync(root, { recursive: true, force: true })
+})
 
 describe('port block derivation', () => {
   it('spreads whole strings across the block range', () => {
@@ -56,7 +102,7 @@ describe('port block derivation', () => {
 
 describe('resolveDevScope', () => {
   it('leaves the main checkout on the default profile and legacy ports', () => {
-    const scope = resolveDevScope(MAIN, {})
+    const scope = resolveDevScope(mainCheckout, {})
     expect(scope.profile).toBe('default')
     expect(scope.scoped).toBe(false)
     expect(scope.worktree).toBeNull()
@@ -64,7 +110,7 @@ describe('resolveDevScope', () => {
   })
 
   it('scopes a linked worktree to its own profile and block', () => {
-    const scope = resolveDevScope(process.cwd(), {})
+    const scope = resolveDevScope(worktree, {})
     expect(scope.scoped).toBe(true)
     expect(scope.profile).toMatch(/^wt-/)
     expect(scope.worktree).toBeTruthy()
@@ -87,12 +133,12 @@ describe('resolveDevScope', () => {
       process.env.GIT_WORK_TREE = '/Users/crs/Code/xNet'
       process.env.GIT_INDEX_FILE = '/Users/crs/Code/xNet/.git/index'
 
-      const scope = resolveDevScope(MAIN, {})
+      const scope = resolveDevScope(mainCheckout, {})
       expect(scope.profile).toBe('default')
       expect(scope.scoped).toBe(false)
 
       // …and a real worktree is still detected through the same noise.
-      expect(resolveDevScope(process.cwd(), {}).scoped).toBe(true)
+      expect(resolveDevScope(worktree, {}).scoped).toBe(true)
     } finally {
       for (const key of Object.keys(process.env)) {
         if (!(key in saved)) delete process.env[key]
@@ -102,24 +148,24 @@ describe('resolveDevScope', () => {
   })
 
   it('lets an explicit profile win over the derived one', () => {
-    expect(resolveDevScope(process.cwd(), { XNET_PROFILE: 'user2' }).profile).toBe('user2')
+    expect(resolveDevScope(worktree, { XNET_PROFILE: 'user2' }).profile).toBe('user2')
   })
 
   it('lets a single port override stand without abandoning the rest', () => {
-    const scope = resolveDevScope(process.cwd(), { VITE_PORT: '5199' })
+    const scope = resolveDevScope(worktree, { VITE_PORT: '5199' })
     expect(scope.ports.renderer).toBe(5199)
     expect(scope.ports.cdp).toBeGreaterThanOrEqual(BLOCK_BASE)
   })
 
   it('ignores an out-of-range port override rather than trusting it', () => {
-    const scope = resolveDevScope(process.cwd(), { VITE_PORT: '70000' })
+    const scope = resolveDevScope(worktree, { VITE_PORT: '70000' })
     expect(scope.ports.renderer).toBeGreaterThanOrEqual(BLOCK_BASE)
   })
 })
 
 describe('scopeEnv', () => {
   it('emits no port overrides in the main checkout', () => {
-    const env = scopeEnv(resolveDevScope(MAIN, {}))
+    const env = scopeEnv(resolveDevScope(mainCheckout, {}))
     expect(env.XNET_DEV_SCOPE).toBeTruthy()
     // Critically: no XNET_LOCAL_API_PORT. Emitting it would flatten
     // `resolveLocalAPIPort()`'s own per-profile derivation, putting `user2`
@@ -130,7 +176,7 @@ describe('scopeEnv', () => {
   })
 
   it('emits the full block for a worktree', () => {
-    const scope = resolveDevScope(process.cwd(), {})
+    const scope = resolveDevScope(worktree, {})
     const env = scopeEnv(scope)
     expect(env.XNET_PROFILE).toBe(scope.profile)
     expect(env.VITE_PORT).toBe(String(scope.ports.renderer))
@@ -141,7 +187,7 @@ describe('scopeEnv', () => {
   })
 
   it('carries provenance even where nothing relocates', () => {
-    const parsed = JSON.parse(scopeEnv(resolveDevScope(MAIN, {})).XNET_DEV_SCOPE)
+    const parsed = JSON.parse(scopeEnv(resolveDevScope(mainCheckout, {})).XNET_DEV_SCOPE)
     expect(parsed.profile).toBe('default')
     expect(parsed.scoped).toBe(false)
   })
