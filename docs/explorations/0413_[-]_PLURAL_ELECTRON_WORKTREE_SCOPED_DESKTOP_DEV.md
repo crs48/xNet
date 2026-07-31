@@ -785,28 +785,122 @@ if (!mine) {
 
 ## Validation Checklist
 
-- [ ] Two `pnpm dev` runs from two different worktrees are **both alive at once**,
+- [x] Two `pnpm dev` runs from two different worktrees are **both alive at once**,
       on distinct renderer/CDP/hub/local-API ports and distinct `userData` dirs.
-- [ ] Re-run the collision that could not be run here: a second `pnpm dev` on the
+- [x] Re-run the collision that could not be run here: a second `pnpm dev` on the
       **same** profile now exits **non-zero** with a message naming the holder.
-- [ ] From worktree A, `browser_evaluate(() => window.__xnetDev)` returns worktree
+- [x] From worktree A, `browser_evaluate(() => window.__xnetDev)` returns worktree
       A's path, branch and commit — and attaching to worktree B's CDP port returns
       B's.
-- [ ] Deliberately point the MCP server at the wrong port: the CDP identity
+- [x] Deliberately point the MCP server at the wrong port: the CDP identity
       assertion fires and the run refuses to report ready.
-- [ ] A `console.error` thrown in the main process **before** the window opens is
+- [x] A `console.error` thrown in the main process **before** the window opens is
       retrievable via `window.__xnetDev.logs()`, and a post-boot one appears in
       `browser_console_messages` tagged `[main]`.
-- [ ] With 5177 occupied, `pnpm dev` in the main checkout **fails** rather than
+- [x] With 5177 occupied, `pnpm dev` in the main checkout **fails** rather than
       quietly moving to 5178.
-- [ ] `pnpm dev:clean` removes profiles for deleted worktrees and leaves live ones
-      alone; the 18 orphaned dirs drop to the number of live worktrees plus
-      `default`.
-- [ ] `pnpm check:electron-parity`, `pnpm typecheck` and `pnpm test` all pass.
-- [ ] A production build contains neither `remote-debugging-port` nor
+- [x] `pnpm dev:clean` removes profiles for deleted worktrees and stale
+      timestamped e2e runs, and leaves live ones alone. (**Amended during
+      implementation** from "the 18 orphaned dirs drop to the number of live
+      worktrees plus `default`": the shipped cleaner refuses to touch profiles
+      it cannot prove are garbage — the five `codex-*` and unstamped `e2e-*`
+      dirs match no worktree and carry no timestamp, so deleting them would be
+      a guess about someone's data.)
+- [x] `pnpm check:electron-parity`, `pnpm typecheck` and `pnpm test` all pass.
+- [x] A production build contains neither `remote-debugging-port` nor
       `__xnetDev` — the extended `cdp-dev-only.test.ts` proves it.
 - [ ] Record turns-to-verified-prototype for one real desktop change, worktree
       Electron versus web — closing 0404's two unfinished measurement items.
+
+## Measured Results
+
+Recorded at implementation time, against a live pair of instances. The user's
+own dev app was running from the **main checkout** throughout — the incumbent
+this exploration was written about — so every check below is a real collision,
+not a simulated one.
+
+### Two instances, at once
+
+| Instance                         | Profile                        | Renderer | CDP   | `SingletonLock` holder |
+| -------------------------------- | ------------------------------ | -------- | ----- | ---------------------- |
+| main checkout (`main`)           | `default`                      | 5177     | 9223  | `…local-32967`         |
+| this worktree (`claude/…74b20c`) | `wt-agentic-electron-…-74b20c` | 23400    | 23401 | `…local-16919`         |
+
+Both answered CDP simultaneously; `/json/list` on 9223 returned
+`xNet | http://localhost:5177/` and on 23401 returned
+`xNet | http://localhost:23400/`. Distinct `userData` directories, distinct
+locks. **This is the thing that was impossible before.**
+
+### The failures, now loud
+
+| Check                              | Result                                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Second instance, same profile      | **exit 1** — `FATAL: profile "wt-…" is already running (lock held by Chriss-MacBook-Pro-3.local-16919)` |
+| CDP pointed at another tree's port | `FATAL: :9223 is serving http://localhost:5177/, not our renderer on :23450` — refused to report ready  |
+| Renderer port already taken        | `Error: Port 23400 is already in use` — `strictPort` stopped the run instead of drifting                |
+
+The middle row is the exploration's whole thesis, reproduced and then caught:
+`:9223` really was serving the main checkout's renderer.
+
+### Provenance and logs
+
+`window.__xnetDev`, read over CDP from the worktree instance:
+
+```json
+{
+  "worktree": "/Users/crs/Code/xNet/.claude/worktrees/agentic-electron-dev-experience-74b20c",
+  "branch": "claude/agentic-electron-dev-experience-74b20c",
+  "commit": "4913d9c86",
+  "profile": "wt-agentic-electron-dev-experience-74b20c",
+  "ports": { "renderer": 23400, "cdp": 23401, "hub": 23402, "localApi": 23403 },
+  "pid": 7882
+}
+```
+
+`window.__xnetDev.logs()` returned main-process records written **before the
+window existed** (`[LocalAPI] Server listening on http://127.0.0.1:23403`), and
+those same records arrive in the renderer console tagged `[main]` — so
+`browser_console_messages` now covers the main process, not just the renderer.
+
+OS window title, read via System Events:
+`xNet (wt-agentic-electron-dev-experience-74b20c @4913d9c86)`.
+
+### Gates
+
+`pnpm test` 11,426 passed / 1,121 files · `turbo run typecheck` 40/40 uncached ·
+`check:electron-parity` OK (12 covered, 18 waived, 9 pre-existing warnings).
+
+<details>
+<summary>Two defects found by building it, and one left alone</summary>
+
+**`stableProfileOffset()` could not be reused as-is.** The doc proposed reusing
+it for worktree offsets. It has a numeric-suffix branch — the thing that makes
+`user2` → +2, pinned by its own tests — and worktree slugs routinely end in a
+hex digit, so `…-a7ef01abd021f6de6` would collapse onto offset 6 with every
+other slug ending in 6. Worktrees get FNV-1a over the whole path instead.
+
+**Git hook variables corrupted worktree detection.** `pre-commit` exports
+`GIT_DIR` / `GIT_WORK_TREE`, every `git` child inherits them, and
+`rev-parse --git-dir` then answers about the hook's repository rather than the
+directory being asked about — so a main-checkout commit resolved as a linked
+worktree with a bogus root. Caught by the pre-commit hook itself failing.
+`git()` now scrubs `GIT_*`, with a regression test that fails when the scrub is
+removed.
+
+**The window title was inert.** `BrowserWindow`'s `title` option is only the
+initial title; Electron discards it once the document declares `<title>`, which
+`renderer/index.html` does. The label is now owned via `page-title-updated`.
+`document.title` is deliberately untouched — `CanvasView` reads it to name
+captured content.
+
+**Not fixed, and out of scope:** `rebuild-if-stale.mjs` (0404) hashes Electron's
+version, the module versions and the lockfile. A `pnpm install --force` replaces
+the native binary without moving any of those, so the stamp stays warm and the
+next boot hands Electron a Node-ABI module — observed here as
+`NODE_MODULE_VERSION 131 … requires 130`. `XNET_FORCE_ELECTRON_REBUILD=1` clears
+it. Worth a follow-up that stamps the binary's own mtime or hash.
+
+</details>
 
 ## References
 
