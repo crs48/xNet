@@ -28,11 +28,7 @@ import {
   type ChatAgent
 } from '@xnetjs/devkit'
 import { app, ipcMain } from 'electron'
-import {
-  setupAgentApprovalIPC,
-  startAgentMcpServer,
-  stopAgentMcpServer
-} from './agent-mcp-server'
+import { setupAgentApprovalIPC, startAgentMcpServer, stopAgentMcpServer } from './agent-mcp-server'
 
 export interface AgentBridgeStatus {
   running: boolean

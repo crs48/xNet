@@ -43,7 +43,10 @@ function fakeStore(): NodeStoreAPI {
     },
     update: async (id, { properties }) => {
       const existing = nodes.get(id) ?? { id, properties: {} }
-      const merged = { ...existing, properties: { ...(existing.properties as object), ...properties } }
+      const merged = {
+        ...existing,
+        properties: { ...(existing.properties as object), ...properties }
+      }
       nodes.set(id, merged)
       return merged as never
     },

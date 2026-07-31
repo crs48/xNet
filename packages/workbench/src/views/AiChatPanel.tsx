@@ -1151,7 +1151,6 @@ function CapabilityBadge({ searches, edits }: { searches: boolean; edits: boolea
   )
 }
 
-
 function WritesToggle({
   enabled,
   onToggle
