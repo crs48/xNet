@@ -57,7 +57,13 @@ const tsxCli = required('tsx not found in packages/hub', () =>
   createRequire(resolve(hubDir, 'package.json')).resolve('tsx/cli')
 )
 
-const child = spawn(electronBinary, [tsxCli, 'src/cli.ts'], {
+// A worktree-scoped dev run gets its own hub port (0413), injected by
+// `dev-launch.mjs`. Absent — the main checkout, or a direct invocation — the
+// hub keeps its own default, so nothing pre-0413 moves.
+const hubPort = process.env.XNET_HUB_PORT
+const portArgs = hubPort ? ['--port', hubPort] : []
+
+const child = spawn(electronBinary, [tsxCli, 'src/cli.ts', ...portArgs], {
   cwd: hubDir,
   stdio: 'inherit',
   env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }

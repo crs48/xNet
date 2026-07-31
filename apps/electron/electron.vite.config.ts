@@ -95,7 +95,12 @@ export default defineConfig({
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
     server: {
-      port: rendererPort
+      port: rendererPort,
+      // Fail rather than relocate (0413). Vite's default is to increment, so a
+      // taken 5177 silently became 5178 while AGENTS.md, the prototyping skill
+      // and .claude/launch.json all still said 5177 — the app worked and every
+      // document about it was wrong. A taken port is a collision worth seeing.
+      strictPort: true
     },
     build: {
       rollupOptions: {

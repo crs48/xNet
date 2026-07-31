@@ -9,11 +9,11 @@ or Expo.
 
 Pick by what the change touches, not by convenience.
 
-| Rung                     | Loop                                         | Use when the change is…                                |
-| ------------------------ | -------------------------------------------- | ------------------------------------------------------ |
-| 1 — Storybook            | `pnpm dev:stories` → `:6006`                 | pure UI: a component, a layout, a state                |
-| 2 — CDP attach           | `pnpm dev` → `:9223` → `playwright-electron` | anything touching `window.xnet*`, SQLite, native APIs  |
-| 3 — `_electron.launch()` | `tests/e2e/src/electron-smoke.spec.ts`       | restart durability, deep links, packaging, crash paths |
+| Rung                     | Loop                                          | Use when the change is…                                |
+| ------------------------ | --------------------------------------------- | ------------------------------------------------------ |
+| 1 — Storybook            | `pnpm dev:stories` → `:6006`                  | pure UI: a component, a layout, a state                |
+| 2 — CDP attach           | `pnpm dev` → this tree's CDP port (see below) | anything touching `window.xnet*`, SQLite, native APIs  |
+| 3 — `_electron.launch()` | `tests/e2e/src/electron-smoke.spec.ts`        | restart durability, deep links, packaging, crash paths |
 
 Never reach for rung 3 to check a layout.
 
@@ -21,27 +21,69 @@ Never reach for rung 3 to check a layout.
 and cannot boot in a tab — see below. Drive it with `playwright-electron` over
 CDP.
 
-## Ports
+## Ports are derived, not fixed (0413)
 
-| Port | What                                                               |
-| ---- | ------------------------------------------------------------------ |
-| 5177 | renderer (Vite) — `electron.vite.config.ts`                        |
-| 9223 | CDP, dev only — `src/main/index.ts` sets `--remote-debugging-port` |
-| 9224 | CDP for the `user2` profile                                        |
-| 4444 | hub                                                                |
+**Do not hard-code a port. Ask the app which one it is on.**
 
-```bash
-pnpm dev        # hub + app
-pnpm dev:both   # two instances for sync testing
+`pnpm dev` resolves the profile and a block of ten ports from the **worktree**,
+once, in `scripts/dev-launch.mjs`:
+
+```text
+blockBase = 20000 + hash(worktree path) % 500 * 10
+  +0 renderer   +1 CDP   +2 hub   +3 local API   +4…+9 reserved
 ```
 
-`dev:both` does not set `ELECTRON_CDP_PORT`, so both instances request 9223.
-For a two-instance session, set the ports explicitly:
+The **main checkout keeps the legacy fixed ports** — 5177 / 9223 / 4444 /
+31415, profile `default` — so nothing there moved. Every linked worktree gets
+its own block, its own `userData` (`xnet-desktop-wt-<slug>`), and therefore its
+own single-instance lock. Two worktrees can now run at once.
 
 ```bash
-ELECTRON_CDP_PORT=9223 pnpm --filter xnet-desktop run dev:electron
-XNET_PROFILE=user2 VITE_PORT=5174 ELECTRON_CDP_PORT=9224 pnpm --filter xnet-desktop run dev:user2
+pnpm --filter xnet-desktop dev:scope   # print this tree's profile and ports
+pnpm dev                               # prints them too, then `[xnet-dev] ready {…}`
+pnpm --filter xnet-desktop dev:clean   # prune profiles whose worktree is gone
 ```
+
+Wait for the machine-readable ready line before attaching — it means the CDP
+port was checked and is serving **this** tree's renderer:
+
+```text
+[xnet-dev] ready {"profile":"wt-…","renderer":23400,"cdp":23401,…,"branch":"…"}
+```
+
+Override any single service with `VITE_PORT`, `ELECTRON_CDP_PORT`,
+`XNET_HUB_PORT` or `XNET_LOCAL_API_PORT`; `XNET_PROFILE` overrides the profile.
+`dev:both` still runs two instances for sync testing.
+
+> The renderer now uses `strictPort`. A taken port **fails** instead of quietly
+> becoming the next one — that silent drift is why the port tables here used to
+> lie.
+
+## Confirm which instance you are driving
+
+Never assume. One `browser_evaluate` answers it:
+
+```js
+window.__xnetDev // { worktree, branch, commit, profile, ports, pid, startedAt, logs() }
+```
+
+Dev-only, and `cdp-dev-only.test.ts` asserts it never ships. The window title
+also names the profile and commit in development, for every profile including
+`default` — it used to be plain `xNet`, which made it useless in exactly the
+case worth catching.
+
+Losing the lock is now a named error and **exit 1**. It used to be `app.quit()`
+and exit 0, which an agent read as success before attaching to someone else's
+app.
+
+## Logs from all three processes
+
+`window.__xnetDev.logs()` returns a bounded ring buffer of `main` and `data`
+records, including everything logged **before the window existed** — boot
+failures a CDP-attached agent could not otherwise see. Live records also land
+in the renderer console tagged `[main]` / `[data]`, so
+`browser_console_messages` covers the whole app rather than one process of
+three. Development only; production logging is 0315's.
 
 ## Preload
 

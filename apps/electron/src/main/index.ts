@@ -1,7 +1,7 @@
 /**
  * Electron main process entry point
  */
-import { appendFileSync } from 'fs'
+import { appendFileSync, readlinkSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { app, BrowserWindow } from 'electron'
@@ -15,6 +15,8 @@ import {
   setupWindowChannel
 } from './data-process-manager'
 import { parseConnectDeepLink, type CloudConnectPayload } from './deep-link'
+import { attachDevLogWindow, installDevLogBridge } from './dev-log-bridge'
+import { titleSuffix } from './dev-scope'
 import { setupIPC, getOrCreateStorage } from './ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { setupMeetingCaptureIPC } from './meeting-capture-ipc'
@@ -24,6 +26,11 @@ import { setupServiceIPC, cleanupServices } from './service-ipc'
 import { setupSocialImportIPC } from './social-import-ipc'
 import { setupStorybookIPC, stopStorybook } from './storybook-ipc'
 import { initAutoUpdater } from './updater'
+
+// Capture main-process console output for the renderer console (0413). First
+// statement after the imports so a failure during early module init is still
+// buffered — that is the whole point of the ring buffer.
+installDevLogBridge()
 
 // Enable remote debugging in development for Playwright/CDP testing
 // CDP port is configurable via ELECTRON_CDP_PORT env var (default: 9223)
@@ -153,9 +160,38 @@ function handleDeepLink(rawUrl: string): void {
   }
 }
 
+/**
+ * Who holds this profile's Chromium single-instance lock, as `host-pid`.
+ *
+ * `SingletonLock` is a symlink whose target names the holder; reading the link
+ * is enough and never touches the lock itself. Returns `null` when it is
+ * missing or unreadable — "unknown holder" and "no holder" are different facts,
+ * and the caller prints them differently.
+ */
+function readSingletonLockHolder(userDataPath: string): string | null {
+  try {
+    return readlinkSync(join(userDataPath, 'SingletonLock'))
+  } catch {
+    return null
+  }
+}
+
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
 if (!hasSingleInstanceLock) {
-  app.quit()
+  // Losing the lock used to be `app.quit()` — no message, **exit 0** (0413).
+  // An agent read that as success, attached to the CDP port, and drove whatever
+  // instance already owned it: a different worktree, a different branch, a
+  // healthy-looking app. Every step succeeded and the verification was false.
+  // A failure the caller cannot distinguish from success is a bug, not a guard.
+  const userData = app.getPath('userData')
+  console.error(
+    `[xnet-dev] FATAL: profile "${profile}" is already running ` +
+      `(lock held by ${readSingletonLockHolder(userData) ?? 'an unidentified process'}).\n` +
+      `[xnet-dev]   userData: ${userData}\n` +
+      `[xnet-dev]   Another worktree or a stale process owns this profile. ` +
+      `Set XNET_PROFILE, or run: pnpm --filter xnet-desktop dev:clean`
+  )
+  app.exit(1)
 }
 
 app.on('second-instance', (_event, argv) => {
@@ -181,8 +217,11 @@ app.on('open-url', (event, url) => {
 const dbPath = join(dataPath, 'data.db')
 
 async function createWindow() {
-  // Show profile in title for multi-instance testing
-  const title = profile === 'default' ? 'xNet' : `xNet (${profile})`
+  // Identify the instance in the title, in development, for EVERY profile
+  // including `default` (0413). Pre-0413 a `default` instance was titled plain
+  // `xNet`, so two of them — the exact collision worth catching — were
+  // indistinguishable. Production keeps the clean product name.
+  const title = process.env.NODE_ENV === 'development' ? `xNet (${titleSuffix(profile)})` : 'xNet'
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -220,12 +259,27 @@ async function createWindow() {
     )
   }
 
+  // The `title` option above is only the *initial* title: Electron discards it
+  // as soon as the loaded document declares its own `<title>`, which
+  // `renderer/index.html` does. Own the title instead, or the instance label is
+  // silently reverted to plain `xNet` — the very thing 0413 is fixing.
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.webContents.on('page-title-updated', (event) => {
+      event.preventDefault()
+      mainWindow?.setTitle(title)
+    })
+  }
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })
 
   mainWindow.webContents.on('did-finish-load', () => {
     bootTrace('renderer loaded')
+    // Flush everything main logged before a renderer existed (0413). Done here
+    // rather than at window creation so the renderer's own listener is already
+    // registered and the flush cannot race it.
+    if (mainWindow) attachDevLogWindow(mainWindow)
     if (pendingSharePayload) {
       mainWindow?.webContents.send('xnet:share-payload', { payload: pendingSharePayload })
       pendingSharePayload = null
