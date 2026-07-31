@@ -19,6 +19,7 @@ import {
   ipcMain,
   MessageChannelMain
 } from 'electron'
+import { recordDevLog } from './dev-log-bridge'
 
 // ESM __dirname shim
 const __filename = fileURLToPath(import.meta.url)
@@ -107,17 +108,31 @@ export async function spawnDataProcess(dbPath: string): Promise<void> {
         NODE_PATH: nodeModulesPath
       }
 
+      // Also pipe in development so the dev log bridge can forward this
+      // process's output to the renderer console (0413) — an agent driving the
+      // app over CDP otherwise sees one process out of three.
+      const capture = debugEnabled || process.env.NODE_ENV === 'development'
+
       dataProcess = utilityProcess.fork(scriptPath, [], {
         serviceName: 'xnet-data',
         env,
         // Pipe the child's stdio so a native-module load failure (which would
         // otherwise be an invisible early exit) is forwarded to the main process
         // stderr and captured by the packaged-smoke gate.
-        stdio: debugEnabled ? ['ignore', 'pipe', 'pipe'] : 'inherit'
+        stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit'
       })
-      if (debugEnabled) {
-        dataProcess.stdout?.on('data', (c: Buffer) => process.stderr.write(`[data] ${c}`))
-        dataProcess.stderr?.on('data', (c: Buffer) => process.stderr.write(`[data] ${c}`))
+      if (capture) {
+        const forward = (level: 'log' | 'error') => (chunk: Buffer) => {
+          const text = chunk.toString()
+          // Preserve the pre-existing stderr echo: `packaged-smoke` greps it,
+          // and a human watching `pnpm dev` still expects it.
+          process.stderr.write(`[data] ${text}`)
+          for (const line of text.split('\n')) {
+            if (line.trim()) recordDevLog('data', level, line)
+          }
+        }
+        dataProcess.stdout?.on('data', forward('log'))
+        dataProcess.stderr?.on('data', forward('error'))
       }
 
       // Handle messages from utility process

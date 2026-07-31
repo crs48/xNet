@@ -8,7 +8,7 @@ tags: [electron, agents, dx, tooling, testing]
 # Plural Electron — Making The Desktop Loop Survive A Fleet Of Agents
 
 > [!TIP]
-> **TL;DR** — [0404](<0404_[-]_ELECTRON_PROTOTYPING_LOOP_FOR_AGENTS.md>) fixed the
+> **TL;DR** — [0404](0404_[-]_ELECTRON_PROTOTYPING_LOOP_FOR_AGENTS.md) fixed the
 > desktop loop for **one agent, on one tree, running one app**. That is not how
 > this repo is worked: `git worktree list` returns **87 trees, 41 of them agent
 > worktrees**. The web loop is _plural_ — every worktree gets its own port and the
@@ -59,7 +59,7 @@ environment being singular while the way this repo is actually worked is plural.
   name in the title bar is the cheapest signal."_
   [`index.ts`](../../apps/electron/src/main/index.ts) sets
   `profile === 'default' ? 'xNet' : \`xNet (${profile})\``. Both the incumbent and
-  the newcomer are `default`. Both are titled `xNet`. The signal is constant in
+the newcomer are `default`. Both are titled `xNet`. The signal is constant in
   exactly the case it exists to detect.
 - **The app publishes no provenance at all.** No `define:` for a commit or branch,
   no build stamp, nothing on `window`. An attached agent cannot answer "which tree
@@ -83,17 +83,17 @@ environment being singular while the way this repo is actually worked is plural.
 
 ### What 0404 actually delivered
 
-| Item                                     | Status         | Evidence                                                                 |
-| ---------------------------------------- | -------------- | ------------------------------------------------------------------------ |
-| `playwright-electron` MCP registered     | ✅ Shipped     | [`.mcp.json`](../../.mcp.json) — `--cdp-endpoint http://127.0.0.1:9223`  |
-| Renderer launch entries                  | ✅ Shipped     | `electron-renderer (vite 5177)` in `.claude/launch.json`                 |
-| Stamped native rebuild                   | ✅ Shipped     | [`scripts/rebuild-if-stale.mjs`](../../apps/electron/scripts/rebuild-if-stale.mjs) |
-| `dev:user2` gets its own CDP port        | ✅ Shipped     | `ELECTRON_CDP_PORT=9224` in `package.json`                              |
-| Prod bundle has no debugging port        | ✅ Shipped     | [`cdp-dev-only.test.ts`](../../apps/electron/src/main/cdp-dev-only.test.ts) |
-| `electron-prototype` skill               | ✅ Shipped     | 106 lines, three rungs                                                   |
-| **Multi-tree isolation**                 | ❌ Not scoped  | 0404 assumed one instance                                                |
-| **Instance provenance**                  | ❌ Not scoped  | mitigation is prose, not a probe                                         |
-| **Main-process observability**           | ❌ Not scoped  | CDP is renderer-only                                                     |
+| Item                                 | Status        | Evidence                                                                           |
+| ------------------------------------ | ------------- | ---------------------------------------------------------------------------------- |
+| `playwright-electron` MCP registered | ✅ Shipped    | [`.mcp.json`](../../.mcp.json) — `--cdp-endpoint http://127.0.0.1:9223`            |
+| Renderer launch entries              | ✅ Shipped    | `electron-renderer (vite 5177)` in `.claude/launch.json`                           |
+| Stamped native rebuild               | ✅ Shipped    | [`scripts/rebuild-if-stale.mjs`](../../apps/electron/scripts/rebuild-if-stale.mjs) |
+| `dev:user2` gets its own CDP port    | ✅ Shipped    | `ELECTRON_CDP_PORT=9224` in `package.json`                                         |
+| Prod bundle has no debugging port    | ✅ Shipped    | [`cdp-dev-only.test.ts`](../../apps/electron/src/main/cdp-dev-only.test.ts)        |
+| `electron-prototype` skill           | ✅ Shipped    | 106 lines, three rungs                                                             |
+| **Multi-tree isolation**             | ❌ Not scoped | 0404 assumed one instance                                                          |
+| **Instance provenance**              | ❌ Not scoped | mitigation is prose, not a probe                                                   |
+| **Main-process observability**       | ❌ Not scoped | CDP is renderer-only                                                               |
 
 0404 was right about everything it looked at. It looked at a single seat.
 
@@ -170,16 +170,16 @@ exit was read from source rather than re-run — see
 
 ### The asymmetry, service by service
 
-| Resource         | Web loop                                      | Electron loop                                     |
-| ---------------- | --------------------------------------------- | -------------------------------------------------- |
-| Dev server port  | per-worktree entry, explicit `--strictPort`   | `5177`, **no** `strictPort` → silent drift          |
-| Driving endpoint | the tab you opened; URL names the port        | `9223`, global, first-come                          |
-| App state        | OPFS, keyed by origin ⇒ keyed by port         | one `userData`; profiles exist but are opt-in       |
-| Mutual exclusion | none needed                                   | machine-wide `SingletonLock`                        |
-| Provenance       | the URL **is** the identity                   | none                                                |
-| Collision result | Vite prints the port it actually took         | `app.quit()`, **exit 0**, no message                |
-| Process coverage | one process; console is the whole app         | 3 processes; CDP sees 1                             |
-| Cleanup          | kill the server, nothing persists             | 18 orphaned `userData` dirs                         |
+| Resource         | Web loop                                    | Electron loop                                 |
+| ---------------- | ------------------------------------------- | --------------------------------------------- |
+| Dev server port  | per-worktree entry, explicit `--strictPort` | `5177`, **no** `strictPort` → silent drift    |
+| Driving endpoint | the tab you opened; URL names the port      | `9223`, global, first-come                    |
+| App state        | OPFS, keyed by origin ⇒ keyed by port       | one `userData`; profiles exist but are opt-in |
+| Mutual exclusion | none needed                                 | machine-wide `SingletonLock`                  |
+| Provenance       | the URL **is** the identity                 | none                                          |
+| Collision result | Vite prints the port it actually took       | `app.quit()`, **exit 0**, no message          |
+| Process coverage | one process; console is the whole app       | 3 processes; CDP sees 1                       |
+| Cleanup          | kill the server, nothing persists           | 18 orphaned `userData` dirs                   |
 
 > [!IMPORTANT]
 > The web loop never needed an isolation design because **a port is already an
@@ -191,13 +191,13 @@ exit was read from source rather than re-run — see
 This is the encouraging part. Nearly every primitive needed is already in the
 tree, applied to a narrower problem:
 
-| Primitive                                                                        | Exists for                             | Wants to be                              |
-| -------------------------------------------------------------------------------- | -------------------------------------- | ---------------------------------------- |
-| [`local-api-config.ts`](../../apps/electron/src/main/local-api-config.ts) `stableProfileOffset()` | one port, from `XNET_PROFILE`          | **all** ports, from the worktree         |
-| [`profile.ts`](../../apps/electron/src/main/profile.ts)                          | `XNET_PROFILE=user2` opt-in            | defaulted from the worktree              |
-| [`cdp-dev-only.test.ts`](../../apps/electron/src/main/cdp-dev-only.test.ts)       | asserting prod has no debug port       | the template for a dev-only provenance guard |
-| `window.__xnetNodeStore` / `__xnetSchemaIds`                                      | e2e specs                              | the same channel, carrying dev metadata  |
-| [`data-process-manager.ts:113-119`](../../apps/electron/src/main/data-process-manager.ts) | piping child stdio to stderr           | piping it somewhere CDP can read         |
+| Primitive                                                                                         | Exists for                       | Wants to be                                  |
+| ------------------------------------------------------------------------------------------------- | -------------------------------- | -------------------------------------------- |
+| [`local-api-config.ts`](../../apps/electron/src/main/local-api-config.ts) `stableProfileOffset()` | one port, from `XNET_PROFILE`    | **all** ports, from the worktree             |
+| [`profile.ts`](../../apps/electron/src/main/profile.ts)                                           | `XNET_PROFILE=user2` opt-in      | defaulted from the worktree                  |
+| [`cdp-dev-only.test.ts`](../../apps/electron/src/main/cdp-dev-only.test.ts)                       | asserting prod has no debug port | the template for a dev-only provenance guard |
+| `window.__xnetNodeStore` / `__xnetSchemaIds`                                                      | e2e specs                        | the same channel, carrying dev metadata      |
+| [`data-process-manager.ts:113-119`](../../apps/electron/src/main/data-process-manager.ts)         | piping child stdio to stderr     | piping it somewhere CDP can read             |
 
 `stableProfileOffset()` is the standout — the repo already wrote a
 hash-string-to-stable-port-offset helper and used it for exactly one of the four
@@ -234,12 +234,12 @@ Same diagnosis, same prescription.
 
 0404 rejected two servers on maturity. One new entrant has appeared since:
 
-| Server                                                                           | Stars | Licence | Attaches or launches?  | Verdict         |
-| -------------------------------------------------------------------------------- | ----- | ------- | ---------------------- | --------------- |
-| [`microsoft/playwright-mcp`](https://github.com/microsoft/playwright-mcp) `--cdp-endpoint` | ~35.5k | Apache-2.0 | **attaches**       | ✅ In use       |
-| [`mesomya/electron-driver`](https://github.com/mesomya/electron-driver)          | 3     | MIT     | **launches** (`start_app`) | 🛑 Reject   |
-| [`kanishka-namdeo/electron-mcp`](https://github.com/kanishka-namdeo/electron-mcp) | 1     | —       | mixed                  | 🛑 Reject (0404) |
-| [`lazy-dinosaur/electron-test-mcp`](https://github.com/lazy-dinosaur/electron-test-mcp) | 0 | none    | mixed                  | 🛑 Reject (0404) |
+| Server                                                                                     | Stars  | Licence    | Attaches or launches?      | Verdict          |
+| ------------------------------------------------------------------------------------------ | ------ | ---------- | -------------------------- | ---------------- |
+| [`microsoft/playwright-mcp`](https://github.com/microsoft/playwright-mcp) `--cdp-endpoint` | ~35.5k | Apache-2.0 | **attaches**               | ✅ In use        |
+| [`mesomya/electron-driver`](https://github.com/mesomya/electron-driver)                    | 3      | MIT        | **launches** (`start_app`) | 🛑 Reject        |
+| [`kanishka-namdeo/electron-mcp`](https://github.com/kanishka-namdeo/electron-mcp)          | 1      | —          | mixed                      | 🛑 Reject (0404) |
+| [`lazy-dinosaur/electron-test-mcp`](https://github.com/lazy-dinosaur/electron-test-mcp)    | 0      | none       | mixed                      | 🛑 Reject (0404) |
 
 > [!NOTE]
 > `electron-driver` is worth reading even though we should not install it. Its 38
@@ -323,15 +323,15 @@ a constant. The generalisation is mechanical.
 
 ### 4. CDP is one third of an observability story
 
-| Process        | Where its output goes            | Reachable by an attached agent?              |
-| -------------- | -------------------------------- | -------------------------------------------- |
-| renderer       | CDP console domain               | ✅ `browser_console_messages`                |
-| main           | `pnpm dev` stdout (13 call sites)| ❌ unless the agent also owns the terminal   |
-| data-process   | inherited stdio → same stdout    | ❌ same                                       |
+| Process      | Where its output goes             | Reachable by an attached agent?            |
+| ------------ | --------------------------------- | ------------------------------------------ |
+| renderer     | CDP console domain                | ✅ `browser_console_messages`              |
+| main         | `pnpm dev` stdout (13 call sites) | ❌ unless the agent also owns the terminal |
+| data-process | inherited stdio → same stdout     | ❌ same                                    |
 
 There is no log file — `app.getPath('logs')` is unused. If the agent started the
 app with `preview_start`, `preview_logs` recovers stdout, and that is the one path
-that works today. But it is a *second* channel with different semantics, it is
+that works today. But it is a _second_ channel with different semantics, it is
 absent whenever a human started the app, and nothing in the skill mentions it.
 
 ### 5. Ports drift silently because nobody asked for `strictPort`
@@ -353,22 +353,22 @@ profile is real?" a research task.
 
 ## Options And Tradeoffs
 
-| Option                                                       | Effort | Fixes cardinality | Fixes provenance | Fixes main-process | Verdict          |
-| ------------------------------------------------------------ | ------ | ----------------- | ---------------- | ------------------ | ---------------- |
-| **A** — Do nothing; 0404 is enough                           | 0      | ❌                | ❌               | ❌                 | 🛑 Rejected      |
-| **B** — Document the hazard harder in the skill              | S      | ❌                | ❌               | ❌                 | 🛑 Rejected      |
-| **C** — Install `electron-driver` MCP                        | S      | ❌                | ❌               | ✅                 | 🛑 Rejected      |
-| **D** — Build a bespoke xNet Electron MCP server             | L      | ⚠️ possible       | ✅               | ✅                 | 🛑 Rejected      |
-| **E** — Browser shim for the renderer                        | M      | ✅ trivially      | n/a              | n/a                | 🛑 Rejected (0404) |
-| **F** — Migrate runtime (Tauri / Deno) for a nicer loop      | XL     | ❌                | ❌               | ❌                 | 🛑 Out of scope  |
-| **G** — **Worktree-scoped dev + provenance + log bridge**    | M      | ✅                | ✅               | ✅                 | ✅ **Recommend** |
+| Option                                                    | Effort | Fixes cardinality | Fixes provenance | Fixes main-process | Verdict            |
+| --------------------------------------------------------- | ------ | ----------------- | ---------------- | ------------------ | ------------------ |
+| **A** — Do nothing; 0404 is enough                        | 0      | ❌                | ❌               | ❌                 | 🛑 Rejected        |
+| **B** — Document the hazard harder in the skill           | S      | ❌                | ❌               | ❌                 | 🛑 Rejected        |
+| **C** — Install `electron-driver` MCP                     | S      | ❌                | ❌               | ✅                 | 🛑 Rejected        |
+| **D** — Build a bespoke xNet Electron MCP server          | L      | ⚠️ possible       | ✅               | ✅                 | 🛑 Rejected        |
+| **E** — Browser shim for the renderer                     | M      | ✅ trivially      | n/a              | n/a                | 🛑 Rejected (0404) |
+| **F** — Migrate runtime (Tauri / Deno) for a nicer loop   | XL     | ❌                | ❌               | ❌                 | 🛑 Out of scope    |
+| **G** — **Worktree-scoped dev + provenance + log bridge** | M      | ✅                | ✅               | ✅                 | ✅ **Recommend**   |
 
 **Why not B.** The skill already carries the warning, in the imperative — _"Confirm
 which instance you attached to before trusting anything."_ It cannot be followed:
 the app publishes nothing to confirm against, and the one signal it names is
 constant in the collision case. Sharpening prose that describes an impossible
 check makes the instructions worse, not better. This is the
-[0401](<0401_[_]_AGENT_NATIVE_SKILLS_AUDIT.md>) failure mode — a rule nothing
+[0401](0401_[_]_AGENT_NATIVE_SKILLS_AUDIT.md) failure mode — a rule nothing
 enforces — repeating one layer down.
 
 **Why not C.** Three stars, nine commits, and it `start_app`s rather than attaching,
@@ -388,8 +388,8 @@ changed: the preload exposes 10 `contextBridge` namespaces that the renderer cal
 at ~76 sites with almost no guards. `apps/web` is already the browser-native
 surface. A shim would build a third surface that lies about the first two.
 
-**Why not F.** [0009](<0009_[x]_TAURI_VS_ELECTRON.md>) and
-[0251](<0251_[_]_ELECTRON_TO_DENO_DESKTOP_MIGRATION.md>) own the runtime question.
+**Why not F.** [0009](0009_[x]_TAURI_VS_ELECTRON.md) and
+[0251](0251_[_]_ELECTRON_TO_DENO_DESKTOP_MIGRATION.md) own the runtime question.
 Whatever their answer, none of the four defects here are Electron's fault — they
 are the consequence of never having derived our dev identity from our unit of
 work. A Tauri app with hard-coded ports would collide identically.
@@ -498,7 +498,7 @@ require:
 
 `browser_console_messages` then covers all three processes. Dev-only; production
 logging is a separate concern owned by
-[0315](<0315_[x]_FIRST_PARTY_ERROR_TELEMETRY_AND_DEBUG_REPORT_CONSOLE.md>).
+[0315](0315_[x]_FIRST_PARTY_ERROR_TELEMETRY_AND_DEBUG_REPORT_CONSOLE.md).
 
 ### 4. Make collisions loud
 
@@ -737,44 +737,44 @@ if (!mine) {
 
 ### Scope (the change that matters)
 
-- [ ] Add `apps/electron/src/main/dev-scope.ts` with `resolveDevScope()`, deriving
+- [x] Add `apps/electron/src/main/dev-scope.ts` with `resolveDevScope()`, deriving
       profile from the linked-worktree basename and a ten-port block from
       `stableProfileOffset()`.
-- [ ] Resolve the scope **once** in the dev script and pass it to Electron and Vite
+- [x] Resolve the scope **once** in the dev script and pass it to Electron and Vite
       as `XNET_DEV_SCOPE`, so `process.cwd()` is read in exactly one place.
-- [ ] Feed `profile.ts` from the resolved scope; keep `XNET_PROFILE` as an override
+- [x] Feed `profile.ts` from the resolved scope; keep `XNET_PROFILE` as an override
       and keep the main checkout on `default` with today's ports.
-- [ ] Point `electron.vite.config.ts`, the CDP switch in `index.ts`,
+- [x] Point `electron.vite.config.ts`, the CDP switch in `index.ts`,
       `resolveLocalAPIPort()` and the dev hub at the block instead of their
       constants.
-- [ ] Add a test pinning that `app.setPath('userData', …)` runs before
+- [x] Add a test pinning that `app.setPath('userData', …)` runs before
       `requestSingleInstanceLock()`.
 
 ### Identify
 
-- [ ] Expose `window.__xnetDev` (tree, branch, commit, profile, ports, pid,
+- [x] Expose `window.__xnetDev` (tree, branch, commit, profile, ports, pid,
       `startedAt`, `logs()`) from the preload, dev-only.
-- [ ] Include the profile in the window title for every profile, including
+- [x] Include the profile in the window title for every profile, including
       `default`.
-- [ ] Extend `cdp-dev-only.test.ts` to assert production bundles contain no
+- [x] Extend `cdp-dev-only.test.ts` to assert production bundles contain no
       `__xnetDev`.
 
 ### Observe
 
-- [ ] Add a bounded ring buffer for main and data-process records, tagged
+- [x] Add a bounded ring buffer for main and data-process records, tagged
       `[main]` / `[data]`.
-- [ ] Flush the buffer to the renderer console when a window appears; forward live
+- [x] Flush the buffer to the renderer console when a window appears; forward live
       thereafter.
-- [ ] Wire `xnet:dev:logs` IPC so `window.__xnetDev.logs()` returns pre-paint
+- [x] Wire `xnet:dev:logs` IPC so `window.__xnetDev.logs()` returns pre-paint
       records.
 
 ### Fail loudly
 
-- [ ] Set `strictPort: true` on the renderer server.
-- [ ] Replace `app.quit()` on lock loss with a named error naming the lock holder
+- [x] Set `strictPort: true` on the renderer server.
+- [x] Replace `app.quit()` on lock loss with a named error naming the lock holder
       and `process.exit(1)`.
-- [ ] Add the CDP identity assertion and refuse to print ready if it fails.
-- [ ] Print the `[xnet-dev] ready {…}` machine-readable line.
+- [x] Add the CDP identity assertion and refuse to print ready if it fails.
+- [x] Print the `[xnet-dev] ready {…}` machine-readable line.
 
 ### Then, the instructions
 
@@ -812,12 +812,12 @@ if (!mine) {
 
 ### In this repository
 
-- [0404 — The Electron prototyping loop, built, documented, unwired](<0404_[-]_ELECTRON_PROTOTYPING_LOOP_FOR_AGENTS.md>) — wired the single-seat loop; this doc is its plural sequel
-- [0406 — One shell, two surfaces](<0406_[x]_ONE_SHELL_TWO_SURFACES_ENDING_THE_DESKTOP_WEB_UI_FORK.md>) — the workbench is the only desktop shell
-- [0401 — The agent-native skill library](<0401_[_]_AGENT_NATIVE_SKILLS_AUDIT.md>) — rules nothing enforces
-- [0238 — Electron desktop parity, sync and automated deep testing](<0238_[x]_ELECTRON_DESKTOP_PARITY_SYNC_AND_AUTOMATED_DEEP_TESTING.md>) — the rung-3 harness
-- [0315 — First-party error telemetry](<0315_[x]_FIRST_PARTY_ERROR_TELEMETRY_AND_DEBUG_REPORT_CONSOLE.md>) — owns production logging
-- [0009 — Tauri vs Electron](<0009_[x]_TAURI_VS_ELECTRON.md>) · [0251 — Electron to Deno](<0251_[_]_ELECTRON_TO_DENO_DESKTOP_MIGRATION.md>) — the runtime question, out of scope here
+- [0404 — The Electron prototyping loop, built, documented, unwired](0404_[-]_ELECTRON_PROTOTYPING_LOOP_FOR_AGENTS.md) — wired the single-seat loop; this doc is its plural sequel
+- [0406 — One shell, two surfaces](0406_[x]_ONE_SHELL_TWO_SURFACES_ENDING_THE_DESKTOP_WEB_UI_FORK.md) — the workbench is the only desktop shell
+- [0401 — The agent-native skill library](0401_[_]_AGENT_NATIVE_SKILLS_AUDIT.md) — rules nothing enforces
+- [0238 — Electron desktop parity, sync and automated deep testing](0238_[x]_ELECTRON_DESKTOP_PARITY_SYNC_AND_AUTOMATED_DEEP_TESTING.md) — the rung-3 harness
+- [0315 — First-party error telemetry](0315_[x]_FIRST_PARTY_ERROR_TELEMETRY_AND_DEBUG_REPORT_CONSOLE.md) — owns production logging
+- [0009 — Tauri vs Electron](0009_[x]_TAURI_VS_ELECTRON.md) · [0251 — Electron to Deno](0251_[_]_ELECTRON_TO_DENO_DESKTOP_MIGRATION.md) — the runtime question, out of scope here
 - [`apps/electron/AGENTS.md`](../../apps/electron/AGENTS.md) · [`.claude/skills/electron-prototype/SKILL.md`](../../.claude/skills/electron-prototype/SKILL.md) — the instructions this changes
 
 ### External

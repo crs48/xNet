@@ -17,7 +17,9 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
-const mainSource = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'index.ts'), 'utf8')
+const here = dirname(fileURLToPath(import.meta.url))
+const mainSource = readFileSync(join(here, 'index.ts'), 'utf8')
+const preloadSource = readFileSync(join(here, '../preload/index.ts'), 'utf8')
 
 /** Strip block and line comments so prose about the switch can't satisfy a check. */
 function stripComments(source: string): string {
@@ -53,6 +55,42 @@ describe('CDP remote debugging is development-only', () => {
     for (const line of code.split('\n')) {
       if (!line.includes('remote-debugging-port')) continue
       // An indented line is inside the guard block; a flush-left one is not.
+      expect(line).toMatch(/^\s+/)
+    }
+  })
+})
+
+/**
+ * `window.__xnetDev` carries the worktree path, branch and commit an instance
+ * was built from (0413). That is exactly the reconnaissance an attacker wants,
+ * and it is pointless in a shipped app — nobody attaches a prototyping agent to
+ * a release. Same guard as the CDP switch, asserted the same way.
+ */
+describe('__xnetDev provenance is development-only', () => {
+  const code = stripComments(preloadSource)
+
+  it('exposes the global exactly once', () => {
+    const matches = code.match(/exposeInMainWorld\(\s*['"]__xnetDev['"]/g) ?? []
+    expect(matches).toHaveLength(1)
+  })
+
+  it('exposes it only inside a NODE_ENV === development block', () => {
+    const index = code.indexOf("exposeInMainWorld('__xnetDev'")
+    expect(index).toBeGreaterThan(-1)
+
+    const before = code.slice(0, index)
+    const guardStart = before.lastIndexOf('if (')
+    expect(guardStart).toBeGreaterThan(-1)
+
+    const guardToExpose = before.slice(guardStart)
+    expect(guardToExpose).toMatch(/process\.env\.NODE_ENV\s*===\s*['"]development['"]/)
+    // Nothing may close that block before the exposure runs.
+    expect(guardToExpose.split('}').length - 1).toBe(0)
+  })
+
+  it('never exposes it unconditionally at module scope', () => {
+    for (const line of code.split('\n')) {
+      if (!line.includes('__xnetDev')) continue
       expect(line).toMatch(/^\s+/)
     }
   })

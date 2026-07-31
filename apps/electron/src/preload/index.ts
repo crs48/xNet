@@ -647,6 +647,48 @@ export interface XNetNodesAPI {
   onChange(callback: (event: { changes: unknown[] }) => void): () => void
 }
 
+/**
+ * Development-only instance provenance (0413).
+ *
+ * The failure this answers: an agent attaches to a CDP port, gets a healthy
+ * desktop app, and has no way to tell whether it belongs to this worktree or
+ * another one. The window title was the documented signal and it was constant
+ * (`xNet`) for the `default` profile — useless in exactly the collision case.
+ *
+ * Deliberately on `window` rather than behind an HTTP endpoint: the local API
+ * is token-gated with a per-session UUID printed only to stdout, so an agent
+ * that attached later cannot read it. This rides the channel the agent already
+ * has — one `browser_evaluate(() => window.__xnetDev)`.
+ *
+ * Never exposed in production; `cdp-dev-only.test.ts` asserts the guard.
+ */
+function parseDevScope(): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(process.env.XNET_DEV_SCOPE || '{}')
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {}
+  } catch {
+    return {}
+  }
+}
+
+if (process.env.NODE_ENV === 'development') {
+  contextBridge.exposeInMainWorld('__xnetDev', {
+    ...parseDevScope(),
+    pid: process.pid,
+    startedAt: new Date().toISOString(),
+    /** Main + data-process records, including everything before first paint. */
+    logs: () => ipcRenderer.invoke('xnet:dev:logs')
+  })
+
+  // Main-process records arrive here and land in the renderer console, so
+  // `browser_console_messages` covers all three processes instead of one.
+  ipcRenderer.on('xnet:dev:log', (_event, record) => {
+    const level = record?.level === 'debug' ? 'log' : (record?.level ?? 'log')
+    const write = (console as unknown as Record<string, (...a: unknown[]) => void>)[level]
+    write?.call(console, `[${record?.source ?? 'main'}]`, record?.message ?? '')
+  })
+}
+
 declare global {
   interface Window {
     xnet: XNetAPI
