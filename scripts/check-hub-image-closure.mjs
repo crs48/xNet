@@ -22,18 +22,32 @@ const PACKAGES_DIR = 'packages'
 const DOCKERFILE = join(PACKAGES_DIR, 'hub', 'Dockerfile')
 const ROOT_PACKAGE = '@xnetjs/hub'
 
-/** Map every workspace package name to its directory and @xnetjs runtime deps. */
+/**
+ * Map every workspace package name to its directory and the `@xnetjs/*` deps
+ * that must be **resolvable** inside the trimmed image.
+ *
+ * That is not the same as "installed". `pnpm install --prod` skips
+ * devDependencies, but it still resolves every `workspace:*` link in a
+ * manifest it reads — so a devDependency on a package the image does not copy
+ * fails the install outright with `ERR_PNPM_WORKSPACE_PKG_NOT_FOUND`. The first
+ * version of this guard modelled runtime deps only and happily passed a
+ * Dockerfile that could not install. Both kinds count.
+ */
 function readWorkspace() {
   const byName = new Map()
   for (const dir of readdirSync(PACKAGES_DIR)) {
     const manifestPath = join(PACKAGES_DIR, dir, 'package.json')
     if (!existsSync(manifestPath)) continue
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    const workspaceDeps = (deps) =>
+      Object.entries(deps ?? {})
+        .filter(
+          ([name, spec]) => name.startsWith('@xnetjs/') && String(spec).startsWith('workspace:')
+        )
+        .map(([name]) => name)
     byName.set(manifest.name, {
       dir,
-      // Runtime only: devDependencies are not installed by `--filter …` in the
-      // image, and are exactly why an optional engine can stay out of it.
-      deps: Object.keys(manifest.dependencies ?? {}).filter((d) => d.startsWith('@xnetjs/'))
+      deps: [...workspaceDeps(manifest.dependencies), ...workspaceDeps(manifest.devDependencies)]
     })
   }
   return byName
