@@ -1,6 +1,6 @@
 ---
 title: Publishing the social graph — xNet Cloud, the ATmosphere, and the affinity edge
-status: draft # mirrors the [_]/[-]/[x] filename checkbox
+status: partially-implemented # mirrors the [_]/[-]/[x] filename checkbox
 last_updated: 2026-08-01
 tags: [social, atproto, publishing, privacy, cloud, index]
 ---
@@ -697,7 +697,14 @@ And the one-line extension to the index engine:
 
 ## Implementation Checklist
 
-**Status:** ░░░░░░░░░░ 0/23 items
+**Status:** █████████░ 22/24 items
+
+> [!NOTE]
+> The two open implementation items and the one open validation item are
+> **operational, not code**: they need registrar access to `xnet.fyi` and a live
+> PDS session from a consenting user. Everything they depend on — the scopes,
+> the lexicon files, the validating publish script — has shipped, and
+> `node scripts/atproto/publish-lexicons.mjs --dry-run` is green.
 
 **WP0 — Unblock (nothing else can start)**
 
