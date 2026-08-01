@@ -7,6 +7,13 @@
 > reciprocal-recommendation, federation, discovery, privacy, PSI, double-opt-in,
 > serendipity, weak-ties, social-graph, embeddings, hubs, trust-and-safety
 
+> [!NOTE]
+> **See also:**
+> [exploration 0417](./0417_[_]_THE_MATCHMAKER_AND_THE_METER_DATING_WITHOUT_A_PROFIT_MOTIVE.md)
+> — the economics of this layer (why introductions are never sold), the
+> "no rent on introductions" Charter clause and its `metered connection` CI
+> gate, and the blog essay that points at this exploration's shipped half.
+
 ## Problem Statement
 
 Most networks make you choose a lane. Tinder is for romance, LinkedIn for jobs,

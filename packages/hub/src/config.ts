@@ -75,9 +75,22 @@ const resolvePlanLimits = (): Partial<HubConfig> => {
   return {
     defaultQuota: entitlements.quotaBytes,
     maxBlobSize: entitlements.maxBlobBytes,
-    maxConnections: entitlements.maxConnections
+    maxConnections: entitlements.maxConnections,
+    writesEnabled: entitlements.writesEnabled
   }
 }
+
+/**
+ * Does this hub accept writes? `false` only ever comes from an explicit
+ * `writesEnabled: false` in a signed `HUB_PLAN` token — the non-payment
+ * read-only step (exploration 0418).
+ *
+ * A self-hosted hub has no `HUB_PLAN`, so `resolvePlanLimits` returns `{}`, the
+ * field stays `undefined`, and this reads `true`. That is the anti-lock-in
+ * invariant (0174) expressed as one function: there is no code path by which a
+ * hub nobody manages can be told to stop accepting its owner's data.
+ */
+export const resolveWritesEnabled = (config: HubConfig): boolean => config.writesEnabled !== false
 
 /**
  * Resolve demo overrides from environment or return null if not in demo mode.

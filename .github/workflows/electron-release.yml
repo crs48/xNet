@@ -10,6 +10,19 @@ on:
       - '!*.md'
       - '!**/*.md'
       - '!docs/**'
+  # Packaging only ever ran on the way to a release, and a release only happens
+  # when `apps/electron/package.json` names a version that has not shipped yet.
+  # Between releases that meant no packaging build ran at all — for the eleven
+  # days after v3.0.0, twenty-six pushes to main reported this workflow green
+  # while every build job was skipped. Native modules, the audiotee helper and
+  # the packaged smoke tests were all unverified in that window, and the first
+  # run that would have caught a regression was release day itself.
+  #
+  # The nightly run closes that window: same jobs, same pass condition, no
+  # publish. Its consumer is the release path — a red nightly means the next
+  # release is already broken.
+  schedule:
+    - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
       release_type:
@@ -35,6 +48,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       should_release: ${{ steps.check.outputs.should_release }}
+      should_build: ${{ steps.check.outputs.should_build }}
     steps:
       - uses: actions/checkout@v4
 
@@ -44,20 +58,74 @@ jobs:
           VERSION=$(node -p "require('./apps/electron/package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Check if release exists
+      # Two decisions, and conflating them is what let this workflow report
+      # success without building anything:
+      #
+      #   should_release — is there a version worth publishing? False whenever
+      #     apps/electron/package.json still names a release that exists.
+      #   should_build   — should the packaging actually run? True for a
+      #     release, and also nightly and on manual dispatch, so a packaging
+      #     regression surfaces on the day it lands rather than on release day.
+      - name: Decide what this run does
         id: check
         run: |
           if gh release view "v${{ steps.version.outputs.version }}" &>/dev/null; then
-            echo "should_release=false" >> $GITHUB_OUTPUT
+            should_release=false
           else
-            echo "should_release=true" >> $GITHUB_OUTPUT
+            should_release=true
           fi
+
+          # The nightly verifies; it never publishes. Releasing is a
+          # consequence of someone landing a version bump or asking for it by
+          # hand — never of a clock reaching 06:00.
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            should_release=false
+          fi
+
+          case "${{ github.event_name }}" in
+            schedule | workflow_dispatch) should_build=true ;;
+            *) should_build=$should_release ;;
+          esac
+
+          echo "should_release=$should_release" >> $GITHUB_OUTPUT
+          echo "should_build=$should_build" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # A green check that built nothing is worse than no check: it reads as
+      # "the desktop app is fine" to everyone who does not open the run. Say
+      # plainly which of the two things happened.
+      - name: Report what this run did
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          BUILD="${{ steps.check.outputs.should_build }}"
+          RELEASE="${{ steps.check.outputs.should_release }}"
+
+          if [ "$BUILD" = "true" ] && [ "$RELEASE" = "true" ]; then
+            SUMMARY="Building and publishing **v$VERSION**."
+          elif [ "$BUILD" = "true" ]; then
+            SUMMARY="Verifying packaging for **v$VERSION** — already released, so nothing will be published."
+          else
+            SUMMARY="**No Electron build ran.** v$VERSION is already released and this is not a nightly or manual run. Bump \`apps/electron/package.json\` to release, or run this workflow manually to verify packaging."
+            echo "::notice title=Electron Release::No build ran — v$VERSION is already released."
+          fi
+
+          {
+            echo "### Electron Release"
+            echo
+            echo "$SUMMARY"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| version | \`$VERSION\` |"
+            echo "| trigger | \`${{ github.event_name }}\` |"
+            echo "| packaging build | \`$BUILD\` |"
+            echo "| publish | \`$RELEASE\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   build-js:
     needs: version
-    if: needs.version.outputs.should_release == 'true'
+    if: needs.version.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -77,7 +145,7 @@ jobs:
 
   build-macos:
     needs: [version, build-js]
-    if: needs.version.outputs.should_release == 'true'
+    if: needs.version.outputs.should_build == 'true'
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -197,8 +265,11 @@ jobs:
           XNET_PACKAGED_BINARY="$BIN" pnpm --filter @xnetjs/e2e-tests exec \
             playwright test src/packaged-smoke.spec.ts --project=electron --fail-on-flaky-tests
 
+      # Only for builds that will actually be published. Notarization is a
+      # round trip to Apple with its own quota; spending it on a nightly
+      # verification build buys nothing, since nobody installs that artifact.
       - name: Notarize app
-        if: steps.signing.outputs.mode == 'apple'
+        if: steps.signing.outputs.mode == 'apple' && needs.version.outputs.should_release == 'true'
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
@@ -224,7 +295,7 @@ jobs:
 
   build-windows:
     needs: [version, build-js]
-    if: needs.version.outputs.should_release == 'true'
+    if: needs.version.outputs.should_build == 'true'
     # Pin to the VS 2022 image: `windows-latest` now ships Visual Studio 2026,
     # which the node-gyp (9.4.1) bundled by @electron/rebuild can't detect
     # ("Could not find any Visual Studio installation to use"), breaking the
@@ -272,7 +343,7 @@ jobs:
 
   build-linux:
     needs: [version, build-js]
-    if: needs.version.outputs.should_release == 'true'
+    if: needs.version.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -345,6 +416,10 @@ jobs:
 
   release:
     needs: [version, build-macos, build-windows, build-linux]
+    # Explicit, because the build jobs now also run when nothing is being
+    # published. Inheriting "skipped" from `needs` used to be the only thing
+    # standing between a verification build and a release.
+    if: needs.version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

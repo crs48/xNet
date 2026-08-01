@@ -157,12 +157,25 @@ things you would own anyway. The refused rents, each with its receipt:
   audience you brought. A per‑member meter would charge you for access to a
   relationship we did not build, and would make your own growth the thing you
   pay us for. **Enforced:** the `community` plan is flat‑billed (`seats: 0`,
-  meaning *not seat‑metered*) and `withSeats()` refuses to attach a seat count
+  meaning _not seat‑metered_) and `withSeats()` refuses to attach a seat count
   to it, so the meter cannot return through an override
   ([`packages/entitlements/src/plans.ts`](../packages/entitlements/src/plans.ts));
   the receipt is pinned by `never seat-meters the community plan` in
   [`packages/entitlements/src/plans.test.ts`](../packages/entitlements/src/plans.test.ts)
   (exploration 0359).
+- **No rent on introductions.** The people‑matching layer
+  ([`packages/social/src/connect/`](../packages/social/src/connect/)) never
+  sells the introduction: no boost, no paid rank, no pay‑to‑reveal. An
+  operator paid for access to matches has a standing reason to make matches
+  scarce — scarcity becomes inventory — so the lane is refused outright and
+  connection rides the flat hosting bill like any other workload. **Enforced:**
+  the `metered connection` rule in
+  [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
+  fails CI on meter identifiers (`boostPrice`, `paidVisibility`,
+  `payToReveal`, …); the receipt is pinned by `commons-no-rent-on-introductions`
+  in
+  [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)
+  (exploration 0417).
 - **No behavioural surplus.** Restates §1 as a refused rent. **Enforced:**
   [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
   (`surplus` rules).
@@ -173,7 +186,7 @@ things you would own anyway. The refused rents, each with its receipt:
   ([`packages/hub/src/cli.ts`](../packages/hub/src/cli.ts)).
 - **A FRAND trademark.** The name never fences the code (see
   [`TRADEMARK.md`](../TRADEMARK.md)).
-- **No context capture.** Portability covers the *context*, not just the
+- **No context capture.** Portability covers the _context_, not just the
   bytes: an audience, share grants, and plugin licences travel with the
   export. Data you can move while your standing stays behind is the moat we
   refuse — a repository is portable, a contribution graph is not.
@@ -193,7 +206,7 @@ not in anyone's memory. **Every new revenue lane must pass four tests before
 it ships:**
 
 1. **Improvement test** — the margin pays for labour, capital, or operations
-   *we* provide, not for access to something users would own anyway.
+   _we_ provide, not for access to something users would own anyway.
 2. **BATNA test** — after the lane ships, self‑hosting remains a real,
    undegraded alternative.
 3. **Vanish test** — if xNet‑the‑company disappeared tomorrow, what the

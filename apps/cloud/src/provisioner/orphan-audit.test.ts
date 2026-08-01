@@ -1,7 +1,7 @@
 import type { TenantRecord } from '../registry'
 import { resolveEntitlements } from '@xnetjs/entitlements'
 import { describe, expect, it } from 'vitest'
-import { findOrphans, formatOrphanReport } from './orphan-audit'
+import { findOrphans, formatOrphanReport, isDrillService } from './orphan-audit'
 
 const record = (tenantId: string, substrateRef: string): TenantRecord => ({
   tenantId,
@@ -61,5 +61,49 @@ describe('findOrphans', () => {
     )
     expect(report.liveCount).toBe(2)
     expect(report.recordCount).toBe(1)
+  })
+})
+
+describe('restore-drill hubs (exploration 0418)', () => {
+  const tenantRecord = (tenantId: string, substrateRef: string) =>
+    ({ tenantId, substrateRef }) as never
+
+  it('does NOT count a running drill hub as an orphan', () => {
+    const report = findOrphans(
+      [
+        { substrateRef: 'projects/p/services/drill-acme', tenantId: 'drill-acme' },
+        { substrateRef: 'projects/p/services/acme', tenantId: 'acme' }
+      ],
+      [tenantRecord('acme', 'projects/p/services/acme')]
+    )
+    // A nightly false positive is how an audit stops being read.
+    expect(report.orphans).toEqual([])
+    expect(report.drillServices).toHaveLength(1)
+  })
+
+  it('still reports a genuinely orphaned tenant hub alongside a drill hub', () => {
+    const report = findOrphans(
+      [
+        { substrateRef: 'projects/p/services/drill-acme', tenantId: 'drill-acme' },
+        { substrateRef: 'projects/p/services/ghost', tenantId: 'ghost' }
+      ],
+      []
+    )
+    expect(report.orphans.map((o) => o.tenantId)).toEqual(['ghost'])
+    expect(report.drillServices.map((d) => d.tenantId)).toEqual(['drill-acme'])
+  })
+
+  it('names live drill hubs in the summary so a failed teardown is visible', () => {
+    const report = findOrphans(
+      [{ substrateRef: 'projects/p/services/drill-acme', tenantId: 'drill-acme' }],
+      []
+    )
+    expect(formatOrphanReport(report)).toMatch(/restore-drill hub\(s\) live/)
+  })
+
+  it('identifies a drill service from the substrateRef alone', () => {
+    expect(isDrillService({ substrateRef: 'projects/p/services/drill-x' })).toBe(true)
+    expect(isDrillService({ substrateRef: 'drill-x' })).toBe(true)
+    expect(isDrillService({ substrateRef: 'projects/p/services/acme' })).toBe(false)
   })
 })

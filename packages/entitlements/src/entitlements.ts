@@ -50,7 +50,12 @@ export function verifyEntitlements(token: string, secret: string): PlanEntitleme
   // Re-resolve through the catalog so a tampered-but-unsigned-path can't widen
   // limits beyond a known plan shape; the signed overrides are preserved.
   asPlanId(parsed.plan)
-  return parsed
+  // `writesEnabled` fails OPEN across a token-format rollover (exploration 0418):
+  // a token signed before the field existed has `undefined` here, and treating
+  // that as "no writes" would brick every hub in the fleet the moment this ships.
+  // Only an explicit `false` — which the control plane sets deliberately when a
+  // tenant's grace window lapses — blocks writes.
+  return { ...parsed, writesEnabled: parsed.writesEnabled !== false }
 }
 
 /**
