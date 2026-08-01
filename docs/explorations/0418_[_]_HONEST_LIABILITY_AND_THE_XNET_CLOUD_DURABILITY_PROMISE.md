@@ -753,9 +753,9 @@ describe('durability posture never outruns the code', () => {
 
 ### Phase 1 — One source of truth
 
-- [ ] Add `packages/entitlements/src/durability.ts` with `DurabilityPosture` + `DURABILITY_POSTURE`, exported via a scoped sub-barrel (never `export *` from the root barrel).
-- [ ] Add `packages/entitlements/src/durability.test.ts` with the `publishedExceedsObjective` and no-blob-claim assertions.
-- [ ] Move or re-export `sloForSla` so `packages/entitlements` can assert against it without reaching into `apps/cloud`.
+- [x] Add `packages/entitlements/src/durability.ts` with `DurabilityPosture` + `DURABILITY_POSTURE`, exported via a scoped sub-barrel (never `export *` from the root barrel).
+- [x] Add `packages/entitlements/src/durability.test.ts` with the `publishedExceedsObjective` and no-blob-claim assertions.
+- [x] Move or re-export `sloForSla` so `packages/entitlements` can assert against it without reaching into `apps/cloud`.
 - [ ] Derive the pricing-page availability highlights from `DURABILITY_POSTURE` rather than hand-written strings.
 - [ ] Add `scripts/check-durability-claims.mjs`: fail the build if site copy states an availability/RPO/RTO figure absent from `DURABILITY_POSTURE`. Register it under the existing `check:*` lint job.
 - [ ] Write a changeset for `@xnetjs/entitlements` (new exported surface → **minor**).

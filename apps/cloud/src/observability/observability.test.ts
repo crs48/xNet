@@ -60,6 +60,7 @@ describe('SLI math', () => {
 
 describe('SLO catalog + budget policy', () => {
   it('maps SLA levels to objectives', () => {
+    expect(sloForSla('99.5').objective).toBe(0.995)
     expect(sloForSla('99.9').objective).toBe(0.999)
     expect(sloForSla('custom').objective).toBe(0.9995)
     expect(sloForSla('best-effort').objective).toBeNull()
@@ -69,8 +70,11 @@ describe('SLO catalog + budget policy', () => {
   it('derives the SLO from the plan tier', () => {
     expect(sloForPlan('community').objective).toBe(0.999) // dedicated-project, 99.9
     expect(sloForPlan('company').objective).toBe(0.999)
-    expect(sloForPlan('team').objective).toBeNull() // best-effort
-    expect(sloForPlan('personal').objective).toBeNull() // best-effort
+    // `team` moved best-effort → 99.5 in 0418: the pricing page was publishing
+    // "99.9% best-effort", a figure no objective backed. It now publishes 99.5%
+    // and the SLO layer holds us to it.
+    expect(sloForPlan('team').objective).toBe(0.995)
+    expect(sloForPlan('personal').objective).toBeNull() // best-effort, published as no figure
     expect(sloForPlan('enterprise').objective).toBe(0.9995)
   })
 

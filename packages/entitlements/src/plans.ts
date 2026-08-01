@@ -37,7 +37,13 @@ export type IsolationTier =
   | 'dedicated-project'
   | 'region-pinned'
 
-export type SlaLevel = 'none' | 'best-effort' | '99.9' | 'custom'
+/**
+ * Declared service level. `'best-effort'` means availability is measured and
+ * shown but not promised; the numeric levels are promises the SLO layer holds
+ * us to (see `slo.ts`). A tier may only publish a figure that one of these
+ * backs — exploration 0418, enforced by `durability.test.ts`.
+ */
+export type SlaLevel = 'none' | 'best-effort' | '99.5' | '99.9' | 'custom'
 
 /**
  * The fully-resolved set of limits a hub enforces for one tenant. Quotas the hub
@@ -178,7 +184,11 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiMonthlyBudgetUsd: 200,
     aiModels: 'all',
     aiDefaultModel: 'anthropic/claude-sonnet-4.6',
-    sla: 'best-effort'
+    // A real 99.5% outranks a fictional 99.9%. The pricing page used to claim
+    // "99.9% best-effort availability" here — a self-cancelling phrase over a
+    // tier whose SLA level backed no objective at all. `dedicated-warm` (no
+    // cold start) is what makes a published number defensible (0418).
+    sla: '99.5'
   },
   community: {
     plan: 'community',
