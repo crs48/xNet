@@ -4,5 +4,14 @@
   "title": "New essay: The Matchmaker and the Meter",
   "summary": "Why dating apps are metered on purpose — match scarcity as inventory, the market for lemons run on people — and what the matchmakers people actually loved got right. The essay ships with a receipt: a new CI rule and Charter clause mean xNet can never sell an introduction.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 670,
+  "mergedAt": "2026-08-01T19:49:06Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
