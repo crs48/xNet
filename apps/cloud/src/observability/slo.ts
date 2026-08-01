@@ -2,7 +2,7 @@
  * xNet Cloud — Service Level Objectives + error-budget policy (exploration 0193).
  *
  * The SLA-level → objective mapping moved to `@xnetjs/entitlements` (exploration
- * 0418) so the *promise* and the *objective it is measured against* can be
+ * 0425) so the *promise* and the *objective it is measured against* can be
  * asserted against each other in one place; it is re-exported here so every
  * existing call site keeps working.
  *

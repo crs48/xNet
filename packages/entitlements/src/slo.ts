@@ -2,7 +2,7 @@
  * @xnetjs/entitlements — the SLA level → measurable objective mapping.
  *
  * This lives beside the plan catalog rather than in `apps/cloud` (exploration
- * 0418) for one reason: the *promise* and the *objective it is measured
+ * 0425) for one reason: the *promise* and the *objective it is measured
  * against* must be checkable in the same place. When they lived apart, the
  * pricing page advertised "99.9% best-effort availability" on a tier whose
  * `SlaLevel` resolves to no objective at all — a claim the code declined to

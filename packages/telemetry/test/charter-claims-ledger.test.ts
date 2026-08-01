@@ -156,7 +156,7 @@ const CLAIMS: Claim[] = [
     source:
       '/cloud/durability — "a restore actually restores, and we prove the check can fail: ' +
       'every change backs up a real database, restores it, verifies it physically and ' +
-      'logically, then corrupts a copy on purpose and requires the drill to fail" (0418)',
+      'logically, then corrupts a copy on purpose and requires the drill to fail" (0425)',
     backing: 'enforced',
     enforcedBy: 'tests/reliability/restore/restore-drill.test.ts'
   },
@@ -165,7 +165,7 @@ const CLAIMS: Claim[] = [
     source:
       '/cloud/pricing + /cloud/durability + /status — every published availability figure ' +
       'is one the plan catalog backs. The page shipped "99.9% best-effort availability" ' +
-      'over a tier whose SlaLevel resolved to no objective at all (0418).',
+      'over a tier whose SlaLevel resolved to no objective at all (0425).',
     backing: 'enforced',
     enforcedBy: 'packages/entitlements/src/durability.test.ts'
   },
@@ -173,7 +173,7 @@ const CLAIMS: Claim[] = [
     id: 'cloud-blob-durability-gap-disclosed',
     source:
       '/cloud/durability §"What is not covered yet" — attachments are not yet replicated ' +
-      'to object storage, and we say so rather than letting "encrypted backup" imply it (0418)',
+      'to object storage, and we say so rather than letting "encrypted backup" imply it (0425)',
     backing: 'building',
     pending:
       "Exploration 0288's [P0] blob/file sync sidecar is unshipped: Litestream covers the " +

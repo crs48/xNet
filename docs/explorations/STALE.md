@@ -14,7 +14,7 @@ review: 2027-02-01 # renew the claim
 status: withdrawn # release it; the document stays exactly where it is
 ```
 
-**41** stale of 276 undecided.
+**41** stale of 278 undecided.
 
 | Exploration | Due | Overdue | Decider |
 | --- | --- | --- | --- |
@@ -51,8 +51,8 @@ status: withdrawn # release it; the document stays exactly where it is
 | [0110_[_]_XNET_AS_A_VIABLE_WIKIPEDIA_ALTERNATIVE.md](0110_%5B_%5D_XNET_AS_A_VIABLE_WIKIPEDIA_ALTERNATIVE.md) | 2026-07-04 *(default)* | 28d | — |
 | [0111_[_]_UNIFIED_WORKBENCH_ARCHITECTURE_FOR_XNET.md](0111_%5B_%5D_UNIFIED_WORKBENCH_ARCHITECTURE_FOR_XNET.md) | 2026-07-04 *(default)* | 28d | — |
 | [0112_[_]_UNIVERSAL_CLIPPER_AND_AI_KNOWLEDGE_GRAPH_INGESTION.md](0112_%5B_%5D_UNIVERSAL_CLIPPER_AND_AI_KNOWLEDGE_GRAPH_INGESTION.md) | 2026-07-04 *(default)* | 28d | — |
-| [0113_[_]_OTHER_INTERNET_INFRASTRUCTURE_ROLES_FOR_XNET.md](0113_%5B_%5D_OTHER_INTERNET_INFRASTRUCTURE_ROLES_FOR_XNET.md) | 2026-07-04 *(default)* | 27d | — |
-| [0114_[_]_DECENTRALIZED_ALTERNATIVES_FOR_NON_XNET_INTERNET_LAYERS.md](0114_%5B_%5D_DECENTRALIZED_ALTERNATIVES_FOR_NON_XNET_INTERNET_LAYERS.md) | 2026-07-04 *(default)* | 27d | — |
+| [0113_[_]_OTHER_INTERNET_INFRASTRUCTURE_ROLES_FOR_XNET.md](0113_%5B_%5D_OTHER_INTERNET_INFRASTRUCTURE_ROLES_FOR_XNET.md) | 2026-07-04 *(default)* | 28d | — |
+| [0114_[_]_DECENTRALIZED_ALTERNATIVES_FOR_NON_XNET_INTERNET_LAYERS.md](0114_%5B_%5D_DECENTRALIZED_ALTERNATIVES_FOR_NON_XNET_INTERNET_LAYERS.md) | 2026-07-04 *(default)* | 28d | — |
 | [0115_[_]_ARCHITECTING_FULLY_DECENTRALIZED_GLOBAL_WEB_SEARCH.md](0115_%5B_%5D_ARCHITECTING_FULLY_DECENTRALIZED_GLOBAL_WEB_SEARCH.md) | 2026-07-06 *(default)* | 26d | — |
 | [0116_[_]_ARCHITECTING_DECENTRALIZED_TWITTER_X_ON_XNET.md](0116_%5B_%5D_ARCHITECTING_DECENTRALIZED_TWITTER_X_ON_XNET.md) | 2026-07-06 *(default)* | 26d | — |
 | [0117_[_]_ARCHITECTING_DECENTRALIZED_AI_ON_XNET.md](0117_%5B_%5D_ARCHITECTING_DECENTRALIZED_AI_ON_XNET.md) | 2026-07-06 *(default)* | 26d | — |
@@ -62,7 +62,7 @@ status: withdrawn # release it; the document stays exactly where it is
 
 ## Undated
 
-42 exploration(s) predate this checkout's history and carry no
+43 exploration(s) predate this checkout's history and carry no
 `review:` date, so their age is unknown. They are **not** counted as stale —
 unknown age and not-yet-due are different facts. Give one a `review:` date to
 move it out of this list.
@@ -109,3 +109,4 @@ move it out of this list.
 - [0359_[_]_COMMUNITY_HOSTING_AND_RECURRING_REVENUE_THE_SKOOL_QUESTION.md](0359_%5B_%5D_COMMUNITY_HOSTING_AND_RECURRING_REVENUE_THE_SKOOL_QUESTION.md)
 - [0362_[_]_PUBLISHING_ON_XNET_GHOST_SUBSTACK_AND_THE_OWNED_AUDIENCE.md](0362_%5B_%5D_PUBLISHING_ON_XNET_GHOST_SUBSTACK_AND_THE_OWNED_AUDIENCE.md)
 - [0372_[_]_JOINING_THE_ATMOSPHERE_ADOPT_EXTEND_MINT_AND_THE_HUB_AS_A_KNOT.md](0372_%5B_%5D_JOINING_THE_ATMOSPHERE_ADOPT_EXTEND_MINT_AND_THE_HUB_AS_A_KNOT.md)
+- [0425_[-]_HONEST_LIABILITY_AND_THE_XNET_CLOUD_DURABILITY_PROMISE.md](0425_%5B-%5D_HONEST_LIABILITY_AND_THE_XNET_CLOUD_DURABILITY_PROMISE.md)

@@ -2,7 +2,7 @@
  * GENERATED FILE — DO NOT EDIT.
  *
  * Mirrors packages/entitlements/src/durability.ts, the single source of truth
- * for every public durability claim (exploration 0418). `site/` installs with
+ * for every public durability claim (exploration 0425). `site/` installs with
  * `--ignore-workspace` and cannot import `@xnetjs/*`, so this mirror exists —
  * and `pnpm check:durability-claims` fails the build if it drifts.
  *

@@ -1,6 +1,6 @@
 /**
  * @xnetjs/entitlements — the durability posture: one source of truth for every
- * public durability claim (exploration 0418).
+ * public durability claim (exploration 0425).
  *
  * Marketing copy, the terms page, the durability note and `/status` all derive
  * their numbers from here. Nothing restates a figure by hand — that is exactly

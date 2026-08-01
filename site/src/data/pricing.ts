@@ -17,7 +17,7 @@
  * a page states a figure the catalog does not back. This tier grid used to
  * advertise "99.9% best-effort availability" (durability-ok: quotes the retired
  * claim in order to explain why it was retired) — a self-cancelling phrase over
- * a plan whose SLA level backed no objective at all (exploration 0418).
+ * a plan whose SLA level backed no objective at all (exploration 0425).
  */
 
 import { DURABILITY } from './durability'
@@ -83,7 +83,7 @@ export const PRICING: PricingTier[] = [
       'Managed AI gateway included',
       // Scoped deliberately: Litestream replicates the SQLite database, not
       // `dataDir/{blobs,files}`. Until exploration 0288's sync sidecar ships,
-      // "encrypted backup" full stop would over-promise (0418).
+      // "encrypted backup" full stop would over-promise (0425).
       'Encrypted database backup, replicated continuously',
       'Full-text search & relay'
     ],

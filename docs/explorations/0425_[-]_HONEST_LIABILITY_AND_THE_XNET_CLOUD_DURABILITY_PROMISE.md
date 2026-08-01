@@ -20,6 +20,24 @@ tags: [cloud, legal, sla, durability, pricing, trust, charter]
 
 ---
 
+> [!NOTE]
+> **Renumbered 0425 → 0425.** Exploration
+> 
+> claimed 0425 three minutes earlier on a parallel branch (12:23 vs 12:26 on
+> 2026-08-01), so by the repo's tie-break rule — earliest commit wins — this
+> document moved. The two are complementary and do not overlap: that one covers
+> billing, dunning and the read-only lifecycle; this one covers liability, SLAs
+> and the durability promise. Neither mentions the other's subject matter.
+
+> [!NOTE]
+> **Renumbered 0418 -> 0425.** The exploration
+> `0418_[-]_XNET_CLOUD_TO_PRODUCTION_BACKUPS_BILLING_DUNNING_AND_ONE_UI.md`
+> claimed 0418 three minutes earlier on a parallel branch (12:23 vs 12:26 on
+> 2026-08-01), so by the repo's tie-break rule -- earliest commit wins -- this
+> document moved. The two are complementary and do not overlap: that one covers
+> billing, dunning and the read-only lifecycle; this one covers liability, SLAs
+> and the durability promise. Neither mentions the other's subject matter.
+
 ## Problem Statement
 
 xNet Cloud charges money — $5/mo Personal through per-seat Team and

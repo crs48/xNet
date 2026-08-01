@@ -25,7 +25,7 @@ describe('DURABILITY_POSTURE', () => {
     }
   })
 
-  // Exploration 0418. The pricing page advertised "99.9% best-effort
+  // Exploration 0425. The pricing page advertised "99.9% best-effort
   // availability" on `team`, whose SlaLevel is 'best-effort' → objective null:
   // a number the SLO layer explicitly declines to hold. This is the receipt
   // that the copy can never again outrun the code.
@@ -74,7 +74,7 @@ describe('DURABILITY_POSTURE', () => {
 
   // The refund window must never exceed the liability cap stated in the terms:
   // the cap is a ceiling on what can be claimed, the refund is what we pay out
-  // unprompted. A payout larger than the ceiling would be incoherent (0418).
+  // unprompted. A payout larger than the ceiling would be incoherent (0425).
   it('keeps the Make-Whole window inside the 24-month liability cap', () => {
     expect(MAKE_WHOLE_MONTHS).toBeLessThanOrEqual(24)
   })

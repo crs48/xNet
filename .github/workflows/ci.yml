@@ -126,8 +126,8 @@ jobs:
       # whose SlaLevel resolved to no objective at all — a promise the code
       # declined to hold, invisible because `site/` cannot import @xnetjs/*.
       # This regenerates the mirror and fails on drift or an unbacked claim.
-      # (Exploration 0418.)
-      - name: Durability claims match the plan catalog (0418)
+      # (Exploration 0425.)
+      - name: Durability claims match the plan catalog (0425)
         run: pnpm check:durability-claims
 
       # Workflow files themselves: an unparseable workflow made GitHub emit a

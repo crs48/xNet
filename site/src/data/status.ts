@@ -56,7 +56,7 @@ export const COMPONENT_BLURBS: Record<string, string> = {
 
 /**
  * The objective each tier is held to, for the status page's SLO table
- * (exploration 0418). Derived from the generated durability mirror so a
+ * (exploration 0425). Derived from the generated durability mirror so a
  * published figure here can never drift from the plan catalog.
  */
 export { DURABILITY, type SitePlanId } from './durability'

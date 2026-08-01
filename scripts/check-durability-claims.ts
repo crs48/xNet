@@ -1,6 +1,6 @@
 /**
  * check:durability-claims — the gate that keeps public durability copy from
- * outrunning the code (exploration 0418).
+ * outrunning the code (exploration 0425).
  *
  * The pricing page once advertised "99.9% best-effort availability" on a tier
  * whose `SlaLevel` resolved to no objective at all. That happened because the
@@ -101,7 +101,7 @@ function generateMirror(): string {
  * GENERATED FILE — DO NOT EDIT.
  *
  * Mirrors packages/entitlements/src/durability.ts, the single source of truth
- * for every public durability claim (exploration 0418). \`site/\` installs with
+ * for every public durability claim (exploration 0425). \`site/\` installs with
  * \`--ignore-workspace\` and cannot import \`@xnetjs/*\`, so this mirror exists —
  * and \`pnpm check:durability-claims\` fails the build if it drifts.
  *
@@ -289,7 +289,7 @@ function main(): void {
     for (const f of failures) console.error(`  ✗ ${f}`)
     console.error(
       `\n${failures.length} violation(s). Public copy may only state a durability ` +
-        `figure that DURABILITY_POSTURE backs — see exploration 0418.\n`
+        `figure that DURABILITY_POSTURE backs — see exploration 0425.\n`
     )
     process.exit(1)
   }
