@@ -6,7 +6,7 @@
 > [`@xnetjs/cloud/escrow`](../../packages/cloud/src/escrow/index.ts)); this note now
 > frames the **product** decision around _non-coercibility_ — how to recover users
 > without holding a key we could be compelled to use.
-> **Parent:** [exploration 0243](../explorations/0243_[_]_ACCOUNT_VALIDATION_AND_RECOVERY_BINDING_THE_PAYER_TO_THE_PASSKEY.md), item **P3.1**.
+> **Parent:** [exploration 0243](../explorations/0243_[x]_ACCOUNT_VALIDATION_AND_RECOVERY_BINDING_THE_PAYER_TO_THE_PASSKEY.md), item **P3.1**.
 > **Date:** 2026-06-28 (rev. with the Apple / non-coercible framing)
 
 ## Why this needs a decision, not just a checkbox

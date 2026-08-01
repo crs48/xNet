@@ -317,5 +317,5 @@ writeFileSync(changelogPath, [title.trimEnd(), entry, ...rest].join('\n\n'))
   upstream ENOENT-on-missing-CHANGELOG issue.
 - [Using Changesets with pnpm](https://pnpm.io/using-changesets).
 - [changesets discussion #1312 — versioning private packages](https://github.com/changesets/changesets/discussions/1312).
-- `docs/explorations/0220_[_]_AUTOMATED_NPM_PACKAGE_PUBLISHING_AND_CONVENTIONAL_VERSIONING.md`
+- `docs/explorations/0220_[x]_AUTOMATED_NPM_PACKAGE_PUBLISHING_AND_CONVENTIONAL_VERSIONING.md`
   — the release automation this stalls.

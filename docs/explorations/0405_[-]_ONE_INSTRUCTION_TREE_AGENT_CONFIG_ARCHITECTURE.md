@@ -658,7 +658,7 @@ client-side reporting was not.
 - [The AGENTS.md Field Guide, 2026](https://www.iuriio.com/blog/posts/2026/05/agents-md-field-guide-2026) — secondary; adoption figures unverified
 - [AGENTS.md: the standard Cursor, Codex and Copilot read, but Claude Code doesn't](https://wmedia.es/en/tips/claude-code-agents-md-import-symlink) — secondary
 - [0404 — The Electron prototyping loop](0404_[_]_ELECTRON_PROTOTYPING_LOOP_FOR_AGENTS.md)
-- [0403 — MDX visual explorations on Storybook](0403_[_]_MDX_VISUAL_EXPLORATIONS_ON_STORYBOOK.md)
+- [0403 — MDX visual explorations on Storybook](0403_[x]_MDX_VISUAL_EXPLORATIONS_ON_STORYBOOK.md)
 - [0402 — Skills already loaded, install, or vendor](0402_[_]_SKILLS_ALREADY_LOADED_INSTALL_OR_VENDOR.md)
 - [0401 — The agent-native skill library](0401_[_]_AGENT_NATIVE_SKILLS_AUDIT.md)
 - xNet: [AGENTS.md](../../AGENTS.md), [CLAUDE.md](../../CLAUDE.md),

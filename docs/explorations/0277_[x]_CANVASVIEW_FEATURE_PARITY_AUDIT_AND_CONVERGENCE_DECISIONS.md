@@ -299,7 +299,7 @@ Phase 3 — surfaces and command transport
 
 ## References
 
-- `docs/explorations/0276_[_]_WELL_TRAVELED_CODE_PATHS_CHURN_WEIGHTED_REFACTOR_MAP.md` — Theme 3, similarity table, drift tripwire (on branch `claude/0276-well-traveled-code-paths-churn-weighted-refactor`).
+- `docs/explorations/0276_[x]_WELL_TRAVELED_CODE_PATHS_CHURN_WEIGHTED_REFACTOR_MAP.md` — Theme 3, similarity table, drift tripwire (on branch `claude/0276-well-traveled-code-paths-churn-weighted-refactor`).
 - Exploration 0230 Phase 5 — original "defer pending parity audit" decision.
 - Exploration 0273 — Desk / quiet-surface shell (the W1 constraint).
 - Exploration 0166 — excerpt-never-copy model behind source references (E3).

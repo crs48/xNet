@@ -318,7 +318,7 @@ app is _for_ — is the hardest loop to start.
 `main/storybook-ipc.ts` spawns Storybook on demand at `XNET_STORYBOOK_PORT || 6006`
 and reports `stopped | starting | ready | error` back to the renderer, which
 opens it as an in-app surface ("Open Stories" in the system menu). Combined with
-[0403](0403_[_]_MDX_VISUAL_EXPLORATIONS_ON_STORYBOOK.md)'s MDX proposal, the
+[0403](0403_[x]_MDX_VISUAL_EXPLORATIONS_ON_STORYBOOK.md)'s MDX proposal, the
 desktop app can host visual explorations _inside itself_, with the real design
 system, in the real shell. No skill mentions it exists.
 
@@ -690,7 +690,7 @@ for a bind error after any restart.
 - [kanishka-namdeo/electron-mcp](https://github.com/kanishka-namdeo/electron-mcp) — 1 ⭐; **rejected**
 - [lazy-dinosaur/electron-test-mcp](https://github.com/lazy-dinosaur/electron-test-mcp) — 0 ⭐, no licence; **rejected**
 - [Playwright Test Agents & MCP: 2026 Architecture Guide](https://testquality.com/playwright-test-agents-mcp-architecture-2026/) — secondary, on the agent/MCP loop shape
-- [0403 — MDX visual explorations on Storybook](0403_[_]_MDX_VISUAL_EXPLORATIONS_ON_STORYBOOK.md) — rung 1's renderer
+- [0403 — MDX visual explorations on Storybook](0403_[x]_MDX_VISUAL_EXPLORATIONS_ON_STORYBOOK.md) — rung 1's renderer
 - [0402 — Skills already loaded, install, or vendor](0402_[_]_SKILLS_ALREADY_LOADED_INSTALL_OR_VENDOR.md) — measure before claiming
 - [0401 — The agent-native skill library](0401_[_]_AGENT_NATIVE_SKILLS_AUDIT.md) — the skills index this skill joins
 - xNet: [apps/electron/src/main/index.ts](../../apps/electron/src/main/index.ts),

@@ -28,7 +28,7 @@ packages that were never versioned independently — module boundaries dressed u
 as package boundaries. Consolidating keeps the ports-and-adapters seams (as
 subpath exports + an import-boundary lint rule) while dropping the per-package
 ceremony, and turns the FSL boundary into a single directory with one real
-license file. See [exploration 0181](../../docs/explorations/0181_[_]_CONSOLIDATE_CLOUD_INTO_ONE_PACKAGE.md).
+license file. See [exploration 0181](../../docs/explorations/0181_[x]_CONSOLIDATE_CLOUD_INTO_ONE_PACKAGE.md).
 
 ## What is NOT here
 
