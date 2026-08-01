@@ -760,7 +760,7 @@ _Phase 3 — make it consumed_
       answering "what's next"
 - [x] Document the door test in `docs/TRADEOFFS.md` — one-way vs two-way, and
       that ADRs are for one-way doors only
-- [ ] Apply `skip-changelog` (internal process change, no user-visible effect)
+- [x] Apply `skip-changelog` (internal process change, no user-visible effect)
 
 ## Validation Checklist
 
