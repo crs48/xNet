@@ -14,6 +14,9 @@
  *     ✗ confirmshaming       → don't shame the user out of a choice they made
  *     ✗ ratio scorekeeping   → reciprocity is legible, never scored; show
  *                              stewardship, not standing (exploration 0352)
+ *     ✗ metered connection   → introductions are never sold (exploration 0417)
+ *     ✗ manufactured urgency → scarcity and countdown prompts sell dread as a
+ *                              feature; "every bus is the last bus" (0424)
  *
  *   surplus       (scoped to all of packages/ + apps/)
  *     ✗ third-party ad/analytics SDKs (gtag, fbq, Segment, Mixpanel,
@@ -94,6 +97,23 @@ const RULES = [
     group: 'dark-pattern',
     re: /\b(boostPrice|paidVisibility|featuredProfile|superLikePrice|matchPaywall|payToReveal)\b/,
     fix: 'introductions are never sold — selling rank or reveal turns the matchmaker into a meter (Charter §6 "no rent on introductions", exploration 0417)'
+  },
+  {
+    // The last-bus lesson (exploration 0424): after the 1990s xiagang layoffs,
+    // Chinese adoption of each new wave ran on dread rather than appetite —
+    // Xiang Biao's "every bus is the last bus". Measured from outside, that is
+    // indistinguishable from enthusiasm, which is exactly what makes it usable
+    // as a growth tactic. Scarcity and countdown prompts manufacture the same
+    // dread on purpose. Charter §Calm; the copy rule was already written down
+    // in apps/cloud/src/billing/notify.ts and enforced by nothing.
+    //
+    // Deliberately NOT matched: expiresIn / expiresAt / ttl / deadline / dueDate
+    // and a bare `countdown` — tokens expire and meetings start, and a gate that
+    // fires on legitimate time handling is a gate that can never go green.
+    name: 'manufactured urgency',
+    group: 'dark-pattern',
+    re: /\b(spotsLeft|seatsRemaining|offerEndsAt|limitedTimeOffer|countdownUrgency|urgencyBanner|viewersNow|actNow|hurryUp)\b/,
+    fix: 'urgency is not a feature — a last-bus prompt converts dread into a click; state the facts and let the user choose (Charter §Calm, exploration 0424)'
   },
   {
     name: 'third-party ad/analytics SDK',
@@ -269,6 +289,24 @@ function runSelfTest() {
       label: 'unmetered connect code is not a metered connection',
       dark: true,
       text: 'const card = buildIntroCard({ intent, sharedInterests })',
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'flags manufactured urgency in a UI file',
+      dark: true,
+      text: 'const spotsLeft = plan.capacity - plan.taken',
+      expect: (v) => v.some((x) => x.rule === 'manufactured urgency')
+    },
+    {
+      label: 'a token expiry is not manufactured urgency',
+      dark: true,
+      text: 'const expiresIn = session.ttlSeconds',
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'a meeting countdown is not manufactured urgency',
+      dark: true,
+      text: 'const countdown = formatRemaining(meeting.startsAt)',
       expect: (v) => v.length === 0
     },
     {

@@ -48,13 +48,13 @@ wanted to get granular."_ Four pieces are live. Read against this repo they
 produce one load-bearing recommendation, one shippable CI rule, one
 corroboration of an existing ADR, and one methodological note.
 
-| Article | Live? | What it does to xNet |
-| --- | --- | --- |
-| **Rust and Boll** — Dylan Matthews | ✅ | 🎯 The core finding. A refusal you cannot afford to keep is a refusal that never happened. → **the Rust test** |
-| **Boarding China's Last Bus** — Zilan Qian | ✅ | Names the dread loop our humane-patterns checker does not yet ban → **`manufactured urgency` rule** |
-| **Beware the Permanent Periphery** — Anton Leicht | ✅ | Independent corroboration of ADR-29 (substrate, not harness); warns that local-first can read as protectionism |
-| **All Work and No Play** — The Editors | ✅ | Methodological rebuke: get granular, drop the model |
-| _10 further pieces_ | ⏳ Coming soon | Several are directly on-topic (multi-agent systems, post-work sociality, invisible labour) — hence `review: 2026-10-01` |
+| Article                                           | Live?          | What it does to xNet                                                                                                    |
+| ------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Rust and Boll** — Dylan Matthews                | ✅             | 🎯 The core finding. A refusal you cannot afford to keep is a refusal that never happened. → **the Rust test**          |
+| **Boarding China's Last Bus** — Zilan Qian        | ✅             | Names the dread loop our humane-patterns checker does not yet ban → **`manufactured urgency` rule**                     |
+| **Beware the Permanent Periphery** — Anton Leicht | ✅             | Independent corroboration of ADR-29 (substrate, not harness); warns that local-first can read as protectionism          |
+| **All Work and No Play** — The Editors            | ✅             | Methodological rebuke: get granular, drop the model                                                                     |
+| _10 further pieces_                               | ⏳ Coming soon | Several are directly on-topic (multi-agent systems, post-work sociality, invisible labour) — hence `review: 2026-10-01` |
 
 > [!IMPORTANT]
 > This exploration proposes **no new revenue lane**, so the three "No ground
@@ -68,13 +68,13 @@ corroboration of an existing ADR, and one methodological note.
 
 ### What already exists
 
-| Mechanism | Path | What it proves |
-| --- | --- | --- |
-| Charter §6 refusals | [docs/CHARTER.md](docs/CHARTER.md) | Nine named refused rents, each labelled Enforced / Architectural / Aspirational |
-| The four tests | [docs/ECONOMICS.md](docs/ECONOMICS.md) §4 | Improvement, BATNA, Vanish, Sleep — scored per kept lane |
-| Claims ledger | [charter-claims-ledger.test.ts](packages/telemetry/test/charter-claims-ledger.test.ts) | 17 claims, each tied to an `assert`, an `enforcedBy` path, or a disclosed `pending` |
-| Humane-patterns gate | [check-humane-patterns.mjs](scripts/check-humane-patterns.mjs) | 6 rules: infinite scroll, streak counter, confirmshaming, ratio scorekeeping, metered connection, third-party ad/analytics SDK |
-| Seat-meter refusal | [packages/entitlements/src/plans.ts](packages/entitlements/src/plans.ts) | `withSeats()` refuses to attach a seat count to the `community` plan |
+| Mechanism            | Path                                                                                   | What it proves                                                                                                                 |
+| -------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Charter §6 refusals  | [docs/CHARTER.md](docs/CHARTER.md)                                                     | Nine named refused rents, each labelled Enforced / Architectural / Aspirational                                                |
+| The four tests       | [docs/ECONOMICS.md](docs/ECONOMICS.md) §4                                              | Improvement, BATNA, Vanish, Sleep — scored per kept lane                                                                       |
+| Claims ledger        | [charter-claims-ledger.test.ts](packages/telemetry/test/charter-claims-ledger.test.ts) | 17 claims, each tied to an `assert`, an `enforcedBy` path, or a disclosed `pending`                                            |
+| Humane-patterns gate | [check-humane-patterns.mjs](scripts/check-humane-patterns.mjs)                         | 6 rules: infinite scroll, streak counter, confirmshaming, ratio scorekeeping, metered connection, third-party ad/analytics SDK |
+| Seat-meter refusal   | [packages/entitlements/src/plans.ts](packages/entitlements/src/plans.ts)               | `withSeats()` refuses to attach a seat count to the `community` plan                                                           |
 
 The ledger's own header states the design intent precisely — a claim must
 declare **exactly one** backing, and _"the honesty-debt cannot be paid down in
@@ -296,20 +296,20 @@ never closes. The granular one names a file and a person and can be finished.
 
 ### What to do about the viability gap
 
-| Option | Cost | Verdict |
-| --- | --- | --- |
-| **A. Nothing** — §6 already lists the costs | Zero | 🛑 Rejected. Costs listed ≠ verdict rendered. This is the state that lets the rationalisation arrive unopposed. |
-| **B. Fifth test in `ECONOMICS.md` §4 + one ledger claim** | ~1 doc column, 1 claim, 1 prose section | ✅ **Recommended.** Same shape as the Sleep test from 0358, which already proved this pattern lands. |
-| **C. Full financial model** — runway, CAC, lane-by-lane P&L | Weeks; unfalsifiable at this stage | ❌ Rejected. This is precisely the "leave the models to the experts" move the editors warn against. |
-| **D. Drop a refusal pre-emptively** to buy margin | Cheap, irreversible | 🛑 Rejected. This is the Rust failure run forwards — and it is a `one-way` door dressed as prudence. |
+| Option                                                      | Cost                                    | Verdict                                                                                                         |
+| ----------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **A. Nothing** — §6 already lists the costs                 | Zero                                    | 🛑 Rejected. Costs listed ≠ verdict rendered. This is the state that lets the rationalisation arrive unopposed. |
+| **B. Fifth test in `ECONOMICS.md` §4 + one ledger claim**   | ~1 doc column, 1 claim, 1 prose section | ✅ **Recommended.** Same shape as the Sleep test from 0358, which already proved this pattern lands.            |
+| **C. Full financial model** — runway, CAC, lane-by-lane P&L | Weeks; unfalsifiable at this stage      | ❌ Rejected. This is precisely the "leave the models to the experts" move the editors warn against.             |
+| **D. Drop a refusal pre-emptively** to buy margin           | Cheap, irreversible                     | 🛑 Rejected. This is the Rust failure run forwards — and it is a `one-way` door dressed as prudence.            |
 
 ### Where the fifth test lives
 
-| Option | Verdict |
-| --- | --- |
-| New standalone doc `docs/VIABILITY.md` | ❌ Splits the economics story across two files; `ECONOMICS.md` §4 already owns the test table |
-| Fifth column in `ECONOMICS.md` §4 + short §4a | ✅ **Recommended** — the table is already the canonical home of the tests |
-| Frontmatter field on every exploration | ❌ Ratchet bloat; 0421 warns against exactly this |
+| Option                                        | Verdict                                                                                       |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| New standalone doc `docs/VIABILITY.md`        | ❌ Splits the economics story across two files; `ECONOMICS.md` §4 already owns the test table |
+| Fifth column in `ECONOMICS.md` §4 + short §4a | ✅ **Recommended** — the table is already the canonical home of the tests                     |
+| Frontmatter field on every exploration        | ❌ Ratchet bloat; 0421 warns against exactly this                                             |
 
 ### Scoping the `manufactured urgency` regex
 
@@ -352,10 +352,10 @@ never closes. The granular one names a file and a person and can be finished.
 The distinction from the Sleep test is the load-bearing part, and belongs in the
 prose:
 
-| | Asks | Scope | Fails when |
-| --- | --- | --- | --- |
-| **Sleep test** (0358) | Does this lane survive a competitor open-sourcing everything? | One lane | The lane is a cliff |
-| **Rust test** (this doc) | Do the refusals survive _us_? | The whole refusal set | We cannot afford to keep them |
+|                          | Asks                                                          | Scope                 | Fails when                    |
+| ------------------------ | ------------------------------------------------------------- | --------------------- | ----------------------------- |
+| **Sleep test** (0358)    | Does this lane survive a competitor open-sourcing everything? | One lane              | The lane is a cliff           |
+| **Rust test** (this doc) | Do the refusals survive _us_?                                 | The whole refusal set | We cannot afford to keep them |
 
 ```mermaid
 flowchart TD
@@ -461,12 +461,12 @@ refusal has no mapped lane and no `pending` marker.
 > authorisation to drop the refusal. Any actual removal of a §6 refusal remains
 > a `one-way` door needing its own ADR.
 
-| Risk | Severity | Mitigation |
-| --- | --- | --- |
-| Regex false positives freeze the gate | Medium | Commerce-only identifiers; `expiresIn`/`countdown` excluded by design; `humane-ok:` escape hatch |
-| Fifth column makes the §4 table too wide on GitHub | Low | Split verdict into a §4a list if it wraps |
-| "Borrowed time" label becomes permanent wallpaper | Medium | Ledger `pending` requires a stated reason and is reviewed with this doc on 2026-10-01 |
-| Reading 4 of 14 articles yields a partial conclusion | **Known** | Stated in the TL;DR; `review: 2026-10-01` exists for exactly this |
+| Risk                                                 | Severity  | Mitigation                                                                                       |
+| ---------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------ |
+| Regex false positives freeze the gate                | Medium    | Commerce-only identifiers; `expiresIn`/`countdown` excluded by design; `humane-ok:` escape hatch |
+| Fifth column makes the §4 table too wide on GitHub   | Low       | Split verdict into a §4a list if it wraps                                                        |
+| "Borrowed time" label becomes permanent wallpaper    | Medium    | Ledger `pending` requires a stated reason and is reviewed with this doc on 2026-10-01            |
+| Reading 4 of 14 articles yields a partial conclusion | **Known** | Stated in the TL;DR; `review: 2026-10-01` exists for exactly this                                |
 
 **Open questions:**
 
@@ -493,8 +493,8 @@ refusal has no mapped lane and no `pending` marker.
       §6 refusals, each ✅ or explicitly on borrowed time.
 - [ ] State the Sleep/Rust distinction in prose (lane-durability vs
       refusal-affordability) so the two tests are not conflated.
-- [ ] Add the `manufactured urgency` rule to `scripts/check-humane-patterns.mjs`.
-- [ ] Add the three self-test cases (positive, `expiresIn` negative, `countdown`
+- [x] Add the `manufactured urgency` rule to `scripts/check-humane-patterns.mjs`.
+- [x] Add the three self-test cases (positive, `expiresIn` negative, `countdown`
       negative) to the script's harness.
 - [ ] Add ledger claim `calm-no-manufactured-urgency` (`enforcedBy` the script).
 - [ ] Add ledger claim `economics-refusals-are-affordable` with a `pending`
@@ -504,13 +504,13 @@ refusal has no mapped lane and no `pending` marker.
 
 ## Validation Checklist
 
-- [ ] `node scripts/check-humane-patterns.mjs` passes on a clean tree — the new
+- [x] `node scripts/check-humane-patterns.mjs` passes on a clean tree — the new
       rule does not fire on any existing source file.
-- [ ] The script's self-tests pass, including both negative cases.
+- [x] The script's self-tests pass, including both negative cases.
 - [ ] `pnpm --filter @xnetjs/telemetry test` passes with both new claims.
-- [ ] Deliberately introducing `const spotsLeft = 3` in a UI file **fails** the
+- [x] Deliberately introducing `const spotsLeft = 3` in a UI file **fails** the
       humane-patterns gate (the rule can actually go red).
-- [ ] Adding `/* humane-ok: capacity display, not a sales prompt */` to that
+- [x] Adding `/* humane-ok: capacity display, not a sales prompt */` to that
       line makes it pass again (the escape hatch works).
 - [ ] Every §6 refusal appears exactly once in the §4a mapping — none silently
       omitted.
@@ -549,7 +549,7 @@ bus"); the _xiagang_ layoffs and 减员增效.
 **Prior explorations:**
 
 - [0358](docs/explorations/0358_[x]_VALUE_CAPTURE_WITHOUT_ENCLOSURE_MOATS_SUBSTRATES_AND_THE_SLEEP_TEST.md) — the Sleep test; rent-vs-improvement
-- [0351](<docs/explorations/0351_[x]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md>) — the three no-ground-rent tests
+- [0351](docs/explorations/0351_[x]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md) — the three no-ground-rent tests
 - [0416](docs/explorations/0416_[-]_AGENT_HARNESS_OR_AGENT_SUBSTRATE.md) — ADR-29, substrate not harness
 - [0417](docs/explorations/0417_[x]_THE_MATCHMAKER_AND_THE_METER_DATING_WITHOUT_A_PROFIT_MOTIVE.md) — the `metered connection` rule this one is modelled on
 - [0421](docs/explorations/0421_[-]_FAST_WHAT_COLLISONS_LIST_MEASURES_AND_WHAT_XNET_LACKS.md) — the backlog ratchet
