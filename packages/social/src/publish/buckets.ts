@@ -12,6 +12,7 @@
  * defaulted to off is one mis-click from a mistake that cannot be taken back.
  */
 
+import { normalizeExternalReferenceUrl } from '@xnetjs/data'
 import type { SocialInteractionKind, SocialPlatform } from '../schemas/constants'
 import type { ExcludedEdge, ExclusionReason, PublishableEdge } from './types'
 import {
@@ -73,7 +74,9 @@ export function exclusionFor(
     return 'interaction-kind-never-publishable'
   }
   if (!PLATFORM_DOMAINS[edge.platform]) return 'unknown-platform'
-  if (!edge.targetUrl || edge.targetUrl.trim() === '') return 'no-url'
+  // Normalisation is the same check the lens will run; failing it here means
+  // the edge would have produced a record with an empty subject.
+  if (!edge.targetUrl || normalizeExternalReferenceUrl(edge.targetUrl) === null) return 'no-url'
 
   if (selection.platforms && !selection.platforms.includes(edge.platform)) {
     return 'interaction-kind-not-selected'

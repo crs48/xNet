@@ -17,8 +17,21 @@
 
 import type { NodeProperties, RecordLens } from '@xnetjs/data'
 import type { SocialPlatform } from '../schemas/constants'
-import { normalizeUrl } from '../import/ids'
+import { normalizeExternalReferenceUrl } from '@xnetjs/data'
 import { AFFINITY_NSID, BOOKMARK_NSID, PLATFORM_DOMAINS, PLATFORM_ID_REFS } from './constants'
+
+/**
+ * Normalise a subject URL.
+ *
+ * Deliberately `@xnetjs/data`'s normaliser rather than the importers' looser
+ * `normalizeUrl`: the affinity appview intersects on this exact string, so the
+ * publisher and the reader MUST run the same function. Two normalisers that
+ * agree today drift tomorrow, and the symptom is an overlap that silently
+ * misses matches.
+ */
+export function normalizeSubject(input: string): string | null {
+  return normalizeExternalReferenceUrl(input)
+}
 
 /** The xNet schema IRI these lenses read. */
 export const SOCIAL_INTERACTION_IRI = 'xnet://xnet.fyi/social/SocialInteraction@1.0.0'
@@ -103,7 +116,7 @@ export const interactionToBookmark: RecordLens = {
   lossless: false,
   modelled: ['subject', 'createdAt', 'tags'],
   forward: (node) => ({
-    subject: normalizeUrl(str(node.targetUrl) ?? ''),
+    subject: normalizeSubject(str(node.targetUrl) ?? '') ?? '',
     createdAt: edgeCreatedAt(node) ?? '',
     tags: edgeTags(node)
   }),
@@ -134,7 +147,7 @@ export const interactionToAffinity: RecordLens = {
   forward: (node) => {
     const platform = str(node.platform) as SocialPlatform | undefined
     const record: Record<string, unknown> = {
-      subject: normalizeUrl(str(node.targetUrl) ?? ''),
+      subject: normalizeSubject(str(node.targetUrl) ?? '') ?? '',
       platform: (platform && PLATFORM_DOMAINS[platform]) ?? '',
       interactionKind: str(node.interactionKind) ?? 'unknown',
       createdAt: edgeCreatedAt(node) ?? '',

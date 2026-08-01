@@ -741,14 +741,14 @@ And the one-line extension to the index engine:
 
 **WP3 — The appview**
 
-- [ ] Add the two collections to `DEFAULT_INDEX_COLLECTIONS`.
-- [ ] `sharedSubjects()` + a `GET /xrpc/fyi.xnet.affinity.compare?actors=…`
+- [x] Add the two collections to `DEFAULT_INDEX_COLLECTIONS`.
+- [x] `sharedSubjects()` + a `GET /xrpc/fyi.xnet.affinity.compare?actors=…`
       route on the `index` role.
-- [ ] Determinism test: two rebuilds from the same fixtures are byte-identical
+- [x] Determinism test: two rebuilds from the same fixtures are byte-identical
       (existing index-role discipline).
 - [ ] App surface: "what you and @friend both saved," overlap only — **assert in
       a test that no ranked/global-count endpoint exists**.
-- [ ] Apply the viewer's sensitivity dial to linked subjects.
+- [x] Apply the viewer's sensitivity dial to linked subjects.
 
 **Shipping**
 
