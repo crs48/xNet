@@ -475,12 +475,26 @@ stateDiagram-v2
 
 Publish as its own short page, in plain language:
 
-> **If we lose data covered by the Restore Commitment, we refund every fee you
-> have ever paid us, and we publish a postmortem within 14 days.**
+> **If we lose your hub's database and cannot restore it, we refund 12 months of
+> fees — automatically, without a claim — and publish a postmortem within 14
+> days.**
 >
 > This is in addition to your legal rights, not instead of them. We do not offer
 > downtime credits: your app keeps working when our hub is down, so crediting
 > downtime would compensate you for the wrong thing.
+
+**Shipped refinements (post-review).** The trigger is deliberately *binary* —
+an earlier draft turned on "data covered by the Restore Commitment", which
+invites a scope argument at the worst possible moment. The money was never the
+exposure; the adjudication was. The window is **12 months, not 24**: it matches
+the annual billing cycle, halves aggregate exposure, and still reads as
+extraordinary. And it pays out **without a claim**, because a claims process at
+the moment of maximum customer anger is the worst possible design.
+
+Cancellation is *not* prorated: a cancelled plan runs to the end of the period
+already paid for. Proration was considered and rejected — it adds accounting
+overhead for no gain, and "you keep what you paid for" is the same generosity
+stated positively.
 >
 > When durability and uptime conflict, we choose durability. Every time.
 

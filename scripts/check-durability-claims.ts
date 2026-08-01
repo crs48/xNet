@@ -33,7 +33,8 @@ import {
   publishedAvailabilityFigures,
   publishedAvailabilityLabel,
   rpoLabel,
-  rtoLabel
+  rtoLabel,
+  makeWholeLabel
 } from '../packages/entitlements/src/durability'
 import { PLAN_ORDER } from '../packages/entitlements/src/plans'
 import { sloForPlan } from '../packages/entitlements/src/slo'
@@ -86,7 +87,9 @@ function generateMirror(): string {
     rpoLabel: ${JSON.stringify(rpoLabel(plan))},
     rtoLabel: ${JSON.stringify(rtoLabel(plan))},
     objectiveLabel: ${JSON.stringify(sloForPlan(plan).label)},
-    makeWhole: ${p.makeWhole}
+    makeWhole: ${p.makeWhole},
+    makeWholeMonths: ${p.makeWholeMonths},
+    makeWholeLabel: ${JSON.stringify(makeWholeLabel(plan))}
   }`
   }).join(',\n')
 
@@ -119,6 +122,9 @@ export interface SiteDurabilityPosture {
   /** What the SLO layer holds us to, for the status surface. */
   objectiveLabel: string
   makeWhole: boolean
+  makeWholeMonths: number | null
+  /** Pre-formatted, e.g. '1 year'. */
+  makeWholeLabel: string | null
 }
 
 export type SitePlanId = ${PLAN_ORDER.map((p) => `'${p}'`).join(' | ')}

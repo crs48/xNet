@@ -40,13 +40,28 @@ export interface DurabilityPosture {
    */
   publishedAvailability: number | null
   /**
-   * Make-Whole: on loss of data covered by the Restore Commitment we refund
-   * every fee paid (trailing 24 months) and publish a postmortem. We do not
-   * offer downtime credits — a local-first client keeps working through a hub
-   * outage, so crediting downtime would compensate the wrong event.
+   * Make-Whole: if we lose the hub database and cannot restore it, we refund
+   * the fees paid over the trailing {@link makeWholeMonths} months — without
+   * being asked — and publish a postmortem. We do not offer downtime credits:
+   * a local-first client keeps working through a hub outage, so crediting
+   * downtime would compensate the wrong event.
    */
   makeWhole: boolean
+  /**
+   * How many months of fees Make-Whole refunds. `null` where Make-Whole does
+   * not apply. Deliberately shorter than the liability cap in the terms: the
+   * cap is a legal ceiling, this is what we pay out automatically.
+   */
+  makeWholeMonths: number | null
 }
+
+/**
+ * Months of fees Make-Whole refunds. Twelve, not twenty-four: it matches the
+ * annual billing cycle, and it still reads as extraordinary against an industry
+ * standard of ~10% of a single month's fee. The liability cap in the terms is a
+ * separate, longer number — a ceiling on what can be claimed, not a payout.
+ */
+export const MAKE_WHOLE_MONTHS = 12
 
 /** No commitment of any kind — the free/demo posture. */
 const NO_COMMITMENT: DurabilityPosture = {
@@ -54,7 +69,8 @@ const NO_COMMITMENT: DurabilityPosture = {
   rtoMinutes: null,
   covered: [],
   publishedAvailability: null,
-  makeWhole: false
+  makeWhole: false,
+  makeWholeMonths: null
 }
 
 /**
@@ -71,14 +87,16 @@ export const DURABILITY_POSTURE: Record<PlanId, DurabilityPosture> = {
     rtoMinutes: 240,
     covered: ['change-log'],
     publishedAvailability: null,
-    makeWhole: true
+    makeWhole: true,
+    makeWholeMonths: MAKE_WHOLE_MONTHS
   },
   family: {
     rpoSeconds: 60,
     rtoMinutes: 240,
     covered: ['change-log'],
     publishedAvailability: null,
-    makeWhole: true
+    makeWhole: true,
+    makeWholeMonths: MAKE_WHOLE_MONTHS
   },
   team: {
     rpoSeconds: 60,
@@ -88,28 +106,32 @@ export const DURABILITY_POSTURE: Record<PlanId, DurabilityPosture> = {
     // `best-effort`, so 99.9% was a number the SLO layer refused to back. A
     // real 99.5% outranks a fictional 99.9%.
     publishedAvailability: 0.995,
-    makeWhole: true
+    makeWhole: true,
+    makeWholeMonths: MAKE_WHOLE_MONTHS
   },
   community: {
     rpoSeconds: 60,
     rtoMinutes: 120,
     covered: ['change-log'],
     publishedAvailability: 0.999,
-    makeWhole: true
+    makeWhole: true,
+    makeWholeMonths: MAKE_WHOLE_MONTHS
   },
   company: {
     rpoSeconds: 60,
     rtoMinutes: 60,
     covered: ['change-log'],
     publishedAvailability: 0.999,
-    makeWhole: true
+    makeWhole: true,
+    makeWholeMonths: MAKE_WHOLE_MONTHS
   },
   enterprise: {
     rpoSeconds: 60,
     rtoMinutes: 60,
     covered: ['change-log'],
     publishedAvailability: 0.9995,
-    makeWhole: true
+    makeWhole: true,
+    makeWholeMonths: MAKE_WHOLE_MONTHS
   }
 }
 
@@ -182,6 +204,17 @@ export function rtoLabel(plan: PlanId): string | null {
     return `${hours} hour${hours === 1 ? '' : 's'}`
   }
   return `${minutes} minutes`
+}
+
+/**
+ * Make-Whole window as a human label ('12 months'), or `null` where it does not
+ * apply. Deliberately months rather than years — "12 months of fees" is both
+ * plainer and more precise than "1 year of fees" on a policy page.
+ */
+export function makeWholeLabel(plan: PlanId): string | null {
+  const months = DURABILITY_POSTURE[plan].makeWholeMonths
+  if (months === null) return null
+  return `${months} month${months === 1 ? '' : 's'}`
 }
 
 /** RPO as a human label ('60 seconds'), or `null` when uncommitted. */

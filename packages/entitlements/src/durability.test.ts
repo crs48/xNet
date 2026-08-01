@@ -3,7 +3,9 @@ import {
   ALL_DURABILITY_SCOPES,
   DURABILITY_POSTURE,
   DURABILITY_SCOPE_LABELS,
+  MAKE_WHOLE_MONTHS,
   durabilityForPlan,
+  makeWholeLabel,
   isScopeCovered,
   objectiveForPlan,
   publishedAvailabilityFigures,
@@ -59,10 +61,30 @@ describe('DURABILITY_POSTURE', () => {
     expect(demo.covered).toEqual([])
   })
 
-  it('offers Make-Whole on every paid tier', () => {
+  it('offers Make-Whole on every paid tier, with a window attached', () => {
     for (const plan of PLAN_ORDER) {
       if (plan === 'demo') continue
-      expect(durabilityForPlan(plan).makeWhole, `${plan} should offer Make-Whole`).toBe(true)
+      const posture = durabilityForPlan(plan)
+      expect(posture.makeWhole, `${plan} should offer Make-Whole`).toBe(true)
+      expect(posture.makeWholeMonths, `${plan} promises Make-Whole with no window`).toBe(
+        MAKE_WHOLE_MONTHS
+      )
+    }
+  })
+
+  // The refund window must never exceed the liability cap stated in the terms:
+  // the cap is a ceiling on what can be claimed, the refund is what we pay out
+  // unprompted. A payout larger than the ceiling would be incoherent (0418).
+  it('keeps the Make-Whole window inside the 24-month liability cap', () => {
+    expect(MAKE_WHOLE_MONTHS).toBeLessThanOrEqual(24)
+  })
+
+  it('never attaches a Make-Whole window where Make-Whole does not apply', () => {
+    for (const plan of PLAN_ORDER) {
+      const posture = durabilityForPlan(plan)
+      if (!posture.makeWhole) {
+        expect(posture.makeWholeMonths, `${plan} has a window but no Make-Whole`).toBeNull()
+      }
     }
   })
 
@@ -119,6 +141,11 @@ describe('labels', () => {
     expect(rtoLabel('personal')).toBe('4 hours')
     expect(rtoLabel('company')).toBe('1 hour')
     expect(rtoLabel('demo')).toBeNull()
+  })
+
+  it('formats the Make-Whole window in months', () => {
+    expect(makeWholeLabel('personal')).toBe('12 months')
+    expect(makeWholeLabel('demo')).toBeNull()
   })
 
   it('formats RPO in seconds', () => {

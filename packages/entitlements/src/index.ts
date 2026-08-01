@@ -47,6 +47,8 @@ export {
   publishedAvailabilityFigures,
   rpoLabel,
   rtoLabel,
+  makeWholeLabel,
+  MAKE_WHOLE_MONTHS,
   objectiveForPlan,
   type DurabilityScope,
   type DurabilityPosture

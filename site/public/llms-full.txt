@@ -10676,10 +10676,14 @@ phrase, and a promise the code declined to hold.
 **Decision:** Publish a **two-number promise** per tier — a measured
 availability figure (only where an objective backs it) and a **Restore
 Commitment** (RPO/RTO over explicitly enumerated scopes) — and back it with a
-**Make-Whole Policy** rather than downtime service credits. If we lose data
-covered by the Restore Commitment we refund every fee paid (trailing 24 months)
-and publish a postmortem within 14 days, **additional to** the customer's legal
-rights and never their "sole and exclusive remedy".
+**Make-Whole Policy** rather than downtime service credits. If we lose a hub's
+database and cannot restore it, we refund **12 months** of fees *automatically* —
+no claim, no form — and publish a postmortem within 14 days, **additional to**
+the customer's legal rights and never their "sole and exclusive remedy".
+
+The trigger is deliberately binary. An earlier draft turned on "data covered by
+the Restore Commitment", which invites a scope argument at the worst possible
+moment; the money was never the exposure, the adjudication was.
 
 Liability is capped at fees paid in the trailing 24 months, with the
 non-excludable carve-outs stated explicitly.
@@ -10693,6 +10697,9 @@ non-excludable carve-outs stated explicitly.
   50 cents, and the standard "sole and exclusive remedy" framing trades away
   real claims to deliver it. Building a claims workflow for 50 cents is an
   operational absurdity.
+- **Twelve months, not twenty-four.** It matches the annual billing cycle,
+  halves aggregate exposure, and still reads as extraordinary against an
+  industry standard of ~10% of one month's fee.
 - **Make-Whole is a bet on the drill.** It costs nothing if durability holds,
   which converts `tests/reliability/restore/restore-drill.test.ts` from an
   internal engineering artifact into a commercial instrument.

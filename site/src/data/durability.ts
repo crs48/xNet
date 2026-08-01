@@ -23,6 +23,9 @@ export interface SiteDurabilityPosture {
   /** What the SLO layer holds us to, for the status surface. */
   objectiveLabel: string
   makeWhole: boolean
+  makeWholeMonths: number | null
+  /** Pre-formatted, e.g. '1 year'. */
+  makeWholeLabel: string | null
 }
 
 export type SitePlanId = 'demo' | 'personal' | 'family' | 'team' | 'community' | 'company' | 'enterprise'
@@ -37,7 +40,9 @@ export const DURABILITY: Record<SitePlanId, SiteDurabilityPosture> = {
     rpoLabel: null,
     rtoLabel: null,
     objectiveLabel: "no SLA",
-    makeWhole: false
+    makeWhole: false,
+    makeWholeMonths: null,
+    makeWholeLabel: null
   },
   personal: {
     rpoSeconds: 60,
@@ -48,7 +53,9 @@ export const DURABILITY: Record<SitePlanId, SiteDurabilityPosture> = {
     rpoLabel: "60 seconds",
     rtoLabel: "4 hours",
     objectiveLabel: "best-effort",
-    makeWhole: true
+    makeWhole: true,
+    makeWholeMonths: 12,
+    makeWholeLabel: "12 months"
   },
   family: {
     rpoSeconds: 60,
@@ -59,7 +66,9 @@ export const DURABILITY: Record<SitePlanId, SiteDurabilityPosture> = {
     rpoLabel: "60 seconds",
     rtoLabel: "4 hours",
     objectiveLabel: "best-effort",
-    makeWhole: true
+    makeWhole: true,
+    makeWholeMonths: 12,
+    makeWholeLabel: "12 months"
   },
   team: {
     rpoSeconds: 60,
@@ -70,7 +79,9 @@ export const DURABILITY: Record<SitePlanId, SiteDurabilityPosture> = {
     rpoLabel: "60 seconds",
     rtoLabel: "2 hours",
     objectiveLabel: "99.5% uptime",
-    makeWhole: true
+    makeWhole: true,
+    makeWholeMonths: 12,
+    makeWholeLabel: "12 months"
   },
   community: {
     rpoSeconds: 60,
@@ -81,7 +92,9 @@ export const DURABILITY: Record<SitePlanId, SiteDurabilityPosture> = {
     rpoLabel: "60 seconds",
     rtoLabel: "2 hours",
     objectiveLabel: "99.9% uptime",
-    makeWhole: true
+    makeWhole: true,
+    makeWholeMonths: 12,
+    makeWholeLabel: "12 months"
   },
   company: {
     rpoSeconds: 60,
@@ -92,7 +105,9 @@ export const DURABILITY: Record<SitePlanId, SiteDurabilityPosture> = {
     rpoLabel: "60 seconds",
     rtoLabel: "1 hour",
     objectiveLabel: "99.9% uptime",
-    makeWhole: true
+    makeWhole: true,
+    makeWholeMonths: 12,
+    makeWholeLabel: "12 months"
   },
   enterprise: {
     rpoSeconds: 60,
@@ -103,7 +118,9 @@ export const DURABILITY: Record<SitePlanId, SiteDurabilityPosture> = {
     rpoLabel: "60 seconds",
     rtoLabel: "1 hour",
     objectiveLabel: "99.95% uptime (enterprise)",
-    makeWhole: true
+    makeWhole: true,
+    makeWholeMonths: 12,
+    makeWholeLabel: "12 months"
   }
 }
 

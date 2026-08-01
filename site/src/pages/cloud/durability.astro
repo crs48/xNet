@@ -89,9 +89,13 @@ const receipts = [
             time, using the same open-source code we run.
           </p>
           <p>
-            This cuts the other way too, and we would rather say so: if you only ever
-            use one device, you have fewer copies than this page assumes. The app shows
-            you how many copies exist, and tells you when the answer is one.
+            This cuts the other way too, and we would rather say so: <strong
+              class="text-gray-800 dark:text-white">if you only ever use one device, you
+              have fewer copies than this page assumes</strong>. Using xNet only in a
+            browser is the thinnest case of all — browsers are allowed to evict local
+            storage, so there the hub may be your <em>better</em> copy rather than your
+            spare. If that is you, keep a second device signed in, or export a bundle now
+            and then.
           </p>
         </div>
       </section>
@@ -142,10 +146,13 @@ const receipts = [
                     <span>
                       {' '}
                       — attachments live on the hub’s own disk and are not yet copied to
-                      object storage. If that disk is lost, an attachment you uploaded
-                      from a device you no longer have could be lost with it. Until this
+                      object storage. The device that uploaded a file keeps its own copy
+                      and never discards it, so in the ordinary case a lost hub disk costs
+                      you nothing. The exposure is narrower but real: a file uploaded from
+                      a device you no longer have, or one you only ever saw in a browser
+                      whose storage was evicted, could be lost with that disk. Until this
                       line disappears from this page, treat attachments as living on your
-                      devices only.
+                      devices.
                     </span>
                   )}
                   {scope === 'search-index' && (
@@ -226,9 +233,10 @@ const receipts = [
         </h2>
         <div class="rounded-xl border border-border bg-surface/30 p-6">
           <p class="mb-4 leading-relaxed text-gray-700 dark:text-gray-200">
-            We refund every fee you have ever paid us, and we publish a postmortem within
-            14 days. We do not offer downtime credits — read
-            <a class="underline" href="/make-whole">why</a>.
+            If we lose your hub's database and cannot restore it, we refund
+            {DURABILITY.personal.makeWholeLabel} of fees — automatically, without you
+            having to ask — and publish a postmortem within 14 days. We do not offer
+            downtime credits; read <a class="underline" href="/make-whole">why</a>.
           </p>
           <p class="text-sm text-gray-500 dark:text-gray-400">
             When durability and uptime conflict, we choose durability. Every time.
