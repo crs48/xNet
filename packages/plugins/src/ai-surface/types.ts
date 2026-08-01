@@ -180,6 +180,25 @@ export type AiContextSeed = {
   id: string
 }
 
+/**
+ * What a retriever knows about its own answer (exploration 0424).
+ *
+ * A retriever that cannot claim to have searched the whole workspace must say
+ * so here. `search()` has reported this since 0394; the injected-retriever path
+ * computed the same facts and dropped them at the seam, so an incomplete search
+ * rendered exactly like a complete one and the model asserted "no such node"
+ * with full confidence. Same shape as the 0377 attribution drop, one subsystem
+ * over.
+ */
+export type AiRetrievalProvenance = {
+  /** Retrieval tier that actually ran — `@xnetjs/brain`'s `RetrievalTier`. */
+  tier: string
+  /** True when the tier cannot claim to have searched the whole workspace. */
+  degraded: boolean
+  /** Present when `degraded` — printable verbatim, no rewording. */
+  notice?: string
+}
+
 export type AiContextPackResource = {
   uri: string
   mimeType: string
@@ -192,6 +211,12 @@ export type AiContextPackResource = {
     kind: AiTargetKind
     id: string
     revision?: string
+    /**
+     * Human-readable graph path back to the entry node the retriever matched
+     * (exploration 0424). Present only for resources a query retrieved; a
+     * caller-supplied seed has no path.
+     */
+    path?: string
   }
 }
 
@@ -201,6 +226,13 @@ export type AiContextPack = {
   seeds: AiContextSeed[]
   resources: AiContextPackResource[]
   createdAt: string
+  /**
+   * How the `query` resources were found (exploration 0424). Absent when the
+   * pack was built from seeds alone. When `degraded` is true the `notice` is
+   * printable verbatim and must reach the reader — a pack that searched a
+   * bounded window reads exactly like an exhaustive one otherwise.
+   */
+  retrieval?: AiRetrievalProvenance
   limits: {
     maxResources: number
     maxCharactersPerResource: number

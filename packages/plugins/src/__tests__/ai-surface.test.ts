@@ -739,6 +739,65 @@ describe('AI surface contract', () => {
       expect(ids).toContain('p1') // keyword match on "Acme overview"
       expect(ids).not.toContain('p2')
     })
+
+    // Exploration 0424 — the retriever computed both of these and the pack
+    // dropped them, so a bounded scan reached the reader looking exhaustive.
+    it('keeps the retriever pathLabel as the resource citation path', async () => {
+      const store = createMockStore(pages)
+      const retrieveContext = vi.fn(async () => [{ nodeId: 'p2', pathLabel: 'Acme → p2' }])
+      const service = createAiSurfaceService({
+        store,
+        schemas: createMockSchemas(),
+        retrieveContext
+      })
+
+      const pack = await service.createContextPack({ query: 'acme' })
+
+      expect(pack.resources[0].citation.path).toBe('Acme → p2')
+    })
+
+    it('carries the retriever provenance onto the pack', async () => {
+      const store = createMockStore(pages)
+      const retrieveContext = vi.fn(async () => ({
+        nodes: [{ nodeId: 'p2' }],
+        provenance: { tier: 'scan', degraded: true, notice: 'Results may be incomplete.' }
+      }))
+      const service = createAiSurfaceService({
+        store,
+        schemas: createMockSchemas(),
+        retrieveContext
+      })
+
+      const pack = await service.createContextPack({ query: 'acme' })
+
+      expect(pack.retrieval).toEqual({
+        tier: 'scan',
+        degraded: true,
+        notice: 'Results may be incomplete.'
+      })
+    })
+
+    it('reports the built-in keyword fallback as degraded when it scanned', async () => {
+      // `createMockStore` has no `searchText`, so `search()` takes the substring
+      // scan — which has said `degraded: true` since 0394 and now reaches the pack.
+      const store = createMockStore(pages)
+      const service = createAiSurfaceService({ store, schemas: createMockSchemas() })
+
+      const pack = await service.createContextPack({ query: 'acme' })
+
+      expect(pack.retrieval?.degraded).toBe(true)
+      expect(pack.retrieval?.tier).toBe('scan')
+      expect(pack.retrieval?.notice).toContain('Full-text index unavailable')
+    })
+
+    it('reports no provenance for a seeds-only pack', async () => {
+      const store = createMockStore(pages)
+      const service = createAiSurfaceService({ store, schemas: createMockSchemas() })
+
+      const pack = await service.createContextPack({ seeds: [{ kind: 'node', id: 'p1' }] })
+
+      expect(pack.retrieval).toBeUndefined()
+    })
   })
 
   describe('xnet_graph_expand (exploration 0211)', () => {

@@ -633,6 +633,8 @@ export type {
   AiValidationResult,
   AiContextRetriever,
   AiResourceContent,
+  AiRetrievalProvenance,
+  AiRetrievalResult,
   AiRetrievedNode,
   AiSearchOptions,
   AiSearchResult,
