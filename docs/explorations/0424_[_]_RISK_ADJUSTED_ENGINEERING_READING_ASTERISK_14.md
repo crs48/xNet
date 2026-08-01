@@ -52,20 +52,20 @@ a real seam in the code, keep what transfers, and say plainly what does not.
 
 ## Executive Summary
 
-| Asterisk piece                                        | Transferable idea                                              | xNet seam                                    | Verdict                                                    |
-| ----------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------- |
-| _Rust in Numbers_ (Bouk)                              | Survivor curves made decay mathematisable                      | Exploration backlog, `.fallow-baseline.json` | ✅ **Adopt** — and the curve is already measurable         |
-| _How Long Until AI Doesn't Need Humans?_ (Cotra/Lee)  | Both sides named 2–3 year indicators that would move them      | 30 ADRs, 26 with no re-open condition        | ✅ **Adopt** — one frontmatter line                        |
-| _In Praise of Observational Evidence_ (Finke)         | Negative controls: prove the method can detect a thing         | 18 `check:*` gates, none proven to fire      | ✅ **Adopt** — one fixture per gate                        |
-| _Shall We Play a Game?_ (Peterson)                    | Rigid vs free kriegsspiel; stop re-fighting yesterday's war    | `tests/reliability/sim/world.ts`             | 🚧 **Partial** — rigid half is excellent, free half absent |
-| _Selling Abstraction_ (Gladstone)                     | The ladder of abstraction loses contact with the thing         | `.fallow-baseline.json` is `{"count": 41}`   | 🚧 **Already half-solved** by `STALE.md`                   |
-| _Engineering Peace_ (Martin)                          | Prevention pays ~16:1, but almost nobody records cost          | CI gates measure outcome, never cost         | 🚧 **Note only** — no gate proposed                        |
-| _We're All One Crisis Away…_ (Van Nostrand)           | The risk of inaction is the concrete one                       | Local-first thesis, `.xnetpack` escape hatch | ✅ **Confirms** existing design                            |
-| _The Doomers Are All Right_ (Brennan)                 | Separate the controllable from the not; build anyway           | ADR-29 vs the Buzz narrative risk (0416)     | ✅ **Confirms** existing posture                           |
-| _These Wild Young People_                             | Warning saturation produces paralysis                          | 41 stale, 259 `[_]`, ~25 workflows           | ⚠️ **Live hazard**                                         |
-| _The Mystery in the Medicine Cabinet_ (Dynomight)     | Regulators evaluate drug-by-drug, never head-to-head           | Gates evaluated singly, never compared       | 🚧 **Note only**                                           |
-| _Are Prediction Markets Good for Anything?_ (Schwarz) | Accuracy needs volume **and** 90+ days; thin markets are noise | Any internal forecasting tournament          | 🛑 **Reject** — xNet has one trader                        |
-| _Risk-Adjusted Return_ (editors)                      | "What are we afraid of?"                                       | Frame for the whole document                 | —                                                          |
+| Asterisk piece                                        | Transferable idea                                              | xNet seam                                      | Verdict                                                    |
+| ----------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------- |
+| _Rust in Numbers_ (Bouk)                              | Survivor curves made decay mathematisable                      | Exploration backlog, `.fallow-baseline.json`   | ✅ **Adopt** — and the curve is already measurable         |
+| _How Long Until AI Doesn't Need Humans?_ (Cotra/Lee)  | Both sides named 2–3 year indicators that would move them      | 30 ADRs, 26 with no re-open condition          | ✅ **Adopt** — one frontmatter line                        |
+| _In Praise of Observational Evidence_ (Finke)         | Negative controls: prove the method can detect a thing         | 18 `check:*` gates; the one control never runs | ✅ **Adopt** — one fixture per gate                        |
+| _Shall We Play a Game?_ (Peterson)                    | Rigid vs free kriegsspiel; stop re-fighting yesterday's war    | `tests/reliability/sim/world.ts`               | 🚧 **Partial** — rigid half is excellent, free half absent |
+| _Selling Abstraction_ (Gladstone)                     | The ladder of abstraction loses contact with the thing         | `.fallow-baseline.json` is `{"count": 41}`     | 🚧 **Already half-solved** by `STALE.md`                   |
+| _Engineering Peace_ (Martin)                          | Prevention pays ~16:1, but almost nobody records cost          | CI gates measure outcome, never cost           | 🚧 **Note only** — no gate proposed                        |
+| _We're All One Crisis Away…_ (Van Nostrand)           | The risk of inaction is the concrete one                       | Local-first thesis, `.xnetpack` escape hatch   | ✅ **Confirms** existing design                            |
+| _The Doomers Are All Right_ (Brennan)                 | Separate the controllable from the not; build anyway           | ADR-29 vs the Buzz narrative risk (0416)       | ✅ **Confirms** existing posture                           |
+| _These Wild Young People_                             | Warning saturation produces paralysis                          | 41 stale, 259 `[_]`, ~25 workflows             | ⚠️ **Live hazard**                                         |
+| _The Mystery in the Medicine Cabinet_ (Dynomight)     | Regulators evaluate drug-by-drug, never head-to-head           | Gates evaluated singly, never compared         | 🚧 **Note only**                                           |
+| _Are Prediction Markets Good for Anything?_ (Schwarz) | Accuracy needs volume **and** 90+ days; thin markets are noise | Any internal forecasting tournament            | 🛑 **Reject** — xNet has one trader                        |
+| _Risk-Adjusted Return_ (editors)                      | "What are we afraid of?"                                       | Frame for the whole document                   | —                                                          |
 
 ```mermaid
 flowchart TD
@@ -78,7 +78,7 @@ flowchart TD
     A --> A1["Finke: negative controls"]
     A --> A2["Dynomight: no head-to-head"]
     A --> A3["Martin: outcome measured, cost not"]
-    A1 --> AX["18 check:* gates<br/>none proven to fire"]
+    A1 --> AX["18 check:* gates<br/>the 1 control never runs"]
 
     B --> B1["Bouk: survivor curves"]
     B --> B2["Gladstone: abstraction ladder"]
@@ -353,21 +353,39 @@ inaction. Renewing it is then a real choice with a real prior attached, which is
 exactly Brennan's move: turn dread into a number so the reasoning part has
 something to work with.
 
-### 2. No `check:*` gate is proven able to fail
+### 2. The one negative control that exists never runs
 
-This is Finke's negative control, and it is the sharpest gap the reading found.
+This is Finke's negative control, and it is the sharpest gap the reading found —
+though not quite in the shape first written.
 
 The repository already understands the _other_ direction. AGENTS.md is explicit:
 a gate that cannot go green teaches everyone to ignore red, and `fallow.yml`'s
 own postmortem is cited in the fallow script as the reason to ratchet against a
 baseline rather than gate an absolute. Both are about false positives.
 
-Nothing guards the false negative. `check:humane-patterns` and
-`check:motion-vocab` are the two gates ADR-23 uses to make the Charter
-enforceable, and they have exactly one observable state today: green. A regex
-that silently stopped matching — a refactor renaming the CSS property it greps
-for, a directory that moved out from under its glob — would be indistinguishable
-from a clean codebase.
+> [!IMPORTANT]
+> **Corrected during implementation.** `check-humane-patterns.mjs` already ships
+> a 13-case `--selftest` that plants violations and asserts the gate catches them
+> — a textbook negative control, written for exploration 0234. So does
+> `check-cloud-boundary.sh`. The claim that no gate was proven able to fail was
+> wrong.
+>
+> What is true is worse in a quieter way: **`--selftest` is invoked nowhere.**
+> Not in `package.json`, not in `ci.yml`, not in a hook. A repo-wide grep finds
+> references only in prose. The control was built, then never wired, so it has
+> been decorative since the day it landed — and a control nobody runs decays
+> exactly like the gate it was meant to protect.
+
+`check:motion-vocab` had no control at all, and could not easily have one: it was
+top-level imperative code that scanned and `process.exit()`ed at module load,
+with no pure function to call.
+
+Both gates therefore have exactly one observable state in CI today: green. A
+regex that silently stopped matching — a refactor renaming the class it greps
+for, a directory that moved out from under its glob — is indistinguishable from a
+clean codebase. That is not hypothetical: breaking the `transition-all` rule and
+re-running proves it, and the implementation below does exactly that as a
+validation step.
 
 ```mermaid
 stateDiagram-v2
@@ -722,29 +740,61 @@ finished in its current form — renew it deliberately, or withdraw it.
 
 ### 3. Negative control for a values-as-code gate
 
-```ts
-/**
- * Negative control (exploration 0424, after Finke).
- *
- * `check:humane-patterns` has exactly one observable state in CI: green. That
- * is equally consistent with "the codebase is clean" and "the glob stopped
- * matching after a directory move". This fixture is a known dark pattern the
- * gate MUST flag; if it ever passes, the gate is broken, not the code.
- */
-it('flags a known dark pattern (negative control)', async () => {
-  const fixture = await writeFixture('infinite-scroll.tsx', DARK_PATTERN_FIXTURE)
-  const result = await runHumanePatternsGate({ include: [fixture] })
+> [!IMPORTANT]
+> **Changed during implementation.** The original sketch put fixtures in a
+> `__negative-controls__/` directory excluded from every production glob. That
+> design was dropped: the exclusion is itself a thing that can silently break,
+> and it re-introduces exactly the failure mode the control exists to catch. The
+> shipped version follows the pattern `check-humane-patterns.mjs` already
+> established — **in-memory string fixtures** fed to an exported pure `scanText`,
+> so a control can never leak into a real scan and there is no glob to maintain.
 
-  expect(result.violations).toHaveLength(1)
-  expect(result.violations[0].rule).toBe('no-infinite-scroll')
-})
+`check-motion-vocab.mjs` gained an exported `scanText` and a `--selftest` built
+from planted violations plus near-misses:
+
+```js
+function runSelfTest() {
+  const cases = [
+    {
+      label: 'flags transition-all',
+      text: '<div className="transition-all duration-fast" />',
+      expect: (v) => v.some((x) => x.rule === 'transition-all')
+    },
+    // Near-misses pin the boundary, so a future WIDENING fails here first.
+    {
+      label: 'a named animate- primitive is not arbitrary',
+      text: '<div className="animate-fade-in" />',
+      expect: (v) => v.length === 0
+    }
+    // …8 more
+  ]
+  // …a failure reports "the GATE is broken, not the codebase"
+}
 ```
 
-> [!WARNING]
-> The fixture must live outside the gate's normal glob, or it fails every real
-> run. Put it under a `__negative-controls__/` directory the production globs
-> exclude and the test passes explicitly — the same shape as the documented
-> exception path ADR-23 already requires.
+Both self-tests run in CI via one script, so neither can rot unnoticed again:
+
+```json
+"check:gate-controls": "node scripts/check-motion-vocab.mjs --selftest && node scripts/check-humane-patterns.mjs --selftest"
+```
+
+<details>
+<summary>Measured proof that the control catches what the scan cannot</summary>
+
+Breaking one rule the way a rename would — `transition-all` →
+`transition-NEVERMATCHES` — and running both entry points:
+
+| Invocation              | Exit | Reading                   |
+| ----------------------- | ---- | ------------------------- |
+| `--selftest` (broken)   | 1    | ✅ Control fires          |
+| real scan (broken)      | 0    | ❌ **Break is invisible** |
+| `--selftest` (restored) | 0    | ✅ Green again            |
+
+The same holds for `check-humane-patterns.mjs` with its `infinite scroll` rule
+broken: self-test exits 1, real scan exits 0. Both scripts were restored
+byte-identical afterwards (`git diff` empty).
+
+</details>
 
 ---
 
@@ -797,10 +847,10 @@ it('flags a known dark pattern (negative control)', async () => {
 
 **3. Negative controls on values-as-code gates**
 
-- [ ] Create `__negative-controls__/` excluded from every production gate glob
-- [ ] Fixture + assertion for `check-humane-patterns.mjs`
-- [ ] Fixture + assertion for `check-motion-vocab.mjs`
-- [ ] Document the pattern in `AGENTS.md` beside the existing "named consumer, decidable pass condition" rule — a gate now also needs a proof it can fail
+- [x] Wire the existing `--selftest` into CI via `check:gate-controls` — it was built for 0234 and invoked nowhere (supersedes the `__negative-controls__/` directory: in-memory fixtures need no glob exclusion)
+- [x] Fixture + assertion for `check-humane-patterns.mjs`
+- [x] Fixture + assertion for `check-motion-vocab.mjs`
+- [x] Document the pattern in `AGENTS.md` beside the existing "named consumer, decidable pass condition" rule — a gate now also needs a proof it can fail
 
 ## Validation Checklist
 
