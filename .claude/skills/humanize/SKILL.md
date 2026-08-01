@@ -8,7 +8,8 @@ description: >-
   dense, academic or overwritten, when editing the blog essays in
   site/src/pages/blog, or before publishing anything long-form a reader will
   judge on voice. Also read it before writing new long-form prose: it carries
-  the house style (short words, short sentences, hard ideas in easy words).
+  the house style (conversational tone, short words, short sentences, hard ideas
+  in easy words, no bulleted lists).
 license: MIT
 compatibility: Requires node ≥18 and the repo checkout
 allowed-tools: Bash(node:*) Read Edit Grep Glob
@@ -21,11 +22,12 @@ contractions, ban _delve_. Applied blind, it damages prose that already does
 those things. **Measure first.** The scanner tells you which tics this draft
 actually has, and you fix those and nothing else.
 
-## House style: plain language
+## House style: conversational and plain
 
 This is not a tic to remove; it is how the prose should be written in the first
-place. **The goal is to be understood by as many people as possible, not to
-show what vocabulary we have.**
+place. **Write the way you would explain it to one person across a table.** The
+goal is to be understood by as many people as possible, not to show what
+vocabulary we have.
 
 1. **Say it with fewer, smaller words.** Prefer the short Anglo-Saxon word to
    the long Latinate one: _use_ over _utilise_, _start_ over _commence_,
@@ -41,6 +43,23 @@ show what vocabulary we have.**
    idea, never in the sentence describing it.
 4. **Cut before you simplify.** The shortest version of a clause is often no
    clause. If a phrase only restates the one before it, delete it.
+5. **Keep a conversational tone.** Speak to the reader, not at them: first and
+   second person, contractions, the rhythm of someone talking. Say _you_ where
+   an encyclopedia would say _one_ or _the user_. Read a paragraph aloud — if
+   you'd never say it that way to a friend who asked, rewrite it.
+6. **No lists, and don't talk like an encyclopedia.** Bullets and numbered
+   lists don't belong in an essay. A list is an outline: it hands the reader
+   items and leaves the connecting work undone, which is exactly the work
+   prose is for. Turn every list back into paragraphs, and let the sentences
+   carry the order (`first`, `the harder part`, `and then`). Same rule for the
+   reference-book register that comes with it — definitions before argument,
+   neutral survey voice, a heading for every noun. Essays argue; entries
+   catalogue. Write the essay.
+
+The one carve-out is machinery, not voice: `Sources` citation lists, code
+blocks and `CodeFigure` captions stay as they are, and structured docs
+(explorations, `AGENTS.md`, changelog fragments) are not essays and keep their
+lists and tables.
 
 **This is not a ban on beautiful prose.** Rhythm, image and metaphor are the
 point of these essays, and a long sentence that builds to something is worth
@@ -48,9 +67,13 @@ keeping. The rule is that complexity must be *earned*: spend it on the idea,
 never on the packaging. When a sentence is both long and doing nothing a
 shorter one couldn't, shorten it.
 
-Measured by `reading ease (Flesch)` (≥ 55), `long sentences (>30w) %` (≤ 10),
-`long words (3+ syl) %` (≤ 12), `mean sentence length` (≤ 20) and
-`fancy words /1k` (≤ 1). Full guidance in `references/tells.md` §4–5.
+Rules 1–4 are measured by `reading ease (Flesch)` (≥ 55),
+`long sentences (>30w) %` (≤ 10), `long words (3+ syl) %` (≤ 12),
+`mean sentence length` (≤ 20) and `fancy words /1k` (≤ 1); full guidance in
+`references/tells.md` §4–5. Rule 5 shows up in `contractions /1k` (§12) but is
+mostly a judgement call, and rule 6 the scanner cannot see at all — you have to
+read for both. Fix patterns for the encyclopedia register are in
+`references/tells.md` §14.
 
 ## The honest framing
 
@@ -88,9 +111,10 @@ not as a defect.
 ### 2. Diagnose
 
 The scanner's closing line names the elevated metrics. **That list is the scope
-of the edit** — with two standing exceptions that apply whatever the numbers
-say: mirrored pairs (always remove) and plain language (always prefer the
-shorter word and the shorter sentence). If nothing else is elevated, the draft
+of the edit** — with three standing exceptions that apply whatever the numbers
+say: mirrored pairs (always remove), plain language (always prefer the shorter
+word and the shorter sentence), and the house voice (always conversational,
+always prose rather than bullets). If nothing else is elevated, the draft
 does not need humanizing — it needs better thinking, sharper examples, or
 cutting. Say so instead of rewriting.
 
