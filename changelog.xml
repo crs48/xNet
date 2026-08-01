@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>The Charter now tests whether its own refusals are affordable</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-the-charter-now-tests-whether-its-own-re</link>
+      <guid isPermaLink="false">2026-08-01-the-charter-now-tests-whether-its-own-re</guid>
+      <pubDate>Sat, 01 Aug 2026 22:58:00 GMT</pubDate>
+      <description>xNet's public economics doc adds a fifth test — every promise we make not to charge you for something must name the revenue that pays for it — and the build now fails on scarcity countdowns and act-now prompts anywhere in the product.</description>
+    </item>
+    <item>
       <title>The assistant now tells you when its search was incomplete</title>
       <link>https://xnet.fyi/changelog#2026-08-01-the-assistant-now-tells-you-when-its-sea</link>
       <guid isPermaLink="false">2026-08-01-the-assistant-now-tells-you-when-its-sea</guid>
