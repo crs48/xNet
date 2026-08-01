@@ -715,15 +715,15 @@ And the one-line extension to the index engine:
 
 **WP1 — The projector**
 
-- [ ] New `packages/social/src/publish/` — not a new package.
-- [ ] `interactionToBookmark` `RecordLens` (projection mode, extras bag).
-- [ ] Add `publish: { lexicon: 'community.lexicon.bookmarks.bookmark' }` to
+- [x] New `packages/social/src/publish/` — not a new package.
+- [x] `interactionToBookmark` `RecordLens` (projection mode, extras bag).
+- [x] Add `publish: { lexicon: 'community.lexicon.bookmarks.bookmark' }` to
       `SocialInteractionSchema` so the float/formula guard applies.
-- [ ] The `nodeId → at-uri` rkey map + `reconcile()` against `listRecords`.
-- [ ] Resumable, jittered write queue with four distinguishable terminal states.
-- [ ] Mint `fyi.xnet.social.affinity` (`key: "any"`, deterministic rkey from
+- [x] The `nodeId → at-uri` rkey map + `reconcile()` against `listRecords`.
+- [x] Resumable, jittered write queue with four distinguishable terminal states.
+- [x] Mint `fyi.xnet.social.affinity` (`key: "any"`, deterministic rkey from
       `createSocialNodeId`) behind a per-run toggle, default off.
-- [ ] Unit tests: idempotent re-publish over a fixture repo; extras-bag
+- [x] Unit tests: idempotent re-publish over a fixture repo; extras-bag
       preservation; normalisation collisions.
 
 **WP2 — The ceremony**

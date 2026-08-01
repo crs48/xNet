@@ -36,7 +36,13 @@ export const SocialInteractionSchema = defineSchema({
     confidence: number({ min: 0, max: 1 }),
     metadataJson: text({ maxLength: 20000 })
   },
-  document: undefined
+  document: undefined,
+  // An interaction may be projected onto the adopted bookmark lexicon and
+  // published to the user's own PDS (0420). Declaring it opts this schema into
+  // the authoring-time guard that rejects properties a Lexicon cannot carry —
+  // note `confidence` is a float and is deliberately NOT in the lens's
+  // `modelled` set, so it never reaches a record.
+  publish: { lexicon: 'community.lexicon.bookmarks.bookmark' }
 })
 
 export type SocialInteraction = InferNode<(typeof SocialInteractionSchema)['_properties']>
