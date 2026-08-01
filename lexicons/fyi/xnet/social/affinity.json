@@ -1,0 +1,66 @@
+{
+  "lexicon": 1,
+  "id": "fyi.xnet.social.affinity",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "An affinity edge: something the author saved, liked, watched or bookmarked on a named platform. Extends community.lexicon.bookmarks.bookmark, which carries the same act in a form every bookmark app already understands; this record adds the platform and the kind of interaction, which that lexicon has no field for. It deliberately carries NO title, description or thumbnail: those belong to the platform and the creator, not to the author of this record.",
+      "key": "any",
+      "record": {
+        "type": "object",
+        "required": ["subject", "platform", "interactionKind", "createdAt"],
+        "properties": {
+          "subject": {
+            "type": "string",
+            "format": "uri",
+            "description": "Canonical URL of the thing the interaction is about."
+          },
+          "subjectRef": {
+            "type": "ref",
+            "ref": "#foreignId",
+            "description": "A namespaced platform identifier, for subjects with no stable public URL. Supplied alongside `subject`, never instead of it."
+          },
+          "platform": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Where the interaction happened, as a bare domain where one exists: youtube.com, instagram.com, tiktok.com. Mirrors teal.fm's musicServiceBaseDomain."
+          },
+          "interactionKind": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "like, save, bookmark, favorite, watch, subscribe, … The author's own act, not a metric."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the interaction happened on the source platform, where known; otherwise when the record was written."
+          },
+          "tags": {
+            "type": "array",
+            "maxLength": 64,
+            "items": { "type": "string", "maxLength": 128 },
+            "description": "The author's own tags. Never platform-derived metadata."
+          },
+          "bookmark": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "The community.lexicon.bookmarks.bookmark record this edge extends, when one was written."
+          }
+        }
+      }
+    },
+    "foreignId": {
+      "type": "object",
+      "description": "A namespaced identifier in some other catalogue, after the my.skylights.rel pattern.",
+      "required": ["ref", "value"],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Namespace of the identifier, e.g. youtube:video, tiktok:post."
+        },
+        "value": { "type": "string", "maxLength": 512 }
+      }
+    }
+  }
+}

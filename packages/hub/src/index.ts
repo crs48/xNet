@@ -26,6 +26,17 @@ export {
   type IndexSource
 } from './features/atproto-index'
 export {
+  AFFINITY_COLLECTION,
+  AFFINITY_COLLECTIONS,
+  BOOKMARK_COLLECTION,
+  applyViewerSensitivity,
+  compareActors,
+  sharedSubjects,
+  subjectsForActor,
+  type AffinityComparison,
+  type AffinitySubject
+} from './features/affinity'
+export {
   HubSubscriberService,
   hubSubscriberFeature,
   type HubSubscriptionsConfig,

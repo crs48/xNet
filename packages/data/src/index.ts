@@ -662,6 +662,7 @@ export {
   type RecordLens,
   type RecordLensMode,
   type LexiconRecord,
+  type NodeProperties,
   type Nsid,
   type RoundTripReport,
   RecordLensRegistry,
