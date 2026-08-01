@@ -51,9 +51,40 @@ function closureOf(byName, root) {
   return [...seen].map((name) => byName.get(name).dir).sort()
 }
 
-function copiedDirs(dockerfile) {
-  return [...dockerfile.matchAll(/^COPY packages\/([a-z0-9-]+)\/ packages/gm)].map((m) => m[1])
-}
+/**
+ * The Dockerfile hand-lists packages in FOUR places, and missing any one of
+ * them breaks a different stage — with a different error, minutes apart.
+ *
+ * The first version of this guard checked only `builder-source` and passed
+ * while `runtime-manifest` was still stale, which is exactly the false
+ * confidence a gate is supposed to remove. Every list is checked now.
+ */
+const COPY_LISTS = [
+  {
+    id: 'builder-manifest',
+    pattern: /^COPY packages\/([a-z0-9-]+)\/package\.json packages/gm,
+    template: (dir) => `COPY packages/${dir}/package.json packages/${dir}/`,
+    breaks: 'the builder install (ERR_PNPM_WORKSPACE_PKG_NOT_FOUND)'
+  },
+  {
+    id: 'builder-source',
+    pattern: /^COPY packages\/([a-z0-9-]+)\/ packages/gm,
+    template: (dir) => `COPY packages/${dir}/ packages/${dir}/`,
+    breaks: 'the builder build (Cannot find module)'
+  },
+  {
+    id: 'runtime-manifest',
+    pattern: /^COPY --from=builder \/build\/packages\/([a-z0-9-]+)\/package\.json packages/gm,
+    template: (dir) => `COPY --from=builder /build/packages/${dir}/package.json packages/${dir}/`,
+    breaks: 'the runtime install (ERR_PNPM_WORKSPACE_PKG_NOT_FOUND)'
+  },
+  {
+    id: 'runtime-dist',
+    pattern: /^COPY --from=builder \/build\/packages\/([a-z0-9-]+)\/dist packages/gm,
+    template: (dir) => `COPY --from=builder /build/packages/${dir}/dist packages/${dir}/dist/`,
+    breaks: 'the hub at boot (missing dist, no build-time error at all)'
+  }
+]
 
 function main() {
   const byName = readWorkspace()
@@ -63,33 +94,43 @@ function main() {
   }
 
   const closure = closureOf(byName, ROOT_PACKAGE)
-  const copied = new Set(copiedDirs(readFileSync(DOCKERFILE, 'utf8')))
-  const missing = closure.filter((dir) => !copied.has(dir))
+  const dockerfile = readFileSync(DOCKERFILE, 'utf8')
 
-  if (missing.length > 0) {
+  const problems = []
+  for (const list of COPY_LISTS) {
+    const copied = new Set([...dockerfile.matchAll(list.pattern)].map((m) => m[1]))
+    if (copied.size === 0) {
+      // The pattern matched nothing at all — the Dockerfile was restructured
+      // and this guard is now checking a list that no longer exists. Say so
+      // rather than reporting a clean run over zero lines.
+      problems.push({ list, missing: ['(no COPY lines matched — did the Dockerfile change?)'] })
+      continue
+    }
+    const missing = closure.filter((dir) => !copied.has(dir))
+    if (missing.length > 0) problems.push({ list, missing })
+  }
+
+  if (problems.length > 0) {
+    console.error(`✗ ${DOCKERFILE} is missing packages the hub depends on:\n`)
+    for (const { list, missing } of problems) {
+      console.error(`  [${list.id}] breaks ${list.breaks}`)
+      for (const dir of missing) {
+        console.error(`      ${dir.startsWith('(') ? dir : list.template(dir)}`)
+      }
+      console.error('')
+    }
     console.error(
-      `✗ ${DOCKERFILE} does not copy ${missing.length} package(s) the hub depends on:\n` +
-        missing.map((dir) => `    packages/${dir}`).join('\n') +
-        `\n\nAdd both lines for each — the manifest stage and the source stage:\n` +
-        missing
-          .map(
-            (dir) =>
-              `    COPY packages/${dir}/package.json packages/${dir}/\n` +
-              `    COPY packages/${dir}/ packages/${dir}/`
-          )
-          .join('\n') +
-        `\n\nWithout them the image builds for ~6 minutes and then fails on\n` +
-        `"Cannot find module" — and that is the same build Railway runs.\n`
+      `Each list is a separate hand-maintained allowlist; a dependency added\n` +
+        `anywhere in the hub's closure staled all four at once. This is the same\n` +
+        `image Railway builds, so the first symptom can be a failed deploy.\n`
     )
     process.exit(1)
   }
 
-  // Not an error: extra copies only cost image size, and some are deliberate.
-  const extra = [...copied].filter((dir) => !closure.includes(dir)).sort()
-  if (extra.length > 0) {
-    console.log(`  note: copied but not in the hub closure: ${extra.join(', ')}`)
-  }
-  console.log(`✓ hub image copies all ${closure.length} packages in its dependency closure`)
+  console.log(
+    `✓ hub image copies all ${closure.length} closure packages across ` +
+      `${COPY_LISTS.length} COPY lists`
+  )
 }
 
 main()
