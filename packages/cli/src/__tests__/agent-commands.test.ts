@@ -117,12 +117,47 @@ describe('agent CLI commands', () => {
     expect(await runStatus(services, { dir: rootDir })).toBe('clean')
   })
 
-  it('search returns TSV results', async () => {
+  it('search returns TSV results behind a provenance line', async () => {
     const services = createTestServices()
     const output = await runSearch(services, { text: 'planning' })
     const lines = output.split('\n')
-    expect(lines[0].split('\t')).toEqual(['id', 'schemaId', 'title', 'snippet'])
+    // The memory store has no FTS, so this lane is honestly a scan.
+    expect(lines[0]).toBe('tier\tscan')
+    const header = lines.find((line) => line.startsWith('id\t'))
+    expect(header?.split('\t')).toEqual(['id', 'schemaId', 'title', 'snippet'])
     expect(output).toContain('page_1')
+  })
+
+  it('warns on stderr when the search ran degraded', async () => {
+    const services = createTestServices()
+    const warnings: string[] = []
+    await runSearch(services, { text: 'planning', warn: (m) => warnings.push(m) })
+    expect(warnings).toHaveLength(1)
+    // Wording varies with whether the scan was truncated — a scan that read
+    // every node is complete but poorly ranked, and says so rather than
+    // claiming an incompleteness it doesn't have.
+    expect(warnings[0]).toMatch(/full-text index unavailable/i)
+  })
+
+  it('carries the degradation into json and jsonl too', async () => {
+    const services = createTestServices()
+    const warnings: string[] = []
+    const json = JSON.parse(
+      await runSearch(services, { text: 'planning', format: 'json', warn: (m) => warnings.push(m) })
+    )
+    expect(json.tier).toBe('scan')
+    expect(json.degraded).toBe(true)
+    expect(json.notice).toBeDefined()
+
+    // jsonl stays one object per line for `jq`; its warning rides stderr.
+    warnings.length = 0
+    const jsonl = await runSearch(services, {
+      text: 'planning',
+      format: 'jsonl',
+      warn: (m) => warnings.push(m)
+    })
+    expect(jsonl.split('\n').every((line) => line.startsWith('{'))).toBe(true)
+    expect(warnings).toHaveLength(1)
   })
 
   it('query returns TSV rows with flattened properties and supports where filters', async () => {
@@ -197,8 +232,10 @@ describe('agent CLI commands', () => {
 
   it('renders markdown tables for search and query when requested', async () => {
     const services = createTestServices()
-    const search = await runSearch(services, { text: 'planning', format: 'md' })
-    expect(search.split('\n')[0]).toMatch(/^\| id \| schemaId \| title \| snippet \|$/)
+    const search = await runSearch(services, { text: 'planning', format: 'md', warn: () => {} })
+    expect(search.split('\n').find((line) => line.startsWith('| id '))).toMatch(
+      /^\| id \| schemaId \| title \| snippet \|$/
+    )
     const query = await runQuery(services, { databaseId: 'db_projects', format: 'md' })
     expect(query).toContain('| --- |')
     expect(query).toContain('| row_1 |')

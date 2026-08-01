@@ -48,10 +48,19 @@ Seven findings, each with a file to point at:
    GraphRAG retriever is injected into exactly one consumer — the workbench
    app. Every coding-agent lane builds its AI surface with no
    `retrieveContext` at all.
-2. **Two of the three lanes cannot even reach BM25.** The remote backend and
-   the Electron store proxy do not implement `searchText`, so `xnet search`
-   and `xnet_search` silently degrade to a substring scan over the first 500
-   nodes — in exactly the configuration users are most likely to run (app open).
+2. **No agent lane could reach BM25.** The remote backend, the Electron store
+   proxy and the standalone local backend all fail to implement `searchText`,
+   so `xnet search` and `xnet_search` silently degrade to a substring scan over
+   the first 500 nodes — in every configuration, including the `--db` lane that
+   sits directly on top of a working `nodes_fts` index.
+
+   > [!NOTE]
+   > This finding got *worse* during implementation. The doc originally rated
+   > the `--db` lane "half-equipped (BM25)"; the first test written against a
+   > real SQLite store reported `tier scan`, and
+   > `packages/cli/src/utils/agent-local.ts` turned out to drop `searchText`
+   > too. Three lanes, not two — which is the argument for the factory and the
+   > guard rather than three hand-audited call sites.
 3. **The degradation notice is computed and then discarded.** `search()`
    returns `degraded: true` and a "do not conclude something does not exist"
    notice; `runSearch` drops both in the default TSV output.
@@ -98,7 +107,7 @@ Seven findings, each with a file to point at:
 | Lane                   | Entry search       | Graph expansion | Memory | Status                |
 | ---------------------- | ------------------ | --------------- | ------ | --------------------- |
 | In-app assistant       | vector + BM25      | ✅ brain        | ❌     | ✅ Wired (0211/0394)  |
-| CLI + vault (`--db`)   | BM25 (`nodes_fts`) | ❌              | ❌     | 🚧 Half-equipped      |
+| CLI + vault (`--db`)   | **substring scan** | ❌              | ❌     | ❌ Degraded, silently |
 | CLI + vault (app open) | **substring scan** | ❌              | ❌     | ❌ Degraded, silently |
 | `xnet mcp serve`       | inherits the above | ❌              | ❌     | ❌ Same               |
 | Electron bridge MCP    | **substring scan** | ❌              | ❌     | ❌ Degraded, silently |
@@ -736,7 +745,7 @@ export function candidatesFromTraces(
 - [x] Inject the factory in `createAgentServices` (`packages/cli/src/commands/agent.ts`)
 - [x] Inject the factory in `startAgentMcpServer` (`apps/electron/src/main/agent-mcp-server.ts`)
 - [x] `scripts/guard-ai-surface-retrieval.mjs` — fail the build on a construction site without a retriever
-- [ ] Propagate `tier`/`degraded`/`notice` through every `runSearch` output format; notice to stderr
+- [x] Propagate `tier`/`degraded`/`notice` through every `runSearch` output format; notice to stderr
 - [ ] Fix `xnet connect` to **merge** into `CLAUDE.md`/`AGENTS.md` instead of overwriting
 
 ### Phase 2 — Speed and the code lane

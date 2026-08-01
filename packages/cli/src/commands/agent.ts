@@ -252,6 +252,29 @@ export type SearchOptions = {
   schema?: string
   limit?: number
   format?: AgentOutputFormat
+  /** Diagnostics sink; injectable so tests can read what the user would see. */
+  warn?: (message: string) => void
+}
+
+/**
+ * How the search was answered, as a line the agent reads before the results.
+ *
+ * `index` comes from the AI surface (`fts5` vs `scan`); `tier` from the
+ * retrieval factory. They can disagree — a `bm25-graph` lane whose FTS probe
+ * failed answers `scan` — and when they do, the weaker one is the truth.
+ */
+function provenanceLine(
+  tier: string,
+  result: Record<string, unknown>
+): { line: string; degraded: boolean } {
+  const degraded = result.degraded === true
+  const effective = degraded ? 'scan' : tier
+  const parts = [`tier\t${effective}`]
+  if (typeof result.index === 'string') parts.push(`index\t${result.index}`)
+  if (degraded && typeof result.degradedReason === 'string') {
+    parts.push(`degraded\t${result.degradedReason}`)
+  }
+  return { line: parts.join('\n'), degraded }
 }
 
 export async function runSearch(
@@ -264,17 +287,36 @@ export async function runSearch(
     limit: options.limit
   })
   const results = Array.isArray(result.results) ? (result.results as Record<string, unknown>[]) : []
-  if (options.format === 'json') return JSON.stringify(result)
+  const { line, degraded } = provenanceLine(services.retrieval.tier, result)
+
+  // stderr, always, and before anything else: a degradation notice on stdout
+  // is one `| head` away from vanishing, and an agent that loses it will state
+  // "no such node" with total confidence (exploration 0415).
+  if (degraded) {
+    const warn = options.warn ?? ((message: string) => process.stderr.write(`${message}\n`))
+    warn(
+      typeof result.notice === 'string'
+        ? result.notice
+        : 'Search ran degraded; results may be incomplete.'
+    )
+  }
+
+  if (options.format === 'json') {
+    return JSON.stringify({ ...result, tier: degraded ? 'scan' : services.retrieval.tier })
+  }
+  // jsonl stays one-object-per-line so `jq` keeps working; its provenance rides
+  // stderr alone.
   if (options.format === 'jsonl') return results.map((row) => JSON.stringify(row)).join('\n')
+
   const compact = results.map((row) => ({
     id: row.id,
     schemaId: row.schemaId,
     title: row.title,
     snippet: row.snippet
   }))
-  if (results.length === 0) return 'no results'
-  if (options.format === 'md') return toMarkdownTable(compact)
-  return toTsv(compact).trimEnd()
+  if (results.length === 0) return `${line}\nno results`
+  if (options.format === 'md') return `${line}\n\n${toMarkdownTable(compact)}`
+  return `${line}\n${toTsv(compact).trimEnd()}`
 }
 
 // ─── query ───────────────────────────────────────────────────────────────────
