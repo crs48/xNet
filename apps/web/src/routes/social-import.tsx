@@ -75,6 +75,9 @@ function SocialImportPage(): React.ReactElement {
   const [selectedBuckets, setSelectedBuckets] = useState<string[]>([])
   const [includeSensitive, setIncludeSensitive] = useState(false)
   const [includeSourceRecords, setIncludeSourceRecords] = useState(false)
+  // Transcript fetching is per-run and off by default (0419): the decision is
+  // about this archive, not a standing preference.
+  const [fetchTranscripts, setFetchTranscripts] = useState(false)
   const [stageResult, setStageResult] = useState<BrowserSocialImportStageResult | null>(null)
   const [status, setStatus] = useState<ImportStatus>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -169,7 +172,8 @@ function SocialImportPage(): React.ReactElement {
         file: archive.file,
         manifest: archive.manifest,
         buckets: selectedBuckets,
-        includeSensitive
+        includeSensitive,
+        fetchTranscripts
       })
       setStageResult(result)
       setStatus('staged')
@@ -177,7 +181,7 @@ function SocialImportPage(): React.ReactElement {
       setStatus('picked')
       setError(toErrorMessage(err))
     }
-  }, [archive, includeSensitive, selectedBuckets])
+  }, [archive, fetchTranscripts, includeSensitive, selectedBuckets])
 
   const handleCommit = useCallback(async () => {
     if (!archive || !stageResult || !store || !storeReady) return
@@ -675,6 +679,26 @@ function SocialImportPage(): React.ReactElement {
                   <div className="text-sm font-medium">Commit source records</div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     Stores provenance summaries in addition to canonical graph nodes.
+                  </div>
+                </div>
+              </label>
+              <label className="flex items-start gap-3 rounded-md border border-border p-3">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={fetchTranscripts}
+                  onChange={(event) => {
+                    setFetchTranscripts(event.currentTarget.checked)
+                    setStageResult(null)
+                    setCommitSummary(null)
+                    setCommitProgress(null)
+                  }}
+                />
+                <div>
+                  <div className="text-sm font-medium">Fetch video transcripts</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Looks up captions for videos this archive brings in, from this device, at a
+                    slow trickle. Videos without captions are recorded as such and never retried.
                   </div>
                 </div>
               </label>

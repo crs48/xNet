@@ -420,7 +420,7 @@ collection structure — all local, all owned, all synced.
       linked to the video node, deterministic ID, FTS-indexed.
 - [x] Three distinguishable enrichment states: not-attempted / no-captions /
       fetch-blocked; surface counts in the workspace privacy/status summary.
-- [ ] Per-import-run opt-in toggle in the import wizard.
+- [x] Per-import-run opt-in toggle in the import wizard.
 
 **WP4 — Agent context**
 
