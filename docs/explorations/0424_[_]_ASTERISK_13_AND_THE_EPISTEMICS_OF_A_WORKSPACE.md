@@ -641,7 +641,7 @@ a gate that over-claims what it proves is the same failure wearing a lab coat.
       none today, so it must report the tier it actually is
 - [x] Render the notice in `packages/workbench/src/views/AiChatPanel.tsx` where
       the answer is read
-- [ ] Extend `scripts/guard-ai-surface-retrieval.mjs` with the provenance
+- [x] Extend `scripts/guard-ai-surface-retrieval.mjs` with the provenance
       assertion, allowlist entries carrying written reasons
 - [ ] Changeset for `@xnetjs/plugins` and `@xnetjs/brain` (minor, additive)
 - [ ] Changelog fragment — user-visible: the assistant now says when its search

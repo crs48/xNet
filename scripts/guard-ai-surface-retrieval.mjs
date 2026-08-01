@@ -37,6 +37,23 @@ const CONSTRUCTORS = ['createAiSurfaceService', 'createMCPServer']
 const SATISFIES = ['retrieval', 'retrieveContext', 'aiSurface']
 
 /**
+ * Second assertion (exploration 0424): a retriever must report how it searched.
+ *
+ * The first assertion only proves retrieval *happened*. It stayed green while
+ * the in-app lane computed a tier, a degraded flag and a printable notice and
+ * dropped all three at the seam — so an answer from a bounded substring scan
+ * reached the reader looking exactly like one from an indexed search of the
+ * whole workspace.
+ *
+ * Any module that types a value as `AiContextRetriever` must therefore mention
+ * `provenance`. That is a coarse check and deliberately so: it cannot prove the
+ * value is *right*, only that the author had to think about it. A gate that
+ * over-claims what it proves is the same failure wearing a lab coat.
+ */
+const RETRIEVER_ANNOTATION = /:\s*AiContextRetriever\b/
+const PROVENANCE_RE = /\bprovenance\b/
+
+/**
  * Sites that legitimately build a bare surface. Each entry names a file and the
  * reason — a bare allowlist with no reasons is how a gate stops meaning
  * anything. Adding one should be an argument you have to write down.
@@ -115,6 +132,18 @@ async function main() {
       const allowed = ALLOWLIST.find((entry) => file.endsWith(entry.file))
       if (allowed) continue
       const source = stripComments(readFileSync(file, 'utf8'))
+
+      if (RETRIEVER_ANNOTATION.test(source) && !PROVENANCE_RE.test(source)) {
+        violations.push({
+          file,
+          line: lineOf(source, source.search(RETRIEVER_ANNOTATION)),
+          constructor: 'AiContextRetriever',
+          reason:
+            'types a retriever but never mentions `provenance` — a retriever that ' +
+            'cannot say how it searched is reported as an indexed one'
+        })
+      }
+
       for (const constructor of CONSTRUCTORS) {
         let cursor = 0
         for (;;) {
@@ -162,12 +191,16 @@ async function main() {
     console.error(
       '\nBuild retrieval with createAgentRetrieval({ store, schemas }) and pass it as\n' +
         '`retrieval` (MCP server) or `retrieveContext` (AI surface). Omitting it drops\n' +
-        'the lane to a keyword scan with no graph stage — silently.\n'
+        'the lane to a keyword scan with no graph stage — silently.\n' +
+        '\nA retriever must also return `{ nodes, provenance }` (exploration 0424) so a\n' +
+        'degraded search is distinguishable from an exhaustive one by the time it\n' +
+        'reaches the reader.\n'
     )
     process.exit(1)
   }
 
   console.log('✓ every AI surface / MCP server construction site wires retrieval')
+  console.log('✓ every retriever reports its provenance')
 }
 
 main().catch((err) => {
