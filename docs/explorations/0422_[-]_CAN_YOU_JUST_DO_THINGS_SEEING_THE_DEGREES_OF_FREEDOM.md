@@ -856,7 +856,12 @@ seeing half grows past a paragraph.
 - [x] Add the `agency-capabilities-are-visible` claim to
       `packages/telemetry/test/charter-claims-ledger.test.ts`.
 - [ ] Flip the gate to `--strict` one release after it lands, and record the
-      target release in the PR description.
+      target release in the PR description. **Deliberately deferred — this is
+      the one item this PR cannot close**, because "one release later" is not a
+      thing a PR can do to itself. The target is recorded in the PR body; the
+      doc stays `[-]` until the flip lands, which is the honest state. Note the
+      risk named under _Risks_: an advisory gate that never goes strict is a
+      warning people learn to scroll past.
 
 ## Validation Checklist
 
