@@ -151,7 +151,10 @@ export default defineConfig({
             'packages/social/src/transcripts/**/*.test.ts',
             // Agent-facing retrieval scope for social data (0419) — pure
             // predicates over schema ids and privacy classes.
-            'packages/social/src/retrieval/**/*.test.ts'
+            'packages/social/src/retrieval/**/*.test.ts',
+            // Display enrichment (0170/0419) — moved out of apps/web so the
+            // desktop app shares it; pure logic plus an injectable fetch.
+            'packages/social/src/enrichment/**/*.test.ts'
           ],
           // data-bridge tests run separately - they have Yjs module import order issues
           // when combined with other tests in the same worker thread

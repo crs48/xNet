@@ -402,11 +402,11 @@ collection structure — all local, all owned, all synced.
 
 **WP2 — Enrichment completion**
 
-- [ ] Add TikTok oEmbed to the enrichment fetch path (direct from client —
+- [x] Add TikTok oEmbed to the enrichment fetch path (direct from client —
       TikTok sends CORS headers; fall back to hub `/unfurl` otherwise).
 - [x] Add TikTok feed view seeds (favorites, collections) to
       `packages/social/src/feeds/defaults.ts`.
-- [ ] Extract the enrichment queue from `apps/web/src/hooks/` into a shared
+- [x] Extract the enrichment queue from `apps/web/src/hooks/` into a shared
       package location and wire it in Electron.
 - [x] Seed a social calendar/timeline saved view over
       `SocialInteraction.occurredAt` (watch/like/save history).

@@ -4,10 +4,9 @@
  * seeding, social feed enrichment, and the moderation render gate.
  */
 import { useNodeStore } from '@xnetjs/react/internal'
-import { useDataWorkspace, DataWorkspaceBody } from '@xnetjs/views'
+import { useDataWorkspace, DataWorkspaceBody, useSocialFeedEnrichment } from '@xnetjs/views'
 import { Database, Import, Loader2 } from 'lucide-react'
 import { useMemo, type ReactNode } from 'react'
-import { useSocialFeedEnrichment } from '../hooks/useSocialFeedEnrichment'
 import { ModeratedMedia } from './ModeratedMedia'
 
 /**
