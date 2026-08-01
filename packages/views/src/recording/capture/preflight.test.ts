@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
 import type { RecordingCaptureStatus, RecordingPermissions } from './bridge'
+import { describe, expect, it } from 'vitest'
 import { evaluatePreflight, LOW_DISK_BYTES, scopeSentence } from './preflight'
 
 const status = (overrides: Partial<RecordingCaptureStatus> = {}): RecordingCaptureStatus => ({

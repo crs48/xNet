@@ -12,8 +12,8 @@
  * replaces.
  */
 
-import type { CapturePathId } from '@xnetjs/data'
 import type { RecordingCaptureStatus, RecordingPermissions } from './bridge'
+import type { CapturePathId } from '@xnetjs/data'
 
 export type PreflightSeverity = 'info' | 'warning' | 'blocker'
 
@@ -154,10 +154,8 @@ export function evaluatePreflight(input: PreflightInput): Preflight {
     })
   }
 
-  if (input.wantsCamera && !cameraAvailable && path === 'display-media') {
-    // Already explained by the browser notice above; do not stack a second one.
-  }
-
+  // A browser user who asked for the camera is not warned twice — the
+  // "no camera track" notice above already covers it.
   return { path, canRecord, cameraAvailable: cameraAvailable && input.wantsCamera, notices }
 }
 

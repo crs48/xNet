@@ -658,8 +658,26 @@ export function proposeSilenceCuts(
 - [x] Raise/negotiate `getMaxFileSize()` for video CIDs, or route recordings
       through a dedicated large-object path
 - [ ] `/s/<linkId>` playback page reusing the 0169 share-link machinery
-- [ ] `.xnetpack` export includes tracks, transcript, cuts and chapters
-- [ ] Changelog fragment; changeset for every touched `packages/*` library
+- [x] `.xnetpack` export includes tracks, transcript, cuts and chapters
+- [x] Changelog fragment; changeset for every touched `packages/*` library
+
+### Deferred, and why
+
+> [!IMPORTANT]
+> The five unchecked implementation items are not oversights — each needs
+> something a code change cannot supply on its own. They are listed here so the
+> next pass starts from the real state rather than re-deriving it.
+
+| Item                                    | Why it is not done                                                                                                                                                                                                                                                                  | What unblocks it                                                          |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Phase-1 and phase-2 **benchmarks**      | Needs a real recording session on real hardware with a granted Screen Recording permission, measured with Activity Monitor / process sampling. There is no honest way to fill a CPU table from a test run                                                                           | One manual session per rung on a Mac, numbers pasted into the table above |
+| **Verify TCC listing on macOS 26.x**    | The `.app` bundle layout ships (helper binary + `Info.plist` + `helperBundled` reporting, and the CI job lints the plist), but confirming the entry actually appears requires building the packaged app, installing it, and reading System Settings                                 | One packaged build installed on a 26.x machine                            |
+| **Resumable chunked upload** to the hub | The manifest, resume arithmetic and typed failure modes are built and tested (`planUpload` / `resumeUpload`, 15 tests, incl. a 1 200-chunk 300 MB plan); what remains is the client that drives it against `PUT /files/:cid` and the per-chunk endpoint the hub does not yet expose | A hub-side chunk endpoint + the client loop                               |
+| **`/s/<linkId>` playback page**         | Depends on the upload above — there is nothing to serve until tracks reach a hub                                                                                                                                                                                                    | Upload lands first                                                        |
+
+The hub's side of the large-blob problem _is_ fixed: video and audio now get a
+2 GB ceiling instead of the general 100 MB cap that rejected every screencast
+with a flat `413`.
 
 ---
 
@@ -673,20 +691,20 @@ export function proposeSilenceCuts(
       by process sampling, not by assumption
 - [ ] **Benchmark table filled in**: phase-1 vs phase-2 CPU and dropped frames
       at 1080p30 and 1440p60, pasted into this document
-- [ ] **Cuts are reversible**: toggling every cut off reproduces the source
+- [x] **Cuts are reversible**: toggling every cut off reproduces the source
       duration exactly
 - [ ] **No silent truncation**: fill the disk mid-recording and confirm the
       node is marked truncated with a loud error, and the partial file is kept
 - [ ] **Large-blob sync proven**: a 300 MB recording uploads, survives a killed
       connection mid-transfer, resumes, and verifies by CID on the hub
 - [ ] **Share link works logged-out** and revocation takes effect immediately
-- [ ] **Chapters are grounded**: a fixture transcript with no numbers in it
+- [x] **Chapters are grounded**: a fixture transcript with no numbers in it
       produces chapter titles containing no numbers (groundedness screen green)
-- [ ] **Permission honesty**: denying Screen Recording produces an explanation
+- [x] **Permission honesty**: denying Screen Recording produces an explanation
       naming the exact system pane, not a generic failure
-- [ ] **Filler feature is honest**: with Parakeet selected, "remove filler
+- [x] **Filler feature is honest**: with Parakeet selected, "remove filler
       words" is either hidden or explicitly states that the engine strips them
-- [ ] `pnpm typecheck`, `pnpm test`, `pnpm lint` green; new unit tests cover
+- [x] `pnpm typecheck`, `pnpm test`, `pnpm lint` green; new unit tests cover
       the EDL maths, the cut proposer and the path resolver
 
 ---

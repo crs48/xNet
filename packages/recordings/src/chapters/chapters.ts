@@ -19,8 +19,8 @@
  *   contained.
  */
 
-import type { AIMessage, AIProvider } from '@xnetjs/plugins'
 import type { Chapter, RecordingSegment } from '@xnetjs/data'
+import type { AIMessage, AIProvider } from '@xnetjs/plugins'
 import { screenGroundedness } from '@xnetjs/meetings'
 
 export const CHAPTERS_SYSTEM_PROMPT = `You split a screen-recording transcript into chapters.

@@ -19,6 +19,7 @@ export {
   type TranscribeOptions,
   type TranscriptResult,
   type TranscriptSegment,
+  type TranscriptWord,
   type TranscriptionSource
 } from './types'
 

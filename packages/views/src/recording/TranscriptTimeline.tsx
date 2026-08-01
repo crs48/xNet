@@ -13,7 +13,7 @@
 import type { Cut, RecordingSegment } from '@xnetjs/data'
 import { addManualCut, cutAt } from '@xnetjs/recordings'
 import { Scissors } from 'lucide-react'
-import { useCallback, useState, type JSX } from 'react'
+import { useCallback, useMemo, useState, type JSX } from 'react'
 
 export interface TranscriptTimelineProps {
   segments: RecordingSegment[]
@@ -74,13 +74,16 @@ export function TranscriptTimeline({
 
   const words = flattenWords(segments)
 
-  const selectionSpan =
-    anchor && focus
-      ? {
-          startMs: Math.min(anchor.startMs, focus.startMs),
-          endMs: Math.max(anchor.endMs, focus.endMs)
-        }
-      : null
+  const selectionSpan = useMemo(
+    () =>
+      anchor && focus
+        ? {
+            startMs: Math.min(anchor.startMs, focus.startMs),
+            endMs: Math.max(anchor.endMs, focus.endMs)
+          }
+        : null,
+    [anchor, focus]
+  )
 
   const cutSelection = useCallback((): void => {
     if (!selectionSpan) return
