@@ -1,0 +1,33 @@
+{
+  "stories": [
+    {
+      "id": "web-coachmark--below-anchor",
+      "title": "Web/Coachmark",
+      "name": "Below Anchor",
+      "file": "stories/web-coachmark--below-anchor.png"
+    },
+    {
+      "id": "web-coachmark--command-palette",
+      "title": "Web/Coachmark",
+      "name": "Command Palette",
+      "file": "stories/web-coachmark--command-palette.png"
+    },
+    {
+      "id": "web-coachmark--docs",
+      "title": "Web/Coachmark",
+      "name": "Docs",
+      "file": "stories/web-coachmark--docs.png"
+    }
+  ],
+  "routes": [
+    {
+      "id": "settings",
+      "label": "Settings",
+      "file": "routes/settings.png"
+    }
+  ],
+  "flows": [],
+  "electron": [],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}
