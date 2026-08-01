@@ -61,7 +61,7 @@ MIT like the rest of the core — the open-core boundary from exploration 0174.
 > `/billing`, `/ai`, `/storage`, `/litestream`, `/cost`) plus a small MIT
 > `@xnetjs/entitlements` holding the hub-facing entitlement contract. The
 > capability inventory below is unchanged; only the packaging differs. See
-> [0181](0181_[_]_CONSOLIDATE_CLOUD_INTO_ONE_PACKAGE.md).
+> [0181](0181_[x]_CONSOLIDATE_CLOUD_INTO_ONE_PACKAGE.md).
 
 | Package / app | Role | Status |
 |---|---|---|
@@ -496,7 +496,7 @@ export class SqlTenantStore implements TenantStore {
 - [0174 — Managed Hosting As Open Core](docs/explorations/0174_[_]_MANAGED_HOSTING_AS_OPEN_CORE_IN_THE_PUBLIC_MONOREPO.md)
 - [0175 — Managed Hub Fleet Deployment And AI Gateway](docs/explorations/0175_[_]_MANAGED_HUB_FLEET_DEPLOYMENT_AND_AI_GATEWAY.md)
 - [0176 — Testable Cloud Integrations Without API Keys](docs/explorations/0176_[_]_TESTABLE_CLOUD_INTEGRATIONS_WITHOUT_API_KEYS.md)
-- [0177 — Data Backend Tiering And Cold-Storage Economics](docs/explorations/0177_[_]_COST_EFFICIENT_SQLITE_HOSTING_NO_LIBSQL_MIGRATION.md)
+- [0177 — Data Backend Tiering And Cold-Storage Economics](docs/explorations/0177_[_]_DATA_BACKEND_TIERING_AND_COLD_STORAGE_ECONOMICS.md)
 - [0178 — Cost-Efficient SQLite Hosting, No libSQL Migration](docs/explorations/0178_[_]_COST_EFFICIENT_SQLITE_HOSTING_NO_LIBSQL_MIGRATION.md)
 - Code: [apps/cloud](apps/cloud/src/control-plane.ts), [cloud-plans](packages/cloud-plans/src/plans.ts), [cloud-provisioner](packages/cloud-provisioner/src/types.ts), [cloud-identity](packages/cloud-identity/src/index.ts), [cloud-billing](packages/cloud-billing/src/index.ts), [cloud-ai](packages/cloud-ai/src/agent-runner.ts), [cloud-litestream](packages/cloud-litestream/src/index.ts), [cloud-storage](packages/cloud-storage/src/index.ts), [hub config seam](packages/hub/src/config.ts)
 - PRs: [#66 foundation](https://github.com/crs48/xNet/pull/66), [#68 keyless integrations](https://github.com/crs48/xNet/pull/68), [#73 no-libSQL + Litestream](https://github.com/crs48/xNet/pull/73)

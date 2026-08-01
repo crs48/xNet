@@ -136,7 +136,7 @@ for (const note of notes) console.log(`  note: ${note}`)
 if (failures.length > 0) {
   console.error(`\n✗ source-stamp guard: ${failures.length} problem(s)\n`)
   for (const failure of failures) console.error(`  - ${failure}`)
-  console.error('\nSee docs/explorations/0399_[_]_POINT_AND_CHANGE_XNET_EDITING_ITSELF.md\n')
+  console.error('\nSee docs/explorations/0399_[-]_POINT_AND_CHANGE_XNET_EDITING_ITSELF.md\n')
   process.exit(1)
 }
 

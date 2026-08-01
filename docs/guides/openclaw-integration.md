@@ -15,7 +15,7 @@ With an **Agent Passport** (below), the agent additionally gets its own DID and
 a scoped, operator-delegated UCAN — every change it makes is signed by *its*
 identity, every tool call lands as a signed `AgentAction` audit node, and
 risky calls go through a risk-tiered approval ceremony
-([exploration 0337](../explorations/0337_[_]_OPENCLAW_HERMES_INTEGRATION_SIGNED_AGENT_AUDIT_TRAILS_AND_TEXT_CONTROL_PLANE.md)).
+([exploration 0337](../explorations/0337_[x]_OPENCLAW_HERMES_INTEGRATION_SIGNED_AGENT_AUDIT_TRAILS_AND_TEXT_CONTROL_PLANE.md)).
 
 ## Start the server
 
@@ -222,5 +222,5 @@ use-case and xNet doesn't have to.
 - [ClawHub skill](../integrations/openclaw/xnet-workspace-skill.md)
 - [Connect a model](./connect-a-model.md)
 - [xNet-as-substrate exploration](../explorations/0175_[_]_XNET_AS_A_SUBSTRATE_FOR_OPENCLAW.md)
-- [Agent harness or agent substrate (0416)](../explorations/0416_[_]_AGENT_HARNESS_OR_AGENT_SUBSTRATE.md)
+- [Agent harness or agent substrate (0416)](../explorations/0416_[-]_AGENT_HARNESS_OR_AGENT_SUBSTRATE.md)
   — why xNet is not a competing harness (ADR-29)

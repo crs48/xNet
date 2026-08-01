@@ -9,7 +9,7 @@ implementation.
 > the protocol itself. This spec is what makes the difference real.
 
 Background and rationale:
-[`docs/explorations/0200_[_]_PORTABLE_XNET_PROTOCOL_BOUNDARIES_AND_STANDARD.md`](../../explorations/0200_%5B_%5D_PORTABLE_XNET_PROTOCOL_BOUNDARIES_AND_STANDARD.md).
+[`docs/explorations/0200_[x]_PORTABLE_XNET_PROTOCOL_BOUNDARIES_AND_STANDARD.md`](../../explorations/0200_%5B_%5D_PORTABLE_XNET_PROTOCOL_BOUNDARIES_AND_STANDARD.md).
 
 ## The documents
 

@@ -79,6 +79,14 @@ jobs:
       - name: Source stamp is dev-only (0399)
         run: pnpm guard:no-source-stamp
 
+      # Exploration status lives in the filename, so checking a doc off renames
+      # it and silently breaks every reference spelling the old name. 25 had
+      # rotted before this check existed — including four public site/ legal
+      # pages and three package READMEs. Absolute, not a ratchet: zero is
+      # reachable today, so every new break is a fresh mistake. (0421.)
+      - name: Exploration references resolve (0421)
+        run: pnpm check:exploration-links
+
       - name: Publish closure (0220)
         run: pnpm check:publish-closure
 

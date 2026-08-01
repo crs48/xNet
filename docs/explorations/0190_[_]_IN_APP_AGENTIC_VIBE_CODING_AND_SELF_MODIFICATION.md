@@ -1,7 +1,7 @@
 # In-App Agentic Vibe Coding: Modding Plugins And The Repo Itself
 
 > [!IMPORTANT]
-> **Superseded in part by [0399](0399_[_]_POINT_AND_CHANGE_XNET_EDITING_ITSELF.md).**
+> **Superseded in part by [0399](0399_[-]_POINT_AND_CHANGE_XNET_EDITING_ITSELF.md).**
 > The dev-loop body this exploration specified was built — `packages/devkit`
 > ships worktree isolation, the validation gate, checkpoint/rollback, and
 > `openPullRequest()` — but had no product surface. 0399 is the front end for

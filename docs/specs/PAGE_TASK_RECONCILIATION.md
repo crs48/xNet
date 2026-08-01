@@ -7,7 +7,7 @@ Defines the invariants for reconciling editor-embedded task items (TipTap
 `usePageTaskSync.test.tsx`.
 
 Companion to exploration
-`docs/explorations/0161_[_]_LINEAR_STYLE_TASKS_AS_A_PORTABLE_CROSS_SURFACE_PRIMITIVE.md`.
+`docs/explorations/0161_[x]_LINEAR_STYLE_TASKS_AS_A_PORTABLE_CROSS_SURFACE_PRIMITIVE.md`.
 
 ## Model
 

@@ -50,7 +50,7 @@ Measured against this repository's own git history:
 | CI reliability | **6 of 25** recent runs red (24%) | 🚧 Real tax, small |
 | Exploration → shipped | **210 `[x]` / 485 files** (43%) | ❌ The bottleneck |
 | Backlog growth | ~**+85 `[_]` per month**, net | ❌ Unbounded |
-| Inbound link integrity | **25 of 192** filename-spelling links broken (13%) | ❌ Undetected defect |
+| Inbound link integrity | **31 stale refs** (25 names, 28 files) of 381 | ❌ Undetected defect |
 | Stranded work | 1 PR at **592h** (24.7 days); 7 stranded branches (0410) | 🚧 Tail risk |
 
 The build phase is Collison-fast. The **decide** phase has no clock at all — no
@@ -211,12 +211,20 @@ path-based references to explorations from outside `docs/explorations/`:
 
 The mechanism, confirmed case by case:
 
-| Linked as | Actual file today | Broke because |
+<!-- exploration-link-ignore: the left column quotes stale names on purpose -->
+
+| Linked as (stale) | Actual file today | Broke because |
 | --- | --- | --- |
-| `0403_[_]_MDX_VISUAL_EXPLORATIONS_ON_STORYBOOK.md` | `0403_[x]_…` | `/implement` checked it off |
-| `0391_[_]_XNET_AS_THE_DAILY_DRIVER_AI_INTERFACE.md` | `0391_[x]_…` | same |
-| `0416_[_]_AGENT_HARNESS_OR_AGENT_SUBSTRATE.md` | `0416_[-]_…` | partial check-off |
-| `0328_[_]_TLDRAW_CANVAS_ALTERNATIVE.md` | `0328_[_]_TLDRAW_CANVAS_REPLACEMENT_OR_ALTERNATIVE_SURFACE.md` | title edited |
+| `0403_[_]_MDX_VISUAL…` | `0403_[x]_MDX_VISUAL…` | `/implement` checked it off |
+| `0391_[_]_XNET_AS_THE_DAILY_DRIVER…` | `0391_[x]_…` | same |
+| `0416_[_]_AGENT_HARNESS…` | `0416_[-]_…` | partial check-off |
+| `0328_[_]_TLDRAW_CANVAS_ALTERNATIVE` | `0328_[_]_TLDRAW_CANVAS_REPLACEMENT_OR_ALTERNATIVE_SURFACE` | title edited |
+
+> [!NOTE]
+> Names in that table are elided (`…`) rather than spelled in full. Writing a
+> stale filename verbatim in a document that lives *in the repository being
+> checked* makes the document itself a source of broken references — a lesson
+> learned by breaking this very table during implementation.
 
 The casualties are not confined to scratch docs. They include
 `site/src/pages/terms.astro`, `privacy.astro`, `dpa.astro`,
@@ -708,11 +716,11 @@ exists, and it is the safety net that makes every later change observable.
 
 _Phase 1 — stop the bleeding (independently valuable; ship even if the rest is dropped)_
 
-- [ ] Write `scripts/check-exploration-links.mjs`: assert every path-based
+- [x] Write `scripts/check-exploration-links.mjs`: assert every path-based
       reference to `docs/explorations/NNNN_*` resolves, repo-wide
-- [ ] Fix the 25 currently-broken references (they are stale checkbox or title
+- [x] Fix the 25 currently-broken references (they are stale checkbox or title
       spellings; the target file exists under the same `NNNN`)
-- [ ] Wire `check:exploration-links` into the `lint` job at **zero** baseline
+- [x] Wire `check:exploration-links` into the `lint` job at **zero** baseline
 
 _Phase 2 — give the backlog a clock_
 
@@ -738,8 +746,9 @@ _Phase 3 — make it consumed_
 
 ## Validation Checklist
 
-- [ ] `node scripts/check-exploration-links.mjs` reports exactly 25 broken
-      references before the fix, and 0 after
+- [x] `node scripts/check-exploration-links.mjs` reports **31** stale references
+      before the fix (25 unique names across 28 files — the earlier "25" counted
+      names, not occurrences) and **0** after, with 381 references checked
 - [ ] Renaming any exploration file with a stale inbound link turns
       `check:exploration-links` red, naming both the source and the target
 - [ ] `node scripts/check-exploration-fallow.mjs` exits 0 on a clean checkout of

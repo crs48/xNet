@@ -484,7 +484,7 @@ sequenceDiagram
 - [`site/src/data/roadmap.ts`](site/src/data/roadmap.ts) — Built includes "P2P sync engine"; federation is "Then"
 - [`docs/explorations/0200_[x]_PORTABLE_XNET_PROTOCOL_BOUNDARIES_AND_STANDARD.md`](docs/explorations/0200_[x]_PORTABLE_XNET_PROTOCOL_BOUNDARIES_AND_STANDARD.md) — the L0–L3 protocol model, kernel, conformance corpus
 - [`packages/sync/src/change.ts`](packages/sync/src/change.ts) — `CURRENT_PROTOCOL_VERSION` and the signed Change record
-- [`docs/explorations/0203_[_]_CHANGELOG_PR_SOURCE_OF_TRUTH.md`](docs/explorations) → see also the compare-page data-module single-sourcing convention
+- [`docs/explorations/0203_[_]_CHANGELOG_PR_NUMBERS_AS_SOURCE_OF_TRUTH.md`](docs/explorations) → see also the compare-page data-module single-sourcing convention
 - [awesome-local-first](https://github.com/alexanderop/awesome-local-first) — landscape categorization
 - [Convex — An Object Sync Engine for Local-first Apps](https://stack.convex.dev/object-sync-engine) — sync-engine framing
 - [Best CRDT Libraries 2025 — Velt](https://velt.dev/blog/best-crdt-libraries-real-time-data-sync) — CRDT/substrate landscape
