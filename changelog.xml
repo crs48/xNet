@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Habit tracking shows a completion rate, not a breakable streak</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-habit-tracking-shows-a-completion-rate-n</link>
+      <guid isPermaLink="false">2026-08-01-habit-tracking-shows-a-completion-rate-n</guid>
+      <pubDate>Sat, 01 Aug 2026 21:57:48 GMT</pubDate>
+      <description>The habit heatmap and Today panel used to show a 🔥 streak — a chain a single missed day destroyed. They now show the share of scheduled days you completed over the window on screen. Same information, but a miss lowers a number instead of wiping one out, which is what our charter's commitment against loss-aversion mechanics actually asked for.</description>
+    </item>
+    <item>
       <title>Relationships now record what you actually do together</title>
       <link>https://xnet.fyi/changelog#2026-08-01-relationships-now-record-what-you-actual</link>
       <guid isPermaLink="false">2026-08-01-relationships-now-record-what-you-actual</guid>

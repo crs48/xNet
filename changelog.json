@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-01-habit-tracking-shows-a-completion-rate-n",
+      "url": "https://xnet.fyi/changelog#2026-08-01-habit-tracking-shows-a-completion-rate-n",
+      "title": "Habit tracking shows a completion rate, not a breakable streak",
+      "content_text": "The habit heatmap and Today panel used to show a 🔥 streak — a chain a single missed day destroyed. They now show the share of scheduled days you completed over the window on screen. Same information, but a miss lowers a number instead of wiping one out, which is what our charter's commitment against loss-aversion mechanics actually asked for.\n",
+      "date_published": "2026-08-01T21:57:48Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "The habit heatmap and Today panel used to show a 🔥 streak — a chain a single missed day destroyed. They now show the share of scheduled days you completed over the window on screen. Same information, but a miss lowers a number instead of wiping one out, which is what our charter's commitment against loss-aversion mechanics actually asked for.",
+        "highlights": [],
+        "mergedAt": "2026-08-01T21:57:48Z",
+        "pr": 680,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-01-relationships-now-record-what-you-actual",
       "url": "https://xnet.fyi/changelog#2026-08-01-relationships-now-record-what-you-actual",
       "title": "Relationships now record what you actually do together",
