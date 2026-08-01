@@ -29,7 +29,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsup --config tsup.node.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
