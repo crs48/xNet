@@ -25,8 +25,7 @@ import { text, number, select, file, relation, json, checkbox } from '../propert
 import { spaceCascadeAuthorization } from './space-authorization'
 
 export const RECORDING_SCHEMA_IRI = 'xnet://xnet.fyi/Recording@1.0.0' as const
-export const RECORDING_TRANSCRIPT_SCHEMA_IRI =
-  'xnet://xnet.fyi/RecordingTranscript@1.0.0' as const
+export const RECORDING_TRANSCRIPT_SCHEMA_IRI = 'xnet://xnet.fyi/RecordingTranscript@1.0.0' as const
 
 /**
  * Why a span was cut. `silence` and `filler` are machine proposals the user can

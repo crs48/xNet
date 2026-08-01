@@ -606,7 +606,7 @@ export function proposeSilenceCuts(
       (`visibility` defaulting to `private`, blobs as `file()` CID refs)
 - [x] Register the schemas in `packages/data/src/schema/schemas/index.ts` with
       authorization coverage tests
-- [ ] `resolveVideoCapturePath()` + `detectVideoCapability()` mirroring the
+- [x] `resolveVideoCapturePath()` + `detectVideoCapability()` mirroring the
       0279 audio ladder, with user-facing scope messages
 - [ ] Renderer capture via `desktopCapturer` + `MediaRecorder`, writing to a
       temp file in `userData`
@@ -635,7 +635,7 @@ export function proposeSilenceCuts(
 - [ ] Extract the recording's audio track and feed the existing
       `xnet:meetings:transcribe` engines
 - [ ] Persist timed segments to `RecordingTranscript` incrementally
-- [ ] `proposeSilenceCuts()` over the VAD envelope, with configurable padding
+- [x] `proposeSilenceCuts()` over the VAD envelope, with configurable padding
 - [ ] Player component: cut-skipping, edited-duration scrubber, cut markers
 - [ ] Cut inspector: list every cut with its reason, one-click restore, a
       running "removed N s across M cuts" count
@@ -646,8 +646,8 @@ export function proposeSilenceCuts(
 - [ ] Chapter-generation template in `packages/meetings/src/enhance/templates.ts`
       (or a recordings sibling), run through `groundedness.ts`
 - [ ] Chapter list UI with editable titles and click-to-seek
-- [ ] WebVTT caption generation from transcript segments
-- [ ] Camera layout as node data: corner, size, shape, per-span visibility
+- [x] WebVTT caption generation from transcript segments
+- [x] Camera layout as node data: corner, size, shape, per-span visibility
 - [ ] Composite the camera track at playback, not at record time
 
 ### Phase 5 — Export and share

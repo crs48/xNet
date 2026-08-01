@@ -125,8 +125,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,publish,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
-            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,publish,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
+            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,recordings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,publish,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
+            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,recordings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,publish,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
             // Control-plane app logic (xNet Cloud — managed-hosting explorations 0174/0175)
             'apps/cloud/src/**/*.test.ts',
             // Demo apps — pure logic only (Connect Four fold, exploration 0314)
