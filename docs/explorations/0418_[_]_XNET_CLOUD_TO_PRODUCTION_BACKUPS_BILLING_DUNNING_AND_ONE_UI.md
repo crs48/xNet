@@ -629,9 +629,9 @@ export type BackupHealth =
 - [ ] Register the `billing-reconcile` leased job in `start()`
 - [ ] Add `ControlPlane.setBillingState`, `reactivateTenant`, `setWritesEnabled`
 - [ ] Unit-test the driver against every `BillingAction` variant, including notify-failure paths
-- [ ] Add `writesEnabled: boolean` to `PlanEntitlements` (default `true`)
-- [ ] Enforce `writesEnabled` in the hub's mutating routes — `507` + `billing_read_only` typed code
-- [ ] Test that a self-hosted hub with no signed entitlement token always resolves `writesEnabled: true`
+- [x] Add `writesEnabled: boolean` to `PlanEntitlements` (default `true`)
+- [x] Enforce `writesEnabled` in the hub's mutating routes — `507` + `billing_read_only` typed code
+- [x] Test that a self-hosted hub with no signed entitlement token always resolves `writesEnabled: true`
 - [ ] Changeset: **major** for `@xnetjs/entitlements` (wire contract) and dependents
 - [ ] Surface `billing_read_only` in the app as an actionable message, not a generic error
 - [ ] Add Resend (or equivalent) with `RESEND_API_KEY` in the env schema as `M2`
