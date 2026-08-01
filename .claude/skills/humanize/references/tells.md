@@ -5,7 +5,9 @@ it without flattening the prose. Ordered roughly by how often it decides a
 reader's verdict.
 
 Only work on tells `tellscan.mjs` flagged. A tell that isn't elevated is, in
-this draft, a stylistic choice — leave it.
+this draft, a stylistic choice — leave it. Three exceptions apply whatever the
+numbers say: §3 (a standing prohibition, not a threshold) and §14–15, which
+have no metric at all. Read for those every time.
 
 ---
 
@@ -324,7 +326,59 @@ A 4-word sentence after a 40-word one is a rhythm change a reader feels.
 
 Don't manufacture these by cutting qualifiers the argument needs.
 
-## 14. Structural tells the scanner can't see
+## 14. Encyclopedia register and bulleted prose
+
+No metric — read for it. The scanner counts words and sentences, so a draft can
+pass all thirteen checks and still read like a reference entry.
+
+Two habits travel together. The first is **bulleting**: an argument broken into
+a list of items, each a noun phrase, with the relationships between them left
+for the reader to guess. The second is the **survey voice**: define, enumerate,
+qualify, move on, never commit. Both are how a model organises information when
+it doesn't know what it wants to say.
+
+Bullets read as authoritative, which is why they're tempting. What they
+actually do is hide the argument — three bullets can sit under one heading
+without anyone noticing that the second contradicts the first. Prose can't
+hide that, which is the point of writing it.
+
+Repair by restoring the connective tissue you dropped when you made the list.
+Each bullet becomes a clause or a sentence, and the ordering words do the work
+the indentation was doing:
+
+> **Before.** A hub does three things:
+>
+> - stores signed changes
+> - authorises writes by role
+> - relays updates to other hubs
+>
+> **After.** A hub stores signed changes, decides who is allowed to write by
+> checking their role, and passes what it accepts on to the other hubs. The
+> middle job is the one that makes it a hub rather than a disk.
+
+Note what the rewrite forced: a judgement about which item matters. Lists let
+you skip that.
+
+The register fix is the same move in the sentence. Address the reader, use the
+verbs people say aloud, and let the essay have a view.
+
+| Encyclopedia                                              | Conversational                                                          |
+| --------------------------------------------------------- | ----------------------------------------------------------------------- |
+| One's data is subject to the provider's retention policy. | Your data lives as long as they feel like keeping it.                   |
+| It should be noted that latency varies by region.         | How far you sit from the hub decides how fast it feels.                 |
+| There are several approaches to conflict resolution.      | You can merge conflicts three ways, and two of them are wrong for text. |
+| Users may find the process confusing.                     | I got lost on the second screen.                                        |
+
+The concreteness in that right-hand column has to be *true*. Reaching for a
+detail you don't have is how a register fix turns into a fabricated one — the
+preservation contract in `SKILL.md` outranks this section.
+
+Boundaries. Contraction-free sentences are fine where the stress needs them
+(§12), and `Sources` lists, code blocks and figure captions are machinery, not
+voice — leave them. Conversational is not chatty: see **Over-correction** below
+for what happens when this rule is applied too hard.
+
+## 15. Structural tells the scanner can't see
 
 Check these by reading:
 
