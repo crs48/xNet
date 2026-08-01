@@ -46,6 +46,8 @@ export type SocialImportWorkerStageRequest = {
   manifest: ArchiveManifest
   buckets: string[]
   includeSensitive: boolean
+  /** Fetch video transcripts for this run (0419). */
+  fetchTranscripts?: boolean
   importedAt?: string
 }
 

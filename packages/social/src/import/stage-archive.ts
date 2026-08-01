@@ -23,6 +23,11 @@ import {
   shouldCommitSourceRecordNodes,
   type SocialImportSourceRecordMode
 } from './policy'
+import {
+  serializeSocialImportRunOptions,
+  DEFAULT_SOCIAL_IMPORT_RUN_OPTIONS,
+  type SocialImportRunOptions
+} from './run-options'
 import { createStagingSummaryAccumulator } from './staging'
 import { createLargeArchiveStoragePlan } from './storage'
 import { createSocialImportTelemetryEvents, type SocialImportTelemetryEvent } from './telemetry'
@@ -69,6 +74,8 @@ export type SocialImportStageInput = {
   readTextEntry?: TextArchiveEntryReader
   buckets?: readonly string[]
   includeSensitive?: boolean
+  /** Fetch transcripts for what this run imports (0419). Off unless asked. */
+  fetchTranscripts?: boolean
   importedAt?: string
   observedBy?: string
   onProgress?: (progress: SocialImportStageProgress) => void
@@ -197,7 +204,8 @@ export async function createSocialImportStagePlan(
     selectedBuckets,
     selection: {
       buckets: selectedBuckets,
-      includeSensitive: Boolean(input.includeSensitive)
+      includeSensitive: Boolean(input.includeSensitive),
+      runOptions: { fetchTranscripts: input.fetchTranscripts === true }
     },
     storagePlan: createLargeArchiveStoragePlan(input.manifest)
   }
@@ -245,6 +253,7 @@ export async function stageSocialArchive(
       importRunId: plan.importRunId,
       importedAt: plan.importedAt,
       selectedBuckets: plan.selectedBuckets,
+      options: { fetchTranscripts: plan.selection.runOptions?.fetchTranscripts === true },
       summary
     }),
     records: createSocialImportNodeDrafts(stagedRecords),
@@ -319,6 +328,7 @@ export async function* streamSocialImportNodeDrafts(
     importRunId: plan.importRunId,
     importedAt: plan.importedAt,
     selectedBuckets: plan.selectedBuckets,
+    options: { fetchTranscripts: plan.selection.runOptions?.fetchTranscripts === true },
     summary
   })
   yield importRunNode
@@ -502,6 +512,8 @@ export function createSocialImportRunDraft(input: {
   importedAt: string
   selectedBuckets: string[]
   summary: StagingSummary
+  /** Per-run choices such as transcript fetching (0419). */
+  options?: SocialImportRunOptions
 }): SocialImportNodeDraft {
   return {
     kind: 'import-run',
@@ -519,6 +531,9 @@ export function createSocialImportRunDraft(input: {
       startedAt: input.importedAt,
       completedAt: input.importedAt,
       selectedBucketsJson: JSON.stringify(input.selectedBuckets),
+      optionsJson: serializeSocialImportRunOptions(
+        input.options ?? DEFAULT_SOCIAL_IMPORT_RUN_OPTIONS
+      ),
       summaryJson: JSON.stringify(input.summary),
       warningCount: input.summary.totalWarnings,
       errorCount: 0

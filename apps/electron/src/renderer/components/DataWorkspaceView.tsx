@@ -5,9 +5,14 @@
  * and inserting saved lenses onto the canvas as frames.
  */
 import { upsertSocialImportJobProgress } from '@xnetjs/social/import/core'
-import { useDataWorkspace, DataWorkspaceBody, type SavedViewCanvasFrameInput } from '@xnetjs/views'
+import {
+  useDataWorkspace,
+  useSocialFeedEnrichment,
+  DataWorkspaceBody,
+  type SavedViewCanvasFrameInput
+} from '@xnetjs/views'
 import { Database, Import, Loader2, X } from 'lucide-react'
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 
 export type { SavedViewCanvasFrameInput }
 
@@ -25,6 +30,8 @@ export function DataWorkspaceView({
     onInsertSavedLensAsCanvasFrame
   })
   const { seeding, handleSeedWorkspace, refreshSocialImportJobs } = workspace
+  const feedEnrichment = useSocialFeedEnrichment()
+  const savedViewRunnerProps = useMemo(() => ({ feedEnrichment }), [feedEnrichment])
 
   // Bridge main-process commit jobs into the renderer's import-job store so
   // progress started from the main process shows up in the shared panel.
@@ -84,7 +91,7 @@ export function DataWorkspaceView({
             </p>
           </div>
 
-          <DataWorkspaceBody workspace={workspace} />
+          <DataWorkspaceBody workspace={workspace} savedViewRunnerProps={savedViewRunnerProps} />
         </div>
       </div>
     </div>

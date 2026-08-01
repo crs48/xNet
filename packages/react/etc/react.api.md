@@ -366,6 +366,7 @@ export function createSavedViewVisualCanvasProjectionRequest(input: {
     layout: SavedViewVisualLayoutOption;
     previews: readonly SavedViewVisualPreviewModel[];
     nodes: readonly SavedViewCanvasProjectionNode[];
+    edges?: readonly SavedViewCanvasProjectionEdge[];
 }): SavedViewVisualCanvasProjectionRequest;
 
 // @public (undocumented)
@@ -1664,6 +1665,15 @@ export type RunAtprotoCeremony = (input: {
     handleOrPds: string;
 }) => Promise<AtprotoCeremonyResult>;
 
+// @public
+export type SavedViewCanvasProjectionEdge = {
+    id: string;
+    sourceId: string;
+    targetId: string;
+    relationshipKind: string;
+    label?: string;
+};
+
 // @public (undocumented)
 export type SavedViewCanvasProjectionNode = {
     id: string;
@@ -1894,6 +1904,7 @@ export type SavedViewVisualCanvasProjectionRequest = {
         projectionGroupBy: SavedViewVisualLayoutOption['projectionGroupBy'];
     };
     nodes: SavedViewCanvasProjectionNode[];
+    edges: SavedViewCanvasProjectionEdge[];
     sourceNodeIds: string[];
     omittedNodeCount: number;
     previewCount: number;
