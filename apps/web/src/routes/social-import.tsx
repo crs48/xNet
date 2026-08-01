@@ -697,8 +697,8 @@ function SocialImportPage(): React.ReactElement {
                 <div>
                   <div className="text-sm font-medium">Fetch video transcripts</div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    Looks up captions for videos this archive brings in, from this device, at a
-                    slow trickle. Videos without captions are recorded as such and never retried.
+                    Looks up captions for videos this archive brings in, from this device, at a slow
+                    trickle. Videos without captions are recorded as such and never retried.
                   </div>
                 </div>
               </label>

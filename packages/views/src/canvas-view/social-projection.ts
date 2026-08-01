@@ -110,9 +110,7 @@ export function applySocialCanvasProjectionPlan(
  * view of anything — but the bound has to be visible, or the board silently
  * misrepresents the library it came from.
  */
-export function describeSocialCanvasProjection(
-  result: ApplySocialCanvasProjectionResult
-): string {
+export function describeSocialCanvasProjection(result: ApplySocialCanvasProjectionResult): string {
   const parts = [`${result.nodeCount} cards`, `${result.edgeCount} connections`]
   if (result.omittedNodeCount > 0) parts.push(`${result.omittedNodeCount} more not shown`)
   if (result.omittedEdgeCount > 0) {

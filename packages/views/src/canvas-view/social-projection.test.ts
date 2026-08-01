@@ -26,9 +26,10 @@ function projectionNode(id: string, overrides: Partial<SavedViewCanvasProjection
   }
 }
 
-function planFor(nodeIds: readonly string[], edges: Parameters<
-  typeof createSocialCanvasProjectionPlan
->[0]['edges'] = []) {
+function planFor(
+  nodeIds: readonly string[],
+  edges: Parameters<typeof createSocialCanvasProjectionPlan>[0]['edges'] = []
+) {
   return createSocialCanvasProjectionPlan({
     nodes: nodeIds.map((id) => projectionNode(id)),
     edges,

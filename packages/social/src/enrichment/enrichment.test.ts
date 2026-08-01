@@ -282,7 +282,9 @@ describe('direct TikTok oEmbed', () => {
   it('marks TikTok as the one platform reachable without the hub', () => {
     expect(supportsDirectOEmbed('tiktok')).toBe(true)
     expect(supportsDirectOEmbed('youtube')).toBe(false)
-    expect(new URL(tiktokOEmbedUrl(tiktokTarget.url)).searchParams.get('url')).toBe(tiktokTarget.url)
+    expect(new URL(tiktokOEmbedUrl(tiktokTarget.url)).searchParams.get('url')).toBe(
+      tiktokTarget.url
+    )
   })
 
   it('resolves TikTok metadata with no hub configured', async () => {

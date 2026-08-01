@@ -15,9 +15,7 @@ import type { SocialRetrievalScope } from './scope'
 import { SocialContentSchema } from '../schemas'
 import { createSocialRetrievalScope, SOCIAL_RETRIEVAL_SCOPE } from './scope'
 
-export type SocialContextPackId =
-  | 'social.pack.saved-library'
-  | 'social.pack.watched-transcripts'
+export type SocialContextPackId = 'social.pack.saved-library' | 'social.pack.watched-transcripts'
 
 /** A seed resource, matching the `xnet_create_context_pack` seed shape. */
 export type SocialContextPackSeed = {

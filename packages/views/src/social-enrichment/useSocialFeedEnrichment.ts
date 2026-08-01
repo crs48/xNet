@@ -110,9 +110,7 @@ export function useSocialFeedEnrichment(): SavedViewFeedEnrichmentAdapter {
       attemptCount: nextEnrichmentAttempt(existing),
       fetchedAtMs: Date.now(),
       ...(result.thumbnailBlobCid ? { thumbnailBlobCid: result.thumbnailBlobCid } : {}),
-      ...(result.thumbnailContentType
-        ? { thumbnailContentType: result.thumbnailContentType }
-        : {})
+      ...(result.thumbnailContentType ? { thumbnailContentType: result.thumbnailContentType } : {})
     })
 
     await mutate([

@@ -11,6 +11,7 @@ import type {
   Rect,
   ShapeType
 } from '@xnetjs/canvas'
+import type { SocialCanvasProjectionPlan } from '@xnetjs/social'
 import {
   Canvas,
   getCanvasObjectsMap,
@@ -18,7 +19,6 @@ import {
   useCanvasThemeTokens
 } from '@xnetjs/canvas'
 import { CanvasSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
-import type { SocialCanvasProjectionPlan } from '@xnetjs/social'
 import {
   CanvasDatabasePreviewSurface,
   CanvasInlinePageSurface,
@@ -288,8 +288,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   // The imperative handle reports success as a boolean; the hook returns the
   // richer result for callers that want the placed/omitted counts.
   const applySocialCanvasProjectionHandle = useCallback(
-    (plan: SocialCanvasProjectionPlan): boolean =>
-      Boolean(applySocialCanvasProjection(plan)),
+    (plan: SocialCanvasProjectionPlan): boolean => Boolean(applySocialCanvasProjection(plan)),
     [applySocialCanvasProjection]
   )
 

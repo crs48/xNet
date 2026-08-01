@@ -213,7 +213,11 @@ describe('run states', () => {
 
     expect(summary.total).toBe(50)
     expect(
-      summary.fetched + summary.noCaptions + summary.blocked + summary.errored + summary.notAttempted
+      summary.fetched +
+        summary.noCaptions +
+        summary.blocked +
+        summary.errored +
+        summary.notAttempted
     ).toBe(50)
     expect(summary.notAttempted).toBe(46)
     expect(summary.complete).toBe(false)
@@ -297,6 +301,64 @@ describe('transcript pass', () => {
     expect(result.summary.notAttempted).toBe(3)
     expect(result.summary.complete).toBe(false)
     expect(result.retryable).toHaveLength(2)
+  })
+
+  it('accounts for every video in a 50-item playlist run', async () => {
+    // The shape of a real pass, with the transport stubbed: a mixed playlist
+    // where some videos have captions, some do not, and one request fails.
+    const playlist: TranscriptTarget[] = Array.from({ length: 50 }, (_, index) => ({
+      platform: 'youtube',
+      platformContentId: `playlist-video-${index}`
+    }))
+    const drafts: string[] = []
+    let index = 0
+
+    const result = await runTranscriptFetchPass({
+      targets: playlist,
+      fetcher: {
+        platform: 'youtube',
+        supports: () => true,
+        fetch: async () => {
+          const position = index++
+          if (position % 10 === 7) return { status: 'no-captions' as const }
+          if (position === 23) return { status: 'error' as const, reason: 'timeout' }
+          return { status: 'fetched' as const, cues: [cue(0, `line ${position}`)] }
+        }
+      },
+      onResult: (target, outcome) => {
+        if (outcome.status !== 'fetched') return
+        for (const draft of createTranscriptContentDrafts({
+          platform: target.platform,
+          platformContentId: target.platformContentId,
+          cues: outcome.cues,
+          fetchedAtMs: 1_700_000_000_000
+        })) {
+          drafts.push(draft.id)
+        }
+      },
+      delayFn: async () => {},
+      random: () => 0
+    })
+
+    const { summary } = result
+    expect(summary.total).toBe(50)
+    expect(
+      summary.fetched +
+        summary.noCaptions +
+        summary.blocked +
+        summary.errored +
+        summary.notAttempted
+    ).toBe(50)
+    expect(summary.fetched).toBe(44)
+    expect(summary.noCaptions).toBe(5)
+    expect(summary.errored).toBe(1)
+    expect(summary.notAttempted).toBe(0)
+    expect(summary.complete).toBe(true)
+    expect(describeTranscriptRun(summary)).toContain('complete')
+
+    // One transcript node per fetched video, each with a distinct id.
+    expect(drafts).toHaveLength(44)
+    expect(new Set(drafts).size).toBe(44)
   })
 
   it('leaves unsupported targets unattempted rather than counting them as misses', async () => {

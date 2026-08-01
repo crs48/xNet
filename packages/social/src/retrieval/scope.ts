@@ -168,10 +168,7 @@ export function socialRetrievalDecision(
   if (!scope.schemaIds.includes(candidate.schemaId)) {
     return { eligible: false, reason: 'schema-not-in-scope' }
   }
-  if (
-    candidate.privacyClass &&
-    scope.excludedPrivacyClasses.includes(candidate.privacyClass)
-  ) {
+  if (candidate.privacyClass && scope.excludedPrivacyClasses.includes(candidate.privacyClass)) {
     return { eligible: false, reason: 'privacy-class-excluded' }
   }
   if (

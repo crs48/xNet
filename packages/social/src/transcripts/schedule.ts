@@ -37,10 +37,7 @@ export type TranscriptPassOptions = {
   targets: readonly TranscriptTarget[]
   fetcher: TranscriptFetcher
   /** Called for each attempt, in order. Errors here abort the pass. */
-  onResult: (
-    target: TranscriptTarget,
-    outcome: TranscriptFetchOutcome
-  ) => void | Promise<void>
+  onResult: (target: TranscriptTarget, outcome: TranscriptFetchOutcome) => void | Promise<void>
   intervalMs?: number
   jitterMs?: number
   maxConsecutiveBlocks?: number

@@ -43,6 +43,8 @@ export function parseSocialImportRunOptions(
 }
 
 /** Whether a stored run opted into transcript fetching. */
-export function runWantsTranscripts(run: { optionsJson?: string | null } | null | undefined): boolean {
+export function runWantsTranscripts(
+  run: { optionsJson?: string | null } | null | undefined
+): boolean {
   return parseSocialImportRunOptions(run?.optionsJson).fetchTranscripts
 }

@@ -10,7 +10,9 @@ function viewById(id: string) {
 }
 
 /** Collect every `{ field, value }` equality/inequality leaf in a descriptor. */
-function collectPredicates(descriptor: unknown): Array<{ op: string; field: string; value: unknown }> {
+function collectPredicates(
+  descriptor: unknown
+): Array<{ op: string; field: string; value: unknown }> {
   const found: Array<{ op: string; field: string; value: unknown }> = []
   const visit = (value: unknown): void => {
     if (Array.isArray(value)) {
