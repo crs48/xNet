@@ -31,11 +31,21 @@
   ],
   "routes": [
     {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "changed",
+      "ssim": 0.9956,
+      "before": "before/routes/data.png",
+      "after": "routes/data.png",
+      "diff": "diff/routes/data.png"
+    },
+    {
       "id": "settings",
       "label": "Settings",
       "file": "routes/settings.png",
       "status": "changed",
-      "ssim": 0.968783,
+      "ssim": 0.967321,
       "before": "before/routes/settings.png",
       "after": "routes/settings.png",
       "diff": "diff/routes/settings.png"
@@ -43,5 +53,5 @@
   ],
   "electron": [],
   "flows": [],
-  "changedCount": 1
+  "changedCount": 2
 }
