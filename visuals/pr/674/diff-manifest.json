@@ -1,0 +1,98 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [
+    {
+      "id": "web-presenceavatars--docs",
+      "title": "Web/PresenceAvatars",
+      "name": "Docs",
+      "file": "stories/web-presenceavatars--docs.png",
+      "status": "changed",
+      "ssim": 0.989439,
+      "before": "before/stories/web-presenceavatars--docs.png",
+      "after": "stories/web-presenceavatars--docs.png",
+      "diff": "diff/stories/web-presenceavatars--docs.png"
+    },
+    {
+      "id": "web-storagewarningbanner--docs",
+      "title": "Web/StorageWarningBanner",
+      "name": "Docs",
+      "file": "stories/web-storagewarningbanner--docs.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "unchanged",
+      "ssim": 0.999114
+    },
+    {
+      "id": "discover",
+      "label": "Discover",
+      "file": "routes/discover.png",
+      "status": "changed",
+      "ssim": 0.982705,
+      "before": "before/routes/discover.png",
+      "after": "routes/discover.png",
+      "diff": "diff/routes/discover.png"
+    },
+    {
+      "id": "social-import",
+      "label": "Social import",
+      "file": "routes/social-import.png",
+      "status": "changed",
+      "ssim": 0.918299,
+      "before": "before/routes/social-import.png",
+      "after": "routes/social-import.png",
+      "diff": "diff/routes/social-import.png"
+    }
+  ],
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "file": "electron/electron-canvas-home.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "electron-canvas-objects",
+      "label": "Desktop · Canvas with objects",
+      "file": "electron/electron-canvas-objects.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "flows": [],
+  "changedCount": 3
+}
