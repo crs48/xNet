@@ -39,6 +39,7 @@ import { useIdentity } from '@xnetjs/react'
 import { useDataBridge, useNodeStore } from '@xnetjs/react/internal'
 import { Bot, Loader2, Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { readAssistMode } from '../lib/ai-assist'
 import { usePlatform } from '../platform'
 import { createFramedBridgeProvider, type BridgeAgentFrame } from './ai-bridge-frames'
 import { createChatCeremony, type CeremonyPending, type ChatCeremony } from './ai-chat-ceremony'
@@ -554,6 +555,10 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
         const runtime = createAiAgentRuntime({
           provider,
           systemPrompt: promptParts.join('\n\n'),
+          // Charter §Agency: `scaffold` unless the user opted into `draft` in
+          // Settings › AI. Read per-runtime so a change applies to the next
+          // conversation without a reload (0422).
+          assistMode: readAssistMode(),
           ...(surface
             ? {
                 contextProvider: async ({ content }) => {

@@ -738,12 +738,16 @@ seeing half grows past a paragraph.
 
 **Step 1 — fix the live inaccuracy**
 
-- [ ] Decide: surface an assist-mode control, or correct Charter §5's wording.
+- [x] Decide: surface an assist-mode control, or correct Charter §5's wording.
       Do not ship the register until one of the two has landed.
-- [ ] If surfacing: add an assist-mode control to Settings › AI reading
+      **Decided: surface the control.** §5 already described the better
+      product; the honest fix is to build what it says rather than to write the
+      promise down. Cost was one preference module and one settings panel.
+- [x] Surface it: add an assist-mode control to Settings › AI reading
       `AiAssistMode`, with the scaffold-vs-draft tradeoff stated in plain words.
-- [ ] If correcting: reword §5 to describe `assistMode` as an internal default
-      and add a `pending:` note to the relevant claim.
+- [x] Record the rejected alternative — rewording §5 to call `assistMode` an
+      internal default — so a later reader knows the wording was tested against
+      the code and kept, not overlooked.
 
 **Step 2 — charter**
 

@@ -36,6 +36,7 @@ export * from './hooks/usePageSearchSurface'
 export * from './hooks/useRequestCount'
 export * from './hooks/useSpaces'
 export * from './lib/desk'
+export * from './lib/ai-assist'
 // Shell chrome (0406) — the components both hosts mount.
 export { AgentApprovalsLayer, type AgentApprovalBridge } from './AgentApprovals'
 export { ApprovalCard, TOOL_LABELS } from './views/ApprovalCard'
