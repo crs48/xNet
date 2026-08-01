@@ -17,6 +17,7 @@ import { ChangeSigner } from '@xnetjs/sync';
 import { ChunkManager } from '@xnetjs/storage';
 import { ContentId } from '@xnetjs/core';
 import { DID as DID_2 } from '@xnetjs/core';
+import { PassportRevocationCheck } from '@xnetjs/identity';
 import { PolicyEvaluator } from '@xnetjs/core';
 import { PublicKeyResolver } from '@xnetjs/crypto';
 import { RoleResolver } from '@xnetjs/core';
@@ -284,6 +285,9 @@ export const AGENT_APPROVAL_SURFACES: readonly [{
 }];
 
 // @public
+export const AGENT_AUDIT_BUNDLE_VERSION: 1;
+
+// @public
 export const AGENT_CHANNELS: readonly [{
     readonly id: "whatsapp";
     readonly name: "WhatsApp";
@@ -470,6 +474,23 @@ export const AgentApprovalSchema: DefinedSchema<{
 // @public (undocumented)
 export type AgentApprovalSurface = (typeof AGENT_APPROVAL_SURFACES)[number]['id'];
 
+// @public
+export type AgentAuditBundle = {
+    version: typeof AGENT_AUDIT_BUNDLE_VERSION;
+    exportedAt: number;
+    passport: BundlePassport;
+    actions: BundleAction[];
+    approvals: BundleApproval[];
+    changes: Change[];
+};
+
+// @public
+export type AgentAuditSource = {
+    listActions(passportAgentDID: string): Promise<BundleAction[]> | BundleAction[];
+    listApprovals(actionIds: string[]): Promise<BundleApproval[]> | BundleApproval[];
+    getChanges(changeIds: string[]): Promise<Change[]> | Change[];
+};
+
 // @public (undocumented)
 export type AgentChannel = (typeof AGENT_CHANNELS)[number]['id'];
 
@@ -642,6 +663,28 @@ export type AtmospherePublishState =
 /** The record was deleted; downstream SHOULD stop serving, no guarantee. */
 | 'withdrawn';
 
+// @public
+export type AuditVerifyCode = 'passport-invalid' | 'passport-audience-mismatch' | 'change-missing' | 'change-hash-tampered' | 'change-signature-invalid' | 'change-wrong-author' | 'chain-broken' | 'approval-missing' | 'approval-not-operator-signed' | 'approval-denied';
+
+// @public (undocumented)
+export type AuditVerifyProblem = {
+    code: AuditVerifyCode;
+    message: string;
+    subject?: string;
+};
+
+// @public (undocumented)
+export type AuditVerifyReport = {
+    ok: boolean;
+    problems: AuditVerifyProblem[];
+    checked: {
+        actions: number;
+        changes: number;
+        approvals: number;
+        gatedActions: number;
+    };
+};
+
 export { AUTH_ACTIONS }
 
 export { AuthAction }
@@ -801,6 +844,16 @@ export const BudgetSchema: DefinedSchema<{
     space: PropertyBuilder<string>;
     visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
 }>;
+
+// @public
+export function buildAgentAuditBundle(options: BuildAgentAuditOptions): Promise<AgentAuditBundle>;
+
+// @public (undocumented)
+export type BuildAgentAuditOptions = {
+    passport: BundlePassport;
+    source: AgentAuditSource;
+    now?: () => number;
+};
 
 // @public
 export function buildDatabaseSchema(databaseId: string, metadata: DatabaseSchemaMetadata, columns: StoredColumn[]): Schema;
@@ -3409,6 +3462,19 @@ export const BUNDLE_ENTRY: {
     readonly yjsDocs: "yjs/docs.ndjson";
 };
 
+// @public
+export type BundleAction = {
+    id: string;
+    session: string;
+    tool: string;
+    risk: AgentRisk;
+    status: string;
+    reversibility: AgentReversibility;
+    changeIds: string[];
+    instruction?: string;
+    createdAt?: number;
+};
+
 // @public (undocumented)
 export type BundleApplyReport = {
     applied: number;
@@ -3417,6 +3483,16 @@ export type BundleApplyReport = {
     blobsInstalled: number;
     yjsDocsApplied: number;
     missingPrerequisites: string[];
+};
+
+// @public
+export type BundleApproval = {
+    id: string;
+    actionId: string;
+    surface: string;
+    decision: string;
+    approverDID?: string;
+    createdAt?: number;
 };
 
 // @public (undocumented)
@@ -3449,6 +3525,14 @@ export class BundleImportError extends Error {
     // (undocumented)
     readonly code: 'verify-failed' | 'unsigned-manifest' | 'foreign-owner' | 'missing-prerequisites';
 }
+
+// @public
+export type BundlePassport = {
+    agentDID: string;
+    operatorDID: string;
+    ucan: string;
+    expiresAt?: number;
+};
 
 // @public
 export type BundleScope = {
@@ -8311,6 +8395,9 @@ export const PageSchema: DefinedSchema<{
 export const pageToDocumentLens: RecordLens;
 
 // @public
+export function parseAgentAuditBundle(json: string): AgentAuditBundle;
+
+// @public
 export function parseCSV(text: string, options?: CsvParseOptions): ParsedCSV;
 
 // @public
@@ -9931,6 +10018,9 @@ export interface SelectOptions<T extends readonly SelectOption[]> {
     required?: boolean;
 }
 
+// @public
+export function serializeAgentAuditBundle(bundle: AgentAuditBundle): string;
+
 // @public (undocumented)
 export function serializeNodeQueryDescriptor(descriptor: NodeQueryDescriptor): string;
 
@@ -11052,6 +11142,15 @@ export interface ValidationResult {
     valid: boolean;
 }
 
+// @public
+export function verifyAgentAudit(bundle: AgentAuditBundle, options?: VerifyAgentAuditOptions): AuditVerifyReport;
+
+// @public
+export type VerifyAgentAuditOptions = {
+    revocations?: PassportRevocationCheck;
+    failOnRevoked?: boolean;
+};
+
 // Warning: (ae-forgotten-export) The symbol "VerifyBundleOptions" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
@@ -11238,7 +11337,7 @@ export { YXmlText }
 
 // Warnings were encountered during analysis:
 //
-// dist/types-DWM7rhNJ.d.ts:571:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
+// dist/types-DmwyWSm5.d.ts:444:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 
