@@ -654,9 +654,9 @@ export type BackupHealth =
 - [ ] Map `cloud.xnet.fyi` + Cloudflare DNS (grey cloud)
 - [ ] Run `cloud-smoke.mjs` against production
 - [ ] Provision one real paid tenant; write data; run a manual restore drill; confirm restore **and** teardown
-- [ ] Replace `backupsConfigured: Boolean(env.R2_BUCKET)` with a `BackupHealth` read from the last drill
-- [ ] Confirm `orphan-audit.ts` sweeps `drill-*` services
-- [ ] Scale the drill sample with fleet size instead of a constant 20
+- [x] Replace `backupsConfigured: Boolean(env.R2_BUCKET)` with a `BackupHealth` read from the last drill
+- [x] Confirm `orphan-audit.ts` sweeps `drill-*` services
+- [x] Scale the drill sample with fleet size instead of a constant 20
 - [ ] Document RTO/RPO on `site/src/pages/cloud/index.astro` — say "seconds, asynchronous", not "zero"
 - [ ] Changelog fragment for the launch
 

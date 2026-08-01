@@ -20,6 +20,7 @@ import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { parseAiBudgetForm } from './ai/budget-form'
 import { createAiRoute, type AiChatDeps } from './ai/route'
+import { backupsHealthyFor, type BackupHealth } from './backup/schedule'
 import { WebhookSignatureError, type TenantBillingGateway } from './billing-gateway'
 import { currentPeriodStartMs } from './control-plane'
 import {
@@ -78,8 +79,12 @@ export interface ControlPlaneAppDeps {
    * from one that passed, because success is silence.
    */
   jobs?: JobHealthSource
-  /** Whether per-hub backups (Litestream→R2) are configured; surfaced on /status.json. */
-  backupsConfigured?: boolean
+  /**
+   * Backup health, surfaced on /status.json (exploration 0418). A function, not a
+   * value, because the answer changes when the nightly drill runs — a boolean
+   * captured at boot would report last week's opinion forever.
+   */
+  backupHealth?: () => BackupHealth
   /** Managed AI chat deps. If set, exposes `POST /ai/chat` (metered gateway). */
   ai?: AiChatDeps
   /** Secret used to sign session cookies. If unset, the dashboard + auth callback are disabled. */
@@ -213,7 +218,9 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
       fleet: fleetSummary(slis),
       availabilities: slis.map((s) => s.availability),
       aiConfigured: Boolean(deps.ai),
-      backupsHealthy: deps.backupsConfigured ? true : null
+      // `unproven` reports as unknown (null), NOT as healthy: a configured
+      // bucket nobody has restored from is not a backup we should claim.
+      backupsHealthy: backupsHealthyFor(deps.backupHealth?.())
     })
     return c.json(status)
   })

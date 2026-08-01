@@ -20,7 +20,15 @@ import {
 import { MemoryProvisioner, type Provisioner } from '@xnetjs/cloud/provisioner'
 import { aiChatDepsFromEnv, aiKeysFromEnv } from './ai/wiring'
 import { runRestoreDrills, pickDrillSample } from './backup/restore-drill'
-import { dayIndex, summarizeDrill, demotionDue, httpReadyProbe } from './backup/schedule'
+import {
+  backupHealthFrom,
+  dayIndex,
+  drillSampleSize,
+  summarizeDrill,
+  demotionDue,
+  httpReadyProbe,
+  type LastDrill
+} from './backup/schedule'
 import { assertSyncedViaHealth } from './backup/sync-gate'
 import { emailNotifier, mailSenderFromEnv } from './billing/notify'
 import { stripeGatewayFromEnv } from './billing/stripe-gateway'
@@ -210,7 +218,12 @@ export {
   summarizeDrill,
   demotionDue,
   httpReadyProbe,
-  type DrillSummary
+  backupHealthFrom,
+  backupsHealthyFor,
+  drillSampleSize,
+  type BackupHealth,
+  type DrillSummary,
+  type LastDrill
 } from './backup/schedule'
 export { backupSynced, assertSyncedViaHealth } from './backup/sync-gate'
 export { reconcileTenant, type ReconcileInput, type ReconcileAction } from './reconcile/reconcile'
@@ -401,7 +414,13 @@ function start(): void {
   const probeMs = Number(env.XNET_CLOUD_PROBE_MS ?? 60_000)
   const readyProbe = httpReadyProbe()
   const drillMs = Number(env.XNET_CLOUD_DRILL_MS ?? 24 * 60 * 60_000)
-  const drillSample = Number(env.XNET_CLOUD_DRILL_SAMPLE ?? 20)
+  // A cap, not a fixed size — `drillSampleSize` scales the nightly sample with the
+  // fleet so three tenants aren't drilled twice over and five hundred aren't
+  // covered at 4% (exploration 0418).
+  const drillMax = Number(env.XNET_CLOUD_DRILL_SAMPLE ?? 20)
+  // The last drill result is what `backupHealth` reports from — a bucket name in
+  // an env var is not evidence that a restore works.
+  let lastDrill: LastDrill | null = null
   const coldAfterMs = Number(env.XNET_CLOUD_COLD_AFTER_MS ?? 7 * 24 * 60 * 60_000)
   const sweepMs = Number(env.XNET_CLOUD_DEMOTE_SWEEP_MS ?? 60 * 60_000)
   const assertSynced = assertSyncedViaHealth(async (tenantId) => {
@@ -444,10 +463,17 @@ function start(): void {
     leaseMs: 30 * 60_000,
     work: async () => {
       const tenants = await controlPlane.listTenants()
-      const sample = pickDrillSample(tenants, drillSample, dayIndex(Date.now()))
+      const sample = pickDrillSample(
+        tenants,
+        drillSampleSize(tenants.length, { max: drillMax }),
+        dayIndex(Date.now())
+      )
       const summary = summarizeDrill(
         await runRestoreDrills(controlPlane.provisioner, readyProbe, sample)
       )
+      // Record BEFORE the throw below, so a failing drill reports `failing`
+      // rather than falling back to the stale previous result.
+      lastDrill = { ranAtMs: Date.now(), failures: summary.failures }
       // Throwing marks the run failed, so it stays due and is retried — and the
       // staleness alert fires if it keeps failing.
       if (summary.alert) {
@@ -516,7 +542,7 @@ function start(): void {
     payments,
     health,
     jobs,
-    backupsConfigured: Boolean(env.R2_BUCKET),
+    backupHealth: () => backupHealthFrom(Boolean(env.R2_BUCKET), lastDrill),
     sessionSecret: env.XNET_CLOUD_SESSION_SECRET ?? 'dev-insecure-session-secret',
     baseUrl: env.XNET_CLOUD_BASE_URL ?? '',
     marketingUrl: env.XNET_CLOUD_MARKETING_URL ?? 'https://xnet.fyi/cloud',
