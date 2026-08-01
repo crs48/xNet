@@ -221,9 +221,7 @@ export function registerMemoryCommands(program: Command, deps: MemoryCommandDeps
   withBackendFlags(
     program.command('forget <memoryId>').description('Delete one memory by id')
   ).action(async (memoryId: string, options) => {
-    await withServices({ ...options, forWrites: true }, (services) =>
-      runForget(services, memoryId)
-    )
+    await withServices({ ...options, forWrites: true }, (services) => runForget(services, memoryId))
   })
 
   withBackendFlags(

@@ -50,6 +50,7 @@ export {
   ALLOW_ALL_NODES,
   createAgentRetrieval,
   isDegradedTier,
+  relationFieldNames,
   schemaRegistryRelationFields,
   type AgentRetrievalOptions,
   type RecallResult,

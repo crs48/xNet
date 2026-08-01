@@ -83,9 +83,7 @@ if (existing) {
   } else {
     console.log('  All required events present. Nothing to do.')
   }
-  console.log(
-    '\nNote: the signing secret of an existing endpoint is only visible in the dashboard'
-  )
+  console.log('\nNote: the signing secret of an existing endpoint is only visible in the dashboard')
   console.log('  (Developers → Webhooks → your endpoint → Signing secret). It must match the')
   console.log('  `stripe-webhook` Secret Manager value the service reads.')
   process.exit(0)
@@ -106,5 +104,7 @@ console.log(`✓ Created webhook ${made.id} → ${made.url}`)
 console.log(`  events: ${(made.enabled_events ?? []).join(', ')}`)
 console.log(`\nSigning secret (store it — shown once):\n  ${made.secret}`)
 console.log('\nLand it where the deployed service + local runs read it:')
-console.log(`  printf '%s' '${made.secret}' | gcloud secrets versions add stripe-webhook --data-file=- --project ${PROJECT}`)
+console.log(
+  `  printf '%s' '${made.secret}' | gcloud secrets versions add stripe-webhook --data-file=- --project ${PROJECT}`
+)
 console.log('  # and update STRIPE_WEBHOOK_SECRET in apps/cloud/.env.staging')

@@ -33,7 +33,10 @@ describe('normalizeProfile', () => {
   })
 
   it('applies to a budget without touching unrelated knobs', () => {
-    const budget = budgetFromProfile({ ...DEFAULT_RETRIEVAL_PROFILE, hopDecay: 0.7 }, DEFAULT_BUDGET)
+    const budget = budgetFromProfile(
+      { ...DEFAULT_RETRIEVAL_PROFILE, hopDecay: 0.7 },
+      DEFAULT_BUDGET
+    )
     expect(budget.hopDecay).toBe(0.7)
     expect(budget.maxTokens).toBe(DEFAULT_BUDGET.maxTokens)
   })

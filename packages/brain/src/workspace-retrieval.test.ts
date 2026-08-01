@@ -36,7 +36,9 @@ const NODES: RetrievalNode[] = [
   }
 ]
 
-function makeStore(options: { withIndex: boolean; indexReturnsNull?: boolean } = { withIndex: true }): RetrievalStore {
+function makeStore(
+  options: { withIndex: boolean; indexReturnsNull?: boolean } = { withIndex: true }
+): RetrievalStore {
   const byId = new Map(NODES.map((node) => [node.id, node]))
   const store: RetrievalStore = {
     get: async (id) => byId.get(id) ?? null,
@@ -54,7 +56,8 @@ function makeStore(options: { withIndex: boolean; indexReturnsNull?: boolean } =
   return store
 }
 
-const relationFieldsOf = (schemaId: string): string[] => (schemaId === 'Company' ? ['contacts'] : [])
+const relationFieldsOf = (schemaId: string): string[] =>
+  schemaId === 'Company' ? ['contacts'] : []
 
 describe('createWorkspaceRetrieval', () => {
   it('reports bm25-graph when the store has a text index', () => {

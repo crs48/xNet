@@ -54,7 +54,12 @@ describe('buildMemoryRows', () => {
 
   it('carries evidence so a distilled memory is auditable', () => {
     const rows = buildMemoryRows(
-      [memory('m', 'Always file under Ops', 0.7, 0, { evidence: ['a1', 'a2', 'a3'], kind: 'preference' })],
+      [
+        memory('m', 'Always file under Ops', 0.7, 0, {
+          evidence: ['a1', 'a2', 'a3'],
+          kind: 'preference'
+        })
+      ],
       NOW
     )
     expect(rows[0].evidence).toEqual(['a1', 'a2', 'a3'])

@@ -32,10 +32,15 @@ function MemoryRowView({
 
   return (
     <tr className="border-b border-hairline align-top">
-      <td className="px-2 py-1 text-center" title={inPreamble ? 'Carried into sessions' : 'Below the preamble cut-off'}>
+      <td
+        className="px-2 py-1 text-center"
+        title={inPreamble ? 'Carried into sessions' : 'Below the preamble cut-off'}
+      >
         {inPreamble ? '●' : '○'}
       </td>
-      <td className={`px-2 py-1 text-[11px] ${KIND_COLORS[row.kind] ?? 'text-ink-3'}`}>{row.kind}</td>
+      <td className={`px-2 py-1 text-[11px] ${KIND_COLORS[row.kind] ?? 'text-ink-3'}`}>
+        {row.kind}
+      </td>
       <td className="px-2 py-1">
         {draft === null ? (
           <button

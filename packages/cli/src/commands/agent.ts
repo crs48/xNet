@@ -48,11 +48,7 @@ import {
 } from '@xnetjs/plugins/node'
 import { Command } from 'commander'
 import { resolveAgentBackend, type BackendLadderOptions } from '../utils/agent-backend.js'
-import {
-  connectSession,
-  sessionTargetFor,
-  type SessionClient
-} from '../utils/session-daemon.js'
+import { connectSession, sessionTargetFor, type SessionClient } from '../utils/session-daemon.js'
 import { registerMemoryCommands, renderMemoryPreamble } from './memory.js'
 import { SESSION_CLI_VERSION } from './serve.js'
 
@@ -95,9 +91,7 @@ export function createAgentServices(
   const retrieval = createAgentRetrieval({
     store: backend.store,
     schemas: backend.schemas,
-    ...(options.semanticEntrySearch
-      ? { semanticEntrySearch: options.semanticEntrySearch }
-      : {})
+    ...(options.semanticEntrySearch ? { semanticEntrySearch: options.semanticEntrySearch } : {})
   })
   const aiSurface = createAiSurfaceService({
     store: backend.store,
@@ -770,9 +764,7 @@ export function registerAgentCommands(
    * quietly falling back to the cold path would discard the one signal that
    * says the answer you were about to get was wrong.
    */
-  const tryConnectSession = async (
-    options: AgentCommandOptions
-  ): Promise<SessionClient | null> => {
+  const tryConnectSession = async (options: AgentCommandOptions): Promise<SessionClient | null> => {
     if (process.env.XNET_SESSION === '0') return null
     return connectSession({
       target: sessionTargetFor(options),
@@ -978,7 +970,7 @@ export function registerAgentCommands(
       // The skill is static; what the agent remembers is not. `--memories`
       // appends the top-k memory preamble so a fresh session starts knowing
       // what the last one learned (exploration 0415).
-      .option('--memories', "Append what xNet remembers about this workspace")
+      .option('--memories', 'Append what xNet remembers about this workspace')
       .option('--no-memories', 'Print the skill alone')
   ).action(async (options) => {
     if (!options.memories) {

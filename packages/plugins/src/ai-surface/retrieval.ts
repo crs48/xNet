@@ -47,11 +47,7 @@ export function schemaRegistryRelationFields(schemas: SchemaRegistryAPI): Relati
     let fields: readonly string[] = []
     try {
       const defined = await schemas.get(schemaId)
-      if (defined) {
-        fields = Object.entries(defined.properties)
-          .filter(([, value]) => isRelationProperty(value))
-          .map(([name]) => name)
-      }
+      if (defined) fields = relationFieldNames(defined.properties)
     } catch {
       // Unreadable schema → no edges. See the doc comment above.
     }
@@ -60,11 +56,35 @@ export function schemaRegistryRelationFields(schemas: SchemaRegistryAPI): Relati
   }
 }
 
+/**
+ * Relation property names, from either shape a registry hands back.
+ *
+ * The two agent backends disagree: the CLI's built-in registry returns the
+ * JSON-LD **array** (`[{ name, type, … }]`), while the Electron renderer maps
+ * it to a keyed **record** (`{ page: { type } }`). Handling only one shape is a
+ * silent failure — the tier still reports `bm25-graph` while the graph stage
+ * quietly finds no edges at all, which is exactly how this was found.
+ */
+export function relationFieldNames(properties: unknown): string[] {
+  if (Array.isArray(properties)) {
+    return properties
+      .filter(
+        (property): property is { name: string } =>
+          isRelationProperty(property) && typeof (property as { name?: unknown }).name === 'string'
+      )
+      .map((property) => property.name)
+  }
+  if (typeof properties === 'object' && properties !== null) {
+    return Object.entries(properties as Record<string, unknown>)
+      .filter(([, value]) => isRelationProperty(value))
+      .map(([name]) => name)
+  }
+  return []
+}
+
 function isRelationProperty(value: unknown): boolean {
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    (value as { type?: unknown }).type === 'relation'
+    typeof value === 'object' && value !== null && (value as { type?: unknown }).type === 'relation'
   )
 }
 

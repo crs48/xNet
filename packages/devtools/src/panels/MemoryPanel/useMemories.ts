@@ -8,7 +8,7 @@
  * change is a profile, not a memory.
  */
 
-import type { NodeState, NodeStore } from '@xnetjs/data'
+import type { NodeState } from '@xnetjs/data'
 import { memoryRankScore, type MemoryRecord } from '@xnetjs/brain'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
@@ -144,8 +144,7 @@ export function useMemories(): MemoryPanelState {
       loading,
       preambleLimit: PREAMBLE_LIMIT,
       edit: (id, text) => mutate(id, { text, lastUsedAt: Date.now() }),
-      setSalience: (id, salience) =>
-        mutate(id, { salience: Math.min(1, Math.max(0, salience)) }),
+      setSalience: (id, salience) => mutate(id, { salience: Math.min(1, Math.max(0, salience)) }),
       forget: async (id) => {
         if (!store) throw new Error('No store: dev tools are not attached to a workspace')
         await store.delete(id)

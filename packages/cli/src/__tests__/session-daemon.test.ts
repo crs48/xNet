@@ -116,7 +116,8 @@ describe('session daemon', () => {
       tier: 'bm25-graph',
       handlers: handlers({
         // Hangs until the test kills the server underneath it.
-        search: () => new Promise((resolve) => (release = () => resolve({ output: '', warnings: [] })))
+        search: () =>
+          new Promise((resolve) => (release = () => resolve({ output: '', warnings: [] })))
       }),
       socketPath
     })
@@ -193,7 +194,9 @@ describe('sessionTargetFor', () => {
 
   it('falls back to the API url, normalized', () => {
     delete process.env.XNET_DB
-    expect(sessionTargetFor({ apiUrl: 'http://127.0.0.1:31415/' })).toBe('api:http://127.0.0.1:31415')
+    expect(sessionTargetFor({ apiUrl: 'http://127.0.0.1:31415/' })).toBe(
+      'api:http://127.0.0.1:31415'
+    )
     delete process.env.XNET_API_URL
     expect(sessionTargetFor({})).toBe('api:http://127.0.0.1:31415')
   })

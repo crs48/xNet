@@ -24,9 +24,27 @@ const push = process.argv.includes('--push')
 const PROJECT = process.env.PROJECT ?? 'xnet-cloud-staging-0'
 
 const PLANS = [
-  { plan: 'personal', envKey: 'STRIPE_PRICE_PERSONAL', secret: 'stripe-price-personal', name: 'xNet Personal', fallback: 4.99 },
-  { plan: 'family', envKey: 'STRIPE_PRICE_FAMILY', secret: 'stripe-price-family', name: 'xNet Family', fallback: 14.99 },
-  { plan: 'team', envKey: 'STRIPE_PRICE_TEAM', secret: 'stripe-price-team', name: 'xNet Team (per seat)', fallback: 11.99 }
+  {
+    plan: 'personal',
+    envKey: 'STRIPE_PRICE_PERSONAL',
+    secret: 'stripe-price-personal',
+    name: 'xNet Personal',
+    fallback: 4.99
+  },
+  {
+    plan: 'family',
+    envKey: 'STRIPE_PRICE_FAMILY',
+    secret: 'stripe-price-family',
+    name: 'xNet Family',
+    fallback: 14.99
+  },
+  {
+    plan: 'team',
+    envKey: 'STRIPE_PRICE_TEAM',
+    secret: 'stripe-price-team',
+    name: 'xNet Team (per seat)',
+    fallback: 11.99
+  }
 ]
 
 function parseEnvFile() {
@@ -104,15 +122,25 @@ for (const r of results) console.log(`  ${r.envKey}=${r.priceId}`)
 if (push) {
   console.log('\nPushing to Secret Manager…')
   for (const r of results) {
-    execFileSync('gcloud', ['secrets', 'versions', 'add', r.secret, '--data-file=-', '--project', PROJECT], {
-      input: r.priceId,
-      stdio: ['pipe', 'ignore', 'inherit']
-    })
+    execFileSync(
+      'gcloud',
+      ['secrets', 'versions', 'add', r.secret, '--data-file=-', '--project', PROJECT],
+      {
+        input: r.priceId,
+        stdio: ['pipe', 'ignore', 'inherit']
+      }
+    )
     console.log(`  ✓ ${r.secret}`)
   }
   console.log('\nNow roll a new revision so the service reads the new versions:')
-  console.log(`  gcloud run services update xnet-cloud-staging --project ${PROJECT} --region us-central1 \\`)
-  console.log('    --update-secrets ' + results.map((r) => `${r.envKey}=${r.secret}:latest`).join(','))
+  console.log(
+    `  gcloud run services update xnet-cloud-staging --project ${PROJECT} --region us-central1 \\`
+  )
+  console.log(
+    '    --update-secrets ' + results.map((r) => `${r.envKey}=${r.secret}:latest`).join(',')
+  )
 } else {
-  console.log('\nRe-run with --push to store these in Secret Manager, or paste them into apps/cloud/.env.staging.')
+  console.log(
+    '\nRe-run with --push to store these in Secret Manager, or paste them into apps/cloud/.env.staging.'
+  )
 }

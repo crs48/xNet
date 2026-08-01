@@ -86,6 +86,7 @@ export {
   isDegradedTier,
   nodeTextParts,
   NoTextIndexError,
+  queryVariants,
   scanEntrySearch,
   type AiRetrievedNodeLike,
   type RecallResult,

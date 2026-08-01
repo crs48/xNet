@@ -779,6 +779,34 @@ export function candidatesFromTraces(
 > The fix (return `null` when nothing indexed, print why) is covered by
 > `packages/cli/src/__tests__/vector-tier.test.ts`.
 
+> [!WARNING]
+> **Two bugs the end-to-end run caught that no unit test would have.** Both were
+> silent, and both produced a lane that *reported* `bm25-graph` while doing
+> considerably less than that:
+>
+> 1. **FTS5 ANDs bare terms.** `recall` exists for natural-language questions,
+>    and "how do we roll back the Acme renewal cutover" required every one of
+>    those words to appear in a single node — so it matched nothing. Entry
+>    search now tries the strict query first and falls back to the content words
+>    OR'd together (`queryVariants`).
+> 2. **The two backends return different schema shapes.** The CLI's registry
+>    hands back the JSON-LD *array* (`[{ name, type }]`); the Electron renderer
+>    maps it to a keyed *record*. The relation-field resolver handled only the
+>    record, so on the CLI lane the graph stage found **zero edges** — every
+>    recall silently degraded to entry search alone. `relationFieldNames` now
+>    reads both.
+>
+> The working end-to-end result, on a workspace where the answer page contains
+> none of the query's words:
+>
+> ```text
+> $ xnet recall "how do we roll back the Acme renewal cutover"
+> tier  bm25-graph  entries=1 expanded=1 denied=0 dropped=0 tokens=36
+> id     title                path                                        snippet
+> SLp7…  Acme renewal cutover Acme renewal cutover                        …
+> zW8C…  Rollback procedure   Acme renewal cutover→ (page) Rollback proc…  …
+> ```
+
 **Open questions**
 
 1. Where does the retrieval factory live? `packages/brain` is the natural home
@@ -846,19 +874,19 @@ export function candidatesFromTraces(
 
 ## Validation Checklist
 
-- [ ] `pnpm bench:agent-surfaces` still shows `files-vs-legacy ratio ≤ 0.12` after `recall` lands
-- [ ] Retrieval eval: the ratchet scores candidate profiles against the pinned corpus and refuses regressions (the measured `hopDecay` improvement is recorded but **not** adopted — see the callout)
-- [ ] With the desktop app **running**, `xnet search` reports `tier hybrid-graph` (never `scan`)
-- [ ] With the desktop app **closed** and `--db`, `xnet search` reports at least `bm25-graph`
-- [ ] Bridged agent inside Electron reports a non-`scan` tier on `xnet_search`
-- [ ] A degraded search prints its notice to stderr and is visibly degraded in `tsv`, `md` and `json`
-- [ ] A node the caller cannot read never appears in `recall` output (denied-fixture test)
-- [ ] `xnet serve` warm: socket round-trip p95 < 5 ms; cold path still works with no daemon
-- [ ] Killing the daemon mid-verb produces a loud error and exit 1, never a plausible empty result
-- [ ] `xnet connect claude-code` in a repo with an existing `CLAUDE.md` preserves its content
-- [ ] A memory appears only after 3 occurrences, is listed in the UI, and deleting it removes the node
-- [ ] A `RetrievalProfile` that regresses the golden set is **not** adopted (test asserts the refusal)
-- [ ] End-to-end: a fresh Claude Code session answers a multi-hop workspace question with a citation path, using `recall`, in one turn
+- [x] `pnpm bench:agent-surfaces` still shows `files-vs-legacy ratio ≤ 0.12` after `recall` lands
+- [x] Retrieval eval: the ratchet scores candidate profiles against the pinned corpus and refuses regressions (the measured `hopDecay` improvement is recorded but **not** adopted — see the callout)
+- [x] With the desktop app **running**, `xnet search` reports `tier hybrid-graph` (never `scan`)
+- [x] With the desktop app **closed** and `--db`, `xnet search` reports at least `bm25-graph`
+- [x] Bridged agent inside Electron reports a non-`scan` tier on `xnet_search`
+- [x] A degraded search prints its notice to stderr and is visibly degraded in `tsv`, `md` and `json`
+- [x] A node the caller cannot read never appears in `recall` output (denied-fixture test)
+- [x] `xnet serve` warm: socket round-trip p95 < 5 ms; cold path still works with no daemon
+- [x] Killing the daemon mid-verb produces a loud error and exit 1, never a plausible empty result
+- [x] `xnet connect claude-code` in a repo with an existing `CLAUDE.md` preserves its content
+- [x] A memory appears only after 3 occurrences, is listed in the UI, and deleting it removes the node
+- [x] A `RetrievalProfile` that regresses the golden set is **not** adopted (test asserts the refusal)
+- [x] End-to-end: a fresh Claude Code session answers a multi-hop workspace question with a citation path, using `recall`, in one turn
 
 ---
 

@@ -150,6 +150,7 @@ export {
   ALLOW_ALL_NODES,
   createAgentRetrieval,
   isDegradedTier,
+  relationFieldNames,
   schemaRegistryRelationFields
 } from '../ai-surface'
 export type {

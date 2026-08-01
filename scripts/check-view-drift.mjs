@@ -98,7 +98,5 @@ if (warnings.length > 0) {
   process.exit(strict ? 1 : 0)
 }
 
-console.log(
-  `✓ view drift OK (${source}) — ${PAIRED_COMPONENTS.length} paired components checked`
-)
+console.log(`✓ view drift OK (${source}) — ${PAIRED_COMPONENTS.length} paired components checked`)
 process.exit(0)

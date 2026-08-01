@@ -85,7 +85,9 @@ async function fetchUsage() {
     }
     return await res.json()
   } catch (err) {
-    console.error(`usage fetch failed (${err.message}): carrying the committed usage block forward.`)
+    console.error(
+      `usage fetch failed (${err.message}): carrying the committed usage block forward.`
+    )
     return undefined
   }
 }

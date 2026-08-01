@@ -24,6 +24,7 @@
  */
 
 import { bfsExpand } from './expand'
+import { tokenize } from './memory'
 import { retrieve } from './retrieve'
 import {
   DEFAULT_BUDGET,
@@ -63,7 +64,9 @@ export interface RetrievalStore {
 }
 
 /** Resolve the relation-valued property names of a schema (sync or async). */
-export type RelationFieldsLookup = (schemaId: string) => readonly string[] | Promise<readonly string[]>
+export type RelationFieldsLookup = (
+  schemaId: string
+) => readonly string[] | Promise<readonly string[]>
 
 // ─── Tiers ───────────────────────────────────────────────────────────────────
 
@@ -174,22 +177,44 @@ export function nodeTextParts(node: RetrievalNode): { title: string; body: strin
 
 // ─── Entry search ────────────────────────────────────────────────────────────
 
+/**
+ * Query forms to try, strictest first.
+ *
+ * FTS5 ANDs bare terms, which is right for `search` ("find the node called X")
+ * and useless for `recall` ("who handles the Acme renewal") — a question
+ * requires every word of itself to appear and matches nothing. So a
+ * multi-term query gets a second, looser form: content words OR'd together,
+ * stopwords dropped. Strict first, so an exact phrase still wins when it exists.
+ */
+export function queryVariants(query: string): string[] {
+  const trimmed = query.trim()
+  if (!trimmed) return []
+  const terms = tokenize(trimmed).filter((term) => /^[\p{L}\p{N}]+$/u.test(term))
+  if (terms.length < 2) return [trimmed]
+  const loose = terms.map((term) => `"${term}"`).join(' OR ')
+  return loose === trimmed ? [trimmed] : [trimmed, loose]
+}
+
 /** BM25 entry search over `store.searchText`. Returns `null` when there is no index. */
 export function bm25EntrySearch(store: RetrievalStore): EntrySearch | null {
   if (!store.searchText) return null
   const searchText = store.searchText.bind(store)
   return async (query, k) => {
-    const matches = await searchText(query, k)
-    // `null` means the storage answered "I have no index". Surfacing an empty
-    // array instead would read as "nothing matched" — the exact confusion this
-    // whole module exists to prevent.
-    if (matches === null || matches === undefined) throw new NoTextIndexError()
-    // BM25 rank: more negative is better. Negate so bigger score wins.
-    return matches.map((match) => ({
-      nodeId: match.nodeId,
-      score: -match.rank,
-      source: 'keyword' as const
-    }))
+    for (const variant of queryVariants(query)) {
+      const matches = await searchText(variant, k)
+      // `null` means the storage answered "I have no index". Surfacing an empty
+      // array instead would read as "nothing matched" — the exact confusion this
+      // whole module exists to prevent.
+      if (matches === null || matches === undefined) throw new NoTextIndexError()
+      if (matches.length === 0) continue
+      // BM25 rank: more negative is better. Negate so bigger score wins.
+      return matches.map((match) => ({
+        nodeId: match.nodeId,
+        score: -match.rank,
+        source: 'keyword' as const
+      }))
+    }
+    return []
   }
 }
 
@@ -258,7 +283,10 @@ export function fuseByReciprocalRank(semantic: EntrySearch, keyword: EntrySearch
 
 // ─── Graph + text ────────────────────────────────────────────────────────────
 
-function schemaGraphAccess(store: RetrievalStore, relationFieldsOf: RelationFieldsLookup): GraphAccess {
+function schemaGraphAccess(
+  store: RetrievalStore,
+  relationFieldsOf: RelationFieldsLookup
+): GraphAccess {
   return {
     async neighbors(nodeId) {
       const node = await store.get(nodeId)
@@ -310,9 +338,7 @@ function nodeTextLoader(
  * createAiSurfaceService({ store, schemas, retrieveContext: retrieval.retrieveContext })
  * ```
  */
-export function createWorkspaceRetrieval(
-  options: WorkspaceRetrievalOptions
-): WorkspaceRetrieval {
+export function createWorkspaceRetrieval(options: WorkspaceRetrievalOptions): WorkspaceRetrieval {
   const {
     store,
     relationFieldsOf,

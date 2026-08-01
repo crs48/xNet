@@ -83,7 +83,12 @@ for (const dir of companionDirs) {
   const parentPath = join(EXPLORATIONS, parent)
   const parentText = readFileSync(parentPath, 'utf8')
   if (!parentText.includes(`visuals/${dir}`)) {
-    fail(parentPath, 0, `does not link its companion visuals/${dir}/`, `link visuals/${dir}/exploration.mdx`)
+    fail(
+      parentPath,
+      0,
+      `does not link its companion visuals/${dir}/`,
+      `link visuals/${dir}/exploration.mdx`
+    )
   }
 
   // 2 + 3. Content rules, per companion file.
@@ -104,7 +109,12 @@ for (const dir of companionDirs) {
           fail(file, i + 1, 'host theme class in a companion', 'use --wf-* tokens or .wf-* helpers')
         }
         if (HEX.test(line)) {
-          fail(file, i + 1, 'hard-coded hex colour', 'use a --wf-* token so both themes stay correct')
+          fail(
+            file,
+            i + 1,
+            'hard-coded hex colour',
+            'use a --wf-* token so both themes stay correct'
+          )
         }
         if (FONT_FAMILY.test(line) || FONT_FAMILY_JSX.test(line)) {
           fail(file, i + 1, 'font-family in a companion', 'the renderer owns typography')

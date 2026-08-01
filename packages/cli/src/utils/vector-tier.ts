@@ -94,9 +94,10 @@ function nodeText(node: { properties: Record<string, unknown> }): string {
 export async function createVectorTier(options: VectorTierOptions): Promise<VectorTier | null> {
   const loadEngine =
     options.loadEngine ??
-    (() => import('@xnetjs/vectors') as unknown as Promise<{
-      createSemanticSearch: (config?: never) => SemanticIndex
-    }>)
+    (() =>
+      import('@xnetjs/vectors') as unknown as Promise<{
+        createSemanticSearch: (config?: never) => SemanticIndex
+      }>)
 
   let index: SemanticIndex
   try {

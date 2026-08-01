@@ -254,6 +254,19 @@ export class LocalAPIServer {
   }
 
   /**
+   * The port actually bound.
+   *
+   * `port: 0` asks the OS to choose one, which was previously unreachable —
+   * the configured value stayed 0 and nothing exposed the real one, so an
+   * ephemeral port could be listened on but never connected to. Returns `null`
+   * before `start()` resolves.
+   */
+  getPort(): number | null {
+    const address = this.server?.address()
+    return address && typeof address === 'object' ? address.port : null
+  }
+
+  /**
    * Start the API server
    */
   async start(): Promise<void> {

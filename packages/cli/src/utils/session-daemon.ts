@@ -187,11 +187,7 @@ export async function startSessionServer(
   }
 }
 
-async function handleLine(
-  line: string,
-  socket: Socket,
-  handlers: SessionHandlers
-): Promise<void> {
+async function handleLine(line: string, socket: Socket, handlers: SessionHandlers): Promise<void> {
   if (!line.trim()) return
   let request: SessionRequest
   try {
@@ -334,10 +330,7 @@ export async function connectSession(
   socket.on('close', () => fail('the xnet daemon closed the connection mid-request'))
   socket.on('error', (err) => fail(`the xnet daemon connection failed: ${err.message}`))
 
-  const helloTimer = setTimeout(
-    () => fail('the xnet daemon never sent a handshake'),
-    timeoutMs
-  )
+  const helloTimer = setTimeout(() => fail('the xnet daemon never sent a handshake'), timeoutMs)
   let hello: SessionHello
   try {
     hello = await helloPromise

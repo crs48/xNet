@@ -17,6 +17,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { retrieve } from '../retrieve'
+import { DEFAULT_BUDGET, type RetrievalBudget } from '../types'
 import {
   budgetFromProfile,
   DEFAULT_RETRIEVAL_PROFILE,
@@ -67,9 +68,7 @@ interface CaseResult {
   returned: string[]
 }
 
-async function runGoldenSet(budget: typeof BUDGET & { hopDecay?: number } = BUDGET): Promise<
-  CaseResult[]
-> {
+async function runGoldenSet(budget: Partial<RetrievalBudget> = BUDGET): Promise<CaseResult[]> {
   const deps = createDeps()
   const results: CaseResult[] = []
   for (const testCase of GOLDEN) {
@@ -183,7 +182,7 @@ describe('golden-set retrieval eval (0394)', () => {
  */
 describe('retrieval profile ratchet (0415)', () => {
   async function score(profile: RetrievalProfile): Promise<ProfileScores> {
-    const results = await runGoldenSet(budgetFromProfile(profile, BUDGET) as typeof BUDGET)
+    const results = await runGoldenSet(budgetFromProfile(profile, { ...DEFAULT_BUDGET, ...BUDGET }))
     const graph = results.filter((r) => r.kind === 'graph')
     return {
       recallAll: round2(mean(results.map((r) => r.recall))),
