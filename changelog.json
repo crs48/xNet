@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-01-a-failed-payment-no-longer-silently-stal",
+      "url": "https://xnet.fyi/changelog#2026-08-01-a-failed-payment-no-longer-silently-stal",
+      "title": "A failed payment no longer silently stalls your hub",
+      "content_text": "If a card fails, xNet Cloud now walks a clear path instead of doing nothing: two weeks of normal service while the charge retries, then read-only (everything stays readable and exportable), then a paused hub with your encrypted data kept in cold storage. You get an email at every step, with real dates, and paying at any point restores everything immediately. Data on your own devices is never affected.\n",
+      "date_published": "2026-08-01T20:23:44Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "If a card fails, xNet Cloud now walks a clear path instead of doing nothing: two weeks of normal service while the charge retries, then read-only (everything stays readable and exportable), then a paused hub with your encrypted data kept in cold storage. You get an email at every step, with real dates, and paying at any point restores everything immediately. Data on your own devices is never affected.",
+        "highlights": [],
+        "mergedAt": "2026-08-01T20:23:44Z",
+        "pr": 673,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-01-new-essay-the-matchmaker-and-the-meter",
       "url": "https://xnet.fyi/changelog#2026-08-01-new-essay-the-matchmaker-and-the-meter",
       "title": "New essay: The Matchmaker and the Meter",

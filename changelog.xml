@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>A failed payment no longer silently stalls your hub</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-a-failed-payment-no-longer-silently-stal</link>
+      <guid isPermaLink="false">2026-08-01-a-failed-payment-no-longer-silently-stal</guid>
+      <pubDate>Sat, 01 Aug 2026 20:23:44 GMT</pubDate>
+      <description>If a card fails, xNet Cloud now walks a clear path instead of doing nothing: two weeks of normal service while the charge retries, then read-only (everything stays readable and exportable), then a paused hub with your encrypted data kept in cold storage. You get an email at every step, with real dates, and paying at any point restores everything immediately. Data on your own devices is never affected.</description>
+    </item>
+    <item>
       <title>New essay: The Matchmaker and the Meter</title>
       <link>https://xnet.fyi/changelog#2026-08-01-new-essay-the-matchmaker-and-the-meter</link>
       <guid isPermaLink="false">2026-08-01-new-essay-the-matchmaker-and-the-meter</guid>
