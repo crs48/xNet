@@ -752,8 +752,8 @@ And the one-line extension to the index engine:
 
 **Shipping**
 
-- [ ] Changelog fragment — user-visible feature, no `skip-changelog`.
-- [ ] Charter §6 four-test entry recorded for the affinity appview, including
+- [x] Changelog fragment — user-visible feature, no `skip-changelog`.
+- [x] Charter §6 four-test entry recorded for the affinity appview, including
       the honest weak sleep-test answer and the "no separate SKU" rule.
 
 ## Validation Checklist
