@@ -97,6 +97,13 @@ export {
   type WorkspaceRetrievalOptions
 } from './workspace-retrieval'
 export {
+  candidatesFromTraces,
+  isRedactedInstruction,
+  type AgentActionLike,
+  type TraceCandidate,
+  type TraceCandidateOptions
+} from './memory-from-traces'
+export {
   applyMemoryOp,
   rememberFact,
   type AppliedMemory,

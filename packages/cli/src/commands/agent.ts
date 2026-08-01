@@ -53,6 +53,7 @@ import {
   sessionTargetFor,
   type SessionClient
 } from '../utils/session-daemon.js'
+import { registerMemoryCommands, renderMemoryPreamble } from './memory.js'
 import { SESSION_CLI_VERSION } from './serve.js'
 
 // ─── Services ────────────────────────────────────────────────────────────────
@@ -881,6 +882,8 @@ export function registerAgentCommands(
     )
   })
 
+  registerMemoryCommands(program, { withServices, withBackendFlags, parseIntOption })
+
   withBackendFlags(
     program
       .command('recall <text>')
@@ -968,12 +971,25 @@ export function registerAgentCommands(
     })
   })
 
-  program
-    .command('skill')
-    .description('Print the cross-harness xNet SKILL.md')
-    .action(() => {
+  withBackendFlags(
+    program
+      .command('skill')
+      .description('Print the cross-harness xNet SKILL.md')
+      // The skill is static; what the agent remembers is not. `--memories`
+      // appends the top-k memory preamble so a fresh session starts knowing
+      // what the last one learned (exploration 0415).
+      .option('--memories', "Append what xNet remembers about this workspace")
+      .option('--no-memories', 'Print the skill alone')
+  ).action(async (options) => {
+    if (!options.memories) {
       print(XNET_AGENT_SKILL_MD)
+      return
+    }
+    await withServices(options, async (services) => {
+      const preamble = await renderMemoryPreamble(services)
+      return preamble ? `${XNET_AGENT_SKILL_MD}\n${preamble}\n` : XNET_AGENT_SKILL_MD
     })
+  })
 }
 
 function parseIntOption(value: string): number {

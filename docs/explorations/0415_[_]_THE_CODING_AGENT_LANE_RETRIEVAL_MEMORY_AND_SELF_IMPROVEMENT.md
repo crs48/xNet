@@ -810,9 +810,9 @@ export function candidatesFromTraces(
 
 ### Phase 4 — Memory
 
-- [ ] `candidatesFromTraces()` over `AgentAction` nodes, recurrence threshold ≥3
-- [ ] Wire `consolidateMemory` → `applyMemoryOp` behind the existing approval gate
-- [ ] `xnet remember` / `xnet forget` verbs; top-k memories injected into the skill preamble
+- [x] `candidatesFromTraces()` over `AgentAction` nodes, recurrence threshold ≥3
+- [x] Wire `consolidateMemory` → `applyMemoryOp` behind the existing approval gate
+- [x] `xnet remember` / `xnet forget` verbs; top-k memories injected into the skill preamble
 - [ ] Memory management UI: list, edit, delete (a memory the user cannot see is not a memory)
 
 ### Phase 5 — Local learning loop
