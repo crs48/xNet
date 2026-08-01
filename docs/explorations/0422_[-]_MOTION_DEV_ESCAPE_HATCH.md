@@ -1,6 +1,6 @@
 ---
 title: Motion (motion.dev) — closing the documented escape hatch
-status: draft # mirrors the [_]/[-]/[x] filename checkbox
+status: partial # mirrors the [_]/[-]/[x] filename checkbox
 last_updated: 2026-08-01
 tags: [ui, motion, bundle-size, design-system]
 ---
@@ -566,6 +566,17 @@ the one place the token scale is copied rather than referenced.
 | Board drag regressions in `editor-e2e` | 🟡 Low | 0199's own validation list already flags this suite |
 | Adding a dep to `packages/ui` requires a changeset | 🟡 Low | `/changeset` — minor bump; Stop hook enforces it |
 
+> [!IMPORTANT]
+> **Found during implementation: site 2 reaches fewer users than assumed.** The
+> tab strip is not the default shell — 0353 made the web nav tabless, so `TabBar`
+> renders only when a user opts back in via <kbd>⌘K</kbd> "View: Turn on tabs"
+> *and* the layout is one that shows the strip. The exploration ranked tab
+> reorder alongside the kanban drop without noticing that asymmetry.
+>
+> This does not change the recommendation — the kanban board is on the default
+> path, and it alone justifies the boundary — but it does mean **site 2 is the
+> weaker half**. If the lazy chunk ever needs trimming, drop the tab FLIP first.
+
 **Open questions**
 
 1. ~~**Is tab reorder worth 30 KB of lazy chunk at all?**~~ **RESOLVED —
@@ -642,21 +653,60 @@ the one place the token scale is copied rather than referenced.
 - [x] `pnpm check:motion-vocab` **fails** on a deliberately-added static
       `import { motion } from 'motion/react'` in `apps/web/src` — the guard must
       be demonstrated red before it is trusted green.
-- [ ] `pnpm build` for `apps/web`, then confirm from the Rollup output that
+- [x] `pnpm build` for `apps/web`, then confirm from the Rollup output that
       `motion` lands in its **own chunk** and appears in no entry chunk.
-- [ ] Boot `apps/web`, open DevTools → Network, confirm **no motion chunk is
-      requested** until the first tab drag.
+- [x] Boot `apps/web`, confirm **no motion module is requested at boot**.
+      **Done** — dev server on :5221, test-auth bypass, workspace loaded;
+      `performance.getEntriesByType('resource')` showed **0** motion modules out
+      of 250 requests. (The second half — "until the first tab drag" — is part of
+      the unverified interaction set below.)
+> [!WARNING]
+> **The four interaction checks below are NOT verified.** Everything structural
+> passes, but the animations themselves have not been watched in a browser.
+> Do not read the merged PR as evidence that they look right.
+>
+> What blocked it: the workbench tab strip never rendered in `apps/web`. Tabs are
+> off by default since
+> [0353](<0353_[x]_TABLESS_REMOVING_THE_TAB_STRIP_AND_UNIFYING_THE_LEFT_NAV.md>)
+> made nav tabless, and `EditorArea` additionally returns `null` when
+> `hideTabStrip || mode === 'zen' || group.tabs.length === 0`. Running
+> <kbd>⌘K</kbd> → "View: Turn on tabs", switching Calm ↔ Workbench, and opening
+> pages from both the empty state and Recent all left `[role="tab"]` at **0**
+> elements. The kanban check needs seeded board data and a real pointer drag on
+> top of that. Per `AGENTS.md` these must be verified by driving the real app —
+> a UI unit test is explicitly not an acceptable substitute — so they stay
+> unchecked rather than being waved through.
+>
+> **To finish:** reach a surface that renders `TabBar` (Electron shell is the
+> likelier host — see `apps/electron/AGENTS.md`), or seed a board via the
+> dev-tools Seed panel, then run the four below.
+
 - [ ] Drag a tab to reorder — the neighbours slide rather than jump, at
       ~150 ms `ease-out`.
 - [ ] Drag a kanban card across columns — it settles rather than teleports.
+- [ ] Confirm the motion chunk is requested on that **first drag** and not before.
 - [ ] Toggle OS "Reduce motion", repeat both drags — reorder is instant, and the
       drop still lands in the correct position (state changes even when nothing
       moves).
 - [ ] Inspect a tab mid-`layout` — `border-radius` is not visibly distorted by
-      the counter-scale (see the `rounded-[9px]`-in-`className` risk above).
-- [ ] `pnpm typecheck && pnpm test` green; `editor-ux` and `electron-e2e` e2e
-      suites green in CI.
-- [ ] `pnpm check:api-report` reflects the new `MotionStage` export.
+      the counter-scale. (Mitigated in advance by using `layout="position"`,
+      which translates without scaling, but unconfirmed by eye.)
+- [x] `pnpm typecheck` green — **101/101 tasks**. (One earlier failure,
+      `@xnetjs/cli`, was a stale `packages/plugins` dts artifact: `dist/services/`
+      held `node.js` with no `node.d.ts`. A forced rebuild fixed it; nothing to
+      do with this change.)
+- [x] `pnpm test` — **11891 passed**, with a handful of load-sensitive flakes,
+      none related to this change. Each was re-run in isolation and passed:
+      `views/grid/perf`, `dashboard/widget-behaviors`, `data/draft-overlay-perf`,
+      `history/scrub-perf` (all perf budgets), `apps/web/boot/demo-seed` (7/7
+      alone, 8.6s — it times out under parallel load), plus a hub `EADDRINUSE`
+      on port 14483. The failing set differed between two consecutive full runs,
+      which is the flake signature; none of these files import `MotionStage`.
+- [ ] `editor-ux` and `electron-e2e` e2e suites green in CI.
+- [x] `pnpm check:api-report` green (**passes, but does not cover this export** —
+      `scripts/check-api-report.mjs` tracks `PACKAGES = ['react','core','data','sync']`
+      only, and `@xnetjs/ui` is not among them. Recorded so nobody reads the
+      green tick as proof the `MotionStage` surface is gated; it is not.)
 - [ ] Give an agent only `docs/MOTION.md` and ask it to animate a drag-reorder —
       confirm it reaches for `MotionStage` and not `pnpm add framer-motion`.
       (This is 0199's AI-legibility check, line 729, applied to the hatch.)

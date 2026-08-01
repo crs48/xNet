@@ -180,6 +180,12 @@
       "port": 5219
     },
     {
+      "name": "web-0422 (vite 5221)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "xnet-web", "dev", "--port", "5221", "--strictPort"],
+      "port": 5221
+    },
+    {
       "name": "site-preview",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--dir", "site", "preview", "--port", "4321", "--host"],
