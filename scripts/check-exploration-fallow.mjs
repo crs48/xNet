@@ -155,7 +155,7 @@ const curveHistory = () => ({
 const SURVIVAL_BUCKETS = [1, 7, 14, 30, 60, 90, 120]
 
 /**
- * The retirement curve for the backlog (exploration 0424, after Bouk's account
+ * The retirement curve for the backlog (exploration 0430, after Bouk's account
  * of Winfrey's industrial type curves).
  *
  * Decay is only manageable once it has a shape. Measured today: every one of
@@ -315,7 +315,7 @@ const index = [
   '',
   '## How this backlog retires',
   '',
-  'Measured from git history, not assumed (exploration 0424). Each row counts',
+  'Measured from git history, not assumed (exploration 0430). Each row counts',
   'only documents old enough to have had that many days, so a recent bulge',
   'cannot drag the curve down.',
   '',

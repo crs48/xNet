@@ -20,7 +20,7 @@
  *
  * Run: `node scripts/check-motion-vocab.mjs` (or `pnpm check:motion-vocab`).
  *      `node scripts/check-motion-vocab.mjs --selftest`  (the negative control —
- *      verifies the gate still catches planted violations, exploration 0424).
+ *      verifies the gate still catches planted violations, exploration 0430).
  * Pass extra paths as args to scan them too.
  *
  * Why the self-test exists: a clean scan has exactly one observable state, and

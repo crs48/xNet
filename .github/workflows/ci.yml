@@ -64,11 +64,11 @@ jobs:
       - name: Plugin license policy (0196)
         run: pnpm check:plugin-licenses
 
-      # The negative control for the two values-as-code gates (0424). They are
+      # The negative control for the two values-as-code gates (0430). They are
       # the only checks whose green state is otherwise unfalsifiable: a regex
       # that stopped matching after a rename looks exactly like a clean tree.
       # This plants violations they MUST flag, so green means something.
-      - name: Gate negative controls (0424)
+      - name: Gate negative controls (0430)
         run: pnpm check:gate-controls
 
       - name: Motion vocabulary (0199)

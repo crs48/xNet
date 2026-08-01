@@ -109,7 +109,7 @@ Any new workflow, job, or advisory check needs a **named consumer** and a
 ignore red. Ratchet against a committed baseline instead of gating absolutes.
 
 A gate also needs a **proof it can go red** — a negative control (exploration
-0424). Green is otherwise unfalsifiable: a regex that silently stopped matching
+0430). Green is otherwise unfalsifiable: a regex that silently stopped matching
 after a rename looks exactly like a clean codebase. Add a `--selftest` that
 plants violations the gate MUST flag, run it in CI beside the real scan, and keep
 its fixtures **in memory** rather than on disk, so a control can never leak into
@@ -122,7 +122,7 @@ ADR in `site/src/content/docs/docs/architecture/decisions.mdx` — and that ADR
 carries a **`Tripwire:`**, the observation that re-opens it. Accepted ADRs stay
 immutable; adding a tripwire is additive, and is the one edit besides typo and
 link fixes. Without one a decision decays into a rule nobody remembers the reason
-for (exploration 0424).
+for (exploration 0430).
 
 ## Commits
 
