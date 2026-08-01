@@ -621,3 +621,67 @@ describe('xnetpack blob and yjs ports', () => {
     expect(report.issues.some((i) => i.code === 'blob-digest-mismatch')).toBe(true)
   })
 })
+
+describe('last-known hub address (exploration 0423)', () => {
+  it('carries the address in the manifest, under the signature', async () => {
+    const a = createTestStore()
+    await a.store.initialize()
+    await seedStore(a.store, 1)
+
+    const sink = new MemoryBundleSink()
+    const manifest = await writeBundle(a.store, { kind: 'full' }, sink, {
+      ownerDid: a.did,
+      manifestSigner: signerFor(a.privateKey),
+      hubAddress: {
+        name: 'did:key:zHUB',
+        url: 'https://alice-hub.example',
+        resolverUrl: 'https://cloud.xnet.fyi/resolve',
+        observedAt: 1_700_000_000_000
+      }
+    })
+
+    expect(manifest.hubAddress).toEqual({
+      name: 'did:key:zHUB',
+      url: 'https://alice-hub.example',
+      resolverUrl: 'https://cloud.xnet.fyi/resolve',
+      observedAt: 1_700_000_000_000
+    })
+    // An export alone is enough to get back to work: verify it, read where it
+    // synced, reconnect — no resolver, no dashboard, no us.
+    expect((await verifyBundle(sink.toSource())).ok).toBe(true)
+  })
+
+  it('detects an address swapped after signing', async () => {
+    const a = createTestStore()
+    await a.store.initialize()
+    await seedStore(a.store, 1)
+
+    const sink = new MemoryBundleSink()
+    await writeBundle(a.store, { kind: 'full' }, sink, {
+      ownerDid: a.did,
+      manifestSigner: signerFor(a.privateKey),
+      hubAddress: { name: 'did:key:zHUB', url: 'https://alice-hub.example', observedAt: 1 }
+    })
+
+    const raw = JSON.parse(decodeUtf8(sink.entries.get(BUNDLE_ENTRY.manifest)!))
+    raw.hubAddress.url = 'https://attacker.example'
+    sink.entries.set(BUNDLE_ENTRY.manifest, encodeUtf8(JSON.stringify(raw)))
+
+    const report = await verifyBundle(sink.toSource())
+    expect(report.ok).toBe(false)
+  })
+
+  it('omits the field entirely for a purely local workspace', async () => {
+    const a = createTestStore()
+    await a.store.initialize()
+    await seedStore(a.store, 1)
+
+    const sink = new MemoryBundleSink()
+    const manifest = await writeBundle(a.store, { kind: 'full' }, sink, {
+      ownerDid: a.did,
+      manifestSigner: signerFor(a.privateKey)
+    })
+    expect(manifest.hubAddress).toBeUndefined()
+    expect('hubAddress' in manifest).toBe(false)
+  })
+})

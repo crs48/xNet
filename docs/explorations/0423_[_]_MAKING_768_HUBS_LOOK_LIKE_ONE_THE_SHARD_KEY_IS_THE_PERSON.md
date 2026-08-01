@@ -729,7 +729,7 @@ all.
       `waking` answer for `dataTier: 'cold'`
 - [x] Client: resolve-then-connect in `packages/react/src/context.ts`, with the
       resolved address cached in local storage and a stale-cache fallback
-- [ ] Include last-known address in `.xnetpack` export
+- [x] Include last-known address in `.xnetpack` export
       (`packages/data/src/portability/`) so an export alone can reconnect
 
 **Phase 3 — close the open forks**

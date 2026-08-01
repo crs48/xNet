@@ -1411,6 +1411,7 @@ export {
   type PortableChangeRecord,
   type PortableBlobRecord,
   type PortableYjsDocRecord,
+  type PortableHubAddress,
   type BundleSink,
   type BundleSource,
   type BundleBlobPort,
