@@ -174,6 +174,14 @@ export {
 } from './schemas'
 // Extension overlay + effective-schema composition
 export { EXT_PREFIX, extKey, isExtKey, parseExtKey } from './extension'
+// Late ontology — promote an accumulated overlay key to a core property (0426)
+export {
+  DEFAULT_PROMOTION_THRESHOLD,
+  proposePromotion,
+  proposePromotions,
+  type PromotionProposal,
+  type ProposePromotionOptions
+} from './promote-proposal'
 export {
   buildEffectiveSchema,
   lockedPropertyKeys,
@@ -253,6 +261,8 @@ export {
   ORGANIZATION_SCHEMA_IRI,
   CONTACT_SCHEMA_IRI,
   RELATIONSHIP_SCHEMA_IRI,
+  RELATIONSHIP_PRIMITIVE_SCHEMA_IRI,
+  PRACTICE_SCHEMA_IRI,
   PIPELINE_SCHEMA_IRI,
   STAGE_SCHEMA_IRI,
   DEAL_SCHEMA_IRI,
@@ -266,6 +276,8 @@ export {
   CONTACT_LIFECYCLE,
   RelationshipSchema,
   RELATIONSHIP_KINDS,
+  RelationshipPrimitiveSchema,
+  PracticeSchema,
   PipelineSchema,
   StageSchema,
   DealSchema,
@@ -286,6 +298,8 @@ export {
   type ContactLifecycle,
   type Relationship,
   type RelationshipKind,
+  type RelationshipPrimitive,
+  type Practice,
   type Pipeline,
   type Stage,
   type Deal,

@@ -56,6 +56,14 @@ export const HUB_ROLES: Record<HubRole, Partial<HubConfig>> = {
    * The search-infrastructure coordinator: owns the shard ring
    * (`isRegistry` — 0305's epoch nonce lives here) and coordinates the web
    * crawl queue that feeds shard ingest.
+   *
+   * DORMANT (exploration 0423). This is the only preset that enables the shard
+   * ring, and the ring has no supported configuration surface — no `SHARD_*`
+   * env vars, and `resolveConfig` never sets `config.shards`. The `index` role
+   * below turns shards off on purpose: the ATProto index plane (0374/0383 W3)
+   * replaced this road, and 0367/0381 are why. Kept, not deleted, so the ring
+   * can be revived deliberately. `test/shards-dormant.test.ts` fails if it
+   * acquires a config surface without that decision being made again.
    */
   registry: {
     shards: { enabled: true, isRegistry: true },

@@ -74,8 +74,35 @@ export {
   type ConnectionStatus
 } from './sync/connection-manager'
 
-// Multi-home sync: policy-driven selective routing over the multiplexed
-// per-hub transports (exploration 0258).
+// Hub address resolution (exploration 0423): a stable name resolves to the
+// substrate URL, which the client dials DIRECTLY. Resolution, never proxying.
+export {
+  canonicalHubAddressBytes,
+  httpResolver,
+  readCachedAddress,
+  resolveHubUrl,
+  verifyHubAddress,
+  writeCachedAddress,
+  type HubAddressOutcome,
+  type HubAddressRecord,
+  type HubAddressResolution,
+  type HubAddressStatus,
+  type HubAddressStorage,
+  type HubLiveness,
+  type ResolveHubUrlDeps
+} from './sync/hub-address-client'
+
+/**
+ * Multi-home sync: policy-driven selective routing over the multiplexed per-hub
+ * transports (exploration 0258).
+ *
+ * **Client path deliberately deferred (exploration 0423).** The only production
+ * caller is `packages/hub`'s subscriber role; no client app constructs one. The
+ * client still selects hubs by URL count in `sync-manager.ts`, not by policy,
+ * so `planReplicationDestinations` is unreachable from a device. Wiring it is
+ * multi-home sync's remaining step and is tracked in 0258 — this note exists so
+ * the gap reads as a decision rather than as dead weight in a published API.
+ */
 export {
   createMultiHubSyncManager,
   type MultiHubSyncManager,

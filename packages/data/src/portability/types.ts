@@ -134,8 +134,32 @@ export type XnetpackManifest = {
    * bundle whose entries were swapped or truncated after manifest signing.
    */
   contentDigest: string
+  /**
+   * Where the owner's hub was when this bundle was written (exploration 0423).
+   *
+   * A bundle is what survives xNet-the-company disappearing, and "your data,
+   * verified, for free" is only half of getting back to work — the other half
+   * is knowing where it syncs. Carrying the last-known address means an export
+   * alone is enough to reconnect, without a resolver, a dashboard, or us.
+   *
+   * It is a hint, not an authority: a client re-resolves and re-verifies before
+   * trusting it. Absent on bundles from a purely local workspace.
+   */
+  hubAddress?: PortableHubAddress
   /** Ed25519 signature by `ownerDid` over the canonical unsigned manifest. */
   signatureB64?: string
+}
+
+/** Last-known hub address, carried inside a bundle so an export can reconnect. */
+export type PortableHubAddress = {
+  /** The stable name to resolve (the hub's DID). */
+  name: string
+  /** The URL that last worked. */
+  url: string
+  /** Where the name was resolved, if it was resolved rather than configured. */
+  resolverUrl?: string
+  /** When this address was last observed to work (ms since epoch). */
+  observedAt: number
 }
 
 // ─── Sink / source ───────────────────────────────────────────────────────────
@@ -261,6 +285,12 @@ export type WriteBundleOptions = {
    * (every change is then verified individually, as before).
    */
   commitSigner?: (bytes: Uint8Array) => Promise<Uint8Array> | Uint8Array
+  /**
+   * Last-known hub address to record in the manifest (exploration 0423), so a
+   * bundle carries enough to reconnect without a resolver. Omit for a purely
+   * local workspace.
+   */
+  hubAddress?: PortableHubAddress
   /** Export only changes after this frontier (becomes `prerequisites`). */
   since?: BundleFrontier
   blobPort?: BundleBlobPort

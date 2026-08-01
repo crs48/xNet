@@ -22,6 +22,8 @@ import { writeBundle, blobEntryPath } from './write'
 const TASK_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/Task'
 const PAGE_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/Page'
 const SPACE_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/Space'
+const RELATIONSHIP_PRIMITIVE_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/RelationshipPrimitive'
+const PRACTICE_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/Practice'
 
 function createTestStore(identity?: { did: DID; privateKey: Uint8Array }) {
   const keyPair = generateSigningKeyPair()
@@ -101,6 +103,46 @@ describe('xnetpack bundle round-trip', () => {
       const bState = await b.store.get(node.id)
       expect(bState?.properties).toEqual(aState?.properties)
     }
+  })
+
+  it('round-trips relationship primitives and practices (0422 vanish test)', async () => {
+    // Charter §6 "vanish": if xNet disappears, the value survives. For the
+    // primitives layer that means the vocabulary AND the practice edges have to
+    // travel in the bundle — a portable list of terms whose practices stayed
+    // behind would be worthless. Schema-generic machinery gets this right by
+    // construction; this pins it so a future scoping rule can't quietly drop
+    // the most sensitive nodes we hold.
+    const a = createTestStore()
+    await a.store.initialize()
+
+    const primitive = await a.store.create({
+      schemaId: RELATIONSHIP_PRIMITIVE_SCHEMA,
+      properties: { label: 'make things', conventionalBundles: 'coworker', isSeed: true }
+    })
+    const practice = await a.store.create({
+      schemaId: PRACTICE_SCHEMA,
+      properties: {
+        from: 'contact-a',
+        to: 'contact-b',
+        primitive: primitive.id,
+        note: 'built a table'
+      }
+    })
+
+    const { source } = await exportFull(a.store, a.did, a.privateKey)
+    const b = createTestStore({ did: a.did, privateKey: a.privateKey })
+    await b.store.initialize()
+    const result = await applyBundle(b.store, source, { importerDid: a.did })
+    expect(result.quarantined).toEqual([])
+
+    const importedPrimitive = await b.store.get(primitive.id)
+    expect(importedPrimitive?.properties).toEqual((await a.store.get(primitive.id))?.properties)
+    expect(importedPrimitive?.properties.label).toBe('make things')
+
+    const importedPractice = await b.store.get(practice.id)
+    expect(importedPractice?.properties).toEqual((await a.store.get(practice.id))?.properties)
+    // The edge still points at the vocabulary term it instantiates.
+    expect(importedPractice?.properties.primitive).toBe(primitive.id)
   })
 
   it('double-import is idempotent: zero applied, all duplicates', async () => {
@@ -619,5 +661,69 @@ describe('xnetpack blob and yjs ports', () => {
     const report = await verifyBundle(sink.toSource())
     expect(report.ok).toBe(false)
     expect(report.issues.some((i) => i.code === 'blob-digest-mismatch')).toBe(true)
+  })
+})
+
+describe('last-known hub address (exploration 0423)', () => {
+  it('carries the address in the manifest, under the signature', async () => {
+    const a = createTestStore()
+    await a.store.initialize()
+    await seedStore(a.store, 1)
+
+    const sink = new MemoryBundleSink()
+    const manifest = await writeBundle(a.store, { kind: 'full' }, sink, {
+      ownerDid: a.did,
+      manifestSigner: signerFor(a.privateKey),
+      hubAddress: {
+        name: 'did:key:zHUB',
+        url: 'https://alice-hub.example',
+        resolverUrl: 'https://cloud.xnet.fyi/resolve',
+        observedAt: 1_700_000_000_000
+      }
+    })
+
+    expect(manifest.hubAddress).toEqual({
+      name: 'did:key:zHUB',
+      url: 'https://alice-hub.example',
+      resolverUrl: 'https://cloud.xnet.fyi/resolve',
+      observedAt: 1_700_000_000_000
+    })
+    // An export alone is enough to get back to work: verify it, read where it
+    // synced, reconnect — no resolver, no dashboard, no us.
+    expect((await verifyBundle(sink.toSource())).ok).toBe(true)
+  })
+
+  it('detects an address swapped after signing', async () => {
+    const a = createTestStore()
+    await a.store.initialize()
+    await seedStore(a.store, 1)
+
+    const sink = new MemoryBundleSink()
+    await writeBundle(a.store, { kind: 'full' }, sink, {
+      ownerDid: a.did,
+      manifestSigner: signerFor(a.privateKey),
+      hubAddress: { name: 'did:key:zHUB', url: 'https://alice-hub.example', observedAt: 1 }
+    })
+
+    const raw = JSON.parse(decodeUtf8(sink.entries.get(BUNDLE_ENTRY.manifest)!))
+    raw.hubAddress.url = 'https://attacker.example'
+    sink.entries.set(BUNDLE_ENTRY.manifest, encodeUtf8(JSON.stringify(raw)))
+
+    const report = await verifyBundle(sink.toSource())
+    expect(report.ok).toBe(false)
+  })
+
+  it('omits the field entirely for a purely local workspace', async () => {
+    const a = createTestStore()
+    await a.store.initialize()
+    await seedStore(a.store, 1)
+
+    const sink = new MemoryBundleSink()
+    const manifest = await writeBundle(a.store, { kind: 'full' }, sink, {
+      ownerDid: a.did,
+      manifestSigner: signerFor(a.privateKey)
+    })
+    expect(manifest.hubAddress).toBeUndefined()
+    expect('hubAddress' in manifest).toBe(false)
   })
 })

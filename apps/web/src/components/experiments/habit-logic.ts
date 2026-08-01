@@ -8,10 +8,8 @@ import {
   addDays,
   canonicalDay,
   completionRate,
-  computeStreak,
   habitStrength,
   isScheduledOn,
-  longestStreak,
   scheduledDaysInRange,
   type MetricSchedule
 } from '@xnetjs/experiments'
@@ -97,8 +95,6 @@ export function isCompletedObservation(
 
 export interface HabitSummary {
   done: boolean
-  streak: number
-  longest: number
   strength: number
   rate30: number
   completedDays: Set<number>
@@ -107,8 +103,14 @@ export interface HabitSummary {
 
 /**
  * Everything the Today panel needs for one habit, as of `today` (canonical).
- * Streak/strength/rate are computed only over *scheduled* days so a metric that
- * is only due Mon/Wed/Fri isn't punished for a skipped Tuesday.
+ * Strength/rate are computed only over *scheduled* days so a metric that is
+ * only due Mon/Wed/Fri isn't punished for a skipped Tuesday.
+ *
+ * Deliberately carries no consecutive-day chain. `computeStreak` still exists
+ * in `@xnetjs/experiments` as honest math, but a chain that a single miss
+ * destroys does not belong in a surface the user did not go looking at
+ * (exploration 0426, `docs/VIBE.md` §"Measurement is pull, never push").
+ * `strength` decays and `rate30` lowers — neither can be broken.
  */
 export function habitSummary(
   metric: MetricLike,
@@ -122,7 +124,7 @@ export function habitSummary(
   }
 
   const config = metricScheduleConfig(metric)
-  // Window back far enough for a meaningful streak/strength read.
+  // Window back far enough for a meaningful strength read.
   const windowStart = addDays(today, -400)
   const scheduled = scheduledDaysInRange(windowStart, today, config)
   const last30Start = addDays(today, -29)
@@ -130,8 +132,6 @@ export function habitSummary(
 
   return {
     done: isCompletedObservation(metric, byDay.get(today)),
-    streak: computeStreak(completedDays, scheduled, today),
-    longest: longestStreak(completedDays, scheduled),
     strength: habitStrength(completedDays, scheduled),
     rate30: completionRate(completedDays, scheduled30),
     completedDays,

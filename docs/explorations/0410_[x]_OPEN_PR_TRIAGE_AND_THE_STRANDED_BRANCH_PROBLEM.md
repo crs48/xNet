@@ -579,7 +579,7 @@ jobs:
 
 ## References
 
-- `docs/explorations/0290_[_]_SHARE_LINK_GENERATION_FAILURE_MODES.md` — the 13
+- `docs/explorations/0290_[-]_SHARE_LINK_GENERATION_FAILURE_MODES.md` — the 13
   unchecked items #449 was written to close.
 - `docs/explorations/0298_[x]_SHARING_NON_DOC_ROOM_NODES_CHANNELS_AND_WORKSPACES.md` —
   the merged version that supersedes #463.

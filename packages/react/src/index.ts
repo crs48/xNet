@@ -782,6 +782,12 @@ export {
   type XNetContextValue,
   type XNetProviderProps
 } from './context'
+// Resolve-then-connect: a stable name instead of a substrate URL (0423).
+export {
+  useResolvedHubUrl,
+  type HubAddressConfig,
+  type ResolvedHubUrl
+} from './provider/use-resolved-hub-url'
 export {
   type XNetRuntimeConfig,
   type XNetRuntimeFallback,

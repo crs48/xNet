@@ -93,6 +93,20 @@ const WAIVED = new Map([
       'is the only remaining desktop gap'
   ],
   ['map', 'map view is web-first; deferred on desktop'],
+  [
+    'social-publish',
+    'the ATmosphere publication ceremony (0420) needs a DPoP-bound OAuth session ' +
+      'from @atproto/oauth-client-browser, which assumes a browser popup and a ' +
+      'redirect back to an https origin; the desktop renderer has no equivalent ' +
+      'flow yet, and a half-working consent ceremony on a one-way door is worse ' +
+      'than none. Desktop imports today and publishes once that session exists'
+  ],
+  [
+    'social-affinity',
+    'the affinity comparison (0420) is the read half of social-publish and waits ' +
+      'on the same desktop session work — there is nothing to compare until a ' +
+      'desktop user can publish'
+  ],
   ['person', 'people graph / person dashboard is a web/social surface'],
   ['requests', 'requests inbox is part of the unported comms layer'],
   ['space', 'spaces navigation is web-first'],

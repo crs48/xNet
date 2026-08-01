@@ -160,7 +160,7 @@ metered)**, show a model picker (grouped, with price/context badges) and a
 
 Beyond the plan's hard cap, each tenant can set **their own** AI spend limit from
 the dashboard ("Managed AI" card → _Your spend cap_), enforced over a window
-(exploration [0244](../explorations/0244_[_]_OPENROUTER_DEEP_INTEGRATION_MARGIN_SAFE_BILLING_AND_USER_SPEND_CAPS.md)):
+(exploration [0244](../explorations/0244_[x]_OPENROUTER_DEEP_INTEGRATION_MARGIN_SAFE_BILLING_AND_USER_SPEND_CAPS.md)):
 
 - **monthly** (calendar month — the default, aligned to the Stripe invoice),
 - **weekly** (Mon–Sun UTC — aligned to OpenRouter's native weekly key reset), or
