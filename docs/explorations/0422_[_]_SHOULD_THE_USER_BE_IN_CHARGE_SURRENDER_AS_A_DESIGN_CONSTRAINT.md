@@ -521,9 +521,9 @@ export function proposePromotion(
 - [x] Leave `computeStreak`/`longestStreak` in
       [`experiments`](../../packages/experiments/src/streak.ts) (they are honest
       math with tests) but stop importing them into render paths
-- [ ] Add the two dark-pattern rules above to
+- [x] Add the two dark-pattern rules above to
       [`check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs)
-- [ ] Add planted-violation cases to that script's self-test harness, matching
+- [x] Add planted-violation cases to that script's self-test harness, matching
       the existing `flags a streak counter` case
 - [ ] Write **Rule 1 (pull not push)** into [`docs/VIBE.md`](../VIBE.md) beside
       "reciprocity legible, never scored", with the collaboration carve-out
