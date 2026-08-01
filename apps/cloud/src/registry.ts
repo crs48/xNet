@@ -80,16 +80,64 @@ export interface TenantRecord {
   billing?: DunningState
 }
 
+/** One page of the fleet, ordered by `tenantId`. */
+export interface TenantPage {
+  items: TenantRecord[]
+  /** Cursor for the next page, or null when the fleet is exhausted. */
+  next: string | null
+}
+
 export interface TenantStore {
   get(tenantId: string): Promise<TenantRecord | null>
   put(record: TenantRecord): Promise<void>
   list(): Promise<TenantRecord[]>
   /** Forget a tenant entirely (the "delete my data" path). */
   delete(tenantId: string): Promise<void>
+  /**
+   * Look a tenant up by the key the billing webhook actually arrives with
+   * (exploration 0423). `billingUserId` is not the primary key, so without this
+   * every Stripe event scanned the whole fleet — the access pattern a sharded
+   * database solves with a lookup vindex. Implementations must make this
+   * indexed, not a scan.
+   *
+   * When more than one tenant shares a billing identity the FIRST by insertion
+   * order wins, matching the `list().find(...)` behaviour this replaced.
+   */
+  getByBillingUser(billingUserId: string): Promise<TenantRecord | null>
+  /**
+   * Page the fleet in `tenantId` order, so a sweep never has to materialise
+   * every tenant at once — and so the reconcile loop can later be partitioned
+   * by `hash(tenantId) % workers` without changing its shape (0423).
+   */
+  page(cursor: string | null, limit: number): Promise<TenantPage>
+}
+
+/**
+ * Slice a sorted id list into one page. Shared by every {@link TenantStore}
+ * implementation that pages in memory, so cursor semantics cannot drift between
+ * them: the cursor is the last id of the previous page (exclusive).
+ */
+export function pageSortedIds(
+  sortedIds: string[],
+  cursor: string | null,
+  limit: number
+): { ids: string[]; next: string | null } {
+  if (limit < 1) throw new Error(`page limit must be >= 1, got ${limit}`)
+  const start = cursor === null ? 0 : sortedIds.findIndex((id) => id > cursor)
+  if (start === -1) return { ids: [], next: null }
+  const ids = sortedIds.slice(start, start + limit)
+  const consumed = start + ids.length
+  return { ids, next: consumed < sortedIds.length ? (ids[ids.length - 1] ?? null) : null }
 }
 
 export class MemoryTenantStore implements TenantStore {
   private readonly records = new Map<string, TenantRecord>()
+  /**
+   * The lookup index: `billingUserId` → tenant ids in insertion order. Kept in
+   * step with `records` inside `put`/`delete` so it can never disagree with the
+   * primary map — a stale index would silently hand a webhook the wrong tenant.
+   */
+  private readonly byBillingUser = new Map<string, string[]>()
 
   async get(tenantId: string): Promise<TenantRecord | null> {
     const r = this.records.get(tenantId)
@@ -97,7 +145,12 @@ export class MemoryTenantStore implements TenantStore {
   }
 
   async put(record: TenantRecord): Promise<void> {
+    const previous = this.records.get(record.tenantId)
+    if (previous && previous.billingUserId !== record.billingUserId) {
+      this.unindex(previous.billingUserId, record.tenantId)
+    }
     this.records.set(record.tenantId, { ...record })
+    this.index(record.billingUserId, record.tenantId)
   }
 
   async list(): Promise<TenantRecord[]> {
@@ -105,6 +158,39 @@ export class MemoryTenantStore implements TenantStore {
   }
 
   async delete(tenantId: string): Promise<void> {
+    const previous = this.records.get(tenantId)
+    if (previous) this.unindex(previous.billingUserId, tenantId)
     this.records.delete(tenantId)
+  }
+
+  async getByBillingUser(billingUserId: string): Promise<TenantRecord | null> {
+    for (const tenantId of this.byBillingUser.get(billingUserId) ?? []) {
+      const record = this.records.get(tenantId)
+      if (record) return { ...record }
+    }
+    return null
+  }
+
+  async page(cursor: string | null, limit: number): Promise<TenantPage> {
+    const { ids, next } = pageSortedIds([...this.records.keys()].sort(), cursor, limit)
+    return {
+      items: ids.flatMap((id) => {
+        const record = this.records.get(id)
+        return record ? [{ ...record }] : []
+      }),
+      next
+    }
+  }
+
+  private index(billingUserId: string, tenantId: string): void {
+    const ids = this.byBillingUser.get(billingUserId) ?? []
+    if (!ids.includes(tenantId)) ids.push(tenantId)
+    this.byBillingUser.set(billingUserId, ids)
+  }
+
+  private unindex(billingUserId: string, tenantId: string): void {
+    const ids = (this.byBillingUser.get(billingUserId) ?? []).filter((id) => id !== tenantId)
+    if (ids.length === 0) this.byBillingUser.delete(billingUserId)
+    else this.byBillingUser.set(billingUserId, ids)
   }
 }

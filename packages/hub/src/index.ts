@@ -56,6 +56,32 @@ export {
 } from './auth/capabilities'
 export { createHubAuthError, type HubAuthError, type HubAuthErrorCode } from './auth/errors'
 
+// Hub address resolution (0423): a stable name resolves to the substrate URL,
+// which the client then dials DIRECTLY. Resolution, never proxying — see
+// docs/CHARTER.md §6 "No global chokepoint tier".
+export {
+  canonicalHubAddressBytes,
+  dialCandidates,
+  isHubAddressFresh,
+  resolveHubAddress,
+  signHubAddress,
+  verifyHubAddress,
+  type HubAddressCache,
+  type HubAddressRecord,
+  type HubAddressResolution,
+  type HubAddressStatus,
+  type HubLiveness,
+  type ResolveHubAddressDeps,
+  type ResolveOutcome,
+  type UnsignedHubAddressRecord
+} from './services/hub-address'
+export {
+  HUB_ADDRESS_PATH,
+  buildHubAddressRecord,
+  createHubAddressRoutes,
+  type HubAddressRoutesOptions
+} from './routes/hub-address'
+
 // Inbound webhooks (0213/0346): the inbox feature plus the first-party
 // deliver/apply sinks that close the "normalized then discarded" seam.
 export {
