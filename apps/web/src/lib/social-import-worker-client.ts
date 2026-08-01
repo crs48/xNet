@@ -38,6 +38,7 @@ export type BrowserSocialImportStageInput = {
   manifest: ArchiveManifest
   buckets: string[]
   includeSensitive: boolean
+  fetchTranscripts?: boolean
   importedAt?: string
 }
 
@@ -76,6 +77,7 @@ type MainThreadStagedResult = {
   manifest: ArchiveManifest
   buckets: string[]
   includeSensitive: boolean
+  fetchTranscripts: boolean
   importedAt: string
   result: SocialImportNodeDraftStreamResult
   streams: Map<string, MainThreadStageDraftStream>
@@ -316,6 +318,7 @@ async function stageOnMainThread(
     readTextEntry,
     buckets: input.buckets,
     includeSensitive: input.includeSensitive,
+    fetchTranscripts: input.fetchTranscripts === true,
     importedAt,
     includeSourceRecords: true,
     onComplete: (result) => {
@@ -331,6 +334,7 @@ async function stageOnMainThread(
     manifest: input.manifest,
     buckets: input.buckets,
     includeSensitive: input.includeSensitive,
+    fetchTranscripts: input.fetchTranscripts === true,
     importedAt,
     result,
     streams: new Map()
@@ -376,6 +380,7 @@ export async function stageBrowserSocialArchive(
         manifest: input.manifest,
         buckets: input.buckets,
         includeSensitive: input.includeSensitive,
+        fetchTranscripts: input.fetchTranscripts === true,
         importedAt: input.importedAt
       },
       isStageResponse
@@ -496,6 +501,7 @@ async function getMainThreadStageDraftStream(
       readTextEntry,
       buckets: stagedResult.buckets,
       includeSensitive: stagedResult.includeSensitive,
+      fetchTranscripts: stagedResult.fetchTranscripts,
       importedAt: stagedResult.importedAt,
       includeSourceRecords
     }),

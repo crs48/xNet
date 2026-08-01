@@ -270,6 +270,21 @@ export function extractSearchableContent(properties: Record<string, unknown>): s
     parts.push(note)
   }
 
+  // Imported social content denormalizes its full text into `searchText`
+  // precisely so it can be searched (exploration 0152) — but nothing here read
+  // it, so every imported post, comment and video transcript was invisible to
+  // full-text search while appearing to be indexed. `textPreview` is the
+  // shorter fallback for records that carry no full text.
+  const searchText = properties.searchText
+  if (typeof searchText === 'string' && searchText.length > 0) {
+    parts.push(searchText)
+  } else {
+    const textPreview = properties.textPreview
+    if (typeof textPreview === 'string') {
+      parts.push(textPreview)
+    }
+  }
+
   return parts.length > 0 ? parts.join(' ') : null
 }
 

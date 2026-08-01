@@ -33,6 +33,7 @@ type WorkerStagedResult = {
   manifest: Extract<SocialImportWorkerRequest, { kind: 'stage' }>['manifest']
   buckets: string[]
   includeSensitive: boolean
+  fetchTranscripts: boolean
   importedAt: string
   streams: Map<string, WorkerStageDraftStream>
 }
@@ -114,6 +115,7 @@ async function handleStage(
     readTextEntry,
     buckets: request.buckets,
     includeSensitive: request.includeSensitive,
+    fetchTranscripts: request.fetchTranscripts === true,
     importedAt,
     includeSourceRecords: true,
     onComplete: (result) => {
@@ -130,6 +132,7 @@ async function handleStage(
     manifest: request.manifest,
     buckets: request.buckets,
     includeSensitive: request.includeSensitive,
+    fetchTranscripts: request.fetchTranscripts === true,
     importedAt,
     streams: new Map()
   })

@@ -385,15 +385,18 @@ export function useDocumentShell(): DocumentShell {
 
   const handleInsertSavedLensAsCanvasFrame = useCallback(
     (view: SavedViewCanvasFrameInput) => {
-      const inserted =
-        canvasViewRef.current?.createQueryFrameFromSavedView({
-          viewId: view.id,
-          title: view.title ?? 'Saved lens',
-          descriptorJson: view.descriptor ?? null
-        }) ?? false
+      // A projection places the cards and the connections between them; a
+      // plain lens becomes a live query frame instead (0419).
+      const inserted = view.projection
+        ? (canvasViewRef.current?.applySocialCanvasProjection(view.projection) ?? false)
+        : (canvasViewRef.current?.createQueryFrameFromSavedView({
+            viewId: view.id,
+            title: view.title ?? 'Saved lens',
+            descriptorJson: view.descriptor ?? null
+          }) ?? false)
 
       if (!inserted) {
-        console.error('Failed to insert saved lens as a canvas query frame', view.id)
+        console.error('Failed to place saved lens on the canvas', view.id)
         return
       }
 
