@@ -69,7 +69,9 @@ priority order, a watermark + snooze model, and a hard cap.
   exploration 0199) and the humane‑patterns gate bans dark‑pattern primitives —
   infinite scroll, streak counters, confirmshaming
   ([`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs),
-  `dark-pattern` rules).
+  `dark-pattern` rules). The streak rules match the underlying math reaching a
+  render path, not just identifier spellings, and cover the workbench and
+  dashboard packages — a gap that let a 🔥 counter ship (exploration 0422).
 - **Architectural:** chronological feeds
   ([`packages/social/src/feeds/defaults.ts`](../packages/social/src/feeds/defaults.ts)),
   rule‑based notifications
@@ -101,6 +103,14 @@ respects authorization. By default the assistant **scaffolds** — it proposes a
 cites, you write and own — rather than silently doing your thinking for you (a
 direct answer to the MIT "cognitive debt" finding on LLM deskilling). Anything the
 model authored is marked as `ai-generated` provenance.
+
+**Why scaffolding is the default, and not timidity:** the autonomy a feature may
+take is bounded by how cheaply it can be revoked and how completely you leave
+with your data — see [`VIBE.md`](./VIBE.md) §"Surrender scales with exit"
+(exploration 0422). Handing the wheel to your own judgement is one thing;
+handing it to a vendor's model is another, and §Exit is what keeps the two
+distinguishable. That makes §Exit a precondition on every autonomy feature here,
+not a separate promise about portability.
 
 - **Architectural / tested:** governed GraphRAG retrieval
   ([`packages/brain/src/retrieve.ts`](../packages/brain/src/retrieve.ts)),

@@ -525,11 +525,11 @@ export function proposePromotion(
       [`check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs)
 - [x] Add planted-violation cases to that script's self-test harness, matching
       the existing `flags a streak counter` case
-- [ ] Write **Rule 1 (pull not push)** into [`docs/VIBE.md`](../VIBE.md) beside
+- [x] Write **Rule 1 (pull not push)** into [`docs/VIBE.md`](../VIBE.md) beside
       "reciprocity legible, never scored", with the collaboration carve-out
-- [ ] Write **Rule 3 (surrender scales with exit)** into
+- [x] Write **Rule 3 (surrender scales with exit)** into
       [`docs/VIBE.md`](../VIBE.md) beside "Integration you can walk out with"
-- [ ] Cross-reference Rule 3 from [`docs/CHARTER.md`](../CHARTER.md) §5 Agency so
+- [x] Cross-reference Rule 3 from [`docs/CHARTER.md`](../CHARTER.md) §5 Agency so
       the AI position states its own justification
 - [ ] Implement `proposePromotion` in `packages/data/src/schema/` with unit tests
       covering below-threshold, at-threshold, and round-trip reversal
