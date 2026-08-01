@@ -38,16 +38,17 @@ the research and the plan: the argument, the evidence, the shape of the
 non-extractive product, and — because xNet turns out to have already built most
 of it — the honest accounting of what is shipped versus what is claimed.
 
-> [!WARNING]
-> **Source caveat, stated up front.** YouTube blocked every automated route to
-> the transcript (WebFetch returns the page shell; the in-app browser's policy
-> check was unavailable for the whole session; `youtubetotranscript.com` and
-> `r.jina.ai` both 403). The **title and channel are verified** via YouTube's
-> oEmbed endpoint. The video's specific claims are **not** verified, so nothing
-> in this document is attributed to it. Every factual claim below stands on a
-> named written source. Before the essay ships, the transcript must be pasted in
-> and §"External Research → The video" filled in — see the
-> [Implementation Checklist](#implementation-checklist).
+> [!NOTE]
+> **Source status.** YouTube blocked every automated route to the transcript
+> during research (WebFetch returns the page shell; the in-app browser's policy
+> check was unavailable; `youtubetotranscript.com` and `r.jina.ai` both 403 —
+> only the oEmbed endpoint answered, with title and channel). The essay
+> therefore shipped citing the video **only as its prompt**, with every factual
+> claim standing on a named written source. The user supplied the full
+> transcript on 2026-08-01, after the essay merged (#670); its actual argument
+> is recorded in §"External Research → The video" below, and the
+> reconciliation confirmed the essay's one claim about the video (prompt
+> status) is accurate. No essay change was needed.
 
 ## Executive Summary
 
@@ -171,11 +172,68 @@ counter, and here is the lint rule"** — which is a different kind of claim fro
 
 **Verified:** title _"How Hinge Destroyed Society Forever"_, channel _Moon_
 (confirmed via `youtube.com/oembed`). Moon is a British video essayist whose
-work runs 15–40 minutes on politics, social media and film.
+work runs 15–40 minutes on politics, social media and film. **Transcript
+supplied by the user 2026-08-01** (post-merge); the summary below is from a
+full read.
 
-**Not verified:** the argument, claims, or statistics. See the caveat above.
-Pending the transcript, the essay should engage with the _documented_ critique
-below and cite the video only as the prompt.
+**Its actual argument.** The video is a _villain story_ where our essay is a
+_mechanism story_. It opens in second person inside the addiction loop — the
+download, the early dopamine, the decaying match quality, the discounted
+subscription arriving "at the perfect time", four apps draining you weekly —
+then pivots on the question "who is behind these apps?" and answers with a
+person: **Barry Diller**. Match Group's CEO (Spencer Rascoff, from early
+2025) is dismissed as "the latest in a chain of executives"; the real subject
+is Diller's IAC — 200+ companies (Expedia, Ticketmaster, Vimeo, ~40 media
+brands, a stake in MGM), the Paramount/Fox biography, the "Killer Diller"
+management style, Sun Valley and the "Velvet Mafia" — with **QVC as the
+conversion moment** ("screens for something other than telling stories") and
+**Ticketmaster as the template**: dominate the platform people can't live
+without, then squeeze. The financial arc: IAC builds Tinder in-house (Hatch
+Labs, 2012; the swipe as card-deck gambling), acquires OkCupid /
+PlentyOfFish / Hinge, floats Match in 2015, spins it off in 2020; Diller
+sells out (~$1.9B by the video's count) before the stock collapses — "owned
+it, grew it, took his billions, and left at the perfect moment." Its closing
+thesis is the essay's thesis in different clothes: _"The entire experience is
+built to keep you always close, always hopeful, but always one step away…
+The industry wouldn't exist if people happily met in real life."_
+
+**Evidence beats it leans on** (verification status in brackets): Judith
+Duportail's GDPR request returning ~800 pages including a desirability score
+[✅ documented; the Groundwork report our essay cites draws on the same
+case]; the Valentine's Day 2024 addiction class action, and Match forcing it
+into arbitration [✅ the suit is in our essay's §1; the arbitration outcome
+was not independently checked]; Hinge's Gale–Shapley matching [✅]; the FTC
+fake-"someone liked you" case — ~90% of the flagged likes fraudulent, ~500k
+subscriptions within a day of one [reported; the video's "$14M, settled
+2025" figure not independently verified]; sex-offender-registry checks run
+on paid tiers but not free ones [reported by an earlier investigation; not
+re-verified]; OkCupid passing sexuality/drug-use/political data to an
+outside analytics firm [✅ consistent with the third-party-sharing figures
+we cite via Groundwork]; Tinder's "Chemistry" camera-roll-scanning AI and
+the Match-funded, Rascoff-boarded **Overtone** (AI-interview dating from
+Hinge's founder) [reported; post-dates our research sweep, unverified]; the
+Iyengar–Lepper jam study via Barry Schwartz's _Paradox of Choice_ [✅ the
+study is real; 24 jars → 3% purchase vs 6 jars → 30%]. The essay uses
+**none** of the video-only unverified figures, so nothing published depends
+on them.
+
+**Where we deliberately diverged.** The video needs a villain and reaches for
+elite-network colour (Sun Valley, the CFR, an Epstein aside, "servant
+class", population collapse) that our blog's register refuses. The essay
+makes the same core diagnosis with no villain at all — "it falls out of a
+quarterly target the way water falls downhill" — because the incentive
+survives any individual: Diller exited around 2021–22, and the meter kept
+running. The video's own best exhibit supports the structural reading:
+Diller praising his MGM casino stake _because_ "no tech is getting between
+that and a human" — the one business he wanted un-disintermediated was the
+one where the house wins. The convergences are strong enough to note: its
+"always close, always hopeful, but always one step away" is our "the perfect
+customer is the one who almost finds someone, forever"; both hang on
+_designed to be deleted_, the 2024 lawsuit, Gale–Shapley, and the data
+horde. One thing the video has that a future essay revision could borrow
+honestly: the **Overtone / "Chemistry" AI turn** — the same operator now
+selling the conversation itself — which lands exactly on our "a matchmaker
+paid on outcomes must observe the outcome" surveillance point.
 
 ### The economics of the meter
 
@@ -598,7 +656,7 @@ stateDiagram-v2
 
 **Status:** ░░░░░░░░░░ 0/14 items
 
-- [ ] **Obtain the video transcript** and record its actual argument in
+- [x] **Obtain the video transcript** and record its actual argument in
       §"External Research → The video"; reconcile every claim the essay makes
       about it.
 - [x] Verify each cited statistic against its primary source (PNAS paper,
@@ -631,7 +689,7 @@ stateDiagram-v2
 
 ## Validation Checklist
 
-- [ ] The transcript has been read and the essay's characterisation of the video
+- [x] The transcript has been read and the essay's characterisation of the video
       is accurate.
 - [x] Every statistic in the published essay traces to a named source in the
       `Sources` section.
