@@ -181,6 +181,38 @@ describe('agent CLI commands', () => {
     expect(json.items[0]).toHaveProperty('pathLabel')
   })
 
+  // The sandbox bans `await`, so api.recall is synchronous and the host runs
+  // the script twice: a priming pass records the queries, the real pass answers
+  // them (exploration 0415).
+  it('run: api.recall reaches past the loaded slice, with provenance paths', async () => {
+    const services = createTestServices()
+    const scriptPath = join(rootDir, 'digest.js')
+    await writeFile(
+      scriptPath,
+      `(node, ctx) => {
+        const hits = ctx.api.recall('planning')
+        return {
+          count: hits.length,
+          first: hits[0] ? hits[0].id : null,
+          path: hits[0] ? hits[0].path : null
+        }
+      }`,
+      'utf8'
+    )
+    const output = JSON.parse(await runScript(services, { file: scriptPath }))
+    expect(output.result.count).toBeGreaterThan(0)
+    expect(output.result.first).toBe('page_1')
+    expect(output.result.path).toBeTruthy()
+  })
+
+  it('run: api.graph walks typed relations from a node', async () => {
+    const services = createTestServices()
+    const scriptPath = join(rootDir, 'graph.js')
+    await writeFile(scriptPath, `(node, ctx) => ctx.api.graph('db_projects', 1)`, 'utf8')
+    const output = JSON.parse(await runScript(services, { file: scriptPath }))
+    expect(Array.isArray(output.result)).toBe(true)
+  })
+
   it('query returns TSV rows with flattened properties and supports where filters', async () => {
     const services = createTestServices()
     const output = await runQuery(services, { databaseId: 'db_projects' })

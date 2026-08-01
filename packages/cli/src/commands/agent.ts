@@ -19,6 +19,10 @@ import type {
   AiSurfaceService,
   AiWorkspaceExportKind,
   AiWorkspaceWatcherScanResult,
+  AgentGraphEdge,
+  AgentRecallHit,
+  AgentRequestedContext,
+  AgentResolvedContext,
   FlatNode,
   NodeData,
   NodeStoreAPI,
@@ -38,6 +42,7 @@ import {
   createAiWorkspaceExporter,
   createAiWorkspaceWatcher,
   flattenRowForTsv,
+  graphRequestKey,
   toTsv
 } from '@xnetjs/plugins/node'
 import { Command } from 'commander'
@@ -515,6 +520,85 @@ export type RunScriptOptions = {
   timeoutMs?: number
 }
 
+/**
+ * Answer the queries a priming pass recorded.
+ *
+ * `recall` goes through the retrieval factory, so a script gets the same graph
+ * walk and the same provenance paths the `recall` verb does — the point of the
+ * code-execution lane is that it should not be a weaker view of the workspace
+ * than the tool lane, only a cheaper one.
+ */
+export async function resolveScriptContext(
+  services: AgentCliServices,
+  requested: AgentRequestedContext
+): Promise<AgentResolvedContext> {
+  const recall = new Map<string, AgentRecallHit[]>()
+  for (const query of requested.recall) {
+    const pack = await services.retrieval.recall(query)
+    recall.set(
+      query,
+      pack.items.map((item) => ({
+        id: item.nodeId,
+        title: item.title,
+        path: item.pathLabel,
+        hops: item.hops,
+        snippet: item.snippet
+      }))
+    )
+  }
+
+  const graph = new Map<string, AgentGraphEdge[]>()
+  for (const request of requested.graph) {
+    graph.set(
+      graphRequestKey(request.nodeId, request.hops),
+      await expandFrom(services, request.nodeId, request.hops)
+    )
+  }
+
+  return { recall, graph }
+}
+
+/** Walk typed relations out of one node, breadth-first, up to `hops`. */
+async function expandFrom(
+  services: AgentCliServices,
+  nodeId: string,
+  hops: number
+): Promise<AgentGraphEdge[]> {
+  const edges: AgentGraphEdge[] = []
+  const seen = new Set<string>([nodeId])
+  let frontier = [nodeId]
+  for (let depth = 1; depth <= Math.max(0, hops); depth++) {
+    const next: string[] = []
+    for (const id of frontier) {
+      const node = await services.store.get(id)
+      if (!node || node.deleted) continue
+      const schema = await services.schemas.get(node.schemaId).catch(() => null)
+      const relationFields = schema
+        ? Object.entries(schema.properties)
+            .filter(
+              ([, value]) =>
+                typeof value === 'object' &&
+                value !== null &&
+                (value as { type?: unknown }).type === 'relation'
+            )
+            .map(([name]) => name)
+        : []
+      for (const field of relationFields) {
+        const value = node.properties[field]
+        for (const target of Array.isArray(value) ? value : [value]) {
+          if (typeof target !== 'string' || target.length === 0 || seen.has(target)) continue
+          seen.add(target)
+          next.push(target)
+          edges.push({ id: target, relation: field, direction: 'outbound', hops: depth })
+        }
+      }
+    }
+    frontier = next
+    if (frontier.length === 0) break
+  }
+  return edges
+}
+
 export async function runScript(
   services: AgentCliServices,
   options: RunScriptOptions
@@ -528,11 +612,25 @@ export async function runScript(
   const flatNodes = nodes.filter((node) => !node.deleted).map(toFlatNode)
   const currentNode = options.node ? flatNodes.find((node) => node.id === options.node) : undefined
 
-  const session = createAgentScriptContext({
+  const sandbox = new ScriptSandbox({ timeoutMs: options.timeoutMs ?? 5000 })
+
+  // Two passes (exploration 0415). The sandbox bans `await` on purpose, so
+  // `api.recall`/`api.graph` cannot be async — instead a priming run records
+  // what the script asks for, the host resolves it out here where awaiting is
+  // allowed, and the real run gets the answers. The priming run's proposals are
+  // discarded: only the second session's plan is kept.
+  const priming = createAgentScriptContext({
     nodes: flatNodes,
     ...(currentNode ? { node: currentNode } : {})
   })
-  const sandbox = new ScriptSandbox({ timeoutMs: options.timeoutMs ?? 5000 })
+  await sandbox.execute(code, priming.context).catch(() => undefined)
+  const resolved = await resolveScriptContext(services, priming.getRequestedContext())
+
+  const session = createAgentScriptContext({
+    nodes: flatNodes,
+    ...(currentNode ? { node: currentNode } : {}),
+    resolved
+  })
   const result = await sandbox.execute(code, session.context)
 
   const plan = session.toMutationPlan({ actor: options.actor ?? 'xnet-cli-script' })

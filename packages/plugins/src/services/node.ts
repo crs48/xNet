@@ -160,9 +160,13 @@ export type {
 } from '../ai-surface'
 
 // Agent script sandbox (code-execution surface for `xnet run`)
-export { createAgentScriptContext } from '../sandbox/agent-api'
+export { createAgentScriptContext, graphRequestKey } from '../sandbox/agent-api'
 export type {
   AgentApi,
+  AgentGraphEdge,
+  AgentRecallHit,
+  AgentRequestedContext,
+  AgentResolvedContext,
   AgentScriptContext,
   AgentScriptSession,
   AgentSearchResult,

@@ -774,8 +774,8 @@ export function candidatesFromTraces(
 - [x] `xnet_recall` MCP tool; decide its place in `MCP_CORE_TOOL_NAMES`
 - [x] `xnet serve` — warm store + schemas + FTS behind a unix socket; cold fallback
 - [x] Loud stale-daemon detection (version handshake, exit 1, never exit 0)
-- [ ] Extend the sandbox `api` with `api.recall()` and `api.graph(nodeId, hops)`
-- [ ] Rewrite the skill's lane ladder: code execution above ad-hoc reads for aggregate work
+- [x] Extend the sandbox `api` with `api.recall()` and `api.graph(nodeId, hops)`
+- [x] Rewrite the skill's lane ladder: code execution above ad-hoc reads for aggregate work
 
 ### Phase 3 — Semantic tier for the agent lane
 
