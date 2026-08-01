@@ -178,6 +178,12 @@
         "cd apps/web && exec /Users/crs/.nvm/versions/node/v23.11.1/bin/node node_modules/vite/bin/vite.js --port 5219 --strictPort"
       ],
       "port": 5219
+    },
+    {
+      "name": "site-preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "site", "preview", "--port", "4321", "--host"],
+      "port": 4321
     }
   ]
 }

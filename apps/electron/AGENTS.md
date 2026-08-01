@@ -123,3 +123,15 @@ rebuilding for Node — that just moves the breakage to the app.
 `pnpm --filter @xnetjs/hub dev` still runs on system Node. That is the right
 command when Electron is out of the picture, but it needs the binary built to
 match: run `pnpm --filter xnet-desktop run deps:node` first.
+
+## Workspace dependencies
+
+The app imports built output, not source — `@xnetjs/plugins/node` is
+`dist/services/node.js`. `pnpm dev` runs electron-vite directly and never goes
+through turbo, so a freshly pulled tree used to boot against whatever `dist/`
+was on disk. Stale output does not read as a stale build; it reads as broken
+source (`does not provide an export named …` for an export that is right there).
+
+`scripts/build-workspace-deps.mjs` runs `turbo run build
+--filter=xnet-desktop^...` before launch and lets the content hash decide: ~1s
+warm, real work only when something moved. `XNET_SKIP_DEP_BUILD=1` skips it.
