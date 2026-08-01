@@ -54,6 +54,8 @@ import { FrontierEntry } from '@xnetjs/history';
 import { HistoricalState } from '@xnetjs/history';
 import { HistoryHorizon } from '@xnetjs/history';
 import { HistoryTarget } from '@xnetjs/history';
+import { HubAddressOutcome } from '@xnetjs/runtime';
+import { HubAddressStorage } from '@xnetjs/runtime';
 import { HybridKeyBundle } from '@xnetjs/identity';
 import { Identity } from '@xnetjs/identity';
 import { ImporterContribution } from '@xnetjs/plugins';
@@ -840,6 +842,14 @@ export function hasAcceptedContact(requests: readonly MessageRequestNode[], send
 export function hasSavedViewVisualPreviewSensitiveData(preview: SavedViewVisualPreviewModel): boolean;
 
 export { HistoryHorizon }
+
+// @public
+export interface HubAddressConfig {
+    fetchImpl?: typeof fetch;
+    name: string;
+    resolverUrl: string;
+    storage?: HubAddressStorage;
+}
 
 // Warning: (ae-forgotten-export) The symbol "HubConnectScreenProps" needs to be exported by the entry point index.d.ts
 //
@@ -1628,6 +1638,15 @@ export type RenderableTaskRow = {
 export interface ReplyContext {
     replyToCommentId?: string;
     replyToUser?: string;
+}
+
+// @public (undocumented)
+export interface ResolvedHubUrl {
+    fallbacks: string[];
+    // (undocumented)
+    outcome: HubAddressOutcome | null;
+    stale: boolean;
+    url: string | null;
 }
 
 export { RestoreResult }
@@ -3037,6 +3056,9 @@ export interface UseRelatedRowsResult {
 export const useRemoteSchema: (iri: string | undefined) => RemoteSchemaState;
 
 // @public
+export function useResolvedHubUrl(address: HubAddressConfig | undefined, configuredHubUrl: string | null): ResolvedHubUrl;
+
+// @public
 export function useReverseRelations(rowId: string, databaseId: string): UseReverseRelationsResult;
 
 // @public (undocumented)
@@ -3334,6 +3356,7 @@ export interface XNetConfig {
     disablePlugins?: boolean;
     disableSyncManager?: boolean;
     encryptionKey?: Uint8Array;
+    hubAddress?: HubAddressConfig;
     hubOptions?: {
         autoAuth?: boolean;
         authToken?: string;
