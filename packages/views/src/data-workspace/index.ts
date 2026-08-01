@@ -14,3 +14,9 @@ export {
   upsertDefaultSocialWorkspace,
   type SocialWorkspaceSeedSummary
 } from './social-workspace.js'
+export {
+  clearPendingCanvasLens,
+  stashPendingCanvasLens,
+  takePendingCanvasLens,
+  type PendingCanvasLens
+} from './pending-canvas-lens.js'

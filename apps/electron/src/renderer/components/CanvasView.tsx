@@ -11,6 +11,7 @@ import type {
   Rect,
   ShapeType
 } from '@xnetjs/canvas'
+import type { SocialCanvasProjectionPlan } from '@xnetjs/social/projection'
 import {
   Canvas,
   getCanvasObjectsMap,
@@ -132,6 +133,7 @@ export type CanvasViewHandle = {
   createMindMap: () => boolean
   createPlanningTemplate: (templateId: CanvasPlanningTemplateId) => boolean
   createQueryFrameFromSavedView: (input: SavedViewCanvasQueryFrameInput) => boolean
+  applySocialCanvasProjection: (plan: SocialCanvasProjectionPlan) => boolean
   refreshSelectedQueryFrame: () => boolean
   createExternalReference: (url?: string) => boolean
   createMediaFile: () => boolean
@@ -273,7 +275,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     selectedQueryFrameNode,
     selectedQueryFrameDefinition,
     createQueryFrameFromSavedView,
-    refreshSelectedQueryFrame
+    refreshSelectedQueryFrame,
+    applySocialCanvasProjection
   } = useCanvasQueryFrames({
     doc,
     sceneRevision,
@@ -281,6 +284,13 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     placePrimitiveObject,
     onUndoBoundary: recordSceneUndoBoundary
   })
+
+  // The imperative handle reports success as a boolean; the hook returns the
+  // richer result for callers that want the placed/omitted counts.
+  const applySocialCanvasProjectionHandle = useCallback(
+    (plan: SocialCanvasProjectionPlan): boolean => Boolean(applySocialCanvasProjection(plan)),
+    [applySocialCanvasProjection]
+  )
 
   const selectedDatabaseSourceId =
     selectedCanvasObject?.displayType === 'database' ? (selectedCanvasObject.sourceId ?? '') : ''
@@ -784,6 +794,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       createMindMap,
       createPlanningTemplate,
       createQueryFrameFromSavedView,
+      applySocialCanvasProjection: applySocialCanvasProjectionHandle,
       refreshSelectedQueryFrame,
       createExternalReference,
       createMediaFile,
@@ -804,6 +815,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       createMindMap,
       createPlanningTemplate,
       createQueryFrameFromSavedView,
+      applySocialCanvasProjectionHandle,
       createMediaFile,
       createShape,
       connectSelection,

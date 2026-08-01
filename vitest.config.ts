@@ -146,6 +146,15 @@ export default defineConfig({
             // Community hosting primitives are pure and dependency-free
             // (welcome queue — exploration 0359), same reasoning as feeds.
             'packages/social/src/community/**/*.test.ts',
+            // Transcript fetching, segmentation and run accounting (0419) —
+            // pure functions over strings plus an injectable fetch seam.
+            'packages/social/src/transcripts/**/*.test.ts',
+            // Agent-facing retrieval scope for social data (0419) — pure
+            // predicates over schema ids and privacy classes.
+            'packages/social/src/retrieval/**/*.test.ts',
+            // Display enrichment (0170/0419) — moved out of apps/web so the
+            // desktop app shares it; pure logic plus an injectable fetch.
+            'packages/social/src/enrichment/**/*.test.ts',
             // The publish pipeline (0420) is pure too — relative imports plus
             // @xnetjs/data — so it runs here rather than only under the package
             // config, where CI would never see it. Named explicitly rather than

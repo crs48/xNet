@@ -48,6 +48,11 @@ export type ImportProbe = {
 export type ImportSelection = {
   buckets?: readonly string[]
   includeSensitive?: boolean
+  /**
+   * Per-run choices recorded on the import run (0419) — currently whether to
+   * fetch video transcripts for what this archive brings in.
+   */
+  runOptions?: { fetchTranscripts?: boolean }
 }
 
 export type JsonArchiveEntryReader = <T = unknown>(path: string) => Promise<T>
