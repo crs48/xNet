@@ -131,6 +131,41 @@ export const VARS = [
     }
   },
 
+  // ── Lifecycle email — https://resend.com (exploration 0418) ──────────────
+  // Required alongside the money path, not optional: the non-payment funnel
+  // degrades and eventually deletes a tenant's cloud replica, and doing that
+  // without a way to warn the customer is not something we ship.
+  {
+    key: 'RESEND_API_KEY',
+    group: 'Email (https://resend.com)',
+    secret: true,
+    milestone: 'M2',
+    where: 're_… — API Keys. Required before XNET_CLOUD_DUNNING_DELETE_ENABLED may be true',
+    values: { development: '', staging: F, production: F }
+  },
+  {
+    key: 'XNET_CLOUD_MAIL_FROM',
+    group: 'Email (https://resend.com)',
+    secret: false,
+    milestone: 'M2',
+    where: 'From header on lifecycle mail; the domain must be verified in Resend (SPF+DKIM)',
+    values: {
+      development: '',
+      staging: 'xNet <billing@xnet.fyi>',
+      production: 'xNet <billing@xnet.fyi>'
+    }
+  },
+  {
+    key: 'XNET_CLOUD_DUNNING_DELETE_ENABLED',
+    group: 'Email (https://resend.com)',
+    secret: false,
+    milestone: 'optional',
+    where:
+      "'true' arms the terminal delete step of the dunning funnel. Ships OFF; leave it off " +
+      'until one full lifecycle has been observed end to end on real tenants',
+    values: { development: '', staging: '', production: '' }
+  },
+
   // ── Stripe — https://dashboard.stripe.com ─────────────────────────────────
   {
     key: 'STRIPE_SECRET_KEY',

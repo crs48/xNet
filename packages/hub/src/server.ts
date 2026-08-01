@@ -3,6 +3,7 @@
  */
 
 import type { AuthSession } from './auth/ucan'
+import type { HubFeature } from './features/types'
 import type { HubConfig, HubInstance } from './types'
 import type { MiddlewareHandler } from 'hono'
 import type { IncomingMessage } from 'http'
@@ -33,28 +34,27 @@ import {
   resolveMaxBlobBytes,
   resolvePerUserQuota,
   resolveResetIntervalMs,
-  resolveResetOnCorruption
+  resolveResetOnCorruption,
+  resolveWritesEnabled
 } from './config'
 import { measureDataUsage, type DataUsage } from './data-usage'
-import { loadOrCreateHubIdentity } from './hub-identity'
 import { aiForwarderFeature } from './features/ai-forwarder'
+import { assertDerivedOnlyDataDir, atprotoIndexFeature } from './features/atproto-index'
 import { diagnosticsInboxFeature } from './features/diagnostics-inbox'
 import { diagnosticsSharingFeature } from './features/diagnostics-sharing'
 import { billingFeature, tasksFeature, unfurlFeature } from './features/first-party'
 import { formInboxFeature } from './features/form-inbox'
-import { mountOidcProvider } from './features/oidc-provider'
-import { mountFeatures } from './features/registry'
-import { assertDerivedOnlyDataDir, atprotoIndexFeature } from './features/atproto-index'
 import { hubSubscriberFeature } from './features/hub-subscriber'
+import { mountOidcProvider } from './features/oidc-provider'
 import { publicInteractionsFeature } from './features/public-interactions'
-import type { HubFeature } from './features/types'
+import { mountFeatures } from './features/registry'
 import { pagerdutyFeature, sentryFeature, stripeFeature } from './features/webhook-integrations'
+import { loadOrCreateHubIdentity } from './hub-identity'
 import { createLogger } from './logger'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
 import { createAtprotoRoutes } from './routes/atproto'
-import { createKnotRoutes } from './routes/knot'
 import { createAuditRoutes } from './routes/audit'
 import { createBackupRoutes } from './routes/backup'
 import { createCrawlRoutes } from './routes/crawl'
@@ -63,6 +63,7 @@ import { createExportRoutes } from './routes/export'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
 import { createKeyRegistryRoutes } from './routes/keys'
+import { createKnotRoutes } from './routes/knot'
 import { createPublicRoutes } from './routes/public'
 import { createRecoveryAnchorRoutes } from './routes/recovery-anchor'
 import { createSchemaRoutes } from './routes/schemas'
@@ -71,8 +72,8 @@ import { createShareInterstitialRoutes, DEFAULT_APP_URL } from './routes/share-i
 import { createShareLinkRoutes } from './routes/share-links'
 import { createTelemetryRoutes } from './routes/telemetry'
 import { AtprotoBindingVerifier } from './services/atproto-binding'
-import { AtprotoRecoveryAnchor } from './services/atproto-recovery-anchor'
 import { RecoveryChallengeStore } from './services/atproto-challenge'
+import { AtprotoRecoveryAnchor } from './services/atproto-recovery-anchor'
 import { AwarenessService } from './services/awareness'
 import { BackupService } from './services/backup'
 import { CrawlCoordinator } from './services/crawl'
@@ -87,6 +88,7 @@ import { ShardRegistry } from './services/index-shards'
 import { KeyRegistryService } from './services/key-registry'
 import { NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
+import { readOnlyGuard } from './services/read-only'
 import { RelayService } from './services/relay'
 import { SchemaRegistryService } from './services/schemas'
 import { ShardIngestRouter } from './services/shard-ingest'
@@ -201,6 +203,15 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // token-based — never cookies — so a wildcard origin grants nothing a
   // malicious page could use without already holding a token.
   app.use('*', cors())
+  // Billing read-only (exploration 0418). Mounted immediately after CORS and
+  // before every route so no mutating surface can be added later that forgets
+  // to check — the same "one place, by name" discipline as the quota resolvers.
+  // No-op unless a signed entitlement explicitly set `writesEnabled: false`,
+  // which never happens on a self-hosted hub.
+  app.use(
+    '*',
+    readOnlyGuard(() => resolveWritesEnabled(config))
+  )
   // Global safety net (exploration 0315 P0): routes do their own try/catch, so
   // this only fires on a genuinely uncaught throw — log one structured line and
   // return a clean 500 instead of leaking a stack to the client.
@@ -360,6 +371,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const nodeRelay = new NodeRelayService(storage, remoteMutationTelemetry, {
     quotaBytes: perUserQuota,
     isStorageFull,
+    // Billing read-only (0418): the sync socket is the primary write path, so
+    // the HTTP middleware alone would not actually stop writes.
+    writesEnabled: () => resolveWritesEnabled(config),
     // Fan channel nodes into their share room so grantees receive them (0298).
     shareAccess,
     broadcastToRoom: (room, change) =>

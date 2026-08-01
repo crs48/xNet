@@ -20,6 +20,7 @@ import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { parseAiBudgetForm } from './ai/budget-form'
 import { createAiRoute, type AiChatDeps } from './ai/route'
+import { backupsHealthyFor, type BackupHealth } from './backup/schedule'
 import { WebhookSignatureError, type TenantBillingGateway } from './billing-gateway'
 import { currentPeriodStartMs } from './control-plane'
 import {
@@ -78,8 +79,12 @@ export interface ControlPlaneAppDeps {
    * from one that passed, because success is silence.
    */
   jobs?: JobHealthSource
-  /** Whether per-hub backups (Litestream→R2) are configured; surfaced on /status.json. */
-  backupsConfigured?: boolean
+  /**
+   * Backup health, surfaced on /status.json (exploration 0418). A function, not a
+   * value, because the answer changes when the nightly drill runs — a boolean
+   * captured at boot would report last week's opinion forever.
+   */
+  backupHealth?: () => BackupHealth
   /** Managed AI chat deps. If set, exposes `POST /ai/chat` (metered gateway). */
   ai?: AiChatDeps
   /** Secret used to sign session cookies. If unset, the dashboard + auth callback are disabled. */
@@ -213,7 +218,9 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
       fleet: fleetSummary(slis),
       availabilities: slis.map((s) => s.availability),
       aiConfigured: Boolean(deps.ai),
-      backupsHealthy: deps.backupsConfigured ? true : null
+      // `unproven` reports as unknown (null), NOT as healthy: a configured
+      // bucket nobody has restored from is not a backup we should claim.
+      backupsHealthy: backupsHealthyFor(deps.backupHealth?.())
     })
     return c.json(status)
   })
@@ -514,7 +521,15 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     const s = session(c)
     if (!s) return c.json({ error: 'unauthorized' }, 401)
     const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
-    if (tenant) await deps.controlPlane.deleteTenant(tenant.tenantId)
+    if (tenant) {
+      // Same ordering as the dunning `delete` action (exploration 0418): place
+      // the retention hold on the encrypted replica BEFORE destroying anything.
+      // Deliberate on the voluntary path too — a user clicking "delete my data"
+      // has still not agreed to lose the window in which they could change their
+      // mind, and a hold that fails must abort rather than proceed silently.
+      await deps.controlPlane.stageExportBundle(tenant.tenantId)
+      await deps.controlPlane.deleteTenant(tenant.tenantId)
+    }
     return c.redirect('/dashboard')
   })
 
