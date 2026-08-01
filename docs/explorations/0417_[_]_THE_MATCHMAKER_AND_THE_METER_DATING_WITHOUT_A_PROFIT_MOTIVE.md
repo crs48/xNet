@@ -618,10 +618,10 @@ stateDiagram-v2
 - [x] Add the `metered connection` rule group to
       `scripts/check-humane-patterns.mjs`, plus a planted-violation case in
       `--selftest`.
-- [ ] Add **"No rent on introductions"** to the refused-rents list in
+- [x] Add **"No rent on introductions"** to the refused-rents list in
       [`docs/CHARTER.md`](../CHARTER.md) §6, with the lint rule as its
       receipt.
-- [ ] Pin the receipt in the claims ledger
+- [x] Pin the receipt in the claims ledger
       (`packages/telemetry/test/charter-claims-ledger.test.ts`).
 - [ ] Cross-link this exploration from 0174 and vice versa.
 - [ ] Write a changelog fragment (`node scripts/changelog/new.mjs`) — a new
@@ -645,7 +645,7 @@ stateDiagram-v2
       at 320px and at desktop width.
 - [ ] The post appears in `/blog` index and in the RSS feed.
 - [ ] `tellscan.mjs` shows no elevated machine-writing tells.
-- [ ] The Charter §6 addition has a working receipt link and the claims-ledger
+- [x] The Charter §6 addition has a working receipt link and the claims-ledger
       test passes.
 - [ ] Brand spelling: `xNet` in all prose, `xnet` in machine surfaces.
 
