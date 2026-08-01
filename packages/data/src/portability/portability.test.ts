@@ -22,6 +22,8 @@ import { writeBundle, blobEntryPath } from './write'
 const TASK_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/Task'
 const PAGE_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/Page'
 const SPACE_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/Space'
+const RELATIONSHIP_PRIMITIVE_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/RelationshipPrimitive'
+const PRACTICE_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/Practice'
 
 function createTestStore(identity?: { did: DID; privateKey: Uint8Array }) {
   const keyPair = generateSigningKeyPair()
@@ -101,6 +103,46 @@ describe('xnetpack bundle round-trip', () => {
       const bState = await b.store.get(node.id)
       expect(bState?.properties).toEqual(aState?.properties)
     }
+  })
+
+  it('round-trips relationship primitives and practices (0422 vanish test)', async () => {
+    // Charter §6 "vanish": if xNet disappears, the value survives. For the
+    // primitives layer that means the vocabulary AND the practice edges have to
+    // travel in the bundle — a portable list of terms whose practices stayed
+    // behind would be worthless. Schema-generic machinery gets this right by
+    // construction; this pins it so a future scoping rule can't quietly drop
+    // the most sensitive nodes we hold.
+    const a = createTestStore()
+    await a.store.initialize()
+
+    const primitive = await a.store.create({
+      schemaId: RELATIONSHIP_PRIMITIVE_SCHEMA,
+      properties: { label: 'make things', conventionalBundles: 'coworker', isSeed: true }
+    })
+    const practice = await a.store.create({
+      schemaId: PRACTICE_SCHEMA,
+      properties: {
+        from: 'contact-a',
+        to: 'contact-b',
+        primitive: primitive.id,
+        note: 'built a table'
+      }
+    })
+
+    const { source } = await exportFull(a.store, a.did, a.privateKey)
+    const b = createTestStore({ did: a.did, privateKey: a.privateKey })
+    await b.store.initialize()
+    const result = await applyBundle(b.store, source, { importerDid: a.did })
+    expect(result.quarantined).toEqual([])
+
+    const importedPrimitive = await b.store.get(primitive.id)
+    expect(importedPrimitive?.properties).toEqual((await a.store.get(primitive.id))?.properties)
+    expect(importedPrimitive?.properties.label).toBe('make things')
+
+    const importedPractice = await b.store.get(practice.id)
+    expect(importedPractice?.properties).toEqual((await a.store.get(practice.id))?.properties)
+    // The edge still points at the vocabulary term it instantiates.
+    expect(importedPractice?.properties.primitive).toBe(primitive.id)
   })
 
   it('double-import is idempotent: zero applied, all duplicates', async () => {

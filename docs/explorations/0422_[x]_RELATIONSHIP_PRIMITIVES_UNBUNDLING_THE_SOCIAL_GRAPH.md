@@ -331,7 +331,7 @@ Three moves:
    `startedAt`, `lastAt`, `cadenceDays`, `note`. One relationship has many
    practices. This is what the label was hiding.
 3. **Bundle derivation** — a pure function in `@xnetjs/crm` that takes the
-   practices for a pair and returns `{ label, confidence, matched, missing }`.
+   practices for a pair and returns `{ label, coverage, matched, missing }`.
    `RelationshipSchema.kind` stays for compatibility but is demoted to a
    user-supplied *hint* the derivation may disagree with.
 
@@ -529,10 +529,13 @@ export const PracticeSchema = defineSchema({
 // packages/crm/src/bundle.ts — pure, dependency-free, local
 
 export interface BundleReading {
-  /** Best-matching conventional bundle, or null when nothing matches well. */
-  label: string | null
-  /** Share of the bundle's conventional primitives that are practised, 0–1. */
-  confidence: number
+  /** The bundle this reading is for ("partner", "coworker", …). */
+  label: string
+  /**
+   * Share of the bundle's conventional primitives that are practised, 0–1.
+   * Grades the *match between a pair and a label*, never the relationship.
+   */
+  coverage: number
   /** Primitives practised that the bundle expects. */
   matched: string[]
   /** Primitives the bundle expects that are NOT practised — the experiments. */
@@ -550,15 +553,17 @@ export function deriveBundle(
   const have = new Set(practised)
   return [...bundles.entries()]
     .map(([label, expected]) => {
-      const matched = expected.filter((p) => have.has(p))
+      const unique = [...new Set(expected)]
+      const matched = unique.filter((p) => have.has(p))
       return {
         label,
-        confidence: expected.length === 0 ? 0 : matched.length / expected.length,
+        // A bundle expecting nothing must not rank as a perfect match.
+        coverage: unique.length === 0 ? 0 : matched.length / unique.length,
         matched,
-        missing: expected.filter((p) => !have.has(p))
+        missing: unique.filter((p) => !have.has(p))
       }
     })
-    .sort((a, b) => b.confidence - a.confidence || a.label.localeCompare(b.label))
+    .sort((a, b) => b.coverage - a.coverage || a.label.localeCompare(b.label))
 }
 ```
 
@@ -566,7 +571,10 @@ export function deriveBundle(
 // scripts/check-humane-patterns.mjs — lands FIRST, before the schemas
 {
   name: 'scored intimacy',
-  group: 'dark-pattern',
+  // `surplus`, not `dark-pattern`: dark-pattern rules only scan UI surfaces
+  // (packages/ui, packages/react, apps/web, site), and the derivation lives in
+  // packages/crm — a UI-scoped rule would never see the thing it guards.
+  group: 'surplus',
   re: /\b(relationshipScore|friendshipScore|intimacyScore|closenessScore|connectionHealth|relationshipStreak|neglectedContacts|atRiskFriend)\b/,
   fix: 'relationships are never scored or ranked — a health score is behavioural surplus with a friendly face, and it is the artefact a future operator would sell (Charter §6, exploration 0422)'
 }
@@ -653,7 +661,10 @@ Open questions:
 - [x] Add `PracticeSchema` to `crm.ts`, defaulting to the most private
       `visibility()`.
 - [x] Extend [`packages/crm/src/erasure.ts`](../../packages/crm/src/erasure.ts)
-      so PII erasure covers practices.
+      so PII erasure covers practices. **Shipped as `practiceErasureIds()`, a
+      delete list rather than an anonymize patch** — for a practice the claim is
+      the payload, and `primitive` is required, so a blanked practice would be an
+      invalid node rather than an anonymous one.
 - [x] Unit tests in `packages/data/src/schema/schemas/crm.test.ts` mirroring the
       existing `requires both ends of a relationship edge` case.
 
@@ -663,37 +674,37 @@ Open questions:
       [`packages/crm/src/index.ts`](../../packages/crm/src/index.ts).
 - [x] Unit tests covering: empty practice set, exact bundle match, partial match
       ordering, and a user-authored primitive that belongs to no bundle.
-- [ ] Write the changeset (`/changeset`) — `@xnetjs/data` and `@xnetjs/crm` are
+- [x] Write the changeset (`/changeset`) — `@xnetjs/data` and `@xnetjs/crm` are
       both publishable; new schemas are a **minor**, not a patch.
 
 **Phase 4 — surface**
 
-- [ ] A read-only "practices" section on the contact page listing practised
+- [x] A read-only "practices" section on the contact page listing practised
       primitives and the derived reading, with `missing` framed as _"things
       people often do in this kind of relationship"_ — never as a gap, deficit,
       or score.
 
 ## Validation Checklist
 
-- [ ] `node scripts/check-humane-patterns.mjs` fails on a file containing
+- [x] `node scripts/check-humane-patterns.mjs` fails on a file containing
       `const relationshipScore = 0.8` and passes on
       `const reading = deriveBundle(practised, bundles)`.
-- [ ] `pnpm --filter @xnetjs/telemetry test` — the new claims-ledger receipt is
+- [x] `pnpm --filter @xnetjs/telemetry test` — the new claims-ledger receipt is
       green.
-- [ ] `pnpm --filter @xnetjs/data test` and `pnpm --filter @xnetjs/crm test` pass.
-- [ ] `pnpm exec vitest run --project devtools packages/devtools/src/seed/seed-coverage.test.ts`
+- [x] `pnpm --filter @xnetjs/data test` and `pnpm --filter @xnetjs/crm test` pass.
+- [x] `pnpm exec vitest run --project devtools packages/devtools/src/seed/seed-coverage.test.ts`
       — the two new schemas are seeded, not excluded.
-- [ ] `deriveBundle([], bundles)` returns every bundle at confidence `0` with a
+- [x] `deriveBundle([], bundles)` returns every bundle at coverage `0` with a
       full `missing` list, and **never** throws or returns `null` for the array —
       an empty relationship is a valid reading, not an error.
-- [ ] A user-authored primitive belonging to no conventional bundle appears in
+- [x] A user-authored primitive belonging to no conventional bundle appears in
       `matched` for nothing and breaks no derivation.
-- [ ] `pnpm typecheck && pnpm lint && pnpm test`, plus `pnpm build` and the
+- [x] `pnpm typecheck && pnpm lint && pnpm test`, plus `pnpm build` and the
       `check:*` guards CI runs inside the lint/typecheck jobs.
-- [ ] Grep confirms no `Practice` field reaches `ConnectableProfileSchema`'s
+- [x] Grep confirms no `Practice` field reaches `ConnectableProfileSchema`'s
       derivation path in
       [`packages/social/src/connect/`](../../packages/social/src/connect/).
-- [ ] A `.xnetpack` export/import round-trip preserves primitives and practices
+- [x] A `.xnetpack` export/import round-trip preserves primitives and practices
       (the **vanish** test from the charter, made executable).
 
 ## References
