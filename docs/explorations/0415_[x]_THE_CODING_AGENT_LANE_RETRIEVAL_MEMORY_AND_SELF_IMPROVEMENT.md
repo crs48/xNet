@@ -1,6 +1,6 @@
 ---
 title: The Coding-Agent Lane — Retrieval, Memory, Speed and Self-Improvement
-status: draft
+status: implemented
 last_updated: 2026-08-01
 tags: [ai, agents, retrieval, memory, performance, privacy]
 ---
@@ -826,7 +826,7 @@ export function candidatesFromTraces(
 
 ## Implementation Checklist
 
-**Status:** ░░░░░░░░░░ 0/26 items
+**Status:** ██████████ 27/27 items
 
 ### Phase 1 — Retrieval parity (the load-bearing phase)
 
