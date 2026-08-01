@@ -626,7 +626,7 @@ stateDiagram-v2
 - [x] Cross-link this exploration from 0174 and vice versa.
 - [x] Write a changelog fragment (`node scripts/changelog/new.mjs`) — a new
       essay is user-visible.
-- [ ] Open the PR; no changeset needed unless `scripts/` counts as a
+- [x] Open the PR; no changeset needed unless `scripts/` counts as a
       publishable package (it does not).
 
 ## Validation Checklist
