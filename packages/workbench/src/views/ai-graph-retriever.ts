@@ -16,13 +16,16 @@
 import type { AiContextRetriever } from '@xnetjs/plugins'
 import {
   DEFAULT_HOP_DECAY,
+  isDegradedTier,
   retrieve,
+  SCAN_NOTICE,
   schemaRelationFields,
   type EntryHit,
   type GraphAccess,
   type GraphEdge,
   type NodeText,
-  type RetrievalBudget
+  type RetrievalBudget,
+  type RetrievalTier
 } from '@xnetjs/brain'
 import { schemaRegistry, type SchemaIRI } from '@xnetjs/data'
 
@@ -58,6 +61,17 @@ export interface GraphContextRetrieverOptions {
    * exploration 0211). Defaults to keyword search over the local store.
    */
   entrySearch?: (query: string, k: number) => Promise<EntryHit[]>
+  /**
+   * The tier an overridden `entrySearch` just ran at, asked once per query
+   * (exploration 0424). Only an override knows this — the default path detects
+   * its own fallback.
+   *
+   * Absent, an override is reported as `bm25-graph` when the store advertises
+   * an index and `scan` when it does not. That guess errs toward declaring the
+   * search incomplete, which is the safe direction: over-claiming completeness
+   * is the failure this whole seam exists to prevent.
+   */
+  tierOf?: () => RetrievalTier
 }
 
 const TEXT_KEYS = [
@@ -115,7 +129,13 @@ function registryRelationFields(): RelationFieldsLookup {
  * (memory adapter, sql.js).
  */
 export function keywordEntrySearch(
-  store: GraphRetrieverStore
+  store: GraphRetrieverStore,
+  /**
+   * Called when the indexed path was unavailable and the bounded substring scan
+   * ran instead — how a caller learns the tier it actually got rather than the
+   * one the store advertised (exploration 0424).
+   */
+  onScanFallback?: () => void
 ): (query: string, k: number) => Promise<EntryHit[]> {
   return async (query, k) => {
     const needle = query.trim().toLocaleLowerCase()
@@ -132,6 +152,7 @@ export function keywordEntrySearch(
         }))
       }
     }
+    onScanFallback?.()
     const nodes = await store.list({ limit: SCAN_LIMIT })
     const hits: EntryHit[] = []
     for (const node of nodes) {
@@ -200,7 +221,6 @@ export function createGraphContextRetriever(
   const relationFieldsOf = options.relationFieldsOf ?? registryRelationFields()
   const graph = schemaGraphAccess(store, relationFieldsOf)
   const loadText = nodeTextLoader(store)
-  const entrySearch = options.entrySearch ?? keywordEntrySearch(store)
 
   return async (query, { limit }) => {
     const budget: RetrievalBudget = {
@@ -209,7 +229,32 @@ export function createGraphContextRetriever(
       maxNodes: Math.max(limit * 4, 24),
       ...options.budget
     }
+
+    // Built per query, not per retriever: whether the indexed path was there is
+    // decided at call time, so a flag captured at construction would report the
+    // tier this retriever hoped for rather than the one it got.
+    let ranScan = false
+    const entrySearch =
+      options.entrySearch ??
+      keywordEntrySearch(store, () => {
+        ranScan = true
+      })
+
     const result = await retrieve(query, budget, { entrySearch, graph, loadText })
-    return result.items.map((item) => ({ nodeId: item.nodeId, pathLabel: item.pathLabel }))
+
+    // `!store.searchText` covers the queries that never reach the entry search
+    // at all (an empty query returns early): a store with no index has no claim
+    // to completeness to begin with, whether or not the scan actually ran.
+    const tier: RetrievalTier = options.entrySearch
+      ? (options.tierOf?.() ?? (store.searchText ? 'bm25-graph' : 'scan'))
+      : ranScan || !store.searchText
+        ? 'scan'
+        : 'bm25-graph'
+    const degraded = isDegradedTier(tier)
+
+    return {
+      nodes: result.items.map((item) => ({ nodeId: item.nodeId, pathLabel: item.pathLabel })),
+      provenance: { tier, degraded, ...(degraded ? { notice: SCAN_NOTICE } : {}) }
+    }
   }
 }

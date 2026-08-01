@@ -637,9 +637,9 @@ a gate that over-claims what it proves is the same failure wearing a lab coat.
       in `packages/brain/src/workspace-retrieval.ts`
 - [x] Thread provenance through `candidateNodeIdsForQuery` → `createContextPack`,
       and stop discarding `pathLabel`
-- [ ] Give `packages/workbench/src/views/ai-graph-retriever.ts` a tier — it has
+- [x] Give `packages/workbench/src/views/ai-graph-retriever.ts` a tier — it has
       none today, so it must report the tier it actually is
-- [ ] Render the notice in `packages/workbench/src/views/AiChatPanel.tsx` where
+- [x] Render the notice in `packages/workbench/src/views/AiChatPanel.tsx` where
       the answer is read
 - [ ] Extend `scripts/guard-ai-surface-retrieval.mjs` with the provenance
       assertion, allowlist entries carrying written reasons
