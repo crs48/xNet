@@ -94,8 +94,10 @@ func runExport(arguments: [String]) -> Never {
 
   guard let input, let output else { fail("export requires --in and --out") }
 
-  var cuts: [ExportCut] = []
-  if let cutsPath {
+  // `let`, not `var`: the export runs inside a Task, and Swift forbids
+  // capturing a mutable local in concurrently-executing code.
+  let cuts: [ExportCut] = {
+    guard let cutsPath else { return [] }
     guard let data = try? Data(contentsOf: cutsPath) else {
       fail("cannot read cuts file at \(cutsPath.path)")
     }
@@ -104,8 +106,8 @@ func runExport(arguments: [String]) -> Never {
       // that would hand back a video still containing what the user removed.
       fail("cannot parse cuts file — refusing to export an unedited file")
     }
-    cuts = decoded
-  }
+    return decoded
+  }()
 
   let asset = AVURLAsset(url: input)
   let semaphore = DispatchSemaphore(value: 0)
