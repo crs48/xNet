@@ -111,7 +111,7 @@ export interface GridSurfaceProps extends GridCallbacks {
   loadingMoreRows?: boolean
   /**
    * Called when scrolling nears the end of the loaded rows — wire to the
-   * data hook's `fetchMoreRows` for infinite scroll.
+   * data hook's `fetchMoreRows` to grow the window.
    */
   onReachEnd?: () => void
   /** Extra footer annotation (e.g. "filtered within loaded rows"). */
@@ -711,7 +711,8 @@ export function GridSurface({
   const virtualRows = rowVirtualizer.getVirtualItems()
   const totalHeight = rowVirtualizer.getTotalSize()
 
-  // Infinite scroll: grow the row window when scroll nears the end of the
+  // Windowed pagination (not an endless feed — the row set is finite and the
+  // footer says so): grow the row window when scroll nears the end of the
   // loaded rows. Fires once per window size — a grow changes rows.length,
   // re-arming the sentinel.
   const lastReachEndAtRef = useRef(-1)
