@@ -84,7 +84,9 @@ export class NodeRelayError extends TaggedError<'NodeRelayError'> {
       // The author's stored data would exceed the per-user cap (demo mode).
       | 'QUOTA_EXCEEDED'
       // The hub's disk is (near) full; writes are shed to avoid a crash.
-      | 'STORAGE_FULL',
+      | 'STORAGE_FULL'
+      // A managed tenant's payment lapsed; the hub is read-only (0418).
+      | 'BILLING_READ_ONLY',
     message: string,
     public action?: string,
     public resource?: string
@@ -106,6 +108,14 @@ export type NodeRelayOptions = {
    * instead of crashing the process.
    */
   isStorageFull?: () => boolean
+  /**
+   * Returns false when a managed tenant's payment has lapsed and the hub is in
+   * billing read-only mode (exploration 0418). Gating here rather than only at
+   * the HTTP middleware is the point: the change log is the primary write path
+   * and arrives over the sync socket, so an HTTP-only guard would stop nothing.
+   * Unset ⇒ always writable (self-host default).
+   */
+  writesEnabled?: () => boolean
   /**
    * Reject a change whose `wallTime` is more than this many milliseconds in the
    * future (exploration 0305, fix G). `wallTime` is the middle LWW tiebreak
@@ -196,6 +206,16 @@ export class NodeRelayService {
   }
 
   async handleNodeChange(msg: NodeChangeMessage, auth: AuthContext): Promise<boolean> {
+    // Billing read-only (0418) — checked before authorization work, because a
+    // read-only hub rejects every inbound change regardless of who sent it. The
+    // client keeps its copy and re-syncs once payment recovers; nothing is lost.
+    if (this.options.writesEnabled?.() === false) {
+      throw new NodeRelayError(
+        'BILLING_READ_ONLY',
+        'This hub is read-only because a payment did not go through. ' +
+          'Your data is safe and fully readable — update your billing details to restore writes.'
+      )
+    }
     if (!auth.can('hub/relay', msg.room)) {
       reportUnauthorizedRemoteWrite(this.telemetryOptions, auth.did)
       throw new NodeRelayError('UNAUTHORIZED', 'Insufficient capabilities for node relay')

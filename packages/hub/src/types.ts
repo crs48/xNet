@@ -28,6 +28,13 @@ export type HubConfig = {
   defaultQuota: number
   /** Maximum backup blob size in bytes (default: 50MB). */
   maxBlobSize: number
+  /**
+   * Whether this hub accepts writes (default: true). Set `false` only by a signed
+   * `HUB_PLAN` entitlement when a managed tenant's payment grace window lapses
+   * (exploration 0418); reads, exports and backups keep working. Never `false`
+   * for a self-hosted hub — read it through `resolveWritesEnabled`.
+   */
+  writesEnabled?: boolean
   /** Awareness entry TTL in ms (default: 24 hours). */
   awarenessTtlMs: number
   /** Awareness cleanup interval in ms (default: 1 hour). */
