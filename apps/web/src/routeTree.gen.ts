@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as StoriesRouteImport } from './routes/stories'
+import { Route as SocialPublishRouteImport } from './routes/social-publish'
 import { Route as SocialImportRouteImport } from './routes/social-import'
+import { Route as SocialAffinityRouteImport } from './routes/social-affinity'
 import { Route as ShareRouteImport } from './routes/share'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RequestsRouteImport } from './routes/requests'
@@ -55,9 +57,19 @@ const StoriesRoute = StoriesRouteImport.update({
   path: '/stories',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SocialPublishRoute = SocialPublishRouteImport.update({
+  id: '/social-publish',
+  path: '/social-publish',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SocialImportRoute = SocialImportRouteImport.update({
   id: '/social-import',
   path: '/social-import',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SocialAffinityRoute = SocialAffinityRouteImport.update({
+  id: '/social-affinity',
+  path: '/social-affinity',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShareRoute = ShareRouteImport.update({
@@ -205,7 +217,9 @@ export interface FileRoutesByFullPath {
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
+  '/social-affinity': typeof SocialAffinityRoute
   '/social-import': typeof SocialImportRoute
+  '/social-publish': typeof SocialPublishRoute
   '/stories': typeof StoriesRoute
   '/tasks': typeof TasksRoute
   '/welcome': typeof WelcomeRoute
@@ -237,7 +251,9 @@ export interface FileRoutesByTo {
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
+  '/social-affinity': typeof SocialAffinityRoute
   '/social-import': typeof SocialImportRoute
+  '/social-publish': typeof SocialPublishRoute
   '/stories': typeof StoriesRoute
   '/tasks': typeof TasksRoute
   '/welcome': typeof WelcomeRoute
@@ -270,7 +286,9 @@ export interface FileRoutesById {
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
+  '/social-affinity': typeof SocialAffinityRoute
   '/social-import': typeof SocialImportRoute
+  '/social-publish': typeof SocialPublishRoute
   '/stories': typeof StoriesRoute
   '/tasks': typeof TasksRoute
   '/welcome': typeof WelcomeRoute
@@ -304,7 +322,9 @@ export interface FileRouteTypes {
     | '/requests'
     | '/settings'
     | '/share'
+    | '/social-affinity'
     | '/social-import'
+    | '/social-publish'
     | '/stories'
     | '/tasks'
     | '/welcome'
@@ -336,7 +356,9 @@ export interface FileRouteTypes {
     | '/requests'
     | '/settings'
     | '/share'
+    | '/social-affinity'
     | '/social-import'
+    | '/social-publish'
     | '/stories'
     | '/tasks'
     | '/welcome'
@@ -368,7 +390,9 @@ export interface FileRouteTypes {
     | '/requests'
     | '/settings'
     | '/share'
+    | '/social-affinity'
     | '/social-import'
+    | '/social-publish'
     | '/stories'
     | '/tasks'
     | '/welcome'
@@ -401,7 +425,9 @@ export interface RootRouteChildren {
   RequestsRoute: typeof RequestsRoute
   SettingsRoute: typeof SettingsRoute
   ShareRoute: typeof ShareRoute
+  SocialAffinityRoute: typeof SocialAffinityRoute
   SocialImportRoute: typeof SocialImportRoute
+  SocialPublishRoute: typeof SocialPublishRoute
   StoriesRoute: typeof StoriesRoute
   TasksRoute: typeof TasksRoute
   WelcomeRoute: typeof WelcomeRoute
@@ -443,11 +469,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/social-publish': {
+      id: '/social-publish'
+      path: '/social-publish'
+      fullPath: '/social-publish'
+      preLoaderRoute: typeof SocialPublishRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/social-import': {
       id: '/social-import'
       path: '/social-import'
       fullPath: '/social-import'
       preLoaderRoute: typeof SocialImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/social-affinity': {
+      id: '/social-affinity'
+      path: '/social-affinity'
+      fullPath: '/social-affinity'
+      preLoaderRoute: typeof SocialAffinityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/share': {
@@ -649,7 +689,9 @@ const rootRouteChildren: RootRouteChildren = {
   RequestsRoute: RequestsRoute,
   SettingsRoute: SettingsRoute,
   ShareRoute: ShareRoute,
+  SocialAffinityRoute: SocialAffinityRoute,
   SocialImportRoute: SocialImportRoute,
+  SocialPublishRoute: SocialPublishRoute,
   StoriesRoute: StoriesRoute,
   TasksRoute: TasksRoute,
   WelcomeRoute: WelcomeRoute,

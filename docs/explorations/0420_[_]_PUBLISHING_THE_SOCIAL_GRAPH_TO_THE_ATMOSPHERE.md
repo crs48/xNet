@@ -728,15 +728,15 @@ And the one-line extension to the index engine:
 
 **WP2 — The ceremony**
 
-- [ ] Bucket picker driven by `privacyClass` + `interactionKind`; DMs, searches
+- [x] Bucket picker driven by `privacyClass` + `interactionKind`; DMs, searches
       and follow graphs **absent**, not unchecked.
-- [ ] Preview showing exact JSON of three sampled records + the count.
-- [ ] Per-run confirmation that is never remembered; explicit one-way-door copy.
-- [ ] Emit `community.lexicon.preference.ai` with `collectionScope` in the same
+- [x] Preview showing exact JSON of three sampled records + the count.
+- [x] Per-run confirmation that is never remembered; explicit one-way-door copy.
+- [x] Emit `community.lexicon.preference.ai` with `collectionScope` in the same
       flow, defaults denying `training` and `syntheticContent`.
-- [ ] Withdraw flow (`deleteRecord` + map cleanup) with honest "this is not
+- [x] Withdraw flow (`deleteRecord` + map cleanup) with honest "this is not
       retraction" copy.
-- [ ] Set `SocialInteraction.visibility = 'public'` on published edges so the
+- [x] Set `SocialInteraction.visibility = 'public'` on published edges so the
       existing column finally means something.
 
 **WP3 — The appview**
@@ -746,7 +746,7 @@ And the one-line extension to the index engine:
       route on the `index` role.
 - [x] Determinism test: two rebuilds from the same fixtures are byte-identical
       (existing index-role discipline).
-- [ ] App surface: "what you and @friend both saved," overlap only — **assert in
+- [x] App surface: "what you and @friend both saved," overlap only — **assert in
       a test that no ranked/global-count endpoint exists**.
 - [x] Apply the viewer's sensitivity dial to linked subjects.
 
