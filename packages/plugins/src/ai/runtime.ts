@@ -14,6 +14,7 @@ import type {
   AIUsage
 } from './providers'
 import type { AiMutationPlan, AiRiskLevel, AiScope } from '../ai-surface'
+import { toolCallFrame, toolResultFrame, type AiAgentFrameSink } from './agent-frames'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -198,6 +199,12 @@ export type AiAgentRuntimeConfig = {
   allowedTools?: string[]
   /** Bound on model↔tool round trips per turn. Default 4. */
   maxToolSteps?: number
+  /**
+   * Structured frames for the panel (exploration 0416). Supplying this makes
+   * the model lane report tool activity in the same vocabulary the bridge lane
+   * already speaks, so one renderer serves both.
+   */
+  onFrame?: AiAgentFrameSink
 }
 
 /** Executes one tool call on the model's behalf. */
@@ -689,6 +696,7 @@ export class AiAgentRuntime {
     const messages: AIMessage[] = []
 
     for (const call of toolCalls) {
+      this.config.onFrame?.(toolCallFrame(call))
       let content: string
       let denied = false
       if (allowed && !allowed.includes(call.name)) {
@@ -704,6 +712,7 @@ export class AiAgentRuntime {
         }
       }
       messages.push({ role: 'tool', content, name: call.name, toolCallId: call.id })
+      this.config.onFrame?.(toolResultFrame(call, content, denied))
       await this.emit(
         'tool.result',
         { toolCall: call, content, denied },
@@ -763,6 +772,7 @@ export class AiAgentRuntime {
     chunk: AIStreamChunk
   ): Promise<void> {
     if (chunk.type === 'text') {
+      this.config.onFrame?.({ type: 'delta', text: chunk.text })
       await this.appendAssistantText(threadId, turnId, chunk.text, chunk.provider, chunk.model)
       return
     }
@@ -817,6 +827,9 @@ export class AiAgentRuntime {
   ): Promise<void> {
     const now = this.nowIso()
     const latencyMs = Math.max(0, Date.parse(now) - input.startedAt)
+    // A cancelled run is not a completed one — the frame says so, so the panel
+    // cannot render a half turn as a finished answer.
+    this.config.onFrame?.({ type: 'result', ok: status === 'completed' })
     await this.updateTurn(input.assistantTurnId, {
       status: status === 'completed' ? 'completed' : 'cancelled',
       updatedAt: now
@@ -844,6 +857,7 @@ export class AiAgentRuntime {
     const now = this.nowIso()
     const message = err instanceof Error ? err.message : String(err)
     const latencyMs = Math.max(0, Date.parse(now) - input.startedAt)
+    this.config.onFrame?.({ type: 'result', ok: false, error: message })
     await this.updateTurn(input.assistantTurnId, {
       status: 'failed',
       error: message,

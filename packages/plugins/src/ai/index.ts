@@ -140,3 +140,12 @@ export type {
   AiAgentTurnRole,
   AiAgentTurnStatus
 } from './runtime'
+
+// Model-lane agent frames (exploration 0416) — the same vocabulary the bridge
+// lane speaks, so one panel renderer serves both
+export {
+  toolCallFrame,
+  toolResultFrame,
+  type AiAgentFrame,
+  type AiAgentFrameSink
+} from './agent-frames'

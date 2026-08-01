@@ -544,7 +544,7 @@ requires the operator's signing key — which the agent never has.
       (0392 open item)
 - [x] ACP adapter behind the same frames (`gemini --experimental-acp`)
       (0392 open item)
-- [ ] Model-lane `generateWithTools` + `AiSurfaceService` loop emit the same
+- [x] Model-lane `generateWithTools` + `AiSurfaceService` loop emit the same
       frames; retire the Phase-0 badge where fidelity is `reliable`
       (0392 open item)
 
