@@ -1,0 +1,27 @@
+{
+  "stories": [],
+  "routes": [
+    {
+      "id": "crm",
+      "label": "CRM",
+      "file": "routes/crm.png"
+    },
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png"
+    }
+  ],
+  "flows": [
+    {
+      "id": "crm-quote",
+      "label": "Build a CRM quote (product + line item)",
+      "gif": "flows/crm-quote.gif",
+      "mp4": "flows/crm-quote.mp4",
+      "poster": "flows/crm-quote.poster.png"
+    }
+  ],
+  "electron": [],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}

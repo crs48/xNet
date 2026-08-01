@@ -1,0 +1,40 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [],
+  "routes": [
+    {
+      "id": "crm",
+      "label": "CRM",
+      "file": "routes/crm.png",
+      "status": "changed",
+      "ssim": 0.980038,
+      "before": "before/routes/crm.png",
+      "after": "routes/crm.png",
+      "diff": "diff/routes/crm.png"
+    },
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "changed",
+      "ssim": 0.978831,
+      "before": "before/routes/data.png",
+      "after": "routes/data.png",
+      "diff": "diff/routes/data.png"
+    }
+  ],
+  "electron": [],
+  "flows": [
+    {
+      "id": "crm-quote",
+      "label": "Build a CRM quote (product + line item)",
+      "gif": "flows/crm-quote.gif",
+      "mp4": "flows/crm-quote.mp4",
+      "poster": "flows/crm-quote.poster.png"
+    }
+  ],
+  "changedCount": 3
+}
