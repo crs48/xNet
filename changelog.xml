@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Choose how the AI assistant works with you</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-choose-how-the-ai-assistant-works-with-y</link>
+      <guid isPermaLink="false">2026-08-01-choose-how-the-ai-assistant-works-with-y</guid>
+      <pubDate>Sat, 01 Aug 2026 23:23:24 GMT</pubDate>
+      <description>Settings now has an AI section where you pick whether the assistant scaffolds your thinking or drafts finished prose. Scaffold stays the default. First-run tips also start appearing again — every one of them had been silently rendering nothing.</description>
+    </item>
+    <item>
       <title>The Charter now tests whether its own refusals are affordable</title>
       <link>https://xnet.fyi/changelog#2026-08-01-the-charter-now-tests-whether-its-own-re</link>
       <guid isPermaLink="false">2026-08-01-the-charter-now-tests-whether-its-own-re</guid>
