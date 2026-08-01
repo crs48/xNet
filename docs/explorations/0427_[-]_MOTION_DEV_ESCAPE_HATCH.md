@@ -702,7 +702,7 @@ the one place the token scale is copied rather than referenced.
       alone, 8.6s — it times out under parallel load), plus a hub `EADDRINUSE`
       on port 14483. The failing set differed between two consecutive full runs,
       which is the flake signature; none of these files import `MotionStage`.
-- [ ] `editor-ux` and `electron-e2e` e2e suites green in CI.
+- [x] `editor-ux` and `electron-e2e` e2e suites green in CI.
 - [x] `pnpm check:api-report` green (**passes, but does not cover this export** —
       `scripts/check-api-report.mjs` tracks `PACKAGES = ['react','core','data','sync']`
       only, and `@xnetjs/ui` is not among them. Recorded so nobody reads the
