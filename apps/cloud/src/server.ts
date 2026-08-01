@@ -521,7 +521,15 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     const s = session(c)
     if (!s) return c.json({ error: 'unauthorized' }, 401)
     const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
-    if (tenant) await deps.controlPlane.deleteTenant(tenant.tenantId)
+    if (tenant) {
+      // Same ordering as the dunning `delete` action (exploration 0418): place
+      // the retention hold on the encrypted replica BEFORE destroying anything.
+      // Deliberate on the voluntary path too — a user clicking "delete my data"
+      // has still not agreed to lose the window in which they could change their
+      // mind, and a hold that fails must abort rather than proceed silently.
+      await deps.controlPlane.stageExportBundle(tenant.tenantId)
+      await deps.controlPlane.deleteTenant(tenant.tenantId)
+    }
     return c.redirect('/dashboard')
   })
 

@@ -420,19 +420,12 @@ jobs.add({
   work: async () => {
     const now = Date.now()
     for (const t of await controlPlane.listTenants()) {
-      const action = reconcileBilling({
-        billingState: t.billing?.state ?? 'active',
-        subscriptionStatus: t.billing?.subscriptionStatus ?? 'active',
-        nowMs: now,
-        ...(t.billing?.graceUntilMs !== undefined ? { graceUntilMs: t.billing.graceUntilMs } : {}),
-        ...(t.billing?.deleteAfterMs !== undefined
-          ? { deleteAfterMs: t.billing.deleteAfterMs }
-          : {}),
-        ...(t.billing?.finalNoticeUntilMs !== undefined
-          ? { finalNoticeUntilMs: t.billing.finalNoticeUntilMs }
-          : {})
-      })
-      await applyBillingAction(controlPlane, notify, t, action, now)
+      // As shipped. `reconcileInputFor` exists because DunningState names the
+      // field `state` while BillingReconcileInput names it `billingState` — the
+      // obvious inline spread compiles, leaves billingState undefined, and makes
+      // every HEALTHY tenant look eligible for `reactivate` on every tick.
+      const action = reconcileBilling(reconcileInputFor(t, now))
+      await applyBillingAction(controlPlane, notifier, t, action, now, { deleteEnabled })
     }
   }
 })
@@ -472,6 +465,11 @@ Plus the charter fix: **export before delete**, in both the voluntary
 `/account/delete-data` path and the dunning `delete` action.
 
 ### Phase 2 — cheap coherence
+
+> [!NOTE]
+> Not started. Phase 2 and 3 are deliberately sequenced after the first paying
+> users — see the Recommendation. The UI work is not blocked; it is waiting for
+> the evidence that makes it worth doing well.
 
 Not a redesign — a reskin plus one panel. Extract the app's design tokens into a
 tiny CSS file the control plane serves, replace `dashboard.ts`'s inline dark-only
@@ -620,9 +618,20 @@ export type BackupHealth =
 
 ## Implementation Checklist
 
-**Status:** `░░░░░░░░░░ 0/48 items`
+**Status:** `█████░░░░░ 25/50 implementation · 8/16 validation`
+
+All Phase 1 **code** is merged. The remainder is operator actions (tagged
+**[operator]** / **[needs live env]**) and the deliberately-deferred Phase 2/3 UI work.
 
 ### Phase 1 — revenue blockers
+
+> [!IMPORTANT]
+> **What landed vs what is left.** Every Phase 1 item that is _code_ is done and
+> merged. Everything still unchecked below needs a credential, a DNS record, or a
+> provider dashboard — they are operator actions, not engineering work, and they
+> are marked **[operator]**. The control plane is built to refuse the dangerous
+> half of them: production will not deploy without `resend-api-key`, and will not
+> boot with deletion armed and no mail transport.
 
 - [x] Add `apps/cloud/src/reconcile/billing-driver.ts` with `applyBillingAction`
 - [x] Export `reconcileBilling`, `applyBillingEvent`, `DUNNING_WINDOWS`, and the driver from `apps/cloud/src/index.ts`
@@ -638,29 +647,34 @@ export type BackupHealth =
 - [x] Write four lifecycle emails: grace · read-only · suspended · final notice
 - [x] Add a recovered/reactivated email
 - [x] Update `site/src/pages/privacy.astro` and `terms.astro` for lifecycle email
-- [ ] Verify the sending domain (SPF + DKIM)
+- [ ] **[operator]** Verify the sending domain (SPF + DKIM)
 - [x] Implement `stageExportBundle` before any deletion. **Built differently than planned:** the control plane holds no user key, so it cannot produce a decryptable `.xnetpack` — it records a dated retention hold on the encrypted R2 replica instead, and the final-notice email tells the user to export from a device they already have. Anything that _could_ build a readable bundle here would mean we could read their data.
-- [ ] Offer export in the voluntary `/account/delete-data` path too
+- [x] Offer export in the voluntary `/account/delete-data` path too
 - [x] Gate the `delete` action behind `XNET_CLOUD_DUNNING_DELETE_ENABLED`, default off
-- [ ] Enable Stripe Smart Retries + automatic card updating in the dashboard (no code)
-- [ ] Create the `xnet-cloud-prod-0` GCP project via `cloud-gcp-bootstrap.sh`
-- [ ] `node scripts/cloud-init-env.mjs production` and fill every `CHANGEME_*`
-- [ ] Create **live**-mode Stripe Products + Prices; verify amounts before first checkout
-- [ ] Register the production Stripe webhook at `https://cloud.xnet.fyi/webhooks/stripe`
-- [ ] Add `invoice.paid` / `invoice.payment_failed` / `customer.subscription.updated` to the webhook's event list
-- [ ] Register the production WorkOS redirect URI
-- [ ] Push production secrets with `cloud-secrets-push.mjs`
+- [ ] **[operator]** Enable Stripe Smart Retries + automatic card updating in the dashboard (no code)
+- [ ] **[operator]** Create the `xnet-cloud-prod-0` GCP project via `cloud-gcp-bootstrap.sh`
+- [ ] **[operator]** `node scripts/cloud-init-env.mjs production` and fill every `CHANGEME_*`
+- [ ] **[operator]** Create **live**-mode Stripe Products + Prices; verify amounts before first checkout
+- [ ] **[operator]** Register the production Stripe webhook at `https://cloud.xnet.fyi/webhooks/stripe`
+- [ ] **[operator]** Add `invoice.paid` / `invoice.payment_failed` / `customer.subscription.updated` to the webhook's event list
+- [ ] **[operator]** Register the production WorkOS redirect URI
+- [ ] **[operator]** Push production secrets with `cloud-secrets-push.mjs`
 - [x] Add a `production` job to `deploy-cloud.yml` behind a reviewer-protected environment
-- [ ] Map `cloud.xnet.fyi` + Cloudflare DNS (grey cloud)
-- [ ] Run `cloud-smoke.mjs` against production
-- [ ] Provision one real paid tenant; write data; run a manual restore drill; confirm restore **and** teardown
+- [ ] **[operator]** Map `cloud.xnet.fyi` + Cloudflare DNS (grey cloud)
+- [ ] **[operator]** Run `cloud-smoke.mjs` against production
+- [ ] **[operator]** Provision one real paid tenant; write data; run a manual restore drill; confirm restore **and** teardown
 - [x] Replace `backupsConfigured: Boolean(env.R2_BUCKET)` with a `BackupHealth` read from the last drill
 - [x] Confirm `orphan-audit.ts` sweeps `drill-*` services
 - [x] Scale the drill sample with fleet size instead of a constant 20
 - [x] Document RTO/RPO — added as two FAQ entries in `site/src/data/pricing.ts` (which drives `/cloud/pricing`) rather than the `/cloud` landing page: it is where the other durability and cancellation answers already live. Says "asynchronous, roughly the last second", never "zero"
-- [ ] Changelog fragment for the launch
+- [x] Changelog fragment for the launch
 
 ### Phase 2 — cheap coherence
+
+> [!NOTE]
+> Not started. Phase 2 and 3 are deliberately sequenced after the first paying
+> users — see the Recommendation. The UI work is not blocked; it is waiting for
+> the evidence that makes it worth doing well.
 
 - [ ] Extract app design tokens into a stylesheet the control plane serves
 - [ ] Replace `dashboard.ts`'s inline CSS with the tokens; add light mode
@@ -683,22 +697,22 @@ export type BackupHealth =
 
 ## Validation Checklist
 
-- [ ] A tenant put into `grace` with a back-dated `graceUntilMs` flips to `read_only` within one reconcile tick
-- [ ] A `read_only` hub returns `507 billing_read_only` on write and still serves reads
-- [ ] Paying a failed invoice restores a `read_only` hub to writable within one tick
-- [ ] Recovery from `suspended` re-provisions from the R2 replica with data intact
-- [ ] Each of the five lifecycle emails arrives in a real inbox (not spam) on the real transition
-- [ ] A self-hosted hub with no entitlement token accepts writes — proven by a test, not by inspection
-- [ ] The manual production restore drill returns data-identical to the source
-- [ ] `/dashboard` reports `BackupHealth.state === 'healthy'` only after a drill passes
+- [x] A tenant put into `grace` with a back-dated `graceUntilMs` flips to `read_only` within one reconcile tick
+- [x] A `read_only` hub returns `507 billing_read_only` on write and still serves reads
+- [x] Paying a failed invoice restores a `read_only` hub to writable within one tick
+- [ ] **[needs live env]** Recovery from `suspended` re-provisions from the R2 replica with data intact
+- [ ] **[needs live env]** Each of the five lifecycle emails arrives in a real inbox (not spam) on the real transition
+- [x] A self-hosted hub with no entitlement token accepts writes — proven by a test, not by inspection
+- [ ] **[needs live env]** The manual production restore drill returns data-identical to the source
+- [x] `/dashboard` reports `BackupHealth.state === 'healthy'` only after a drill passes
 - [x] `stageExportBundle` records a retention hold naming the replica key, the DID that can decrypt it, and an absolute expiry — and `delete` refuses to run if it throws
-- [ ] Deleting a tenant leaves no orphaned Cloud Run service (`orphan-audit` clean)
-- [ ] A live-mode checkout produces a working hub end to end, from `xnet.fyi/cloud/pricing`
-- [ ] The Stripe Customer Portal cancels, and the cancel webhook suspends the hub
-- [ ] A replayed Stripe webhook does not double-provision or reset a dunning deadline
-- [ ] `cloud-smoke.mjs` passes against `https://cloud.xnet.fyi`
-- [ ] A deliberately broken deploy is rolled back automatically by the smoke-failure step
-- [ ] Five real users complete onboarding without a synchronous hand-hold
+- [ ] **[needs live env]** Deleting a tenant leaves no orphaned Cloud Run service (`orphan-audit` clean)
+- [ ] **[needs live env]** A live-mode checkout produces a working hub end to end, from `xnet.fyi/cloud/pricing`
+- [ ] **[needs live env]** The Stripe Customer Portal cancels, and the cancel webhook suspends the hub
+- [x] A replayed Stripe webhook does not double-provision or reset a dunning deadline
+- [ ] **[needs live env]** `cloud-smoke.mjs` passes against `https://cloud.xnet.fyi`
+- [ ] **[needs live env]** A deliberately broken deploy is rolled back automatically by the smoke-failure step
+- [ ] **[needs live env]** Five real users complete onboarding without a synchronous hand-hold
 
 ---
 

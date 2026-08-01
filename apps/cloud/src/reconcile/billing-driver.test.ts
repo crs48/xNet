@@ -11,7 +11,7 @@ import type { ControlPlane } from '../control-plane'
 import type { TenantRecord } from '../registry'
 import { resolveEntitlements } from '@xnetjs/entitlements'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { DUNNING_WINDOWS, reconcileBilling, type DunningState } from './billing'
+import { applyBillingEvent, DUNNING_WINDOWS, reconcileBilling, type DunningState } from './billing'
 import {
   applyBillingAction,
   dunningStateOf,
@@ -229,7 +229,8 @@ describe('applyBillingAction', () => {
   })
 
   it('delete: a failed export staging aborts the deletion', async () => {
-    ;(cp.cp.stageExportBundle as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('r2 down'))
+    const staging = cp.cp.stageExportBundle as ReturnType<typeof vi.fn>
+    staging.mockRejectedValue(new Error('r2 down'))
     const out = await applyBillingAction(
       cp.cp,
       notify,
@@ -243,7 +244,8 @@ describe('applyBillingAction', () => {
   })
 
   it('a control-plane failure is reported, not thrown — one bad tenant cannot stop the sweep', async () => {
-    ;(cp.cp.setWritesEnabled as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('run 503'))
+    const setWrites = cp.cp.setWritesEnabled as ReturnType<typeof vi.fn>
+    setWrites.mockRejectedValue(new Error('run 503'))
     const out = await applyBillingAction(
       cp.cp,
       notify,
@@ -283,5 +285,72 @@ describe('summarizeSweep', () => {
         { tenantId: 'd', outcome: { kind: 'skipped_delete_disabled' } }
       ])
     ).toEqual({ scanned: 4, applied: 1, failed: 1, skipped: 1, failures: ['c'] })
+  })
+})
+
+describe('recovery and replay (exploration 0418 validation)', () => {
+  it('paying a failed invoice restores a read_only hub to writable in ONE tick', async () => {
+    const cp = fakeCp()
+    const notify = spyNotifier()
+    // The tenant slid to read_only; Stripe then reported the subscription active.
+    const t = tenant({
+      state: 'read_only',
+      subscriptionStatus: 'active',
+      graceUntilMs: NOW - 10_000
+    })
+    const action = reconcileBilling(reconcileInputFor(t, NOW))
+    expect(action.kind).toBe('reactivate')
+    await applyBillingAction(cp.cp, notify, t, action, NOW)
+    // Writes back on, and the deadlines cleared — not merely the state moved.
+    expect(cp.cp.reactivateTenant).toHaveBeenCalledWith('acme')
+    expect(cp.cp.setBillingState).toHaveBeenCalledWith('acme', {
+      state: 'active',
+      subscriptionStatus: 'active'
+    })
+  })
+
+  it('recovery wins from EVERY pre-deletion state, however far it slid', () => {
+    for (const state of ['grace', 'read_only', 'suspended', 'pending_deletion'] as const) {
+      const action = reconcileBilling(
+        reconcileInputFor(tenant({ state, subscriptionStatus: 'active' }), NOW)
+      )
+      expect(action.kind).toBe('reactivate')
+    }
+  })
+
+  it('a replayed payment_failed webhook does NOT reset the deadline', () => {
+    // Stripe redelivers. If each delivery re-opened grace, an account could sit
+    // in grace forever and never reach read-only — the funnel would stall.
+    const first = applyBillingEvent(undefined, { kind: 'payment_failed' }, NOW)
+    expect(first.state).toBe('grace')
+    const replayed = applyBillingEvent(first, { kind: 'payment_failed' }, NOW + 5 * 86_400_000)
+    expect(replayed.graceUntilMs).toBe(first.graceUntilMs)
+  })
+
+  it('a replayed payment_recovered is idempotent', () => {
+    const once = applyBillingEvent(
+      { state: 'read_only', subscriptionStatus: 'past_due' },
+      { kind: 'payment_recovered' },
+      NOW
+    )
+    const twice = applyBillingEvent(once, { kind: 'payment_recovered' }, NOW + 1000)
+    expect(twice).toEqual(once)
+  })
+
+  it('a settled tick is a no-op on the next tick — no oscillation', async () => {
+    const cp = fakeCp()
+    const notify = spyNotifier()
+    // After read_only is applied, re-deciding from the NEW state must do nothing
+    // until the next real deadline; a driver that re-applied every tick would
+    // re-send the email hourly.
+    const settled = tenant({
+      state: 'read_only',
+      subscriptionStatus: 'past_due',
+      graceUntilMs: NOW - 1
+    })
+    const action = reconcileBilling(reconcileInputFor(settled, NOW))
+    expect(action).toEqual({ kind: 'none' })
+    expect(await applyBillingAction(cp.cp, notify, settled, action, NOW)).toEqual({ kind: 'none' })
+    expect(notify.calls).toEqual([])
   })
 })
