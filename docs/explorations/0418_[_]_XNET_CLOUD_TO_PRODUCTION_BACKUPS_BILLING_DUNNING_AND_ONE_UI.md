@@ -633,11 +633,11 @@ export type BackupHealth =
 - [x] Enforce `writesEnabled` in the hub's mutating routes — `507` + `billing_read_only` typed code
 - [x] Test that a self-hosted hub with no signed entitlement token always resolves `writesEnabled: true`
 - [x] Changeset: **major** for `@xnetjs/entitlements` (wire contract) and dependents
-- [ ] Surface `billing_read_only` in the app as an actionable message, not a generic error
+- [x] Surface `billing_read_only` in the app as an actionable message, not a generic error
 - [x] Add Resend (or equivalent) with `RESEND_API_KEY` in the env schema as `M2`
 - [x] Write four lifecycle emails: grace · read-only · suspended · final notice
 - [x] Add a recovered/reactivated email
-- [ ] Update `site/src/pages/privacy.astro` and `terms.astro` for lifecycle email
+- [x] Update `site/src/pages/privacy.astro` and `terms.astro` for lifecycle email
 - [ ] Verify the sending domain (SPF + DKIM)
 - [x] Implement `stageExportBundle` before any deletion. **Built differently than planned:** the control plane holds no user key, so it cannot produce a decryptable `.xnetpack` — it records a dated retention hold on the encrypted R2 replica instead, and the final-notice email tells the user to export from a device they already have. Anything that _could_ build a readable bundle here would mean we could read their data.
 - [ ] Offer export in the voluntary `/account/delete-data` path too
@@ -650,14 +650,14 @@ export type BackupHealth =
 - [ ] Add `invoice.paid` / `invoice.payment_failed` / `customer.subscription.updated` to the webhook's event list
 - [ ] Register the production WorkOS redirect URI
 - [ ] Push production secrets with `cloud-secrets-push.mjs`
-- [ ] Add a `production` job to `deploy-cloud.yml` behind a reviewer-protected environment
+- [x] Add a `production` job to `deploy-cloud.yml` behind a reviewer-protected environment
 - [ ] Map `cloud.xnet.fyi` + Cloudflare DNS (grey cloud)
 - [ ] Run `cloud-smoke.mjs` against production
 - [ ] Provision one real paid tenant; write data; run a manual restore drill; confirm restore **and** teardown
 - [x] Replace `backupsConfigured: Boolean(env.R2_BUCKET)` with a `BackupHealth` read from the last drill
 - [x] Confirm `orphan-audit.ts` sweeps `drill-*` services
 - [x] Scale the drill sample with fleet size instead of a constant 20
-- [ ] Document RTO/RPO on `site/src/pages/cloud/index.astro` — say "seconds, asynchronous", not "zero"
+- [x] Document RTO/RPO — added as two FAQ entries in `site/src/data/pricing.ts` (which drives `/cloud/pricing`) rather than the `/cloud` landing page: it is where the other durability and cancellation answers already live. Says "asynchronous, roughly the last second", never "zero"
 - [ ] Changelog fragment for the launch
 
 ### Phase 2 — cheap coherence

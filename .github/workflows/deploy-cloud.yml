@@ -19,7 +19,7 @@ on:
       environment:
         description: Target environment
         type: choice
-        options: [staging]
+        options: [staging, production]
         default: staging
   push:
     branches: [main]
@@ -50,7 +50,11 @@ concurrency:
 
 jobs:
   staging:
-    if: ${{ vars.CLOUD_DEPLOY_ENABLED == 'true' }}
+    # Auto-deploys on push to main; on a manual dispatch, only when staging was
+    # the chosen target (otherwise a `production` dispatch would deploy BOTH).
+    if: >-
+      ${{ vars.CLOUD_DEPLOY_ENABLED == 'true'
+      && (github.event_name != 'workflow_dispatch' || inputs.environment == 'staging') }}
     runs-on: ubuntu-latest
     environment: cloud-staging
     env:
@@ -115,6 +119,109 @@ jobs:
       # job still ends red (the smoke failure isn't swallowed), but the URL recovers.
       # Only fires when the smoke step itself failed (deploy succeeded, traffic shifted);
       # a no-op-safe guard skips it when there's no prior revision to fall back to.
+      - name: Roll back on smoke failure
+        if: ${{ failure() && steps.smoke.outcome == 'failure' }}
+        run: |
+          PREV="$(gcloud run revisions list --service "$SERVICE" \
+            --project "$PROJECT" --region "$REGION" \
+            --format='value(metadata.name)' --sort-by='~metadata.creationTimestamp' \
+            | sed -n 2p)"
+          if [ -z "$PREV" ]; then
+            echo "::warning::no previous revision to roll back to — leaving current revision live"
+            exit 0
+          fi
+          echo "Rolling $SERVICE back to $PREV"
+          gcloud run services update-traffic "$SERVICE" \
+            --project "$PROJECT" --region "$REGION" --to-revisions "$PREV=100"
+
+  # ── Production (exploration 0418) ────────────────────────────────────────────
+  #
+  # Deliberately NOT symmetric with staging. Three differences, each of them the
+  # point rather than an oversight:
+  #
+  #   1. **Manual dispatch only.** There is no `push` trigger. Staging proves the
+  #      build on every merge; production ships when a human decides to, because
+  #      the blast radius is paying customers' hubs.
+  #   2. **Its own opt-in variable and environment.** `CLOUD_PROD_DEPLOY_ENABLED`
+  #      plus a reviewer-protected `cloud-production` environment, so turning
+  #      staging on never implicitly turns production on.
+  #   3. **Stripe LIVE mode.** The secret names are distinct (`stripe-secret-live`,
+  #      `stripe-price-*-live`). Sharing a name with staging is how test keys reach
+  #      production, or worse, live keys reach staging and charge a real card
+  #      during a test run.
+  #
+  # Inert until an operator creates the project and pushes the secrets; a skipped
+  # job is green, so merging this never reds out main.
+  production:
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch'
+      && inputs.environment == 'production'
+      && vars.CLOUD_PROD_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: cloud-production
+    env:
+      PROJECT: xnet-cloud-prod-0
+      REGION: us-central1
+      SERVICE: xnet-cloud
+      REPO: hub
+      BASE_URL: https://cloud.xnet.fyi
+      HUB_IMAGE_TAG: '1.0.0'
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.PROD_WIF_PROVIDER }}
+          service_account: ${{ secrets.PROD_DEPLOYER_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      # A tenant whose payment lapses is emailed before their hub degrades and
+      # again before its cloud replica is deleted. With no mail transport the
+      # control plane refuses to boot with deletion armed
+      # (`assertNotifierSafeForDeletion`) — catch it here instead, where the fix
+      # is a secret push rather than a crash-looping revision.
+      - name: Require a mail transport before deploying
+        run: |
+          if ! gcloud secrets versions access latest --secret=resend-api-key --project "$PROJECT" >/dev/null 2>&1; then
+            echo "::error::resend-api-key is missing from Secret Manager. Production sends"
+            echo "::error::lifecycle email before degrading or deleting a tenant's data;"
+            echo "::error::push the secret with scripts/cloud-secrets-push.mjs first."
+            exit 1
+          fi
+
+      - name: Build + push control-plane image
+        run: |
+          IMAGE="us-docker.pkg.dev/${PROJECT}/${REPO}/control-plane:${GITHUB_SHA::8}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          gcloud auth configure-docker us-docker.pkg.dev --quiet
+          docker buildx build --platform linux/amd64 \
+            -f apps/cloud/Dockerfile -t "$IMAGE" --push .
+
+      - name: Deploy to Cloud Run
+        run: |
+          AI_SECRET=""
+          if gcloud secrets versions access latest --secret=openrouter-management-key --project "$PROJECT" >/dev/null 2>&1; then
+            AI_SECRET=",OPENROUTER_MANAGEMENT_KEY=openrouter-management-key:latest"
+          else
+            echo "::notice::openrouter-management-key not accessible — deploying without managed AI (managed:false)"
+          fi
+          # XNET_CLOUD_DUNNING_DELETE_ENABLED is deliberately NOT set here. The
+          # dunning funnel runs to `pending_deletion` and stops, which is safe to
+          # sit in indefinitely. Arm it by hand once one full lifecycle has been
+          # watched end to end on real tenants (exploration 0418).
+          gcloud run deploy "$SERVICE" \
+            --project "$PROJECT" --region "$REGION" \
+            --image "$IMAGE" --allow-unauthenticated --min-instances=1 \
+            --service-account "${{ secrets.PROD_DEPLOYER_SA }}" \
+            --set-env-vars "NODE_ENV=production,XNET_CLOUD_BASE_URL=${BASE_URL},XNET_CLOUD_MARKETING_URL=https://xnet.fyi/cloud,GCP_PROJECT_PREFIX=xnet-cloud-prod,GCP_REGION=${REGION},GCP_FIRESTORE_DATABASE=(default),R2_BUCKET=xnet-hub-data-prod,HUB_IMAGE_TAG=${HUB_IMAGE_TAG},AI_GATEWAY_PROVIDER=openrouter,AI_GATEWAY_BASE_URL=https://openrouter.ai/api/v1,AI_MARKUP=1.25,XNET_CLOUD_MAIL_FROM=xNet <billing@xnet.fyi>,SENTRY_DSN=${{ vars.CLOUD_SENTRY_DSN }}" \
+            --set-secrets "XNET_PLAN_SECRET=xnet-plan-secret:latest,XNET_CLOUD_SESSION_SECRET=session-secret:latest,XNET_CLOUD_INTERNAL_SECRET=internal-secret:latest,WORKOS_CLIENT_ID=workos-client-id:latest,WORKOS_API_KEY=workos-api-key:latest,WORKOS_REDIRECT_URI=workos-redirect-uri:latest,RESEND_API_KEY=resend-api-key:latest,STRIPE_SECRET_KEY=stripe-secret-live:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-live:latest,STRIPE_PRICE_PERSONAL=stripe-price-personal-live:latest,STRIPE_PRICE_FAMILY=stripe-price-family-live:latest,STRIPE_PRICE_TEAM=stripe-price-team-live:latest,R2_ACCOUNT_ID=r2-account-id:latest,R2_ENDPOINT=r2-endpoint:latest,R2_ACCESS_KEY_ID=r2-key-id:latest,R2_SECRET_ACCESS_KEY=r2-secret:latest,GCP_ARTIFACT_REGISTRY=gcp-artifact-registry:latest${AI_SECRET}"
+
+      - name: Smoke test the deploy
+        id: smoke
+        run: node scripts/cloud-smoke.mjs "$BASE_URL"
+
       - name: Roll back on smoke failure
         if: ${{ failure() && steps.smoke.outcome == 'failure' }}
         run: |
