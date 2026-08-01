@@ -381,6 +381,35 @@ export {
   type MeetingTranscriptChatProps
 } from './meeting-recorder/index.js'
 
+// Screen recording (0414): recorder, EDL player, and the editing panes.
+export {
+  ChapterList,
+  CutInspector,
+  describeCuts,
+  RecordingPlayer,
+  RecordingRecorderView,
+  TranscriptTimeline,
+  buildRecordingDraft,
+  defaultRecordingTitle,
+  evaluatePreflight,
+  flattenWords,
+  getRecordingsBridge,
+  pickMimeType,
+  scopeSentence,
+  startBrowserCapture,
+  truncationNotice,
+  type CaptureOutcome,
+  type ChapterListProps,
+  type CutInspectorProps,
+  type Preflight,
+  type PreflightNotice,
+  type RecordingDraft,
+  type RecordingPlayerProps,
+  type RecordingRecorderViewProps,
+  type RecordingsBridge,
+  type TranscriptTimelineProps
+} from './recording/index.js'
+
 // Frames — the compositional unit (0346): FrameDef contract, renderer +
 // source registry, container adapters, dashboard frame widget.
 export {

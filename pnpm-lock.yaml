@@ -2345,6 +2345,9 @@ importers:
       '@xnetjs/react':
         specifier: workspace:*
         version: link:../react
+      '@xnetjs/recordings':
+        specifier: workspace:*
+        version: link:../recordings
       '@xnetjs/social':
         specifier: workspace:*
         version: link:../social

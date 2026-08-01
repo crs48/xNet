@@ -29,6 +29,7 @@
     "@xnetjs/data": "workspace:*",
     "@xnetjs/dictation": "workspace:*",
     "@xnetjs/meetings": "workspace:*",
+    "@xnetjs/recordings": "workspace:*",
     "@xnetjs/plugins": "workspace:*",
     "@xnetjs/react": "workspace:*",
     "@xnetjs/maps": "workspace:*",

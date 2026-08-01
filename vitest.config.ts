@@ -60,6 +60,7 @@ const workspaceAliases = {
   '@xnetjs/licenses': new URL('./packages/licenses/src/index.ts', import.meta.url).pathname,
   '@xnetjs/maps': new URL('./packages/maps/src/index.ts', import.meta.url).pathname,
   '@xnetjs/meetings': new URL('./packages/meetings/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/recordings': new URL('./packages/recordings/src/index.ts', import.meta.url).pathname,
   '@xnetjs/network': new URL('./packages/network/src/index.ts', import.meta.url).pathname,
   '@xnetjs/publish': new URL('./packages/publish/src/index.ts', import.meta.url).pathname,
   '@xnetjs/plugins/node': new URL('./packages/plugins/src/services/node.ts', import.meta.url)

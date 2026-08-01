@@ -608,11 +608,11 @@ export function proposeSilenceCuts(
       authorization coverage tests
 - [x] `resolveVideoCapturePath()` + `detectVideoCapability()` mirroring the
       0279 audio ladder, with user-facing scope messages
-- [ ] Renderer capture via `desktopCapturer` + `MediaRecorder`, writing to a
+- [x] Renderer capture via `desktopCapturer` + `MediaRecorder`, writing to a
       temp file in `userData`
-- [ ] Pre-flight surface: source picker, camera toggle, mic level, permission
+- [x] Pre-flight surface: source picker, camera toggle, mic level, permission
       state, free-disk check
-- [ ] Create the `Recording` node on stop, before any transcription
+- [x] Create the `Recording` node on stop, before any transcription
 - [ ] Benchmark: CPU %, dropped frames, file size at 1080p30 and 1440p60
 
 ### Phase 2 — Native helper
@@ -627,7 +627,7 @@ export function proposeSilenceCuts(
 - [x] `recording-capture-ipc.ts` in main, first-party-frame gated like
       `meeting-capture-ipc.ts`
 - [x] `window.xnetRecordings` preload contract + renderer bridge types
-- [ ] Missing-helper fallback to the phase-1 path, logged loudly
+- [x] Missing-helper fallback to the phase-1 path, logged loudly
 - [ ] Re-run the phase-1 benchmark and record both numbers in this document
 
 ### Phase 3 — Transcript and auto-edit
@@ -636,19 +636,19 @@ export function proposeSilenceCuts(
       `xnet:meetings:transcribe` engines
 - [ ] Persist timed segments to `RecordingTranscript` incrementally
 - [x] `proposeSilenceCuts()` over the VAD envelope, with configurable padding
-- [ ] Player component: cut-skipping, edited-duration scrubber, cut markers
-- [ ] Cut inspector: list every cut with its reason, one-click restore, a
+- [x] Player component: cut-skipping, edited-duration scrubber, cut markers
+- [x] Cut inspector: list every cut with its reason, one-click restore, a
       running "removed N s across M cuts" count
-- [ ] Transcript-as-timeline: click a word, seek there; select a span, cut it
+- [x] Transcript-as-timeline: click a word, seek there; select a span, cut it
 
 ### Phase 4 — Chapters, captions, camera
 
 - [ ] Chapter-generation template in `packages/meetings/src/enhance/templates.ts`
       (or a recordings sibling), run through `groundedness.ts`
-- [ ] Chapter list UI with editable titles and click-to-seek
+- [x] Chapter list UI with editable titles and click-to-seek
 - [x] WebVTT caption generation from transcript segments
 - [x] Camera layout as node data: corner, size, shape, per-span visibility
-- [ ] Composite the camera track at playback, not at record time
+- [x] Composite the camera track at playback, not at record time
 
 ### Phase 5 — Export and share
 

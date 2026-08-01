@@ -20,7 +20,13 @@
 
 import type { CapturePathId } from '@xnetjs/data'
 
-export type VideoCapturePath = CapturePathId
+/**
+ * The detector's vocabulary is the schema's plus `'none'`. `'none'` is a
+ * detection-only state — a machine that cannot record never produces a node,
+ * so it is deliberately absent from `CapturePathId`, which types what gets
+ * *stored*.
+ */
+export type VideoCapturePath = CapturePathId | 'none'
 
 export interface VideoCaptureHints {
   /** Running inside the Electron shell (the preload sets this). */
@@ -101,7 +107,8 @@ export const CAPTURE_PATH_RANK: readonly VideoCapturePath[] = [
   'screencapturekit-helper',
   'chromium-desktop-capturer',
   'display-media',
-  'unknown'
+  'unknown',
+  'none'
 ]
 
 /** True when `a` is a strictly better capture rung than `b`. */
