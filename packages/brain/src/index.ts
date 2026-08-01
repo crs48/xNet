@@ -97,6 +97,24 @@ export {
   type WorkspaceRetrievalOptions
 } from './workspace-retrieval'
 export {
+  budgetFromProfile,
+  DEFAULT_RETRIEVAL_PROFILE,
+  localGoldenCases,
+  normalizeProfile,
+  preferencePairs,
+  PROFILE_BOUNDS,
+  proposeProfile,
+  ratchetProfile,
+  RATCHET_TOLERANCE,
+  RETRIEVAL_PROFILE_SCHEMA_IRI,
+  type LocalGoldenCase,
+  type PreferencePair,
+  type ProfileScores,
+  type RatchetDecision,
+  type RecallOutcome,
+  type RetrievalProfile
+} from './retrieval-profile'
+export {
   candidatesFromTraces,
   isRedactedInstruction,
   type AgentActionLike,

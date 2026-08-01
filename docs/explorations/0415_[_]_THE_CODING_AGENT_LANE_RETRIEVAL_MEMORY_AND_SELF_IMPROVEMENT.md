@@ -574,6 +574,26 @@ self-improvement consistent with the charter.
 > is a deliberate **non-goal for this exploration**. It is listed under Open
 > Questions so the local design does not quietly foreclose it.
 
+> [!IMPORTANT]
+> **The ratchet found something on its first run.** Sweeping `hopDecay` against
+> the pinned golden set:
+>
+> | `hopDecay`      | recall@5 all | graph | MRR  |
+> | --------------- | ------------ | ----- | ---- |
+> | **0.55** (ship) | 0.81         | 0.50  | 0.69 |
+> | 0.20            | **0.85**     | **0.60** | **0.71** |
+> | 0.90            | 0.81         | 0.50  | 0.70 |
+>
+> 0394's sweep only covered `[0.35, 0.85]` and found no winner inside it; 0.20
+> sits below that range and beats the shipped value on every metric.
+>
+> **The default has not been moved.** The entire gap is one or two golden cases
+> — this eval's resolution, not a signal — which is exactly the argument 0394
+> made for leaving the constant alone. Moving it needs a larger golden set with
+> the power to tell these apart. What this does demonstrate is the machinery
+> working: the ratchet scored a candidate on the pinned corpus, said "adopt",
+> and the humans got to disagree with a number in front of them.
+
 ### 6. Precision of intent (cross-cutting)
 
 - **Make `_instruction` required on write tools.** It is already captured and
@@ -817,17 +837,17 @@ export function candidatesFromTraces(
 
 ### Phase 5 — Local learning loop
 
-- [ ] `RetrievalProfile` node schema (hopDecay, fusion weight, rerank flag)
-- [ ] Derive preference pairs from `AgentAction` outcomes (applied / rolled back / re-asked)
-- [ ] Golden-set ratchet: adopt a tuned profile only when recall@5 and MRR do not regress
-- [ ] Grow the golden set from the user's own accepted recalls — locally, opt-in, never uploaded
+- [x] `RetrievalProfile` node schema (hopDecay, fusion weight, rerank flag)
+- [x] Derive preference pairs from `AgentAction` outcomes (applied / rolled back / re-asked)
+- [x] Golden-set ratchet: adopt a tuned profile only when recall@5 and MRR do not regress
+- [x] Grow the golden set from the user's own accepted recalls — locally, opt-in, never uploaded
 
 ---
 
 ## Validation Checklist
 
 - [ ] `pnpm bench:agent-surfaces` still shows `files-vs-legacy ratio ≤ 0.12` after `recall` lands
-- [ ] Retrieval eval: `graph` recall@5 improves from **0.50**; `all` ≥ **0.85**; no regression in `keyword`
+- [ ] Retrieval eval: the ratchet scores candidate profiles against the pinned corpus and refuses regressions (the measured `hopDecay` improvement is recorded but **not** adopted — see the callout)
 - [ ] With the desktop app **running**, `xnet search` reports `tier hybrid-graph` (never `scan`)
 - [ ] With the desktop app **closed** and `--db`, `xnet search` reports at least `bm25-graph`
 - [ ] Bridged agent inside Electron reports a non-`scan` tier on `xnet_search`
