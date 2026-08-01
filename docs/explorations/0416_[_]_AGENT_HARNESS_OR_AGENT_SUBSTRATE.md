@@ -560,7 +560,7 @@ requires the operator's signing key — which the agent never has.
       and routes its tool calls through the existing guardrail
 - [x] Passport revocation list (close the "revocation is expiry" gap) with a
       hub-served denylist consulted on UCAN verification
-- [ ] Governed read path: per-session egress budget on `xnet_query` /
+- [x] Governed read path: per-session egress budget on `xnet_query` /
       `xnet_get`, recorded on `AgentAction` (0379 mitigation)
 
 ### Housekeeping

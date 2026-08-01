@@ -24,6 +24,7 @@
  */
 
 import type { NodeStoreAPI } from '../services/local-api'
+import { EgressMeter } from './egress-budget'
 import type { AiRiskLevel, AiToolDefinition } from './types'
 import {
   AGENT_ACTION_SCHEMA_IRI,
@@ -66,6 +67,11 @@ export type AgentAuditRecorderConfig = {
   clock?: () => number
   /** Nonce generator override (tests). */
   generateNonce?: () => string
+  /**
+   * Per-session read budget (exploration 0416). Omit to meter with the default
+   * budget; pass `null` to disable metering entirely (tests, trusted lanes).
+   */
+  egress?: EgressMeter | null
 }
 
 export type AgentPendingApproval = {
@@ -162,6 +168,8 @@ export class AgentAuditRecorder {
   private readonly ttlMs: number
   private readonly clock: () => number
   private readonly generateNonce: () => string
+  /** Per-session read budget; `null` when metering is disabled. */
+  readonly egress: EgressMeter | null
 
   readonly sessionId: string
   private seq = 0
@@ -176,6 +184,7 @@ export class AgentAuditRecorder {
     this.ttlMs = config.approvalTtlMs ?? DEFAULT_APPROVAL_TTL_MS
     this.clock = config.clock ?? (() => Date.now())
     this.generateNonce = config.generateNonce ?? defaultNonce
+    this.egress = config.egress === null ? null : (config.egress ?? new EgressMeter())
     this.sessionId = agentSessionId(config.context.agentDID, config.context.sessionKey)
   }
 
@@ -409,6 +418,10 @@ export class AgentAuditRecorder {
   ): Promise<AgentExecutedResult> {
     try {
       const result = await this.surface.callTool(name, args)
+      // Charge before returning: a read that blows the session budget is
+      // refused outright, never delivered-then-noted. The throw lands in the
+      // catch below, so the overage is recorded on the action like any failure.
+      this.egress?.charge(name, result)
       const handle = extractRollbackHandle(result)
       if (handle) this.rollbackHandles.set(actionId, handle)
       await this.store.update(actionId, {
