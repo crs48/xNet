@@ -42,6 +42,12 @@ import {
 } from '@xnetjs/plugins/node'
 import { Command } from 'commander'
 import { resolveAgentBackend, type BackendLadderOptions } from '../utils/agent-backend.js'
+import {
+  connectSession,
+  sessionTargetFor,
+  type SessionClient
+} from '../utils/session-daemon.js'
+import { SESSION_CLI_VERSION } from './serve.js'
 
 // ─── Services ────────────────────────────────────────────────────────────────
 
@@ -638,6 +644,24 @@ export function registerAgentCommands(
    * Resolve services via the backend ladder, run `fn`, and always dispose the
    * backend afterwards (closing the SQLite client in local mode).
    */
+  /**
+   * Connect to a warm `xnet serve`, or return `null` when there is none.
+   *
+   * `$XNET_SESSION=0` opts out entirely. A *stale* daemon is not opted out of:
+   * `connectSession` throws on a version mismatch, and that throw propagates —
+   * quietly falling back to the cold path would discard the one signal that
+   * says the answer you were about to get was wrong.
+   */
+  const tryConnectSession = async (
+    options: AgentCommandOptions
+  ): Promise<SessionClient | null> => {
+    if (process.env.XNET_SESSION === '0') return null
+    return connectSession({
+      target: sessionTargetFor(options),
+      version: SESSION_CLI_VERSION
+    })
+  }
+
   const withServices = async (
     options: AgentCommandOptions,
     fn: (services: AgentCliServices) => Promise<string>
@@ -648,6 +672,37 @@ export function registerAgentCommands(
     } finally {
       await services.dispose?.()
     }
+  }
+
+  /**
+   * Read verbs: ask a warm `xnet serve` first, fall back to a cold process.
+   *
+   * No daemon is the ordinary case and stays silent. A daemon that is present
+   * but stale, or that dies mid-request, throws — the cold path is *not* a
+   * fallback for those, because retrying quietly would hide exactly the
+   * failure we bothered to detect (exploration 0415).
+   */
+  const withWarmServices = async (
+    options: AgentCommandOptions,
+    op: 'search' | 'recall' | 'query' | 'get',
+    params: Record<string, unknown>,
+    fn: (services: AgentCliServices) => Promise<string>
+  ): Promise<void> => {
+    const client = await tryConnectSession(options)
+    if (client) {
+      try {
+        const result = (await client.call(op, params)) as {
+          output: string
+          warnings?: string[]
+        }
+        for (const warning of result.warnings ?? []) process.stderr.write(`${warning}\n`)
+        print(result.output)
+        return
+      } finally {
+        client.close()
+      }
+    }
+    await withServices(options, fn)
   }
 
   /** Flags shared by every agent verb: which backend to talk to. */
@@ -704,7 +759,9 @@ export function registerAgentCommands(
       .option('-l, --limit <n>', 'Max results', parseIntOption)
       .option('--format <format>', 'Output format: tsv|jsonl|json', 'tsv')
   ).action(async (text, options) => {
-    await withServices(options, (services) => runSearch(services, { ...options, text }))
+    await withWarmServices(options, 'search', { ...options, text }, (services) =>
+      runSearch(services, { ...options, text })
+    )
   })
 
   withBackendFlags(
@@ -716,7 +773,9 @@ export function registerAgentCommands(
       .option('-l, --limit <n>', 'Max entry nodes before expansion', parseIntOption)
       .option('--format <format>', 'Output format: tsv|md|jsonl|json', 'tsv')
   ).action(async (text, options) => {
-    await withServices(options, (services) => runRecall(services, { ...options, text }))
+    await withWarmServices(options, 'recall', { ...options, text }, (services) =>
+      runRecall(services, { ...options, text })
+    )
   })
 
   withBackendFlags(

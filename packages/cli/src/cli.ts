@@ -32,6 +32,7 @@ import { registerMigrateCommand } from './commands/migrate.js'
 import { registerPluginCommand } from './commands/plugin.js'
 import { registerPublishCommand } from './commands/publish.js'
 import { registerSchemaCommand } from './commands/schema.js'
+import { registerServeCommand } from './commands/serve.js'
 
 program
   .name('xnet')
@@ -52,6 +53,7 @@ registerDataCommand(program)
 registerPluginCommand(program)
 registerConnectorCommand(program)
 registerPublishCommand(program)
+registerServeCommand(program)
 
 // Parse and run
 program.parse()

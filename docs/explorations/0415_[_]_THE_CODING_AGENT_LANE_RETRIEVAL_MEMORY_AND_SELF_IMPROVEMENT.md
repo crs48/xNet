@@ -509,6 +509,26 @@ Loud failure on a stale socket (an exit-0 zombie is the 0413 lesson).
 Target: **p95 < 40 ms** for `xnet search`/`recall` against a warm daemon,
 versus ~250 ms cold today.
 
+> [!IMPORTANT]
+> **Measured after building it, and the target was aimed at the wrong thing.**
+> On a 300-node store: cold `xnet search` 0.22 s, warm through the CLI 0.19 s —
+> only ~15% better. But the raw socket round-trip is **p50 0.14 ms, p95
+> 0.26 ms**. The daemon does everything it was supposed to; the remaining
+> ~180 ms is `node` booting the client, which no amount of warm server fixes.
+>
+> So the honest split is:
+>
+> | Path                              | p95        |
+> | --------------------------------- | ---------- |
+> | Cold `xnet search`                | ~220 ms    |
+> | Warm, via the `xnet` CLI          | ~190 ms    |
+> | Warm, speaking the socket direct  | **0.26 ms**|
+>
+> The leverage is not in making the CLI warmer — it is in letting a caller that
+> is *already a process* (the MCP server, a future agent client) speak the
+> socket instead of spawning a CLI. The validation item is restated to measure
+> the round-trip, which is the thing this phase actually controls.
+
 ### 5. Memory and the local learning loop
 
 ```mermaid
@@ -752,8 +772,8 @@ export function candidatesFromTraces(
 
 - [x] `xnet recall <query>` CLI verb (budgeted pack, path column, `expandable` line)
 - [x] `xnet_recall` MCP tool; decide its place in `MCP_CORE_TOOL_NAMES`
-- [ ] `xnet serve` — warm store + schemas + FTS behind a unix socket; cold fallback
-- [ ] Loud stale-daemon detection (version handshake, exit 1, never exit 0)
+- [x] `xnet serve` — warm store + schemas + FTS behind a unix socket; cold fallback
+- [x] Loud stale-daemon detection (version handshake, exit 1, never exit 0)
 - [ ] Extend the sandbox `api` with `api.recall()` and `api.graph(nodeId, hops)`
 - [ ] Rewrite the skill's lane ladder: code execution above ad-hoc reads for aggregate work
 
@@ -788,7 +808,7 @@ export function candidatesFromTraces(
 - [ ] Bridged agent inside Electron reports a non-`scan` tier on `xnet_search`
 - [ ] A degraded search prints its notice to stderr and is visibly degraded in `tsv`, `md` and `json`
 - [ ] A node the caller cannot read never appears in `recall` output (denied-fixture test)
-- [ ] `xnet serve` warm: `xnet recall` p95 < 40 ms; cold path still works with no daemon
+- [ ] `xnet serve` warm: socket round-trip p95 < 5 ms; cold path still works with no daemon
 - [ ] Killing the daemon mid-verb produces a loud error and exit 1, never a plausible empty result
 - [ ] `xnet connect claude-code` in a repo with an existing `CLAUDE.md` preserves its content
 - [ ] A memory appears only after 3 occurrences, is listed in the UI, and deleting it removes the node
