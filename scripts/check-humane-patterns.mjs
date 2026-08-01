@@ -86,6 +86,16 @@ const RULES = [
     fix: 'show stewardship, never standing — reciprocity is legible, not scored (docs/VIBE.md)'
   },
   {
+    // The meter lesson (exploration 0417): an operator paid for access to
+    // matches has a standing reason to make matches scarce. Introductions are
+    // never sold — no boost, no paid rank, no pay-to-reveal. Charter §6,
+    // "no rent on introductions".
+    name: 'metered connection',
+    group: 'dark-pattern',
+    re: /\b(boostPrice|paidVisibility|featuredProfile|superLikePrice|matchPaywall|payToReveal)\b/,
+    fix: 'introductions are never sold — selling rank or reveal turns the matchmaker into a meter (Charter §6 "no rent on introductions", exploration 0417)'
+  },
+  {
     name: 'third-party ad/analytics SDK',
     group: 'surplus',
     re: /@segment\/|google-analytics|googletagmanager|\bfbevents\b|\bfbq\(|\bgtag\(|\bmixpanel\b|@amplitude\/|cdn\.amplitude\.com|\bhotjar\b|\bfullstory\b/i,
@@ -247,6 +257,18 @@ function runSelfTest() {
       label: 'aspect-ratio style code is not ratio scorekeeping',
       dark: true,
       text: 'const aspectRatio = width / height',
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'flags a metered connection in a UI file',
+      dark: true,
+      text: 'const boostPrice = plan.boostPrice',
+      expect: (v) => v.some((x) => x.rule === 'metered connection')
+    },
+    {
+      label: 'unmetered connect code is not a metered connection',
+      dark: true,
+      text: 'const card = buildIntroCard({ intent, sharedInterests })',
       expect: (v) => v.length === 0
     },
     {

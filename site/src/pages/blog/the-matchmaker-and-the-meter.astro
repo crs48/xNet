@@ -1,0 +1,379 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import SeriesNav from '../../components/blog/SeriesNav.astro'
+import MeterHero from '../../components/blog/MeterHero.astro'
+import Byline from '../../components/blog/Byline.astro'
+import { postBySlug, formatPostDate } from '../../data/blog'
+
+const post = postBySlug('the-matchmaker-and-the-meter')!
+---
+
+<Base title={`${post.title} — xNet`} description={post.description}>
+  <Nav />
+
+  <main>
+    <MeterHero
+      title={post.title}
+      deck={post.description}
+      date={formatPostDate(post.pubDate)}
+      readingMinutes={post.readingMinutes}
+      tags={post.tags}
+    />
+
+    <article
+      class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400"
+    >
+      <Byline post={post} />
+
+      <p>
+        Hinge’s slogan is four words long: <em>designed to be deleted</em>. It
+        may be the only advertising in the world that promises you a funeral.
+        Take it seriously for a moment, because it is a strange thing for a
+        subscription business to say. A subscription earns nothing from an
+        ending. It earns from the middle, from the long undecided stretch where
+        you are still looking, still hoping, still paying. A dating app that
+        worked the way its slogan claims would be a poor business, and the
+        company appears to know it: Match Group’s own chief executive has told
+        staff that Tinder and Hinge users feel the company is too driven by
+        metrics. The slogan and the memo are both sincere. Holding them
+        together is what this essay is for.
+      </p>
+      <p>
+        Some numbers first, so the argument has weight to push against. Match
+        Group owns more than forty dating brands, Tinder, Hinge, OkCupid and
+        Plenty of Fish among them, and about half the dating activity of young
+        Americans runs through its servers. Tinder Plus launched at $9.99 a
+        month and now costs $24.99. Bumble’s paid tier has tripled since 2016.
+        The League, at the luxury end, will take up to $2,499.99 a month.
+        Things that used to be free now sit behind those prices: seeing who
+        liked you, filtering by distance, more than a handful of swipes a day.
+        And on Valentine’s Day 2024, six users filed a federal class action
+        alleging what the pricing already implies. The apps, the complaint
+        says, are gamified on purpose, tuned like slot machines to keep you
+        searching for rewards the operator keeps just out of reach. Match
+        called the suit ridiculous
+        and without merit. Perhaps. But the design it describes needs no
+        conspiracy. It is simply what the incentives ask for.
+      </p>
+
+      <h2>The meter</h2>
+      <p>
+        Here is the mechanism with no villain in it. A dating company is paid
+        for access to matches, so its inventory is the distance between you and
+        the person you are trying to reach. When a match succeeds, the firm
+        loses two subscribers; a near miss keeps both, and the last inch can be
+        sold. Nobody in the building has to want this; it
+        falls out of a quarterly target the way water falls downhill. Scarcity
+        is stock, frustration is turnover, and the perfect customer is the one
+        who almost finds someone, forever.
+      </p>
+      <p>
+        Economists have a name for what happens next. In a market where buyers
+        cannot tell good from bad, the good options leave first and the market
+        sours from the top; George Akerlof called it the market for lemons.
+        Dating apps run the experiment on people. Put the likeliest matches
+        behind a paywall and the people most worth meeting are the first to
+        give up and go. Each departure lowers the odds for everyone still
+        swiping, which sends the next tier out of the door behind them. The
+        paywall does not just tax the market; it curdles it. Nearly four in
+        five Gen Z daters report dating-app fatigue, and fatigue is what
+        curdling feels like from the inside.
+      </p>
+
+      <h2>The matchmaker</h2>
+      <p>
+        So how did people meet before, in the ways they remember warmly?
+        Almost never unaided; that part of the nostalgia is false. There was
+        nearly always an intermediary. In the Jewish villages of eastern
+        Europe it was the shadchan, a professional whose trade was knowing
+        every family’s character and circumstances and proposing marriages
+        between them. Elsewhere it was an aunt, a church social, a barn dance,
+        or the slow evening walk that Mediterranean towns still call the
+        paseo. Even the personals column of a local newspaper was an
+        intermediary of a kind: it took a flat fee for the advert and had no
+        further stake in your search.
+      </p>
+      <p>
+        Look at what those forms shared, because it was not innocence. First,
+        recurrence: you would see these people again next week, so patience
+        was possible and reputations mattered. Second, the format absorbed the
+        no. In a dance where everyone rotates, not being chosen is a fact of
+        the room rather than a verdict on your face. Third, contact cost
+        nothing; where admission existed it was flat and cheap. Fourth, and
+        this is the load-bearing one, the intermediary was paid for the
+        outcome, not the search. A shadchan lived on reputation in a village
+        that would judge the marriage for decades. The aunt answered to both
+        families at every holiday for the rest of her life. Bad matches cost
+        the matchmaker, which is precisely the liability no swipe app carries.
+      </p>
+      <p>
+        Be honest about the price of all this. These were also the mechanisms
+        of small worlds that could suffocate: chaperones, narrow pools,
+        communities that punished difference and made leaving expensive.
+        Recurrence is the warm name for a room you cannot easily exit. The
+        point is not that the village was better, only that its machinery was
+        aligned — and the machinery can be taken without the walls.
+      </p>
+      <p>
+        The historian Beth Bailey dated the turn precisely. Until the 1920s,
+        American courtship ran on the calling system: a man visited a woman in
+        her family’s parlour, at her family’s invitation, and the whole
+        apparatus cost nothing and answered to her side. Within a generation,
+        courtship moved out of the parlour and into restaurants, theatres and
+        dance halls, and access to those rooms had to be bought. Money, men’s
+        money, became the medium of courtship for the first time. Everything
+        since has been elaboration. The apps did not invent the meter. They
+        shrank it, put it in your pocket, and pointed it at the introduction
+        itself.
+      </p>
+
+      <h2>Disintermediating your friends</h2>
+      <p>
+        The scale of the change has been measured. Stanford’s long-running
+        survey of how American couples meet found that 39 per cent of
+        heterosexual couples met online by 2017, up from 22 per cent in 2009.
+        Online passed friends as the leading way around 2013, and for same-sex
+        couples the figure was already about 65 per cent. The researchers’
+        paper carries the honest title: <em>Disintermediating Your Friends</em>.
+        A friend who introduces you is infrastructure: they know you both,
+        filter better than any questionnaire, stake a little of their own
+        standing on the introduction, and do it for free. Worse: for joy. The
+        subscription sells you back their labour, minus the knowledge, minus
+        the stake.
+      </p>
+
+      <h2>Where people are going instead</h2>
+      <p>
+        Watch what people run to when they leave, because it is a map of what
+        was missing. Attendance at in-person singles events grew by 42 per
+        cent in a single year. Timeleft seats strangers around dinner tables
+        every Wednesday in three hundred cities, and the unit is the table,
+        not the pair, so nobody at it can be rejected. Run clubs are the paseo
+        with cardio: recurring, free, no declared intent required. Board-game
+        cafés hand you a conversation so you do not have to build one from
+        nothing. Speed dating is back, and it is the dance hall’s rotation
+        with name tags. There is even a $25 ring, the Pear ring, whose only
+        feature is announcing that you are single and approachable — the
+        ambient signal a promenade used to provide for free. Notice the
+        melancholy detail under the revival, though: nearly all of it is
+        ticketed. The sociologist Ray Oldenburg called the free rooms of a
+        town its third places, and most of them have closed. Their
+        reconstruction charges at the door.
+      </p>
+      <p>
+        Online, the interesting experiments are the ones almost nobody
+        covers. Some people now write date-me docs: long, earnest,
+        self-authored pages that circulate link by link and gather in a small
+        volunteer directory. Lex, a queer personals app descended from the
+        back-page adverts of a 1980s magazine, puts the text first and the
+        selfies second. The Marriage Pact asks students fifty questions about
+        values, runs a Nobel-winning stable-matching algorithm over the
+        answers, and returns one match, once a year, free, with no
+        photographs. More than six hundred thousand students across a hundred
+        campuses have taken it. And an uncountable number of couples simply
+        met in a Discord server or a <em>Final Fantasy XIV</em> raid group; by
+        the time either of them thought of it as dating, they had spent two
+        hundred hours solving hard problems together. The pattern across every one
+        of these is the same: no meter, and a high cost of authorship. You
+        cannot swipe through three-thousand-word documents, and there is no
+        way to buy a raid group’s esteem. Effort filters better than money,
+        because effort selects for the thing you are actually trying to find.
+      </p>
+
+      <h2>The honest objection</h2>
+      <p>
+        If the apps were simply collapsing under their own cynicism, this
+        essay could end here, and it would be wrong. Tinder’s paying users
+        fell from about eleven million to under nine in three years, and
+        Bumble cut nearly a third of its staff. Hinge, meanwhile, grew
+        subscribers by 17 per cent and revenue by 26 per cent. The market
+        is not punishing the metered model. It is rewarding whoever performs
+        intentionality most convincingly, and performing intentionality is
+        permanently cheaper than being aligned to it, because alignment costs
+        revenue and performance costs a brand campaign. That is the actual
+        problem, and no redesign of the feed can reach it, because it lives in
+        who pays whom, for what.
+      </p>
+
+      <h2>What we built, and what we refused</h2>
+      <p>
+        The test of an argument about incentives is what you do when you hold
+        the other end of one. <a href="/">xNet</a> is a workspace, not a
+        dating service, but it carries a people-matching layer, and building
+        it forced every one of these choices onto the table. The shape we
+        chose: your profile is derived, not performed. The system already
+        holds a graph of what you care about, so a shy person never has to
+        write an advert for themselves. Contact is a wave: each side signals
+        interest privately, stored as a salted hash even the relaying server
+        cannot read, and only when both have waved does an introduction open.
+        Nobody messages you cold, and there is no inbox to buy your way into.
+        And romance is one intent among seven, alongside friendship,
+        collaborators, mentorship and the rest — facets of one primitive
+        rather than an app of its own. That last choice matters more than it
+        looks. Carving romance off into a separate product with its own
+        growth target is how the meter got built the first time.
+      </p>
+      <p>
+        Honesty about the gap, as ever: what ships today is the local half —
+        the derived profile, the wave, friends-of-friends discovery. The
+        federated directory that would let strangers find each other across
+        communities is designed and not yet built, and the moderation bill
+        that comes with it is a real cost that the paywall, for all its sins,
+        currently pays elsewhere. We would rather tell you
+        that plainly than imply a dating service exists.
+      </p>
+      <p>
+        The part worth writing home about is the part we made impossible. Our
+        continuous-integration gate, the same one that already fails any
+        build containing a streak counter or an infinite scroll, now also
+        fails any build that introduces a metered connection. An identifier
+        like <code>boostPrice</code>, <code>paidVisibility</code> or
+        <code>payToReveal</code> stops the merge. The refused-rents list in
+        our <a href="/commitments">public charter</a> carries the entry in
+        plain words: no rent on introductions, ever, with a test pinning the
+        receipt. A promise with a lint rule is a different kind of promise.
+      </p>
+      <p>
+        There is a deeper reason the good version has to be unmonetised
+        rather than differently monetised. Suppose you tried to rebuild the
+        shadchan’s incentive honestly and charge only for outcomes. A
+        matchmaker paid on the marriage has to observe the marriage. In a
+        village the observer was a neighbour; at software scale it is
+        surveillance, and the cure is worse than the fee. Which leaves one
+        honest place for connection to live: as a feature of ground you
+        already own, riding a flat bill for hosting, worth nothing extra to
+        the operator either way. The matchmaker cannot be
+        a business. It can be infrastructure.
+      </p>
+      <p>
+        <em>Designed to be deleted</em> was always the right idea in the
+        wrong tense: an aspiration wearing the clothes of a description. The
+        version that can actually be built is older than the apps and plainer
+        than the slogan — a matchmaker whose incentives face the couple, a
+        room you will be in again next week, a no that lands on the format
+        instead of on your face, and a coin that stays in your pocket,
+        because nothing on the far side of the glass was ever scarce to begin
+        with.
+      </p>
+
+      <hr />
+
+      <h3 id="sources">Sources</h3>
+      <ul class="text-base">
+        <li>
+          This essay was prompted by the video essay
+          <a href="https://www.youtube.com/watch?v=-ujJNlvFCxM" rel="noopener noreferrer">
+            “How Hinge Destroyed Society Forever”</a
+          > by Moon; the argument and figures here stand on the written sources
+          below.
+        </li>
+        <li>
+          <a
+            href="https://groundworkcollaborative.org/work/swipe-right-to-pay-how-dating-apps-turned-love-into-a-subscription-service/"
+            rel="noopener noreferrer"
+          >
+            Groundwork Collaborative — “Swipe Right to Pay”</a
+          > (Match Group’s portfolio and share, subscription price rises, paywalled
+          features, user-spend and fatigue figures), and
+          <a
+            href="https://www.cbsnews.com/sanfrancisco/news/class-action-lawsuit-claims-tinder-hinge-dating-apps-designed-to-addict-users/"
+            rel="noopener noreferrer"
+          >
+            CBS News — the February 2024 class action against Match Group</a
+          >.
+        </li>
+        <li>
+          <a
+            href="https://www.wfae.org/united-states-world/2024-02-13/the-dating-app-paradox-why-dating-apps-may-be-worse-than-ever"
+            rel="noopener noreferrer"
+          >
+            NPR’s Planet Money — “The dating app paradox”</a
+          > (adverse selection and the market for lemons applied to dating
+          markets, after Akerlof).
+        </li>
+        <li>
+          Rosenfeld, Thomas &amp; Hausen —
+          <a href="https://www.pnas.org/doi/10.1073/pnas.1908630116" rel="noopener noreferrer">
+            “Disintermediating your friends” (PNAS, 2019)</a
+          > and the
+          <a
+            href="https://news.stanford.edu/stories/2019/08/online-dating-popular-way-u-s-couples-meet"
+            rel="noopener noreferrer"
+          >
+            Stanford Report summary</a
+          > (the 39 / 22 / 65 per cent figures and the 2013 crossover).
+        </li>
+        <li>
+          Beth L. Bailey,
+          <a href="https://archive.org/details/fromfrontporchto00bail" rel="noopener noreferrer">
+            <em>From Front Porch to Back Seat: Courtship in Twentieth-Century America</em></a
+          > (1988) — the calling system, the move to commercial venues, money as
+          courtship’s medium. Ray Oldenburg,
+          <a href="https://en.wikipedia.org/wiki/Third_place" rel="noopener noreferrer">
+            the third place</a
+          >.
+        </li>
+        <li>
+          <a
+            href="https://www.morningbrew.com/stories/2026/03/19/irl-meetup-services-woo-dating-app-defectors"
+            rel="noopener noreferrer"
+          >
+            Morning Brew — IRL meetup services woo dating-app defectors</a
+          > (Timeleft, Thursday, the in-person events revival),
+          <a
+            href="https://katya-koval.medium.com/dating-app-fatigue-is-real-in-person-events-on-the-rise-ace1e812fa20"
+            rel="noopener noreferrer"
+          >
+            Katya Koval — dating-app fatigue and the rise of in-person events</a
+          > (the 42 per cent attendance figure), and
+          <a
+            href="https://www.dazeddigital.com/life-culture/article/59628/1/the-pear-ring-will-this-social-experiment-disrupt-dating"
+            rel="noopener noreferrer"
+          >
+            Dazed — the Pear ring</a
+          >.
+        </li>
+        <li>
+          <a href="https://dateme.directory/" rel="noopener noreferrer">
+            The Date Me Directory</a
+          >;
+          <a href="https://en.wikipedia.org/wiki/Lex_(app)" rel="noopener noreferrer">
+            Lex</a
+          > (and its lineage from <em>On Our Backs</em> personals);
+          <a href="https://stanforddaily.com/2019/02/19/inside-the-stanford-marriage-pact/" rel="noopener noreferrer">
+            The Stanford Daily — inside the Marriage Pact</a
+          > (Gale–Shapley matching, participation counts); and
+          <a href="https://arxiv.org/html/2503.09832v1" rel="noopener noreferrer">
+            “Honey Trap or Romantic Utopia” (CHI 2025)</a
+          > on partner-seeking among <em>Final Fantasy XIV</em> players.
+        </li>
+        <li>
+          <a href="https://www.swipestats.io/blog/dating-app-user-statistics" rel="noopener noreferrer">
+            SwipeStats — dating app user statistics</a
+          > and
+          <a href="https://en.wikipedia.org/wiki/Match_Group" rel="noopener noreferrer">
+            Wikipedia — Match Group</a
+          > (Tinder’s paying-user decline, Bumble’s 2025 layoffs, Hinge’s
+          subscriber and revenue growth). The matching layer and CI gate
+          referenced throughout:
+          <a href="/commitments">the Humane Charter</a>.
+        </li>
+      </ul>
+
+      <p class="text-sm text-gray-400 dark:text-gray-500">
+        <em
+          >Figures are as reported by the sources above, most recently checked
+          August 2026. The people-matching layer described here is a workspace
+          feature under active development, not a dating service; the essay
+          says plainly which parts ship today and which do not.</em
+        >
+      </p>
+    </article>
+
+    <SeriesNav slug="the-matchmaker-and-the-meter" />
+  </main>
+
+  <Footer />
+</Base>

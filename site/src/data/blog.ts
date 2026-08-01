@@ -115,6 +115,23 @@ const posts: BlogPost[] = [
     readingMinutes: 18
   },
   {
+    slug: 'the-matchmaker-and-the-meter',
+    title: 'The Matchmaker and the Meter',
+    description:
+      'Hinge says it is designed to be deleted; its parent company is paid ' +
+      'while you stay. On the meter dating apps run on — match scarcity as ' +
+      'inventory, the market for lemons run on people — and the matchmakers ' +
+      'people actually loved: the shadchan, the paseo, the dance hall, whose ' +
+      'intermediaries answered for the outcome rather than the search. What ' +
+      'people are running to instead, offline and on; why the good forms ' +
+      'charge effort rather than money; and the CI rule that keeps xNet from ' +
+      'ever selling an introduction.',
+    pubDate: '2026-08-01T17:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'economics', 'philosophy'],
+    readingMinutes: 11
+  },
+  {
     slug: 'rig-the-game-or-play',
     title: 'Rig the Game or Play',
     description:
