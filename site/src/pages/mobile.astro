@@ -11,7 +11,12 @@ import Footer from '../components/sections/Footer.astro'
 // Set PUBLIC_EXPO_GO_DEMO_URL at build time (e.g. in the deploy workflow). Until
 // then it falls back to the demo's source, whose README carries the run steps —
 // so the code below is never a dead link and the "run it yourself" flow always
-// works. See docs/explorations/0259_[_]_SCAN_TO_RUN_QR_INSTALLABLE_MOBILE_DEMO_WITHOUT_THE_APP_STORE.md
+// works.
+//
+// This used to cite a scan-to-run exploration that was never merged to main; it
+// exists only on an unmerged branch (the stranded-branch problem, exploration
+// 0410). The pointer is dropped rather than repaired — a path to a document
+// nobody can open is worse than no pointer at all.
 const DEMO_SOURCE = 'https://github.com/crs48/xNet/tree/main/apps/expo'
 const EXPO_GO_DEMO_URL = import.meta.env.PUBLIC_EXPO_GO_DEMO_URL || DEMO_SOURCE
 const hostedConfigured = Boolean(import.meta.env.PUBLIC_EXPO_GO_DEMO_URL)

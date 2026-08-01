@@ -14,7 +14,7 @@
  * authority. Attenuation stays xNet's ({@link assertAttenuated}), so a
  * compromised relay cannot widen a grant.
  *
- * @see docs/explorations/0416_[_]_AGENT_HARNESS_OR_AGENT_SUBSTRATE.md
+ * @see docs/explorations/0416_[-]_AGENT_HARNESS_OR_AGENT_SUBSTRATE.md
  */
 
 import type { UCANCapability } from './types'

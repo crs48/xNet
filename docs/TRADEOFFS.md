@@ -805,7 +805,55 @@ console.log(project.progress) // Computed now
 
 ---
 
-_Last updated: January 2026_
+## 19. Ceremony: Tiered by Reversibility, Not by Size
+
+**Date:** August 2026
+**Decision:** How much process a change earns is set by how hard it is to
+undo — not by diff size, not applied flat
+
+### Options Considered
+
+| Option      | Description                   | Pros                | Cons                                     |
+| ----------- | ----------------------------- | ------------------- | ---------------------------------------- |
+| **Flat**    | Same process for every change | Simple, predictable | Taxes cheap changes, under-guards costly |
+| **By size** | Big diffs get more review     | Easy to measure     | Size and risk are barely correlated      |
+| **By door** | Reversibility sets the tier   | Matches actual risk | Requires a judgement call per change     |
+
+### Decision: By Door
+
+Two-way door — reversible, cheap to undo. Just do it. Internal refactors, UI
+tweaks, a new check script, most bug fixes.
+
+One-way door — expensive or impossible to undo. Earns an exploration and an
+ADR in [`docs/decisions/`](./decisions/). Wire-format changes, public API
+exports, anything published to npm under a stable name, a new revenue lane
+(which additionally faces the three [Charter](./CHARTER.md) §6 tests).
+
+Explorations declare this in frontmatter as `door: one-way | two-way`.
+
+### Rationale
+
+Speed is only virtuous where the door is reversible, and the two failure modes
+are opposites. JavaScript shipped in ten days and gave the industry `==`
+coercion and thirty years of remediation — a one-way door walked through at
+two-way speed. San Francisco's Van Ness bus lane took ~7,600 days and $110,000
+per metre for a bus lane that could have been repainted — a two-way door
+guarded like a one-way one.
+
+Uniform process gets both wrong at once. It is the flat tier that is the real
+tax, not the ceremony itself.
+
+This is also why the repo's `check:*` scripts are **not** vetocracy, however
+many of them accumulate: Fukuyama's veto point requires an _actor_ who can say
+no for reasons of their own. A script asserting the API report matches the
+source has no interests, and conflating the two is what makes "cut red tape"
+campaigns remove the load-bearing parts. See exploration 0421, which measured
+the build loop at a median PR cycle under an hour and found the slow phase to
+be deciding what to build, not building it.
+
+---
+
+_Last updated: August 2026_
 
 ---
 
@@ -831,3 +879,4 @@ _Last updated: January 2026_
 | 16  | Security      | Local peer scoring          | Decentralization over coordination      |
 | 17  | React API     | Schema-first + FlatNode     | Type safety over simplicity             |
 | 18  | Query         | Read-time computation       | Freshness over read performance         |
+| 19  | Process       | Ceremony tiered by door     | Risk-matched over uniform               |

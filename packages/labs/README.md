@@ -3,7 +3,7 @@
 Code as a first-class citizen in xNet — a **Lab** node type, a layered
 **runtime ladder** for executing code safely, and a **Lab → Extension**
 publisher that hot-installs authored code into the running workbench
-(exploration [0180](../../docs/explorations/0180_[_]_CODE_AS_A_FIRST_CLASS_CITIZEN_LABS_AND_RUNTIMES.md)).
+(exploration [0180](../../docs/explorations/0180_[x]_CODE_AS_A_FIRST_CLASS_CITIZEN_LABS_AND_RUNTIMES.md)).
 
 ## What it provides
 

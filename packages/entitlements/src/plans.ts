@@ -102,6 +102,26 @@ export interface PlanEntitlements {
   /** ISO region the tenant's data is pinned to (enterprise residency); undefined = unpinned. */
   residency?: string
   sla: SlaLevel
+  /**
+   * Whether the hub accepts writes. **Always `true` in the plan catalog** — this
+   * is not a plan feature, it is the lever the non-payment lifecycle pulls
+   * (exploration 0418): a tenant whose grace window lapses is flipped to
+   * `false`, its hub rejects mutations with `507 billing_read_only`, and every
+   * byte stays readable and exportable until payment recovers.
+   *
+   * Two invariants make this safe to add to a signed wire contract:
+   *
+   *  - **Absent means enabled.** `verifyEntitlements` normalizes a missing field
+   *    to `true`, so a token signed before this field existed keeps working. Only
+   *    an explicit `false` blocks writes — the field fails open, deliberately,
+   *    because the failure mode of the alternative is bricking every hub on a
+   *    rollout.
+   *  - **Self-host never sees `false`.** With no `HUB_PLAN` the hub keeps its own
+   *    `DEFAULT_CONFIG` and this field is never consulted, so the control plane
+   *    cannot reach into a hub it does not host (the anti-lock-in invariant from
+   *    exploration 0174).
+   */
+  writesEnabled: boolean
 }
 
 /**
@@ -142,6 +162,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiEnabled: false,
     includedAiUsd: 0,
     aiMonthlyBudgetUsd: 0,
+    writesEnabled: true,
     sla: 'none'
   },
   personal: {
@@ -156,6 +177,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiMonthlyBudgetUsd: 25,
     aiModels: CHEAP_AI_MODELS,
     aiDefaultModel: 'anthropic/claude-haiku-4.5',
+    writesEnabled: true,
     sla: 'best-effort'
   },
   family: {
@@ -170,6 +192,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiMonthlyBudgetUsd: 60,
     aiModels: STANDARD_AI_MODELS,
     aiDefaultModel: 'anthropic/claude-sonnet-4.6',
+    writesEnabled: true,
     sla: 'best-effort'
   },
   team: {
@@ -184,6 +207,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiMonthlyBudgetUsd: 200,
     aiModels: 'all',
     aiDefaultModel: 'anthropic/claude-sonnet-4.6',
+    writesEnabled: true,
     // A real 99.5% outranks a fictional 99.9%. The pricing page used to claim
     // "99.9% best-effort availability" here — a self-cancelling phrase over a
     // tier whose SLA level backed no objective at all. `dedicated-warm` (no
@@ -203,6 +227,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiMonthlyBudgetUsd: 300,
     aiModels: 'all',
     aiDefaultModel: 'anthropic/claude-sonnet-4.6',
+    writesEnabled: true,
     sla: '99.9'
   },
   company: {
@@ -217,6 +242,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiMonthlyBudgetUsd: 500,
     aiModels: 'all',
     aiDefaultModel: 'anthropic/claude-sonnet-4.6',
+    writesEnabled: true,
     sla: '99.9'
   },
   enterprise: {
@@ -231,6 +257,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiMonthlyBudgetUsd: 2000,
     aiModels: 'all',
     aiDefaultModel: 'anthropic/claude-opus-4.8',
+    writesEnabled: true,
     sla: 'custom'
   }
 }

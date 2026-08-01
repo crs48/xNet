@@ -86,7 +86,7 @@ claim without a sourced footnote.*
   CRDT as a reference model for xNet authorization.
 - `docs/explorations/0258_..._MULTI_HOME_SYNC.md:272-274` — p2panda/namakemono
   logs + capabilities + group encryption as prior art.
-- `docs/explorations/0171_[x]_COMPARE_PAGE_REDESIGN.md:562` — the explicit
+- `docs/explorations/0171_[x]_COMPARE_PAGE_REDESIGN_AND_LANDSCAPE_REFRESH.md:562` — the explicit
   prior decision to hold p2panda at chip tier.
 - No references anywhere to `aquadoggo` or `bamboo` (the deprecated stack) —
   our mentions are all of the *new* p2panda, which is the right one.

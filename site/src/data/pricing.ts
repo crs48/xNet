@@ -185,6 +185,14 @@ export const FAQS: CloudFaq[] = [
     a: 'Your data identity is a passkey-backed key that lives on your devices, separate from your billing account, and your private keys never reach us. Content at rest is stored as encrypted blobs keyed to you — which is why "delete my data" is irreversible even for us. The exceptions are features you turn on: server-side search and managed AI process your content in readable form to do their job. Our privacy policy is specific about exactly what we can and can\'t see.'
   },
   {
+    q: 'How good are the backups, really?',
+    a: 'Your hub\'s database is replicated continuously to object storage — changes ship within seconds, not on a nightly snapshot. It is asynchronous replication, so a machine that dies abruptly can lose roughly the last second of writes that had not shipped yet; we would rather say that plainly than imply a guarantee we do not have. It matters less than it sounds, because xNet is local-first: the authoritative copy is on your own device and re-syncs on reconnect. We also run an automated nightly drill that restores a real hub from its replica and checks it comes up — because "we replicate" and "we can restore you" are not the same claim.'
+  },
+  {
+    q: 'What happens if a payment fails?',
+    a: 'Nothing sudden, and nothing silent. Your card gets retried for two weeks while your hub keeps working normally. If it still has not gone through, the hub goes read-only — everything stays readable and exportable, it just stops taking new writes — and we email you. Longer still and the hub is paused with your encrypted data kept in cold storage for a month, then a final dated notice before the cloud copy is deleted. Paying at any point in that sequence puts everything back immediately. The copy on your own devices is never touched by any of it.'
+  },
+  {
     q: 'What happens if I cancel?',
     a: 'Your subscription cancels at the end of the period and the hub is suspended, with your encrypted backup retained for a grace window so you can re-subscribe or export. Deleting your data is a separate, explicit, irreversible action.'
   },

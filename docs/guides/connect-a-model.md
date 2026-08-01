@@ -68,7 +68,7 @@ yet, so it's chat/summarize only.
 ## Local bridge (use your Claude Code / Codex subscription)
 
 The daily-driver tier
-([exploration 0391](../explorations/0391_[_]_XNET_AS_THE_DAILY_DRIVER_AI_INTERFACE.md)):
+([exploration 0391](../explorations/0391_[x]_XNET_AS_THE_DAILY_DRIVER_AI_INTERFACE.md)):
 a small local daemon exposes a loopback endpoint to the app and drives the
 official `claude` / `codex` CLI, so requests ride the subscription you already
 pay for. The daemon **spawns the official CLI** (which holds its own auth) — xNet

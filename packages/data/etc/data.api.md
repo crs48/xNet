@@ -6645,8 +6645,6 @@ export interface InferredColumn {
 // @public
 export function inferTypeFromValues(values: unknown[]): ColumnType;
 
-// Warning: (ae-forgotten-export) The symbol "NodeProperties" needs to be exported by the entry point index.d.ts
-//
 // @public
 export function ingestRecord(lens: RecordLens, record: LexiconRecord, priorNode?: NodeProperties): NodeProperties;
 
@@ -7771,6 +7769,9 @@ export interface NodePayload {
     properties: Record<PropertyKey_2, unknown>;
     schemaId?: SchemaIRI;
 }
+
+// @public
+export type NodeProperties = Record<string, unknown>;
 
 // @public (undocumented)
 export type NodeQueryCursor = {
