@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Bundle metadata for the xnet-screencap helper (exploration 0414).
+
+  This exists because macOS 26 (Tahoe) evaluates Screen Recording TCC against
+  the responsible process and stopped listing plain, non-bundled executables in
+  the Screen & System Audio Recording pane. A bare Mach-O in Resources/ can
+  therefore never be granted the permission it needs. Wrapping the helper in a
+  minimal .app gives it the bundle identity TCC will list.
+
+  LSBackgroundOnly keeps it out of the Dock and the app switcher — it has no UI.
+-->
+<plist version="1.0">
+  <dict>
+    <key>CFBundleName</key>
+    <string>xnet-screencap</string>
+    <key>CFBundleDisplayName</key>
+    <string>xNet Screen Capture</string>
+    <key>CFBundleIdentifier</key>
+    <string>fyi.xnet.screencap</string>
+    <key>CFBundleExecutable</key>
+    <string>xnet-screencap</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>12.3</string>
+    <key>LSBackgroundOnly</key>
+    <true/>
+    <key>NSCameraUsageDescription</key>
+    <string>xNet records your camera alongside your screen when you choose to include it in a recording.</string>
+  </dict>
+</plist>

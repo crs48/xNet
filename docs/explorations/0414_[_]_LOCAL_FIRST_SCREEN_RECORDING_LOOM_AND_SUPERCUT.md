@@ -617,16 +617,16 @@ export function proposeSilenceCuts(
 
 ### Phase 2 — Native helper
 
-- [ ] `apps/electron/native/screencap/` Swift package: ScreenCaptureKit screen
+- [x] `apps/electron/native/screencap/` Swift package: ScreenCaptureKit screen
       stream + `AVCaptureDevice` camera, VideoToolbox encode, two
       `AVAssetWriter` outputs
-- [ ] JSON status lines on stderr matching the `audiotee` convention
+- [x] JSON status lines on stderr matching the `audiotee` convention
 - [ ] Package as a bundled `.app` helper; verify TCC listing on macOS 26.x
-- [ ] `extraResources` entry in `electron-builder.json5`
-- [ ] Extend `.github/workflows/native-helpers.yml` with a `build-screencap` job
-- [ ] `recording-capture-ipc.ts` in main, first-party-frame gated like
+- [x] `extraResources` entry in `electron-builder.json5`
+- [x] Extend `.github/workflows/native-helpers.yml` with a `build-screencap` job
+- [x] `recording-capture-ipc.ts` in main, first-party-frame gated like
       `meeting-capture-ipc.ts`
-- [ ] `window.xnetRecordings` preload contract + renderer bridge types
+- [x] `window.xnetRecordings` preload contract + renderer bridge types
 - [ ] Missing-helper fallback to the phase-1 path, logged loudly
 - [ ] Re-run the phase-1 benchmark and record both numbers in this document
 

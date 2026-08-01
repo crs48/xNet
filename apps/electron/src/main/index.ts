@@ -20,6 +20,7 @@ import { titleSuffix } from './dev-scope'
 import { setupIPC, getOrCreateStorage } from './ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { setupMeetingCaptureIPC } from './meeting-capture-ipc'
+import { setupRecordingCaptureIPC, shutdownRecordingCapture } from './recording-capture-ipc'
 import { createMenu } from './menu'
 import { dataPath, profile } from './profile'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
@@ -360,6 +361,9 @@ app.whenReady().then(async () => {
   // Setup meeting capture IPC (system-audio loopback + native STT engines)
   setupMeetingCaptureIPC()
 
+  // Setup recording capture IPC (ScreenCaptureKit helper, exploration 0414)
+  setupRecordingCaptureIPC()
+
   // Setup Cloudflare tunnel IPC handlers
   cleanupTunnelIPC = setupCloudflareTunnelIPC()
 
@@ -410,6 +414,9 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', async () => {
+  // Finalize any in-flight recording so its files are closed, not truncated
+  await shutdownRecordingCapture()
+
   // Stop the agent bridge daemon
   await stopAgentBridge()
 

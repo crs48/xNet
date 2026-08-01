@@ -354,6 +354,27 @@ contextBridge.exposeInMainWorld('xnetAgentBridge', {
   }
 })
 
+// Recording capture bridge (exploration 0414): the ScreenCaptureKit helper's
+// lifecycle. Frames never cross this boundary — the helper writes files and
+// reports paths, so the renderer only ever handles metadata.
+contextBridge.exposeInMainWorld('xnetRecordings', {
+  captureStatus: () => ipcRenderer.invoke('xnet:recordings:capture-status'),
+  permissions: () => ipcRenderer.invoke('xnet:recordings:permissions'),
+  start: (request?: { displayId?: number; camera?: boolean; fps?: number }) =>
+    ipcRenderer.invoke('xnet:recordings:start', request),
+  stop: () => ipcRenderer.invoke('xnet:recordings:stop'),
+  onProgress: (handler: (progress: { durationMs: number; droppedFrames: number }) => void) => {
+    const listener = (_: unknown, progress: Parameters<typeof handler>[0]) => handler(progress)
+    ipcRenderer.on('xnet:recordings:progress', listener)
+    return () => ipcRenderer.removeListener('xnet:recordings:progress', listener)
+  },
+  onError: (handler: (error: { message: string; fatal: boolean }) => void) => {
+    const listener = (_: unknown, error: Parameters<typeof handler>[0]) => handler(error)
+    ipcRenderer.on('xnet:recordings:error', listener)
+    return () => ipcRenderer.removeListener('xnet:recordings:error', listener)
+  }
+})
+
 contextBridge.exposeInMainWorld('xnetLocalAPI', {
   status: () => ipcRenderer.invoke('xnet:localapi:status'),
   start: () => ipcRenderer.invoke('xnet:localapi:start'),
