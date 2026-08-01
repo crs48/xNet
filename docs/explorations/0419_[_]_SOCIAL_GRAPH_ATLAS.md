@@ -413,12 +413,12 @@ collection structure — all local, all owned, all synced.
 
 **WP3 — Transcripts**
 
-- [ ] Add a `TranscriptFetcher` seam + device-local YouTube timedtext
+- [x] Add a `TranscriptFetcher` seam + device-local YouTube timedtext
       implementation with jittered trickle scheduling on the enrichment
       queue.
-- [ ] Store transcripts as `SocialContent` (`contentKind: 'transcript'`)
+- [x] Store transcripts as `SocialContent` (`contentKind: 'transcript'`)
       linked to the video node, deterministic ID, FTS-indexed.
-- [ ] Three distinguishable enrichment states: not-attempted / no-captions /
+- [x] Three distinguishable enrichment states: not-attempted / no-captions /
       fetch-blocked; surface counts in the workspace privacy/status summary.
 - [ ] Per-import-run opt-in toggle in the import wizard.
 

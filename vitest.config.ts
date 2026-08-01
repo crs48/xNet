@@ -145,7 +145,13 @@ export default defineConfig({
             'packages/social/src/feeds/**/*.test.ts',
             // Community hosting primitives are pure and dependency-free
             // (welcome queue — exploration 0359), same reasoning as feeds.
-            'packages/social/src/community/**/*.test.ts'
+            'packages/social/src/community/**/*.test.ts',
+            // Transcript fetching, segmentation and run accounting (0419) —
+            // pure functions over strings plus an injectable fetch seam.
+            'packages/social/src/transcripts/**/*.test.ts',
+            // Agent-facing retrieval scope for social data (0419) — pure
+            // predicates over schema ids and privacy classes.
+            'packages/social/src/retrieval/**/*.test.ts'
           ],
           // data-bridge tests run separately - they have Yjs module import order issues
           // when combined with other tests in the same worker thread
