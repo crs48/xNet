@@ -67,8 +67,11 @@ topic clearly demands otherwise:
 ```markdown
 ---
 title: <Title>
-status: draft # mirrors the [_]/[-]/[x] filename checkbox
+status: draft # draft | withdrawn — see "Deciding, not just building" below
 last_updated: YYYY-MM-DD
+review: YYYY-MM-DD # when to RE-DECIDE this. Default if omitted: created + 90d
+decider: <name> # who closes it. A single name, never a list
+door: two-way # two-way = reversible | one-way = hard to undo
 tags: [<area>, <area>]
 ---
 
@@ -102,6 +105,34 @@ tags: [<area>, <area>]
 
 ## References
 ```
+
+### Deciding, not just building
+
+Set `review`, `decider` and `door` deliberately — they are what stop a
+document becoming a permanent maybe. 53% of explorations have never been
+started, and the backlog grows ~85 a month because nothing ever closes
+one (exploration 0421).
+
+- **`review`** — when to **re-decide**, not when to ship. Deliberately
+  long-horizon research should say so (`review: 2027-06-01`); leave it
+  out only if the 90-day default genuinely fits. State the reason in
+  prose. A date with no rationale is worse than no date.
+- **`decider`** — one name. Kelly Johnson, not a committee.
+- **`door`** — `one-way` means expensive to reverse (wire format, public
+  API, a revenue lane) and earns an ADR in `docs/decisions/`.
+  `two-way` means just do it.
+
+Past its `review` date a doc is listed in `docs/explorations/STALE.md` by
+`pnpm check:exploration-fallow`. Being listed is not a failure; it means
+the claim on future attention has lapsed. Renew it (`review: <later>`) or
+release it (`status: withdrawn`) — both are one-line frontmatter edits.
+
+> [!IMPORTANT]
+> Never signal any of this by renaming the file. Status in the filename
+> is a measured link-rot generator — 31 references had already broken
+> that way. **Nothing is ever moved or deleted**; a withdrawn exploration
+> stays exactly where it is, because the record of what was decided and
+> why is the valuable part. `pnpm check:exploration-links` enforces this.
 
 Requirements:
 

@@ -152,6 +152,27 @@ const CLAIMS: Claim[] = [
     enforcedBy: 'packages/entitlements/src/plans.test.ts'
   },
   {
+    id: 'commons-no-rent-on-introductions',
+    source:
+      'Charter §Commons/No ground rent — "no rent on introductions: the people-matching layer ' +
+      'never sells the introduction — no boost, no paid rank, no pay-to-reveal" (0417)',
+    backing: 'enforced',
+    assert: () => {
+      // The enforcer is the humane-patterns CI gate, not a package test, so the
+      // receipt reads the gate's source and pins the rule plus the meter
+      // identifiers it must keep banning. Renaming or dropping any of them is a
+      // visible, reviewed change here — the meter cannot slip back in quietly.
+      const gate = readFileSync(
+        fileURLToPath(new URL('scripts/check-humane-patterns.mjs', `file://${repoRoot}`)),
+        'utf8'
+      )
+      expect(gate, 'the metered-connection rule must exist').toContain("name: 'metered connection'")
+      for (const token of ['boostPrice', 'paidVisibility', 'featuredProfile', 'payToReveal']) {
+        expect(gate, `metered-connection rule must ban ${token}`).toContain(token)
+      }
+    }
+  },
+  {
     id: 'economics-anchor-tenancy-parity',
     source:
       'Charter §Commons/No ground rent + ECONOMICS.md §5 — "xNet Cloud runs the same hub ' +

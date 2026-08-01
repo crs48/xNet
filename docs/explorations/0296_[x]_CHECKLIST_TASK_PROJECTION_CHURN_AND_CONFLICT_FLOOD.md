@@ -430,7 +430,7 @@ already do: `packages/ui/src/composed/tasks/TaskRow.tsx:147` etc.)
 ## References
 
 - `docs/specs/PAGE_TASK_RECONCILIATION.md` — projection invariants
-- `docs/explorations/0161_[_]_LINEAR_STYLE_TASKS_AS_A_PORTABLE_CROSS_SURFACE_PRIMITIVE.md` — original task-primitive design
+- `docs/explorations/0161_[x]_LINEAR_STYLE_TASKS_AS_A_PORTABLE_CROSS_SURFACE_PRIMITIVE.md` — original task-primitive design
 - `docs/explorations/0200_[_]_PORTABLE_PROTOCOL_SPECIFICATION...` / `packages/core/src/lww.ts` — the ONE LWW ordering (§L1.7)
 - `docs/explorations/0249_[_]_...COLD_OPEN_STALL...` — change-log bloat & hub high-water-mark pathologies
 - `docs/explorations/0263_[_]_WORKER_QUEUE_VS_FIELD...` — Web-Locks single-writer pattern (candidate for C4)

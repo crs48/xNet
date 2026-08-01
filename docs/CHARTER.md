@@ -157,12 +157,25 @@ things you would own anyway. The refused rents, each with its receipt:
   audience you brought. A per‑member meter would charge you for access to a
   relationship we did not build, and would make your own growth the thing you
   pay us for. **Enforced:** the `community` plan is flat‑billed (`seats: 0`,
-  meaning *not seat‑metered*) and `withSeats()` refuses to attach a seat count
+  meaning _not seat‑metered_) and `withSeats()` refuses to attach a seat count
   to it, so the meter cannot return through an override
   ([`packages/entitlements/src/plans.ts`](../packages/entitlements/src/plans.ts));
   the receipt is pinned by `never seat-meters the community plan` in
   [`packages/entitlements/src/plans.test.ts`](../packages/entitlements/src/plans.test.ts)
   (exploration 0359).
+- **No rent on introductions.** The people‑matching layer
+  ([`packages/social/src/connect/`](../packages/social/src/connect/)) never
+  sells the introduction: no boost, no paid rank, no pay‑to‑reveal. An
+  operator paid for access to matches has a standing reason to make matches
+  scarce — scarcity becomes inventory — so the lane is refused outright and
+  connection rides the flat hosting bill like any other workload. **Enforced:**
+  the `metered connection` rule in
+  [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
+  fails CI on meter identifiers (`boostPrice`, `paidVisibility`,
+  `payToReveal`, …); the receipt is pinned by `commons-no-rent-on-introductions`
+  in
+  [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)
+  (exploration 0417).
 - **No behavioural surplus.** Restates §1 as a refused rent. **Enforced:**
   [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
   (`surplus` rules).
@@ -173,7 +186,7 @@ things you would own anyway. The refused rents, each with its receipt:
   ([`packages/hub/src/cli.ts`](../packages/hub/src/cli.ts)).
 - **A FRAND trademark.** The name never fences the code (see
   [`TRADEMARK.md`](../TRADEMARK.md)).
-- **No context capture.** Portability covers the *context*, not just the
+- **No context capture.** Portability covers the _context_, not just the
   bytes: an audience, share grants, and plugin licences travel with the
   export. Data you can move while your standing stays behind is the moat we
   refuse — a repository is portable, a contribution graph is not.
@@ -187,13 +200,27 @@ things you would own anyway. The refused rents, each with its receipt:
   **Architectural:** the sovereign 0% BYO‑billing path and the MIT catalog mean
   a self‑hoster can run their own marketplace
   ([exploration 0196](./explorations/0196_[_]_PAID_PLUGIN_MARKETPLACE_MONETIZATION_AND_LICENSING.md)).
+- **No rent on your published social graph.** When you publish what you saved,
+  the records go into **your own** AT Protocol repo — never ours. xNet runs the
+  *appview* that compares two people's published sets, and bills for that
+  compute as part of hosting, never as its own tier. The comparison shows
+  overlap between two named people and nothing else: no ranking, no global
+  count, no "most‑saved". A public like corpus with a scoreboard is a
+  recommender, and we do not build one.
+  **Architectural:** records are written to the user's PDS by
+  [`packages/social/src/publish/`](../packages/social/src/publish/); the
+  appview is derived‑only and self‑hostable with `xnet hub --role index`
+  ([`packages/hub/src/features/affinity.ts`](../packages/hub/src/features/affinity.ts)).
+  **Enforced:** `no scoreboard` in
+  [`packages/hub/test/affinity.test.ts`](../packages/hub/test/affinity.test.ts)
+  fails the build if a ranking route appears (exploration 0420).
 
 Covenants are tested in down quarters, not up ones — so the test lives here,
 not in anyone's memory. **Every new revenue lane must pass four tests before
 it ships:**
 
 1. **Improvement test** — the margin pays for labour, capital, or operations
-   *we* provide, not for access to something users would own anyway.
+   _we_ provide, not for access to something users would own anyway.
 2. **BATNA test** — after the lane ships, self‑hosting remains a real,
    undegraded alternative.
 3. **Vanish test** — if xNet‑the‑company disappeared tomorrow, what the
@@ -212,6 +239,20 @@ it is durable for us, and it exists because those are not the same question:
 
 A lane that fails any test is redesigned or refused. Exploration documents
 that propose a revenue lane should apply the four tests explicitly.
+
+**Worked example — the affinity appview (exploration 0420).** Improvement:
+✅ the margin pays for crawl, index and compare compute we run; the records
+themselves are the user's and free for anyone to read from their PDS. BATNA:
+✅ the index role is MIT and derived‑only, so self‑hosting is one flag away,
+undegraded. Vanish: ✅ every published edge lives in the user's own repo and
+any appview can rebuild the comparison from the relay — which is exactly why
+xNet operating a PDS for people was **rejected**. Sleep: ⚠️ **weak** — a
+competitor open‑sourcing the appview tomorrow would take this lane to roughly
+zero, because the durable labour is the archive importers and local
+enrichment, not the index. That honest answer is why it is folded into
+hosting and **never priced as its own SKU**: a standalone tier would have
+nothing to defend it but being the incumbent index, which is the global
+chokepoint rent this section already refuses.
 
 ### Who can change this section
 

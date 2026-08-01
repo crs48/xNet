@@ -6,7 +6,7 @@ import Footer from '../components/sections/Footer.astro'
 // NOTE FOR MAINTAINERS: "xNet" below means the xNet project and its maintainers,
 // pending a named legal entity and governing jurisdiction for the paid Cloud
 // service. Fill these in (and have counsel review) before relying on this for
-// paid/B2B use. See docs/explorations/0215_[_]_TERMS_AND_PRIVACY_REFRESH_FOR_CLOUD_AI_AND_MARKETPLACE.md
+// paid/B2B use. See docs/explorations/0215_[x]_TERMS_AND_PRIVACY_REFRESH_FOR_CLOUD_AI_AND_MARKETPLACE.md
 const updated = 'June 24, 2026'
 ---
 
@@ -91,6 +91,7 @@ const updated = 'June 24, 2026'
             <li>You authorize recurring charges for your plan until you cancel. Prices may change with notice; changes apply to the next billing period.</li>
             <li><strong>Usage-based charges:</strong> some features (such as managed AI beyond your included budget) are metered and shown on your dashboard. A hard budget stop helps prevent surprise bills.</li>
             <li><strong>Cancellation:</strong> you can cancel any time. Your subscription ends at the close of the current period and your Hub is suspended, with your encrypted backup retained for a grace window so you can re-subscribe or export. Deleting your data is a separate, explicit, irreversible action.</li>
+            <li><strong>Failed payments:</strong> if we cannot take payment, your Hub keeps running normally for a 14-day grace period while the charge is retried. After that it becomes read-only — all data stays readable and exportable, but new writes are refused. If the subscription is still unpaid, the Hub is paused and your encrypted data is retained in cold storage for 30 days, followed by a final dated notice at least 7 days before the cloud copy is deleted. <strong>We will email you at each of these steps</strong>, and paying at any point restores full service. Data held locally on your own devices is never affected by any of this.</li>
             <li><strong>Refunds:</strong> except where required by law, fees are non-refundable. Annual plans are billed up front.</li>
             <li><strong>Taxes:</strong> prices exclude taxes unless stated; you're responsible for applicable taxes.</li>
           </ul>

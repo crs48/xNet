@@ -1,6 +1,7 @@
+import { createHmac } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { entitlementsFromEnv, signEntitlements, verifyEntitlements } from './entitlements'
-import { resolveEntitlements, withAiBudget, withStorage } from './plans'
+import { PLAN_ORDER, resolveEntitlements, withAiBudget, withStorage } from './plans'
 
 const SECRET = 'test-signing-secret'
 
@@ -63,5 +64,39 @@ describe('entitlementsFromEnv', () => {
   it('throws when HUB_PLAN is set but the secret is missing', () => {
     const env = { HUB_PLAN: signEntitlements(resolveEntitlements('team'), SECRET) }
     expect(() => entitlementsFromEnv(env)).toThrow(/XNET_PLAN_SECRET is missing/)
+  })
+})
+
+describe('writesEnabled (exploration 0418)', () => {
+  const secret = SECRET
+
+  it('round-trips an explicit false — the read-only lever', () => {
+    const token = signEntitlements(
+      { ...resolveEntitlements('personal'), writesEnabled: false },
+      secret
+    )
+    expect(verifyEntitlements(token, secret).writesEnabled).toBe(false)
+  })
+
+  it('defaults to true in the plan catalog for every plan', () => {
+    for (const plan of PLAN_ORDER) {
+      expect(resolveEntitlements(plan).writesEnabled).toBe(true)
+    }
+  })
+
+  it('FAILS OPEN for a token signed before the field existed', () => {
+    // Hand-build a legacy payload: the exact shape a hub in the fleet is running
+    // on right now. Treating the missing field as `false` would brick all of them.
+    const legacy = { ...resolveEntitlements('personal') } as Record<string, unknown>
+    delete legacy.writesEnabled
+    const payload = Buffer.from(JSON.stringify(legacy)).toString('base64url')
+    const sig = createHmac('sha256', secret).update(payload).digest().toString('base64url')
+    expect(verifyEntitlements(`${payload}.${sig}`, secret).writesEnabled).toBe(true)
+  })
+
+  it('a self-hosted hub with no HUB_PLAN always resolves writesEnabled true', () => {
+    // The anti-lock-in invariant (0174): no control plane, no read-only switch.
+    expect(entitlementsFromEnv({}).writesEnabled).toBe(true)
+    expect(entitlementsFromEnv({ XNET_PLAN_SECRET: secret }).writesEnabled).toBe(true)
   })
 })

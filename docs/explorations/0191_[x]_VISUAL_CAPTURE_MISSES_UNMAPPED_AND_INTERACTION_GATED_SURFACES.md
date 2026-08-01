@@ -231,7 +231,7 @@ in Chromatic) and (b) a guard that fails when a new surface is unmapped.
    (correctly — it must never block merges), so a wrong "no changes" verdict
    produces zero signal. Only a human reading the comment would notice. This is
    the same class of issue flagged in
-   [`0189_[_]_PR_VISUAL_SCREENSHOTS_VANISH_ON_MERGE.md`](docs/explorations/0189_%5B_%5D_PR_VISUAL_SCREENSHOTS_VANISH_ON_MERGE.md):
+   [`0189_[x]_PR_VISUAL_SCREENSHOTS_VANISH_ON_MERGE.md`](docs/explorations/0189_%5B_%5D_PR_VISUAL_SCREENSHOTS_VANISH_ON_MERGE.md):
    the visual pipeline fails *quietly*.
 6. **It will recur.** Three surfaces are already unmapped. The next workbench tab
    (`/foo`) will repeat PR #118 verbatim unless drift is guarded.
@@ -484,8 +484,8 @@ test('CRM component change maps to the /crm route, not just home', () => {
 ## References
 
 - PR under study: [crs48/xNet#118 — product catalog + deal line‑item quote builder](https://github.com/crs48/xNet/pull/118)
-- Pipeline design: [`docs/explorations/0185_[_]_CI_VISUAL_UI_CAPTURE_SCREENSHOTS_GIFS_ON_PRS.md`](docs/explorations/0185_%5B_%5D_CI_VISUAL_UI_CAPTURE_SCREENSHOTS_GIFS_ON_PRS.md)
-- Related silent‑failure exploration: [`docs/explorations/0189_[_]_PR_VISUAL_SCREENSHOTS_VANISH_ON_MERGE.md`](docs/explorations/0189_%5B_%5D_PR_VISUAL_SCREENSHOTS_VANISH_ON_MERGE.md)
+- Pipeline design: [`docs/explorations/0185_[x]_CI_VISUAL_UI_CAPTURE_SCREENSHOTS_GIFS_ON_PRS.md`](docs/explorations/0185_%5B_%5D_CI_VISUAL_UI_CAPTURE_SCREENSHOTS_GIFS_ON_PRS.md)
+- Related silent‑failure exploration: [`docs/explorations/0189_[x]_PR_VISUAL_SCREENSHOTS_VANISH_ON_MERGE.md`](docs/explorations/0189_%5B_%5D_PR_VISUAL_SCREENSHOTS_VANISH_ON_MERGE.md)
 - Code: [`scripts/visuals/manifests.json`](scripts/visuals/manifests.json) ·
   [`lib/capture-set.mjs`](scripts/visuals/lib/capture-set.mjs) ·
   [`capture.mjs`](scripts/visuals/capture.mjs) ·

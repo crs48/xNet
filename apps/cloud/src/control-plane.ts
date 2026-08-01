@@ -37,9 +37,47 @@ import {
 } from '@xnetjs/entitlements'
 import { diagnosticsSecretFor } from './diagnostics'
 import { fetchHubHealth } from './hub-status'
-import { applyBillingEvent, type BillingEvent } from './reconcile/billing'
+import { applyBillingEvent, type BillingEvent, type DunningState } from './reconcile/billing'
 import { type TenantRecord, type TenantStore } from './registry'
 import { saga, sagaStep } from './saga'
+
+/**
+ * A dated promise about one tenant's encrypted R2 replica, placed before the
+ * tenant record is deleted (exploration 0418). This is the receipt the
+ * final-notice email quotes — see {@link ControlPlane.stageExportBundle} for
+ * what it deliberately does *not* contain.
+ */
+export interface ExportHold {
+  tenantId: string
+  /** R2 object path the replica is retained at. */
+  snapshotKey: string
+  /** The data DID that can decrypt it — empty when the tenant never bound one. */
+  did: string
+  stagedAtMs: number
+  /** After this, an R2 lifecycle rule on the held prefix may reclaim the object. */
+  heldUntilMs: number
+}
+
+export interface ExportHoldStore {
+  put(hold: ExportHold): Promise<void>
+  get(tenantId: string): Promise<ExportHold | null>
+  list(): Promise<ExportHold[]>
+}
+
+/** In-memory hold store — the dev/test default; production wires a durable one. */
+export class MemoryExportHoldStore implements ExportHoldStore {
+  private readonly holds = new Map<string, ExportHold>()
+  async put(hold: ExportHold): Promise<void> {
+    this.holds.set(hold.tenantId, { ...hold })
+  }
+  async get(tenantId: string): Promise<ExportHold | null> {
+    const h = this.holds.get(tenantId)
+    return h ? { ...h } : null
+  }
+  async list(): Promise<ExportHold[]> {
+    return [...this.holds.values()].map((h) => ({ ...h }))
+  }
+}
 
 export interface ControlPlaneDeps {
   tenants: TenantStore
@@ -74,6 +112,14 @@ export interface ControlPlaneDeps {
    * lets the dashboard read the hub's content-free `/diagnostics/summary`.
    */
   diagnostics?: { cloudUrl: string; masterSecret: string }
+  /**
+   * Records the retention holds `stageExportBundle` places on an R2 replica
+   * before a tenant record is deleted (exploration 0418). Omit and the hold is
+   * computed and returned — so the final-notice email still carries a truthful
+   * date — but not persisted; wire a durable store in production so the window
+   * survives a control-plane restart.
+   */
+  exportHolds?: ExportHoldStore
   /**
    * Reads a tenant hub's current on-disk usage in bytes (fresh, uncached), or
    * `null` when the hub can't be reached (cold/asleep/unreachable). Used by
@@ -465,6 +511,69 @@ export class ControlPlane {
   }
 
   /**
+   * Persist a tenant's dunning state (exploration 0418). The state machine lives
+   * in `reconcile/billing.ts`; this is only the write, so the driver never
+   * open-codes a `tenants.put` and cannot forget a field.
+   */
+  async setBillingState(tenantId: string, billing: DunningState): Promise<TenantRecord | null> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return null
+    const updated: TenantRecord = { ...record, billing }
+    await this.deps.tenants.put(updated)
+    return updated
+  }
+
+  /**
+   * Flip a tenant's hub into (or out of) billing read-only — the `read_only` rung
+   * of the non-payment lifecycle (exploration 0418).
+   *
+   * Re-signs the entitlement with `writesEnabled` and pushes it via `setEnv`, the
+   * same live-flip path `changePlan` uses for a quota change: no data moves, no
+   * machine is recreated, and the hub picks the new token up on its next boot or
+   * env refresh. A cold tenant (no live machine) records the intent on its
+   * entitlements so the value is already correct when `reactivate` provisions it.
+   */
+  async setWritesEnabled(tenantId: string, writesEnabled: boolean): Promise<TenantRecord | null> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return null
+    if (record.entitlements.writesEnabled === writesEnabled) return record
+    const next: PlanEntitlements = { ...record.entitlements, writesEnabled }
+    // No live machine to push env to — persist the intent; `reactivate` reads it.
+    if (!record.substrateRef) {
+      const cold: TenantRecord = { ...record, entitlements: next }
+      await this.deps.tenants.put(cold)
+      return cold
+    }
+    const handle = await this.deps.provisioner.setEnv(
+      record.substrateRef,
+      this.hubEnv(record.tenantId, next)
+    )
+    const updated: TenantRecord = {
+      ...record,
+      entitlements: next,
+      hubUrl: handle.hubUrl,
+      region: handle.region,
+      targetVersion: handle.targetVersion
+    }
+    await this.deps.tenants.put(updated)
+    return updated
+  }
+
+  /**
+   * Return a tenant to full service after payment recovers (exploration 0418):
+   * restore writes, and bring a cold hub back from its R2 replica. Ordered so a
+   * cold tenant is reactivated with `writesEnabled: true` already stamped on its
+   * entitlements — otherwise the fresh hub would boot read-only and need a second
+   * env push to become usable.
+   */
+  async reactivateTenant(tenantId: string): Promise<TenantRecord | null> {
+    const enabled = await this.setWritesEnabled(tenantId, true)
+    if (!enabled) return null
+    if (enabled.dataTier === 'cold') return this.reactivate(tenantId)
+    return enabled
+  }
+
+  /**
    * Suspend a tenant on subscription cancellation: tear down the live machine but
    * keep the record and the R2 replica so a re-subscribe can reactivate it. The
    * encrypted data is retained until the user explicitly deletes it.
@@ -482,6 +591,44 @@ export class ControlPlane {
     }
     await this.deps.tenants.put(updated)
     return updated
+  }
+
+  /**
+   * Put a retention hold on a tenant's R2 replica before its record is deleted —
+   * the Charter §6 vanish test (exploration 0418): a customer must be able to
+   * leave with their data, including when they left by not paying.
+   *
+   * **What this is not.** The control plane cannot build a decrypted `.xnetpack`
+   * for the customer: the hub's `/export/changes` requires a UCAN signed by their
+   * data DID, and we hold no such key — by design. Anything that *could* produce
+   * a readable bundle here would mean we could read their data, which is the
+   * property the whole system exists to avoid.
+   *
+   * **What it is.** A dated, recorded promise about the encrypted replica: the
+   * object stays at {@link snapshotKeyFor} until `heldUntilMs`, and the receipt is
+   * what the final-notice email points the customer at. Deleting a tenant already
+   * leaves R2 untouched — this makes that deliberate and legible instead of
+   * incidental, so the retention window is a fact somebody can check rather than
+   * an accident of how `deleteTenant` happens to be written.
+   *
+   * The bucket-side expiry (an R2 lifecycle rule on the held prefix) is an
+   * operator task; this records the intent the rule must honor.
+   */
+  async stageExportBundle(
+    tenantId: string,
+    holdMs = 30 * 24 * 60 * 60 * 1000
+  ): Promise<ExportHold | null> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return null
+    const hold: ExportHold = {
+      tenantId,
+      snapshotKey: this.snapshotKey(tenantId),
+      did: record.did,
+      heldUntilMs: this.now() + holdMs,
+      stagedAtMs: this.now()
+    }
+    await this.deps.exportHolds?.put(hold)
+    return hold
   }
 
   /**

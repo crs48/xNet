@@ -70,7 +70,7 @@ Every denied check returns structured reason codes:
 
 ## Deliverables
 
-- ADR documents merged and linked from `docs/explorations/0085_[_]_UNIFIED_AUTHORIZATION_API_V3.md`.
+- ADR documents merged and linked from `docs/explorations/0085_[x]_UNIFIED_AUTHORIZATION_API_V3.md`.
 - Shared action constants and types scaffolded.
 - Draft `AuthDecision` and `AuthDecisionReason` types in `packages/core` or `packages/data` contract module.
 
