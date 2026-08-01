@@ -8745,6 +8745,14 @@ export type PortableChangeRecord = {
 };
 
 // @public
+export type PortableHubAddress = {
+    name: string;
+    url: string;
+    resolverUrl?: string;
+    observedAt: number;
+};
+
+// @public
 export type PortableYjsDocRecord = {
     nodeId: string;
     updateB64: string;
@@ -11419,6 +11427,7 @@ export type WriteBundleOptions = {
     ownerDid: string;
     manifestSigner?: (bytes: Uint8Array) => Promise<Uint8Array> | Uint8Array;
     commitSigner?: (bytes: Uint8Array) => Promise<Uint8Array> | Uint8Array;
+    hubAddress?: PortableHubAddress;
     since?: BundleFrontier;
     blobPort?: BundleBlobPort;
     yjsPort?: BundleYjsPort;
@@ -11456,6 +11465,7 @@ export type XnetpackManifest = {
         commits?: number;
     };
     contentDigest: string;
+    hubAddress?: PortableHubAddress;
     signatureB64?: string;
 };
 

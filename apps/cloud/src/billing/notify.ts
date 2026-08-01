@@ -21,7 +21,7 @@
  *    `scripts/check-humane-patterns.mjs` fails the build on scarcity and
  *    act-now identifiers, and the `calm-no-manufactured-urgency` claim in
  *    `packages/telemetry/test/charter-claims-ledger.test.ts` pins the rule so it
- *    cannot be quietly narrowed (exploration 0424). Dunning is where urgency
+ *    cannot be quietly narrowed (exploration 0429). Dunning is where urgency
  *    converts best, which is exactly why the gate has to reach this file.
  */
 

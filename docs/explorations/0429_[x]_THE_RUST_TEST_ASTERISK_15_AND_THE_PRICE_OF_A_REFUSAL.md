@@ -396,7 +396,7 @@ refusal has no mapped lane and no `pending` marker.
   name: 'manufactured urgency',
   group: 'dark-pattern',
   re: /\b(spotsLeft|seatsRemaining|offerEndsAt|limitedTimeOffer|countdownUrgency|urgencyBanner|viewersNow|actNow|hurryUp)\b/,
-  fix: 'urgency is not a feature — a last-bus prompt converts dread into a click (Charter §Calm; the copy rule already stated in apps/cloud/src/billing/notify.ts, exploration 0424)'
+  fix: 'urgency is not a feature — a last-bus prompt converts dread into a click (Charter §Calm; the copy rule already stated in apps/cloud/src/billing/notify.ts, exploration 0429)'
 }
 ```
 

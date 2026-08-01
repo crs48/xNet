@@ -177,7 +177,7 @@ the other way, refusal-first: _which lane pays for this one?_ Both directions
 are needed, because the failure the Rust test guards against is not any single
 lane dying — it is the refusal set as a whole becoming unaffordable, which is
 how the Rust brothers' governance innovations reached nobody
-([exploration 0424](./explorations/0424_[x]_THE_RUST_TEST_ASTERISK_15_AND_THE_PRICE_OF_A_REFUSAL.md)).
+([exploration 0429](./explorations/0429_[x]_THE_RUST_TEST_ASTERISK_15_AND_THE_PRICE_OF_A_REFUSAL.md)).
 
 **Pass condition:** every refusal in `CHARTER.md` §6 names ≥1 shipped or
 building lane that survives it. All thirteen appear below; none is omitted.
@@ -296,7 +296,7 @@ exit.**
 | [0349](./explorations/0349_[_]_FIRST_CLASS_PAYMENTS_CREATOR_COMMERCE_AND_ECONOMIC_EXCHANGE.md) | 0% on direct creator sales; payment-mints-capability; receipts-as-nodes |
 | [0196](./explorations/0196_[_]_PAID_PLUGIN_MARKETPLACE_MONETIZATION_AND_LICENSING.md) | The 10% managed lane vs the 0% sovereign lane |
 | [0358](./explorations/0358_[x]_VALUE_CAPTURE_WITHOUT_ENCLOSURE_MOATS_SUBSTRATES_AND_THE_SLEEP_TEST.md) | The rent/improvement frame, the Sleep test, this register |
-| [0424](./explorations/0424_[x]_THE_RUST_TEST_ASTERISK_15_AND_THE_PRICE_OF_A_REFUSAL.md) | The Rust test and §4a; refusals must be affordable, not just kept |
+| [0429](./explorations/0429_[x]_THE_RUST_TEST_ASTERISK_15_AND_THE_PRICE_OF_A_REFUSAL.md) | The Rust test and §4a; refusals must be affordable, not just kept |
 
 The plan ladder itself is machine-readable in
 [`packages/entitlements/src/plans.ts`](../packages/entitlements/src/plans.ts);

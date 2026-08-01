@@ -177,7 +177,7 @@ const CLAIMS: Claim[] = [
     source:
       'Charter §Calm — "we do not manufacture urgency": no scarcity counters, countdown ' +
       'pressure or act-now prompts. The copy rule was already written in ' +
-      'apps/cloud/src/billing/notify.ts and enforced by nothing (0424)',
+      'apps/cloud/src/billing/notify.ts and enforced by nothing (0429)',
     backing: 'enforced',
     assert: () => {
       // Same shape as the metered-connection receipt above: the enforcer is the
@@ -261,7 +261,7 @@ const CLAIMS: Claim[] = [
     id: 'economics-refusals-are-affordable',
     source:
       'Charter §Commons/No ground rent test 5 (the Rust test) + ECONOMICS.md §4a — "every ' +
-      'refusal must name at least one shipped or building lane that survives it" (0424)',
+      'refusal must name at least one shipped or building lane that survives it" (0429)',
     backing: 'building',
     pending:
       'Twelve of the thirteen §6 refusals map to a lane that pays for them (hosting carries 8, ' +

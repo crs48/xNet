@@ -248,7 +248,7 @@ it ships:**
    do we still reach the people we are refusing on behalf of? **Every refusal
    must name at least one shipped or building lane that survives it.** A
    refusal with no surviving lane is not forbidden — it is on borrowed time,
-   and must be labelled so (exploration 0424).
+   and must be labelled so (exploration 0429).
 
 The first three ask whether a lane is fair to the user. The fourth asks whether
 it is durable for us, and it exists because those are not the same question:

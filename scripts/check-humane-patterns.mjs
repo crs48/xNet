@@ -16,7 +16,7 @@
  *                              stewardship, not standing (exploration 0352)
  *     ✗ metered connection   → introductions are never sold (exploration 0417)
  *     ✗ manufactured urgency → scarcity and countdown prompts sell dread as a
- *                              feature; "every bus is the last bus" (0424)
+ *                              feature; "every bus is the last bus" (0429)
  *
  *   surplus       (scoped to all of packages/ + apps/)
  *     ✗ third-party ad/analytics SDKs (gtag, fbq, Segment, Mixpanel,
@@ -99,7 +99,7 @@ const RULES = [
     fix: 'introductions are never sold — selling rank or reveal turns the matchmaker into a meter (Charter §6 "no rent on introductions", exploration 0417)'
   },
   {
-    // The last-bus lesson (exploration 0424): after the 1990s xiagang layoffs,
+    // The last-bus lesson (exploration 0429): after the 1990s xiagang layoffs,
     // Chinese adoption of each new wave ran on dread rather than appetite —
     // Xiang Biao's "every bus is the last bus". Measured from outside, that is
     // indistinguishable from enthusiasm, which is exactly what makes it usable
@@ -113,7 +113,7 @@ const RULES = [
     name: 'manufactured urgency',
     group: 'dark-pattern',
     re: /\b(spotsLeft|seatsRemaining|offerEndsAt|limitedTimeOffer|countdownUrgency|urgencyBanner|viewersNow|actNow|hurryUp)\b/,
-    fix: 'urgency is not a feature — a last-bus prompt converts dread into a click; state the facts and let the user choose (Charter §Calm, exploration 0424)'
+    fix: 'urgency is not a feature — a last-bus prompt converts dread into a click; state the facts and let the user choose (Charter §Calm, exploration 0429)'
   },
   {
     // The primitives lesson (exploration 0422): making relationships legible
