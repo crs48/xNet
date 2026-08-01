@@ -102,6 +102,12 @@ cites, you write and own — rather than silently doing your thinking for you (a
 direct answer to the MIT "cognitive debt" finding on LLM deskilling). Anything the
 model authored is marked as `ai-generated` provenance.
 
+**`draft` mode is yours to choose, in Settings › AI.** The default is
+`scaffold`, and the choice states its own cost rather than selling the faster
+option. Saying "opt‑in only" while providing no way to opt in would describe an
+internal default and call it a freedom — which is the failure §Agency's second
+half exists to catch (exploration 0422).
+
 - **Architectural / tested:** governed GraphRAG retrieval
   ([`packages/brain/src/retrieve.ts`](../packages/brain/src/retrieve.ts)),
   provenance tiers ([`packages/trust/src/index.ts`](../packages/trust/src/index.ts)),

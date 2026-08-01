@@ -15,7 +15,7 @@ tags: [charter, product, ux, onboarding, agency, ci]
 > capabilities that exist in code and are invisible or unreachable from the UI.
 > Recommendation: promote the existing `LABS_FLAGS` registry into a
 > **Capability Register**, back it with a `check-capability-surface.mjs` CI
-> gate, add the *seeing* half to Charter §5, and pin it with an
+> gate, add the _seeing_ half to Charter §5, and pin it with an
 > `agency-capabilities-are-visible` claim. A capability with no surface is not
 > a feature — it is a rumour.
 
@@ -57,8 +57,8 @@ commitment xNet has already made in writing. [Charter §5](../CHARTER.md) is
 literally titled **"Agency — AI makes you more capable, not less."** Read it
 again, though, and it is entirely a **non-subtraction** claim: the assistant
 scaffolds rather than substitutes, the model cites its sources, AI-authored
-content is marked. Every receipt under it answers *"we did not take capability
-away from you."* None answers *"you can see what you are able to do."*
+content is marked. Every receipt under it answers _"we did not take capability
+away from you."_ None answers _"you can see what you are able to do."_
 
 So the problem this exploration takes on:
 
@@ -72,14 +72,14 @@ The audit answer is no, and it is not close.
 
 ## Executive Summary
 
-| Claim                                                                             | Verdict                                                                       |
-| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| xNet builds real degrees of freedom                                               | ✅ True — layout tree, labs, plugins, export, BYO hub, forkable workspaces      |
-| xNet makes those degrees of freedom visible                                       | ❌ Largely false — measured below, the gap is systematic, not incidental        |
-| The repo already knows this about itself                                          | ✅ Yes — `backing: 'building'` + `pending:` in the claims ledger is exactly it  |
-| A "see it" surface already exists to build on                                     | ✅ Two: `LABS_FLAGS` (0282) and the coachmark registry (0206)                   |
-| Charter §5 covers the *seeing* half                                               | ❌ No — it is entirely an anti-deskilling claim                                 |
-| The fix needs new architecture                                                    | ❌ No — a registry, a CI gate, and a charter paragraph                          |
+| Claim                                         | Verdict                                                                        |
+| --------------------------------------------- | ------------------------------------------------------------------------------ |
+| xNet builds real degrees of freedom           | ✅ True — layout tree, labs, plugins, export, BYO hub, forkable workspaces     |
+| xNet makes those degrees of freedom visible   | ❌ Largely false — measured below, the gap is systematic, not incidental       |
+| The repo already knows this about itself      | ✅ Yes — `backing: 'building'` + `pending:` in the claims ledger is exactly it |
+| A "see it" surface already exists to build on | ✅ Two: `LABS_FLAGS` (0282) and the coachmark registry (0206)                  |
+| Charter §5 covers the _seeing_ half           | ❌ No — it is entirely an anti-deskilling claim                                |
+| The fix needs new architecture                | ❌ No — a registry, a CI gate, and a charter paragraph                         |
 
 The headline measurements, as corrected during implementation:
 
@@ -94,9 +94,9 @@ The headline measurements, as corrected during implementation:
 ```
 
 Two of the three lines are zero. The assist-mode row is the one that should
-sting hardest: Charter §5 says `draft` mode is "opt-in only," and there was
-nowhere in either app to opt in — the promise described a control that existed
-only in the type system.
+sting hardest: `runtime.ts` calls `draft` "opt-in only" and Charter §5 promises
+the assistant scaffolds by default — and there was nowhere in either app to opt
+in. The promise described a control that existed only in the type system.
 
 The flag row is the good news, and it is worth saying plainly: the Labs
 registry works. Every flag a user can flip was already declared and surfaced.
@@ -133,7 +133,7 @@ flowchart LR
 
 Most of xNet's shipping history moves things from `A` to `B` and stops. The
 `Y` bucket — real, reachable, and undiscoverable — is the one nobody tracks,
-because every existing gate is a *correctness* gate.
+because every existing gate is a _correctness_ gate.
 
 ### 1. Labs — the right pattern, under-populated
 
@@ -158,8 +158,8 @@ xnet:experiment:quiet-default   ← registered in LABS_FLAGS
 > behind exploration 0280's layout tree — was the largest unregistered degree
 > of freedom in the shell.
 >
-> It is not a flag. `git log -S` finds `59973833c`, *"remove the layout-tree
-> Labs flag entirely"*, July 2026: **"The single shell always renders the tree,
+> It is not a flag. `git log -S` finds `59973833c`, _"remove the layout-tree
+> Labs flag entirely"_, July 2026: **"The single shell always renders the tree,
 > so the `xnet:experiment:layout-tree` flag has no meaning."** It deleted the
 > Labs entry and ungated panel drag. `ShellFrame` reads `state.tree`
 > unconditionally. The malleable workbench did not ship hidden — it shipped to
@@ -203,7 +203,7 @@ person, tag, saved views, lab — every one of them silent on first open.
 >
 > This is the single best example in the repo of the thing this document is
 > about, and it is worse than the class it belongs to: not a capability you
-> cannot find, but a *signifier* that renders nothing while every green check
+> cannot find, but a _signifier_ that renders nothing while every green check
 > reports it working. Coverage counted the tips; nothing counted the anchors.
 
 The extensibility story exists precisely so this would not happen, and it
@@ -229,7 +229,8 @@ packages/plugins/src/__tests__/ai-scaffold-mode.test.ts:107 …
 
 > [!IMPORTANT]
 > Five hits, all in one test file. **Zero application code sets, reads, or
-> renders the assist mode.** Charter §5 describes `draft` as opt-in; there is
+> renders the assist mode.** `runtime.ts` describes `draft` as "opt-in only"
+> and Charter §5 promises scaffolding by default; there is
 > no opt-in. The user cannot see which mode is running, cannot change it, and
 > the sentence in the charter is — narrowly and technically — describing an
 > internal default rather than a user choice.
@@ -248,25 +249,25 @@ every column but one in
 The desktop shell is actively banned from importing it.
 [`apps/electron/src/renderer/shell/workspace-parity.test.ts`](../../apps/electron/src/renderer/shell/workspace-parity.test.ts)
 lists it under "no desktop source resurrects a bespoke shell component,"
-annotated *second palette beside GlobalSearch*.
+annotated _second palette beside GlobalSearch_.
 
 That ban is **correct** — one palette, not two, is the 0406 unified-shell
 decision, and a second command surface would be worse for agency, not better.
 It is listed here because it changes what the fix is: the palette is not a
 missing surface to add, it is a component whose role `GlobalSearch` now holds.
-The question the register has to answer is "does this capability have *a*
-surface?" — never "does it have *this* surface?"
+The question the register has to answer is "does this capability have _a_
+surface?" — never "does it have _this_ surface?"
 
 ### 5. The claims ledger already is a register of unseeable freedoms
 
 [`packages/telemetry/test/charter-claims-ledger.test.ts`](../../packages/telemetry/test/charter-claims-ledger.test.ts)
 holds 17 claims across three backings:
 
-| Backing          | Count | Meaning                                             |
-| ---------------- | ----- | --------------------------------------------------- |
-| `enforced`       | 8     | A CI gate or test fails the build on regression      |
-| `architectural`  | 5     | A property of how the code is built                  |
-| `building`       | 4     | Built, honestly declared incomplete, with a `pending:` note |
+| Backing         | Count | Meaning                                                     |
+| --------------- | ----- | ----------------------------------------------------------- |
+| `enforced`      | 8     | A CI gate or test fails the build on regression             |
+| `architectural` | 5     | A property of how the code is built                         |
+| `building`      | 4     | Built, honestly declared incomplete, with a `pending:` note |
 
 The four `building` entries are the pattern, stated by the repo about itself:
 
@@ -282,11 +283,11 @@ The four `building` entries are the pattern, stated by the repo about itself:
 > [!NOTE]
 > "Detectable, not instantiable" is a better phrase for this failure mode than
 > anything in the Asterisk interview. The repo has the vocabulary. What it
-> lacks is a gate that notices when a *new* capability lands in that state.
+> lacks is a gate that notices when a _new_ capability lands in that state.
 
 ### What is genuinely good here
 
-This is not a document about a project that does not care. The *acting* half is
+This is not a document about a project that does not care. The _acting_ half is
 strong and mostly enforced: portable `did:key` identity, free verified export,
 `.xnetpack` round-trip, BYO hub, MIT wire format, plugin sandbox, the labs
 staging vocabulary, `humane-ok` requiring a written reason. The four "no ground
@@ -308,7 +309,7 @@ carries three ideas that survive translation to software:
 1. **Both terms or neither.** Seeing without acting is frustration; acting
    without seeing is following someone else's script.
 2. **The LARP failure.** Hall's critique of copying a founder playbook is,
-   in product terms, shipping the *shape* of agency without its substance — a
+   in product terms, shipping the _shape_ of agency without its substance — a
    "Customize" panel that reorders three panels, a plugin API nobody can reach,
    a fork button that hands you a maintenance liability.
 3. **The Bay Area paradox.** The highest-agency environment produces
@@ -319,7 +320,7 @@ carries three ideas that survive translation to software:
 
 Two more from the interview are worth naming even though this document does not
 build on them: Hall's warning that the highest-agency people often score badly
-on the dark triad, and her appeal to *grace* — that change sometimes arrives
+on the dark triad, and her appeal to _grace_ — that change sometimes arrives
 unbidden, which sits awkwardly beside a book arguing agency is cultivable.
 Both have analogues below under Risks.
 
@@ -331,21 +332,21 @@ replacement source of meaning. Whatever one thinks of that as a claim about
 people, it is straightforwardly true as a claim about **product strategy**: if
 model capability is a commodity every competitor rents from the same handful of
 providers, the differentiator is what the surrounding software lets a person
-*see and choose*. That is not a soft observation for xNet — it is the same
+_see and choose_. That is not a soft observation for xNet — it is the same
 conclusion exploration 0416 reached from the other direction when it ruled that
 xNet is not a harness, because the harness layer commoditised.
 
 ### Malleable software (Ink & Switch, 2025)
 
 Litt, Horowitz, van Hardenberg and Matthews,
-[*Malleable software: restoring user agency in a world of locked-down apps*](https://www.inkandswitch.com/essay/malleable-software/).
+[_Malleable software: restoring user agency in a world of locked-down apps_](https://www.inkandswitch.com/essay/malleable-software/).
 The thesis: tools users reshape with minimal friction, where modification is
 routine rather than exceptional and adaptation happens at the point of use.
 Exploration 0280 already builds on this essay and cites it by name.
 
 The essay's most useful contribution here is its scepticism about AI coding as
-a sufficient answer. Generating code on demand raises the ceiling on *acting*;
-it does nothing for *seeing*, and can make it worse — a system where anything
+a sufficient answer. Generating code on demand raises the ceiling on _acting_;
+it does nothing for _seeing_, and can make it worse — a system where anything
 is possible and nothing is signposted is less legible than one with twelve
 visible buttons.
 
@@ -362,7 +363,7 @@ psychology side. xNet ships affordances and under-ships signifiers.
 Ryan and Deci's autonomy / competence / relatedness triad is the standard
 research backing for why this matters beyond aesthetics. The relevant nuance:
 autonomy is not maximised by maximising options — it is supported by
-*meaningful* choices that the person can perceive and evaluate. Progressive
+_meaningful_ choices that the person can perceive and evaluate. Progressive
 disclosure is the usual prescription, and coachmarks are already xNet's
 implementation of it. The engine is right; it is starved.
 
@@ -378,7 +379,7 @@ nothing to people whose are not.
 > That critique applies directly to us. "You can just do things" is a fine
 > motto for someone who reads TypeScript. Told to a person who cannot find the
 > layout-tree toggle, it is not encouragement — it is the software equivalent
-> of *have you tried being wealthy*. **The burden of seeing belongs to the
+> of _have you tried being wealthy_. **The burden of seeing belongs to the
 > tool, not the user.** Any implementation that answers this exploration by
 > writing better docs has failed it.
 
@@ -396,10 +397,11 @@ nothing to people whose are not.
    calls opt-in. The failure is not sloppiness inside a population — it is
    populations with no mechanism at all.
 
-3. **There is a live charter inaccuracy.** Charter §5 says `draft` is opt-in.
-   There is no opt-in path. This must be fixed in the charter's wording or in
+3. **There is a live inaccuracy across the charter and the code.** The runtime
+   doc comment calls `draft` "opt-in only" and Charter §5 promises a scaffold
+   default; neither had an opt-in path. This must be fixed in the wording or in
    the app — the ledger's own standard is that a claim with no receipt is
-   marketing.
+   marketing. **Fixed in the app** (see the Recommendation's step 1).
 
 4. **The repo already has the vocabulary and both surfaces.** `LABS_FLAGS` has
    `stage` and `appliesOn`; the claims ledger has `backing` and `pending`;
@@ -431,17 +433,17 @@ nothing to people whose are not.
 
 ## Options And Tradeoffs
 
-| Option                              | Effort | Catches future regressions | Charter-backed | Verdict        |
-| ----------------------------------- | ------ | -------------------------- | -------------- | -------------- |
-| **A.** Prose only — amend §5, no gate | XS     | ❌ No                       | Partial        | 🚫 Insufficient |
-| **B.** Capability Register + CI gate | S–M    | ✅ Yes                      | ✅ Yes          | ✅ **Recommended** |
-| **C.** Guided product tour           | M      | ❌ No                       | ❌ Violates §3  | 🛑 Rejected     |
-| **D.** Agent-as-narrator            | M–L    | ⚠️ Partial                  | ⚠️ Risky        | 🔶 Later, additive |
+| Option                                | Effort | Catches future regressions | Charter-backed | Verdict            |
+| ------------------------------------- | ------ | -------------------------- | -------------- | ------------------ |
+| **A.** Prose only — amend §5, no gate | XS     | ❌ No                      | Partial        | 🚫 Insufficient    |
+| **B.** Capability Register + CI gate  | S–M    | ✅ Yes                     | ✅ Yes         | ✅ **Recommended** |
+| **C.** Guided product tour            | M      | ❌ No                      | ❌ Violates §3 | 🛑 Rejected        |
+| **D.** Agent-as-narrator              | M–L    | ⚠️ Partial                 | ⚠️ Risky       | 🔶 Later, additive |
 
 <details>
 <summary><b>A. Amend the charter, add no machinery</b></summary>
 
-Add the *seeing* half to §5, note the assist-mode gap, move on.
+Add the _seeing_ half to §5, note the assist-mode gap, move on.
 
 Cheap and honest, and it is the piece every other option depends on. On its own
 it fails for the reason finding 5 gives: coachmarks already document the
@@ -459,7 +461,7 @@ disqualifies this as a complete answer.
 A first-run walkthrough enumerating what the workspace can do.
 
 Rejected on charter grounds, and the repo already made this call:
-`docs/ONBOARDING.md` states outright that coachmarks are *not* a product tour,
+`docs/ONBOARDING.md` states outright that coachmarks are _not_ a product tour,
 and Charter §3 (Calm) refuses the machinery of compulsion. A modal tour is a
 compulsion primitive wearing an educational hat — it interrupts, it gates, and
 it teaches the user that the app will tell them what to do next, which is a
@@ -479,7 +481,7 @@ Genuinely attractive, and it composes with B rather than competing (the same
 register is the index). Two reasons it is not the primary answer:
 
 1. **It is the LARP shape.** Asking a chat box to enumerate your freedoms is
-   agency-*shaped*. If the only route to a capability is knowing to ask, the
+   agency-_shaped_. If the only route to a capability is knowing to ask, the
    burden of seeing has moved back onto the user, and specifically onto users
    fluent enough to know what to ask for — which is exactly the critique of
    the slogan.
@@ -530,7 +532,7 @@ flowchart TD
 ```
 
 The crucial design decision is the **waiver**, modelled on `humane-ok` and on
-the ledger's `pending:` field: an entry may declare `surface: null` *if* it
+the ledger's `pending:` field: an entry may declare `surface: null` _if_ it
 carries a written `hidden:` reason. Deliberately internal flags stay cheap;
 the reason is required, so the exception is a visible design decision rather
 than a silent omission. This is the pattern the repo already trusts twice.
@@ -570,11 +572,11 @@ because it is the obvious monetisation of everything above — gating
 customisation, layouts, or labs behind a "Pro" plan. Against
 [Charter §6](../CHARTER.md)'s four tests:
 
-| Test            | Result | Reasoning                                                                                                                       |
-| --------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| **Improvement** | ❌ Fail | The margin would be access to the shape of your own workspace — a thing you already own. Textbook ground rent.                    |
-| **BATNA**       | ❌ Fail | Self-hosting would give you the MIT code with the layouts locked. Degrading the alternative *is* the mechanism, which is the tell. |
-| **Vanish**      | ⚠️ Weak | Layouts persist in the local store, but a paywalled editor means the ability to *change* them dies with the vendor.               |
+| Test            | Result  | Reasoning                                                                                                                          |
+| --------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Improvement** | ❌ Fail | The margin would be access to the shape of your own workspace — a thing you already own. Textbook ground rent.                     |
+| **BATNA**       | ❌ Fail | Self-hosting would give you the MIT code with the layouts locked. Degrading the alternative _is_ the mechanism, which is the tell. |
+| **Vanish**      | ⚠️ Weak | Layouts persist in the local store, but a paywalled editor means the ability to _change_ them dies with the vendor.                |
 | **Sleep**       | ❌ Fail | A competitor shipping free customisation ends the lane immediately — a cliff, not a moat.                                          |
 
 Four failures. **Refused.** Charging for AI inference, hosting, or support is
@@ -595,7 +597,7 @@ shippable and independently valuable.
    charter says something untrue — the register's authority comes from the
    charter being accurate.
 2. **Amend Charter §5** to carry both terms, naming Hall's definition and its
-   source, with the *seeing* half marked **Aspirational** until step 4 lands.
+   source, with the _seeing_ half marked **Aspirational** until step 4 lands.
 3. **Build the register** by widening `LABS_FLAGS` into `CAPABILITIES` — same
    file, same shape, plus `surface` and an optional `hidden:` reason. Register
    `layout-tree` in the same change, which is the single highest-value line of
@@ -759,7 +761,7 @@ What we can do is make sure that when it arrives, the switch is visible. That
 is the ceiling on what this exploration claims, and it should not be oversold.
 
 **The monoculture question stays open.** Nothing here measures whether anyone
-*exercises* a surfaced freedom. Charter §4 rules out reaching for telemetry to
+_exercises_ a surfaced freedom. Charter §4 rules out reaching for telemetry to
 find out, which is correct and also leaves us with dogfooding as the only
 instrument. Open question: is "did any xNet developer's own workspace diverge
 from the seeded default this quarter?" a question worth asking out loud in the
@@ -817,11 +819,11 @@ seeing half grows past a paragraph.
 
 **Step 2 — charter**
 
-- [x] Amend [`docs/CHARTER.md`](../CHARTER.md) §5 with the *seeing* half, citing
+- [x] Amend [`docs/CHARTER.md`](../CHARTER.md) §5 with the _seeing_ half, citing
       Hall's two-term definition and linking the Asterisk interview.
 - [x] Mark the seeing half's backing honestly. The gate landed in the same
       change, so the commitment is **Enforced**; what stays **Aspirational** is
-      the *population* — commands, shortcuts and plugin capabilities are out of
+      the _population_ — commands, shortcuts and plugin capabilities are out of
       scope until the flag population has held green.
 
 **Step 3 — register**
@@ -861,7 +863,7 @@ seeing half grows past a paragraph.
 - [x] The gate's **comment-stripped** scan returns exactly the ids in
       `CAPABILITIES` — no orphans in either direction
       (`node scripts/check-capability-surface.mjs --strict`). A raw
-      `grep -rhoE "xnet:experiment:…"` is deliberately *not* the check: it
+      `grep -rhoE "xnet:experiment:…"` is deliberately _not_ the check: it
       still matches the historical note in `packages/workbench/src/state.ts`,
       and treating that as a capability is the phantom correction 1 is about.
 - [x] Deleting a `surface` entry locally makes
@@ -876,14 +878,17 @@ seeing half grows past a paragraph.
       separate, older surface with six sections and neither Labs nor AI, so
       there is nothing there to reach. That gap is real and out of scope here;
       the register covers `apps/web`, which is where both surfaces live.
-- [ ] `pnpm --filter @xnetjs/telemetry test` passes with the new claim, and the
-      claim fails if the gate file is deleted.
+- [x] `pnpm exec vitest run --project unit packages/telemetry/test/charter-claims-ledger.test.ts`
+      passes with the new claim, **and the claim fails if the gate file is
+      deleted** — a receipt that survives losing its enforcer is not a receipt.
+      (Not `pnpm --filter @xnetjs/telemetry test`: vitest resolves the root
+      config, so the filtered form runs every project and finds no files.)
 - [ ] `pnpm typecheck && pnpm lint && pnpm test` clean; `pnpm build` clean
       (the wider CI set per `xnet-prepush-verification-set`).
 - [x] Settings › Labs still renders correctly with the widened type, and
       `apps/web/src/lib/labs.test.ts` passes unmodified — proof the register
       grew the shape rather than replacing it.
-- [ ] Charter §5 reads accurately about assist mode: whatever step 1 chose, the
+- [x] Charter §5 reads accurately about assist mode: whatever step 1 chose, the
       charter and the app now agree.
 
 ---
@@ -894,11 +899,11 @@ Recorded rather than edited away, on the same principle as
 [`docs/decisions/rule-changes.md`](../decisions/rule-changes.md) keeping the
 declined proposals: a record of only the findings that held up is marketing.
 
-| # | Draft claim | What verification found | Effect on the argument |
-| - | ----------- | ----------------------- | ---------------------- |
-| 1 | `xnet:experiment:layout-tree` is an unregistered, invisible flag | The flag was **deleted** in `59973833c` (July 2026); only a stale doc comment remained | ❌ Finding withdrawn. It became the design rationale for stripping comments before scanning, and for checking the register in both directions. |
-| 2 | 4 of ~22 views have a first-run tip | All four tips anchor on `data-coach` selectors present in **no** component; `CoachmarkLayer` returns `null` and renders nothing | ⬆️ Finding strengthened. The real number is 0, and the failure mode is worse than the class it belonged to. |
-| 3 | Three tips should be added for canvas, database and dashboard | None of those is a rail surface, so none has an anchor to point at — the tips would have rendered nothing, exactly like the four already there | ↔️ Substituted: `finance`, `analytics`, `meetings`, the three unsignposted **route** surfaces the rail can anchor today. |
+| #   | Draft claim                                                      | What verification found                                                                                                                        | Effect on the argument                                                                                                                         |
+| --- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `xnet:experiment:layout-tree` is an unregistered, invisible flag | The flag was **deleted** in `59973833c` (July 2026); only a stale doc comment remained                                                         | ❌ Finding withdrawn. It became the design rationale for stripping comments before scanning, and for checking the register in both directions. |
+| 2   | 4 of ~22 views have a first-run tip                              | All four tips anchor on `data-coach` selectors present in **no** component; `CoachmarkLayer` returns `null` and renders nothing                | ⬆️ Finding strengthened. The real number is 0, and the failure mode is worse than the class it belonged to.                                    |
+| 3   | Three tips should be added for canvas, database and dashboard    | None of those is a rail surface, so none has an anchor to point at — the tips would have rendered nothing, exactly like the four already there | ↔️ Substituted: `finance`, `analytics`, `meetings`, the three unsignposted **route** surfaces the rail can anchor today.                       |
 
 The pattern across all three is the same, and it is the document's own thesis
 turned on the document: **every one of these was invisible to a source read and
@@ -913,14 +918,14 @@ codebase's own blind spots.
 
 **Source article**
 
-- Cate Hall, with Clara Collier and Jake Eaton — [*Can You Just Do Things?*](https://asteriskmag.com/issues/12/can-you-just-do-things), Asterisk 12
-- Jacob Silverman — [*You Can Just Do Things*](https://www.jacobsilverman.com/p/you-can-just-do-things) (the critique of the slogan)
+- Cate Hall, with Clara Collier and Jake Eaton — [_Can You Just Do Things?_](https://asteriskmag.com/issues/12/can-you-just-do-things), Asterisk 12
+- Jacob Silverman — [_You Can Just Do Things_](https://www.jacobsilverman.com/p/you-can-just-do-things) (the critique of the slogan)
 
 **Prior art**
 
-- Litt, Horowitz, van Hardenberg, Matthews — [*Malleable software: restoring user agency in a world of locked-down apps*](https://www.inkandswitch.com/essay/malleable-software/), Ink & Switch, 2025
-- Nielsen Norman Group — [*Autonomy, Relatedness, and Competence in UX Design*](https://www.nngroup.com/articles/autonomy-relatedness-competence/) (Ryan & Deci's self-determination theory applied to interfaces)
-- Don Norman, *The Design of Everyday Things* — affordances vs. signifiers
+- Litt, Horowitz, van Hardenberg, Matthews — [_Malleable software: restoring user agency in a world of locked-down apps_](https://www.inkandswitch.com/essay/malleable-software/), Ink & Switch, 2025
+- Nielsen Norman Group — [_Autonomy, Relatedness, and Competence in UX Design_](https://www.nngroup.com/articles/autonomy-relatedness-competence/) (Ryan & Deci's self-determination theory applied to interfaces)
+- Don Norman, _The Design of Everyday Things_ — affordances vs. signifiers
 
 **In this repository**
 
