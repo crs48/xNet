@@ -1,6 +1,6 @@
 ---
 title: The Social Graph Atlas — your imported social life as a navigable, agent-readable place
-status: draft # mirrors the [_]/[-]/[x] filename checkbox
+status: partial # mirrors the [_]/[-]/[x] filename checkbox
 last_updated: 2026-08-01
 tags: [social, canvas, views, enrichment, ai, retrieval]
 ---
@@ -439,14 +439,45 @@ collection structure — all local, all owned, all synced.
 - [ ] Presentation switcher round-trip on one social lens: table → feed →
       timeline → graph → canvas, each renders without error; canvas insert
       places source-backed cards that open live embeds.
-- [ ] Transcript run over a 50-video playlist completes with per-state
+- [x] Transcript run over a 50-video playlist completes with per-state
       counts (fetched / no-captions / blocked) that sum to 50.
 - [ ] `xnet_search` from an agent session returns a transcript hit and can
       `xnet_graph_expand` from transcript → video → playlist.
-- [ ] Sensitive buckets (DMs, search history) absent from default retrieval
+- [x] Sensitive buckets (DMs, search history) absent from default retrieval
       profile results; present only after explicit opt-in.
-- [ ] `pnpm typecheck && pnpm test` green; new logic in `packages/social`
+- [x] `pnpm typecheck && pnpm test` green; new logic in `packages/social`
       covered by unit tests.
+
+> [!IMPORTANT]
+> **What the three open boxes need, and why they are still open.**
+> All thirteen implementation items shipped; these three require inputs the
+> implementation pass could not produce for itself, and checking them off
+> without those inputs would be the exact "a truncated run is not a completed
+> one" failure this exploration argues against.
+>
+> - **Real archives.** Boxes 1 and 2 need an actual YouTube Takeout, Instagram
+>   and TikTok export in hand. No fixture stands in for "does a real playlist
+>   CSV render with real thumbnails", which is the whole claim.
+> - **A live agent session.** Box 4 needs an agent talking to a populated
+>   workspace. The blocker that would have made it fail is fixed — see below —
+>   but the round trip itself has not been run.
+>
+> The transcript box is checked on a 50-target pass through
+> `runTranscriptFetchPass` with the **transport stubbed**: the accounting
+> invariant (every target lands in exactly one terminal state, and the states
+> sum to 50) is genuinely verified; a live network run against YouTube is not.
+
+> [!WARNING]
+> **Found while validating: imported social content was never in the search
+> index.** `extractSearchableContent` (`packages/sqlite/src/fts.ts`) read
+> `content`, `description`, `body`, `name` and `note` — but not `searchText`,
+> the property 22 importer call sites denormalize full text into *precisely so
+> it can be searched* (0152). Every imported post, comment and — as of this
+> exploration — every video transcript was absent from `nodes_fts` while the
+> pipeline reported it indexed, so search returned a clean empty result rather
+> than an error. This is the 0379 finding in a second disguise. Fixed, with
+> `textPreview` as the fallback. **Existing databases need `rebuildFTS()`** to
+> pick up already-imported rows; new writes are correct from here on.
 
 ## References
 
