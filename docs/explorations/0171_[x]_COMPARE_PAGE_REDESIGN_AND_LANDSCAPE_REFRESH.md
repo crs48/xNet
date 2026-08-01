@@ -3,7 +3,7 @@
 **Date:** 2026-06-12
 **Scope:** `site/src/pages/compare.astro`, new `site/src/data/compare.ts`, `site/src/components/sections/Landscape.astro`
 **Status:** Exploration
-**Supersedes/extends:** `docs/explorations/0124_[_]_COMPARE_PAGE_COMPLETENESS_AND_LOCAL_FIRST_LANDSCAPE_EXPANSION.md`
+**Supersedes/extends:** `docs/explorations/0124_[x]_COMPARE_PAGE_COMPLETENESS_AND_LOCAL_FIRST_LANDSCAPE_EXPANSION.md`
 **Outcome:** Rebuild `/compare` as a five-layer, data-driven landscape page with semantic badge cells, mobile card rendering, a decision guide, and an honesty block — and fix the factual drift that has accumulated since the page was written (Zero 1.0, Electric's agent pivot, Replicache maintenance mode, Jazz's CRDT misattribution, Convex self-hosting, Notion offline mode).
 
 ## Problem Statement
@@ -604,7 +604,7 @@ Dual rendering (per layer section, zero JS — duplication is free at build time
 Internal:
 
 - Current page: `site/src/pages/compare.astro` (rows at lines 8–153, 173–294, 308–462; tables at 516–658)
-- Prior exploration: `docs/explorations/0124_[_]_COMPARE_PAGE_COMPLETENESS_AND_LOCAL_FIRST_LANDSCAPE_EXPANSION.md`
+- Prior exploration: `docs/explorations/0124_[x]_COMPARE_PAGE_COMPLETENESS_AND_LOCAL_FIRST_LANDSCAPE_EXPANSION.md`
 - Data-module precedent: `site/src/data/roadmap.ts`; consuming section `site/src/components/sections/Roadmap.astro`
 - UI primitives: `site/src/components/ui/Badge.astro`, `site/src/components/ui/SectionHeader.astro`
 - Inbound link to update: `site/src/components/sections/Landscape.astro`

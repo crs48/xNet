@@ -399,6 +399,6 @@ flowchart LR
 - In-repo: `docs/explorations/0297_[x]_OFF_THE_SHELF_NOTION_LIKE_EDITOR.md`
   (§licensing), `docs/explorations/0312_[x]_TIPTAP_TO_BLOCKNOTE_EDITOR_MIGRATION.md`
   (§203-208 license note, §105 XL-AI decision),
-  `docs/explorations/0328_[_]_TLDRAW_CANVAS_ALTERNATIVE.md` (labs-gating
+  `docs/explorations/0328_[_]_TLDRAW_CANVAS_REPLACEMENT_OR_ALTERNATIVE_SURFACE.md` (labs-gating
   precedent), `packages/editor/src/blocknote/XNetEditor.tsx`,
   `scripts/check-plugin-licenses.mjs`.
