@@ -721,9 +721,9 @@ all.
 
 **Phase 2 — the hub address record**
 
-- [ ] Define `HubAddressRecord` + `resolveHubAddress` in a new
+- [x] Define `HubAddressRecord` + `resolveHubAddress` in a new
       `packages/hub/src/services/hub-address.ts` (pure, injectable deps)
-- [ ] Serve the record from the hub at a well-known path, signed with the hub's
+- [x] Serve the record from the hub at a well-known path, signed with the hub's
       system identity (the DID already on `/health`)
 - [ ] Mirror it from the control plane for managed tenants, including a
       `waking` answer for `dataTier: 'cold'`

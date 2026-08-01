@@ -59,6 +59,7 @@ import { createAuditRoutes } from './routes/audit'
 import { createBackupRoutes } from './routes/backup'
 import { createCrawlRoutes } from './routes/crawl'
 import { createDiscoveryRoutes } from './routes/dids'
+import { HUB_ADDRESS_PATH, createHubAddressRoutes } from './routes/hub-address'
 import { createExportRoutes } from './routes/export'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
@@ -821,6 +822,14 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     }
   )
   app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
+  // Where this hub currently is, signed by its own system identity (0423). A
+  // resolver may mirror this; only the hub can author it.
+  app.route(
+    HUB_ADDRESS_PATH,
+    createHubAddressRoutes(hubIdentity, {
+      url: config.publicUrl ?? `http://localhost:${config.port}`
+    })
+  )
   app.route(
     '/telemetry',
     createTelemetryRoutes({
