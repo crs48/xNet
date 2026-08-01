@@ -565,13 +565,13 @@ requires the operator's signing key — which the agent never has.
 
 ### Housekeeping
 
-- [ ] Changesets for touched publishable packages (`identity`, `data`,
+- [x] Changesets for touched publishable packages (`identity`, `data`,
       `plugins`, `devkit`, `cli`)
-- [ ] Update `docs/guides/openclaw-integration.md` with the foreign-agent
+- [x] Update `docs/guides/openclaw-integration.md` with the foreign-agent
       enrollment flow and the Buzz section
-- [ ] Changelog fragment: "Verify what your agent did — signed, exportable
+- [x] Changelog fragment: "Verify what your agent did — signed, exportable
       audit for any connected agent"
-- [ ] New surfaces land in scoped sub-barrels per the `packages/AGENTS.md`
+- [x] New surfaces land in scoped sub-barrels per the `packages/AGENTS.md`
       policy
 
 ## Validation Checklist
