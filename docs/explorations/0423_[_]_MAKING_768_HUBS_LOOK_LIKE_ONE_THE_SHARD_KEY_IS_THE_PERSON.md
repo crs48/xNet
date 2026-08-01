@@ -734,7 +734,7 @@ all.
 
 **Phase 3 — close the open forks**
 
-- [ ] Close the shard-ring fork: either wire `SHARD_*` env/CLI into
+- [x] Close the shard-ring fork: either wire `SHARD_*` env/CLI into
       `resolveConfig`, or mark the ring dormant in `server.ts` + `roles.ts` with
       an assertion that `config.shards.enabled` is unreachable
 - [x] Decide `MultiHubSyncManager`'s client path — wire it into the provider, or

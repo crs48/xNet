@@ -325,6 +325,25 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
         hostedShards: config.shards.hostedShards ?? shardDefaults.hostedShards
       }
     : shardDefaults
+  // DORMANT (exploration 0423). The shard ring — registry, ingest, BM25 query
+  // router, rebalancer — is complete and tested, but nothing can switch it on:
+  // there are no `SHARD_*` env vars and `resolveConfig` never populates
+  // `config.shards`. That is deliberate, not an oversight. 0367 documented the
+  // legacy hub search stack's defects, 0381 priced its warm tiers as
+  // margin-negative, and the `index` role turns shards off in favour of the
+  // ATProto index plane (0374/0383 W3).
+  //
+  // It is left reachable programmatically rather than deleted so the ring can
+  // be revived if the index plane needs it — but a caller who sets it is
+  // opting into an unsupported path and should hear so, once, at boot.
+  // `config.shards-is-unreachable` in `test/shards-dormant.test.ts` pins the
+  // claim, so the ring cannot quietly become half-wired again.
+  if (shardConfig.enabled) {
+    log.warn(
+      'shard ring enabled programmatically — this path is DORMANT (exploration 0423) ' +
+        'and has no supported configuration surface; prefer the atproto index plane'
+    )
+  }
   const shardRegistry = new ShardRegistry(shardConfig, storage)
   const shardIngest = new ShardIngestRouter(shardRegistry, storage, shardConfig)
   const shardRouter = new ShardQueryRouter(shardRegistry, storage, shardConfig)
