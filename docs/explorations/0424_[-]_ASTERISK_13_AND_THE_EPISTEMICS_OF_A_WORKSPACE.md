@@ -663,7 +663,7 @@ a gate that over-claims what it proves is the same failure wearing a lab coat.
 - [x] `pnpm typecheck && pnpm lint && pnpm test`
 - [x] `pnpm check:exploration-links` — this document's inbound and outbound
       links resolve
-- [ ] Post-merge: `grep -rn "degrad" packages/workbench/src/views/` returns hits
+- [x] Post-merge: `grep -rn "degrad" packages/workbench/src/views/` returns hits
 
 > [!NOTE]
 > **What the app run actually covered, and what blocked the desktop one.**
