@@ -6,7 +6,7 @@ Add the `Recording` and `RecordingTranscript` schemas for local-first screen
 recording (exploration 0414).
 
 A `Recording` holds immutable screen and camera track references plus the
-*edit* — a `cuts` list, `chapters`, and a `cameraLayout` — so trimming a
+_edit_ — a `cuts` list, `chapters`, and a `cameraLayout` — so trimming a
 recording is a field write rather than a re-encode, and every cut stays
 reversible. `RecordingTranscript` carries timed segments with optional
 word-level timings, and a `verbatim` flag that gates filler-word editing on

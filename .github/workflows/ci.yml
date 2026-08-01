@@ -82,6 +82,13 @@ jobs:
       - name: Publish closure (0220)
         run: pnpm check:publish-closure
 
+      # The hub Dockerfile hand-lists the packages it COPYs. A dependency added
+      # three packages away silently staled that list, and nothing failed until
+      # a six-minute image build died on "Cannot find module" — the same build
+      # Railway runs, so the first symptom can be a failed deploy. (0415.)
+      - name: Hub image copies its dependency closure (0415)
+        run: pnpm check:hub-image
+
       - name: Electron parity (0238)
         run: pnpm check:electron-parity
 

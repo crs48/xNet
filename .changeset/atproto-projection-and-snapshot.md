@@ -1,6 +1,6 @@
 ---
-"@xnetjs/data": minor
-"@xnetjs/sync": minor
+'@xnetjs/data': minor
+'@xnetjs/sync': minor
 ---
 
 Play well with the ATmosphere (exploration 0389). `@xnetjs/data` gains

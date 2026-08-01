@@ -16,17 +16,26 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
-  "dependencies": {
-    "@xnetjs/data": "workspace:*",
-    "@xnetjs/vectors": "workspace:*"
-  },
   "devDependencies": {
+    "@xnetjs/vectors": "workspace:*",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "vitest": "^4.0.0"
   },
-  "private": true,
+  "private": false,
   "files": [
-    "dist"
-  ]
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crs48/xNet"
+  },
+  "description": "Hybrid GraphRAG retrieval, memory consolidation, and locality planning for xNet — structural over your store, with zero runtime dependencies."
 }
