@@ -368,6 +368,9 @@ export {
   startViewTransition,
   supportsViewTransitions
 } from './motion/useViewTransition'
+// The escape hatch (exploration 0422) — drag-coupled and FLIP motion only.
+// Lazily loads Motion's domMax bundle; pair with `m` from 'motion/react-m'.
+export { MotionStage, type MotionStageProps } from './motion/MotionStage'
 
 // ─── Responsive Components ─────────────────────────────────────────
 export {

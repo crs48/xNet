@@ -15,7 +15,7 @@ tags: [ui, motion, bundle-size, design-system]
 > dependency is installed nowhere and imported nowhere** — the guide writes a
 > cheque the repo cannot cash. Close the gap: add `motion` to `packages/ui` as a
 > **dynamic-import-only** dependency behind one `<MotionStage>` boundary, wire
-> the three real gap sites, and extend `check-motion-vocab.mjs` with a
+> the two confirmed gap sites, and extend `check-motion-vocab.mjs` with a
 > static-import ban so "never on the default path" becomes enforced rather than
 > merely written down.
 
@@ -562,7 +562,7 @@ the one place the token scale is copied rather than referenced.
 | `motion` leaks onto the default path via a static import | 🔴 High | The guard rule is the entire point of Option C; land it first |
 | Token scale duplicated as numeric literals in Motion `transition` props | 🟠 Medium | Cap at two call sites; consider a shared `MOTION_TRANSITIONS` const exported from `packages/ui` |
 | `layout` distorts `border-radius` on tabs/cards | 🟠 Medium | Motion auto-corrects when set via `style`; verify visually — our tabs use `rounded-[9px]` in `className`, which is **not** auto-corrected |
-| Publishable-package dependency affects SDK consumers | 🟡 Low | 34 KB install, 0 KB bundle; note it in the changeset |
+| ~~Publishable-package dependency affects SDK consumers~~ | ⚪ None | **Resolved** — `packages/ui`, `views` and `workbench` are all `private: true`, so no npm consumer ever sees this dependency |
 | Board drag regressions in `editor-e2e` | 🟡 Low | 0199's own validation list already flags this suite |
 | Adding a dep to `packages/ui` requires a changeset | 🟡 Low | `/changeset` — minor bump; Stop hook enforces it |
 
@@ -607,14 +607,19 @@ the one place the token scale is copied rather than referenced.
 - [x] Add the `static motion/react import` rule to
       `scripts/check-motion-vocab.mjs`; confirm `pnpm check:motion-vocab` still
       passes on a clean tree.
-- [ ] Add `motion@^12` to `packages/ui/package.json` `dependencies`.
-- [ ] Create `packages/ui/src/motion/MotionStage.tsx` with `reducedMotion="user"`
+- [x] Add `motion@^12` to `packages/ui/package.json` `dependencies`.
+- [x] Create `packages/ui/src/motion/MotionStage.tsx` with `reducedMotion="user"`
       and `strict`.
-- [ ] Export `MotionStage` from `packages/ui/src/index.ts` alongside the existing
+- [x] Export `MotionStage` from `packages/ui/src/index.ts` alongside the existing
       motion block at line 355.
-- [ ] Write `MotionStage.test.tsx` — asserts children render before the chunk
+- [x] Write `MotionStage.test.tsx` — asserts children render before the chunk
       resolves (the degraded-but-not-broken contract).
-- [ ] Write the changeset (`/changeset`, minor bump for `@xnetjs/ui`).
+- [x] ~~Write the changeset (minor bump for `@xnetjs/ui`).~~ **Not applicable —
+      verified during implementation.** `node scripts/changeset/publishable-pathspec.mjs`
+      does not list `packages/ui`, `packages/views` or `packages/workbench`;
+      all three are `private: true`, so per `packages/AGENTS.md` they need no
+      changeset. The exploration assumed `@xnetjs/ui` was publishable. Writing
+      one anyway would stage a release for a package that never publishes.
 
 **Phase 2 — the two confirmed gap sites**
 
