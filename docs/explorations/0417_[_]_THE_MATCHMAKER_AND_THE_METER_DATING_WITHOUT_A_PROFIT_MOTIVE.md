@@ -601,20 +601,20 @@ stateDiagram-v2
 - [ ] **Obtain the video transcript** and record its actual argument in
       §"External Research → The video"; reconcile every claim the essay makes
       about it.
-- [ ] Verify each cited statistic against its primary source (PNAS paper,
+- [x] Verify each cited statistic against its primary source (PNAS paper,
       Groundwork report PDF, Match Group filings for the Hinge growth figures,
       Marriage Pact participation counts).
-- [ ] Confirm the essay's claims about `/discover` against the code as it
+- [x] Confirm the essay's claims about `/discover` against the code as it
       stands; downgrade any claim that depends on 0174's unchecked items.
-- [ ] Draft `site/src/pages/blog/the-matchmaker-and-the-meter.astro` following
+- [x] Draft `site/src/pages/blog/the-matchmaker-and-the-meter.astro` following
       the `.astro`-not-MDX convention and en-GB spelling.
-- [ ] Add the post entry to `site/src/data/blog` and register `heroArt` in
+- [x] Add the post entry to `site/src/data/blog` and register `heroArt` in
       [`site/src/pages/blog/index.astro`](../../site/src/pages/blog/index.astro)
       — **both**, or the build passes with a missing hero.
-- [ ] Include a `Sources` section (blog checklists require it).
-- [ ] Add the essay to `site/src/pages/blog/rss.xml.ts` output (verify it is
+- [x] Include a `Sources` section (blog checklists require it).
+- [x] Add the essay to `site/src/pages/blog/rss.xml.ts` output (verify it is
       picked up automatically).
-- [ ] Run the `humanize` skill's `tellscan.mjs` and fix only the elevated tells.
+- [x] Run the `humanize` skill's `tellscan.mjs` and fix only the elevated tells.
 - [x] Add the `metered connection` rule group to
       `scripts/check-humane-patterns.mjs`, plus a planted-violation case in
       `--selftest`.
@@ -623,7 +623,7 @@ stateDiagram-v2
       receipt.
 - [x] Pin the receipt in the claims ledger
       (`packages/telemetry/test/charter-claims-ledger.test.ts`).
-- [ ] Cross-link this exploration from 0174 and vice versa.
+- [x] Cross-link this exploration from 0174 and vice versa.
 - [ ] Write a changelog fragment (`node scripts/changelog/new.mjs`) — a new
       essay is user-visible.
 - [ ] Open the PR; no changeset needed unless `scripts/` counts as a
@@ -633,21 +633,21 @@ stateDiagram-v2
 
 - [ ] The transcript has been read and the essay's characterisation of the video
       is accurate.
-- [ ] Every statistic in the published essay traces to a named source in the
+- [x] Every statistic in the published essay traces to a named source in the
       `Sources` section.
-- [ ] The Hinge growth counter-fact appears in the essay and is answered.
-- [ ] The nostalgia caveat (historical forms were coercive) appears in the essay.
-- [ ] No claim about `/discover` describes an unchecked 0174 item as shipped.
+- [x] The Hinge growth counter-fact appears in the essay and is answered.
+- [x] The nostalgia caveat (historical forms were coercive) appears in the essay.
+- [x] No claim about `/discover` describes an unchecked 0174 item as shipped.
 - [x] `pnpm check:humane-patterns` fails on a planted `boostPrice` identifier and
       passes on the clean tree.
 - [x] `node scripts/check-humane-patterns.mjs --selftest` passes.
-- [ ] `pnpm --filter site build` succeeds and the post renders with its hero art
+- [x] `pnpm --filter site build` succeeds and the post renders with its hero art
       at 320px and at desktop width.
-- [ ] The post appears in `/blog` index and in the RSS feed.
-- [ ] `tellscan.mjs` shows no elevated machine-writing tells.
+- [x] The post appears in `/blog` index and in the RSS feed.
+- [x] `tellscan.mjs` shows no elevated machine-writing tells.
 - [x] The Charter §6 addition has a working receipt link and the claims-ledger
       test passes.
-- [ ] Brand spelling: `xNet` in all prose, `xnet` in machine surfaces.
+- [x] Brand spelling: `xNet` in all prose, `xnet` in machine surfaces.
 
 ---
 

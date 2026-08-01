@@ -1,0 +1,160 @@
+---
+// Decorative art for "The Matchmaker and the Meter" (exploration 0417),
+// single-sourced so the same inline SVG backs the post hero and the blog-index
+// preview card (no external assets — Self-Audit parity).
+//
+// The picture is the essay's thesis, read left to right. On the left, a
+// promenade at dusk: string lights, and people standing in warm pairs — the
+// dance, the paseo, contact that costs nothing. Moving right the light drains,
+// and the same evening ends at a vending cabinet: hearts behind glass, a coin
+// slot, a queue of people standing alone. Connection is drawn as warmth and
+// nearness; the meter is drawn as glass between you and the same thing.
+interface Props {
+  /** Override the wrapper classes; defaults to full-bleed for hero use. */
+  class?: string
+}
+const { class: className = 'pointer-events-none absolute inset-0 h-full w-full' } = Astro.props
+
+// A small heart path centred on (0, 4), used for the cabinet's stock.
+const HEART =
+  'M 0 -3 C -3 -9, -11 -5, -11 1 C -11 6, -4 10, 0 14 C 4 10, 11 6, 11 1 C 11 -5, 3 -9, 0 -3 Z'
+
+// The pairs on the promenade: [x, y, warm colour]. Hand-placed so the crowd
+// reads as an evening, not a grid.
+const PAIRS: Array<[number, number, string]> = [
+  [142, 236, '#fb7185'],
+  [218, 244, '#fbbf24'],
+  [292, 232, '#f472b6'],
+  [364, 246, '#fb923c'],
+  [438, 238, '#fda4af']
+]
+
+// The queue at the cabinet: single figures, evenly spaced, drained of colour.
+const QUEUE: Array<[number, number]> = [
+  [596, 244],
+  [644, 246],
+  [690, 248],
+  [734, 250]
+]
+
+// Hearts in stock: a 3×4 grid inside the cabinet, dimming towards the bottom
+// row — inventory, not affection.
+const STOCK: Array<[number, number, number]> = []
+for (let row = 0; row < 3; row++) {
+  for (let col = 0; col < 4; col++) {
+    STOCK.push([812 + col * 34, 92 + row * 46, 0.75 - row * 0.18])
+  }
+}
+
+// String lights: two swags across the promenade end of the scene.
+const LIGHTS_A = [60, 120, 180, 240, 300, 360, 420]
+const LIGHTS_B = [100, 170, 240, 310, 380]
+---
+
+<svg
+  class={className}
+  viewBox="0 0 1040 340"
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+>
+  <defs>
+    <linearGradient id="meterDusk" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#251320" />
+      <stop offset="55%" stop-color="#17101a" />
+      <stop offset="100%" stop-color="#0e0e14" />
+    </linearGradient>
+    <radialGradient id="promenadeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fb7185" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#fb7185" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="cabinetBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2c2c34" />
+      <stop offset="100%" stop-color="#191920" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1040" height="340" fill="url(#meterDusk)"></rect>
+
+  <!-- the glow over the end of the evening where people still stand together -->
+  <ellipse cx="230" cy="150" rx="300" ry="190" fill="url(#promenadeGlow)" opacity="0.55"
+  ></ellipse>
+
+  <!-- string lights: sagging between poles the frame never shows -->
+  <path
+    d="M 20 54 Q 240 108 470 62"
+    fill="none"
+    stroke="#f9a8d4"
+    stroke-width="1.2"
+    opacity="0.4"></path>
+  {
+    LIGHTS_A.map((x) => (
+      <circle cx={x} cy={54 + Math.sin(((x - 20) / 450) * Math.PI) * 48} r="4" fill="#fcd34d" opacity="0.85" />
+    ))
+  }
+  <path
+    d="M 60 96 Q 250 150 440 104"
+    fill="none"
+    stroke="#f9a8d4"
+    stroke-width="1.2"
+    opacity="0.3"></path>
+  {
+    LIGHTS_B.map((x) => (
+      <circle cx={x} cy={96 + Math.sin(((x - 60) / 380) * Math.PI) * 46} r="3.4" fill="#fbbf24" opacity="0.7" />
+    ))
+  }
+
+  <!-- the pairs: two heads close enough to share an outline -->
+  {
+    PAIRS.map(([x, y, colour]) => (
+      <g>
+        <circle cx={x} cy={y} r="13" fill={colour} opacity="0.9" />
+        <circle cx={x + 20} cy={y + 3} r="13" fill={colour} opacity="0.65" />
+      </g>
+    ))
+  }
+
+  <!-- the queue: the same evening, one head at a time -->
+  {
+    QUEUE.map(([x, y]) => (
+      <circle cx={x} cy={y} r="12" fill="#52525b" opacity="0.8" />
+    ))
+  }
+
+  <!-- the cabinet: hearts as stock, kept behind glass -->
+  <g>
+    <rect x="780" y="46" width="150" height="232" rx="8" fill="url(#cabinetBody)"></rect>
+    <rect
+      x="792"
+      y="62"
+      width="126"
+      height="164"
+      rx="4"
+      fill="#0b0b10"
+      stroke="#3f3f46"
+      stroke-width="1.5"></rect>
+    {
+      STOCK.map(([x, y, opacity]) => (
+        <path d={HEART} transform={`translate(${x} ${y}) scale(1.05)`} fill="#fb7185" opacity={opacity} />
+      ))
+    }
+    <!-- the glass: one pale sheen between the queue and the stock -->
+    <rect x="792" y="62" width="126" height="164" rx="4" fill="#ffffff" opacity="0.05"></rect>
+    <line x1="804" y1="70" x2="852" y2="218" stroke="#ffffff" stroke-width="10" opacity="0.04"
+    ></line>
+    <!-- coin slot and price row -->
+    <rect x="836" y="240" width="38" height="8" rx="3" fill="#0b0b10" stroke="#71717a" stroke-width="1"
+    ></rect>
+    <circle cx="814" cy="244" r="7" fill="none" stroke="#a1a1aa" stroke-width="1.5"></circle>
+    <rect x="884" y="238" width="30" height="12" rx="2" fill="#3f3f46"></rect>
+  </g>
+
+  <!-- pavement -->
+  <rect x="0" y="278" width="1040" height="62" fill="#0c0a10"></rect>
+  <line x1="0" y1="278" x2="1040" y2="278" stroke="#3b2b3a" stroke-width="1.5"></line>
+
+  <!-- foreground left: one coin still on the pavement, unspent -->
+  <g transform="translate(540 300)" opacity="0.75">
+    <circle cx="0" cy="0" r="11" fill="none" stroke="#fbbf24" stroke-width="1.8"></circle>
+    <circle cx="0" cy="0" r="5" fill="none" stroke="#fbbf24" stroke-width="1" opacity="0.6"></circle>
+  </g>
+</svg>
