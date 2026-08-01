@@ -1,15 +1,20 @@
 /**
- * Streak heatmap widget (exploration 0180) — GitHub-style contribution grids
+ * Habit heatmap widget (exploration 0180) — GitHub-style contribution grids
  * for your habits. Observations come from the widget's query; metric
  * definitions (names, schedules, colors) are resolved with useQuery, which
  * first-party widgets may use since they render in the host realm.
+ *
+ * The header shows a completion *rate* over the window on screen, never a
+ * consecutive-day chain: a rate carries the same information and has nothing
+ * to break, so a single miss lowers a number instead of destroying one
+ * (exploration 0426, `docs/VIBE.md` §"Measurement is pull, never push").
  */
 import type { WidgetDefinition, WidgetProps } from '../types'
 import { MetricSchema } from '@xnetjs/data'
 import {
   addDays,
   canonicalDay,
-  computeStreak,
+  completionRate,
   isScheduledOn,
   scheduledDaysInRange,
   type MetricSchedule
@@ -81,21 +86,23 @@ function StreakHeatmapWidget({
       {metrics.map((metric) => {
         const completed = completedByMetric.get(metric.id) ?? new Set<number>()
         const sched = scheduleOf(metric)
-        const scheduledDays = scheduledDaysInRange(addDays(today, -400), today, sched)
-        const streak = computeStreak(completed, scheduledDays, today)
-        const scheduledSet = new Set(
-          scheduledDaysInRange(addDays(today, -(weeks * 7)), today, sched).filter((d) =>
-            isScheduledOn(d, sched)
-          )
-        )
+        const visibleScheduled = scheduledDaysInRange(
+          addDays(today, -(weeks * 7)),
+          today,
+          sched
+        ).filter((d) => isScheduledOn(d, sched))
+        const scheduledSet = new Set(visibleScheduled)
+        const rate = completionRate(completed, visibleScheduled)
         return (
           <div key={metric.id} className="flex flex-col gap-1">
             <div className="flex items-center justify-between text-xs">
               <span className="truncate text-foreground">
                 {typeof metric.name === 'string' && metric.name ? metric.name : 'Untitled'}
               </span>
-              {streak > 0 && (
-                <span className="shrink-0 text-[11px] text-orange-500">🔥 {streak}</span>
+              {visibleScheduled.length > 0 && (
+                <span className="shrink-0 text-[11px] text-muted-foreground">
+                  {Math.round(rate * 100)}% of {visibleScheduled.length}
+                </span>
               )}
             </div>
             <HabitHeatmap
@@ -113,10 +120,12 @@ function StreakHeatmapWidget({
 }
 
 export const streakHeatmapWidget: WidgetDefinition<StreakHeatmapWidgetConfig> = {
+  // The type id is load-bearing — saved dashboards reference it — so it keeps
+  // the historical `streak-heatmap` spelling even though nothing streaks now.
   type: 'experiments.streak-heatmap',
   name: 'Habit Heatmap',
-  icon: 'flame',
-  description: 'Contribution-style streak heatmaps for your habits',
+  icon: 'layout-grid',
+  description: 'Contribution-style completion grids for your habits',
   trustTier: 'first-party',
   defaultSize: { w: 4, h: 4, minW: 3, minH: 3 },
   configFields: [{ key: 'weeks', label: 'Weeks shown', type: 'number', defaultValue: 16 }],

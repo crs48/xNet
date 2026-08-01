@@ -1,0 +1,17 @@
+{
+  "id": "2026-08-01-habit-tracking-shows-a-completion-rate-n",
+  "date": "August 1, 2026",
+  "title": "Habit tracking shows a completion rate, not a breakable streak",
+  "summary": "The habit heatmap and Today panel used to show a 🔥 streak — a chain a single missed day destroyed. They now show the share of scheduled days you completed over the window on screen. Same information, but a miss lowers a number instead of wiping one out, which is what our charter's commitment against loss-aversion mechanics actually asked for.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ],
+  "pr": 680,
+  "mergedAt": "2026-08-01T21:57:48Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}
