@@ -242,7 +242,10 @@ export async function writeBundle(
       yjsDocs: yjsCount,
       commits: commitCount
     },
-    contentDigest: combineEntryDigests(entryDigests)
+    contentDigest: combineEntryDigests(entryDigests),
+    // Under the signature (0423): an address an importer can trust as far as
+    // "this is where the exporter said their hub was", and re-resolves anyway.
+    ...(options.hubAddress ? { hubAddress: options.hubAddress } : {})
   }
   if (options.manifestSigner) {
     const signature = await options.manifestSigner(canonicalManifestBytes(manifest))

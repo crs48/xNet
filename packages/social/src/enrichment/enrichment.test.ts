@@ -11,9 +11,11 @@ import {
   resolveHubAuthToken,
   socialEnrichmentKey,
   SocialEnrichmentQueue,
+  supportsDirectOEmbed,
   thumbnailContentTypeFor,
+  tiktokOEmbedUrl,
   type SocialEnrichmentTarget
-} from './social-feed-enrichment'
+} from './index'
 
 const target: SocialEnrichmentTarget = {
   key: socialEnrichmentKey('youtube', 'abc123'),
@@ -269,18 +271,100 @@ describe('fetchEnrichmentForTarget', () => {
   })
 })
 
+describe('direct TikTok oEmbed', () => {
+  const tiktokTarget: SocialEnrichmentTarget = {
+    key: socialEnrichmentKey('tiktok', '7123'),
+    platform: 'tiktok',
+    platformContentId: '7123',
+    url: 'https://www.tiktok.com/@chef/video/7123'
+  }
+
+  it('marks TikTok as the one platform reachable without the hub', () => {
+    expect(supportsDirectOEmbed('tiktok')).toBe(true)
+    expect(supportsDirectOEmbed('youtube')).toBe(false)
+    expect(new URL(tiktokOEmbedUrl(tiktokTarget.url)).searchParams.get('url')).toBe(
+      tiktokTarget.url
+    )
+  })
+
+  it('resolves TikTok metadata with no hub configured', async () => {
+    const requested: string[] = []
+    const result = await fetchEnrichmentForTarget({
+      target: tiktokTarget,
+      blobStore: null,
+      fetchImpl: (async (input: RequestInfo | URL) => {
+        requested.push(String(input))
+        return new Response(
+          JSON.stringify({
+            title: 'Sourdough in 60 seconds',
+            author_name: 'chef',
+            thumbnail_url: 'https://p16.tiktokcdn.com/thumb.jpg'
+          }),
+          { headers: { 'Content-Type': 'application/json' } }
+        )
+      }) as typeof fetch
+    })
+
+    expect(requested[0]).toContain('tiktok.com/oembed')
+    expect(result.payload.status).toBe('resolved')
+    expect(result.payload.metadata?.title).toBe('Sourdough in 60 seconds')
+    expect(result.payload.metadata?.source).toBe('oembed')
+  })
+
+  it('treats a 200 with no metadata as unavailable rather than resolved', async () => {
+    const result = await fetchEnrichmentForTarget({
+      target: tiktokTarget,
+      blobStore: null,
+      fetchImpl: (async () =>
+        new Response('{}', { headers: { 'Content-Type': 'application/json' } })) as typeof fetch
+    })
+
+    expect(result.payload.status).toBe('unavailable')
+  })
+
+  it('separates a refusal from a missing video', async () => {
+    const blocked = await fetchEnrichmentForTarget({
+      target: tiktokTarget,
+      blobStore: null,
+      fetchImpl: (async () => new Response('', { status: 429 })) as typeof fetch
+    })
+    expect(blocked.payload.status).toBe('blocked')
+
+    const missing = await fetchEnrichmentForTarget({
+      target: tiktokTarget,
+      blobStore: null,
+      fetchImpl: (async () => new Response('', { status: 404 })) as typeof fetch
+    })
+    expect(missing.payload.status).toBe('unavailable')
+  })
+
+  it('reports hub-only platforms as unavailable when there is no hub', async () => {
+    const result = await fetchEnrichmentForTarget({
+      target,
+      blobStore: null,
+      fetchImpl: (async () => {
+        throw new Error('should not fetch')
+      }) as typeof fetch
+    })
+
+    expect(result.payload.status).toBe('unavailable')
+    expect(result.payload.reason).toContain('no hub available')
+  })
+})
+
 describe('loadMissingThumbnailBlobUrls', () => {
   it('creates object urls for uncached blob cids only', async () => {
     const added = await loadMissingThumbnailBlobUrls({
       rows: [
-        { id: 'a', thumbnailBlobCid: 'cid:blake3:one' },
-        { id: 'b', thumbnailBlobCid: 'cid:blake3:cached' },
-        { id: 'c', thumbnailBlobCid: 'not-a-cid' },
-        { id: 'd' }
+        { thumbnailBlobCid: 'cid:blake3:one' },
+        { thumbnailBlobCid: 'cid:blake3:cached' },
+        { thumbnailBlobCid: 'not-a-cid' },
+        {}
       ],
       blobStore: { get: async () => new Uint8Array([9]) },
       hasUrl: (cid) => cid === 'cid:blake3:cached',
-      createUrl: () => 'blob:created'
+      createUrl: () => 'blob:created',
+      contentTypeFor: thumbnailContentTypeFor
     })
 
     expect([...added.entries()]).toEqual([['cid:blake3:one', 'blob:created']])
@@ -288,18 +372,20 @@ describe('loadMissingThumbnailBlobUrls', () => {
 
   it('skips blobs that fail to load and stops when cancelled', async () => {
     const missing = await loadMissingThumbnailBlobUrls({
-      rows: [{ id: 'a', thumbnailBlobCid: 'cid:blake3:gone' }],
+      rows: [{ thumbnailBlobCid: 'cid:blake3:gone' }],
       blobStore: { get: async () => null },
       hasUrl: () => false,
-      createUrl: () => 'blob:never'
+      createUrl: () => 'blob:never',
+      contentTypeFor: thumbnailContentTypeFor
     })
     expect(missing.size).toBe(0)
 
     const cancelled = await loadMissingThumbnailBlobUrls({
-      rows: [{ id: 'a', thumbnailBlobCid: 'cid:blake3:one' }],
+      rows: [{ thumbnailBlobCid: 'cid:blake3:one' }],
       blobStore: { get: async () => new Uint8Array([1]) },
       hasUrl: () => false,
       createUrl: () => 'blob:never',
+      contentTypeFor: thumbnailContentTypeFor,
       isCancelled: () => true
     })
     expect(cancelled.size).toBe(0)

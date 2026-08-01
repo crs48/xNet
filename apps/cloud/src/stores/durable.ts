@@ -12,13 +12,30 @@
 
 import type { TenantRecord, TenantStore } from '../registry'
 import type { BindingStore, TenantBinding } from '@xnetjs/cloud/identity'
+import { pageSortedIds } from '../registry'
 
-/** A minimal document collection: get/put/delete by id, plus list. */
+/** One page of documents, ordered by document id. */
+export interface DocPage<T> {
+  items: T[]
+  /** Cursor for the next page (the last id returned), or null when exhausted. */
+  next: string | null
+}
+
+/** A minimal document collection: get/put/delete by id, plus list, query, page. */
 export interface DocStore<T> {
   get(id: string): Promise<T | null>
   put(id: string, doc: T): Promise<void>
   delete(id: string): Promise<void>
   list(): Promise<T[]>
+  /**
+   * Equality lookup on a top-level field, in document-id order (exploration
+   * 0423). Backends that can index the field must do so — this exists precisely
+   * so the caller stops scanning. The in-memory implementation scans because it
+   * *is* the fleet, so a scan costs nothing there.
+   */
+  findWhere(field: string, value: string): Promise<T[]>
+  /** One page in document-id order; the cursor is the previous page's last id. */
+  page(cursor: string | null, limit: number): Promise<DocPage<T>>
 }
 
 /** In-memory DocStore (clones in/out so callers can't alias stored docs). */
@@ -38,15 +55,49 @@ export class InMemoryDocStore<T> implements DocStore<T> {
   async list(): Promise<T[]> {
     return [...this.docs.values()].map((v) => structuredClone(v))
   }
+  async findWhere(field: string, value: string): Promise<T[]> {
+    return [...this.docs.keys()]
+      .sort()
+      .flatMap((id) => {
+        const doc = this.docs.get(id)
+        return doc ? [doc] : []
+      })
+      .filter((doc) => (doc as Record<string, unknown>)[field] === value)
+      .map((doc) => structuredClone(doc))
+  }
+  async page(cursor: string | null, limit: number): Promise<DocPage<T>> {
+    const { ids, next } = pageSortedIds([...this.docs.keys()].sort(), cursor, limit)
+    return {
+      items: ids.flatMap((id) => {
+        const doc = this.docs.get(id)
+        return doc ? [structuredClone(doc)] : []
+      }),
+      next
+    }
+  }
 }
 
-/** A durable TenantStore over a DocStore keyed by tenantId. */
+/**
+ * A durable TenantStore over a DocStore keyed by tenantId.
+ *
+ * `getByBillingUser` delegates to {@link DocStore.findWhere} rather than
+ * scanning, so on Firestore it becomes a real indexed query (0423). Ties are
+ * broken by document id, which is stable across restarts — unlike the insertion
+ * order the in-memory store preserves, but a billing identity owning two
+ * tenants is already a degenerate case the singular API cannot express.
+ */
 export function tenantStoreFromDocs(docs: DocStore<TenantRecord>): TenantStore {
   return {
     get: (id) => docs.get(id),
     put: (record) => docs.put(record.tenantId, record),
     list: () => docs.list(),
-    delete: (id) => docs.delete(id)
+    delete: (id) => docs.delete(id),
+    getByBillingUser: async (billingUserId) =>
+      (await docs.findWhere('billingUserId', billingUserId))[0] ?? null,
+    page: async (cursor, limit) => {
+      const { items, next } = await docs.page(cursor, limit)
+      return { items, next }
+    }
   }
 }
 

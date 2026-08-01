@@ -1,21 +1,23 @@
 /**
- * useSocialFeedEnrichment — feed enrichment adapter backed by local
- * SocialEnrichment nodes and the hub /unfurl proxy.
+ * Feed enrichment, shared by every surface (exploration 0419).
  *
- * Lookups merge locally cached titles, descriptions, and thumbnails over
- * imported preview rows; requestMany feeds a rate-limited queue that
- * fetches metadata (and thumbnail bytes into the BlobStore) for the
- * previews currently on screen, once, and persists the result so every
- * later render works entirely from the local store.
+ * This hook lived in `apps/web` and so did the capability: the desktop app
+ * rendered the same imported feeds as a wall of opaque platform ids because
+ * the enrichment pipeline simply was not there. Moving it here is the whole
+ * fix — the logic never had anything web-specific in it.
+ *
+ * Lookups merge locally cached titles, descriptions and thumbnails over
+ * imported preview rows. `requestMany` feeds a paced queue that resolves the
+ * previews currently on screen, once, and persists the result so every later
+ * render works entirely from the local store.
  */
+
 import type {
   SavedViewFeedEnrichmentAdapter,
   SavedViewFeedEnrichmentEntry,
   SavedViewVisualPreviewModel
 } from '@xnetjs/react'
 import { useMutate, useQuery, useXNet } from '@xnetjs/react'
-import { createSocialEnrichmentId, SocialEnrichmentSchema } from '@xnetjs/social/schemas'
-import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   buildEnrichmentNodeData,
   enrichmentTargetForPreview,
@@ -28,9 +30,13 @@ import {
   resolveHubAuthToken,
   socialEnrichmentKey,
   SocialEnrichmentQueue,
+  supportsDirectOEmbed,
+  thumbnailContentTypeFor,
   type EnrichmentRowLike,
   type SocialEnrichmentTarget
-} from './social-feed-enrichment'
+} from '@xnetjs/social/enrichment'
+import { createSocialEnrichmentId, SocialEnrichmentSchema } from '@xnetjs/social/schemas'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 type EnrichmentRow = EnrichmentRowLike & {
   platform?: string
@@ -74,6 +80,7 @@ export function useSocialFeedEnrichment(): SavedViewFeedEnrichmentAdapter {
       blobStore,
       hasUrl: (cid) => blobUrlsRef.current.has(cid),
       createUrl: (blob) => URL.createObjectURL(blob),
+      contentTypeFor: thumbnailContentTypeFor,
       isCancelled: () => cancelled
     }).then((added) => {
       if (cancelled || added.size === 0) return
@@ -88,12 +95,9 @@ export function useSocialFeedEnrichment(): SavedViewFeedEnrichmentAdapter {
 
   const executorRef = useRef<(target: SocialEnrichmentTarget) => Promise<void>>(async () => {})
   executorRef.current = async (target) => {
-    if (!hubUrl) return
-
-    const token = await resolveHubAuthToken(getHubAuthToken)
+    const token = hubUrl ? await resolveHubAuthToken(getHubAuthToken) : ''
     const result = await fetchEnrichmentForTarget({
-      httpUrl: hubHttpUrlFor(hubUrl),
-      headers: hubAuthHeaders(token),
+      ...(hubUrl ? { httpUrl: hubHttpUrlFor(hubUrl), headers: hubAuthHeaders(token) } : {}),
       target,
       blobStore
     })
@@ -104,8 +108,8 @@ export function useSocialFeedEnrichment(): SavedViewFeedEnrichmentAdapter {
       payload: result.payload,
       attemptCount: nextEnrichmentAttempt(existing),
       fetchedAtMs: Date.now(),
-      thumbnailBlobCid: result.thumbnailBlobCid,
-      thumbnailContentType: result.thumbnailContentType
+      ...(result.thumbnailBlobCid ? { thumbnailBlobCid: result.thumbnailBlobCid } : {}),
+      ...(result.thumbnailContentType ? { thumbnailContentType: result.thumbnailContentType } : {})
     })
 
     await mutate([
@@ -155,12 +159,6 @@ export function useSocialFeedEnrichment(): SavedViewFeedEnrichmentAdapter {
       return feedEnrichmentEntryFor(row, blobUrl)
     }
 
-    if (!hubUrl) {
-      // Without a hub there is nothing to fetch; cached enrichment still
-      // renders, new fetches resume when a hub session exists.
-      return { lookup }
-    }
-
     return {
       lookup,
       requestMany: (previews) => {
@@ -168,6 +166,10 @@ export function useSocialFeedEnrichment(): SavedViewFeedEnrichmentAdapter {
           .map((preview) => enrichmentTargetForPreview(preview))
           .filter((target): target is SocialEnrichmentTarget => Boolean(target))
           .filter((target) => !rowsByKeyRef.current.has(target.key))
+          // Without a hub only the direct-oEmbed platforms can resolve;
+          // queueing the rest would write a row of `unavailable` nodes that
+          // then never retry once a hub does appear.
+          .filter((target) => Boolean(hubUrl) || supportsDirectOEmbed(target.platform))
         if (targets.length > 0) ensureQueue().enqueue(targets)
       }
     }

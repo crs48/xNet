@@ -1233,6 +1233,25 @@ export const builtInSchemas: {
         space: PropertyBuilder<string>;
         visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
     }>>;
+    readonly 'xnet://xnet.fyi/RelationshipPrimitive@1.0.0': () => Promise<DefinedSchema<{
+        label: PropertyBuilder<string>;
+        description: PropertyBuilder<string>;
+        conventionalBundles: PropertyBuilder<string>;
+        isSeed: PropertyBuilder<boolean>;
+        space: PropertyBuilder<string>;
+        visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+    }>>;
+    readonly 'xnet://xnet.fyi/Practice@1.0.0': () => Promise<DefinedSchema<{
+        from: PropertyBuilder<string>;
+        to: PropertyBuilder<string>;
+        primitive: PropertyBuilder<string>;
+        startedAt: PropertyBuilder<number>;
+        lastAt: PropertyBuilder<number>;
+        cadenceDays: PropertyBuilder<number>;
+        note: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+    }>>;
     readonly 'xnet://xnet.fyi/Pipeline@1.0.0': () => Promise<DefinedSchema<{
         name: PropertyBuilder<string>;
         description: PropertyBuilder<string>;
@@ -2529,6 +2548,25 @@ export const builtInSchemas: {
         from: PropertyBuilder<string>;
         to: PropertyBuilder<string>;
         kind: PropertyBuilder<"child" | "parent" | "spouse" | "partner" | "sibling" | "friend" | "colleague" | "manager" | "reports-to" | "introduced-by" | "knows">;
+        note: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+    }>>;
+    readonly 'xnet://xnet.fyi/RelationshipPrimitive': () => Promise<DefinedSchema<{
+        label: PropertyBuilder<string>;
+        description: PropertyBuilder<string>;
+        conventionalBundles: PropertyBuilder<string>;
+        isSeed: PropertyBuilder<boolean>;
+        space: PropertyBuilder<string>;
+        visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+    }>>;
+    readonly 'xnet://xnet.fyi/Practice': () => Promise<DefinedSchema<{
+        from: PropertyBuilder<string>;
+        to: PropertyBuilder<string>;
+        primitive: PropertyBuilder<string>;
+        startedAt: PropertyBuilder<number>;
+        lastAt: PropertyBuilder<number>;
+        cadenceDays: PropertyBuilder<number>;
         note: PropertyBuilder<string>;
         space: PropertyBuilder<string>;
         visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
@@ -4455,6 +4493,23 @@ export const crmSchemas: readonly [DefinedSchema<{
     space: PropertyBuilder<string>;
     visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
 }>, DefinedSchema<{
+    label: PropertyBuilder<string>;
+    description: PropertyBuilder<string>;
+    conventionalBundles: PropertyBuilder<string>;
+    isSeed: PropertyBuilder<boolean>;
+    space: PropertyBuilder<string>;
+    visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+}>, DefinedSchema<{
+    from: PropertyBuilder<string>;
+    to: PropertyBuilder<string>;
+    primitive: PropertyBuilder<string>;
+    startedAt: PropertyBuilder<number>;
+    lastAt: PropertyBuilder<number>;
+    cadenceDays: PropertyBuilder<number>;
+    note: PropertyBuilder<string>;
+    space: PropertyBuilder<string>;
+    visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+}>, DefinedSchema<{
     name: PropertyBuilder<string>;
     description: PropertyBuilder<string>;
     sortKey: PropertyBuilder<string>;
@@ -4965,6 +5020,9 @@ export const DEFAULT_EXTERNAL_REFERENCE_IFRAME_ALLOW = "accelerometer; autoplay;
 
 // @public (undocumented)
 export const DEFAULT_OFFLINE_POLICY: OfflineAuthPolicy;
+
+// @public
+export const DEFAULT_PROMOTION_THRESHOLD = 8;
 
 // @public
 export const DEFAULT_ROW_HEIGHT: RowHeight;
@@ -6645,8 +6703,6 @@ export interface InferredColumn {
 // @public
 export function inferTypeFromValues(values: unknown[]): ColumnType;
 
-// Warning: (ae-forgotten-export) The symbol "NodeProperties" needs to be exported by the entry point index.d.ts
-//
 // @public
 export function ingestRecord(lens: RecordLens, record: LexiconRecord, priorNode?: NodeProperties): NodeProperties;
 
@@ -7772,6 +7828,9 @@ export interface NodePayload {
     schemaId?: SchemaIRI;
 }
 
+// @public
+export type NodeProperties = Record<string, unknown>;
+
 // @public (undocumented)
 export type NodeQueryCursor = {
     version: 1;
@@ -8689,6 +8748,14 @@ export type PortableChangeRecord = {
 };
 
 // @public
+export type PortableHubAddress = {
+    name: string;
+    url: string;
+    resolverUrl?: string;
+    observedAt: number;
+};
+
+// @public
 export type PortableYjsDocRecord = {
     nodeId: string;
     updateB64: string;
@@ -8726,6 +8793,25 @@ export const PostSchema: DefinedSchema<{
     visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
     createdAt: PropertyBuilder<number>;
     createdBy: PropertyBuilder<`did:key:${string}`>;
+}>;
+
+// @public (undocumented)
+export type Practice = InferNode<(typeof PracticeSchema)['_properties']>;
+
+// @public (undocumented)
+export const PRACTICE_SCHEMA_IRI: "xnet://xnet.fyi/Practice@1.0.0";
+
+// @public
+export const PracticeSchema: DefinedSchema<{
+    from: PropertyBuilder<string>;
+    to: PropertyBuilder<string>;
+    primitive: PropertyBuilder<string>;
+    startedAt: PropertyBuilder<number>;
+    lastAt: PropertyBuilder<number>;
+    cadenceDays: PropertyBuilder<number>;
+    note: PropertyBuilder<string>;
+    space: PropertyBuilder<string>;
+    visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
 }>;
 
 // @public (undocumented)
@@ -8880,6 +8966,16 @@ export const ProjectSchema: DefinedSchema<{
 // @public
 export function promoteOverlay(authority: string, field: string, coreProp: string): LensOperation;
 
+// @public (undocumented)
+export interface PromotionProposal {
+    authority: string;
+    count: number;
+    coverage: number;
+    field: string;
+    lens: SchemaLens;
+    overlayKey: string;
+}
+
 // @public
 export interface PropertyBuilder<T = unknown> {
     coerce(value: unknown): T | null;
@@ -8913,6 +9009,18 @@ export interface PropertyTimestamp {
 
 // @public
 export type PropertyType = 'text' | 'number' | 'checkbox' | 'json' | 'date' | 'dateRange' | 'geo' | 'select' | 'multiSelect' | 'person' | 'relation' | 'rollup' | 'formula' | 'url' | 'email' | 'phone' | 'file' | 'created' | 'updated' | 'createdBy';
+
+// @public
+export function proposePromotion(rows: ReadonlyArray<Record<string, unknown>>, overlayKey: string, from: SchemaIRI, to: SchemaIRI, options?: ProposePromotionOptions): PromotionProposal | null;
+
+// @public (undocumented)
+export interface ProposePromotionOptions {
+    dismissed?: Iterable<string>;
+    threshold?: number;
+}
+
+// @public
+export function proposePromotions(rows: ReadonlyArray<Record<string, unknown>>, from: SchemaIRI, to: SchemaIRI, options?: ProposePromotionOptions): PromotionProposal[];
 
 // @public
 export function pruneVersionHistory(history: SchemaVersionEntry[]): SchemaVersionEntry[];
@@ -9528,10 +9636,26 @@ export const RELATIONSHIP_KINDS: readonly [{
 }];
 
 // @public (undocumented)
+export const RELATIONSHIP_PRIMITIVE_SCHEMA_IRI: "xnet://xnet.fyi/RelationshipPrimitive@1.0.0";
+
+// @public (undocumented)
 export const RELATIONSHIP_SCHEMA_IRI: "xnet://xnet.fyi/Relationship@1.0.0";
 
 // @public (undocumented)
 export type RelationshipKind = (typeof RELATIONSHIP_KINDS)[number]['id'];
+
+// @public (undocumented)
+export type RelationshipPrimitive = InferNode<(typeof RelationshipPrimitiveSchema)['_properties']>;
+
+// @public
+export const RelationshipPrimitiveSchema: DefinedSchema<{
+    label: PropertyBuilder<string>;
+    description: PropertyBuilder<string>;
+    conventionalBundles: PropertyBuilder<string>;
+    isSeed: PropertyBuilder<boolean>;
+    space: PropertyBuilder<string>;
+    visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+}>;
 
 // @public (undocumented)
 export const RelationshipSchema: DefinedSchema<{
@@ -11328,6 +11452,7 @@ export type WriteBundleOptions = {
     ownerDid: string;
     manifestSigner?: (bytes: Uint8Array) => Promise<Uint8Array> | Uint8Array;
     commitSigner?: (bytes: Uint8Array) => Promise<Uint8Array> | Uint8Array;
+    hubAddress?: PortableHubAddress;
     since?: BundleFrontier;
     blobPort?: BundleBlobPort;
     yjsPort?: BundleYjsPort;
@@ -11365,6 +11490,7 @@ export type XnetpackManifest = {
         commits?: number;
     };
     contentDigest: string;
+    hubAddress?: PortableHubAddress;
     signatureB64?: string;
 };
 

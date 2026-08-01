@@ -5,8 +5,8 @@
 import { validateSavedViewDescriptor, type SavedViewDescriptor } from '@xnetjs/data'
 import { SavedViewSchema } from '@xnetjs/data'
 import { SavedViewRunner, useQuery } from '@xnetjs/react'
+import { useSocialFeedEnrichment } from '@xnetjs/views'
 import { useMemo } from 'react'
-import { useSocialFeedEnrichment } from '../hooks/useSocialFeedEnrichment'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../lib/saved-view-registry'
 import { usePublishTitle } from '../workbench/route-title'
 

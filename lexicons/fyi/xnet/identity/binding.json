@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "fyi.xnet.identity.binding",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A bidirectional binding between an AT Protocol identity and an xNet did:key. Holding this record proves the AT Protocol account vouches for the xNet key; the signature proves the xNet key vouches back. Neither half alone proves anything.",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "required": ["xnetDid", "atprotoDid", "createdAt", "sig"],
+        "properties": {
+          "xnetDid": {
+            "type": "string",
+            "format": "did",
+            "description": "The xNet data identity (did:key) this account vouches for."
+          },
+          "atprotoDid": {
+            "type": "string",
+            "format": "did",
+            "description": "The AT Protocol identity the xNet key vouches for. Must match the repo this record lives in."
+          },
+          "createdAt": { "type": "string", "format": "datetime" },
+          "sig": {
+            "type": "string",
+            "description": "base64url Ed25519 signature by the xNet key over `xnet-atproto-binding.v1\\n<xnetDid>\\n<atprotoDid>\\n<createdAt>`."
+          }
+        }
+      }
+    }
+  }
+}

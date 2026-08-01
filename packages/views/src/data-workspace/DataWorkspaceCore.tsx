@@ -39,6 +39,11 @@ import {
 } from '@xnetjs/social/import/core'
 import { createDefaultSocialGraphAtlas, type SocialGraphAtlasEntry } from '@xnetjs/social/lenses'
 import {
+  createSocialCanvasProjectionPlan,
+  type SocialCanvasProjectionPlan,
+  type SocialProjectionRelationshipKind
+} from '@xnetjs/social/projection'
+import {
   createSocialPatternSavedViewDraft,
   detectSocialPatterns,
   type SocialPatternKind,
@@ -89,6 +94,37 @@ export type SavedViewCanvasFrameInput = {
   title?: string
   description?: string
   descriptor?: string
+  /**
+   * A laid-out graph to place instead of a live query frame (0419).
+   *
+   * Present when the user asked for the *projection* — the individual cards
+   * and the connections between them — rather than a lens that re-runs. A host
+   * that does not understand it should still insert the frame, which is the
+   * weaker but never-wrong reading of the request.
+   */
+  projection?: SocialCanvasProjectionPlan
+}
+
+const SOCIAL_RELATIONSHIP_KINDS: readonly SocialProjectionRelationshipKind[] = [
+  'follows',
+  'saved',
+  'authored',
+  'participated',
+  'referenced',
+  'cited',
+  'contains',
+  'related'
+]
+
+/**
+ * Narrow the runner's open relationship string to the projection vocabulary.
+ *
+ * Anything unrecognized becomes `related` rather than being dropped: the two
+ * nodes really are connected, and losing the edge would understate the graph
+ * more than labelling it loosely does.
+ */
+function socialRelationshipKind(kind: string): SocialProjectionRelationshipKind {
+  return SOCIAL_RELATIONSHIP_KINDS.find((candidate) => candidate === kind) ?? 'related'
 }
 
 export type SavedViewRow = {
@@ -602,11 +638,34 @@ export function useDataWorkspace({
           ? JSON.stringify(request.descriptor)
           : selectedView?.descriptor
 
+    // The request already carries extracted projection nodes; laying them out
+    // is the other half of the pair (see canvas-view/social-projection.ts).
+    // A request with no nodes yields no plan, and the host falls back to
+    // inserting the lens as a live frame.
+    const projection =
+      request.nodes.length > 0
+        ? createSocialCanvasProjectionPlan({
+            nodes: request.nodes,
+            edges: (request.edges ?? []).map((edge) => ({
+              id: edge.id,
+              sourceId: edge.sourceId,
+              targetId: edge.targetId,
+              relationshipKind: socialRelationshipKind(edge.relationshipKind),
+              ...(edge.label ? { label: edge.label } : {})
+            })),
+            options: {
+              title: request.title,
+              lensId: selectedView?.id ?? request.id
+            }
+          })
+        : null
+
     onInsertSavedLensAsCanvasFrame({
       id: selectedView?.id ?? request.id,
       title: request.title,
       ...(request.description ? { description: request.description } : {}),
-      ...(descriptorJson ? { descriptor: descriptorJson } : {})
+      ...(descriptorJson ? { descriptor: descriptorJson } : {}),
+      ...(projection ? { projection } : {})
     })
   }
 

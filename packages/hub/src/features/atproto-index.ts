@@ -25,12 +25,23 @@
 
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { compareActors } from './affinity'
 import type { HubFeature } from './types'
 
-/** The adopted collections (0372). Adding one is a one-line change — the point. */
+/**
+ * The adopted collections (0372). Adding one is a one-line change — the point.
+ *
+ * The two affinity collections (0420) join the two publishing ones. Note they
+ * are of different kinds and that is deliberate: `community.lexicon.bookmarks.bookmark`
+ * is ADOPTED — other apps write it and we read theirs — while
+ * `fyi.xnet.social.affinity` is the one thing we mint, carrying the platform
+ * and interaction kind the bookmark lexicon has no field for.
+ */
 export const DEFAULT_INDEX_COLLECTIONS = [
   'site.standard.publication',
-  'site.standard.document'
+  'site.standard.document',
+  'community.lexicon.bookmarks.bookmark',
+  'fyi.xnet.social.affinity'
 ] as const
 
 /** One indexed record. The artifact's row type — changing it is a break. */
@@ -250,6 +261,24 @@ export function atprotoIndexFeature(dataDir: string, config: AtprotoIndexConfig)
     mount: ({ app }) => {
       app.get('/index/status', (c) => c.json(service.status()))
       app.get('/index/snapshot', (c) => c.json(service.snapshot()))
+
+      /**
+       * The affinity comparison (0420). Two actors in, their shared subjects
+       * out — and nothing else. There is deliberately no endpoint that ranks
+       * subjects, counts them across actors, or lists "top" anything: a public
+       * like corpus with a scoreboard is a recommender (0378).
+       */
+      app.get('/xrpc/fyi.xnet.affinity.compare', (c) => {
+        const actors = c.req.queries('actors') ?? []
+        const [a, b] = actors.length === 1 ? actors[0].split(',') : actors
+        if (!a || !b) {
+          return c.json({ error: 'InvalidRequest', message: 'two `actors` are required' }, 400)
+        }
+        if (a === b) {
+          return c.json({ error: 'InvalidRequest', message: 'actors must differ' }, 400)
+        }
+        return c.json(compareActors(service.snapshot().entries, a, b))
+      })
     },
     loops:
       config.rebuildOnStart !== false
