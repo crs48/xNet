@@ -10599,6 +10599,61 @@ ourselves. Accepted, and bounded: exploration 0411 records six decidable
 tripwires that re-open the question, and treats the primitives growing past
 ~500 LOC as a tripwire in its own right.
 
+## ADR-29: xNet is not an agent harness
+
+**Status:** Accepted
+**Context:** Exploration 0416 asked whether xNet should connect to agent
+harnesses (OpenClaw, Hermes, Buzz) or build a competing one with its own
+privacy layer. "Agent harness" turned out to name three separate jobs, two of
+which xNet already occupies in shipped code: the **substrate** agents act
+against (`xnet mcp serve`, Agent Passports, the audit trail — exploration
+0337) and the **client** that drives an agent (the bridge daemon and
+`AgentFrame` wire — exploration 0392). Only the third — owning the agent loop
+itself, with channels, scheduling, memory, and a skill marketplace — was
+genuinely undecided.
+
+**Decision:** **Do not build an agent harness.** xNet is the *accountability
+substrate* agents run against and a *client* for the good ones. The agent loop,
+its messaging channels, its cron and heartbeats, and its skill marketplace are
+permanent non-goals.
+
+The corollary is a positive commitment: the guardrail, the passport, and the
+audit ledger stay **xNet-side** and apply identically to every connected agent,
+regardless of what that agent's own permission model claims.
+
+**Rationale:**
+
+- **The layer commoditised.** Five meta-harnesses landed in roughly one week of
+  June 2026 — Databricks Omnigent (Apache-2.0), Zed ACP, Vercel HarnessAgent,
+  Cloudflare Flue, and Conductor — on top of two excellent free harnesses
+  (Hermes, MIT; OpenClaw). Nothing xNet builds here stays differentiated for a
+  quarter.
+- **The layer beneath it did not.** OpenClaw's audit is mutable JSONL with
+  documented blind spots for cron jobs and sub-agents; Hermes records learned
+  capability in `SKILL.md` but says nothing about attribution. xNet's kernel —
+  `authorDID`, per-author `parentHash` chains, Ed25519 signatures — answers
+  "prove what the agent did" structurally, and exploration 0337 already aimed
+  it at agents.
+- **Composition beats competition.** Positioned beneath every harness, xNet
+  works with all of them. Positioned as one, it competes with all of them and
+  composes with none — including Buzz, whose agents already carry keypairs and
+  are a natural interop target rather than a rival.
+- **A harness is a permanent treadmill.** Every model release re-opens the
+  work, and the skill-marketplace supply chain brings a ClawHavoc-class trust
+  problem xNet has no advantage in solving.
+
+**Tradeoff:** xNet's relationship with the user is mediated by whichever agent
+they chose, so the accountability story has to be marketed as the reason the
+agent is *safe* rather than as a product of its own. Accepted: the alternative
+spends the roadmap's other two pillars on a layer five funded competitors gave
+away in one week.
+
+**Scope note:** the provider-agnostic loop in
+`packages/cloud/src/ai/agent-runner.ts` stays — it is a *safety core* (tool
+allow-list, injection deny point, token-cap breaker) for xNet's own server-side
+features, not the seed of a harness product. Growing it channels, scheduling,
+or a skill registry is the tripwire that re-opens this ADR.
+
 ---
 
 ## Package Graph

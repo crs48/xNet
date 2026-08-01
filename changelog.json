@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-01-verify-what-your-agent-did",
+      "url": "https://xnet.fyi/changelog#2026-08-01-verify-what-your-agent-did",
+      "title": "Verify what your agent did",
+      "content_text": "Any agent connected to xNet — OpenClaw, Hermes, Buzz, Claude Code — now gets its own key and a narrow grant, and everything it does exports as a receipt you can verify offline. A new xnet audit verify command checks the signatures, spots a removed action, and proves you approved anything risky.\n",
+      "date_published": "2026-08-01T18:00:29Z",
+      "tags": [
+        "ai"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "Any agent connected to xNet — OpenClaw, Hermes, Buzz, Claude Code — now gets its own key and a narrow grant, and everything it does exports as a receipt you can verify offline. A new xnet audit verify command checks the signatures, spots a removed action, and proves you approved anything risky.",
+        "highlights": [],
+        "mergedAt": "2026-08-01T18:00:29Z",
+        "pr": 668,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-01-coding-agents-can-finally-search-your-wh",
       "url": "https://xnet.fyi/changelog#2026-08-01-coding-agents-can-finally-search-your-wh",
       "title": "Coding agents can finally search your whole workspace",

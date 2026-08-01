@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Verify what your agent did</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-verify-what-your-agent-did</link>
+      <guid isPermaLink="false">2026-08-01-verify-what-your-agent-did</guid>
+      <pubDate>Sat, 01 Aug 2026 18:00:29 GMT</pubDate>
+      <description>Any agent connected to xNet — OpenClaw, Hermes, Buzz, Claude Code — now gets its own key and a narrow grant, and everything it does exports as a receipt you can verify offline. A new xnet audit verify command checks the signatures, spots a removed action, and proves you approved anything risky.</description>
+    </item>
+    <item>
       <title>Coding agents can finally search your whole workspace</title>
       <link>https://xnet.fyi/changelog#2026-08-01-coding-agents-can-finally-search-your-wh</link>
       <guid isPermaLink="false">2026-08-01-coding-agents-can-finally-search-your-wh</guid>
