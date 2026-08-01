@@ -5,9 +5,12 @@ import Footer from '../components/sections/Footer.astro'
 import {
   fallback,
   COMPONENT_LABELS,
+  COMPONENT_BLURBS,
   STATUS_LABELS,
   STATUS_COLORS,
-  STATUS_URL
+  STATUS_URL,
+  STATUS_TIERS,
+  DURABILITY
 } from '../data/status'
 
 const overallColor = STATUS_COLORS[fallback.overall]
@@ -55,6 +58,11 @@ const fmtPct = (a: number | null | undefined) =>
             >
               <span class="font-medium text-gray-700 dark:text-gray-200">
                 {COMPONENT_LABELS[c.id] ?? c.id}
+                {COMPONENT_BLURBS[c.id] && (
+                  <span class="mt-0.5 block text-xs font-normal text-gray-500 dark:text-gray-400">
+                    {COMPONENT_BLURBS[c.id]}
+                  </span>
+                )}
               </span>
               <span class="flex items-center gap-2 text-sm">
                 <span data-availability class="text-gray-400">{fmtPct(c.availability)}</span>
@@ -79,6 +87,49 @@ const fmtPct = (a: number | null | undefined) =>
         <span id="budget-caution">{fallback.errorBudgetPolicy.caution}</span> cautious ·
         <span id="budget-freeze">{fallback.errorBudgetPolicy.freeze}</span> frozen
       </div>
+
+      <!-- What we hold ourselves to, per tier (exploration 0418) -->
+      <section class="mt-12">
+        <h2 class="mb-2 text-xl font-bold text-gray-800 dark:text-white">
+          What we hold ourselves to
+        </h2>
+        <p class="mb-5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+          Availability is measured for every plan. We only publish a figure where we are
+          willing to be held to it — see
+          <a class="text-indigo-400 hover:underline" href="/cloud/durability">Durability</a>
+          for what a restore covers, and what it does not.
+        </p>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                <th class="py-2.5 pr-4 font-medium">Plan</th>
+                <th class="py-2.5 pr-4 font-medium">Availability</th>
+                <th class="py-2.5 pr-4 font-medium">Recovery point</th>
+                <th class="py-2.5 pr-4 font-medium">Recovery time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                STATUS_TIERS.map(({ id, name }) => (
+                  <tr class="border-b border-gray-200/60 dark:border-gray-800/60">
+                    <td class="py-2.5 pr-4 font-medium text-gray-700 dark:text-gray-200">{name}</td>
+                    <td class="py-2.5 pr-4 text-gray-600 dark:text-gray-300">
+                      {DURABILITY[id].publishedAvailabilityLabel ?? 'Measured, not promised'}
+                    </td>
+                    <td class="py-2.5 pr-4 text-gray-600 dark:text-gray-300">
+                      {DURABILITY[id].rpoLabel ?? '—'}
+                    </td>
+                    <td class="py-2.5 pr-4 text-gray-600 dark:text-gray-300">
+                      {DURABILITY[id].rtoLabel ?? '—'}
+                    </td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <p id="freshness" class="mt-8 text-sm text-gray-500">
         Showing the last published snapshot — live status at

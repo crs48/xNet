@@ -1,0 +1,163 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Footer from '../components/sections/Footer.astro'
+
+const updated = 'August 2026'
+---
+
+<Base
+  title="The Make-Whole Policy — we refund loss, not downtime"
+  description="If xNet Cloud loses data covered by the Restore Commitment, we refund every fee you have ever paid and publish a postmortem within 14 days. In addition to your legal rights, not instead of them."
+>
+  <Nav />
+
+  <main class="py-24 lg:py-32">
+    <div class="mx-auto max-w-3xl px-6">
+      <div class="mb-12">
+        <h1 class="mb-4 text-4xl font-bold text-gray-800 dark:text-white sm:text-5xl">
+          The Make-Whole Policy
+        </h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Last updated: {updated}</p>
+      </div>
+
+      <div class="prose prose-gray dark:prose-invert max-w-none">
+        <section class="mb-12">
+          <div
+            class="rounded-2xl border border-indigo-500/40 bg-indigo-500/[0.06] p-6 not-prose"
+          >
+            <p class="text-lg font-semibold leading-relaxed text-gray-800 dark:text-white">
+              If we lose data covered by the Restore Commitment, we refund every fee you
+              have ever paid us, and we publish a postmortem within 14 days.
+            </p>
+            <p class="mt-4 leading-relaxed text-gray-600 dark:text-gray-300">
+              This is <strong>in addition to</strong> your legal rights, not instead of
+              them. Nothing here replaces the remedies you already have under consumer
+              law, and we do not ask you to give any of them up.
+            </p>
+          </div>
+        </section>
+
+        <section class="mb-12">
+          <h2>Why we don't offer downtime credits</h2>
+          <p>
+            Most hosted services promise you a percentage of one month's fee if they go
+            down. We think that is the wrong trade, for two reasons.
+          </p>
+          <p>
+            <strong>Downtime is not the harm here.</strong> xNet works offline. When our
+            hub is unreachable your app keeps running against the copy on your own
+            device, and your changes sync when we come back. A credit for downtime would
+            compensate you for something that mostly did not hurt you.
+          </p>
+          <p>
+            <strong>Credits are usually a trade you would not take.</strong> The standard
+            clause makes credits the "sole and exclusive remedy" — you accept a few
+            pounds and give up every other claim. On a $5/month plan, a typical downtime
+            credit is about fifty cents. We would rather not build a claims process to
+            hand out fifty cents in exchange for your legal rights.
+          </p>
+          <p>
+            So we credit nothing for downtime, and we put the money where the actual harm
+            would be.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>What counts as loss</h2>
+          <p>
+            Data covered by the
+            <a href="/cloud/durability">Restore Commitment</a> for your plan is
+            irrecoverably lost from our systems — meaning we cannot restore it, and you
+            cannot restore it from a copy we told you we were keeping.
+          </p>
+          <p>It is not a Make-Whole event if:</p>
+          <ul>
+            <li>
+              You deleted it yourself. Deletion is explicit and irreversible by design,
+              and we will not undo it for you.
+            </li>
+            <li>
+              It was outside the covered scopes for your plan. We list those, precisely
+              and currently, on the <a href="/cloud/durability">durability page</a> — and
+              a build gate stops us quietly widening or narrowing that list.
+            </li>
+            <li>
+              You are on the free tier, which carries no commitment of any kind. It is a
+              shared hub for trying xNet out; treat it as disposable.
+            </li>
+          </ul>
+        </section>
+
+        <section class="mb-12">
+          <h2>What you get</h2>
+          <ul>
+            <li>
+              <strong>A refund of every fee you have paid us</strong>, up to the trailing
+              24 months. Not a month's credit — the fees.
+            </li>
+            <li>
+              <strong>A published postmortem within 14 days</strong>: what happened, why,
+              and what changed so it does not happen again. Published openly, not sent
+              only to affected customers.
+            </li>
+            <li>
+              <strong>Help getting back to a working state</strong> from whatever copies
+              do exist — your devices, your exports, your other collaborators.
+            </li>
+          </ul>
+        </section>
+
+        <section class="mb-12">
+          <h2>Why we can afford to say this</h2>
+          <p>
+            Because we expect not to pay it, and because the expectation is tested rather
+            than felt. Every change to xNet runs a restore drill: back up a real database,
+            restore it, verify it, then corrupt a copy on purpose and require the check to
+            fail. A drill that cannot detect corruption is worse than none.
+          </p>
+          <p>
+            This policy is a bet on that drill. If we are wrong, the bet pays you.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>How to claim</h2>
+          <p>
+            Email <a href="mailto:support@xnet.fyi">support@xnet.fyi</a>. There is no form
+            and no deadline window to miss. If we lost your data we already know, and we
+            would rather come to you first.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>The limits, stated plainly</h2>
+          <p>
+            Our total liability is capped at the fees you have paid us in the trailing 24
+            months, which is also what this policy pays out. We are a small team running
+            an early service, and we are not able to underwrite consequential business
+            losses — which is exactly why we built the product so that the copy you rely
+            on is the one on your own machine.
+          </p>
+          <p>
+            Some of these limits do not apply where the law does not allow them, and your
+            statutory rights are unaffected. The full terms are on the
+            <a href="/terms">terms page</a>.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <div class="rounded-xl border border-border bg-surface/30 p-6 not-prose">
+            <p class="leading-relaxed text-gray-700 dark:text-gray-200">
+              When durability and uptime conflict, we choose durability. Every time. If
+              keeping your data safe means your hub is slow to come back, it will be slow
+              to come back.
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Base>

@@ -154,9 +154,22 @@ const updated = 'June 24, 2026'
             <li>We reserve the right to block abusive connections</li>
           </ul>
           <p>
-            Paid xNet Cloud plans target higher availability as described on the pricing page; any service-level
-            commitments and credits, if offered, are stated in your plan or order. For mission-critical use you
-            can always <a href="/docs/guides/hub/">self-host your own Hub</a>.
+            Paid xNet Cloud plans carry two published commitments, both set out on the
+            <a href="/cloud/durability">Durability page</a>: a <strong>Restore Commitment</strong>
+            (how much recent work could be lost, and how long we have to restore a working Hub) and,
+            on some tiers, a <strong>published availability figure</strong>. Where a tier publishes no
+            availability figure, availability is still measured and shown live on our
+            <a href="/status">status page</a> — we simply make no promise about it. The Durability page
+            also names, precisely, what replication does <em>not</em> cover today.
+          </p>
+          <p>
+            <strong>We do not offer downtime service credits.</strong> xNet keeps working offline when a
+            Hub is unreachable, so downtime is a degraded convenience rather than the harm. Instead, if we
+            lose data covered by the Restore Commitment, our <a href="/make-whole">Make-Whole Policy</a>
+            refunds every fee you have paid us (trailing 24 months) and we publish a postmortem within 14
+            days. That policy is in addition to your legal rights, not instead of them. Enterprise orders
+            may add contractual credits. For mission-critical use you can always
+            <a href="/docs/guides/hub/">self-host your own Hub</a> using the same open-source code we run.
           </p>
         </section>
 
@@ -223,7 +236,27 @@ const updated = 'June 24, 2026'
           </ul>
           <p>
             This applies whether the claim is based on warranty, contract, tort, or any other legal theory.
-            Some jurisdictions don't allow these limitations, so they may not apply to you.
+          </p>
+          <p>
+            <strong>Cap on direct damages.</strong> Our total aggregate liability to you for all claims
+            arising out of or relating to the Services is limited to the fees you have actually paid us in
+            the 24 months before the event giving rise to the claim. If you have paid us nothing — for
+            example on the free tier or the local-first app — that cap is zero, and the software is provided
+            to you at no charge on an "as is" basis.
+          </p>
+          <p>
+            <strong>What we don't limit.</strong> Nothing in these terms excludes or limits our liability
+            for death or personal injury caused by negligence, for fraud or fraudulent misrepresentation,
+            or for anything else that cannot lawfully be excluded or limited. If you are a consumer, your
+            statutory rights — including that digital content be of satisfactory quality, fit for purpose,
+            and as described — apply in full and are not affected by anything here, whatever else these
+            terms say. Some jurisdictions don't allow these limitations, so they may not apply to you.
+          </p>
+          <p>
+            Separately from these limits, we voluntarily offer the
+            <a href="/make-whole">Make-Whole Policy</a> for loss of data covered by the Restore Commitment.
+            It is additional to your rights, not a replacement for them, and it is not your "sole and
+            exclusive remedy".
           </p>
         </section>
 

@@ -762,11 +762,11 @@ describe('durability posture never outruns the code', () => {
 
 ### Phase 2 — Publish the promise
 
-- [ ] Add `site/src/pages/cloud/durability.astro` — the Durability Note (proven / drilled / known-broken), generated from `DURABILITY_POSTURE`.
-- [ ] Add `site/src/pages/make-whole.astro` — the Make-Whole Policy, in plain language, explicitly additive to statutory rights.
-- [ ] Rewrite [`terms.astro`](../../site/src/pages/terms.astro) §"The Hosted Hub" to point at both pages; add a **cap on direct damages** (fees paid, trailing 24 months) to §"Limitation of Liability".
+- [x] Add `site/src/pages/cloud/durability.astro` — the Durability Note (proven / drilled / known-broken), generated from `DURABILITY_POSTURE`.
+- [x] Add `site/src/pages/make-whole.astro` — the Make-Whole Policy, in plain language, explicitly additive to statutory rights.
+- [x] Rewrite [`terms.astro`](../../site/src/pages/terms.astro) §"The Hosted Hub" to point at both pages; add a **cap on direct damages** (fees paid, trailing 24 months) to §"Limitation of Liability".
 - [ ] Name the governing-law jurisdiction in [`terms.astro:262`](../../site/src/pages/terms.astro).
-- [ ] Surface the `backups` component and per-tier objective on [`site/src/data/status.ts`](../../site/src/data/status.ts) / `/status`.
+- [x] Surface the `backups` component and per-tier objective on [`site/src/data/status.ts`](../../site/src/data/status.ts) / `/status`.
 - [ ] Add the three claims-ledger entries to [`charter-claims-ledger.test.ts`](../../packages/telemetry/test/charter-claims-ledger.test.ts).
 - [ ] Record **ADR-30 — "We refund loss, not downtime"** in [`decisions.mdx`](../../site/src/content/docs/docs/architecture/decisions.mdx).
 

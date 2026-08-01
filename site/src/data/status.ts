@@ -42,6 +42,35 @@ export const COMPONENT_LABELS: Record<string, string> = {
   backups: 'Backups (Litestream → R2)'
 }
 
+/**
+ * What each component means in plain language — the status page is read by
+ * people deciding whether to trust us, not only by people already paged.
+ */
+export const COMPONENT_BLURBS: Record<string, string> = {
+  'control-plane': 'Sign-in, billing, and provisioning.',
+  'hub-fleet': 'The hubs that sync your data. Your app keeps working offline when this is degraded.',
+  'ai-gateway': 'The managed AI gateway. Off until you use it.',
+  backups:
+    'Continuous replication of hub databases to object storage. Freshness is measured, not assumed.'
+}
+
+/**
+ * The objective each tier is held to, for the status page's SLO table
+ * (exploration 0418). Derived from the generated durability mirror so a
+ * published figure here can never drift from the plan catalog.
+ */
+export { DURABILITY, type SitePlanId } from './durability'
+
+/** Tiers shown on the status page's objective table, cheapest → richest. */
+export const STATUS_TIERS: { id: 'demo' | 'personal' | 'family' | 'team' | 'enterprise'; name: string }[] =
+  [
+    { id: 'demo', name: 'Free' },
+    { id: 'personal', name: 'Personal' },
+    { id: 'family', name: 'Family' },
+    { id: 'team', name: 'Team' },
+    { id: 'enterprise', name: 'Enterprise' }
+  ]
+
 export const STATUS_LABELS: Record<ComponentStatus, string> = {
   operational: 'Operational',
   degraded: 'Degraded',

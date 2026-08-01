@@ -1,0 +1,273 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import { DURABILITY, SCOPE_LABELS, uncovered, type SitePlanId } from '../../data/durability'
+
+const editUrl = 'https://github.com/crs48/xNet/blob/main/packages/entitlements/src/durability.ts'
+const repo = 'https://github.com/crs48/xNet/blob/main'
+
+/** Tiers shown on the public grid, in the same order as the pricing page. */
+const TIERS: { id: SitePlanId; name: string }[] = [
+  { id: 'demo', name: 'Free' },
+  { id: 'personal', name: 'Personal' },
+  { id: 'family', name: 'Family' },
+  { id: 'team', name: 'Team' },
+  { id: 'enterprise', name: 'Enterprise' }
+]
+
+/**
+ * Every uncovered scope, across every tier — the disclosure list. Derived, so a
+ * scope disappears from this page the moment replication actually covers it.
+ */
+const gaps = [...new Set(TIERS.flatMap((t) => uncovered(t.id)))].filter((s) => s !== 'change-log')
+
+const receipts = [
+  {
+    claim: 'Your hub’s database is replicated continuously to object storage.',
+    how: 'Litestream ships the SQLite write-ahead log roughly every second.',
+    where: 'packages/cloud/src/litestream/',
+    label: 'Litestream integration'
+  },
+  {
+    claim: 'A restore actually restores — and we prove the check can fail.',
+    how: 'Every change runs a drill: back up a real database, restore it, verify it physically (integrity check) and logically (row counts, change high-water mark, per-node head hashes). The same test corrupts a copy on purpose and requires the drill to fail. A check that cannot detect corruption is worse than none.',
+    where: 'tests/reliability/restore/restore-drill.test.ts',
+    label: 'Restore drill'
+  },
+  {
+    claim: 'Backup freshness is measured, not assumed.',
+    how: 'The hub scrapes its replication metrics and publishes a real “last synced” time, so a stalled replica is visible instead of silent.',
+    where: 'packages/hub/src/storage/litestream.ts',
+    label: 'Freshness signal'
+  },
+  {
+    claim: 'Availability is computed from real probes.',
+    how: 'Cold starts count as available — a request that waits and then succeeds is not an outage — so scale-to-zero tiers are not penalised for working as designed.',
+    where: 'apps/cloud/src/observability/sli.ts',
+    label: 'Availability measurement'
+  }
+]
+---
+
+<Base
+  title="xNet Cloud Durability — where your data lives, and what we verify"
+  description="Your devices hold the master copy; xNet Cloud keeps a replicated one. What we back up, what we verify on every change, and what is not covered yet — stated plainly."
+>
+  <Nav />
+
+  <main class="py-24 lg:py-32">
+    <div class="mx-auto max-w-3xl px-6">
+      <!-- Hero -->
+      <div class="mb-14">
+        <h1 class="mb-6 text-4xl font-bold text-gray-800 dark:text-white sm:text-5xl">
+          Durability
+        </h1>
+        <p class="text-lg leading-relaxed text-gray-500 dark:text-gray-400">
+          What happens to your data when something goes wrong — stated plainly, with
+          links to the code and tests that back each claim.
+        </p>
+      </div>
+
+      <!-- The architecture argument -->
+      <section class="mb-14">
+        <h2 class="mb-4 text-2xl font-bold text-gray-800 dark:text-white">
+          Where your data lives
+        </h2>
+        <div class="space-y-4 leading-relaxed text-gray-600 dark:text-gray-300">
+          <p>
+            Your devices hold the master copy. xNet Cloud runs a hub that keeps a
+            replicated copy, streamed to object storage roughly every second.
+          </p>
+          <p class="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-5">
+            <strong class="text-gray-800 dark:text-white">
+              If our hub disappeared tomorrow, your data would still be on your machines,
+              and the app would keep working — offline, as it always does.
+            </strong>
+            That is the whole point of building it local-first. You can also
+            <a class="underline" href="/docs/guides/hub/">run your own hub</a> at any
+            time, using the same open-source code we run.
+          </p>
+          <p>
+            This cuts the other way too, and we would rather say so: if you only ever
+            use one device, you have fewer copies than this page assumes. The app shows
+            you how many copies exist, and tells you when the answer is one.
+          </p>
+        </div>
+      </section>
+
+      <!-- What we verify -->
+      <section class="mb-14">
+        <h2 class="mb-4 text-2xl font-bold text-gray-800 dark:text-white">What we verify</h2>
+        <p class="mb-6 leading-relaxed text-gray-600 dark:text-gray-300">
+          A promise with no receipt is just marketing. Each of these links to the code or
+          test that makes it true.
+        </p>
+        <div class="space-y-4">
+          {
+            receipts.map((r) => (
+              <div class="rounded-xl border border-border bg-surface/30 p-5">
+                <p class="font-semibold text-gray-800 dark:text-white">{r.claim}</p>
+                <p class="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                  {r.how}
+                </p>
+                <a
+                  class="mt-3 inline-block font-mono text-xs text-indigo-500 underline dark:text-indigo-400"
+                  href={`${repo}/${r.where}`}
+                >
+                  {r.where}
+                </a>
+              </div>
+            ))
+          }
+        </div>
+      </section>
+
+      <!-- What is not covered -->
+      <section class="mb-14">
+        <h2 class="mb-4 text-2xl font-bold text-gray-800 dark:text-white">
+          What is not covered yet
+        </h2>
+        <div class="rounded-xl border border-amber-500/40 bg-amber-500/[0.07] p-5">
+          <p class="mb-4 leading-relaxed text-gray-700 dark:text-gray-200">
+            We would rather name a gap precisely than describe it vaguely. These are the
+            parts of your hub that replication does <strong>not</strong> cover today:
+          </p>
+          <ul class="space-y-3">
+            {
+              gaps.map((scope) => (
+                <li class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">
+                  <strong class="text-gray-800 dark:text-white">{SCOPE_LABELS[scope]}</strong>
+                  {scope === 'blobs' && (
+                    <span>
+                      {' '}
+                      — attachments live on the hub’s own disk and are not yet copied to
+                      object storage. If that disk is lost, an attachment you uploaded
+                      from a device you no longer have could be lost with it. Until this
+                      line disappears from this page, treat attachments as living on your
+                      devices only.
+                    </span>
+                  )}
+                  {scope === 'search-index' && (
+                    <span>
+                      {' '}
+                      — rebuilt from your data after a restore rather than replicated, so
+                      search may be briefly incomplete while it catches up. Nothing is
+                      lost.
+                    </span>
+                  )}
+                </li>
+              ))
+            }
+          </ul>
+          <p class="mt-4 text-sm text-gray-600 dark:text-gray-300">
+            This list is generated from the same constant our code enforces, so it cannot
+            quietly go out of date: a scope disappears from this page only when
+            replication actually covers it.
+          </p>
+        </div>
+      </section>
+
+      <!-- The commitment table -->
+      <section class="mb-14">
+        <h2 class="mb-4 text-2xl font-bold text-gray-800 dark:text-white">
+          The Restore Commitment
+        </h2>
+        <p class="mb-6 leading-relaxed text-gray-600 dark:text-gray-300">
+          Two numbers per plan. <strong>Recovery point</strong> is how much recent work
+          could be lost in the worst case. <strong>Recovery time</strong> is how long we
+          have to get you a working hub back.
+        </p>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="border-b border-border text-gray-500 dark:text-gray-400">
+                <th class="py-3 pr-4 font-medium">Plan</th>
+                <th class="py-3 pr-4 font-medium">Recovery point</th>
+                <th class="py-3 pr-4 font-medium">Recovery time</th>
+                <th class="py-3 pr-4 font-medium">Availability</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                TIERS.map(({ id, name }) => {
+                  const d = DURABILITY[id]
+                  return (
+                    <tr class="border-b border-border/60">
+                      <td class="py-3 pr-4 font-medium text-gray-800 dark:text-white">{name}</td>
+                      <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">
+                        {d.rpoLabel ?? '—'}
+                      </td>
+                      <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">
+                        {d.rtoLabel ?? '—'}
+                      </td>
+                      <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">
+                        {d.publishedAvailabilityLabel ?? 'Measured, not promised'}
+                      </td>
+                    </tr>
+                  )
+                })
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+          “Measured, not promised” means exactly that: we measure availability for every
+          plan and show it live on our <a class="underline" href="/status">status page</a>,
+          but we only publish a figure where we are willing to be held to it. The free
+          tier is a shared hub with no commitment of any kind — treat it as disposable.
+        </p>
+      </section>
+
+      <!-- Make-whole -->
+      <section class="mb-14">
+        <h2 class="mb-4 text-2xl font-bold text-gray-800 dark:text-white">
+          If we lose your data
+        </h2>
+        <div class="rounded-xl border border-border bg-surface/30 p-6">
+          <p class="mb-4 leading-relaxed text-gray-700 dark:text-gray-200">
+            We refund every fee you have ever paid us, and we publish a postmortem within
+            14 days. We do not offer downtime credits — read
+            <a class="underline" href="/make-whole">why</a>.
+          </p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            When durability and uptime conflict, we choose durability. Every time.
+          </p>
+        </div>
+      </section>
+
+      <!-- Honest framing -->
+      <section class="mb-14">
+        <h2 class="mb-4 text-2xl font-bold text-gray-800 dark:text-white">
+          This is early software
+        </h2>
+        <div class="space-y-4 leading-relaxed text-gray-600 dark:text-gray-300">
+          <p>
+            xNet is young and its cloud is younger. We are not going to pretend otherwise,
+            and we are not going to hide behind the word “beta” either — you are paying,
+            so the promises above are real promises.
+          </p>
+          <p>
+            What being early actually means here: the gap list above is longer than it will
+            be, our operating history is shorter than we would like, and the honest reason
+            to trust us today is not our track record but the fact that
+            <strong class="text-gray-800 dark:text-white">
+              you never have to
+            </strong>
+            — the master copy is yours, the code is
+            <a class="underline" href="https://github.com/crs48/xNet">open</a>, the export
+            is free, and you can leave without asking us.
+          </p>
+        </div>
+      </section>
+
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        The figures on this page are generated from
+        <a class="underline" href={editUrl}>the plan catalog</a>; a build gate fails if any
+        page states a number the code does not back.
+      </p>
+    </div>
+  </main>
+
+  <Footer />
+</Base>
