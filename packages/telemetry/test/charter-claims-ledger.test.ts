@@ -173,6 +173,38 @@ const CLAIMS: Claim[] = [
     }
   },
   {
+    id: 'calm-no-manufactured-urgency',
+    source:
+      'Charter §Calm — "we do not manufacture urgency": no scarcity counters, countdown ' +
+      'pressure or act-now prompts. The copy rule was already written in ' +
+      'apps/cloud/src/billing/notify.ts and enforced by nothing (0429)',
+    backing: 'enforced',
+    assert: () => {
+      // Same shape as the metered-connection receipt above: the enforcer is the
+      // humane-patterns gate, so pin the rule and the urgency identifiers it must
+      // keep banning. The negative half matters just as much — a rule that also
+      // fired on `expiresIn` would be a gate nobody can keep green, so the
+      // legitimate time-handling names must stay OUT of the pattern.
+      const gate = readFileSync(
+        fileURLToPath(new URL('scripts/check-humane-patterns.mjs', `file://${repoRoot}`)),
+        'utf8'
+      )
+      expect(gate, 'the manufactured-urgency rule must exist').toContain(
+        "name: 'manufactured urgency'"
+      )
+      const rule = gate.slice(gate.indexOf("name: 'manufactured urgency'"))
+      const pattern = rule.slice(0, rule.indexOf('\n', rule.indexOf('re:')))
+      for (const token of ['spotsLeft', 'seatsRemaining', 'offerEndsAt', 'actNow']) {
+        expect(pattern, `manufactured-urgency rule must ban ${token}`).toContain(token)
+      }
+      for (const legitimate of ['expiresIn', 'expiresAt', 'dueDate']) {
+        expect(pattern, `manufactured-urgency rule must NOT fire on ${legitimate}`).not.toContain(
+          legitimate
+        )
+      }
+    }
+  },
+  {
     id: 'commons-no-scored-intimacy',
     source:
       'Charter §Commons/No ground rent — "no scored intimacy: relationships are made legible, ' +
@@ -224,6 +256,21 @@ const CLAIMS: Claim[] = [
       'grants are hub-managed (packages/hub/src/storage/, schemas/auth-exempt.ts) and do NOT, ' +
       'and the DID-based subscriber list is unbuilt. Portable bytes, partly captive context — ' +
       'the inventory is disclosed in docs/ECONOMICS.md §3. Ship: exploration 0234 Wave 3.'
+  },
+  {
+    id: 'economics-refusals-are-affordable',
+    source:
+      'Charter §Commons/No ground rent test 5 (the Rust test) + ECONOMICS.md §4a — "every ' +
+      'refusal must name at least one shipped or building lane that survives it" (0429)',
+    backing: 'building',
+    pending:
+      'Twelve of the thirteen §6 refusals map to a lane that pays for them (hosting carries 8, ' +
+      'support 2, the marketplace 1, all-lanes 1). "No context capture" maps to NONE: ' +
+      'ECONOMICS.md §6 calls it the most expensive decision in the Charter, and the ' +
+      'compensating slopes — operated trust and multiplayer — are weaker per unit than a ' +
+      'captive graph, with multiplayer not yet revenue-bearing. The refusal stands and is ' +
+      'labelled on borrowed time in docs/ECONOMICS.md §4a. Dropping it needs its own ADR; ' +
+      'the Rust test does not authorise it. Ship: a revenue-bearing multiplayer lane.'
   },
   {
     id: 'governance-rule-change-path',
