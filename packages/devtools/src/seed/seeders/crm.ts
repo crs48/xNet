@@ -2,7 +2,9 @@
  * CRM seeder — a deep, interrelated sales graph:
  * Pipeline → Stages; Organizations → Contacts; Deals → (Stage, Org, primary
  * Contact, Products via LineItems); DealContactRole junctions (Deal↔Contact);
- * Activities (→ Contact, → about Deal); Relationships (Contact↔Contact).
+ * Activities (→ Contact, → about Deal); Relationships (Contact↔Contact);
+ * RelationshipPrimitives (the shared vocabulary) → Practices (Contact↔Contact
+ * edges saying what two people actually do together, exploration 0422).
  * Scoped to the Sales space, tagged, and filed under work/sales.
  */
 
@@ -16,7 +18,9 @@ import {
   LineItemSchema,
   OrganizationSchema,
   PipelineSchema,
+  PracticeSchema,
   ProductSchema,
+  RelationshipPrimitiveSchema,
   RelationshipSchema,
   StageSchema
 } from '@xnetjs/data'
@@ -63,6 +67,35 @@ const COMPANY_NAMES = [
   'Wonka'
 ]
 
+/**
+ * The seed relationship-primitive vocabulary (exploration 0422). These are
+ * *activities*, not labels — the units a word like "friend" compresses away.
+ * Seeded with `isSeed: true`; users add, rename and delete their own terms,
+ * which is why this is a node type and not an enum.
+ *
+ * `bundles` records where each activity conventionally lives, and is only ever
+ * a prior for derivation — never an assertion about a particular pair.
+ */
+const RELATIONSHIP_PRIMITIVES = [
+  { slug: 'make-things', label: 'Make things', bundles: 'coworker' },
+  { slug: 'hard-conversations', label: 'Have hard conversations', bundles: 'partner, coworker' },
+  {
+    slug: 'celebrate-anniversaries',
+    label: 'Celebrate anniversaries',
+    bundles: 'partner, coworker'
+  },
+  { slug: 'formalize-commitment', label: 'Formalize commitment', bundles: 'partner' },
+  { slug: 'prepare-for-time', label: 'Prepare for time together', bundles: 'coworker' },
+  { slug: 'therapy', label: 'Go to therapy together', bundles: 'partner' },
+  { slug: 'explicit-breakup', label: 'Break up explicitly', bundles: 'partner' },
+  { slug: 'cohabitate', label: 'Cohabitate', bundles: 'partner, family' },
+  { slug: 'plus-one', label: 'Invite as a +1', bundles: 'partner' },
+  { slug: 'codify-values', label: 'Codify values and priorities', bundles: 'coworker' },
+  { slug: 'make-vows', label: 'Make vows', bundles: 'partner' }
+] as const
+
+const primitiveId = (slug: string) => seedId('relationship-primitive', slug)
+
 export const crmSeeder: SeederModule = {
   domain: 'crm',
   label: 'CRM (orgs, deals, contacts)',
@@ -76,7 +109,9 @@ export const crmSeeder: SeederModule = {
     LineItemSchema._schemaId,
     ProductSchema._schemaId,
     ActivitySchema._schemaId,
-    RelationshipSchema._schemaId
+    RelationshipSchema._schemaId,
+    RelationshipPrimitiveSchema._schemaId,
+    PracticeSchema._schemaId
   ],
   seed: ({ fixtures, scale, rng }) => {
     const drafts: DeterministicNodeImportDraft[] = []
@@ -179,6 +214,45 @@ export const crmSeeder: SeederModule = {
           space
         }
       })
+    }
+
+    // ─── Relationship primitives (the shared vocabulary) ─────────────────
+    for (const primitive of RELATIONSHIP_PRIMITIVES) {
+      drafts.push({
+        id: primitiveId(primitive.slug),
+        schemaId: RelationshipPrimitiveSchema._schemaId,
+        properties: {
+          label: primitive.label,
+          conventionalBundles: primitive.bundles,
+          isSeed: true,
+          space
+        }
+      })
+    }
+
+    // ─── Practices: what these pairs actually do together ─────────────────
+    // Deliberately sparse and partial — the interesting read is the set
+    // *difference* (which conventional activities a pair does NOT share), so a
+    // pair that practises everything would seed nothing worth looking at.
+    for (let i = 0; i + 1 < allContacts.length; i += Math.max(1, scale.contactsPerOrg)) {
+      const practised = pick(rng, [
+        ['make-things', 'prepare-for-time'],
+        ['make-things', 'hard-conversations', 'codify-values'],
+        ['prepare-for-time']
+      ])
+      for (const slug of practised) {
+        drafts.push({
+          id: seedId('practice', i, slug),
+          schemaId: PracticeSchema._schemaId,
+          properties: {
+            from: allContacts[i],
+            to: allContacts[i + 1],
+            primitive: primitiveId(slug),
+            lastAt: BASE_TS - int(rng, 1, 90) * DAY,
+            space
+          }
+        })
+      }
     }
 
     // ─── Deals → stage/org/contact + line items + roles + activities ─────

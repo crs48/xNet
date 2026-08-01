@@ -176,6 +176,22 @@ things you would own anyway. The refused rents, each with its receipt:
   in
   [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)
   (exploration 0417).
+- **No scored intimacy.** Relationships are made legible, never scored. xNet
+  will record what two people actually do together — the shared activities a
+  label like "friend" compresses away — and will derive a reading from them.
+  It will not grade that reading: no relationship health score, no closeness
+  ranking, no list of the people you are neglecting. A score is the artefact an
+  operator sells, and it inverts the purpose — the point is to be intentional
+  about a relationship, not to be measured against it. So a derivation returns
+  a **set difference** (activities common to this kind of relationship that you
+  don't share) and never a number standing for the relationship itself.
+  **Enforced:** the `scored intimacy` rule in
+  [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
+  fails CI on scoring identifiers (`relationshipScore`, `friendshipScore`,
+  `connectionHealth`, `neglectedContacts`, …); the receipt is pinned by
+  `commons-no-scored-intimacy` in
+  [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)
+  (exploration 0422).
 - **No behavioural surplus.** Restates §1 as a refused rent. **Enforced:**
   [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
   (`surplus` rules).
@@ -200,6 +216,20 @@ things you would own anyway. The refused rents, each with its receipt:
   **Architectural:** the sovereign 0% BYO‑billing path and the MIT catalog mean
   a self‑hoster can run their own marketplace
   ([exploration 0196](./explorations/0196_[_]_PAID_PLUGIN_MARKETPLACE_MONETIZATION_AND_LICENSING.md)).
+- **No rent on your published social graph.** When you publish what you saved,
+  the records go into **your own** AT Protocol repo — never ours. xNet runs the
+  *appview* that compares two people's published sets, and bills for that
+  compute as part of hosting, never as its own tier. The comparison shows
+  overlap between two named people and nothing else: no ranking, no global
+  count, no "most‑saved". A public like corpus with a scoreboard is a
+  recommender, and we do not build one.
+  **Architectural:** records are written to the user's PDS by
+  [`packages/social/src/publish/`](../packages/social/src/publish/); the
+  appview is derived‑only and self‑hostable with `xnet hub --role index`
+  ([`packages/hub/src/features/affinity.ts`](../packages/hub/src/features/affinity.ts)).
+  **Enforced:** `no scoreboard` in
+  [`packages/hub/test/affinity.test.ts`](../packages/hub/test/affinity.test.ts)
+  fails the build if a ranking route appears (exploration 0420).
 
 Covenants are tested in down quarters, not up ones — so the test lives here,
 not in anyone's memory. **Every new revenue lane must pass four tests before
@@ -225,6 +255,20 @@ it is durable for us, and it exists because those are not the same question:
 
 A lane that fails any test is redesigned or refused. Exploration documents
 that propose a revenue lane should apply the four tests explicitly.
+
+**Worked example — the affinity appview (exploration 0420).** Improvement:
+✅ the margin pays for crawl, index and compare compute we run; the records
+themselves are the user's and free for anyone to read from their PDS. BATNA:
+✅ the index role is MIT and derived‑only, so self‑hosting is one flag away,
+undegraded. Vanish: ✅ every published edge lives in the user's own repo and
+any appview can rebuild the comparison from the relay — which is exactly why
+xNet operating a PDS for people was **rejected**. Sleep: ⚠️ **weak** — a
+competitor open‑sourcing the appview tomorrow would take this lane to roughly
+zero, because the durable labour is the archive importers and local
+enrichment, not the index. That honest answer is why it is folded into
+hosting and **never priced as its own SKU**: a standalone tier would have
+nothing to defend it but being the incumbent index, which is the global
+chokepoint rent this section already refuses.
 
 ### Who can change this section
 

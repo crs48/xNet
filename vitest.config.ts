@@ -145,7 +145,13 @@ export default defineConfig({
             'packages/social/src/feeds/**/*.test.ts',
             // Community hosting primitives are pure and dependency-free
             // (welcome queue — exploration 0359), same reasoning as feeds.
-            'packages/social/src/community/**/*.test.ts'
+            'packages/social/src/community/**/*.test.ts',
+            // The publish pipeline (0420) is pure too — relative imports plus
+            // @xnetjs/data — so it runs here rather than only under the package
+            // config, where CI would never see it. Named explicitly rather than
+            // globbing __tests__: its neighbours there need the package subpath
+            // resolution this shared pool does not provide.
+            'packages/social/src/__tests__/publish.test.ts'
           ],
           // data-bridge tests run separately - they have Yjs module import order issues
           // when combined with other tests in the same worker thread
