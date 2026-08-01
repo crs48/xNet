@@ -604,7 +604,7 @@ the one place the token scale is copied rather than referenced.
 
 **Phase 1 — the boundary and its guard**
 
-- [ ] Add the `static motion/react import` rule to
+- [x] Add the `static motion/react import` rule to
       `scripts/check-motion-vocab.mjs`; confirm `pnpm check:motion-vocab` still
       passes on a clean tree.
 - [ ] Add `motion@^12` to `packages/ui/package.json` `dependencies`.
@@ -623,7 +623,7 @@ the one place the token scale is copied rather than referenced.
 - [ ] Site 1: settle the kanban drop in
       `packages/views/src/database-views/BoardView.tsx`, including the
       cross-column move.
-- [ ] Extend `check-motion-vocab.mjs`'s scope note (its header comment lists the
+- [x] Extend `check-motion-vocab.mjs`'s scope note (its header comment lists the
       scoped dirs) to explain why `packages/views` and `packages/workbench` now
       matter.
 
@@ -634,7 +634,7 @@ the one place the token scale is copied rather than referenced.
 
 ## Validation Checklist
 
-- [ ] `pnpm check:motion-vocab` **fails** on a deliberately-added static
+- [x] `pnpm check:motion-vocab` **fails** on a deliberately-added static
       `import { motion } from 'motion/react'` in `apps/web/src` — the guard must
       be demonstrated red before it is trusted green.
 - [ ] `pnpm build` for `apps/web`, then confirm from the Rollup output that
