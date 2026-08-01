@@ -43,6 +43,15 @@ export const SocialImportRunSchema = defineSchema({
     startedAt: date({ required: true, includeTime: true }),
     completedAt: date({ includeTime: true }),
     selectedBucketsJson: text({ maxLength: 20000 }),
+    /**
+     * Per-run options the user chose, as JSON (exploration 0419).
+     *
+     * Transcript fetching is opt-in per run rather than a global setting,
+     * because the choice is about a specific archive: saying yes to captions
+     * for a public YouTube library is a different decision from saying yes for
+     * an archive full of private uploads.
+     */
+    optionsJson: text({ maxLength: 5000 }),
     summaryJson: text({ maxLength: 50000 }),
     warningCount: number({ min: 0, integer: true }),
     errorCount: number({ min: 0, integer: true })

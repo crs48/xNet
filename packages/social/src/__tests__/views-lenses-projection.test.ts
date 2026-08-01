@@ -95,16 +95,22 @@ describe('social feed views', () => {
       'social.feed.youtube-videos',
       'social.feed.youtube-playlists',
       'social.feed.instagram-saved',
-      'social.feed.instagram-likes'
+      'social.feed.instagram-likes',
+      'social.feed.tiktok-videos',
+      'social.feed.tiktok-collections',
+      'social.feed.activity-timeline'
     ])
 
     for (const feed of feeds) {
       expect(validateSavedViewDescriptor(feed.descriptor).valid).toBe(true)
-      expect(feed.descriptor.presentation).toEqual({
-        mode: 'feed',
-        feedLayout: 'grid',
-        feedDensity: 'cozy'
-      })
+      // Media feeds open as a thumbnail grid; the activity view is over
+      // interactions, which carry a timestamp and no thumbnail of their own,
+      // so it opens on the time axis instead (0419).
+      expect(feed.descriptor.presentation).toEqual(
+        feed.id === 'social.feed.activity-timeline'
+          ? { mode: 'timeline', feedLayout: 'list', feedDensity: 'compact' }
+          : { mode: 'feed', feedLayout: 'grid', feedDensity: 'cozy' }
+      )
       expect(JSON.parse(feed.savedViewProperties.descriptor).presentation).toEqual(
         feed.descriptor.presentation
       )
@@ -134,6 +140,9 @@ describe('social workspace seeds', () => {
       'social.feed.youtube-playlists',
       'social.feed.instagram-saved',
       'social.feed.instagram-likes',
+      'social.feed.tiktok-videos',
+      'social.feed.tiktok-collections',
+      'social.feed.activity-timeline',
       'social.lens.people-i-follow',
       'social.lens.saved-content-by-creator',
       'social.lens.conversation-references',
@@ -143,7 +152,7 @@ describe('social workspace seeds', () => {
       repeated.map((seed) => seed.deterministicId)
     )
     expect(seeds.filter((seed) => seed.seedKind === 'schema-view')).toHaveLength(6)
-    expect(seeds.filter((seed) => seed.seedKind === 'feed-view')).toHaveLength(4)
+    expect(seeds.filter((seed) => seed.seedKind === 'feed-view')).toHaveLength(7)
     expect(seeds.filter((seed) => seed.seedKind === 'graph-lens')).toHaveLength(4)
 
     for (const seed of seeds) {
