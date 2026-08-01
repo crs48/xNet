@@ -19,7 +19,7 @@ tags: [process, decision-making, ci, evidence, research]
 > after day 14. So the 259 `[_]` documents are not a backlog — they are retired
 > property still carried on the books, and 0421's 90-day expiry is **three times
 > more generous than the data supports**. Recommendation: three small changes —
-> a `falsifier:` line on one-way ADRs, a retirement curve in `STALE.md`, and
+> a `Tripwire:` line on one-way ADRs, a retirement curve in `STALE.md`, and
 > negative controls on the values-as-code gates. Explicitly **not** recommended:
 > an internal prediction market.
 
@@ -33,7 +33,7 @@ That is a live question for this repository, because xNet has spent a year
 building machinery whose entire job is to price risk:
 
 - ~25 GitHub workflows and **18** `check:*` scripts, each guarding something.
-- **29** ADRs, each recording a bet.
+- **30** ADRs, each recording a bet.
 - A claims ledger that binds every public promise to a test or an admitted gap.
 - A seeded reliability simulator that replays any failure from its seed.
 - A backlog ratchet (0421) that gives every exploration an owner and an expiry.
@@ -55,7 +55,7 @@ a real seam in the code, keep what transfers, and say plainly what does not.
 | Asterisk piece                                        | Transferable idea                                              | xNet seam                                    | Verdict                                                    |
 | ----------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------- |
 | _Rust in Numbers_ (Bouk)                              | Survivor curves made decay mathematisable                      | Exploration backlog, `.fallow-baseline.json` | ✅ **Adopt** — and the curve is already measurable         |
-| _How Long Until AI Doesn't Need Humans?_ (Cotra/Lee)  | Both sides named 2–3 year indicators that would move them      | 29 ADRs, none carrying a falsifier           | ✅ **Adopt** — one frontmatter line                        |
+| _How Long Until AI Doesn't Need Humans?_ (Cotra/Lee)  | Both sides named 2–3 year indicators that would move them      | 30 ADRs, 26 with no re-open condition        | ✅ **Adopt** — one frontmatter line                        |
 | _In Praise of Observational Evidence_ (Finke)         | Negative controls: prove the method can detect a thing         | 18 `check:*` gates, none proven to fire      | ✅ **Adopt** — one fixture per gate                        |
 | _Shall We Play a Game?_ (Peterson)                    | Rigid vs free kriegsspiel; stop re-fighting yesterday's war    | `tests/reliability/sim/world.ts`             | 🚧 **Partial** — rigid half is excellent, free half absent |
 | _Selling Abstraction_ (Gladstone)                     | The ladder of abstraction loses contact with the thing         | `.fallow-baseline.json` is `{"count": 41}`   | 🚧 **Already half-solved** by `STALE.md`                   |
@@ -87,7 +87,7 @@ flowchart TD
     C --> C1["Cotra/Lee: named indicators"]
     C --> C2["Peterson: yesterday's war"]
     C --> C3["Schwarz: thin markets are noise"]
-    C1 --> CX["29 ADRs<br/>no falsifiers"]
+    C1 --> CX["30 ADRs<br/>26 with no tripwire"]
 
     AX --> R["Three changes<br/>all two-way doors"]
     BX --> R
@@ -400,30 +400,48 @@ evaluated alone, so nobody ever asks the comparative question — _which of thes
 eighteen has ever caught anything?_ — and a gate that has never fired is
 indistinguishable from a gate that cannot.
 
-### 3. Twenty-nine ADRs, no falsifiers
+### 3. Thirty ADRs, and the tripwire convention only half-applied
 
 The Cotra/Lee debate is more useful as a template than as a forecast. Neither
 convinced the other, and neither expected to. What they produced instead was a
 short list of observations that would move each of them, published in advance so
 the reader can score them later.
 
-xNet's ADRs record the bet and the rationale. ADR-29 is the clearest case: it
-bets that the agent-harness layer commoditised — five meta-harnesses in one week
-of June 2026 — and concludes xNet should be the substrate beneath all of them
-rather than a competitor to each. The reasoning is strong. The bet is real. And
-there is nothing written down that would tell us it had gone wrong.
+> [!IMPORTANT]
+> **Corrected during implementation.** This section originally claimed xNet had
+> no such convention. It does, and it is called a **tripwire** — ADR-30 carries a
+> formal `**Tripwire:**` field, and ADR-12, ADR-28 and ADR-29 each state a
+> re-open condition in prose. The real gap was narrower: **4 of 30** ADRs had
+> one, only **1** in a greppable form, and the template never mentioned it. The
+> fix is therefore to adopt the existing name, not to coin `Falsifier:` beside
+> it.
 
-Compare ADR-28, which is narrower and therefore easier: _no durable-execution
-orchestrator_. What observation reverses that? Probably something like "a
-reconciler needed more than N retry states" or "the control plane grew a workflow
-that spans more than one service boundary". Neither is recorded.
+xNet's ADRs record the bet and the rationale, and four of them go further. ADR-30
+ends with a clean `**Tripwire:**` — any proposal to terminate tenant sync traffic
+on xNet-operated infrastructure re-opens it. ADR-12 names its re-evaluation
+triggers in prose (one engine with both ANN and MVCC). ADR-28 defers to
+exploration 0411's six tripwires plus a ~500 LOC ceiling. ADR-29 ends its scope
+note by naming what would make `agent-runner.ts` a harness.
+
+The other 26 record a bet with no exit condition. ADR-13 is the sharpest example:
+_the hub is an accelerant, never a dependency_ is a claim about every future
+feature, and nothing states what would falsify it. ADR-11 freezes a protocol
+kernel on the premise that a second implementation can treat the Yjs body as
+opaque bytes — a premise that is either true or not, and testable.
 
 > [!WARNING]
-> An ADR without a falsifier decays into a taboo. The rationale ages, the
+> An ADR without a tripwire decays into a taboo. The rationale ages, the
 > conditions that produced it change, and because nobody wrote down what would
 > count as evidence against, the decision stops being re-openable and starts
 > being a rule nobody remembers the reason for. This is exactly what `review:`
-> fixed for explorations — ADRs never got the same treatment.
+> fixed for explorations — ADRs got the treatment four times out of thirty, then
+> stopped.
+
+The immutability rule complicates this and does not block it. "Accepted ADRs are
+immutable" exists so the decision and its rationale are never rewritten — the
+chain must stay readable. A tripwire changes neither: it says nothing about what
+was chosen, only what would prompt writing the superseding entry. It is recorded
+as an explicitly permitted additive edit rather than smuggled in.
 
 ### 4. The simulator is rigid kriegsspiel, and it is good
 
@@ -470,7 +488,7 @@ failure mode, not the professional one.
 
 ### 5. Warning saturation is a live hazard, and the repo is close to it
 
-41 stale explorations. 259 `[_]`. ~25 workflows. 18 `check:*` scripts. 29 ADRs.
+41 stale explorations. 259 `[_]`. ~25 workflows. 18 `check:*` scripts. 30 ADRs.
 Nested `AGENTS.md` files at five paths. Twelve skills.
 
 Every one of these was individually justified, and most are genuinely good. The
@@ -555,14 +573,14 @@ new artefact.
 
 </details>
 
-### What to do about ADRs without falsifiers
+### What to do about ADRs without a tripwire
 
-| Option                                   | Cost                           | Effect                                                                      | Verdict            |
-| ---------------------------------------- | ------------------------------ | --------------------------------------------------------------------------- | ------------------ |
-| **A. `Falsifier:` line on one-way ADRs** | One line each, ~10 ADRs        | Bet becomes scoreable                                                       | ✅ **Recommended** |
-| B. Falsifier on all 29                   | One line each                  | Several are style rules (ADR-5, named exports) — nothing would falsify them | ❌ Ceremony        |
-| C. `review:` dates on ADRs too           | Moderate; new gate to run them | Duplicates the exploration ratchet on a surface with far lower churn        | 🚧 Defer           |
-| D. Nothing                               | Zero                           | ADRs keep decaying into taboos                                              | ❌                 |
+| Option                                 | Cost                           | Effect                                                                      | Verdict            |
+| -------------------------------------- | ------------------------------ | --------------------------------------------------------------------------- | ------------------ |
+| **A. `Tripwire:` on the one-way ADRs** | One line each, 11 ADRs         | Bet becomes scoreable                                                       | ✅ **Recommended** |
+| B. Tripwire on all 30                  | One line each                  | Several are style rules (ADR-5, named exports) — nothing would falsify them | ❌ Ceremony        |
+| C. `review:` dates on ADRs too         | Moderate; new gate to run them | Duplicates the exploration ratchet on a surface with far lower churn        | 🚧 Defer           |
+| D. Nothing                             | Zero                           | ADRs keep decaying into taboos                                              | ❌                 |
 
 The split matters. ADR-5 ("named exports only") is a convention; asking what
 would falsify it is theatre. ADR-29 ("xNet is not an agent harness"), ADR-28 ("no
@@ -596,7 +614,7 @@ Three changes. All two-way doors, all deletable in one commit each, **no new CI
 job or workflow**.
 
 > [!TIP]
-> **1. `Falsifier:` on the ~10 one-way ADRs.** One line per ADR in
+> **1. `Tripwire:` on the 11 one-way ADRs.** One line per ADR in
 > `site/src/content/docs/docs/architecture/decisions.mdx`, stating the
 > observation that would reopen it. Follows Cotra and Lee, who published their
 > indicators rather than their confidence.
@@ -629,7 +647,7 @@ until 0421's ratchet has run long enough to show whether the baseline holds.
 
 ## Example Code
 
-### 1. Falsifier lines
+### 1. Tripwire lines
 
 ```markdown
 ## ADR-29: xNet is not an agent harness
@@ -637,7 +655,7 @@ until 0421's ratchet has run long enough to show whether the baseline holds.
 **Status:** Accepted
 **Context:** Exploration 0416 …
 **Decision:** Do not build an agent harness. …
-**Falsifier:** The harness layer re-consolidates — if two of the five June 2026
+**Tripwire:** The harness layer re-consolidates — if two of the five June 2026
 meta-harnesses are dead and a single harness holds a dominant share of agent
 sessions for two consecutive quarters, "the layer commoditised" is false and the
 substrate-only position needs re-arguing.
@@ -646,7 +664,7 @@ substrate-only position needs re-arguing.
 ```markdown
 ## ADR-28: No durable-execution orchestrator; reconcilers instead
 
-**Falsifier:** A control-plane reconciler needs durable state that spans more
+**Tripwire:** A control-plane reconciler needs durable state that spans more
 than one service boundary, or accumulates more than a handful of retry states —
 at which point we are hand-rolling the thing we declined to adopt.
 ```
@@ -735,7 +753,7 @@ it('flags a known dark pattern (negative control)', async () => {
 | Risk                                                                    | Severity  | Mitigation                                                                                                     |
 | ----------------------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------- |
 | Negative-control fixture leaks into the real gate run and reds every PR | 🔴 High   | Fixture outside production globs, passed explicitly by the test                                                |
-| Falsifier lines become as unread as the rationale they sit beside       | 🟡 Medium | Only ~10 ADRs get one; the rest stay clean, so a `Falsifier:` line means something                             |
+| Tripwire lines become as unread as the rationale they sit beside        | 🟡 Medium | Only the 11 one-way ADRs get one; the other 19 stay clean, so a `Tripwire:` line means something               |
 | Survival table becomes another number nobody reads                      | 🟡 Medium | It goes _inside_ an artefact `/mvp-followup` already reads — no new surface                                    |
 | Curve is an artefact of history rewrites                                | 🟡 Medium | 422 of 487 datable; the 65 missing predate current history, and their exclusion cannot manufacture a flat tail |
 | Publishing "1% chance after 30 days" discourages writing explorations   | 🟢 Low    | The curve argues for _withdrawing_ more, not writing less — 0421's point exactly                               |
@@ -763,12 +781,12 @@ it('flags a known dark pattern (negative control)', async () => {
 
 **Status:** ░░░░░░░░░░ 0/12 items
 
-**1. Falsifiers on one-way ADRs**
+**1. Tripwires on one-way ADRs**
 
-- [ ] Identify the one-way ADRs in `site/src/content/docs/docs/architecture/decisions.mdx` — bets about the world, not conventions (candidates: 11, 12, 13, 15, 18, 20, 21, 27, 28, 29)
-- [ ] Write a `Falsifier:` line for each: a concrete observation, not a feeling
-- [ ] Add the convention to the ADR template section so new ADRs inherit it
-- [ ] Note in `AGENTS.md` that a one-way door earns both an ADR and a falsifier
+- [x] Identify the one-way ADRs in `site/src/content/docs/docs/architecture/decisions.mdx` — bets about the world, not conventions (candidates: 11, 12, 13, 15, 18, 20, 21, 27, 28, 29)
+- [x] Write a `Tripwire:` line for each: a concrete observation, not a feeling
+- [x] Add the convention to the ADR template section so new ADRs inherit it
+- [x] Note in `AGENTS.md` that a one-way door earns both an ADR and a tripwire
 
 **2. Retirement curve in `STALE.md`**
 
@@ -792,7 +810,7 @@ it('flags a known dark pattern (negative control)', async () => {
 - [ ] Deliberately break `check-motion-vocab.mjs` the same way and confirm the same; revert
 - [ ] `pnpm lint && pnpm typecheck && pnpm test` green
 - [ ] `STALE.md` regenerates deterministically — two consecutive runs produce an identical file
-- [ ] Each `Falsifier:` line names an observation someone could actually make in the next 12 months, not a tautology
+- [ ] Each `Tripwire:` line names an observation someone could actually make in the next 12 months, not a tautology
 - [ ] Re-run the survival computation at the 2026-11-01 review; if the day-14 plateau moved, this document's central claim needs revisiting
 
 ---
