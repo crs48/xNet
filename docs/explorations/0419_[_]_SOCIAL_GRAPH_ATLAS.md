@@ -428,7 +428,7 @@ collection structure — all local, all owned, all synced.
       structure; sensitive buckets excluded by default).
 - [x] Seed one or two social context packs via the existing
       `xnet_create_context_pack` shape ("everything I saved about X").
-- [ ] Changelog fragment ("Your imported social library now …") — user-facing
+- [x] Changelog fragment ("Your imported social library now …") — user-facing
       feature, no `skip-changelog`.
 
 ## Validation Checklist
