@@ -132,7 +132,7 @@ export interface WorkspaceRetrieval {
   /** Human-readable warning when degraded; `undefined` otherwise. */
   readonly notice: string | undefined
   /** Shaped for `AiSurfaceServiceConfig.retrieveContext`. */
-  retrieveContext(query: string, options: { limit: number }): Promise<AiRetrievedNodeLike[]>
+  retrieveContext(query: string, options: { limit: number }): Promise<AiRetrievalResultLike>
   /** The full budgeted pack, with provenance paths and expandable refs. */
   recall(query: string, budget?: Partial<RetrievalBudget>): Promise<RecallResult>
 }
@@ -143,10 +143,33 @@ export interface AiRetrievedNodeLike {
   pathLabel?: string
 }
 
+/**
+ * Structurally identical to the AI surface's `AiRetrievalResult`.
+ *
+ * The tier is decided per call, not per construction — a store that advertised
+ * `searchText` can still fall back at query time — so the seam has to carry it.
+ * Returning the bare node array here (as this did before exploration 0424) made
+ * a bounded substring scan indistinguishable from an exhaustive indexed search
+ * by the time it reached the model.
+ */
+export interface AiRetrievalResultLike {
+  nodes: AiRetrievedNodeLike[]
+  provenance: {
+    tier: RetrievalTier
+    degraded: boolean
+    notice?: string
+  }
+}
+
 const DEFAULT_SCAN_LIMIT = 500
 const DEFAULT_SNIPPET_MAX = 600
 
-const SCAN_NOTICE =
+/**
+ * The sentence a degraded search owes its reader. Exported so every lane says
+ * the same thing (exploration 0424) — a second copy of this wording is a second
+ * chance to soften it.
+ */
+export const SCAN_NOTICE =
   'Full-text index unavailable — matched by substring over a bounded window of nodes only. ' +
   'Results may be incomplete; do not conclude that something does not exist from this search alone.'
 
@@ -420,12 +443,19 @@ export function createWorkspaceRetrieval(options: WorkspaceRetrievalOptions): Wo
   const retrieveContext = async (
     query: string,
     { limit }: { limit: number }
-  ): Promise<AiRetrievedNodeLike[]> => {
+  ): Promise<AiRetrievalResultLike> => {
     const result = await recall(query, {
       maxEntries: Math.max(limit, 4),
       maxNodes: Math.max(limit * 4, 24)
     })
-    return result.items.map((item) => ({ nodeId: item.nodeId, pathLabel: item.pathLabel }))
+    return {
+      nodes: result.items.map((item) => ({ nodeId: item.nodeId, pathLabel: item.pathLabel })),
+      provenance: {
+        tier: result.tier,
+        degraded: result.degraded,
+        ...(result.notice ? { notice: result.notice } : {})
+      }
+    }
   }
 
   return { tier, degraded, notice, retrieveContext, recall }

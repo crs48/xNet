@@ -44,11 +44,25 @@ describe('nodeTextParts', () => {
   })
 })
 
+/** An FTS-backed store, so the retriever has an indexed tier to report. */
+function makeIndexedStore(nodes: GraphRetrieverNode[]): GraphRetrieverStore {
+  return {
+    ...makeStore(nodes),
+    async searchText(query, limit) {
+      const needle = query.trim().toLocaleLowerCase()
+      return nodes
+        .filter((node) => JSON.stringify(node.properties).toLocaleLowerCase().includes(needle))
+        .slice(0, limit)
+        .map((node, index) => ({ nodeId: node.id, rank: -10 + index }))
+    }
+  }
+}
+
 describe('createGraphContextRetriever', () => {
   it('returns keyword entry hits plus graph-expanded neighbors', async () => {
     const retrieve = createGraphContextRetriever(makeStore(NODES), { relationFieldsOf })
-    const results = await retrieve('inventory', { limit: 6 })
-    const ids = results.map((r) => r.nodeId)
+    const { nodes } = await retrieve('inventory', { limit: 6 })
+    const ids = nodes.map((r) => r.nodeId)
     expect(ids).toContain('inv1') // keyword match on "My inventory"
     expect(ids).toContain('item1') // 1-hop via the `items` relation
     expect(ids).not.toContain('other') // no keyword match, not connected
@@ -56,8 +70,8 @@ describe('createGraphContextRetriever', () => {
 
   it('attaches a readable provenance path to expanded nodes', async () => {
     const retrieve = createGraphContextRetriever(makeStore(NODES), { relationFieldsOf })
-    const results = await retrieve('inventory', { limit: 6 })
-    const item = results.find((r) => r.nodeId === 'item1')
+    const { nodes } = await retrieve('inventory', { limit: 6 })
+    const item = nodes.find((r) => r.nodeId === 'item1')
     expect(item?.pathLabel).toContain('My inventory')
     expect(item?.pathLabel).toContain('items')
   })
@@ -66,13 +80,65 @@ describe('createGraphContextRetriever', () => {
     const retrieve = createGraphContextRetriever(makeStore(NODES), {
       relationFieldsOf: async () => []
     })
-    const results = await retrieve('inventory', { limit: 6 })
-    expect(results.map((r) => r.nodeId)).toEqual(['inv1'])
+    const { nodes } = await retrieve('inventory', { limit: 6 })
+    expect(nodes.map((r) => r.nodeId)).toEqual(['inv1'])
   })
 
   it('returns nothing for an empty query', async () => {
     const retrieve = createGraphContextRetriever(makeStore(NODES), { relationFieldsOf })
-    expect(await retrieve('   ', { limit: 6 })).toEqual([])
+    expect((await retrieve('   ', { limit: 6 })).nodes).toEqual([])
+  })
+
+  // Exploration 0424 — this retriever had no tier at all, so every answer it
+  // fed the assistant read as an exhaustive search of the workspace.
+  it('reports scan + notice when the store has no text index', async () => {
+    const retrieve = createGraphContextRetriever(makeStore(NODES), { relationFieldsOf })
+    const { provenance } = await retrieve('inventory', { limit: 6 })
+    expect(provenance.tier).toBe('scan')
+    expect(provenance.degraded).toBe(true)
+    expect(provenance.notice).toMatch(/do not conclude that something does not exist/i)
+  })
+
+  it('reports bm25-graph with no notice when the index answered', async () => {
+    const retrieve = createGraphContextRetriever(makeIndexedStore(NODES), { relationFieldsOf })
+    const { provenance } = await retrieve('inventory', { limit: 6 })
+    expect(provenance.tier).toBe('bm25-graph')
+    expect(provenance.degraded).toBe(false)
+    expect(provenance.notice).toBeUndefined()
+  })
+
+  it('downgrades to scan when an advertised index falls back at call time', async () => {
+    const store: GraphRetrieverStore = {
+      ...makeStore(NODES),
+      async searchText() {
+        return null // advertised an index, cannot answer this query
+      }
+    }
+    const retrieve = createGraphContextRetriever(store, { relationFieldsOf })
+    const { provenance } = await retrieve('inventory', { limit: 6 })
+    expect(provenance.tier).toBe('scan')
+    expect(provenance.degraded).toBe(true)
+  })
+
+  it('lets an overriding entry search declare its own tier', async () => {
+    const retrieve = createGraphContextRetriever(makeIndexedStore(NODES), {
+      relationFieldsOf,
+      entrySearch: async () => [{ nodeId: 'inv1', score: 1, source: 'vector' as const }],
+      tierOf: () => 'hybrid-graph'
+    })
+    const { provenance } = await retrieve('inventory', { limit: 6 })
+    expect(provenance.tier).toBe('hybrid-graph')
+    expect(provenance.degraded).toBe(false)
+  })
+
+  it('assumes scan for an override that declares nothing on an unindexed store', async () => {
+    const retrieve = createGraphContextRetriever(makeStore(NODES), {
+      relationFieldsOf,
+      entrySearch: async () => [{ nodeId: 'inv1', score: 1, source: 'keyword' as const }]
+    })
+    const { provenance } = await retrieve('inventory', { limit: 6 })
+    expect(provenance.tier).toBe('scan')
+    expect(provenance.degraded).toBe(true)
   })
 })
 

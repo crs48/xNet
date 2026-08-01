@@ -196,11 +196,22 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     // searches are built once (constructing the vector tier is cheap — the model
     // loads lazily only when a search actually routes to it); the live flag picks
     // which one each query uses, persisted across sessions via IndexedDB.
-    const keyword = keywordEntrySearch(store)
+    // Which tier actually ran is only knowable here, where the two searches are
+    // composed — so the composite reports it rather than letting the retriever
+    // guess (exploration 0424). `keywordFellBack` is reset per query.
+    let keywordFellBack = false
+    const keyword = keywordEntrySearch(store, () => {
+      keywordFellBack = true
+    })
     const vector = createVectorEntrySearch({ store, storage: createVectorBlobStore() })
-    const entrySearch = (query: string, k: number) =>
-      semanticRef.current ? vector.search(query, k) : keyword(query, k)
-    const retrieveContext = createGraphContextRetriever(store, { entrySearch })
+    const entrySearch = (query: string, k: number) => {
+      keywordFellBack = false
+      return semanticRef.current ? vector.search(query, k) : keyword(query, k)
+    }
+    const retrieveContext = createGraphContextRetriever(store, {
+      entrySearch,
+      tierOf: () => (semanticRef.current ? 'hybrid-graph' : keywordFellBack ? 'scan' : 'bm25-graph')
+    })
     return createAiSurfaceService({ store, schemas: schemaRegistryApi(), retrieveContext })
   }, [store])
 
@@ -221,6 +232,9 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
   const conversationLogRef = useRef<AiConversationLog | null>(null)
   const assistantBufferRef = useRef('')
   const [activity, setActivity] = useState<ChatToolActivity | null>(null)
+  // Set per turn from the context pack's retrieval provenance; null when the
+  // search ran indexed, so the common case shows nothing (exploration 0424).
+  const [retrievalNotice, setRetrievalNotice] = useState<string | null>(null)
   // Framed bridge display (0392/0394): the agent's own tool use, cost, and
   // permission asks, previously flattened away by the OpenAI-compatible wire.
   const [bridgeCost, setBridgeCost] = useState<{ usd?: number; outputTokens?: number } | null>(null)
@@ -563,6 +577,12 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
             ? {
                 contextProvider: async ({ content }) => {
                   const pack = await surface.createContextPack({ query: content, limit: 6 })
+                  // The reader gets the same warning the model does. An answer
+                  // grounded in a bounded substring scan is not the same claim
+                  // as one grounded in the whole workspace (exploration 0424).
+                  setRetrievalNotice(
+                    pack.retrieval?.degraded ? (pack.retrieval.notice ?? null) : null
+                  )
                   return formatContextMessages(pack)
                 }
               }
@@ -832,6 +852,11 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
         </div>
       ))}
       {activity && <ToolActivityLine activity={activity} />}
+      {retrievalNotice && (
+        <p role="status" className="px-3 py-1 text-[11px] text-amber-600">
+          {retrievalNotice}
+        </p>
+      )}
       {error && <p className="px-3 py-1 text-[11px] text-rose-500">{error}</p>}
       <WritesToggle enabled={writesEnabled} onToggle={toggleWrites} />
       <SemanticSearchToggle enabled={semanticSearch} onToggle={toggleSemanticSearch} />
