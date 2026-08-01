@@ -652,16 +652,16 @@ Open questions:
 
 - [x] Add `PracticeSchema` to `crm.ts`, defaulting to the most private
       `visibility()`.
-- [ ] Extend [`packages/crm/src/erasure.ts`](../../packages/crm/src/erasure.ts)
+- [x] Extend [`packages/crm/src/erasure.ts`](../../packages/crm/src/erasure.ts)
       so PII erasure covers practices.
 - [x] Unit tests in `packages/data/src/schema/schemas/crm.test.ts` mirroring the
       existing `requires both ends of a relationship edge` case.
 
 **Phase 3 — derivation**
 
-- [ ] Add `packages/crm/src/bundle.ts` with `deriveBundle()`, exported from
+- [x] Add `packages/crm/src/bundle.ts` with `deriveBundle()`, exported from
       [`packages/crm/src/index.ts`](../../packages/crm/src/index.ts).
-- [ ] Unit tests covering: empty practice set, exact bundle match, partial match
+- [x] Unit tests covering: empty practice set, exact bundle match, partial match
       ordering, and a user-authored primitive that belongs to no bundle.
 - [ ] Write the changeset (`/changeset`) — `@xnetjs/data` and `@xnetjs/crm` are
       both publishable; new schemas are a **minor**, not a patch.
