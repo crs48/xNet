@@ -1,0 +1,658 @@
+---
+title: Fast — What Collison's List Measures, And What xNet Actually Lacks
+status: draft # mirrors the [_]/[-]/[x] filename checkbox
+last_updated: 2026-08-01
+tags: [process, velocity, explorations, ci, decision-making]
+---
+
+# Fast — What Collison's List Measures, And What xNet Actually Lacks
+
+> [!TIP]
+> **TL;DR** — Collison's list measures **build time**, and xNet already clears
+> that bar: median PR cycle time is under an hour, CI is 8 minutes. The slow
+> part is the step the list never shows, because every project on it had already
+> been decided: **choosing what to build.** xNet writes ~85 more explorations
+> per month than it closes, and 259 sit at `[_]` forever. Recommendation: stop
+> tuning CI (measured, not the bottleneck), and give explorations the two things
+> every fast project on the list had — **a decider and an expiry** — enforced by
+> a fallow ratchet, with ceremony tiered by reversibility rather than applied
+> flat.
+
+## Problem Statement
+
+[patrickcollison.com/fast](https://patrickcollison.com/fast) is a list of
+ambitious things built fast: the P-80 jet fighter in 143 days, the Empire State
+Building in 410, JavaScript in 10, git self-hosting in 4. Against it sits one
+counterexample — San Francisco's Van Ness bus lane, ~7,600 days at $110,000 per
+metre, versus the Alaska Highway's 1,700 miles at $793 per metre. A 139×
+cost-per-metre gap between two road projects.
+
+The obvious question for a codebase is: *are we the P-80 or Van Ness?*
+
+That framing is a trap. It assumes velocity is one number. It is not, and the
+list itself is quietly evidence for that: every project on it was **already
+decided** before the clock started. Apollo 8's 134 days start at green-light.
+Marinship's 197 days start at a telegram. The list measures execution latency on
+work whose scope, owner, and deadline were fixed in advance.
+
+So the honest question is narrower and harder: **which of xNet's phases is
+actually slow, and is the slowness buying anything?**
+
+## Executive Summary
+
+Measured against this repository's own git history:
+
+| Phase | Measured | Verdict |
+| --- | --- | --- |
+| PR build → merge | median **< 1h**, p90 **2h**, 54/60 under 8h | ✅ Already fast |
+| CI wall-clock | median **8 min**, p90 11 min, max 12 | ✅ Already fast |
+| CI reliability | **6 of 25** recent runs red (24%) | 🚧 Real tax, small |
+| Exploration → shipped | **210 `[x]` / 485 files** (43%) | ❌ The bottleneck |
+| Backlog growth | ~**+85 `[_]` per month**, net | ❌ Unbounded |
+| Stranded work | 1 PR at **592h** (24.7 days); 7 stranded branches (0410) | 🚧 Tail risk |
+
+The build phase is Collison-fast. The **decide** phase has no clock at all — no
+owner, no deadline, no expiry, no withdrawal state. An exploration written in
+February 2026 and never started looks exactly like one written yesterday. `[_]`
+is a permanent maybe.
+
+> [!IMPORTANT]
+> The load-bearing finding: **xNet's problem is not that work moves slowly, it
+> is that intent accumulates without ever being closed.** 275 documents in
+> `docs/explorations/` are unstarted or half-started. Every one of them is a
+> claim on future attention that nothing will ever revoke.
+
+---
+
+## Current State In The Repository
+
+### The build loop is genuinely fast
+
+Cycle time from a branch's first commit to its merge commit, over the last 60
+merges on `main`:
+
+```text
+min      0h
+median   0h   ← most PRs are authored and merged inside the hour
+p90      2h
+max    592h   ← one stranded branch, 24.7 days
+under 8h:  54 / 60
+```
+
+CI (`.github/workflows/ci.yml`, 403 lines, 7 jobs — `lint`, `changelog`,
+`typecheck`, `test`, `editor-ux`, `electron-e2e`, `conformance-rust`) runs at a
+**median of 8 minutes**, p90 11, max 12. Concurrency cancels superseded runs
+(`ci.yml:34`).
+
+Against Collison's units: xNet ships a reviewed, typechecked, tested change in
+roughly the time it took Ken Thompson to write one Unix system call. There is
+nothing to fix here, and the measurement matters precisely because the intuitive
+reform — "cut the CI gates" — targets the one phase that is already fine.
+
+### The ceremony surface is large but cheap
+
+| Surface | Count | Cost |
+| --- | --- | --- |
+| Workflow files | 25 (`.github/workflows/`) | 3,363 lines YAML |
+| `check:*` scripts | 16 (root `package.json`) | Nested inside lint/typecheck jobs |
+| Root scripts | 52 | — |
+| Git hooks | 5 (`.husky/`) | pre-push runs `typecheck` + `test` |
+
+This looks like vetocracy. It mostly is not, for a specific structural reason:
+these gates are **ratchets and closures**, not approvals. `check:publish-closure`
+and `check:api-report` assert a property of the diff; nobody has to say yes. The
+`.husky/pre-push` hook even short-circuits entirely for markdown-only changes
+(`.husky/pre-push:1-8`) — the exact optimisation Van Ness never got.
+
+`fallow.yml` is the model to copy, and its header says why in its own words:
+
+> [!NOTE]
+> From [`.github/workflows/fallow.yml`](../../.github/workflows/fallow.yml) —
+> the scheduled run used to gate on 1,136 standing findings, so "every Monday
+> was a guaranteed red ✗ … nobody consumed." It was cut back to a **dead-code
+> regression ratchet**: the only decidable, consumed gate. This is `AGENTS.md`'s
+> rule made concrete — *ratchet against a committed baseline instead of gating
+> absolutes.*
+
+### The decide loop has no clock
+
+`docs/explorations/` in the working tree:
+
+```text
+485 files, 406 distinct numbers   (79 renames/collisions)
+
+[x] fully implemented   210   ████████████████████░░░░░░░░░░░░░░░░░░░░░░░░  43%
+[-] partially            16   ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   3%
+[_] never started       259   ████████████████████████░░░░░░░░░░░░░░░░░░░░  53%
+```
+
+Split by number band, the shape of the graveyard is clear:
+
+| Band | `[x]` | `[-]` | `[_]` | Conversion |
+| --- | --- | --- | --- | --- |
+| 0xx | 49 | 3 | 47 | 🚧 49% |
+| 1xx | 51 | 3 | **96** | ❌ 34% — the graveyard |
+| 2xx | 69 | 1 | 54 | 🚧 56% |
+| 3xx | 37 | 2 | 58 | ❌ 38% |
+| 4xx | 4 | 7 | 4 | ✅ 27% `[x]` but **73% touched** |
+
+The 4xx band is healthiest not because recent explorations are better, but
+because `/implement` now runs *immediately* after `/explore` while the context
+is still loaded. Proximity, not quality, is doing the work — which is the
+Skunk Works finding restated: co-location beats process.
+
+Creation versus completion, by month:
+
+```text
+month     created   checked off   net [_] added
+2026-01        37             0        +37
+2026-02        57            47        +10
+2026-03        20             2        +18
+2026-06       192            88       +104
+2026-07       154            71        +83
+```
+
+The **ratio** is stable at ~46%. The **absolute backlog** grows by roughly 85
+documents a month and nothing removes any.
+
+### The Van Ness analogue, stated plainly
+
+Collison's cost metric is dollars per metre. The xNet analogue is documents per
+shipped thing:
+
+$$\text{overhead} = \frac{485_{\text{written}} - 210_{\text{shipped}}}{210_{\text{shipped}}} \approx 1.31$$
+
+**Every shipped feature carries 1.31 unshipped exploration documents.** Those
+documents are not free: they are read by agents during retrieval, they collide
+on numbers (79 collisions already — see
+[`exploration-numbering-collisions`](0410_[x]_OPEN_PR_TRIAGE_AND_THE_STRANDED_BRANCH_PROBLEM.md)),
+and they make `docs/explorations/` progressively less useful as a signal of what
+this project is actually doing.
+
+```mermaid
+flowchart LR
+  subgraph decided["Already decided — what the list measures"]
+    direction LR
+    PR["PR opened"] -->|"median < 1h"| CI["CI: 8 min"]
+    CI -->|"76% green"| M["merged"]
+    CI -.->|"24% red"| PR
+  end
+
+  subgraph undecided["Never decided — where the time actually goes"]
+    direction LR
+    I["idea"] -->|"~20 min"| E["exploration<br/>docs/explorations/"]
+    E -->|"43%"| PR
+    E -->|"53%"| DEAD["[_] forever<br/>259 docs"]
+  end
+
+  M --> SHIP["shipped"]
+
+  style DEAD fill:#7f1d1d,stroke:#ef4444,color:#fff
+  style SHIP fill:#14532d,stroke:#22c55e,color:#fff
+  style CI fill:#1e3a5f,stroke:#3b82f6,color:#fff
+```
+
+---
+
+## External Research
+
+### What the list's projects actually share
+
+Reading the entries for common mechanism rather than common vibe, five
+properties recur, and none of them is "worked harder":
+
+| Mechanism | Evidence from the list |
+| --- | --- |
+| **Decision made once, at the top** | Apollo 8: 134 days green-light → launch. The 134 days contain no re-litigation. |
+| **A real, external deadline** | Marinship: 197 days telegram → first ship. Tegel: 92 days, because the Berlin Airlift did not pause. |
+| **Frozen — often *cut* — scope** | Spirit of St. Louis, 60 days: Lindbergh removed the radio, the parachute, the fuel gauge, and the front windscreen to hit the date. |
+| **Small, co-located team** | Unix, 3 weeks, one person. Xerox Alto, ~4 months, from a bet. |
+| **Permission pre-granted** | BankAmericard: 90 days to 100,000+ customers because nobody had to ask. |
+
+Scope-cutting is the underrated one. Lindbergh did not go faster; he built
+**less**. Nothing in xNet's process makes cutting scope easier than adding it —
+an exploration's Implementation Checklist only ever grows.
+
+### The counter-case: fast is not free
+
+> [!CAUTION]
+> **JavaScript in 10 days is on this list as a triumph. It is also the origin of
+> `==` coercion, `typeof null === "object"`, and thirty years of remediation
+> that the entire industry paid for.** The list is survivorship-biased by
+> construction: it records fast projects that worked. Fast projects that
+> produced durable, expensive mistakes are not enumerated, and the most famous
+> entry on the list is simultaneously one of them.
+
+I found no published, rigorous critique of the page on this point — the
+survivorship objection is well-established generally
+([Wikipedia](https://en.wikipedia.org/wiki/Survivorship_bias)) but has not been
+applied to this list in print that I could locate. Collison himself raises the
+bias elsewhere on his own site, about old neighbourhoods.
+
+The resolution is not "be slower." It is **Bezos's door test**: a two-way door
+(reversible) should be walked through immediately by whoever is nearest; a
+one-way door (irreversible) deserves ceremony. JavaScript's semantics were a
+one-way door treated as a two-way door. The Van Ness bus lane was a two-way door
+treated as a one-way door. Both failure modes are real, and they are opposites.
+
+### The slowdown literature
+
+The page's own concluding argument cites Kaufman (bureau proliferation), Howard
+(*The Death of Common Sense*), Fukuyama (vetocracy), and Olson (*The Rise and
+Decline of Nations*, on interest-group accumulation). The shared claim: costs
+accrete because each individual veto point is locally reasonable and nobody is
+accountable for the sum.
+
+> [!WARNING]
+> This is the failure mode to watch for in xNet, and the direction of the risk
+> is counterintuitive. Adding a 17th `check:*` gate is not the danger — each is
+> cheap and mechanically decidable. The danger is **the 260th unstarted
+> exploration**, because unlike a gate, a stale document has no owner, no cost
+> attribution, and no one whose job it is to delete it.
+
+---
+
+## Key Findings
+
+1. **The build phase needs no work.** Median PR cycle < 1h, CI 8 min, measured.
+   Any proposal to speed up xNet by cutting CI is optimising a non-bottleneck.
+2. **CI's real cost is redness, not duration.** 24% of recent runs failed. At 8
+   minutes a run, the tax is a rerun, not a wait — but red normalises, and
+   `AGENTS.md` already names that hazard ("a gate that cannot go green teaches
+   everyone to ignore red").
+3. **Intent generation now vastly outruns implementation.** ~85 net unstarted
+   explorations per month. Writing one costs ~20 minutes of agent time;
+   implementing one costs days. The economics guarantee divergence.
+4. **The exploration lifecycle has no terminal failure state.** `[_]` → `[-]` →
+   `[x]` is a one-way ladder with no rung for *decided against* or *expired*.
+   A rejected idea and an untouched idea are indistinguishable on disk.
+5. **Proximity beats process.** The 4xx band's 73% touch rate comes from
+   `/implement` running while context is warm — the Skunk Works result.
+6. **Ceremony is already tiered correctly for code, and not at all for
+   decisions.** `.husky/pre-push` skips markdown; `fallow.yml` ratchets instead
+   of gating. Explorations get one flat treatment regardless of blast radius.
+
+---
+
+## Options And Tradeoffs
+
+> [!NOTE]
+> This exploration proposes **no new revenue lane**, so `docs/CHARTER.md` §6's
+> improvement / BATNA / vanish tests do not apply. It is purely internal
+> process. Flagging this explicitly rather than omitting it silently.
+
+| Option | Targets | Cost | Verdict |
+| --- | --- | --- | --- |
+| **A** — Status quo | nothing | 0 | ❌ Backlog compounds |
+| **B** — Fallow ratchet on `[_]` | decide phase | ~150 LOC + baseline | ✅ Recommended |
+| **C** — Decider + expiry in frontmatter | decide phase | `/explore` change | ✅ Recommended |
+| **D** — Ceremony tiered by reversibility | both | doc + skill change | ✅ Recommended |
+| **E** — Cut CI gates | build phase | high risk | 🛑 Rejected — measured non-bottleneck |
+| **F** — Hard "ship within N days" mandate | decide phase | — | 🛑 Rejected — manufactures fake deadlines |
+
+<details>
+<summary>Why E is rejected, in detail</summary>
+
+The intuitive reading of the Collison page is "we have too much process, cut
+it." Applied here it would mean removing `check:*` gates or trimming CI jobs.
+
+The measurement refutes it. CI is 8 minutes at the median with a 12-minute
+worst case, and it runs concurrently with a human reading the diff. Removing a
+gate saves seconds of wall-clock and costs a class of regression — `AGENTS.md`
+records that `check:publish-closure` exists because a published package
+depending on a private one broke `npm install` for every consumer.
+
+More precisely: the gates are **not veto points**. Fukuyama's vetocracy requires
+an *actor* who can say no for reasons of their own. A script asserting that the
+API report matches the source has no interests. Conflating the two is the exact
+error that makes "cut red tape" campaigns remove the load-bearing parts.
+
+The one defensible trim is the 24% red rate — but that is a flake-and-fix
+problem, not a gate-count problem, and it belongs in
+[0283](0283_[_]_CI_FAILURE_PATTERNS_AND_PIPELINE_HEALTH.md), which already found that 75% of
+failures are non-code.
+
+</details>
+
+<details>
+<summary>Why F is rejected, in detail</summary>
+
+"Every exploration must ship within 30 days or be closed" sounds like Marinship.
+It is not. Marinship's deadline was **external and real** — a war. Apollo 8's
+was external and real — a Soviet programme. A self-imposed 30-day rule on a
+solo-maintained repo is a deadline whose only enforcer is the person it binds,
+which makes it a suggestion with extra steps, and the first time it is missed it
+teaches that the rule is ignorable.
+
+Worse, it inverts the actual value: some explorations are deliberately
+*speculative research* (0396 on freenet-core, 0412 on the fellowship landscape,
+explicitly marked "revisit Nov 2026"). Those should stay `[_]` for a year.
+Expiry must mean **re-decide**, not **implement**.
+
+</details>
+
+### Option D in detail — the door test
+
+```mermaid
+quadrantChart
+    title Ceremony should scale with the door, not the diff size
+    x-axis "Reversible (two-way)" --> "Irreversible (one-way)"
+    y-axis "Small blast radius" --> "Large blast radius"
+    quadrant-1 "ADR + exploration + review"
+    quadrant-2 "Just do it, note it"
+    quadrant-3 "Just do it"
+    quadrant-4 "Exploration first"
+    "UI tweak": [0.15, 0.25]
+    "New check script": [0.25, 0.45]
+    "Wire format change": [0.90, 0.90]
+    "Public API export": [0.85, 0.70]
+    "Revenue lane": [0.80, 0.85]
+    "Blog essay": [0.30, 0.55]
+    "Refactor internals": [0.20, 0.60]
+```
+
+The repo already knows this distinction — `docs/decisions/` holds ADRs for
+one-way doors, and 29 exist. What is missing is the **explicit label on the
+exploration itself**, so a reader can tell in one glance whether `[_]` means
+"nobody got to it" (fine, it's a two-way door, pick it up any time) or "this is
+still undecided and load-bearing" (not fine).
+
+### Proposed exploration lifecycle
+
+The missing states are the whole point:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unstarted : /explore writes [_]
+    Unstarted --> Partial : /implement, some items
+    Partial --> Done : all items checked
+    Unstarted --> Done : implemented in one pass
+
+    Unstarted --> Stale : decide_by date passes
+    Partial --> Stale : decide_by date passes
+
+    Stale --> Unstarted : re-decided, new decide_by
+    Stale --> Withdrawn : superseded or rejected
+    Stale --> Partial : picked back up
+
+    Withdrawn --> [*]
+    Done --> [*]
+
+    note right of Stale
+      NEW. Surfaced by the fallow
+      ratchet. Not a failure —
+      a prompt to re-decide.
+    end note
+
+    note right of Withdrawn
+      NEW: [~] in the filename.
+      Records that a decision was
+      made. Today this state does
+      not exist, so "rejected" and
+      "ignored" look identical.
+    end note
+```
+
+---
+
+## Recommendation
+
+> [!IMPORTANT]
+> **Adopt B + C + D. Reject E and F.** Leave CI and the `check:*` surface
+> entirely alone — they are measured-fast and structurally not veto points.
+> Apply the Collison mechanisms (**decider, deadline, frozen scope**) to the one
+> phase that has none of them: deciding what to build. Enforce with a ratchet,
+> never an absolute, per `AGENTS.md`.
+
+Three concrete changes:
+
+**1. A `[~]` withdrawn state.** Filename checkbox gains a fourth value.
+`docs(exploration): withdraw <topic>` becomes a legitimate, celebrated outcome.
+This is the Lindbergh move: shipping the *decision to cut* is shipping.
+
+**2. Frontmatter gains `door:` and `decide_by:`.**
+
+```yaml
+door: two-way        # or one-way — drives the ceremony tier (Option D)
+decide_by: 2026-11-01  # when to re-decide, NOT when to ship
+decider: chris       # who closes it; single name, never a list
+```
+
+`decider` as a single name is deliberate — Kelly Johnson, not a committee.
+
+**3. `scripts/check-exploration-fallow.mjs`, ratcheted.**
+
+- **Named consumer:** whoever opens a PR; the count is printed in the lint job.
+- **Decidable pass condition:** the number of explorations past `decide_by`
+  (or, lacking one, older than 180 days at `[_]`) must be **≤ the committed
+  baseline** in `docs/explorations/.fallow-baseline.json`.
+- Never gates an absolute. A green repo today stays green tomorrow; the count
+  can only go down or stay flat.
+
+This makes the backlog **bounded** without pretending a solo repo can hold a
+wartime deadline. It also gives `/mvp-followup` a real input — right now it has
+no principled way to answer "what's next" against 259 equal-looking candidates.
+
+### What this does *not* change
+
+- CI stays at 7 jobs and 8 minutes.
+- All 16 `check:*` gates stay.
+- The `.husky` hooks stay, including the pre-push `typecheck && test`.
+- No exploration is auto-deleted, ever. Staleness surfaces; humans decide.
+
+---
+
+## Example Code
+
+<details>
+<summary><code>scripts/check-exploration-fallow.mjs</code> — sketch</summary>
+
+```js
+#!/usr/bin/env node
+// Ratchet, not a gate (AGENTS.md): fails only when stale explorations INCREASE.
+// Consumer: the `lint` job in ci.yml; the count is printed on every run.
+import { readdir, readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+
+const DIR = 'docs/explorations'
+const BASELINE = join(DIR, '.fallow-baseline.json')
+const DEFAULT_WINDOW_DAYS = 180
+
+/** Parse `NNNN_[s]_TITLE.md` — returns null for non-exploration files. */
+const parseName = (f) => {
+  const m = /^(\d{4})_\[(.)\]_(.+)\.md$/.exec(f)
+  return m ? { num: m[1], status: m[2], file: f } : null
+}
+
+/** `decide_by:` from frontmatter, or null. Absent is not an error. */
+const decideBy = (src) => {
+  const m = /^decide_by:\s*(\d{4}-\d{2}-\d{2})/m.exec(src)
+  return m ? new Date(m[1]) : null
+}
+
+const now = new Date()
+const entries = (await readdir(DIR)).map(parseName).filter(Boolean)
+const stale = []
+
+for (const e of entries) {
+  if (e.status === 'x' || e.status === '~') continue // done or withdrawn
+  const src = await readFile(join(DIR, e.file), 'utf8')
+  const by = decideBy(src)
+  const deadline =
+    by ?? new Date(gitAddedAt(e.file).getTime() + DEFAULT_WINDOW_DAYS * 864e5)
+  if (now > deadline) stale.push({ ...e, deadline, explicit: Boolean(by) })
+}
+
+const baseline = JSON.parse(await readFile(BASELINE, 'utf8'))
+console.log(`explorations past decide-by: ${stale.length} (baseline ${baseline.count})`)
+
+if (stale.length > baseline.count) {
+  console.error(
+    `\n✗ Stale explorations increased: ${stale.length} > ${baseline.count}.\n` +
+      `  Close, withdraw ([~]), or push out decide_by on one of:\n` +
+      stale
+        .slice(0, 10)
+        .map((s) => `    ${s.file}`)
+        .join('\n') +
+      `\n\n  Withdrawing is a valid, encouraged outcome:\n` +
+      `    git mv "${DIR}/${stale[0]?.file}" \\\n` +
+      `      "${DIR}/${stale[0]?.file.replace(/\[.\]/, '[~]')}"\n`,
+  )
+  process.exit(1)
+}
+```
+
+> [!WARNING]
+> `gitAddedAt()` must shell out to `git log --diff-filter=A --follow`. Two traps
+> the repo has already been bitten by: **(a)** CI checkouts are shallow, so
+> `fetch-depth: 0` is required or every file looks brand new — the same failure
+> recorded in the web app version scheme; **(b)** git
+> hooks export `GIT_*` env vars that hijack subprocess `git` calls in worktrees
+> (exploration 0413) — scrub `GIT_DIR`/`GIT_WORK_TREE` before spawning.
+
+</details>
+
+<details>
+<summary>Frontmatter migration — the 259 existing <code>[_]</code> docs</summary>
+
+Do **not** backfill `decide_by` on all 259 at once. That is a 259-decision batch
+nobody will make honestly, and a dishonest backfill sets the baseline wrong
+forever.
+
+Instead: set the baseline to today's stale count, so the repo starts green, and
+let the ratchet force one decision at a time as the 180-day default expires.
+
+```bash
+node scripts/check-exploration-fallow.mjs --write-baseline
+git add docs/explorations/.fallow-baseline.json
+git commit -m "chore(explorations): seed fallow ratchet baseline"
+```
+
+</details>
+
+---
+
+## Risks And Open Questions
+
+> [!CAUTION]
+> **The one-way door in this proposal is `[~]`.** A fourth checkbox value is a
+> filename convention change touching 485 files' worth of tooling
+> (`check:visual-explorations`, `/implement`, `/explore`, the memory index,
+> `graphify`). Every glob written as `*_\[_\]_*` and every regex assuming three
+> states must be found first. This is the highest-risk item here and should land
+> as its own PR, ahead of the ratchet.
+
+| Risk | Likelihood | Mitigation |
+| --- | --- | --- |
+| `[~]` breaks existing glob/regex consumers | High | Grep `\[.\]` across `scripts/`, `.claude/`, workflows **before** the rename PR |
+| Baseline gets bumped instead of fixed | Medium | Require the bump in its own commit with a reason; it is visible in review |
+| `decide_by` becomes cargo-cult boilerplate | Medium | `/explore` must ask for a *reason*, not just a date |
+| Shallow CI checkout makes every file look new | High | `fetch-depth: 0` on the lint job; assert non-shallow in the script |
+| Ratchet adds a 17th gate — the thing we criticised | Low | It is mechanically decidable with a named consumer, per `AGENTS.md`; it can always go green by withdrawing one doc |
+
+**Open questions:**
+
+- Should `decide_by` be mandatory for `door: one-way` and optional otherwise?
+  Leaning yes — that is the whole point of tiering.
+- Does the 24% CI red rate deserve its own exploration, or is it fully covered
+  by [0283](0283_[_]_CI_FAILURE_PATTERNS_AND_PIPELINE_HEALTH.md)? Needs a look at whether 0283's
+  "75% non-code" finding still holds at current volume.
+- Is 180 days the right default window? It is a guess. It should be set so
+  today's stale count is a *meaningful minority*, not 250 of 259.
+- Should `/explore` refuse to write a new doc while the stale count exceeds
+  baseline? Tempting — it is the purest form of "cut scope to hit the date" —
+  but it blocks research at exactly the moment research is most needed. Probably
+  a warning, not a block.
+
+---
+
+## Implementation Checklist
+
+**Status:** ░░░░░░░░░░ 0/11 items
+
+- [ ] Grep every consumer of the `[_]`/`[-]`/`[x]` filename convention across
+      `scripts/`, `.claude/skills/`, `.github/workflows/`, and `graphify-out/`;
+      record the list in this doc before changing anything
+- [ ] Land `[~]` (withdrawn) as its own PR: update every consumer found above,
+      document the state in `.claude/skills/explore/SKILL.md` and
+      `.claude/skills/implement/SKILL.md`
+- [ ] Add `door:` and `decide_by:` to the `/explore` frontmatter template;
+      require a one-line *reason* alongside the date
+- [ ] Add `decider:` (single name, never a list) to the same template
+- [ ] Write `scripts/check-exploration-fallow.mjs` with the ratchet semantics
+      above; scrub `GIT_*` before any `git` subprocess
+- [ ] Seed `docs/explorations/.fallow-baseline.json` from today's count
+- [ ] Wire `check:exploration-fallow` into the `lint` job in `ci.yml`; set
+      `fetch-depth: 0` on that job
+- [ ] Print the stale count unconditionally (green runs included) so the number
+      is visible before it is ever binding
+- [ ] Update `.claude/skills/mvp-followup/SKILL.md` to read `decide_by` when
+      answering "what's next"
+- [ ] Document the door test in `docs/TRADEOFFS.md` — one-way vs two-way, and
+      that ADRs are for one-way doors only
+- [ ] Add a changelog fragment or apply `skip-changelog` (internal process
+      change — likely the latter)
+
+## Validation Checklist
+
+- [ ] `node scripts/check-exploration-fallow.mjs` exits 0 on a clean checkout of
+      `main` with the seeded baseline
+- [ ] Renaming one `[_]` doc to `[~]` decreases the reported count by exactly 1
+- [ ] Adding a new `[_]` exploration does **not** turn the check red (it is not
+      yet stale) — confirms the ratchet is not a creation tax
+- [ ] Artificially setting one `decide_by` to a past date turns the check red,
+      and the error message names that file
+- [ ] Bumping the baseline turns it green again, and the bump is a visible
+      one-line diff in review
+- [ ] `pnpm lint` and `pnpm typecheck` pass with the new script wired in
+- [ ] CI wall-clock median is unchanged (≤ 9 min) after the check is added —
+      measured over 10 runs, not asserted
+- [ ] `check:visual-explorations` still passes after the `[~]` rename lands
+- [ ] `/explore` produces a doc with `door`, `decide_by`, `decider` populated
+- [ ] Re-measure exploration conversion 90 days out; the `[_]` count should be
+      flat or falling rather than +85/month
+
+---
+
+## References
+
+**Primary source**
+
+- [Fast · Patrick Collison](https://patrickcollison.com/fast) — the list itself
+- [Fast · Patrick Collison | Hacker News](https://news.ycombinator.com/item?id=21355237) — discussion thread
+- [Which ambitious projects were done the fastest? — The Hustle](https://thehustle.co/11202020-projects)
+- [Patrick Collison on X](https://x.com/patrickc/status/1869422495985750459) — "'good, cheap, fast — choose two' … slow and expensive usually go together"
+- [Questions · Patrick Collison](https://patrickcollison.com/questions) — where he raises survivorship bias himself
+
+**Slowdown literature cited by the page**
+
+- Herbert Kaufman, *Are Government Organizations Immortal?*
+- Philip K. Howard, *The Death of Common Sense*
+- Francis Fukuyama, on vetocracy
+- Mancur Olson, *The Rise and Decline of Nations*
+- [Survivorship bias — Wikipedia](https://en.wikipedia.org/wiki/Survivorship_bias)
+
+**This repository**
+
+- [`AGENTS.md`](../../AGENTS.md) — "ratchet against a committed baseline instead
+  of gating absolutes"; "a gate that cannot go green teaches everyone to ignore
+  red"
+- [`.github/workflows/fallow.yml`](../../.github/workflows/fallow.yml) — the
+  ratchet-not-gate precedent, with its own postmortem in the header
+- [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) — 7 jobs, 403 lines
+- [`.husky/pre-push`](../../.husky/pre-push) — markdown short-circuit
+- [`scripts/check-visual-explorations.mjs`](../../scripts/check-visual-explorations.mjs)
+  — the closest existing model for a doc-directory check
+- [`docs/CHARTER.md`](../CHARTER.md) §6 — no ground rent (not applicable here;
+  no revenue lane proposed)
+- [0283 — CI failure patterns](0283_[_]_CI_FAILURE_PATTERNS_AND_PIPELINE_HEALTH.md) — 75% of
+  failures are non-code
+- [0410 — Open PR triage and the stranded branch problem](0410_[x]_OPEN_PR_TRIAGE_AND_THE_STRANDED_BRANCH_PROBLEM.md)
+  — seven stranded branches, and the numbering-collision hazard
+- [0294 — CI workflow necessity and test value audit](0294_[x]_CI_WORKFLOW_NECESSITY_AND_TEST_VALUE_AUDIT.md)
+  — prior art on gate pruning
+
+**Measurements in this document** were taken on 2026-08-01 from `main`
+(4,981 commits, 880 merges, first commit 2026-01-20) via `git log` and
+`gh run list --workflow=ci.yml --limit 25`. They are reproducible; the commands
+are in the git history of this branch.
