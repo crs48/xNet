@@ -106,8 +106,12 @@ describe('proposePromotions', () => {
   })
 
   it('returns nothing for rows with no overlay keys at all', () => {
-    expect(proposePromotions(Array.from({ length: 50 }, () => ({ name: 'Ada' })), FROM, TO)).toEqual(
-      []
-    )
+    expect(
+      proposePromotions(
+        Array.from({ length: 50 }, () => ({ name: 'Ada' })),
+        FROM,
+        TO
+      )
+    ).toEqual([])
   })
 })
