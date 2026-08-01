@@ -14,7 +14,31 @@ review: 2027-02-01 # renew the claim
 status: withdrawn # release it; the document stays exactly where it is
 ```
 
-**41** stale of 277 undecided.
+**41** stale of 281 undecided.
+
+## How this backlog retires
+
+Measured from git history, not assumed (exploration 0430). Each row counts
+only documents old enough to have had that many days, so a recent bulge
+cannot drag the curve down.
+
+| Days since written | Cohort | Still unshipped |
+| --- | --- | --- |
+| 1 | 403 | 54% |
+| 7 | 389 | 52% |
+| 14 | 350 | 50% |
+| 30 | 254 | 52% |
+| 60 | 140 | 59% |
+| 90 | 120 | 59% |
+| 120 | 109 | 55% |
+
+The curve does not fall: 54% of documents at least a day old are
+unshipped, and 55% at 120 days. An exploration is checked off
+within days of being written, or never — so an old `[_]` is not a pending
+decision, it is a decision already made by inaction. Renew it deliberately,
+or withdraw it; both are one line and neither renames the file.
+
+## Past review date
 
 | Exploration | Due | Overdue | Decider |
 | --- | --- | --- | --- |
@@ -62,7 +86,7 @@ status: withdrawn # release it; the document stays exactly where it is
 
 ## Undated
 
-42 exploration(s) predate this checkout's history and carry no
+43 exploration(s) predate this checkout's history and carry no
 `review:` date, so their age is unknown. They are **not** counted as stale —
 unknown age and not-yet-due are different facts. Give one a `review:` date to
 move it out of this list.
@@ -109,3 +133,4 @@ move it out of this list.
 - [0359_[_]_COMMUNITY_HOSTING_AND_RECURRING_REVENUE_THE_SKOOL_QUESTION.md](0359_%5B_%5D_COMMUNITY_HOSTING_AND_RECURRING_REVENUE_THE_SKOOL_QUESTION.md)
 - [0362_[_]_PUBLISHING_ON_XNET_GHOST_SUBSTACK_AND_THE_OWNED_AUDIENCE.md](0362_%5B_%5D_PUBLISHING_ON_XNET_GHOST_SUBSTACK_AND_THE_OWNED_AUDIENCE.md)
 - [0372_[_]_JOINING_THE_ATMOSPHERE_ADOPT_EXTEND_MINT_AND_THE_HUB_AS_A_KNOT.md](0372_%5B_%5D_JOINING_THE_ATMOSPHERE_ADOPT_EXTEND_MINT_AND_THE_HUB_AS_A_KNOT.md)
+- [0426_[-]_SHOULD_THE_USER_BE_IN_CHARGE_SURRENDER_AS_A_DESIGN_CONSTRAINT.md](0426_%5B-%5D_SHOULD_THE_USER_BE_IN_CHARGE_SURRENDER_AS_A_DESIGN_CONSTRAINT.md)
