@@ -55,7 +55,7 @@ Their Table 5.1 names the switching cost that grows fastest over time:
 
 ## 2. The Moat Register
 
-The Charter's §6 lists twelve refused rents. It does not say what we **keep**.
+The Charter's §6 lists thirteen refused rents. It does not say what we **keep**.
 Both halves belong in the open. Honesty labels match the Charter's vocabulary:
 **Enforced** (a gate fails the build), **Architectural** (the code shape makes
 it true), **Aspirational** (stated policy, not yet shipped).
@@ -158,7 +158,7 @@ whether it still pays **while we keep every refusal**.
 
 | Lane | Improvement | BATNA | Vanish | Sleep | Rust |
 | --- | --- | --- | --- | --- | --- |
-| Hub hosting + ops (`personal`…`enterprise`) | ✅ real servers, backups, uptime | ✅ same MIT hub self-hostable; entitlements are MIT and never phone home | ✅ `.xnetpack` out, self-host in | ✅ someone must still run it | ✅ carries 7 of the 12 refusals; free exit does not reduce the need to run it |
+| Hub hosting + ops (`personal`…`enterprise`) | ✅ real servers, backups, uptime | ✅ same MIT hub self-hostable; entitlements are MIT and never phone home | ✅ `.xnetpack` out, self-host in | ✅ someone must still run it | ✅ carries 8 of the 13 refusals; free exit does not reduce the need to run it |
 | AI metering (`includedAiUsd` / `aiMonthlyBudgetUsd`) | ✅ pass-through + real inference COGS | ✅ BYO-key path preserved | ✅ outputs are nodes in your log | ✅ COGS is COGS | ✅ no refusal touches inference cost |
 | Support / SLA / indemnity | ✅ pure labour and risk transfer | ✅ unaffected | ✅ nothing sealed to us | ✅ labour | ✅ labour is unaffected by what we refuse to charge for |
 | Managed marketplace listing (10%) | ✅ distribution work we perform | ✅ BYO-billing path is 0% and MIT | ✅ licences DID-bound, offline-verifiable | ✅ running a store is operating | ✅ ranking neutrality is the product, not a tax on it |
@@ -180,7 +180,7 @@ how the Rust brothers' governance innovations reached nobody
 ([exploration 0424](./explorations/0424_[x]_THE_RUST_TEST_ASTERISK_15_AND_THE_PRICE_OF_A_REFUSAL.md)).
 
 **Pass condition:** every refusal in `CHARTER.md` §6 names ≥1 shipped or
-building lane that survives it. All twelve appear below; none is omitted.
+building lane that survives it. All thirteen appear below; none is omitted.
 
 | Refusal (`CHARTER.md` §6) | Lane that pays for it | Verdict |
 | --- | --- | --- |
@@ -190,6 +190,7 @@ building lane that survives it. All twelve appear below; none is omitted.
 | No protocol tolls | Support / SLA / indemnity | ✅ we sell standing behind the spec, not access to it |
 | No per‑member pricing on communities | Hub hosting + ops (flat) | ✅ billed on storage/concurrency/AI (0359) |
 | No rent on introductions | Hub hosting + ops | ✅ connection rides the flat hosting bill (0417) |
+| No scored intimacy | Hub hosting + ops | ✅ legibility is the product; the score would have been the surplus (0422) |
 | No behavioural surplus | All lanes | ✅ there was never ad revenue to forgo |
 | No global chokepoint tier | Hub hosting + ops | ✅ anchor tenancy on a substrate anyone can run (§5) |
 | A FRAND trademark | Support / SLA / indemnity | ✅ the name never fenced the revenue; labour did |

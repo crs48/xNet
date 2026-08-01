@@ -116,6 +116,20 @@ const RULES = [
     fix: 'urgency is not a feature — a last-bus prompt converts dread into a click; state the facts and let the user choose (Charter §Calm, exploration 0424)'
   },
   {
+    // The primitives lesson (exploration 0422): making relationships legible
+    // makes them scoreable, and a relationship health score is behavioural
+    // surplus with a friendly face — the exact artefact a future operator would
+    // sell, rank, or boost. Practices and derived bundle readings may show what
+    // two people do together; they may never rank it or grade it. Scoped to
+    // `surplus` (all of packages + apps + site) rather than `dark-pattern`
+    // deliberately: the derivation is pure logic in @xnetjs/crm, well outside
+    // the UI-only dark-pattern scope, so a UI-scoped rule would never see it.
+    name: 'scored intimacy',
+    group: 'surplus',
+    re: /\b(relationshipScore|friendshipScore|intimacyScore|closenessScore|connectionHealth|relationshipStreak|neglectedContacts|atRiskFriend)\b/,
+    fix: 'relationships are never scored or ranked — a health score is behavioural surplus with a friendly face (Charter §6 "no scored intimacy", exploration 0422)'
+  },
+  {
     name: 'third-party ad/analytics SDK',
     group: 'surplus',
     re: /@segment\/|google-analytics|googletagmanager|\bfbevents\b|\bfbq\(|\bgtag\(|\bmixpanel\b|@amplitude\/|cdn\.amplitude\.com|\bhotjar\b|\bfullstory\b/i,
@@ -307,6 +321,18 @@ function runSelfTest() {
       label: 'a meeting countdown is not manufactured urgency',
       dark: true,
       text: 'const countdown = formatRemaining(meeting.startsAt)',
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'flags scored intimacy anywhere, not just UI scope',
+      dark: false,
+      text: 'const relationshipScore = 0.8',
+      expect: (v) => v.some((x) => x.rule === 'scored intimacy')
+    },
+    {
+      label: 'a derived bundle reading is not scored intimacy',
+      dark: false,
+      text: 'const reading = deriveBundle(practised, bundles)',
       expect: (v) => v.length === 0
     },
     {

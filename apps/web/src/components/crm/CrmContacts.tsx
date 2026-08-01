@@ -19,6 +19,7 @@ import { cn } from '@xnetjs/ui'
 import { CalendarClock, Plus, SlidersHorizontal } from 'lucide-react'
 import { useState, type JSX } from 'react'
 import { NodePeek } from '../NodeInspector'
+import { ContactPractices } from './ContactPractices'
 import { ContactTools } from './ContactTools'
 import { num, relDays, str } from './crm-helpers'
 
@@ -289,6 +290,8 @@ function ContactDetail({ contactId }: { contactId: string }): JSX.Element {
           onCommit={(v) => commit({ howWeMet: v || undefined })}
         />
       </Field>
+
+      <ContactPractices contactId={contactId} />
 
       <div className="mt-6">
         <h3 className="mb-2 text-xs font-medium text-ink-2">Activity</h3>

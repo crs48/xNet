@@ -70,7 +70,7 @@ corroboration of an existing ADR, and one methodological note.
 
 | Mechanism            | Path                                                                                   | What it proves                                                                                                                 |
 | -------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Charter §6 refusals  | [docs/CHARTER.md](docs/CHARTER.md)                                                     | Twelve named refused rents, each labelled Enforced / Architectural / Aspirational                                                |
+| Charter §6 refusals  | [docs/CHARTER.md](docs/CHARTER.md)                                                     | Thirteen named refused rents, each labelled Enforced / Architectural / Aspirational                                                |
 | The four tests       | [docs/ECONOMICS.md](docs/ECONOMICS.md) §4                                              | Improvement, BATNA, Vanish, Sleep — scored per kept lane                                                                       |
 | Claims ledger        | [charter-claims-ledger.test.ts](packages/telemetry/test/charter-claims-ledger.test.ts) | 17 claims, each tied to an `assert`, an `enforcedBy` path, or a disclosed `pending`                                            |
 | Humane-patterns gate | [check-humane-patterns.mjs](scripts/check-humane-patterns.mjs)                         | 6 rules: infinite scroll, streak counter, confirmshaming, ratio scorekeeping, metered connection, third-party ad/analytics SDK |
@@ -372,7 +372,7 @@ flowchart TD
   T5 -- yes --> K["Kept"]
 ```
 
-**Pass condition** (decidable, per `AGENTS.md`): each of the twelve refusals in
+**Pass condition** (decidable, per `AGENTS.md`): each of the thirteen refusals in
 §6 maps to ≥1 lane in the §4 table whose Rust column is ✅. **Named consumer:**
 the `economics-refusals-are-affordable` ledger claim, which fails the build if a
 refusal has no mapped lane and no `pending` marker.
@@ -489,7 +489,7 @@ refusal has no mapped lane and no `pending` marker.
 - [x] Add the **Rust test** to `docs/CHARTER.md` §6 as test 5, with the
       "a refusal kept only by a company nobody uses" framing sentence.
 - [x] Add a **Rust column** to the `docs/ECONOMICS.md` §4 test table.
-- [x] Add `docs/ECONOMICS.md` **§4a** — the refusal → lane mapping for all twelve
+- [x] Add `docs/ECONOMICS.md` **§4a** — the refusal → lane mapping for all thirteen
       §6 refusals, each ✅ or explicitly on borrowed time.
 - [x] State the Sleep/Rust distinction in prose (lane-durability vs
       refusal-affordability) so the two tests are not conflated.
