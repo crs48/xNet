@@ -44,6 +44,35 @@ const CORE_TIPS: CoachTip[] = [
     title: 'Find your people',
     body: 'Discover others who share your interests. You stay invisible until you opt in.',
     side: 'right'
+  },
+  // The three unsignposted route surfaces (0422). The exploration named
+  // canvas, database and dashboard — none of those is a rail surface, so none
+  // has an anchor to point at, and a tip with no anchor renders nothing at
+  // all. These are the three a first-time visitor arrives at cold and that the
+  // rail can anchor today.
+  {
+    id: 'finance:overview@1',
+    view: 'finance',
+    anchor: '[data-coach="rail.finance"]',
+    title: 'Money, in your own store',
+    body: 'Accounts and transactions are nodes like anything else — query them, or drop one on a canvas.',
+    side: 'right'
+  },
+  {
+    id: 'analytics:overview@1',
+    view: 'analytics',
+    anchor: '[data-coach="rail.analytics"]',
+    title: 'Charts over your own data',
+    body: 'Every chart reads the local store directly. Nothing is precomputed, so nothing goes stale.',
+    side: 'right'
+  },
+  {
+    id: 'meetings:overview@1',
+    view: 'meetings',
+    anchor: '[data-coach="rail.meetings"]',
+    title: 'Meetings stay on your device',
+    body: 'Recording and transcription run locally. Audio never leaves unless you send it somewhere.',
+    side: 'right'
   }
 ]
 

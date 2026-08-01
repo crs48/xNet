@@ -753,8 +753,10 @@ seeing half grows past a paragraph.
 
 - [ ] Amend [`docs/CHARTER.md`](../CHARTER.md) §5 with the *seeing* half, citing
       Hall's two-term definition and linking the Asterisk interview.
-- [ ] Mark the seeing half **Aspirational**, pointing at this exploration, until
-      step 4 lands.
+- [ ] Mark the seeing half's backing honestly. The gate landed in the same
+      change, so the commitment is **Enforced**; what stays **Aspirational** is
+      the *population* — commands, shortcuts and plugin capabilities are out of
+      scope until the flag population has held green.
 
 **Step 3 — register**
 

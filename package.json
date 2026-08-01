@@ -19,6 +19,7 @@
     "check:ai-retrieval": "node scripts/guard-ai-surface-retrieval.mjs",
     "check:hub-image": "node scripts/check-hub-image-closure.mjs",
     "check:humane-patterns": "node scripts/check-humane-patterns.mjs",
+    "check:capability-surface": "node scripts/check-capability-surface.mjs",
     "guard:no-source-stamp": "node scripts/guard-no-source-stamp.mjs",
     "check:publish-closure": "node scripts/check-publish-closure.mjs",
     "check:electron-parity": "node scripts/check-electron-parity.mjs",
