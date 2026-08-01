@@ -1,0 +1,14 @@
+{
+  "stories": [],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png"
+    }
+  ],
+  "flows": [],
+  "electron": [],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}

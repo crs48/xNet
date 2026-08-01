@@ -1,0 +1,22 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "changed",
+      "ssim": 0.995451,
+      "before": "before/routes/data.png",
+      "after": "routes/data.png",
+      "diff": "diff/routes/data.png"
+    }
+  ],
+  "electron": [],
+  "flows": [],
+  "changedCount": 1
+}
