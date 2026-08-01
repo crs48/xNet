@@ -1163,6 +1163,9 @@ importers:
       '@blocknote/core':
         specifier: 0.51.4
         version: 0.51.4(@lezer/common@1.5.2)(@lezer/highlight@1.2.3)(@types/hast@3.0.4)
+      '@xnetjs/brain':
+        specifier: workspace:*
+        version: link:../brain
       '@xnetjs/canvas':
         specifier: workspace:*
         version: link:../canvas

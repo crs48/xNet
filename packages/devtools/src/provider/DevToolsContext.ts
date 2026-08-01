@@ -21,6 +21,7 @@ export type PanelId =
   | 'authz'
   | 'abuse'
   | 'agent-audit'
+  | 'memory'
   | 'queries'
   | 'traces'
   | 'telemetry'
