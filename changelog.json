@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-01-coding-agents-can-finally-search-your-wh",
+      "url": "https://xnet.fyi/changelog#2026-08-01-coding-agents-can-finally-search-your-wh",
+      "title": "Coding agents can finally search your whole workspace",
+      "content_text": "Claude Code and Codex now use xNet's real retrieval instead of scanning the first 500 nodes, the new `xnet recall` answers questions that span several notes and shows how it got there, and xNet remembers what you have told it between sessions.\n",
+      "date_published": "2026-08-01T17:40:32Z",
+      "tags": [
+        "ai",
+        "platform"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "Claude Code and Codex now use xNet's real retrieval instead of scanning the first 500 nodes, the new `xnet recall` answers questions that span several notes and shows how it got there, and xNet remembers what you have told it between sessions.",
+        "highlights": [],
+        "mergedAt": "2026-08-01T17:40:32Z",
+        "pr": 667,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-31-record-your-screen-without-anything-leav",
       "url": "https://xnet.fyi/changelog#2026-07-31-record-your-screen-without-anything-leav",
       "title": "Record your screen without anything leaving your device",

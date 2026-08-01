@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Coding agents can finally search your whole workspace</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-coding-agents-can-finally-search-your-wh</link>
+      <guid isPermaLink="false">2026-08-01-coding-agents-can-finally-search-your-wh</guid>
+      <pubDate>Sat, 01 Aug 2026 17:40:32 GMT</pubDate>
+      <description>Claude Code and Codex now use xNet's real retrieval instead of scanning the first 500 nodes, the new `xnet recall` answers questions that span several notes and shows how it got there, and xNet remembers what you have told it between sessions.</description>
+    </item>
+    <item>
       <title>Record your screen without anything leaving your device</title>
       <link>https://xnet.fyi/changelog#2026-07-31-record-your-screen-without-anything-leav</link>
       <guid isPermaLink="false">2026-07-31-record-your-screen-without-anything-leav</guid>
