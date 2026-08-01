@@ -2070,6 +2070,19 @@ export const builtInSchemas: {
         decay: PropertyBuilder<number>;
         evidence: PropertyBuilder<string[]>;
     }>>;
+    readonly 'xnet://xnet.fyi/RetrievalProfile@1.0.0': () => Promise<DefinedSchema<{
+        hopDecay: PropertyBuilder<number>;
+        vectorWeight: PropertyBuilder<number>;
+        maxEntries: PropertyBuilder<number>;
+        rerank: PropertyBuilder<boolean>;
+        adoptedAt: PropertyBuilder<number>;
+        baseline: PropertyBuilder<{
+            recallAll: number;
+            recallGraph: number;
+            mrr: number;
+        }>;
+        reason: PropertyBuilder<string>;
+    }>>;
     readonly 'xnet://xnet.fyi/AgentPassport@1.0.0': () => Promise<DefinedSchema<{
         space: PropertyBuilder<string>;
         agentDID: PropertyBuilder<string>;
@@ -3335,6 +3348,19 @@ export const builtInSchemas: {
         lastUsedAt: PropertyBuilder<number>;
         decay: PropertyBuilder<number>;
         evidence: PropertyBuilder<string[]>;
+    }>>;
+    readonly 'xnet://xnet.fyi/RetrievalProfile': () => Promise<DefinedSchema<{
+        hopDecay: PropertyBuilder<number>;
+        vectorWeight: PropertyBuilder<number>;
+        maxEntries: PropertyBuilder<number>;
+        rerank: PropertyBuilder<boolean>;
+        adoptedAt: PropertyBuilder<number>;
+        baseline: PropertyBuilder<{
+            recallAll: number;
+            recallGraph: number;
+            mrr: number;
+        }>;
+        reason: PropertyBuilder<string>;
     }>>;
     readonly 'xnet://xnet.fyi/AgentPassport': () => Promise<DefinedSchema<{
         space: PropertyBuilder<string>;
@@ -9491,6 +9517,27 @@ export function resolveSchemaAuthority(options: SchemaAuthorityResolutionOptions
 
 // @public
 export function resolveTempIds(operations: TransactionOperation[], schemaLookup?: SchemaLookup): TempIdResolution;
+
+// @public (undocumented)
+export const RETRIEVAL_PROFILE_SCHEMA_IRI: "xnet://xnet.fyi/RetrievalProfile@1.0.0";
+
+// @public (undocumented)
+export type RetrievalProfileNode = InferNode<(typeof RetrievalProfileSchema)['_properties']>;
+
+// @public
+export const RetrievalProfileSchema: DefinedSchema<{
+    hopDecay: PropertyBuilder<number>;
+    vectorWeight: PropertyBuilder<number>;
+    maxEntries: PropertyBuilder<number>;
+    rerank: PropertyBuilder<boolean>;
+    adoptedAt: PropertyBuilder<number>;
+    baseline: PropertyBuilder<{
+        recallAll: number;
+        recallGraph: number;
+        mrr: number;
+    }>;
+    reason: PropertyBuilder<string>;
+}>;
 
 // @public (undocumented)
 export type ReviewTask = InferNode<(typeof ReviewTaskSchema)['_properties']>;
