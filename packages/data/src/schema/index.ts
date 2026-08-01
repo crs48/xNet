@@ -174,6 +174,14 @@ export {
 } from './schemas'
 // Extension overlay + effective-schema composition
 export { EXT_PREFIX, extKey, isExtKey, parseExtKey } from './extension'
+// Late ontology — promote an accumulated overlay key to a core property (0422)
+export {
+  DEFAULT_PROMOTION_THRESHOLD,
+  proposePromotion,
+  proposePromotions,
+  type PromotionProposal,
+  type ProposePromotionOptions
+} from './promote-proposal'
 export {
   buildEffectiveSchema,
   lockedPropertyKeys,
