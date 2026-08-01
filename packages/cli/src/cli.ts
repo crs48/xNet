@@ -20,6 +20,7 @@
 
 import { program } from 'commander'
 import { registerAgentCommands } from './commands/agent.js'
+import { registerAuditCommand } from './commands/audit.js'
 import { registerBridgeCommand } from './commands/bridge.js'
 import { registerCodeCommand } from './commands/code.js'
 import { registerConnectCommand } from './commands/connect.js'
@@ -44,6 +45,7 @@ registerSchemaCommand(program)
 registerDoctorCommand(program)
 registerAgentCommands(program)
 registerAgentEnrollCommand(program)
+registerAuditCommand(program)
 registerMcpCommand(program)
 registerBridgeCommand(program)
 registerCodeCommand(program)

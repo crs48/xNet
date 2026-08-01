@@ -8,8 +8,12 @@
  *   2. an operator-signed, attenuated UCAN delegating a narrow capability set
  *      to that DID — never the operator's key, never a wildcard.
  *
- * Revocation is expiry: passports default to a 7-day TTL and are re-minted on
- * rotation. Keep TTLs short — a stolen passport is live until it expires.
+ * Passports default to a 7-day TTL and are re-minted on rotation. Expiry is
+ * the backstop, not the only lever: {@link revokeAgentPassport} signs a
+ * denylist entry the operator can publish, and {@link verifyAgentPassport}
+ * consults it when given one (exploration 0416). Keep TTLs short anyway — a
+ * verifier that never sees the denylist still honours a stolen passport until
+ * it expires.
  */
 
 import type { Revocation } from './sharing/types'

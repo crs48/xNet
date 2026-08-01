@@ -1420,6 +1420,26 @@ export {
   type WriteBundleOptions
 } from './portability'
 
+// Agent audit bundles (exploration 0416) — grouped re-export from the scoped
+// sub-barrel per the 0276 policy
+export {
+  AGENT_AUDIT_BUNDLE_VERSION,
+  buildAgentAuditBundle,
+  parseAgentAuditBundle,
+  serializeAgentAuditBundle,
+  verifyAgentAudit,
+  type AgentAuditBundle,
+  type AgentAuditSource,
+  type AuditVerifyCode,
+  type AuditVerifyProblem,
+  type AuditVerifyReport,
+  type BuildAgentAuditOptions,
+  type BundleAction,
+  type BundleApproval,
+  type BundlePassport,
+  type VerifyAgentAuditOptions
+} from './agent-audit'
+
 // Re-export Yjs for convenience
 export {
   Doc as YDoc,

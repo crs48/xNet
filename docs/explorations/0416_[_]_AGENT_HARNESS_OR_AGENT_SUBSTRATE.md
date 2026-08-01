@@ -550,9 +550,9 @@ requires the operator's signing key — which the agent never has.
 
 ### Lane 1 — deepen the substrate (the durable half)
 
-- [ ] `AgentAuditBundle` export format (actions + approvals + passport +
+- [x] `AgentAuditBundle` export format (actions + approvals + passport +
       change proofs), reusing the `.xnetpack` codec from 0344
-- [ ] `xnet audit verify <bundle>` CLI: chain verification, operator-signature
+- [x] `xnet audit verify <bundle>` CLI: chain verification, operator-signature
       check on every high/critical action, non-zero exit on any problem
 - [x] `enrollForeignAgent()` in `packages/identity` — verify a foreign key
       proof, mint an attenuated passport bound to it
