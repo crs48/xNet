@@ -1,0 +1,20 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [
+    {
+      "id": "explorations-0403-mdx-visual-explorations--docs",
+      "title": "Explorations/0403 MDX visual explorations",
+      "name": "Docs",
+      "file": "stories/explorations-0403-mdx-visual-explorations--docs.png",
+      "status": "unchanged",
+      "ssim": 0.999955
+    }
+  ],
+  "routes": [],
+  "electron": [],
+  "flows": [],
+  "changedCount": 0
+}

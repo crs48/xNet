@@ -1,0 +1,15 @@
+{
+  "stories": [
+    {
+      "id": "explorations-0403-mdx-visual-explorations--docs",
+      "title": "Explorations/0403 MDX visual explorations",
+      "name": "Docs",
+      "file": "stories/explorations-0403-mdx-visual-explorations--docs.png"
+    }
+  ],
+  "routes": [],
+  "flows": [],
+  "electron": [],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}
