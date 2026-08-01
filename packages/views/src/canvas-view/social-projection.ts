@@ -25,7 +25,7 @@
  */
 
 import type { CanvasEdge, CanvasNode } from '@xnetjs/canvas'
-import type { SocialCanvasProjectionPlan } from '@xnetjs/social'
+import type { SocialCanvasProjectionPlan } from '@xnetjs/social/projection'
 import type * as Y from 'yjs'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from '@xnetjs/canvas'
 

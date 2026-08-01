@@ -11,7 +11,7 @@ import type {
   Rect,
   ShapeType
 } from '@xnetjs/canvas'
-import type { SocialCanvasProjectionPlan } from '@xnetjs/social'
+import type { SocialCanvasProjectionPlan } from '@xnetjs/social/projection'
 import {
   Canvas,
   getCanvasObjectsMap,

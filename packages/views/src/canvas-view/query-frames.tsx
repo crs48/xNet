@@ -34,7 +34,7 @@ import {
   type SavedViewSchemaRegistry,
   type UseSavedViewResult
 } from '@xnetjs/react'
-import type { SocialCanvasProjectionPlan } from '@xnetjs/social'
+import type { SocialCanvasProjectionPlan } from '@xnetjs/social/projection'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   applySocialCanvasProjectionPlan,

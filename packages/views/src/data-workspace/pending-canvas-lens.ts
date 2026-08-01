@@ -16,7 +16,7 @@
  * the app duplicating their work.
  */
 
-import type { SocialCanvasProjectionPlan } from '@xnetjs/social'
+import type { SocialCanvasProjectionPlan } from '@xnetjs/social/projection'
 
 const STORAGE_KEY = 'xnet:views:pending-canvas-lens'
 

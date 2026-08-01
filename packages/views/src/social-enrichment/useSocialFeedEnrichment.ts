@@ -20,7 +20,6 @@ import type {
 import { useMutate, useQuery, useXNet } from '@xnetjs/react'
 import {
   buildEnrichmentNodeData,
-  createSocialEnrichmentId,
   enrichmentTargetForPreview,
   fetchEnrichmentForTarget,
   feedEnrichmentEntryFor,
@@ -31,12 +30,12 @@ import {
   resolveHubAuthToken,
   socialEnrichmentKey,
   SocialEnrichmentQueue,
-  SocialEnrichmentSchema,
   supportsDirectOEmbed,
   thumbnailContentTypeFor,
   type EnrichmentRowLike,
   type SocialEnrichmentTarget
-} from '@xnetjs/social'
+} from '@xnetjs/social/enrichment'
+import { createSocialEnrichmentId, SocialEnrichmentSchema } from '@xnetjs/social/schemas'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 type EnrichmentRow = EnrichmentRowLike & {
