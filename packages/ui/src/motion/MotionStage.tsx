@@ -3,7 +3,7 @@
  *
  * The CSS vocabulary in theme/motion.css covers ~95% of animation here. The
  * remainder — drag-coupled motion and FLIP layout animation — is what this
- * boundary exists for (exploration 0422; style guide in docs/MOTION.md).
+ * boundary exists for (exploration 0427; style guide in docs/MOTION.md).
  *
  *   <MotionStage>
  *     {tabs.map((t) => <m.div key={t.id} layout><Tab {...t} /></m.div>)}

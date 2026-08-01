@@ -13,7 +13,7 @@
  *              `apps/web/src`. Other packages have their own design systems
  *              (e.g. the editor's --editor-* theme) and stay out of scope.
  *
- *   'global' — the bundle-weight rules (0422). These scan ALL of `packages/`
+ *   'global' — the bundle-weight rules (0427). These scan ALL of `packages/`
  *              and `apps/`, because a 34KB static import costs the same in
  *              packages/views as in apps/web, and the two call sites that
  *              legitimately use Motion (workbench TabBar, views BoardView)
