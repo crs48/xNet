@@ -652,10 +652,10 @@ export function proposeSilenceCuts(
 
 ### Phase 5 — Export and share
 
-- [ ] macOS export: apply the EDL through `AVAssetWriter` in the helper, no ffmpeg
+- [x] macOS export: apply the EDL through `AVAssetWriter` in the helper, no ffmpeg
 - [ ] Resumable chunked upload to the hub with a verified manifest; a failed
       upload sets a typed error state on the node, never a silent partial
-- [ ] Raise/negotiate `getMaxFileSize()` for video CIDs, or route recordings
+- [x] Raise/negotiate `getMaxFileSize()` for video CIDs, or route recordings
       through a dedicated large-object path
 - [ ] `/s/<linkId>` playback page reusing the 0169 share-link machinery
 - [ ] `.xnetpack` export includes tracks, transcript, cuts and chapters

@@ -66,6 +66,12 @@ struct Options {
   var fps: Int
 }
 
+// `export` is a subcommand, not a flag: it shares the helper's binary and
+// status protocol but nothing else — no capture, no permissions, no TCC.
+if CommandLine.arguments.dropFirst().first == "export" {
+  runExport(arguments: Array(CommandLine.arguments.dropFirst(2)))
+}
+
 func parseOptions() -> Options {
   var outputDir: URL?
   var displayID: CGDirectDisplayID?

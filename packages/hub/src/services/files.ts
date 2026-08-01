@@ -6,15 +6,27 @@ import { hashHex } from '@xnetjs/crypto'
 
 export type FileConfig = {
   maxFileSize: number
+  /**
+   * Ceiling for video payloads (exploration 0414). A ten-minute 1080p
+   * screencast is 150–400 MB, so the general 100 MB cap would reject every
+   * recording with a flat 413. Media gets its own, larger limit rather than
+   * raising the cap for all uploads — a 2 GB JSON blob is still a mistake.
+   */
+  maxMediaFileSize: number
   maxStoragePerUser: number
   allowedMimeTypes: string[]
 }
 
 const DEFAULT_CONFIG: FileConfig = {
   maxFileSize: 100 * 1024 * 1024,
+  maxMediaFileSize: 2 * 1024 * 1024 * 1024,
   maxStoragePerUser: 5 * 1024 * 1024 * 1024,
   allowedMimeTypes: []
 }
+
+/** Whether a MIME type gets the larger media ceiling. */
+export const isMediaMimeType = (mimeType: string): boolean =>
+  mimeType.startsWith('video/') || mimeType.startsWith('audio/')
 
 export class FileService {
   private config: FileConfig
@@ -26,8 +38,16 @@ export class FileService {
     this.config = { ...DEFAULT_CONFIG, ...config }
   }
 
-  getMaxFileSize(): number {
-    return this.config.maxFileSize
+  /**
+   * The ceiling that applies to a given upload. Callers that know the MIME
+   * type should pass it — the route uses it to size its own `content-length`
+   * pre-check so a large recording is rejected (or accepted) consistently at
+   * both gates.
+   */
+  getMaxFileSize(mimeType?: string): number {
+    return mimeType && isMediaMimeType(mimeType)
+      ? this.config.maxMediaFileSize
+      : this.config.maxFileSize
   }
 
   async upload(
@@ -37,11 +57,9 @@ export class FileService {
     mimeType: string,
     uploaderDid: string
   ): Promise<FileMeta> {
-    if (data.length > this.config.maxFileSize) {
-      throw new FileError(
-        'FILE_TOO_LARGE',
-        `File exceeds max size of ${this.config.maxFileSize} bytes`
-      )
+    const limit = this.getMaxFileSize(mimeType)
+    if (data.length > limit) {
+      throw new FileError('FILE_TOO_LARGE', `File exceeds max size of ${limit} bytes`)
     }
 
     if (this.config.allowedMimeTypes.length > 0) {

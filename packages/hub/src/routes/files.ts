@@ -26,13 +26,15 @@ export const createFileRoutes = (fileService: FileService): Hono<Env> => {
       return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 403)
     }
 
+    // Video and audio get the larger media ceiling (exploration 0414); sizing
+    // this pre-check off the same MIME type the service will use keeps the two
+    // gates from disagreeing — a recording accepted here and rejected there
+    // would fail after the whole body was already on the wire.
+    const limit = fileService.getMaxFileSize(mimeType)
     const declaredSize = parseContentLength(c.req.header('content-length'))
-    if (declaredSize !== null && declaredSize > fileService.getMaxFileSize()) {
+    if (declaredSize !== null && declaredSize > limit) {
       return c.json(
-        {
-          error: `File exceeds max size of ${fileService.getMaxFileSize()} bytes`,
-          code: 'FILE_TOO_LARGE'
-        },
+        { error: `File exceeds max size of ${limit} bytes`, code: 'FILE_TOO_LARGE' },
         413
       )
     }
