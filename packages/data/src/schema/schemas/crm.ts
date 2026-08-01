@@ -48,6 +48,9 @@ export const CRM_NAMESPACE = 'xnet://xnet.fyi/' as const
 export const ORGANIZATION_SCHEMA_IRI = 'xnet://xnet.fyi/Organization@1.0.0' as const
 export const CONTACT_SCHEMA_IRI = 'xnet://xnet.fyi/Contact@1.0.0' as const
 export const RELATIONSHIP_SCHEMA_IRI = 'xnet://xnet.fyi/Relationship@1.0.0' as const
+export const RELATIONSHIP_PRIMITIVE_SCHEMA_IRI =
+  'xnet://xnet.fyi/RelationshipPrimitive@1.0.0' as const
+export const PRACTICE_SCHEMA_IRI = 'xnet://xnet.fyi/Practice@1.0.0' as const
 export const PIPELINE_SCHEMA_IRI = 'xnet://xnet.fyi/Pipeline@1.0.0' as const
 export const STAGE_SCHEMA_IRI = 'xnet://xnet.fyi/Stage@1.0.0' as const
 export const DEAL_SCHEMA_IRI = 'xnet://xnet.fyi/Deal@1.0.0' as const
@@ -76,6 +79,10 @@ const VISIBILITY_OPTIONS = [
 ] as const
 
 const visibility = () => select({ options: VISIBILITY_OPTIONS, default: 'inherit' })
+/** Like `visibility()` but defaulting to `private` rather than `inherit`. Used
+ * by `Practice`, whose rows are claims about someone else's life and so must
+ * not become team-visible merely by being filed in a Space (0422). */
+const privateVisibility = () => select({ options: VISIBILITY_OPTIONS, default: 'private' })
 const space = () => relation({ target: SPACE_TARGET })
 /** Uniform folder filing (exploration 0190) — empty = Unfiled. */
 const folder = () => relation({ target: FOLDER_TARGET })
@@ -234,6 +241,80 @@ export const RelationshipSchema = defineSchema({
 })
 
 export type Relationship = InferNode<(typeof RelationshipSchema)['_properties']>
+
+// ---------------------------------------------------------------------------
+// Relationship primitives: RelationshipPrimitive + Practice (exploration 0422)
+// ---------------------------------------------------------------------------
+
+/**
+ * One term in the relationship-primitive vocabulary — an *activity* two people
+ * do together ("make things", "have hard conversations", "cohabitate"), as
+ * opposed to a *label* for the relationship as a whole.
+ *
+ * This is a node and not a `select()` on purpose. `Relationship.kind` above is
+ * a closed eleven-way enum, which is exactly the compression this schema
+ * exists to undo: "friend" is a lossy summary of the activities two people
+ * actually share, and the summary is the part we were storing. A closed enum
+ * of *primitives* would reproduce the mistake one level down — the vocabulary
+ * has to stay open, because the useful words differ per person.
+ */
+export const RelationshipPrimitiveSchema = defineSchema({
+  name: 'RelationshipPrimitive',
+  namespace: CRM_NAMESPACE,
+  properties: {
+    label: text({ required: true, maxLength: 120 }),
+    description: text({ maxLength: 1000 }),
+    /**
+     * Bundle names this primitive conventionally belongs to, comma-separated
+     * ("partner, family"). Free text rather than a relation: bundles are labels
+     * people invent, and this field is only ever a *prior* for derivation — the
+     * thing a reader compares against, never an assertion about anyone.
+     */
+    conventionalBundles: text({ maxLength: 500 }),
+    /** True for the terms shipped with the app; false for user-authored ones. */
+    isSeed: checkbox({ default: false }),
+    space: space(),
+    visibility: visibility()
+  },
+  authorization: spaceCascadeAuthorization()
+})
+
+export type RelationshipPrimitive = InferNode<(typeof RelationshipPrimitiveSchema)['_properties']>
+
+/**
+ * A primitive actually practised between two people — the unit
+ * `Relationship.kind` was compressing away. One relationship has many
+ * practices; the label is derived from them at read time (`deriveBundle()` in
+ * `@xnetjs/crm`) rather than stored, per the repo's no-stored-rollups rule.
+ *
+ * Privacy note: a practice is a claim about a *pair*, authored unilaterally by
+ * one side. That makes it more sensitive than a `Contact`, so it defaults to
+ * `private` visibility and is excluded from every discovery projection.
+ */
+export const PracticeSchema = defineSchema({
+  name: 'Practice',
+  namespace: CRM_NAMESPACE,
+  properties: {
+    from: relation({ target: CONTACT_SCHEMA_IRI, required: true }),
+    to: relation({ target: CONTACT_SCHEMA_IRI, required: true }),
+    primitive: relation({ target: RELATIONSHIP_PRIMITIVE_SCHEMA_IRI, required: true }),
+    startedAt: date({}),
+    lastAt: date({}),
+    /**
+     * A user-set *intention* ("we'd like this to be monthly"), never a basis
+     * for overdue language about a person. `@xnetjs/crm`'s cadence math may be
+     * reused; its `isOverdue` vocabulary may not be pointed at a friendship.
+     */
+    cadenceDays: number({ integer: true, min: 0 }),
+    note: text({ maxLength: 1000 }),
+    space: space(),
+    visibility: privateVisibility()
+  },
+  document: 'yjs',
+  authorization: spaceCascadeAuthorization()
+})
+
+export type Practice = InferNode<(typeof PracticeSchema)['_properties']>
 
 // ---------------------------------------------------------------------------
 // Pipeline: Pipeline + Stage + Deal + DealContactRole
@@ -476,6 +557,8 @@ export const crmSchemas = [
   OrganizationSchema,
   ContactSchema,
   RelationshipSchema,
+  RelationshipPrimitiveSchema,
+  PracticeSchema,
   PipelineSchema,
   StageSchema,
   DealSchema,

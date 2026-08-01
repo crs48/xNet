@@ -4,6 +4,8 @@ import {
   OrganizationSchema,
   ContactSchema,
   RelationshipSchema,
+  RelationshipPrimitiveSchema,
+  PracticeSchema,
   StageSchema,
   DealSchema,
   DealContactRoleSchema,
@@ -17,11 +19,13 @@ import { builtInSchemas } from './index'
 const testDID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID
 
 describe('CRM schema pack (0187)', () => {
-  it('registers all ten schemas under versioned and legacy IRIs', () => {
+  it('registers all twelve schemas under versioned and legacy IRIs', () => {
     for (const iri of [
       'xnet://xnet.fyi/Organization@1.0.0',
       'xnet://xnet.fyi/Contact@1.0.0',
       'xnet://xnet.fyi/Relationship@1.0.0',
+      'xnet://xnet.fyi/RelationshipPrimitive@1.0.0',
+      'xnet://xnet.fyi/Practice@1.0.0',
       'xnet://xnet.fyi/Pipeline@1.0.0',
       'xnet://xnet.fyi/Stage@1.0.0',
       'xnet://xnet.fyi/Deal@1.0.0',
@@ -32,6 +36,8 @@ describe('CRM schema pack (0187)', () => {
       'xnet://xnet.fyi/Organization',
       'xnet://xnet.fyi/Contact',
       'xnet://xnet.fyi/Relationship',
+      'xnet://xnet.fyi/RelationshipPrimitive',
+      'xnet://xnet.fyi/Practice',
       'xnet://xnet.fyi/Pipeline',
       'xnet://xnet.fyi/Stage',
       'xnet://xnet.fyi/Deal',
@@ -44,8 +50,8 @@ describe('CRM schema pack (0187)', () => {
     }
   })
 
-  it('exposes exactly ten schemas in the crmSchemas array', () => {
-    expect(crmSchemas).toHaveLength(10)
+  it('exposes exactly twelve schemas in the crmSchemas array', () => {
+    expect(crmSchemas).toHaveLength(12)
   })
 
   describe('ContactSchema', () => {
@@ -152,6 +158,44 @@ describe('CRM schema pack (0187)', () => {
       expect(rel.from).toBe('c1')
       expect(rel.to).toBe('c2')
       expect(rel.kind).toBe('spouse')
+    })
+
+    it('requires both ends and a primitive on a practice edge', () => {
+      // Mirrors the Relationship case: an edge missing either end is invalid.
+      expect(PracticeSchema.validate({ from: 'c1', primitive: 'p1' }).valid).toBe(false)
+      expect(PracticeSchema.validate({ from: 'c1', to: 'c2' }).valid).toBe(false)
+      const practice = PracticeSchema.create(
+        { from: 'c1', to: 'c2', primitive: 'p1' },
+        { createdBy: testDID }
+      )
+      expect(practice.from).toBe('c1')
+      expect(practice.to).toBe('c2')
+      expect(practice.primitive).toBe('p1')
+    })
+
+    it('defaults a practice to private, not inherit', () => {
+      // A practice is a claim about a *pair*, authored by one side. Filing it in
+      // a Space must not make it team-visible the way `inherit` would (0422).
+      const practice = PracticeSchema.create(
+        { from: 'c1', to: 'c2', primitive: 'p1' },
+        { createdBy: testDID }
+      )
+      expect(practice.visibility).toBe('private')
+      // The contrast that makes the default meaningful.
+      expect(
+        RelationshipSchema.create({ from: 'c1', to: 'c2' }, { createdBy: testDID }).visibility
+      ).toBe('inherit')
+    })
+
+    it('requires a label on a primitive and defaults isSeed to false', () => {
+      expect(RelationshipPrimitiveSchema.validate({}).valid).toBe(false)
+      const primitive = RelationshipPrimitiveSchema.create(
+        { label: 'make things', conventionalBundles: 'coworker' },
+        { createdBy: testDID }
+      )
+      expect(primitive.label).toBe('make things')
+      // User-authored terms are the default; only the shipped seed sets this.
+      expect(primitive.isSeed).toBe(false)
     })
 
     it('defaults a product to active and a line item to its deal', () => {
