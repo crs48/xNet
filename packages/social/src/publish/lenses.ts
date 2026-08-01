@@ -15,8 +15,8 @@
  * by the atproto data model.
  */
 
-import type { NodeProperties, RecordLens } from '@xnetjs/data'
 import type { SocialPlatform } from '../schemas/constants'
+import type { NodeProperties, RecordLens } from '@xnetjs/data'
 import { normalizeExternalReferenceUrl } from '@xnetjs/data'
 import { AFFINITY_NSID, BOOKMARK_NSID, PLATFORM_DOMAINS, PLATFORM_ID_REFS } from './constants'
 
@@ -143,7 +143,15 @@ export const interactionToAffinity: RecordLens = {
   source: SOCIAL_INTERACTION_IRI,
   mode: 'projection',
   lossless: false,
-  modelled: ['subject', 'subjectRef', 'platform', 'interactionKind', 'createdAt', 'tags', 'bookmark'],
+  modelled: [
+    'subject',
+    'subjectRef',
+    'platform',
+    'interactionKind',
+    'createdAt',
+    'tags',
+    'bookmark'
+  ],
   forward: (node) => {
     const platform = str(node.platform) as SocialPlatform | undefined
     const record: Record<string, unknown> = {

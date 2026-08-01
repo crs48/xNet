@@ -46,7 +46,9 @@ export {
   edgeCreatedAt,
   edgeTags,
   interactionToAffinity,
-  interactionToBookmark
+  interactionToBookmark,
+  normalizeSubject,
+  recoveredTags
 } from './lenses'
 export {
   affinityRkey,

@@ -11,9 +11,9 @@
  */
 import { createFileRoute } from '@tanstack/react-router'
 import { useXNet } from '@xnetjs/react'
-import { useAtprotoIdentity } from '../hooks/useAtprotoIdentity'
 import { Loader2, Users } from 'lucide-react'
 import React, { useCallback, useState } from 'react'
+import { useAtprotoIdentity } from '../hooks/useAtprotoIdentity'
 
 export const Route = createFileRoute('/social-affinity')({
   component: SocialAffinityPage
@@ -69,9 +69,9 @@ function SocialAffinityPage() {
       <header>
         <h1 className="text-lg font-semibold">What you have in common</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Compares what you and one other person have published — across YouTube, Instagram,
-          TikTok and anywhere else either of you imported from. Both sides read from their own
-          repos; nothing here is stored.
+          Compares what you and one other person have published — across YouTube, Instagram, TikTok
+          and anywhere else either of you imported from. Both sides read from their own repos;
+          nothing here is stored.
         </p>
       </header>
 

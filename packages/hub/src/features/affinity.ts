@@ -25,10 +25,10 @@
  * to zero — which is exactly why it must never be priced as its own tier.
  */
 
-import { resolveContentVisibility } from '@xnetjs/abuse'
-import type { AbuseLabel, AbuseVisibility, UserSensitivityPreferences } from '@xnetjs/abuse'
-import { normalizeExternalReferenceUrl } from '@xnetjs/data'
 import type { IndexEntry } from './atproto-index'
+import type { AbuseLabel, AbuseVisibility, UserSensitivityPreferences } from '@xnetjs/abuse'
+import { resolveContentVisibility } from '@xnetjs/abuse'
+import { normalizeExternalReferenceUrl } from '@xnetjs/data'
 
 /** The collections an affinity comparison reads. */
 export const BOOKMARK_COLLECTION = 'community.lexicon.bookmarks.bookmark'
@@ -93,10 +93,7 @@ const asString = (value: unknown): string | undefined =>
  * all — `https://youtube.com/watch?v=x` and `https://www.youtube.com/watch?v=x/`
  * are the same video and different strings.
  */
-export function sharedSubjects(
-  a: Iterable<string>,
-  b: Iterable<string>
-): string[] {
+export function sharedSubjects(a: Iterable<string>, b: Iterable<string>): string[] {
   const left = new Set<string>()
   for (const raw of a) {
     const url = normalizeExternalReferenceUrl(raw)
@@ -178,7 +175,7 @@ export function compareActors(
     shared: shared.map((url) => {
       const left = byUrlA.get(url)
       const right = byUrlB.get(url)
-      return left?.platform ? left : (right?.platform ? right : (left ?? right)!)
+      return left?.platform ? left : right?.platform ? right : (left ?? right)!
     }),
     counts: { [actorA]: a.length, [actorB]: b.length }
   }

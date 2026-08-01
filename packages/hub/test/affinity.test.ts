@@ -16,8 +16,9 @@
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
 import { DEFAULT_SENSITIVITY_PREFERENCES, buildSensitivityLabel } from '@xnetjs/abuse'
+import { Hono } from 'hono'
+import { describe, expect, it } from 'vitest'
 import {
   AFFINITY_COLLECTION,
   BOOKMARK_COLLECTION,
@@ -33,7 +34,6 @@ import {
   type IndexEntry,
   type IndexSource
 } from '../src/features/atproto-index'
-import { Hono } from 'hono'
 
 const bookmark = (did: string, subject: string, rkey = subject): IndexEntry => ({
   uri: `at://${did}/${BOOKMARK_COLLECTION}/${encodeURIComponent(rkey)}`,
@@ -127,7 +127,14 @@ describe('no scoreboard', () => {
       enabled: true,
       derivedOnly: false,
       rebuildOnStart: false,
-      source: { async listRepos() { return [] }, async listRecords() { return [] } }
+      source: {
+        async listRepos() {
+          return []
+        },
+        async listRecords() {
+          return []
+        }
+      }
     })
     feature.mount?.({ app } as never)
 
@@ -144,15 +151,21 @@ describe('no scoreboard', () => {
       enabled: true,
       derivedOnly: false,
       rebuildOnStart: false,
-      source: { async listRepos() { return [] }, async listRecords() { return [] } }
+      source: {
+        async listRepos() {
+          return []
+        },
+        async listRecords() {
+          return []
+        }
+      }
     }).mount?.({ app } as never)
 
     expect((await app.request('/xrpc/fyi.xnet.affinity.compare')).status).toBe(400)
+    expect((await app.request('/xrpc/fyi.xnet.affinity.compare?actors=did:plc:a')).status).toBe(400)
     expect(
-      (await app.request('/xrpc/fyi.xnet.affinity.compare?actors=did:plc:a')).status
-    ).toBe(400)
-    expect(
-      (await app.request('/xrpc/fyi.xnet.affinity.compare?actors=did:plc:a&actors=did:plc:a')).status
+      (await app.request('/xrpc/fyi.xnet.affinity.compare?actors=did:plc:a&actors=did:plc:a'))
+        .status
     ).toBe(400)
   })
 })
@@ -160,7 +173,9 @@ describe('no scoreboard', () => {
 describe('the index still rebuilds deterministically with the new collections', () => {
   const source = (): IndexSource => ({
     async listRepos(collection) {
-      return collection === BOOKMARK_COLLECTION ? ['did:plc:alice', 'did:plc:bob'] : ['did:plc:alice']
+      return collection === BOOKMARK_COLLECTION
+        ? ['did:plc:alice', 'did:plc:bob']
+        : ['did:plc:alice']
     },
     async listRecords(did, collection) {
       if (collection !== BOOKMARK_COLLECTION && collection !== AFFINITY_COLLECTION) return []

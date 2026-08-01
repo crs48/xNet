@@ -2,8 +2,12 @@
  * @xnetjs/social — the shapes the publish pipeline moves around (0420).
  */
 
+import type {
+  SocialInteractionKind,
+  SocialPlatform,
+  SocialPrivacyClass
+} from '../schemas/constants'
 import type { AtmospherePublishState } from '@xnetjs/data'
-import type { SocialInteractionKind, SocialPlatform, SocialPrivacyClass } from '../schemas/constants'
 
 /**
  * One resolved interaction, ready to be looked at by the picker and the lens.
@@ -37,6 +41,8 @@ export interface PublishableEdge {
  */
 export type ExclusionReason =
   | 'third-party'
+  /** Another edge in the same run already points at this URL. */
+  | 'duplicate-subject'
   | 'interaction-kind-never-publishable'
   | 'interaction-kind-not-selected'
   | 'unknown-platform'

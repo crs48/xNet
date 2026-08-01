@@ -116,10 +116,7 @@ export function savePublishMap(did: string, entries: readonly PublishedEdge[]): 
  * views, lenses, the agent's retrieval profile — tell a published edge from a
  * private one without consulting the map.
  */
-export async function markEdgesPublic(
-  store: NodeStore,
-  nodeIds: readonly string[]
-): Promise<void> {
+export async function markEdgesPublic(store: NodeStore, nodeIds: readonly string[]): Promise<void> {
   for (const id of nodeIds) {
     await store.update(id as never, { properties: { visibility: 'public' } })
   }

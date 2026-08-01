@@ -12,9 +12,9 @@
  * defaulted to off is one mis-click from a mistake that cannot be taken back.
  */
 
-import { normalizeExternalReferenceUrl } from '@xnetjs/data'
-import type { SocialInteractionKind, SocialPlatform } from '../schemas/constants'
 import type { ExcludedEdge, ExclusionReason, PublishableEdge } from './types'
+import type { SocialInteractionKind, SocialPlatform } from '../schemas/constants'
+import { normalizeExternalReferenceUrl } from '@xnetjs/data'
 import {
   NEVER_PUBLISHABLE_INTERACTION_KINDS,
   NEVER_PUBLISHABLE_PRIVACY_CLASSES,
@@ -95,6 +95,7 @@ export function exclusionFor(
 
 const EMPTY_COUNTS = (): Record<ExclusionReason, number> => ({
   'third-party': 0,
+  'duplicate-subject': 0,
   'interaction-kind-never-publishable': 0,
   'interaction-kind-not-selected': 0,
   'unknown-platform': 0,
@@ -126,5 +127,43 @@ export function selectBucket(
   }
 
   included.sort((a, b) => (a.nodeId < b.nodeId ? -1 : a.nodeId > b.nodeId ? 1 : 0))
-  return { included, excluded, excludedByReason }
+  return {
+    included: dedupeBySubject(included, excluded, excludedByReason),
+    excluded,
+    excludedByReason
+  }
+}
+
+/**
+ * Collapse edges that normalise to the same subject URL.
+ *
+ * One video reached from a playlist AND from liked-videos is two interactions
+ * with two node ids and one record's worth of meaning. Without this the run
+ * writes it twice, and — worse — `reconcile()` maps a subject back to exactly
+ * one node id, so the duplicate looks unpublished forever and is re-created on
+ * every subsequent run.
+ *
+ * The earliest interaction wins (the list is already sorted, so this is
+ * deterministic), and the collapsed ones are reported as excluded rather than
+ * vanishing: the preview's counts must add up.
+ */
+function dedupeBySubject(
+  included: readonly PublishableEdge[],
+  excluded: ExcludedEdge[],
+  counts: Record<ExclusionReason, number>
+): PublishableEdge[] {
+  const seen = new Set<string>()
+  const out: PublishableEdge[] = []
+  for (const edge of included) {
+    const subject = normalizeExternalReferenceUrl(edge.targetUrl ?? '')
+    if (!subject) continue
+    if (seen.has(subject)) {
+      excluded.push({ nodeId: edge.nodeId, reason: 'duplicate-subject' })
+      counts['duplicate-subject']++
+      continue
+    }
+    seen.add(subject)
+    out.push(edge)
+  }
+  return out
 }

@@ -46,7 +46,10 @@ function walk(dir) {
  * schema fails here instead of publishing under a name nobody can resolve.
  */
 function nsidFromPath(path) {
-  return relative(ROOT, path).replace(/\.json$/, '').split(sep).join('.')
+  return relative(ROOT, path)
+    .replace(/\.json$/, '')
+    .split(sep)
+    .join('.')
 }
 
 const files = walk(ROOT)
@@ -73,7 +76,9 @@ for (const path of files) {
   // Authority over an NSID is authority over the reversed DNS name. We hold
   // xnet.fyi and nothing else; `net.x.*` in particular belongs to IANA (0372 D2).
   if (!expected.startsWith('fyi.xnet.')) {
-    problems.push(`${rel}: "${expected}" is outside fyi.xnet.* — we cannot publish a namespace we do not own`)
+    problems.push(
+      `${rel}: "${expected}" is outside fyi.xnet.* — we cannot publish a namespace we do not own`
+    )
   }
   records.push({ rkey: expected, value: { ...doc, $type: SCHEMA_COLLECTION } })
 }
@@ -102,7 +107,9 @@ if (dryRun) {
 const pds = flag('pds')
 const token = flag('token')
 if (!pds || !did || !token) {
-  console.error('\n[lexicons] --pds, --did and --token are all required to write. Or pass --dry-run.')
+  console.error(
+    '\n[lexicons] --pds, --did and --token are all required to write. Or pass --dry-run.'
+  )
   process.exit(1)
 }
 

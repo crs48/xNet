@@ -13,6 +13,7 @@
 
 import { assertRoundTrip, projectRecord } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
+import { createSocialNodeId } from '../import/ids'
 import {
   AFFINITY_NSID,
   BOOKMARK_NSID,
@@ -25,6 +26,7 @@ import {
   indexByNodeId,
   interactionToAffinity,
   interactionToBookmark,
+  normalizeSubject,
   pickSamples,
   reconcile,
   runPublish,
@@ -37,7 +39,6 @@ import {
   type PublishedEdge,
   type RepoWriter
 } from '../publish'
-import { createSocialNodeId } from '../import/ids'
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -159,7 +160,10 @@ describe('the record lenses', () => {
   })
 
   it('never stamps a record with "now" when the timestamp is unknown', () => {
-    const record = projectRecord(interactionToBookmark, toNodeProperties(edge({ occurredAt: undefined })))
+    const record = projectRecord(
+      interactionToBookmark,
+      toNodeProperties(edge({ occurredAt: undefined }))
+    )
     // Empty, not fabricated: a record claiming the user saved this at publish
     // time would be a permanent falsehood.
     expect(record.createdAt).toBe('')
@@ -207,13 +211,22 @@ describe('record keys', () => {
       (subject) => (subject === e.targetUrl ? e.nodeId : undefined)
     )
     expect(result.adopted).toBe(1)
-    expect(result.map[0]).toMatchObject({ nodeId: e.nodeId, uri: 'at://did:plc:test/bookmark/tid1' })
+    expect(result.map[0]).toMatchObject({
+      nodeId: e.nodeId,
+      uri: 'at://did:plc:test/bookmark/tid1'
+    })
   })
 
   it('leaves records it cannot match to a local node completely alone', () => {
     const result = reconcile(
       [],
-      [{ uri: 'at://did:plc:test/bookmark/other', cid: 'x', subject: 'https://someone-elses.example' }],
+      [
+        {
+          uri: 'at://did:plc:test/bookmark/other',
+          cid: 'x',
+          subject: 'https://someone-elses.example'
+        }
+      ],
       () => undefined
     )
     expect(result.adopted).toBe(0)
@@ -236,7 +249,10 @@ describe('record keys', () => {
 describe('a publish run', () => {
   it('writes one bookmark per edge and reports itself complete', async () => {
     const writer = fakeWriter()
-    const edges = [edge({ targetUrl: 'https://www.youtube.com/watch?v=a' }), edge({ targetUrl: 'https://www.youtube.com/watch?v=b' })]
+    const edges = [
+      edge({ targetUrl: 'https://www.youtube.com/watch?v=a' }),
+      edge({ targetUrl: 'https://www.youtube.com/watch?v=b' })
+    ]
     const result = await runPublish(edges, new Map(), writer, noWait)
     expect(result.published).toBe(2)
     expect(result.complete).toBe(true)
@@ -267,7 +283,9 @@ describe('a publish run', () => {
       rkey: affinityRkey(e.nodeId)
     })
     // The extension points back at the bookmark it extends.
-    expect(writer.put[0].record.bookmark).toBe(writer.created[0] && `at://did:plc:test/${BOOKMARK_NSID}/tid1`)
+    expect(writer.put[0].record.bookmark).toBe(
+      writer.created[0] && `at://did:plc:test/${BOOKMARK_NSID}/tid1`
+    )
   })
 
   it('reports a truncated run as truncated, never as done', async () => {
@@ -408,5 +426,141 @@ describe('published edges carry a map entry', () => {
     // Re-deriving the node id from the same archive data yields the same key.
     const reimported: PublishedEdge | undefined = map.get(edgeId(e.targetUrl!))
     expect(reimported?.uri).toBe(run.written[0].uri)
+  })
+})
+
+// ─── Validation (exploration 0420's validation checklist) ────────────────────
+
+describe('a 50-edge run, end to end against a fake repo', () => {
+  /** A repo that actually stores what it was given, so listRecords is real. */
+  function repo(): RepoWriter & { records: Map<string, Record<string, unknown>> } {
+    const records = new Map<string, Record<string, unknown>>()
+    let n = 0
+    return {
+      did: 'did:plc:test',
+      records,
+      async createRecord({ collection, record }) {
+        const uri = `at://did:plc:test/${collection}/tid${++n}`
+        records.set(uri, record)
+        return { uri, cid: `bafy${n}` }
+      },
+      async putRecord({ collection, rkey, record }) {
+        const uri = `at://did:plc:test/${collection}/${rkey}`
+        records.set(uri, record)
+        return { uri, cid: 'bafyput' }
+      },
+      async deleteRecord({ collection, rkey }) {
+        records.delete(`at://did:plc:test/${collection}/${rkey}`)
+      },
+      async listRecords(collection) {
+        return [...records.entries()]
+          .filter(([uri]) => uri.includes(`/${collection}/`))
+          .map(([uri, value]) => ({ uri, cid: 'c', subject: String(value.subject) }))
+      }
+    }
+  }
+
+  const fifty = Array.from({ length: 50 }, (_, i) =>
+    edge({ targetUrl: `https://www.youtube.com/watch?v=v${i}` })
+  )
+
+  it('writes exactly 50 records with normalised, deduplicated subjects', async () => {
+    const writer = repo()
+    const bucket = selectBucket(fifty)
+    expect(bucket.included).toHaveLength(50)
+    await runPublish(bucket.included, new Map(), writer, noWait)
+
+    const written = await writer.listRecords(BOOKMARK_NSID)
+    expect(written).toHaveLength(50)
+    expect(new Set(written.map((r) => r.subject)).size).toBe(50)
+  })
+
+  it('collapses duplicate URLs that differ only by fragment or trailing slash', async () => {
+    const writer = repo()
+    // The same video three ways. Deterministic node ids differ (the raw strings
+    // differ), so dedup has to come from the normalised subject, not the id.
+    const dupes = [
+      edge({ targetUrl: 'https://www.youtube.com/watch?v=dup' }),
+      edge({ targetUrl: 'https://www.youtube.com/watch?v=dup#t=30' }),
+      edge({ targetUrl: 'https://www.youtube.com/watch?v=dup' })
+    ]
+    const bucket = selectBucket(dupes)
+    expect(bucket.included).toHaveLength(1)
+    expect(bucket.excludedByReason['duplicate-subject']).toBe(2)
+
+    await runPublish(bucket.included, new Map(), writer, noWait)
+    const written = await writer.listRecords(BOOKMARK_NSID)
+    // ONE record, not three with the same subject — otherwise reconcile() maps
+    // the subject to one node id and re-creates the other two on every run.
+    expect(written).toHaveLength(1)
+  })
+
+  it('survives losing the whole workspace: re-import + re-publish writes nothing new', async () => {
+    const writer = repo()
+    const bucket = selectBucket(fifty)
+    await runPublish(bucket.included, new Map(), writer, noWait)
+    const before = writer.records.size
+
+    // The device died. No local map at all — only the repo and a fresh import
+    // of the same archive, which yields the same deterministic node ids.
+    const remote = await writer.listRecords(BOOKMARK_NSID)
+    const reimported = selectBucket(fifty).included
+    const bySubject = new Map(reimported.map((e) => [e.targetUrl!, e.nodeId]))
+    const reconciled = reconcile([], remote, (subject) => {
+      // The repo stores the NORMALISED subject; the fresh import knows the raw
+      // URL. Matching needs the same normalisation on both sides.
+      for (const [raw, nodeId] of bySubject) {
+        if (normalizeSubject(raw) === subject) return nodeId
+      }
+      return undefined
+    })
+    expect(reconciled.adopted).toBe(50)
+
+    const second = await runPublish(reimported, indexByNodeId(reconciled.map), writer, noWait)
+    expect(writer.records.size).toBe(before)
+    expect(second.published).toBe(50)
+  })
+
+  it('an interrupted run reports 30 published and 20 still staged', async () => {
+    const writer = repo()
+    const result = await runPublish(selectBucket(fifty).included, new Map(), writer, {
+      ...noWait,
+      limit: 30
+    })
+    expect(result.published).toBe(30)
+    expect(result.staged).toBe(20)
+    expect(result.complete).toBe(false)
+  })
+})
+
+describe('records conform to the adopted lexicon', () => {
+  /**
+   * A third-party bookmark app can only render our records if they satisfy
+   * `community.lexicon.bookmarks.bookmark`. We cannot drive kipclip in a unit
+   * test, but we can hold the output to the schema it validates against —
+   * which is the part a test can actually decide.
+   */
+  it('satisfies community.lexicon.bookmarks.bookmark', () => {
+    const record = projectRecord(interactionToBookmark, toNodeProperties(edge()))
+    expect(record.$type).toBe(BOOKMARK_NSID)
+    // required: subject (uri), createdAt (datetime)
+    expect(typeof record.subject).toBe('string')
+    expect(() => new URL(String(record.subject))).not.toThrow()
+    expect(Number.isNaN(Date.parse(String(record.createdAt)))).toBe(false)
+    // optional: tags — array of strings
+    expect(Array.isArray(record.tags)).toBe(true)
+    expect((record.tags as unknown[]).every((t) => typeof t === 'string')).toBe(true)
+    // and nothing $-prefixed beyond $type: those keys are reserved by the
+    // atproto data model, and the `$enriched` pattern seen in the wild is a bug.
+    expect(Object.keys(record).filter((k) => k.startsWith('$'))).toEqual(['$type'])
+  })
+
+  it('satisfies fyi.xnet.social.affinity', () => {
+    const record = projectRecord(interactionToAffinity, toNodeProperties(edge()))
+    for (const required of ['subject', 'platform', 'interactionKind', 'createdAt']) {
+      expect(typeof record[required]).toBe('string')
+      expect(record[required]).not.toBe('')
+    }
+    expect(Object.keys(record).filter((k) => k.startsWith('$'))).toEqual(['$type'])
   })
 })

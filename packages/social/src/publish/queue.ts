@@ -19,12 +19,12 @@
  * the only way a backoff policy ever gets tested at all.
  */
 
-import type { PublishState, PublishableEdge, PublishedEdge } from './types'
 import type { RemoteBookmark } from './rkey'
-import { AFFINITY_NSID, BOOKMARK_NSID } from './constants'
-import { affinityRkey } from './rkey'
-import { interactionToAffinity, interactionToBookmark } from './lenses'
+import type { PublishState, PublishableEdge, PublishedEdge } from './types'
 import { projectRecord } from '@xnetjs/data'
+import { AFFINITY_NSID, BOOKMARK_NSID } from './constants'
+import { interactionToAffinity, interactionToBookmark } from './lenses'
+import { affinityRkey } from './rkey'
 
 /** The subset of a PDS session this pipeline needs. Injected, so tests use fakes. */
 export interface RepoWriter {

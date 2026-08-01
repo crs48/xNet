@@ -72,7 +72,9 @@ function SocialPublishPage() {
 
   useEffect(() => {
     if (!store || !isReady) return
-    void resolvePublishableEdges(store).then(setEdges).catch((e) => setError(String(e)))
+    void resolvePublishableEdges(store)
+      .then(setEdges)
+      .catch((e) => setError(String(e)))
   }, [store, isReady])
 
   const bucket = useMemo(() => selectBucket(edges, selection), [edges, selection])
@@ -99,9 +101,7 @@ function SocialPublishPage() {
       // Reconcile BEFORE the first write. Skipping this is how a lost local map
       // becomes two thousand duplicate records.
       const remote = await writer.listRecords(RECONCILE_COLLECTION)
-      const bySubject = new Map(
-        bucket.included.map((e) => [e.targetUrl ?? '', e.nodeId] as const)
-      )
+      const bySubject = new Map(bucket.included.map((e) => [e.targetUrl ?? '', e.nodeId] as const))
       const reconciled = reconcile(loadPublishMap(atprotoDid), remote, (s) => bySubject.get(s))
 
       // The AI-use declaration goes first, so it is in place before the records
@@ -124,7 +124,10 @@ function SocialPublishPage() {
 
       const all = [...reconciled.map, ...result.written]
       setPublished(all)
-      await markEdgesPublic(store, result.written.map((e) => e.nodeId))
+      await markEdgesPublic(
+        store,
+        result.written.map((e) => e.nodeId)
+      )
       try {
         savePublishMap(atprotoDid, all)
       } catch (e) {
@@ -157,9 +160,9 @@ function SocialPublishPage() {
     return (
       <Shell>
         <p className="text-sm text-[var(--text-secondary)]">
-          Publishing writes records to <strong>your own</strong> AT Protocol repo, so it needs
-          your account linked first. xNet never holds them — that is what makes the published
-          set survive us.
+          Publishing writes records to <strong>your own</strong> AT Protocol repo, so it needs your
+          account linked first. xNet never holds them — that is what makes the published set survive
+          us.
         </p>
         <Link to="/settings" className="text-sm underline">
           Link an AT Protocol account in Settings
@@ -216,9 +219,9 @@ function SocialPublishPage() {
             <Undo2 className="size-4" /> Withdraw all
           </button>
           <p className="text-xs text-[var(--text-secondary)]">
-            Withdrawing deletes the records from your repo and asks other services to stop
-            serving them. Copies already archived from the firehose are beyond anyone&rsquo;s
-            reach, including ours.
+            Withdrawing deletes the records from your repo and asks other services to stop serving
+            them. Copies already archived from the firehose are beyond anyone&rsquo;s reach,
+            including ours.
           </p>
         </div>
       )}
@@ -238,9 +241,9 @@ function Shell({ children }: { children: React.ReactNode }) {
       <header>
         <h1 className="text-lg font-semibold">Publish your affinity</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Share what you saved — a link, a date, your own tags — so friends can find what you
-          have in common outside any one network. Titles, thumbnails and descriptions stay on
-          this device: they belong to the platform and the creator, not to you.
+          Share what you saved — a link, a date, your own tags — so friends can find what you have
+          in common outside any one network. Titles, thumbnails and descriptions stay on this
+          device: they belong to the platform and the creator, not to you.
         </p>
       </header>
       {children}
@@ -317,8 +320,8 @@ function Chooser({
       */}
       <p className="flex gap-2 text-xs text-[var(--text-secondary)]">
         <Lock className="mt-0.5 size-3.5 shrink-0" />
-        Messages, comments, search history and who you follow are never offered here. They
-        describe other people, and that is not yours to publish.
+        Messages, comments, search history and who you follow are never offered here. They describe
+        other people, and that is not yours to publish.
       </p>
 
       <Check
@@ -329,8 +332,7 @@ function Chooser({
 
       <div className="flex items-center justify-between border-t border-[var(--border)] pt-4">
         <span className="text-sm">
-          <strong>{bucket.included.length}</strong> selected ·{' '}
-          {bucket.excluded.length} excluded
+          <strong>{bucket.included.length}</strong> selected · {bucket.excluded.length} excluded
         </span>
         <button
           type="button"
@@ -376,8 +378,8 @@ function Preview({
           <>
             {' '}
             At the rate a PDS accepts writes that takes roughly{' '}
-            <strong>{preview.estimatedDays.toFixed(1)} days</strong> of trickling — you can stop
-            and resume, but publishing less is usually the better answer.
+            <strong>{preview.estimatedDays.toFixed(1)} days</strong> of trickling — you can stop and
+            resume, but publishing less is usually the better answer.
           </>
         )}
       </p>
@@ -389,7 +391,11 @@ function Preview({
             key={sample.nodeId}
             className="overflow-x-auto rounded border border-[var(--border)] bg-[var(--bg-subtle)] p-3 text-xs"
           >
-            {JSON.stringify(sample.affinity ? [sample.bookmark, sample.affinity] : sample.bookmark, null, 2)}
+            {JSON.stringify(
+              sample.affinity ? [sample.bookmark, sample.affinity] : sample.bookmark,
+              null,
+              2
+            )}
           </pre>
         ))}
       </div>
@@ -400,12 +406,14 @@ function Preview({
             key={key}
             label={AI_LABELS[key]}
             checked={aiPreferences[key] ?? DEFAULTS[key]}
-            onChange={() => onAiPreferences({ ...aiPreferences, [key]: !(aiPreferences[key] ?? DEFAULTS[key]) })}
+            onChange={() =>
+              onAiPreferences({ ...aiPreferences, [key]: !(aiPreferences[key] ?? DEFAULTS[key]) })
+            }
           />
         ))}
         <p className="text-xs text-[var(--text-secondary)]">
-          Published alongside your records as a declaration others can read. It has the standing
-          of a robots.txt: it does not stop anyone, it removes their excuse.
+          Published alongside your records as a declaration others can read. It has the standing of
+          a robots.txt: it does not stop anyone, it removes their excuse.
         </p>
       </Fieldset>
 
@@ -419,7 +427,11 @@ function Preview({
       </label>
 
       <div className="flex gap-2">
-        <button type="button" onClick={onBack} className="rounded border border-[var(--border)] px-3 py-1.5 text-sm">
+        <button
+          type="button"
+          onClick={onBack}
+          className="rounded border border-[var(--border)] px-3 py-1.5 text-sm"
+        >
           Back
         </button>
         <button

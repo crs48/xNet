@@ -758,27 +758,30 @@ And the one-line extension to the index engine:
 
 ## Validation Checklist
 
-- [ ] After WP0, `fyi.xnet.identity.binding` returns > 0 repos from
-      `com.atproto.sync.listReposByCollection` — the binding half of 0338
-      succeeds in production for the first time.
-- [ ] Publish 50 YouTube likes; `listRecords` on the user's PDS returns exactly
-      50 bookmark records with normalised, deduplicated subjects.
-- [ ] Re-run the same publish: **0 new records created**, map reconciles.
-- [ ] Delete the local xNet workspace, re-import the archive, re-run publish:
+- [ ] **Ops, not code:** after WP0, `fyi.xnet.identity.binding` returns > 0 repos
+      from `com.atproto.sync.listReposByCollection` — the binding half of 0338
+      succeeding in production for the first time. Needs a live consenting user,
+      and a real 50-record publish run against their PDS.
+- [x] Publish 50 edges against a storing fake repo; `listRecords` returns exactly
+      50 bookmark records with normalised, deduplicated subjects. (The same run
+      against a **live** PDS is an ops check — see below.)
+- [x] Re-run the same publish: **0 new records created**, map reconciles.
+- [x] Delete the local xNet workspace, re-import the archive, re-run publish:
       still 0 new records (deterministic IDs + repo reconcile).
-- [ ] A third-party bookmark app (e.g. kipclip) renders the published records
-      without xNet-specific handling.
-- [ ] `putRecord` against a record carrying an unmodelled field from another app
+- [x] Produced records satisfy `community.lexicon.bookmarks.bookmark` and carry no
+      `$`-prefixed key but `$type` — the checkable half of "a third-party bookmark
+      app renders them". Driving kipclip itself stays an ops check.
+- [x] `putRecord` against a record carrying an unmodelled field from another app
       preserves that field (extras-bag regression test).
-- [ ] A publish run interrupted at record 30/50 reports `Staged: 20` — never
+- [x] A publish run interrupted at record 30/50 reports `Staged: 20` — never
       "done."
-- [ ] `preference.ai` record present with `collectionScope` naming the bookmark
+- [x] `preference.ai` record present with `collectionScope` naming the bookmark
       NSID.
-- [ ] DMs, search history and follow lists cannot be reached from the publish
+- [x] DMs, search history and follow lists cannot be reached from the publish
       picker by any path (test asserts the bucket list, not the defaults).
-- [ ] Affinity compare between two test DIDs returns the intersection; no
+- [x] Affinity compare between two test DIDs returns the intersection; no
       endpoint returns a global count or ranking.
-- [ ] `pnpm typecheck && pnpm test` green; index-role determinism test passes.
+- [x] `pnpm typecheck && pnpm test` green; index-role determinism test passes.
 
 ## References
 

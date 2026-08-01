@@ -7,11 +7,10 @@
  * bytes. Only the second is informed consent, and this is a one-way door.
  */
 
-import type { PublishableEdge } from './types'
 import type { BucketResult } from './buckets'
+import { projectRecord } from '@xnetjs/data'
 import { interactionToAffinity, interactionToBookmark } from './lenses'
 import { toNodeProperties } from './queue'
-import { projectRecord } from '@xnetjs/data'
 
 export interface PublishPreview {
   /** How many records this run writes. */
@@ -19,7 +18,11 @@ export interface PublishPreview {
   /** Records per edge — 2 when the extension is on, 1 otherwise. */
   recordsPerEdge: number
   /** Real records, exactly as they will be written. */
-  samples: Array<{ nodeId: string; bookmark: Record<string, unknown>; affinity?: Record<string, unknown> }>
+  samples: Array<{
+    nodeId: string
+    bookmark: Record<string, unknown>
+    affinity?: Record<string, unknown>
+  }>
   /** What is being left out, by reason — shown, never hidden. */
   excludedByReason: BucketResult['excludedByReason']
   /**
