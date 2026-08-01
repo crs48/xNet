@@ -46,11 +46,11 @@ code. When the assistant says "there is no such contact," on what basis?
 
 Three things transfer. In descending order of how much they cost to ignore:
 
-| # | Finding | Source essay | Status in repo |
-|---|---|---|---|
-| **F1** | Retrieval confidence and citation path are computed, then dropped at the in-app seam | Merchants of Certainty | ❌ **Real gap** — `service.ts:611` |
-| **F2** | Withdrawing a document is a result, and the corpus must reward it | Rethinking High-School Science Fairs | ✅ Shipped — the fallow ratchet (0421) |
-| **F3** | xNet is the steering subsystem, not the learner | The Sweet Lesson of Neuroscience | 🚧 Reframes 0416, no new code |
+| #      | Finding                                                                              | Source essay                         | Status in repo                         |
+| ------ | ------------------------------------------------------------------------------------ | ------------------------------------ | -------------------------------------- |
+| **F1** | Retrieval confidence and citation path are computed, then dropped at the in-app seam | Merchants of Certainty               | ❌ **Real gap** — `service.ts:611`     |
+| **F2** | Withdrawing a document is a result, and the corpus must reward it                    | Rethinking High-School Science Fairs | ✅ Shipped — the fallow ratchet (0421) |
+| **F3** | xNet is the steering subsystem, not the learner                                      | The Sweet Lesson of Neuroscience     | 🚧 Reframes 0416, no new code          |
 
 The rest of the issue is context, prior art, or (twice) genuinely
 inapplicable. The middle of this document does the reading; the end does the
@@ -63,19 +63,19 @@ work.
 <details>
 <summary>All eleven essays, with the transfer verdict for each</summary>
 
-| Essay | Author | What it argues | Transfers? |
-| --- | --- | --- | --- |
-| [Justified True Belief](https://asteriskmag.com/issues/13/justified-true-belief) | Clara Collier | Informed citizenship needs neither blind trust nor blanket scepticism; "the consensus is sometimes wrong" | ✅ Frames the whole doc |
-| [The Fight For Slow And Boring Research](https://asteriskmag.com/issues/13/the-fight-for-slow-and-boring-research) | Jolie Gan | Federal funding collapse pushes labs to philanthropy and VC; communication becomes infrastructure, with a legibility-vs-legitimacy risk | ✅ F2 (partial) |
-| [A Brief History of the History of Science](https://asteriskmag.com/issues/13/a-brief-history-of-the-history-of-science) | Matthew Jordan | Sarton → Conant → Kuhn → Shapin: the field moved from progress narrative to social construction, and lost its practitioners | ✅ Corpus-as-record |
-| [Factory Logic](https://asteriskmag.com/issues/13/factory-logic) | Afra Wang | Chinese industrial transplant in Ethiopia; tacit knowledge moves with people, not blueprints | ⚠️ Only via ITRI |
-| [Merchants of Certainty](https://asteriskmag.com/issues/13/merchants-of-certainty) | Alex Trembath | Climate advocacy converted a risk-management problem into manufactured certainty; 1.5°C and 350ppm are political, not physical, lines | ✅ **F1** |
-| [AI After Drug Development](https://asteriskmag.com/issues/13/ai-after-drug-development) | Abhishaike Mahajan | The bottleneck was never candidate generation — it is testing; 95% oncology failure, target the shooting not the shot | ✅ Retrieval corollary |
-| [Language Birth](https://asteriskmag.com/issues/13/language-birth) | Karson Elmgren | ~3,000 of 7,000 languages endangered, but ~3,000 conlangs exist and jargon explodes; survival tracks economic integration and community size | ✅ Lexicon policy |
-| [Rethinking High-School Science Fairs](https://asteriskmag.com/issues/13/rethinking-high-school-science-fairs) | Leah Libresco Sargeant | Fairs became prestige internships; proposes Null Results, Proposals, Replication, Fraud Exposure divisions | ✅ **F2** |
-| [Seeing Like a Sedan](https://asteriskmag.com/issues/13/seeing-like-a-sedan) | Andrew Miller | Lidar-fusion vs camera-only is converging; the real question is what safety bar we choose, which is political | ✅ Tiered retrieval |
-| [The Institute Behind Taiwan's Chip Dominance](https://asteriskmag.com/issues/13/the-institute-behind-taiwan-s-chip-dominance) | Karthik Tadepalli | ITRI: NT$210m and 400 staff in 1973 → TSMC and UMC, via deliberate 15%/yr staff turnover and spinouts | ✅ Ecosystem policy |
-| [The Sweet Lesson of Neuroscience](https://asteriskmag.com/issues/13/the-sweet-lesson-of-neuroscience) | Adam Marblestone | Byrnes' two-subsystem brain: a learning subsystem trained by a hardwired steering subsystem via Thought Assessors | ✅ **F3** |
+| Essay                                                                                                                          | Author                 | What it argues                                                                                                                               | Transfers?              |
+| ------------------------------------------------------------------------------------------------------------------------------ | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| [Justified True Belief](https://asteriskmag.com/issues/13/justified-true-belief)                                               | Clara Collier          | Informed citizenship needs neither blind trust nor blanket scepticism; "the consensus is sometimes wrong"                                    | ✅ Frames the whole doc |
+| [The Fight For Slow And Boring Research](https://asteriskmag.com/issues/13/the-fight-for-slow-and-boring-research)             | Jolie Gan              | Federal funding collapse pushes labs to philanthropy and VC; communication becomes infrastructure, with a legibility-vs-legitimacy risk      | ✅ F2 (partial)         |
+| [A Brief History of the History of Science](https://asteriskmag.com/issues/13/a-brief-history-of-the-history-of-science)       | Matthew Jordan         | Sarton → Conant → Kuhn → Shapin: the field moved from progress narrative to social construction, and lost its practitioners                  | ✅ Corpus-as-record     |
+| [Factory Logic](https://asteriskmag.com/issues/13/factory-logic)                                                               | Afra Wang              | Chinese industrial transplant in Ethiopia; tacit knowledge moves with people, not blueprints                                                 | ⚠️ Only via ITRI        |
+| [Merchants of Certainty](https://asteriskmag.com/issues/13/merchants-of-certainty)                                             | Alex Trembath          | Climate advocacy converted a risk-management problem into manufactured certainty; 1.5°C and 350ppm are political, not physical, lines        | ✅ **F1**               |
+| [AI After Drug Development](https://asteriskmag.com/issues/13/ai-after-drug-development)                                       | Abhishaike Mahajan     | The bottleneck was never candidate generation — it is testing; 95% oncology failure, target the shooting not the shot                        | ✅ Retrieval corollary  |
+| [Language Birth](https://asteriskmag.com/issues/13/language-birth)                                                             | Karson Elmgren         | ~3,000 of 7,000 languages endangered, but ~3,000 conlangs exist and jargon explodes; survival tracks economic integration and community size | ✅ Lexicon policy       |
+| [Rethinking High-School Science Fairs](https://asteriskmag.com/issues/13/rethinking-high-school-science-fairs)                 | Leah Libresco Sargeant | Fairs became prestige internships; proposes Null Results, Proposals, Replication, Fraud Exposure divisions                                   | ✅ **F2**               |
+| [Seeing Like a Sedan](https://asteriskmag.com/issues/13/seeing-like-a-sedan)                                                   | Andrew Miller          | Lidar-fusion vs camera-only is converging; the real question is what safety bar we choose, which is political                                | ✅ Tiered retrieval     |
+| [The Institute Behind Taiwan's Chip Dominance](https://asteriskmag.com/issues/13/the-institute-behind-taiwan-s-chip-dominance) | Karthik Tadepalli      | ITRI: NT$210m and 400 staff in 1973 → TSMC and UMC, via deliberate 15%/yr staff turnover and spinouts                                        | ✅ Ecosystem policy     |
+| [The Sweet Lesson of Neuroscience](https://asteriskmag.com/issues/13/the-sweet-lesson-of-neuroscience)                         | Adam Marblestone       | Byrnes' two-subsystem brain: a learning subsystem trained by a hardwired steering subsystem via Thought Assessors                            | ✅ **F3**               |
 
 </details>
 
@@ -186,10 +186,10 @@ already supplies the vocabulary the fix needs — its **display-grade vs
 evidence-grade** column, and its rule that rendering a forgeable claim "with
 the same confidence as a signed change ... is worse than showing nothing."
 
-| Subsystem | Metadata computed | Where it dies | Exploration |
-| --- | --- | --- | --- |
-| Document history | author DID, signature, clientID | storage boundary | 0377 `[_]` |
-| Retrieval | tier, degraded, notice, pathLabel | `retrieveContext` seam | **this doc** |
+| Subsystem        | Metadata computed                 | Where it dies          | Exploration  |
+| ---------------- | --------------------------------- | ---------------------- | ------------ |
+| Document history | author DID, signature, clientID   | storage boundary       | 0377 `[_]`   |
+| Retrieval        | tier, degraded, notice, pathLabel | `retrieveContext` seam | **this doc** |
 
 Two instances make a pattern worth naming rather than two bugs worth fixing.
 
@@ -226,7 +226,7 @@ stateDiagram-v2
 The ratchet passes if the stale count does not exceed the baseline — never an
 absolute, per `AGENTS.md`. Current state: **41 stale of 276 undecided**.
 Jordan's history-of-science essay supplies the reason the withdrawn files must
-never be deleted: the discipline's own record — Sarton's *Isis*, founded 1912 —
+never be deleted: the discipline's own record — Sarton's _Isis_, founded 1912 —
 was valuable precisely as an accumulating archive of what people believed and
 why, not as a list of things that turned out true. The skill already enforces
 this ("Nothing is ever moved or deleted"), backed by
@@ -260,7 +260,7 @@ from success is a bug, not a guard."
 **Bitter vs sweet lesson.** Sutton's "The Bitter Lesson" (2019) argues search
 and learning scale and hand-crafted structure does not. Marblestone's
 inversion, via Steve Byrnes, is that the bitter lesson applies to
-*architectures and learning rules* — which he calls substantially mastered —
+_architectures and learning rules_ — which he calls substantially mastered —
 and not to **training signals**, which he calls deeply underexplored. Byrnes'
 model splits the brain into a learning subsystem (neocortex, hippocampus,
 cerebellum, striatum) and a hardwired steering subsystem (hypothalamus,
@@ -382,7 +382,7 @@ evolved rather than learned, cannot itself represent abstract concepts, and
 its job is to emit signals the learner is trained against. That is precisely
 what `approval-broker.ts`, `agent-audit.ts` and `egress-budget.ts` are: a
 small, non-learned, deliberately dumb layer that gates and grades a system far
-larger than itself. Thought Assessors — circuits that learn to *predict* the
+larger than itself. Thought Assessors — circuits that learn to _predict_ the
 gate so the gate rarely has to fire — are what an approval UI becomes once it
 learns a user's standing preferences.
 
@@ -424,13 +424,13 @@ the well-written speculative one.** No action; a bias to watch when triaging
 
 For F1, the only finding that needs a decision.
 
-| Option | What it does | Cost | Verdict |
-| --- | --- | --- | --- |
-| **A. Widen the seam** | `AiContextRetriever` returns `{ nodes, tier, degraded, notice }`; service threads it into the pack | One additive type change in `@xnetjs/plugins`, ~3 call sites | ✅ **Recommended** |
-| **B. Notice as a pack resource** | Retriever unchanged; service injects a synthetic `notice` resource when told | Needs a second channel to be told — same problem, moved | ❌ |
-| **C. Fail closed on degraded** | Refuse to answer at all when tier is `scan` | Turns a usable-but-caveated answer into no answer; contradicts the module's own "keeps the answer useful" | 🛑 Rejected |
-| **D. Guard-only** | Extend `guard-ai-surface-retrieval.mjs` to require a tier-carrying retriever | A gate with nothing to gate until A ships | ⚠️ After A |
-| **E. Do nothing** | CLI and MCP already warn | Leaves the lane a non-technical user sees as the only silent one | ❌ |
+| Option                           | What it does                                                                                       | Cost                                                                                                      | Verdict            |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------ |
+| **A. Widen the seam**            | `AiContextRetriever` returns `{ nodes, tier, degraded, notice }`; service threads it into the pack | One additive type change in `@xnetjs/plugins`, ~3 call sites                                              | ✅ **Recommended** |
+| **B. Notice as a pack resource** | Retriever unchanged; service injects a synthetic `notice` resource when told                       | Needs a second channel to be told — same problem, moved                                                   | ❌                 |
+| **C. Fail closed on degraded**   | Refuse to answer at all when tier is `scan`                                                        | Turns a usable-but-caveated answer into no answer; contradicts the module's own "keeps the answer useful" | 🛑 Rejected        |
+| **D. Guard-only**                | Extend `guard-ai-surface-retrieval.mjs` to require a tier-carrying retriever                       | A gate with nothing to gate until A ships                                                                 | ⚠️ After A         |
+| **E. Do nothing**                | CLI and MCP already warn                                                                           | Leaves the lane a non-technical user sees as the only silent one                                          | ❌                 |
 
 Option C deserves its rejection spelled out, because "fail loudly" is the
 house rule and this looks like it. `AGENTS.md` forbids returning a value
@@ -451,7 +451,7 @@ xNet's own 1.5°C.
 <summary>Why "spin out packages like ITRI" and "add a Validation morphology" are not recommendations</summary>
 
 **ITRI → spin out `packages/*`.** The mechanism that made ITRI work was
-deliberate personnel turnover into an *absorbing* private industry that
+deliberate personnel turnover into an _absorbing_ private industry that
 already existed. xNet has no equivalent absorber; publishing more packages to
 npm without downstream consumers reproduces the form and not the function, and
 the repo has already paid for this lesson (`xnet-prepush-verification-set`:
@@ -583,7 +583,7 @@ const retrieveContext = async (query: string, { limit }: { limit: number }) => {
 
 `guard-ai-surface-retrieval.mjs` today asserts that a constructor call passes
 one of `retrieval` / `retrieveContext` / `aiSurface`. The second assertion has
-to look at the *retriever definition*, not the call site: any function typed
+to look at the _retriever definition_, not the call site: any function typed
 as `AiContextRetriever` that returns an array literal built from a `recall()`
 result without a `provenance` key is dropping confidence. That is more than a
 regex can see reliably, so the honest version is narrower:
@@ -601,24 +601,24 @@ a gate that over-claims what it proves is the same failure wearing a lab coat.
 
 ## Risks And Open Questions
 
-| Risk | Severity | Mitigation |
-| --- | --- | --- |
-| Notice fatigue — a permanent banner users learn to ignore | Medium | Render only when `degraded`; the indexed path is the common case, so the notice should be rare by construction. If it is not rare, that is a different bug. |
-| The union return type leaks into `@xnetjs/plugins`' public API | Low | Additive; array form still valid. Needs a changeset (minor). |
-| `AiChatPanel` is the wrong render site if the assistant moves | Low | Notice lives on the pack, not the panel; any renderer can read it. |
-| F3's Thought-Assessor framing invites an auto-approver | **High** | Stated as a `[!CAUTION]` above and nothing is built. 0408's never-auto-confirm rule is unchanged by this document. |
-| This document restates 0377 rather than extending it | Medium | Deliberate — two instances of one pattern. If a third appears, the pattern needs a rule in `AGENTS.md`, not a third exploration. |
+| Risk                                                           | Severity | Mitigation                                                                                                                                                  |
+| -------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Notice fatigue — a permanent banner users learn to ignore      | Medium   | Render only when `degraded`; the indexed path is the common case, so the notice should be rare by construction. If it is not rare, that is a different bug. |
+| The union return type leaks into `@xnetjs/plugins`' public API | Low      | Additive; array form still valid. Needs a changeset (minor).                                                                                                |
+| `AiChatPanel` is the wrong render site if the assistant moves  | Low      | Notice lives on the pack, not the panel; any renderer can read it.                                                                                          |
+| F3's Thought-Assessor framing invites an auto-approver         | **High** | Stated as a `[!CAUTION]` above and nothing is built. 0408's never-auto-confirm rule is unchanged by this document.                                          |
+| This document restates 0377 rather than extending it           | Medium   | Deliberate — two instances of one pattern. If a third appears, the pattern needs a rule in `AGENTS.md`, not a third exploration.                            |
 
 **Open questions:**
 
-- Should `degraded` be surfaced to the *model* as well as the user? An
+- Should `degraded` be surfaced to the _model_ as well as the user? An
   assistant told "your search was incomplete" can hedge its own answer; an
   assistant not told will assert. Argues for putting the notice in the context
   pack itself, which the recommendation does — but the prompt-injection
   surface of writing retriever-authored text into a prompt needs a look
   (`service.ts:750` already handles the untrusted-source case for external
   resources).
-- Does the fallow ratchet need a second counter for *resolutions* (F2)? A
+- Does the fallow ratchet need a second counter for _resolutions_ (F2)? A
   falling stale count and a rising withdrawn count mean different things and
   currently produce the same green.
 - Is there a third instance of the compute-then-discard pattern? Worth one
@@ -628,7 +628,7 @@ a gate that over-claims what it proves is the same failure wearing a lab coat.
 
 ## Implementation Checklist
 
-**Status:** `░░░░░░░░░░ 0/9 items`
+**Status:** `██████████ 9/9 items`
 
 - [x] Add `AiRetrievalProvenance` / `AiRetrievalResult` to
       `packages/plugins/src/ai-surface/service.ts` and export from the barrel
@@ -649,21 +649,43 @@ a gate that over-claims what it proves is the same failure wearing a lab coat.
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter @xnetjs/brain test` — `retrieveContext` carries
+- [x] `pnpm --filter @xnetjs/brain test` — `retrieveContext` carries
       `provenance.tier` matching `recall().tier` for all four tiers
-- [ ] New unit test: a store that throws `NoTextIndexError` at call time yields
+- [x] New unit test: a store that throws `NoTextIndexError` at call time yields
       `degraded: true` through the seam, not just through `recall()`
-- [ ] New unit test: `createContextPack` preserves `pathLabel` for every
+- [x] New unit test: `createContextPack` preserves `pathLabel` for every
       retrieved node
-- [ ] `node scripts/guard-ai-surface-retrieval.mjs` fails on a retriever that
+- [x] `node scripts/guard-ai-surface-retrieval.mjs` fails on a retriever that
       drops provenance (verify by temporarily reverting one call site)
 - [ ] Drive the real desktop app per `.claude/skills/electron-prototype`: with
       the FTS index unavailable, the in-app answer shows the notice
 - [ ] Same run, indexed path: **no** notice appears (fatigue check)
-- [ ] `pnpm typecheck && pnpm lint && pnpm test`
-- [ ] `pnpm check:exploration-links` — this document's inbound and outbound
+- [x] `pnpm typecheck && pnpm lint && pnpm test`
+- [x] `pnpm check:exploration-links` — this document's inbound and outbound
       links resolve
 - [ ] Post-merge: `grep -rn "degrad" packages/workbench/src/views/` returns hits
+
+> [!NOTE]
+> **What the app run actually covered, and what blocked the desktop one.**
+> The two boxes above are deliberately left unchecked. `pnpm --filter
+xnet-desktop dev` cannot boot in this worktree: `@electron/rebuild` fails on
+> `usearch` (`node-gyp` cannot find `node_gyp_bins`, a half-built native module
+> left by an install that blocked build scripts). That is an environment
+> failure, unrelated to this change, and it was not worked around.
+>
+> The chain _was_ driven end-to-end in the real **web** app instead
+> (`xnet-web` on `:5199`, real boot, real modules, real `AiSurfaceService`,
+> real `createContextPack` → `formatContextMessages`). Both paths behaved:
+>
+> | Store             | tier         | `degraded` | panel notice | model told INCOMPLETE |
+> | ----------------- | ------------ | ---------- | ------------ | --------------------- |
+> | no `searchText`   | `scan`       | ✅ true    | ✅ shown     | ✅ yes                |
+> | with `searchText` | `bm25-graph` | ❌ false   | ❌ none      | ❌ no                 |
+>
+> The Assistant panel itself opened clean, no console errors. Since the code
+> under test is `packages/workbench`, which both surfaces render from
+> unchanged, the residual desktop-only risk is the shell, not this seam — but
+> the box stays open until someone actually runs it.
 
 ## References
 
@@ -704,5 +726,5 @@ a gate that over-claims what it proves is the same failure wearing a lab coat.
 
 - Rich Sutton, [The Bitter Lesson](http://www.incompleteideas.net/IncIdeas/BitterLesson.html) (2019)
 - Steven Byrnes, [Intro to Brain-Like-AGI Safety](https://www.alignmentforum.org/s/HzcM2dkCq7fwXBej8) — the two-subsystem model Marblestone summarises
-- Thomas Kuhn, *The Structure of Scientific Revolutions* (1962)
-- Shapin & Schaffer, *Leviathan and the Air-Pump* (1985) — the Boyle/Hobbes episode Jordan cites
+- Thomas Kuhn, _The Structure of Scientific Revolutions_ (1962)
+- Shapin & Schaffer, _Leviathan and the Air-Pump_ (1985) — the Boyle/Hobbes episode Jordan cites
