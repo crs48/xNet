@@ -21,11 +21,6 @@
   ],
   "routes": [
     {
-      "id": "data",
-      "label": "Data",
-      "file": "routes/data.png"
-    },
-    {
       "id": "settings",
       "label": "Settings",
       "file": "routes/settings.png"
