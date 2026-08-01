@@ -204,6 +204,39 @@ const CLAIMS: Claim[] = [
     }
   },
   {
+    id: 'commons-no-scored-intimacy',
+    source:
+      'Charter §Commons/No ground rent — "no scored intimacy: relationships are made legible, ' +
+      'never scored — no health score, no ranking, no neglect list" (0422)',
+    backing: 'enforced',
+    assert: () => {
+      // Same shape as the metered-connection receipt: the enforcer is the CI
+      // gate, so the receipt pins the rule name and the scoring identifiers it
+      // must keep banning. It also pins the `surplus` group — demoting the rule
+      // to `dark-pattern` would silently narrow it to UI files and stop it
+      // seeing the derivation in @xnetjs/crm, which is the whole point.
+      const gate = readFileSync(
+        fileURLToPath(new URL('scripts/check-humane-patterns.mjs', `file://${repoRoot}`)),
+        'utf8'
+      )
+      expect(gate, 'the scored-intimacy rule must exist').toContain("name: 'scored intimacy'")
+      const rule = gate.slice(gate.indexOf("name: 'scored intimacy'"))
+      expect(
+        rule.slice(0, 200),
+        'scored intimacy must stay in the all-packages surplus scope'
+      ).toContain("group: 'surplus'")
+      for (const token of [
+        'relationshipScore',
+        'friendshipScore',
+        'intimacyScore',
+        'connectionHealth',
+        'neglectedContacts'
+      ]) {
+        expect(gate, `scored-intimacy rule must ban ${token}`).toContain(token)
+      }
+    }
+  },
+  {
     id: 'economics-anchor-tenancy-parity',
     source:
       'Charter §Commons/No ground rent + ECONOMICS.md §5 — "xNet Cloud runs the same hub ' +

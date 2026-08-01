@@ -700,7 +700,62 @@ allow-list, injection deny point, token-cap breaker) for xNet's own server-side
 features, not the seed of a harness product. Growing it channels, scheduling,
 or a skill registry is the tripwire that re-opens this ADR.
 
-## ADR-30: We refund loss, not downtime
+## ADR-30: Hub addresses resolve; no data-path routing tier
+
+**Status:** Accepted
+**Context:** Exploration 0423 compared xNet's managed fleet to PlanetScale's
+account of hiding 768 database servers behind one connection string. xNet
+already runs that topology — `packages/cloud/src/provisioner/sharding.ts` places
+800 tenant hubs per GCP project — and pays almost none of the router tax,
+because its shard key is a person and people do not join to each other: no
+cross-shard queries, no resharding, no rebalancing.
+
+What xNet had not bought was the other half of what the router provides. The
+Cloud Run adapter returns `hubUrl: svc.uri`, so a client's durable configuration
+is a vendor hostname. A region move, a substrate swap, or a migration to
+self-hosting silently misconfigures every device — defeating, at the last inch,
+the `Provisioner` abstraction that exists so xNet is never hostage to one
+vendor's terms.
+
+**Decision:** Give hubs a stable name that **resolves** to an address the client
+dials directly. **Never** operate a proxy, gateway, or load-balanced routing
+tier that xNet-hosted traffic passes through.
+
+Concretely: a hub publishes a record signed by its own system identity at
+`/.well-known/xnet-hub-address`; the control plane may **mirror** that record
+but never authors one; the client resolves once, caches, and falls back to its
+last-known address when the resolver is unreachable.
+
+**Rationale:**
+
+- A gateway fails the Charter §6 **BATNA** test outright — a self-hoster cannot
+  run the routing tier, so the self-hosted path becomes measurably worse than
+  the managed one.
+- It fails the **Vanish** test — if xNet disappeared, every client would be
+  pointed at a hostname resolving to nothing, mid-session, with no local
+  fallback. A resolution record degrades instead to "connect where you connected
+  last time", and the address travels inside the `.xnetpack` export.
+- The Charter already refuses this by name: *"No global chokepoint tier. We do
+  not operate an indispensable middle to rent back later."* A tier carrying
+  every byte of every tenant's sync traffic is that middle, described.
+- Signing matters because mirroring is allowed. A mirror that could rewrite
+  `url` would be a redirect primitive for anyone who compromised it; re-serving
+  the hub's signature verbatim makes the mirror untrusted by construction.
+- The split between the signed record (**where** to connect) and the mirror's
+  unsigned liveness hint (**whether to wait**) is deliberate: a lying mirror can
+  make a client pause, never redirect it.
+
+**Tradeoff:** Not *quite* one connection string — a migration costs one failed
+dial and a re-resolve, and the client needs a cache-invalidation story. Accepted:
+a one-round-trip staleness window is far cheaper than an operated tier we have
+promised not to build.
+
+**Tripwire:** any proposal to terminate tenant sync connections on
+xNet-operated infrastructure — including for fleet-wide rate limiting or
+observability, the usual framings — re-opens this ADR rather than shipping under
+it.
+
+## ADR-31: We refund loss, not downtime
 
 **Status:** Accepted
 **Context:** Exploration 0425 asked whether xNet Cloud could ship with limited
@@ -772,3 +827,4 @@ disclosed honesty-debt.
 the page previously said 99.9%, and no figure at all on Personal/Family).
 Accepted: a real 99.5% outranks a fictional 99.9%, and the figure we publish is
 one we can be held to.
+

@@ -776,7 +776,7 @@ describe('durability posture never outruns the code', () => {
 
 > [!NOTE]
 > **Partially implemented.** The source-of-truth layer, the CI gate, the public
-> pages, the terms changes, ADR-30 and the claims-ledger entries all landed. Four
+> pages, the terms changes, ADR-31 and the claims-ledger entries all landed. Four
 > groups are deliberately deferred, each for a stated reason:
 >
 > | Deferred                                                       | Why                                                                                                                                                                                  |
@@ -812,7 +812,7 @@ describe('durability posture never outruns the code', () => {
 - [ ] Name the governing-law jurisdiction in [`terms.astro:262`](../../site/src/pages/terms.astro).
 - [x] Surface the `backups` component and per-tier objective on [`site/src/data/status.ts`](../../site/src/data/status.ts) / `/status`.
 - [x] Add the three claims-ledger entries to [`charter-claims-ledger.test.ts`](../../packages/telemetry/test/charter-claims-ledger.test.ts).
-- [x] Record **ADR-30 — "We refund loss, not downtime"** in [`decisions.mdx`](../../site/src/content/docs/docs/architecture/decisions.mdx).
+- [x] Record **ADR-31 — "We refund loss, not downtime"** in [`decisions.mdx`](../../site/src/content/docs/docs/architecture/decisions.mdx).
 
 ### Phase 3 — The felt version
 
