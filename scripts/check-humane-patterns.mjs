@@ -46,7 +46,7 @@ const SURPLUS_ROOTS = [join(root, 'packages'), join(root, 'apps'), join(root, 's
 // Dark-pattern rules only run on code that renders. The list must track where
 // the UI actually lives: `workbench` is the only desktop shell (0406) and
 // `dashboard` hosts the widgets, so a streak shipped in either for months
-// without the gate ever looking at it (exploration 0422).
+// without the gate ever looking at it (exploration 0426).
 const DARK_DIR_MARKERS = [
   `${join('packages', 'ui', 'src')}`,
   `${join('packages', 'react', 'src')}`,
@@ -80,7 +80,7 @@ const RULES = [
   {
     // The identifier rule above only catches a streak that admits its name. The
     // one we shipped was a local called `streak` fed by computeStreak(), which
-    // sailed through for months (exploration 0422). Match the *math* reaching a
+    // sailed through for months (exploration 0426). Match the *math* reaching a
     // render path instead of the spelling someone happened to choose.
     // Note `habitStrength` is deliberately absent: it decays on a miss instead
     // of resetting to zero, which is the humane alternative this rule pushes

@@ -56,7 +56,7 @@ describe('habit-logic', () => {
   })
 
   it('carries no consecutive-day chain into the UI-facing summary', () => {
-    // Exploration 0422: a chain a single miss destroys must not reach a surface
+    // Exploration 0426: a chain a single miss destroys must not reach a surface
     // the user did not go looking at. Strength decays, rate lowers; neither breaks.
     const today = day('2026-06-14')
     const summary = habitSummary(meditate, [obs('m1', today)], today) as unknown as Record<

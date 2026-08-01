@@ -109,7 +109,7 @@ export interface HabitSummary {
  * Deliberately carries no consecutive-day chain. `computeStreak` still exists
  * in `@xnetjs/experiments` as honest math, but a chain that a single miss
  * destroys does not belong in a surface the user did not go looking at
- * (exploration 0422, `docs/VIBE.md` §"Measurement is pull, never push").
+ * (exploration 0426, `docs/VIBE.md` §"Measurement is pull, never push").
  * `strength` decays and `rate30` lowers — neither can be broken.
  */
 export function habitSummary(

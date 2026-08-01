@@ -710,7 +710,7 @@ export {
   createOperations,
   identity,
   promoteOverlay,
-  // Late ontology — promoting an accumulated overlay key (0422)
+  // Late ontology — promoting an accumulated overlay key (0426)
   DEFAULT_PROMOTION_THRESHOLD,
   proposePromotion,
   proposePromotions,

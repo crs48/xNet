@@ -71,7 +71,7 @@ priority order, a watermark + snooze model, and a hard cap.
   ([`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs),
   `dark-pattern` rules). The streak rules match the underlying math reaching a
   render path, not just identifier spellings, and cover the workbench and
-  dashboard packages — a gap that let a 🔥 counter ship (exploration 0422).
+  dashboard packages — a gap that let a 🔥 counter ship (exploration 0426).
 - **Architectural:** chronological feeds
   ([`packages/social/src/feeds/defaults.ts`](../packages/social/src/feeds/defaults.ts)),
   rule‑based notifications
@@ -107,7 +107,7 @@ model authored is marked as `ai-generated` provenance.
 **Why scaffolding is the default, and not timidity:** the autonomy a feature may
 take is bounded by how cheaply it can be revoked and how completely you leave
 with your data — see [`VIBE.md`](./VIBE.md) §"Surrender scales with exit"
-(exploration 0422). Handing the wheel to your own judgement is one thing;
+(exploration 0426). Handing the wheel to your own judgement is one thing;
 handing it to a vendor's model is another, and §Exit is what keeps the two
 distinguishable. That makes §Exit a precondition on every autonomy feature here,
 not a separate promise about portability.
