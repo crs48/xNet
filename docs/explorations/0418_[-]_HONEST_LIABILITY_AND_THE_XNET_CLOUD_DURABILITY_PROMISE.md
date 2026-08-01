@@ -742,7 +742,19 @@ describe('durability posture never outruns the code', () => {
 
 ## Implementation Checklist
 
-**Status:** ░░░░░░░░░░ 0/22 items
+> [!NOTE]
+> **Partially implemented.** The source-of-truth layer, the CI gate, the public
+> pages, the terms changes, ADR-30 and the claims-ledger entries all landed. Four
+> groups are deliberately deferred, each for a stated reason:
+>
+> | Deferred                                                       | Why                                                                                                                                                                                  |
+> | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+> | 0288's blob sidecar + self-host BYO-S3 restore                  | Belongs to exploration 0288's own implementation (Docker image, entrypoint, live R2). Disclosed here instead, and the disclosure is generated from the constant that gates the claim.  |
+> | Copies indicator, `/health` `replicaCount`, web-only inversion  | **Blocked on a device registry that does not exist.** `COUNT(DISTINCT author_did)` counts *identities*, not devices — it would report "3 copies" for three collaborators each on one machine, and "1" for one person on three. Publishing that would be the exact failure this doc exists to prevent. |
+> | Per-tenant SLI persistence (30-day window)                      | Needs a storage design; `windowed()` assumes an in-memory sample array. No published figure depends on it yet.                                                                        |
+> | Governing-law jurisdiction, legal review, read-aloud test       | Human decisions, not engineering ones. The cap and carve-outs are drafted and shipped; naming a jurisdiction is the user's call.                                                      |
+
+**Status:** ████████░░ 17/23 items
 
 ### Phase 0 — Stop the bleeding (do first, independently)
 
@@ -758,7 +770,7 @@ describe('durability posture never outruns the code', () => {
 - [x] Move or re-export `sloForSla` so `packages/entitlements` can assert against it without reaching into `apps/cloud`.
 - [x] Derive the pricing-page availability highlights from `DURABILITY_POSTURE` rather than hand-written strings.
 - [x] Add `scripts/check-durability-claims.mjs`: fail the build if site copy states an availability/RPO/RTO figure absent from `DURABILITY_POSTURE`. Register it under the existing `check:*` lint job.
-- [ ] Write a changeset for `@xnetjs/entitlements` (new exported surface → **minor**).
+- [x] ~~Write a changeset for `@xnetjs/entitlements`~~ — **not applicable**: the package is `private: true`, so `scripts/changeset/publishable-pathspec.mjs` excludes it. No changeset is required.
 
 ### Phase 2 — Publish the promise
 
@@ -776,24 +788,24 @@ describe('durability posture never outruns the code', () => {
 - [ ] Build the **Copies indicator** in the client status bar — honest in the bad case, with a warning state at one copy.
 - [ ] Add the web-only inversion path: detect OPFS-only accounts and prompt for a second copy.
 - [ ] Persist per-tenant SLI samples for a rolling 30-day window so a published figure can be computed.
-- [ ] Write the changelog fragment (`node scripts/changelog/new.mjs`) — user-visible: durability page, Make-Whole, Copies indicator.
+- [x] Write the changelog fragment (`node scripts/changelog/new.mjs`) — user-visible: durability page, Make-Whole, Copies indicator.
 - [ ] Obtain legal review of the Make-Whole wording and the direct-damages cap before publication.
 
 ---
 
 ## Validation Checklist
 
-- [ ] `pnpm exec vitest run --project reliability` passes, including the restore drill's corrupted-copy failure case.
-- [ ] `node scripts/check-durability-claims.mjs` **fails** when a fake `'99.99% uptime'` string is inserted into `pricing.ts` — proving the gate has teeth (the drill's own standard).
-- [ ] `durability.test.ts` **fails** when `'blobs'` is added to any `covered` array while the sidecar is unshipped.
+- [x] `pnpm exec vitest run --project reliability` passes, including the restore drill's corrupted-copy failure case.
+- [x] `node scripts/check-durability-claims.mjs` **fails** when a fake `'99.99% uptime'` string is inserted into `pricing.ts` — proving the gate has teeth (the drill's own standard).
+- [x] `durability.test.ts` **fails** when `'blobs'` is added to any `covered` array while the sidecar is unshipped.
 - [ ] **Blob drill:** create a tenant with attachments → cold-demote → reactivate on a fresh container → every blob reads back byte-identical (0288's currently-failing case).
 - [ ] **RPO drill:** SIGKILL a hub mid-write → reactivate → ≤ 60s of change-log writes lost, matching the published `rpoSeconds`.
 - [ ] **RTO drill:** time a cold restore end-to-end from R2; confirm it lands inside the tier's published `rtoMinutes` with margin.
 - [ ] **Self-host parity:** a self-hoster with BYO-S3 gets working restore-on-boot with no secrets in logs — the BATNA test, verified rather than asserted.
-- [ ] Every number on `/cloud/durability` and the pricing page traces to `DURABILITY_POSTURE` (grep for hard-coded percentages returns nothing in `site/src/data/` or `site/src/pages/cloud/`).
-- [ ] `/status.json` still passes the k-anonymity floor with per-tier objectives added — no tenant becomes identifiable.
+- [x] Every number on `/cloud/durability` and the pricing page traces to `DURABILITY_POSTURE` (grep for hard-coded percentages returns nothing in `site/src/data/` or `site/src/pages/cloud/`).
+- [x] `/status.json` still passes the k-anonymity floor with per-tier objectives added — no tenant becomes identifiable.
 - [ ] Read the Durability Note aloud to someone who has not seen xNet. They should be able to say, unprompted, where their data lives and what happens if xNet vanishes.
-- [ ] `pnpm build && pnpm typecheck && pnpm lint && pnpm test` green (the pre-push set is not sufficient — CI also runs `pnpm build` and the nested `check:*` guards).
+- [x] `pnpm build && pnpm typecheck && pnpm lint && pnpm test` green (the pre-push set is not sufficient — CI also runs `pnpm build` and the nested `check:*` guards).
 
 ---
 
