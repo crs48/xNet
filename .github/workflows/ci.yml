@@ -73,6 +73,15 @@ jobs:
       - name: Humane patterns (0234)
         run: pnpm check:humane-patterns
 
+      # Charter §Agency's second half: a capability you cannot see is not a
+      # degree of freedom you have. Every other check here asks whether the
+      # code is correct — none asks whether a shipped capability is findable,
+      # so a feature can land reachable-but-invisible and nothing notices.
+      # Advisory for now; goes --strict once the flag population has held
+      # green for a release. (0428.)
+      - name: Capability surfaces (0428)
+        run: pnpm check:capability-surface
+
       # Every agent lane must build its retrieval. The omission is invisible in
       # review — the call reads fine, it is what it doesn't pass that drops the
       # lane to a keyword scan with no graph stage. (0415.)

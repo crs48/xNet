@@ -173,6 +173,41 @@ const CLAIMS: Claim[] = [
     }
   },
   {
+    id: 'agency-capabilities-are-visible',
+    source:
+      'Charter §Agency/You can see what you are able to do — "a capability you cannot see is ' +
+      'not a degree of freedom you have"; every user-flippable capability is declared with a ' +
+      "surface, or a written reason it is internal (0428, after Cate Hall's two-term " +
+      'definition of agency: see AND act)',
+    backing: 'enforced',
+    assert: () => {
+      // The enforcer is a CI gate rather than a package test, so the receipt
+      // reads the gate's source and pins the three rules it must keep applying.
+      // Weakening any of them is then a visible, reviewed change here.
+      const gate = readFileSync(
+        fileURLToPath(new URL('scripts/check-capability-surface.mjs', `file://${repoRoot}`)),
+        'utf8'
+      )
+      expect(gate, 'the gate must scan for experiment flags').toContain('xnet:experiment:')
+      expect(gate, 'a null surface must require a written reason').toContain('hidden')
+      expect(gate, 'flags named only in comments must not count as capabilities').toContain(
+        'stripComments'
+      )
+
+      // The receipt that matters is the register itself: the AI assist mode —
+      // the capability whose absence from every UI is what prompted 0428 — is
+      // declared and carries a surface a person can actually reach.
+      const register = readFileSync(
+        fileURLToPath(new URL('apps/web/src/lib/capabilities.ts', `file://${repoRoot}`)),
+        'utf8'
+      )
+      expect(register, 'the assist mode must be declared').toContain('AI_ASSIST_MODE_KEY')
+      expect(register, 'the assist mode must have a settings surface').toContain(
+        "{ kind: 'settings', section: 'ai' }"
+      )
+    }
+  },
+  {
     id: 'calm-no-manufactured-urgency',
     source:
       'Charter §Calm — "we do not manufacture urgency": no scarcity counters, countdown ' +

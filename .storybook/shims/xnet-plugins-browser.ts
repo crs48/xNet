@@ -160,6 +160,7 @@ export {
 } from '../../packages/plugins/src/ai'
 export type {
   AiAgentRuntime,
+  AiAssistMode,
   AIProvider,
   AIProviderConfig,
   AIToolCall,
