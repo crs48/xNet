@@ -739,11 +739,11 @@ all.
       an assertion that `config.shards.enabled` is unreachable
 - [x] Decide `MultiHubSyncManager`'s client path — wire it into the provider, or
       document the deferral at its export site in `packages/runtime/src/index.ts`
-- [ ] Add an ADR to
+- [x] Add an ADR to
       `site/src/content/docs/docs/architecture/decisions.mdx`: **no data-path
       routing tier for the managed fleet**, with the Charter §6 BATNA/Vanish
       reasoning
-- [ ] Changeset for every touched publishable package (`hub`, `runtime`,
+- [x] Changeset for every touched publishable package (`hub`, `runtime`,
       `react`, `data`) — a changed resolution contract is at least a **minor**
 
 ---
