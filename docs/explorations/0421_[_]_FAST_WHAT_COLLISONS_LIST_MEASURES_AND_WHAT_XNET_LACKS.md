@@ -756,9 +756,9 @@ _Phase 2 — give the backlog a clock_
 
 _Phase 3 — make it consumed_
 
-- [ ] Update `.claude/skills/mvp-followup/SKILL.md` to read `STALE.md` when
+- [x] Update `.claude/skills/mvp-followup/SKILL.md` to read `STALE.md` when
       answering "what's next"
-- [ ] Document the door test in `docs/TRADEOFFS.md` — one-way vs two-way, and
+- [x] Document the door test in `docs/TRADEOFFS.md` — one-way vs two-way, and
       that ADRs are for one-way doors only
 - [ ] Apply `skip-changelog` (internal process change, no user-visible effect)
 
