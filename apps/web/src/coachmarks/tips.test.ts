@@ -12,7 +12,7 @@
  * worth asking is "does this selector exist anywhere in the product", which is
  * exactly what a scan can answer and a jsdom mount cannot.
  */
-import { SURFACES } from '@xnetjs/workbench'
+import { DEFAULT_SECTIONS, SURFACES } from '@xnetjs/workbench'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -51,8 +51,13 @@ function liveAnchors(): Set<string> {
       if (file.includes('.test.') || file.includes('.stories.')) continue
       const source = readFileSync(file, 'utf8')
       for (const match of source.matchAll(/data-coach="([^"]+)"/g)) anchors.add(match[1])
-      if (/data-coach=\{`rail\.\$\{/.test(source)) {
+      if (/data-coach=\{`rail\.\$\{/.test(source) || /coachAnchor=\{`rail\.\$\{/.test(source)) {
+        // Two nav populations render rail rows: the legacy pinned surfaces and
+        // the unified sections (0353), which is the shipped default. Expanding
+        // both is what makes `rail.crm` vs `rail.people` a caught mistake
+        // rather than a silent one.
         for (const surface of SURFACES) anchors.add(`rail.${surface.id}`)
+        for (const section of DEFAULT_SECTIONS) anchors.add(`rail.${section.id}`)
       }
     }
   }

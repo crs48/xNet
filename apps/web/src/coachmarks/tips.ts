@@ -24,7 +24,11 @@ const CORE_TIPS: CoachTip[] = [
   {
     id: 'crm:overview@1',
     view: 'crm',
-    anchor: '[data-coach="rail.crm"]',
+    // `rail.people`, not `rail.crm`: the unified nav (0353) is the default
+    // path and names this section `people`. The legacy surface id `crm` only
+    // renders when tabs are on, so anchoring there hid the tip from almost
+    // everyone (0422).
+    anchor: '[data-coach="rail.people"]',
     title: 'Your CRM',
     body: 'Contacts, deals, and organizations live here. Drag a deal between lanes to update its stage.',
     side: 'right'

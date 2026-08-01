@@ -766,6 +766,17 @@ from the seeded default this quarter?" a question worth asking out loud in the
 roadmap review? It is not a gate, and pretending otherwise would violate the
 rule that a gate needs a decidable pass condition.
 
+**A live anchor is still not a guaranteed one.** Verified in the running app:
+the nav rows now carry `rail.all`, `rail.docs`, `rail.chats`, `rail.inbox`,
+`rail.search` and `workspace.switch`. But the unified nav only renders its
+**pinned** sections — the rest sit behind "More" — so a tip anchored to an
+unpinned section resolves to nothing until that row appears.
+`useAnchorEl`'s MutationObserver picks it up the moment it does, so this
+degrades rather than breaks, and the tripwire still catches the worse failure
+(an anchor that can never exist). Open question: should a tip whose section is
+unpinned fall back to a stable always-rendered anchor, or simply wait? Waiting
+is the calmer behaviour and is what ships.
+
 **Scope creep past flags.** Experiment flags are a clean, greppable population.
 Views, commands, plugin capabilities and keyboard shortcuts are fuzzier, and a
 gate that tries to enumerate "every capability" will either be gameable or
@@ -818,7 +829,7 @@ seeing half grows past a paragraph.
 - [x] Grow `apps/web/src/lib/labs.ts` into `capabilities.ts`: add `surface`,
       optional `hidden`, and `stable` to the `stage` union. Keep `LABS_FLAGS` as
       a derived export so Settings and its tests need no change.
-- [ ] ~~Register `xnet:experiment:layout-tree` with a labs surface **and** a
+- [x] ~~Register `xnet:experiment:layout-tree` with a labs surface **and** a
       coachmark~~ — **void, see correction 1.** There is no such flag; it was
       deleted in `59973833c` and the shell renders the tree for everyone.
       Replaced by: delete the stale doc comment in
@@ -847,21 +858,29 @@ seeing half grows past a paragraph.
 
 ## Validation Checklist
 
-- [ ] `grep -rhoE "xnet:experiment:[a-zA-Z0-9:._-]+" apps packages | sort -u`
-      returns exactly the ids in `CAPABILITIES` — no orphans in either direction.
-- [ ] Deleting a `surface` entry locally makes
+- [x] The gate's **comment-stripped** scan returns exactly the ids in
+      `CAPABILITIES` — no orphans in either direction
+      (`node scripts/check-capability-surface.mjs --strict`). A raw
+      `grep -rhoE "xnet:experiment:…"` is deliberately *not* the check: it
+      still matches the historical note in `packages/workbench/src/state.ts`,
+      and treating that as a capability is the phantom correction 1 is about.
+- [x] Deleting a `surface` entry locally makes
       `node scripts/check-capability-surface.mjs --strict` exit 1 with the
       offending id named. **The gate is proven by watching it go red, not green.**
-- [ ] Setting `surface: null` with a non-empty `hidden` reason passes; `null`
+- [x] Setting `surface: null` with a non-empty `hidden` reason passes; `null`
       with an empty or whitespace reason fails.
-- [ ] A fresh profile driving the real desktop app (per
-      `.claude/skills/electron-prototype`) reaches the layout-tree toggle from
-      the app's own UI — no source reading, no docs, no devtools.
+- [x] Driving the **real running app**, a person reaches the assist-mode
+      control from the app's own UI — no source reading, no docs, no devtools —
+      and choosing `draft` persists, then returns to the default when
+      re-chosen. **Web, not desktop:** `apps/electron`'s `SettingsView` is a
+      separate, older surface with six sections and neither Labs nor AI, so
+      there is nothing there to reach. That gap is real and out of scope here;
+      the register covers `apps/web`, which is where both surfaces live.
 - [ ] `pnpm --filter @xnetjs/telemetry test` passes with the new claim, and the
       claim fails if the gate file is deleted.
 - [ ] `pnpm typecheck && pnpm lint && pnpm test` clean; `pnpm build` clean
       (the wider CI set per `xnet-prepush-verification-set`).
-- [ ] Settings › Labs still renders correctly with the widened type, and
+- [x] Settings › Labs still renders correctly with the widened type, and
       `apps/web/src/lib/labs.test.ts` passes unmodified — proof the register
       grew the shape rather than replacing it.
 - [ ] Charter §5 reads accurately about assist mode: whatever step 1 chose, the

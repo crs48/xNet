@@ -177,7 +177,7 @@ const CLAIMS: Claim[] = [
     source:
       'Charter §Agency/You can see what you are able to do — "a capability you cannot see is ' +
       'not a degree of freedom you have"; every user-flippable capability is declared with a ' +
-      'surface, or a written reason it is internal (0422, after Cate Hall\'s two-term ' +
+      "surface, or a written reason it is internal (0422, after Cate Hall's two-term " +
       'definition of agency: see AND act)',
     backing: 'enforced',
     assert: () => {
