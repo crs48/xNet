@@ -39,9 +39,7 @@ export function ContactPractices({ contactId }: { contactId: string }): JSX.Elem
 
   // `where` is equality-only, so the either-end match happens here — same shape
   // as the activity timeline above.
-  const mine = practices.filter(
-    (p) => str(p.from) === contactId || str(p.to) === contactId
-  )
+  const mine = practices.filter((p) => str(p.from) === contactId || str(p.to) === contactId)
   const practisedIds = [...new Set(mine.map((p) => str(p.primitive)).filter(Boolean))]
 
   const labelOf = (id: string) =>
@@ -64,10 +62,7 @@ export function ContactPractices({ contactId }: { contactId: string }): JSX.Elem
       ) : (
         <ul className="flex flex-wrap gap-1.5">
           {practisedIds.map((id) => (
-            <li
-              key={id}
-              className="rounded-sm bg-surface-2 px-1.5 py-0.5 text-[11px] text-ink-1"
-            >
+            <li key={id} className="rounded-sm bg-surface-2 px-1.5 py-0.5 text-[11px] text-ink-1">
               {labelOf(id)}
             </li>
           ))}

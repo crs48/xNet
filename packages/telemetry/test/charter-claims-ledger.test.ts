@@ -190,9 +190,10 @@ const CLAIMS: Claim[] = [
       )
       expect(gate, 'the scored-intimacy rule must exist').toContain("name: 'scored intimacy'")
       const rule = gate.slice(gate.indexOf("name: 'scored intimacy'"))
-      expect(rule.slice(0, 200), 'scored intimacy must stay in the all-packages surplus scope').toContain(
-        "group: 'surplus'"
-      )
+      expect(
+        rule.slice(0, 200),
+        'scored intimacy must stay in the all-packages surplus scope'
+      ).toContain("group: 'surplus'")
       for (const token of [
         'relationshipScore',
         'friendshipScore',

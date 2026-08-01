@@ -79,7 +79,11 @@ const COMPANY_NAMES = [
 const RELATIONSHIP_PRIMITIVES = [
   { slug: 'make-things', label: 'Make things', bundles: 'coworker' },
   { slug: 'hard-conversations', label: 'Have hard conversations', bundles: 'partner, coworker' },
-  { slug: 'celebrate-anniversaries', label: 'Celebrate anniversaries', bundles: 'partner, coworker' },
+  {
+    slug: 'celebrate-anniversaries',
+    label: 'Celebrate anniversaries',
+    bundles: 'partner, coworker'
+  },
   { slug: 'formalize-commitment', label: 'Formalize commitment', bundles: 'partner' },
   { slug: 'prepare-for-time', label: 'Prepare for time together', bundles: 'coworker' },
   { slug: 'therapy', label: 'Go to therapy together', bundles: 'partner' },

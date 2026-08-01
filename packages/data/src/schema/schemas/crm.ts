@@ -279,9 +279,7 @@ export const RelationshipPrimitiveSchema = defineSchema({
   authorization: spaceCascadeAuthorization()
 })
 
-export type RelationshipPrimitive = InferNode<
-  (typeof RelationshipPrimitiveSchema)['_properties']
->
+export type RelationshipPrimitive = InferNode<(typeof RelationshipPrimitiveSchema)['_properties']>
 
 /**
  * A primitive actually practised between two people — the unit
