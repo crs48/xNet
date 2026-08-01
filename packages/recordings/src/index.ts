@@ -74,3 +74,12 @@ export {
   type UploadManifest,
   type UploadProgress
 } from './upload/manifest'
+
+export {
+  engineIsVerbatim,
+  toRecordingSegments,
+  transcribeRecording,
+  type TranscribeChunk,
+  type TranscribeRecordingOptions,
+  type TranscribeRecordingResult
+} from './transcribe/transcribe'

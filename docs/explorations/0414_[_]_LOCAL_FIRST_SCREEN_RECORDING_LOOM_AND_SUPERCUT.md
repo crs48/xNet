@@ -632,9 +632,9 @@ export function proposeSilenceCuts(
 
 ### Phase 3 — Transcript and auto-edit
 
-- [ ] Extract the recording's audio track and feed the existing
+- [x] Extract the recording's audio track and feed the existing
       `xnet:meetings:transcribe` engines
-- [ ] Persist timed segments to `RecordingTranscript` incrementally
+- [x] Persist timed segments to `RecordingTranscript` incrementally
 - [x] `proposeSilenceCuts()` over the VAD envelope, with configurable padding
 - [x] Player component: cut-skipping, edited-duration scrubber, cut markers
 - [x] Cut inspector: list every cut with its reason, one-click restore, a
@@ -643,7 +643,7 @@ export function proposeSilenceCuts(
 
 ### Phase 4 — Chapters, captions, camera
 
-- [ ] Chapter-generation template in `packages/meetings/src/enhance/templates.ts`
+- [x] Chapter-generation template in `packages/meetings/src/enhance/templates.ts`
       (or a recordings sibling), run through `groundedness.ts`
 - [x] Chapter list UI with editable titles and click-to-seek
 - [x] WebVTT caption generation from transcript segments
