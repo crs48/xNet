@@ -13,6 +13,7 @@ import type {
   AiMutationPlan,
   AiOperation,
   AiResource,
+  AiRetrievalProvenance,
   AiRiskLevel,
   AiScope,
   AiToolDefinition
@@ -171,6 +172,12 @@ export type AiRetrievedNode = {
   pathLabel?: string
 }
 
+/** A retriever's nodes plus what it knows about how it found them. */
+export type AiRetrievalResult = {
+  nodes: AiRetrievedNode[]
+  provenance?: AiRetrievalProvenance
+}
+
 /**
  * Optional graph-aware retriever (exploration 0211). When provided, the `query`
  * path of `createContextPack` uses it instead of the built-in linear keyword
@@ -178,11 +185,14 @@ export type AiRetrievedNode = {
  * budgeted. The app injects `@xnetjs/brain`'s `retrieve` here (mapping its items
  * to `{ nodeId, pathLabel }`); absent it, context packs fall back to `search()`
  * with no behavior change.
+ *
+ * Returning a bare array stays valid and means "no provenance reported" —
+ * the pack then says so rather than implying an indexed search (0424).
  */
 export type AiContextRetriever = (
   query: string,
   options: { limit: number }
-) => Promise<AiRetrievedNode[]>
+) => Promise<AiRetrievedNode[] | AiRetrievalResult>
 
 export type AiSurfaceServiceConfig = {
   store: NodeStoreAPI
@@ -601,23 +611,46 @@ export class AiSurfaceService {
   }
 
   /**
-   * Candidate node ids for a context-pack query: the injected graph-aware
-   * retriever (exploration 0211) when configured, else the built-in keyword
-   * `search()`. Order is preserved (best-first).
+   * Candidates for a context-pack query: the injected graph-aware retriever
+   * (exploration 0211) when configured, else the built-in keyword `search()`.
+   * Order is preserved (best-first).
+   *
+   * Returns the retriever's provenance alongside the nodes. Both branches know
+   * whether they ran degraded; until 0424 both threw it away here, which is the
+   * whole reason this returns a record instead of `string[]`.
    */
-  private async candidateNodeIdsForQuery(query: string, limit: number): Promise<string[]> {
-    if (limit <= 0) return []
+  private async candidatesForQuery(
+    query: string,
+    limit: number
+  ): Promise<{ nodes: AiRetrievedNode[]; provenance?: AiRetrievalProvenance }> {
+    if (limit <= 0) return { nodes: [] }
+
     if (this.config.retrieveContext) {
       const retrieved = await this.config.retrieveContext(query, { limit })
-      return retrieved.map((r) => r.nodeId).slice(0, limit)
+      const result: AiRetrievalResult = Array.isArray(retrieved) ? { nodes: retrieved } : retrieved
+      return {
+        nodes: result.nodes.slice(0, limit),
+        ...(result.provenance ? { provenance: result.provenance } : {})
+      }
     }
+
     const search = await this.search({ query, limit })
     const results = Array.isArray(search.results) ? search.results : []
-    const ids: string[] = []
+    const nodes: AiRetrievedNode[] = []
     for (const result of results) {
-      if (isRecord(result) && typeof result.id === 'string') ids.push(result.id)
+      if (isRecord(result) && typeof result.id === 'string') nodes.push({ nodeId: result.id })
     }
-    return ids
+    // `search()` has carried these since 0394 — lift them to the same shape the
+    // injected retriever reports so the pack has one field to read.
+    const degraded = search.degraded === true
+    return {
+      nodes,
+      provenance: {
+        tier: typeof search.index === 'string' ? search.index : 'scan',
+        degraded,
+        ...(degraded && typeof search.notice === 'string' ? { notice: search.notice } : {})
+      }
+    }
   }
 
   async createContextPack(options: {
@@ -634,14 +667,19 @@ export class AiSurfaceService {
       if (resource) resources.push(resource)
     }
 
+    let retrieval: AiRetrievalProvenance | undefined
     if (options.query && resources.length < maxResources) {
-      const ids = await this.candidateNodeIdsForQuery(
+      const candidates = await this.candidatesForQuery(
         options.query,
         maxResources - resources.length
       )
-      for (const id of ids) {
+      retrieval = candidates.provenance
+      for (const candidate of candidates.nodes) {
         if (resources.length >= maxResources) break
-        const resource = await this.contextResourceForSeed({ kind: 'node', id })
+        const resource = await this.contextResourceForSeed(
+          { kind: 'node', id: candidate.nodeId },
+          candidate.pathLabel
+        )
         if (resource) resources.push(resource)
       }
     }
@@ -652,6 +690,7 @@ export class AiSurfaceService {
       seeds: options.seeds ?? [],
       resources,
       createdAt: this.nowIso(),
+      ...(retrieval ? { retrieval } : {}),
       limits: {
         maxResources,
         maxCharactersPerResource: this.limits.maxCharactersPerResource
@@ -2026,7 +2065,11 @@ export class AiSurfaceService {
     }
   }
 
-  private async contextResourceForSeed(seed: AiContextSeed): Promise<AiContextPackResource | null> {
+  private async contextResourceForSeed(
+    seed: AiContextSeed,
+    /** Retriever's graph path back to an entry node, when this came from one. */
+    pathLabel?: string
+  ): Promise<AiContextPackResource | null> {
     const uri = uriForSeed(seed)
     if (!uri) return null
 
@@ -2045,7 +2088,8 @@ export class AiSurfaceService {
           kind: seed.kind,
           id: seed.id,
           revision:
-            seed.kind === 'node' ? revisionForNode(await this.getNodeOrThrow(seed.id)) : undefined
+            seed.kind === 'node' ? revisionForNode(await this.getNodeOrThrow(seed.id)) : undefined,
+          ...(pathLabel ? { path: pathLabel } : {})
         }
       }
     } catch {

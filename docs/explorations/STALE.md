@@ -14,11 +14,11 @@ review: 2027-02-01 # renew the claim
 status: withdrawn # release it; the document stays exactly where it is
 ```
 
-**41** stale of 280 undecided.
+**41** stale of 281 undecided.
 
 ## How this backlog retires
 
-Measured from git history, not assumed (exploration 0424). Each row counts
+Measured from git history, not assumed (exploration 0430). Each row counts
 only documents old enough to have had that many days, so a recent bulge
 cannot drag the curve down.
 
