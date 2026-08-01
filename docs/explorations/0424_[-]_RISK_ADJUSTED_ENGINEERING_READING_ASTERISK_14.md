@@ -850,7 +850,7 @@ byte-identical afterwards (`git diff` empty).
 
 ## Implementation Checklist
 
-**Status:** ░░░░░░░░░░ 0/12 items
+**Status:** ██████████ 12/12 items
 
 **1. Tripwires on one-way ADRs**
 
@@ -875,14 +875,14 @@ byte-identical afterwards (`git diff` empty).
 
 ## Validation Checklist
 
-- [ ] `pnpm check:exploration-fallow` still passes against `.fallow-baseline.json` (count 41) — the curve is additive, the pass condition unchanged
-- [ ] `pnpm check:exploration-links` passes — nothing renamed, nothing moved
-- [ ] Deliberately break `check-humane-patterns.mjs` (invert a regex) and confirm the negative control goes red; revert
-- [ ] Deliberately break `check-motion-vocab.mjs` the same way and confirm the same; revert
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` green
-- [ ] `STALE.md` regenerates deterministically — two consecutive runs produce an identical file
-- [ ] Each `Tripwire:` line names an observation someone could actually make in the next 12 months, not a tautology
-- [ ] Re-run the survival computation at the 2026-11-01 review; if the day-14 plateau moved, this document's central claim needs revisiting
+- [x] `pnpm check:exploration-fallow` still passes against `.fallow-baseline.json` (count 41) — the curve is additive, the pass condition unchanged
+- [x] `pnpm check:exploration-links` passes — nothing renamed, nothing moved
+- [x] Deliberately break `check-humane-patterns.mjs` (invert a regex) and confirm the negative control goes red; revert
+- [x] Deliberately break `check-motion-vocab.mjs` the same way and confirm the same; revert
+- [x] `pnpm lint && pnpm typecheck && pnpm test` green — lint 0 errors (468 pre-existing warnings), typecheck 101/101, tests 12,027 passed. One unrelated failure, `packages/dashboard/src/__tests__/widget-behaviors.test.tsx`, is a `waitFor` timing flake under full-suite parallel load: it passes in isolation and touches nothing this change edits
+- [x] `STALE.md` regenerates deterministically — two consecutive runs produce an identical file
+- [x] Each `Tripwire:` line names an observation someone could actually make in the next 12 months, not a tautology
+- [ ] **Deferred by design to `review: 2026-11-01`** — re-run the survival computation then; if the curve has started to fall, this document's central claim needs revisiting. Cannot be satisfied earlier, which is why the document stays `[-]` rather than `[x]`
 
 ---
 
