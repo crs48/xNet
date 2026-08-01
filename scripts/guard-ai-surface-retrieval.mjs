@@ -137,7 +137,7 @@ async function main() {
         violations.push({
           file,
           line: lineOf(source, source.search(RETRIEVER_ANNOTATION)),
-          constructor: 'AiContextRetriever',
+          subject: 'AiContextRetriever',
           reason:
             'types a retriever but never mentions `provenance` — a retriever that ' +
             'cannot say how it searched is reported as an indexed one'
@@ -159,7 +159,7 @@ async function main() {
             violations.push({
               file,
               line: lineOf(source, found),
-              constructor,
+              subject: `${constructor}()`,
               reason: 'could not parse the argument list — check this call by hand'
             })
             continue
@@ -171,7 +171,7 @@ async function main() {
             violations.push({
               file,
               line: lineOf(source, found),
-              constructor,
+              subject: `${constructor}()`,
               reason: `passes none of: ${SATISFIES.join(', ')}`
             })
           }
@@ -181,11 +181,11 @@ async function main() {
   }
 
   if (violations.length > 0) {
-    console.error('AI surface built without retrieval (exploration 0415):\n')
+    console.error('Retrieval wiring (explorations 0415, 0424):\n')
     for (const violation of violations) {
       console.error(
         `  ${relative(process.cwd(), violation.file)}:${violation.line}\n` +
-          `    ${violation.constructor}() ${violation.reason}`
+          `    ${violation.subject} ${violation.reason}`
       )
     }
     console.error(
