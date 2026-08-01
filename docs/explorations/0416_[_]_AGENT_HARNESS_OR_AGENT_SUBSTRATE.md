@@ -556,7 +556,7 @@ requires the operator's signing key — which the agent never has.
       check on every high/critical action, non-zero exit on any problem
 - [x] `enrollForeignAgent()` in `packages/identity` — verify a foreign key
       proof, mint an attenuated passport bound to it
-- [ ] Buzz adapter: Nostr relay client that accepts an npub-identified agent
+- [x] Buzz adapter: Nostr relay client that accepts an npub-identified agent
       and routes its tool calls through the existing guardrail
 - [x] Passport revocation list (close the "revocation is expiry" gap) with a
       hub-served denylist consulted on UCAN verification

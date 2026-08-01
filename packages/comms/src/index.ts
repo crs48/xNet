@@ -92,3 +92,30 @@ export {
   type CreateChannelInput,
   type SendMessageInput
 } from './chat/chat-service'
+
+// Buzz (Block, Nostr) agent interop — exploration 0416; grouped re-export from
+// the scoped sub-barrel per the 0276 policy
+export {
+  BUZZ_ENROLLMENT_KIND,
+  BUZZ_TOOL_REQUEST_KIND,
+  NOSTR_PUBKEY_BYTES,
+  bytesToHex as nostrBytesToHex,
+  computeEventId,
+  connectBuzzRelay,
+  decodeBech32,
+  decodeNpub,
+  enrollBuzzAgent,
+  hexToBytes as nostrHexToBytes,
+  parseToolRequest,
+  serializeEvent,
+  verifyBuzzProof,
+  verifyNostrEvent,
+  type BuzzRelayHandle,
+  type BuzzRelayOptions,
+  type BuzzToolRequest,
+  type EnrollBuzzAgentOptions,
+  type GuardedToolCaller,
+  type NostrEvent,
+  type RelaySocket,
+  type RelaySocketFactory
+} from './buzz/index'
