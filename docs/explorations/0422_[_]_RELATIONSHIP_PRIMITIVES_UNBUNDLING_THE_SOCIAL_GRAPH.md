@@ -630,14 +630,14 @@ Open questions:
 
 **Phase 0 — guardrail (lands first, alone)**
 
-- [ ] Add the `scored intimacy` rule to
+- [x] Add the `scored intimacy` rule to
       [`scripts/check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs)
       alongside `metered connection`, with a self-test case in the same file's
       test block (both a positive and a negative, matching the existing style).
-- [ ] Pin the receipt in
+- [x] Pin the receipt in
       [`packages/telemetry/test/charter-claims-ledger.test.ts`](../../packages/telemetry/test/charter-claims-ledger.test.ts)
       as `commons-no-scored-intimacy`.
-- [ ] Add the refused lane to `docs/CHARTER.md` §6 under _No ground rent_.
+- [x] Add the refused lane to `docs/CHARTER.md` §6 under _No ground rent_.
 
 **Phase 1 — vocabulary**
 

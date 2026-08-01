@@ -176,6 +176,22 @@ things you would own anyway. The refused rents, each with its receipt:
   in
   [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)
   (exploration 0417).
+- **No scored intimacy.** Relationships are made legible, never scored. xNet
+  will record what two people actually do together — the shared activities a
+  label like "friend" compresses away — and will derive a reading from them.
+  It will not grade that reading: no relationship health score, no closeness
+  ranking, no list of the people you are neglecting. A score is the artefact an
+  operator sells, and it inverts the purpose — the point is to be intentional
+  about a relationship, not to be measured against it. So a derivation returns
+  a **set difference** (activities common to this kind of relationship that you
+  don't share) and never a number standing for the relationship itself.
+  **Enforced:** the `scored intimacy` rule in
+  [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
+  fails CI on scoring identifiers (`relationshipScore`, `friendshipScore`,
+  `connectionHealth`, `neglectedContacts`, …); the receipt is pinned by
+  `commons-no-scored-intimacy` in
+  [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)
+  (exploration 0422).
 - **No behavioural surplus.** Restates §1 as a refused rent. **Enforced:**
   [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
   (`surplus` rules).
