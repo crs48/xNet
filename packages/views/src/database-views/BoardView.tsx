@@ -35,8 +35,10 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { rebalanceSortKeys, type CellValue, type ViewGroupMeta } from '@xnetjs/data'
 import { useEntangleBind, useEntangledHighlight } from '@xnetjs/react'
-import { cn } from '@xnetjs/ui'
+import { cn, MotionStage, MOTION_TRANSITIONS } from '@xnetjs/ui'
 import { ChevronRight, Plus } from 'lucide-react'
+// The ~4.6KB shell; the feature bundle arrives lazily via <MotionStage>.
+import * as m from 'motion/react-m'
 import React, { useCallback, useMemo, useState } from 'react'
 import { optionChipStyle } from '../properties/optionColors.js'
 import { CardCover, FieldValueChip, WindowFootnote, firstFileRef } from './card-bits.js'
@@ -117,7 +119,7 @@ function BoardCard({
   const entangleBind = useEntangleBind(overlay ? null : row.id)
   const entangled = useEntangledHighlight(overlay ? null : row.id)
   const cover = coverField ? firstFileRef(row.cells[coverField.id]) : null
-  return (
+  const card = (
     <div
       ref={overlay ? undefined : setNodeRef}
       style={{
@@ -156,6 +158,31 @@ function BoardCard({
         })}
       </div>
     </div>
+  )
+
+  // The drag overlay is a floating copy following the pointer — it has no place
+  // in the layout, and giving it the same layoutId as the real card would make
+  // Motion try to animate between two live elements.
+  if (overlay) return card
+
+  // Motion animates this WRAPPER, dnd-kit animates the card inside it. That
+  // split is deliberate: both want to write `transform`, and on one element
+  // they would fight. During a drag only the inner card is translated, so the
+  // wrapper's layout box is unchanged; once the drop reorders the DOM, the
+  // wrapper's box moves and Motion FLIPs it.
+  //
+  // layoutId (not just layout) is what carries a card ACROSS columns: it
+  // unmounts from one column and mounts in another, and Motion matches the two
+  // by id to animate between them instead of teleporting.
+  return (
+    <m.div
+      layoutId={row.id}
+      layout="position"
+      transition={MOTION_TRANSITIONS.move}
+      className="min-w-0"
+    >
+      {card}
+    </m.div>
   )
 }
 
@@ -442,79 +469,86 @@ export function BoardView(props: DatabaseViewProps): React.JSX.Element {
           onDragEnd={handleDragEnd}
           onDragCancel={() => setActiveCard(null)}
         >
-          <SortableContext items={columnDragIds} strategy={horizontalListSortingStrategy}>
-            <div className="flex h-full items-stretch gap-3">
-              {groups.map((group) => (
-                <BoardColumn
-                  key={group.key}
-                  group={group}
-                  window={viewWindow}
-                  reorderable={group.key !== UNGROUPED_KEY && Boolean(onPatchConfig)}
-                  onToggleCollapsed={() => onToggleGroupCollapsed?.(group.key, !group.collapsed)}
-                  onAddCard={onCreateRow ? () => handleAddCard(group) : undefined}
-                >
-                  <SortableContext
-                    items={group.rows.map((r) => cardDragId(group.key, r.id))}
-                    strategy={verticalListSortingStrategy}
+          {/*
+            One stage around every column: a card moving between columns is
+            matched by layoutId across the unmount/mount, which only works if
+            both columns sit inside the same Motion tree.
+          */}
+          <MotionStage>
+            <SortableContext items={columnDragIds} strategy={horizontalListSortingStrategy}>
+              <div className="flex h-full items-stretch gap-3">
+                {groups.map((group) => (
+                  <BoardColumn
+                    key={group.key}
+                    group={group}
+                    window={viewWindow}
+                    reorderable={group.key !== UNGROUPED_KEY && Boolean(onPatchConfig)}
+                    onToggleCollapsed={() => onToggleGroupCollapsed?.(group.key, !group.collapsed)}
+                    onAddCard={onCreateRow ? () => handleAddCard(group) : undefined}
                   >
-                    {group.rows.map((row) => (
-                      <BoardCard
-                        key={row.id}
-                        row={row}
-                        groupKey={group.key}
-                        fields={fields}
-                        cardFields={cardFields}
-                        coverField={coverField}
-                        colorField={colorField}
-                        coverFit={coverFit}
-                        onOpenRow={onOpenRow}
-                        onResolveFileUrl={onResolveFileUrl}
-                      />
-                    ))}
-                  </SortableContext>
-                </BoardColumn>
-              ))}
-
-              {/* Add group = create a select option */}
-              {onCreateOption && !compact && (
-                <div className="w-56 shrink-0">
-                  {addingTo === '__new__' ? (
-                    <input
-                      autoFocus
-                      value={newOption}
-                      placeholder="Group name"
-                      aria-label="New group name"
-                      className="w-full rounded border border-border bg-transparent px-2 py-1 text-sm outline-none focus:border-border-emphasis"
-                      onChange={(e) => setNewOption(e.target.value)}
-                      onBlur={() => {
-                        setAddingTo(null)
-                        setNewOption('')
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') {
-                          setAddingTo(null)
-                          setNewOption('')
-                        }
-                        if (e.key === 'Enter' && newOption.trim()) {
-                          void onCreateOption(groupField.id, newOption.trim())
-                          setAddingTo(null)
-                          setNewOption('')
-                        }
-                      }}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      className="w-full rounded-lg border border-dashed border-hairline py-2 text-sm text-ink-3 hover:bg-surface-1"
-                      onClick={() => setAddingTo('__new__')}
+                    <SortableContext
+                      items={group.rows.map((r) => cardDragId(group.key, r.id))}
+                      strategy={verticalListSortingStrategy}
                     >
-                      + Add group
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </SortableContext>
+                      {group.rows.map((row) => (
+                        <BoardCard
+                          key={row.id}
+                          row={row}
+                          groupKey={group.key}
+                          fields={fields}
+                          cardFields={cardFields}
+                          coverField={coverField}
+                          colorField={colorField}
+                          coverFit={coverFit}
+                          onOpenRow={onOpenRow}
+                          onResolveFileUrl={onResolveFileUrl}
+                        />
+                      ))}
+                    </SortableContext>
+                  </BoardColumn>
+                ))}
+
+                {/* Add group = create a select option */}
+                {onCreateOption && !compact && (
+                  <div className="w-56 shrink-0">
+                    {addingTo === '__new__' ? (
+                      <input
+                        autoFocus
+                        value={newOption}
+                        placeholder="Group name"
+                        aria-label="New group name"
+                        className="w-full rounded border border-border bg-transparent px-2 py-1 text-sm outline-none focus:border-border-emphasis"
+                        onChange={(e) => setNewOption(e.target.value)}
+                        onBlur={() => {
+                          setAddingTo(null)
+                          setNewOption('')
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            setAddingTo(null)
+                            setNewOption('')
+                          }
+                          if (e.key === 'Enter' && newOption.trim()) {
+                            void onCreateOption(groupField.id, newOption.trim())
+                            setAddingTo(null)
+                            setNewOption('')
+                          }
+                        }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className="w-full rounded-lg border border-dashed border-hairline py-2 text-sm text-ink-3 hover:bg-surface-1"
+                        onClick={() => setAddingTo('__new__')}
+                      >
+                        + Add group
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </SortableContext>
+          </MotionStage>
 
           <DragOverlay>
             {activeCard && (
