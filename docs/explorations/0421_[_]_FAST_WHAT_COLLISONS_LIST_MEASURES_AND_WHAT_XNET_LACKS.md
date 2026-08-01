@@ -1,7 +1,10 @@
 ---
 title: Fast — What Collison's List Measures, And What xNet Actually Lacks
-status: draft # mirrors the [_]/[-]/[x] filename checkbox
+status: draft # draft | withdrawn
 last_updated: 2026-08-01
+review: 2026-11-01 # re-decide once the ratchet has ~3 months of data on it
+decider: chris
+door: two-way # every change here is a script or a frontmatter field; deletable
 tags: [process, velocity, explorations, ci, decision-making]
 ---
 
@@ -16,7 +19,7 @@ tags: [process, velocity, explorations, ci, decision-making]
 > tuning CI (measured, not the bottleneck), and give explorations the two things
 > every fast project on the list had — **a decider and an expiry** (90 days,
 > measured) — signalled in **frontmatter, never in the filename**, because
-> filename status changes have already broken 25 inbound links. Nothing is moved
+> filename status changes have already broken 31 references. Nothing is moved
 > or deleted, ever.
 
 ## Problem Statement
@@ -477,24 +480,39 @@ Not a guess — the age distribution of the 260 `[_]` explorations picks the
 number, against the criterion that today's stale set must be a *meaningful
 minority* rather than either a rounding error or the whole corpus:
 
-| Window | Stale today | Verdict |
-| --- | --- | --- |
-| 30d | 181 (69%) | ❌ Catches nearly everything; meaningless |
-| 60d | 82 (31%) | 🚧 Defensible |
-| **90d** | **70 (26%)** | ✅ **Recommended** |
-| 120d | 59 (22%) | 🚧 Defensible |
-| 180d | 14 (5%) | 🛑 **A cliff, not a window** — see below |
-| 240d | 0 (0%) | 🛑 Vacuous |
+Of 276 undecided explorations, 234 have a creation date in this checkout and 42
+do not (they predate the shallow graft). Undated documents are reported
+separately and never counted as stale — unknown age and not-yet-due are
+different facts:
+
+| Window | Stale today | % of undecided | Verdict |
+| --- | --- | --- | --- |
+| 30d | 152 | 55% | ❌ Catches most of the corpus; meaningless |
+| 60d | 53 | 19% | 🚧 Defensible |
+| **90d** | **41** | **15%** | ✅ **Recommended** |
+| 120d | 30 | 11% | 🚧 Defensible |
+| 150d | 17 | 6% | 🚧 Thin |
+| 180d | **0** | 0% | 🛑 **Vacuous today, a cliff tomorrow** |
+| 240d | 0 | 0% | 🛑 Vacuous |
+
+> [!NOTE]
+> An earlier draft of this table (181/82/70/59/47/14) was measured per-file with
+> `git log --follow` and a fallback that dated *undated* files to the earliest
+> commit touching them — so 42 documents of unknown age were silently counted as
+> ancient. The table above uses the same method the shipped script does:
+> identity is the 4-digit **number** (filenames rename on every check-off, which
+> would otherwise reset the clock on the one event that means work is happening),
+> and undated documents are excluded rather than assumed old.
 
 > [!WARNING]
 > **The 180-day figure in the first draft of this document was wrong**, and
 > wrong in an instructive way. `main`'s first commit is 2026-01-20 — the repo is
-> **193 days old**. A 180-day window therefore catches 14 documents today and
+> **193 days old**. A 180-day window catches **zero** documents today and
 > roughly 200 in three months, as the June/July bulge (192 and 154 explorations
-> written) crosses the line at once. That is a cliff that fires long after the
-> author has forgotten the rule, which is precisely how a gate teaches people to
-> ignore red. 90 days is both a meaningful minority now *and* stable as the
-> corpus ages.
+> written) crosses the line at once. A gate that cannot fire is not a lenient
+> gate; it is an absent one, and its first appearance would be a 200-item wall
+> long after the author has forgotten the rule. 90 days is a meaningful minority
+> now *and* stable as the corpus ages.
 
 The window is a **default, not a policy**: it applies only when a document
 declines to name its own date. Deliberately long-horizon research says so
@@ -724,16 +742,16 @@ _Phase 1 — stop the bleeding (independently valuable; ship even if the rest is
 
 _Phase 2 — give the backlog a clock_
 
-- [ ] Add `review:`, `decider:`, `door:` to the `/explore` frontmatter template;
+- [x] Add `review:`, `decider:`, `door:` to the `/explore` frontmatter template;
       require a one-line *reason* alongside the date
-- [ ] Write `scripts/check-exploration-fallow.mjs` with a **90-day** default
+- [x] Write `scripts/check-exploration-fallow.mjs` with a **90-day** default
       window; scrub `GIT_*` before any `git` subprocess (0413 hazard)
-- [ ] Make the script exit 1 on a shallow checkout rather than treating every
+- [x] Make the script exit 1 on a shallow checkout rather than treating every
       file as new
-- [ ] Generate and commit `docs/explorations/STALE.md`, sorted deterministically
-- [ ] Seed `docs/explorations/.fallow-baseline.json` at today's count (~70)
-- [ ] Wire `check:exploration-fallow` into the `lint` job with `fetch-depth: 0`
-- [ ] Print the stale count unconditionally (green runs too) so the number is
+- [x] Generate and commit `docs/explorations/STALE.md`, sorted deterministically
+- [x] Seed `docs/explorations/.fallow-baseline.json` at today's count (~70)
+- [x] Wire `check:exploration-fallow` into the `lint` job with `fetch-depth: 0`
+- [x] Print the stale count unconditionally (green runs too) so the number is
       visible before it is ever binding
 
 _Phase 3 — make it consumed_

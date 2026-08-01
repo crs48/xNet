@@ -43,7 +43,13 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 — check:exploration-fallow dates each exploration from
+      # the commit that introduced it. A shallow clone has no such commit, so
+      # every document would look new and the ratchet would pass vacuously; it
+      # fails loudly below a coverage floor rather than reporting a false green.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
 
       - name: Format check
@@ -86,6 +92,14 @@ jobs:
       # reachable today, so every new break is a fresh mistake. (0421.)
       - name: Exploration references resolve (0421)
         run: pnpm check:exploration-links
+
+      # The backlog grows ~85 documents a month and nothing closes one. Ratchet
+      # only — the count may not EXCEED the committed baseline, so a green repo
+      # stays green and the fix is always a one-line frontmatter edit. Needs the
+      # full history checked out below: creation dates are what make a document
+      # "stale", and a shallow clone has none. (0421.)
+      - name: Exploration backlog ratchet (0421)
+        run: pnpm check:exploration-fallow
 
       - name: Publish closure (0220)
         run: pnpm check:publish-closure

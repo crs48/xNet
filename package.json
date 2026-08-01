@@ -25,6 +25,7 @@
     "check:view-drift": "node scripts/check-view-drift.mjs",
     "check:visual-explorations": "node scripts/check-visual-explorations.mjs",
     "check:exploration-links": "node scripts/check-exploration-links.mjs",
+    "check:exploration-fallow": "node scripts/check-exploration-fallow.mjs",
     "check:agent-docs": "node scripts/check-agent-docs.mjs",
     "check:storybook-shim": "node scripts/check-storybook-shim.mjs",
     "test:editor": "pnpm --filter @xnetjs/editor test",

@@ -5,12 +5,12 @@
  * Exploration status lives in the *filename* — `NNNN_[_]_TITLE.md` becomes
  * `NNNN_[x]_TITLE.md` when `/implement` checks it off. Every such transition
  * renames the file, and every reference that spelled the old name silently
- * breaks. Measured before this check existed: 25 broken references across the
- * repo, including four public `site/` legal pages, three package READMEs and
- * `docs/specs/protocol/README.md`. Nothing detected them.
+ * breaks. Measured before this check existed: 31 stale references across 28
+ * files (25 distinct names), including four public `site/` legal pages, three
+ * package READMEs and `docs/specs/protocol/README.md`. Nothing detected them.
  *
- * Bare paths count, not just markdown links. Only 5 of those 25 were
- * `](…)` links; the other 20 were paths in prose or comments. In a repo this
+ * Bare paths count, not just markdown links. Only 5 of those 25 names appeared
+ * as `](…)` links; the rest were paths in prose or comments. In a repo this
  * agent-heavy a bare path is *more* load-bearing than a link — an agent reads
  * the path and opens it, so a stale one costs a failed tool call and a wrong
  * conclusion.
@@ -50,11 +50,10 @@ const SKIP_DIRS = new Set([
   'out',
   '.astro',
   'playwright-report',
-  'test-results',
+  'test-results'
 ])
 
-const SCAN_EXT =
-  /\.(?:md|mdx|astro|ts|tsx|js|jsx|mjs|cjs|json|ya?ml|txt|html|svelte|vue)$/i
+const SCAN_EXT = /\.(?:md|mdx|astro|ts|tsx|js|jsx|mjs|cjs|json|ya?ml|txt|html|svelte|vue)$/i
 
 /** A path — not a bare filename — pointing at an exploration document. */
 const REF = /(?<![\w/-])(?:[\w./-]*\/)?explorations\/(\d{4})_\[(.)\]_([A-Z0-9_]+)\.md/g
@@ -132,7 +131,7 @@ for (const file of walk(root)) {
         file,
         line: i + 1,
         ref: name,
-        candidates: byNumber.get(number) ?? [],
+        candidates: byNumber.get(number) ?? []
       })
     }
   })
