@@ -746,8 +746,8 @@ describe('durability posture never outruns the code', () => {
 
 ### Phase 0 — Stop the bleeding (do first, independently)
 
-- [ ] Fix the Team tier claim in [`site/src/data/pricing.ts:108`](../../site/src/data/pricing.ts): replace `'99.9% best-effort availability'` with a figure the catalog backs.
-- [ ] Qualify "Encrypted backup to object storage" ([`pricing.ts:74`](../../site/src/data/pricing.ts)) and "xNet Cloud adds managed backups" ([`terms.astro:62`](../../site/src/pages/terms.astro)) to name the database scope until blobs are covered.
+- [x] Fix the Team tier claim in [`site/src/data/pricing.ts:108`](../../site/src/data/pricing.ts): replace `'99.9% best-effort availability'` with a figure the catalog backs.
+- [x] Qualify "Encrypted backup to object storage" ([`pricing.ts:74`](../../site/src/data/pricing.ts)) and "xNet Cloud adds managed backups" ([`terms.astro:62`](../../site/src/pages/terms.astro)) to name the database scope until blobs are covered.
 - [ ] Ship exploration 0288's **[P0] blob/file sync sidecar** — this is the gating item for every durability sentence below.
 - [ ] Ship 0288's **self-host BYO-S3 restore-on-boot** — the Charter BATNA precondition on this revenue lane.
 
@@ -756,8 +756,8 @@ describe('durability posture never outruns the code', () => {
 - [x] Add `packages/entitlements/src/durability.ts` with `DurabilityPosture` + `DURABILITY_POSTURE`, exported via a scoped sub-barrel (never `export *` from the root barrel).
 - [x] Add `packages/entitlements/src/durability.test.ts` with the `publishedExceedsObjective` and no-blob-claim assertions.
 - [x] Move or re-export `sloForSla` so `packages/entitlements` can assert against it without reaching into `apps/cloud`.
-- [ ] Derive the pricing-page availability highlights from `DURABILITY_POSTURE` rather than hand-written strings.
-- [ ] Add `scripts/check-durability-claims.mjs`: fail the build if site copy states an availability/RPO/RTO figure absent from `DURABILITY_POSTURE`. Register it under the existing `check:*` lint job.
+- [x] Derive the pricing-page availability highlights from `DURABILITY_POSTURE` rather than hand-written strings.
+- [x] Add `scripts/check-durability-claims.mjs`: fail the build if site copy states an availability/RPO/RTO figure absent from `DURABILITY_POSTURE`. Register it under the existing `check:*` lint job.
 - [ ] Write a changeset for `@xnetjs/entitlements` (new exported surface → **minor**).
 
 ### Phase 2 — Publish the promise

@@ -26,6 +26,7 @@
     "check:visual-explorations": "node scripts/check-visual-explorations.mjs",
     "check:agent-docs": "node scripts/check-agent-docs.mjs",
     "check:storybook-shim": "node scripts/check-storybook-shim.mjs",
+    "check:durability-claims": "tsx scripts/check-durability-claims.ts",
     "test:editor": "pnpm --filter @xnetjs/editor test",
     "test:stories": "storybook test --url http://127.0.0.1:6006",
     "test:watch": "vitest",

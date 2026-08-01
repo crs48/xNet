@@ -10,7 +10,17 @@
  *
  * When the catalog prices change, update them here too (and the dashboard's
  * PRICE_BY_PLAN map). See docs/explorations/0192_[_]_XNET_CLOUD_ONBOARDING_AND_UI_HOSTING.md
+ *
+ * **Durability and availability figures are the exception**: they are NOT
+ * hand-written here. They come from `./durability`, generated from
+ * `@xnetjs/entitlements`, and `pnpm check:durability-claims` fails the build if
+ * a page states a figure the catalog does not back. This tier grid used to
+ * advertise "99.9% best-effort availability" (durability-ok: quotes the retired
+ * claim in order to explain why it was retired) — a self-cancelling phrase over
+ * a plan whose SLA level backed no objective at all (exploration 0418).
  */
+
+import { DURABILITY } from './durability'
 
 /** Origin of the xNet Cloud control plane (auth callback, checkout, dashboard). */
 const CLOUD_ORIGIN = 'https://cloud.xnet.fyi'
@@ -71,7 +81,10 @@ export const PRICING: PricingTier[] = [
     highlights: [
       'A hub that is yours alone',
       'Managed AI gateway included',
-      'Encrypted backup to object storage',
+      // Scoped deliberately: Litestream replicates the SQLite database, not
+      // `dataDir/{blobs,files}`. Until exploration 0288's sync sidecar ships,
+      // "encrypted backup" full stop would over-promise (0418).
+      'Encrypted database backup, replicated continuously',
       'Full-text search & relay'
     ],
     cta: { label: 'Get Personal', href: startUrl('personal') },
@@ -105,7 +118,7 @@ export const PRICING: PricingTier[] = [
       'Always-warm hub — instant sync',
       'Per-seat billing, add seats any time',
       'Roles, grants & shared workspaces',
-      '99.9% best-effort availability'
+      `${DURABILITY.team.publishedAvailabilityLabel} availability, measured and published`
     ],
     cta: { label: 'Get Team', href: startUrl('team') }
   },
