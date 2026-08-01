@@ -641,20 +641,20 @@ Open questions:
 
 **Phase 1 — vocabulary**
 
-- [ ] Add `RelationshipPrimitiveSchema` + `RELATIONSHIP_PRIMITIVE_SCHEMA_IRI` to
+- [x] Add `RelationshipPrimitiveSchema` + `RELATIONSHIP_PRIMITIVE_SCHEMA_IRI` to
       [`packages/data/src/schema/schemas/crm.ts`](../../packages/data/src/schema/schemas/crm.ts),
       exported through the schema sub-barrel (not the root barrel directly).
-- [ ] Seed the essay's ~11 terms with `isSeed: true` in
+- [x] Seed the essay's ~11 terms with `isSeed: true` in
       [`packages/devtools/src/seed/seeders/crm.ts`](../../packages/devtools/src/seed/seeders/crm.ts),
       registered in `seed-manifest.ts`.
 
 **Phase 2 — edges**
 
-- [ ] Add `PracticeSchema` to `crm.ts`, defaulting to the most private
+- [x] Add `PracticeSchema` to `crm.ts`, defaulting to the most private
       `visibility()`.
 - [ ] Extend [`packages/crm/src/erasure.ts`](../../packages/crm/src/erasure.ts)
       so PII erasure covers practices.
-- [ ] Unit tests in `packages/data/src/schema/schemas/crm.test.ts` mirroring the
+- [x] Unit tests in `packages/data/src/schema/schemas/crm.test.ts` mirroring the
       existing `requires both ends of a relationship edge` case.
 
 **Phase 3 — derivation**
