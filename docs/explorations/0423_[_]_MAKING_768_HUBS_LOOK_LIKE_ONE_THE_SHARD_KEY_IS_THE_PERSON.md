@@ -727,7 +727,7 @@ all.
       system identity (the DID already on `/health`)
 - [x] Mirror it from the control plane for managed tenants, including a
       `waking` answer for `dataTier: 'cold'`
-- [ ] Client: resolve-then-connect in `packages/react/src/context.ts`, with the
+- [x] Client: resolve-then-connect in `packages/react/src/context.ts`, with the
       resolved address cached in local storage and a stale-cache fallback
 - [ ] Include last-known address in `.xnetpack` export
       (`packages/data/src/portability/`) so an export alone can reconnect
@@ -737,7 +737,7 @@ all.
 - [ ] Close the shard-ring fork: either wire `SHARD_*` env/CLI into
       `resolveConfig`, or mark the ring dormant in `server.ts` + `roles.ts` with
       an assertion that `config.shards.enabled` is unreachable
-- [ ] Decide `MultiHubSyncManager`'s client path — wire it into the provider, or
+- [x] Decide `MultiHubSyncManager`'s client path — wire it into the provider, or
       document the deferral at its export site in `packages/runtime/src/index.ts`
 - [ ] Add an ADR to
       `site/src/content/docs/docs/architecture/decisions.mdx`: **no data-path
