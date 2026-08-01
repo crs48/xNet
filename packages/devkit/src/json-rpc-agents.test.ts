@@ -64,7 +64,9 @@ function fakeAgent(script: {
 }
 
 const sentMethods = (written: string[]): string[] =>
-  written.map((line) => (JSON.parse(line) as { method?: string }).method).filter(Boolean) as string[]
+  written
+    .map((line) => (JSON.parse(line) as { method?: string }).method)
+    .filter(Boolean) as string[]
 
 describe('JSON-RPC over stdio (exploration 0416)', () => {
   it('correlates responses to requests', async () => {
@@ -214,7 +216,12 @@ describe('Codex app-server folding (exploration 0416)', () => {
       responses: { newConversation: { conversationId: 't' } },
       emitAfter: {
         sendUserMessage: [
-          { jsonrpc: '2.0', id: 7, method: 'codex/request/exec_approval', params: { command: 'rm' } },
+          {
+            jsonrpc: '2.0',
+            id: 7,
+            method: 'codex/request/exec_approval',
+            params: { command: 'rm' }
+          },
           { jsonrpc: '2.0', method: 'codex/event/task_complete', params: {} }
         ]
       }

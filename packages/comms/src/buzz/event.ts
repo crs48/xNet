@@ -33,14 +33,7 @@ export type NostrEvent = {
  * `[0, pubkey, created_at, kind, tags, content]`, JSON with no whitespace.
  */
 export function serializeEvent(event: NostrEvent): string {
-  return JSON.stringify([
-    0,
-    event.pubkey,
-    event.created_at,
-    event.kind,
-    event.tags,
-    event.content
-  ])
+  return JSON.stringify([0, event.pubkey, event.created_at, event.kind, event.tags, event.content])
 }
 
 /** Recompute an event's id from its content. */

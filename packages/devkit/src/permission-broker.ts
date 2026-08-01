@@ -56,15 +56,8 @@ export type PermissionBroker = {
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000
 
-export function createPermissionBroker(
-  options: PermissionBrokerOptions = {}
-): PermissionBroker {
-  const {
-    ttlMs = DEFAULT_TTL_MS,
-    clock = () => Date.now(),
-    onPark,
-    writesAllowed = true
-  } = options
+export function createPermissionBroker(options: PermissionBrokerOptions = {}): PermissionBroker {
+  const { ttlMs = DEFAULT_TTL_MS, clock = () => Date.now(), onPark, writesAllowed = true } = options
 
   type Entry = PendingPermission & {
     resolve: (approved: boolean) => void

@@ -294,7 +294,9 @@ describe('Buzz relay routing (exploration 0416)', () => {
     const id = computeEventId({ ...base, id: '', sig: '' })
     const event = { ...base, id, sig: bytesToHex(schnorr.sign(hexToBytes(id)!, otherPriv)) }
 
-    expect(parseToolRequest(JSON.stringify(['EVENT', 's', event]), nostrPubHex, BUZZ_TOOL_REQUEST_KIND)).toBeNull()
+    expect(
+      parseToolRequest(JSON.stringify(['EVENT', 's', event]), nostrPubHex, BUZZ_TOOL_REQUEST_KIND)
+    ).toBeNull()
   })
 
   it('ignores unparseable frames, wrong kinds, and unsigned events', () => {

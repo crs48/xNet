@@ -167,7 +167,9 @@ export class JsonRpcSession {
       }
       this.pending.delete(message.id)
       if (message.error) {
-        entry.reject(new JsonRpcError(message.error.code, message.error.message, message.error.data))
+        entry.reject(
+          new JsonRpcError(message.error.code, message.error.message, message.error.data)
+        )
       } else {
         entry.resolve(message.result)
       }
@@ -207,8 +209,7 @@ export class JsonRpcSession {
   }
 
   private warn(message: string): void {
-    const report =
-      this.options.onWarning ?? ((m: string) => console.warn(`[xnet/json-rpc] ${m}`))
+    const report = this.options.onWarning ?? ((m: string) => console.warn(`[xnet/json-rpc] ${m}`))
     report(message)
   }
 }

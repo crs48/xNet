@@ -30,11 +30,7 @@ export type RelaySocketFactory = (url: string) => RelaySocket
  * from `@xnetjs/plugins`, narrowed so `comms` does not depend on it.
  */
 export type GuardedToolCaller = {
-  callTool(
-    name: string,
-    args?: Record<string, unknown>,
-    instruction?: string
-  ): Promise<unknown>
+  callTool(name: string, args?: Record<string, unknown>, instruction?: string): Promise<unknown>
 }
 
 /** A tool call requested by a Buzz agent. */
@@ -103,10 +99,7 @@ export function parseToolRequest(
     requestId: event.id,
     pubkey: event.pubkey,
     tool: body.tool,
-    args:
-      body.args && typeof body.args === 'object'
-        ? (body.args as Record<string, unknown>)
-        : {},
+    args: body.args && typeof body.args === 'object' ? (body.args as Record<string, unknown>) : {},
     instruction: typeof body.instruction === 'string' ? body.instruction : undefined
   }
 }

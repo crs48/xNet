@@ -7,7 +7,9 @@ import {
   measureBytes
 } from '../ai-surface/egress-budget'
 
-const rows = (n: number) => ({ rows: Array.from({ length: n }, (_, i) => ({ id: i, body: 'x'.repeat(100) })) })
+const rows = (n: number) => ({
+  rows: Array.from({ length: n }, (_, i) => ({ id: i, body: 'x'.repeat(100) }))
+})
 
 describe('egress budget (exploration 0416)', () => {
   it('meters read tools and ignores write tools', () => {

@@ -122,11 +122,7 @@ describe('model-lane frames (exploration 0416)', () => {
   it('costs nothing and changes nothing when no sink is supplied', async () => {
     const runtime = new AiAgentRuntime({ provider: scriptedProvider([[text('hi')]]) })
     const thread = await runtime.createThread({ title: 'test' })
-    await expect(
-      runtime.runTurn({ threadId: thread.id, content: 'hi' })
-    ).resolves.toBeDefined()
-    await vi.waitFor(() =>
-      expect(runtime.getSnapshot().telemetry.runsCompleted).toBe(1)
-    )
+    await expect(runtime.runTurn({ threadId: thread.id, content: 'hi' })).resolves.toBeDefined()
+    await vi.waitFor(() => expect(runtime.getSnapshot().telemetry.runsCompleted).toBe(1))
   })
 })

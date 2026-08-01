@@ -137,9 +137,7 @@ export function acpChatAgent(runner: DuplexRunner, options: AcpAgentOptions): Fr
         const approved = await onPermission(tool, params)
         // ACP expects an outcome object naming the selected option kind.
         return {
-          outcome: approved
-            ? { outcome: 'selected', optionId: 'allow' }
-            : { outcome: 'cancelled' }
+          outcome: approved ? { outcome: 'selected', optionId: 'allow' } : { outcome: 'cancelled' }
         }
       }
     })
