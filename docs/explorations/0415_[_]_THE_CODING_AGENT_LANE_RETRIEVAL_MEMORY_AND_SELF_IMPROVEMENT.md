@@ -728,10 +728,10 @@ export function candidatesFromTraces(
 
 ### Phase 1 — Retrieval parity (the load-bearing phase)
 
-- [ ] Add `searchText` to `createRemoteAgentBackend`, routed to `/api/v1/ai/search`
-- [ ] Add a `searchText` channel to `createNodeStoreProxy` + the renderer handler
-- [ ] Write `createWorkspaceRetrieval()` returning `{ tier, retrieveContext, searchText }`
-- [ ] Require an `authorize` dependency on the factory; pass it into `retrieve()`
+- [x] Add `searchText` to `createRemoteAgentBackend`, routed to `/api/v1/ai/search`
+- [x] Add a `searchText` channel to `createNodeStoreProxy` + the renderer handler
+- [x] Write `createWorkspaceRetrieval()` returning `{ tier, retrieveContext, searchText }`
+- [x] Require an `authorize` dependency on the factory; pass it into `retrieve()`
 - [ ] Inject the factory in `buildMcpServer` (`packages/cli/src/commands/mcp.ts`)
 - [ ] Inject the factory in `createAgentServices` (`packages/cli/src/commands/agent.ts`)
 - [ ] Inject the factory in `startAgentMcpServer` (`apps/electron/src/main/agent-mcp-server.ts`)

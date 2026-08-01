@@ -78,6 +78,25 @@ export {
 } from './locality'
 export { relationFieldsResolver, schemaRelationFields, type SchemaLike } from './schema'
 export {
+  ALLOW_ALL_NODES,
+  bm25EntrySearch,
+  createWorkspaceRetrieval,
+  DEGRADED_TIERS,
+  fuseByReciprocalRank,
+  isDegradedTier,
+  nodeTextParts,
+  NoTextIndexError,
+  scanEntrySearch,
+  type AiRetrievedNodeLike,
+  type RecallResult,
+  type RelationFieldsLookup,
+  type RetrievalNode,
+  type RetrievalStore,
+  type RetrievalTier,
+  type WorkspaceRetrieval,
+  type WorkspaceRetrievalOptions
+} from './workspace-retrieval'
+export {
   applyMemoryOp,
   rememberFact,
   type AppliedMemory,

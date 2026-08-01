@@ -59,6 +59,17 @@ type LocalAPIStore = {
     }
   ): Promise<LocalAPIStoreNode>
   delete(id: string): Promise<void>
+  /**
+   * FTS5-backed search (exploration 0415). Optional on the type because a
+   * storage adapter without FTS legitimately has none — but the desktop store
+   * is SQLite, so in practice this is what keeps the main process off the
+   * substring-scan path.
+   */
+  searchText?(
+    query: string,
+    limit: number,
+    options?: { schemaId?: string }
+  ): Promise<Array<{ nodeId: string; rank: number }> | null>
   getDocumentContent(nodeId: string): Promise<Uint8Array | null>
   setDocumentContent(nodeId: string, content: Uint8Array): Promise<void>
 }
@@ -810,6 +821,17 @@ function LocalAPIStoreHandler() {
         case 'delete': {
           await store.delete(params.id as string)
           return undefined
+        }
+
+        // The renderer owns the only store with an FTS index, so the main
+        // process asks it rather than scanning (exploration 0415). `null` here
+        // means "this storage has no index" — a real answer the caller reports
+        // as degraded, never a quietly empty result set.
+        case 'searchText': {
+          if (!store.searchText) return null
+          return await store.searchText(params.query as string, params.limit as number, {
+            ...(params.schemaId ? { schemaId: params.schemaId as string } : {})
+          })
         }
 
         // The main process has no registry of its own, so the local API and the

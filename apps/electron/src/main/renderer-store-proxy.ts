@@ -99,6 +99,17 @@ export function createNodeStoreProxy(): NodeStoreAPI {
         offset: options?.offset ?? 0
       }),
 
+    // The renderer's store is the one with `nodes_fts` (exploration 0415).
+    // Without this hop the AI surface here finds no `searchText` and falls back
+    // to `list({ limit: 500 })` + substring match — 500 nodes over IPC, and a
+    // result the bridged agent cannot tell from an exhaustive search.
+    searchText: (query: string, limit: number, options?: { schemaId?: string }) =>
+      sendStoreRequest<Array<{ nodeId: string; rank: number }> | null>('searchText', {
+        query,
+        limit,
+        schemaId: options?.schemaId
+      }),
+
     create: (options: { schemaId: string; properties: Record<string, unknown> }) =>
       sendStoreRequest<NodeData>('create', {
         schemaId: options.schemaId,
