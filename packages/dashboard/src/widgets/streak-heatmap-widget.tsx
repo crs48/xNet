@@ -7,7 +7,7 @@
  * The header shows a completion *rate* over the window on screen, never a
  * consecutive-day chain: a rate carries the same information and has nothing
  * to break, so a single miss lowers a number instead of destroying one
- * (exploration 0422, `docs/VIBE.md` §"Measurement is pull, never push").
+ * (exploration 0426, `docs/VIBE.md` §"Measurement is pull, never push").
  */
 import type { WidgetDefinition, WidgetProps } from '../types'
 import { MetricSchema } from '@xnetjs/data'

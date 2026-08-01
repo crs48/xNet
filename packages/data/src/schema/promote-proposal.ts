@@ -1,6 +1,6 @@
 /**
  * Late ontology — propose graduating an accumulated overlay key into a core
- * schema property (exploration 0422).
+ * schema property (exploration 0426).
  *
  * Schema-first tools make you name the shape of your data before you have any,
  * which prematurely constrains what could have emerged. The alternative is not
