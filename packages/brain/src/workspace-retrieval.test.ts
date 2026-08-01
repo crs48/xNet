@@ -164,6 +164,25 @@ describe('createWorkspaceRetrieval', () => {
     expect(nodes[0]).toHaveProperty('pathLabel')
   })
 
+  it('drops to budget and hands the rest back as expandable refs', async () => {
+    const retrieval = createWorkspaceRetrieval({
+      store: makeStore(),
+      relationFieldsOf,
+      authorize: ALLOW_ALL_NODES
+    })
+    const full = await retrieval.recall('Acme')
+    expect(full.items.length).toBeGreaterThan(1)
+
+    const squeezed = await retrieval.recall('Acme', { maxTokens: 1 })
+    // packToBudget always lets the best hit through — returning nothing is
+    // worse than returning one oversized result — and the rest become
+    // expandable refs rather than silently disappearing.
+    expect(squeezed.items).toHaveLength(1)
+    expect(squeezed.stats.truncated).toBe(true)
+    expect(squeezed.expandable.length).toBe(full.items.length - 1)
+    expect(squeezed.expandable[0].reason).toMatch(/budget/)
+  })
+
   it('reports bm25 (no graph) when expansion is budgeted away', () => {
     const retrieval = createWorkspaceRetrieval({
       store: makeStore(),

@@ -15,6 +15,7 @@ import {
   runDbGet,
   runDbSet,
   runQuery,
+  runRecall,
   runScript,
   runSearch,
   runStatus,
@@ -158,6 +159,26 @@ describe('agent CLI commands', () => {
     })
     expect(jsonl.split('\n').every((line) => line.startsWith('{'))).toBe(true)
     expect(warnings).toHaveLength(1)
+  })
+
+  it('recall returns a budgeted pack with a provenance path per hit', async () => {
+    const services = createTestServices()
+    const output = await runRecall(services, { text: 'planning', warn: () => {} })
+    const lines = output.split('\n')
+    expect(lines[0]).toMatch(/^tier\t/)
+    expect(lines[0]).toMatch(/entries=\d+ expanded=\d+ denied=\d+ dropped=\d+ tokens=\d+/)
+    const header = lines.find((line) => line.startsWith('id\t'))
+    expect(header?.split('\t')).toEqual(['id', 'title', 'path', 'snippet'])
+    expect(output).toContain('page_1')
+  })
+
+  it('recall reports its budget accounting in json', async () => {
+    const services = createTestServices()
+    const json = JSON.parse(await runRecall(services, { text: 'planning', format: 'json' }))
+    expect(json.tier).toBe('scan')
+    expect(json.stats).toMatchObject({ entries: expect.any(Number), tokens: expect.any(Number) })
+    expect(Array.isArray(json.expandable)).toBe(true)
+    expect(json.items[0]).toHaveProperty('pathLabel')
   })
 
   it('query returns TSV rows with flattened properties and supports where filters', async () => {

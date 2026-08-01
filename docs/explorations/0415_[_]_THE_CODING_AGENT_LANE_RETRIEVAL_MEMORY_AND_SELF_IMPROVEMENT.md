@@ -750,8 +750,8 @@ export function candidatesFromTraces(
 
 ### Phase 2 — Speed and the code lane
 
-- [ ] `xnet recall <query>` CLI verb (budgeted pack, path column, `expandable` line)
-- [ ] `xnet_recall` MCP tool; decide its place in `MCP_CORE_TOOL_NAMES`
+- [x] `xnet recall <query>` CLI verb (budgeted pack, path column, `expandable` line)
+- [x] `xnet_recall` MCP tool; decide its place in `MCP_CORE_TOOL_NAMES`
 - [ ] `xnet serve` — warm store + schemas + FTS behind a unix socket; cold fallback
 - [ ] Loud stale-daemon detection (version handshake, exit 1, never exit 0)
 - [ ] Extend the sandbox `api` with `api.recall()` and `api.graph(nodeId, hops)`

@@ -319,6 +319,73 @@ export async function runSearch(
   return `${line}\n${toTsv(compact).trimEnd()}`
 }
 
+// ─── recall ──────────────────────────────────────────────────────────────────
+
+export type RecallOptions = {
+  text: string
+  budget?: number
+  hops?: number
+  limit?: number
+  format?: AgentOutputFormat
+  warn?: (message: string) => void
+}
+
+/**
+ * `xnet recall` — one call that replaces "search, then read eight nodes".
+ *
+ * The difference from `search` is not the ranking, it is the shape: this
+ * returns a *budgeted pack* whose hits each carry the graph path they were
+ * reached by, plus the ids it dropped for budget so the agent can pull them
+ * just-in-time instead of the CLI guessing (exploration 0415).
+ */
+export async function runRecall(
+  services: AgentCliServices,
+  options: RecallOptions
+): Promise<string> {
+  const result = await services.retrieval.recall(options.text, {
+    ...(options.budget !== undefined ? { maxTokens: options.budget } : {}),
+    ...(options.hops !== undefined ? { maxHops: options.hops } : {}),
+    ...(options.limit !== undefined ? { maxEntries: options.limit } : {})
+  })
+
+  if (result.degraded) {
+    const warn = options.warn ?? ((message: string) => process.stderr.write(`${message}\n`))
+    warn(result.notice ?? 'Recall ran degraded; results may be incomplete.')
+  }
+
+  if (options.format === 'json') return JSON.stringify(result)
+  if (options.format === 'jsonl') return result.items.map((item) => JSON.stringify(item)).join('\n')
+
+  const stats = result.stats
+  const header =
+    `tier\t${result.tier}\t` +
+    `entries=${stats.entries} expanded=${stats.expanded} denied=${stats.denied} ` +
+    `dropped=${stats.dropped} tokens=${stats.tokens}`
+
+  const rows = result.items.map((item) => ({
+    id: item.nodeId,
+    title: item.title,
+    // The path is the provenance the agent quotes back to the user; without it
+    // a graph-reached hit looks like a keyword hit that simply matched oddly.
+    path: item.pathLabel,
+    snippet: item.snippet.replace(/\s+/g, ' ').slice(0, 200)
+  }))
+
+  const body =
+    rows.length === 0
+      ? 'no results'
+      : options.format === 'md'
+        ? toMarkdownTable(rows)
+        : toTsv(rows).trimEnd()
+
+  const expandable =
+    result.expandable.length > 0
+      ? `\nexpandable\t${result.expandable.map((ref) => ref.nodeId).join(', ')}`
+      : ''
+
+  return `${header}\n${body}${expandable}`
+}
+
 // ─── query ───────────────────────────────────────────────────────────────────
 
 export type QueryOptions = {
@@ -638,6 +705,18 @@ export function registerAgentCommands(
       .option('--format <format>', 'Output format: tsv|jsonl|json', 'tsv')
   ).action(async (text, options) => {
     await withServices(options, (services) => runSearch(services, { ...options, text }))
+  })
+
+  withBackendFlags(
+    program
+      .command('recall <text>')
+      .description('Budgeted context pack with provenance paths (TSV: id, title, path, snippet)')
+      .option('-b, --budget <tokens>', 'Token budget for the pack', parseIntOption)
+      .option('--hops <n>', 'Graph expansion depth (0 disables the graph stage)', parseIntOption)
+      .option('-l, --limit <n>', 'Max entry nodes before expansion', parseIntOption)
+      .option('--format <format>', 'Output format: tsv|md|jsonl|json', 'tsv')
+  ).action(async (text, options) => {
+    await withServices(options, (services) => runRecall(services, { ...options, text }))
   })
 
   withBackendFlags(

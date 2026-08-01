@@ -4,6 +4,7 @@
 
 import type { NodeStoreAPI, SchemaRegistryAPI } from '../services/local-api'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { createAgentRetrieval } from '../ai-surface'
 import {
   MCPServer,
   MCP_CORE_TOOL_NAMES,
@@ -1144,10 +1145,58 @@ describe('slim MCP surface (0161)', () => {
     const core = tools.filter((tool) => tool.defer_loading === false)
     const deferred = tools.filter((tool) => tool.defer_loading === true)
 
-    expect(core.map((tool) => tool.name).sort()).toEqual([...MCP_CORE_TOOL_NAMES].sort())
+    // `xnet_recall` is in the core list but only registered when the server was
+    // built with retrieval — this fixture wasn't, and a tool that exists only to
+    // answer "unavailable" would cost its definition tokens every turn (0415).
+    // So the invariant is: core == the registered subset of the core list.
+    const registered = new Set(tools.map((tool) => tool.name))
+    expect(core.map((tool) => tool.name).sort()).toEqual(
+      MCP_CORE_TOOL_NAMES.filter((name) => registered.has(name)).sort()
+    )
+    expect(core).not.toContainEqual(expect.objectContaining({ name: 'xnet_recall' }))
     expect(core.length).toBeGreaterThanOrEqual(3)
-    expect(core.length).toBeLessThanOrEqual(5)
+    expect(core.length).toBeLessThanOrEqual(6)
     expect(deferred.length).toBeGreaterThan(core.length)
+  })
+
+  it('stands xnet_recall in the core set once the server has retrieval', () => {
+    const store = createMockStore()
+    const schemas = createMockSchemas()
+    const server = createMCPServer({
+      store,
+      schemas,
+      retrieval: createAgentRetrieval({ store, schemas })
+    })
+
+    const core = server.getTools().filter((tool) => tool.defer_loading === false)
+    expect(core.map((tool) => tool.name)).toContain('xnet_recall')
+    expect(core.length).toBeLessThanOrEqual(6)
+    // The standing budget still has to hold with the extra definition in it.
+    expect(JSON.stringify(core).length / 4).toBeLessThanOrEqual(1500)
+  })
+
+  it('xnet_recall returns a budgeted pack with provenance paths', async () => {
+    const store = createMockStore()
+    const schemas = createMockSchemas()
+    await store.create({
+      schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+      properties: { title: 'Cutover runbook', body: 'Rollback steps for the Q2 cutover.' }
+    })
+    const server = createMCPServer({
+      store,
+      schemas,
+      retrieval: createAgentRetrieval({ store, schemas })
+    })
+
+    const response = await server.handleRequest(
+      createRequest('tools/call', { name: 'xnet_recall', arguments: { query: 'cutover runbook' } })
+    )
+    const text = (response.result as { content: Array<{ text: string }> }).content[0].text
+    const pack = JSON.parse(text)
+    expect(pack.tier).toBeDefined()
+    expect(pack.items.length).toBeGreaterThan(0)
+    expect(pack.items[0]).toHaveProperty('path')
+    expect(pack.stats).toHaveProperty('tokens')
   })
 
   it('keeps the non-deferred definition payload under the 1.5k-token budget', () => {

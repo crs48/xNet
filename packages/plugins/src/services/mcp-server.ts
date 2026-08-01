@@ -65,9 +65,16 @@ export interface MCPTool {
  * discovered on demand (~85% standing-definition reduction per Anthropic's
  * Tool Search Tool measurements). Keep this list stable across releases so
  * prompt caching amortizes the definitions.
+ *
+ * `xnet_search` and `xnet_recall` both stand, deliberately (0415 open question
+ * 2). They answer different questions — "find the node called X" versus
+ * "answer this question about the workspace" — and a model that only had
+ * `recall` would pay a graph walk to look up a title it already knew. The
+ * routing lives in the descriptions, which name each other explicitly.
  */
 export const MCP_CORE_TOOL_NAMES: readonly string[] = [
   'xnet_search',
+  'xnet_recall',
   'xnet_read_page_markdown',
   'xnet_plan_page_patch',
   'xnet_apply_page_markdown',
@@ -640,6 +647,35 @@ export class MCPServer {
       }
     })
 
+    // Registered only when the server has retrieval — a tool that always
+    // answers "unavailable" is worse than one that isn't there, because the
+    // model pays its definition tokens on every turn to learn that.
+    if (this.retrieval) {
+      this.tools.set('xnet_recall', {
+        name: 'xnet_recall',
+        description:
+          'Retrieve a budgeted context pack for a question. Returns ranked nodes with the ' +
+          'graph path each was reached by (provenance you can cite), plus `expandable` ids ' +
+          'dropped for budget that you can fetch with xnet_get. Prefer this over xnet_search ' +
+          'for questions that span more than one node ("how is X tied to Y?").',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'The question, in natural language' },
+            maxTokens: {
+              type: 'number',
+              description: 'Token budget for the returned pack (default 4000)'
+            },
+            maxHops: {
+              type: 'number',
+              description: 'Graph expansion depth from matched nodes (default 1; 0 disables)'
+            }
+          },
+          required: ['query']
+        }
+      })
+    }
+
     this.tools.set('xnet_schemas', {
       name: 'xnet_schemas',
       description:
@@ -772,6 +808,36 @@ export class MCPServer {
       case 'xnet_get_write_audit': {
         const limit = (toolArgs.limit as number) ?? 50
         result = { events: this.config.guardrail.getAuditLog(limit) }
+        break
+      }
+
+      case 'xnet_recall': {
+        if (!this.retrieval) {
+          throw new Error(
+            'xnet_recall is unavailable: this server was built without retrieval. ' +
+              'Construct it with createAgentRetrieval({ store, schemas }).'
+          )
+        }
+        const query = String(toolArgs.query ?? '')
+        const pack = await this.retrieval.recall(query, {
+          ...(typeof toolArgs.maxTokens === 'number' ? { maxTokens: toolArgs.maxTokens } : {}),
+          ...(typeof toolArgs.maxHops === 'number' ? { maxHops: toolArgs.maxHops } : {})
+        })
+        result = {
+          query,
+          tier: pack.tier,
+          degraded: pack.degraded,
+          ...(pack.notice ? { notice: pack.notice } : {}),
+          items: pack.items.map((item) => ({
+            id: item.nodeId,
+            title: item.title,
+            path: item.pathLabel,
+            hops: item.hops,
+            snippet: item.snippet
+          })),
+          expandable: pack.expandable.map((ref) => ref.nodeId),
+          stats: pack.stats
+        }
         break
       }
 
