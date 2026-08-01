@@ -81,16 +81,17 @@ function git(args) {
 const MIN_DATE_COVERAGE = 0.5
 
 /**
- * When each exploration NUMBER first appeared, in epoch ms.
+ * Earliest ADD timestamp per exploration number, in epoch ms, from one
+ * `git log` pass. `match` selects which filenames count.
  *
  * Identity is the 4-digit number, not the filename: checking a doc off renames
  * it, so filename identity would reset the clock on every status change — the
- * one event that most reliably means work IS happening. One `git log` pass
- * covers the whole directory and is rename-proof by construction.
+ * one event that most reliably means work IS happening.
  */
-function firstSeenByNumber() {
+function addedByNumber({ noRenames, match }) {
   const out = git([
     'log',
+    ...(noRenames ? ['--no-renames'] : []),
     '--diff-filter=A',
     '--format=@%ct',
     '--name-only',
@@ -104,12 +105,89 @@ function firstSeenByNumber() {
       ts = Number(line.slice(1)) * 1000
       continue
     }
-    const m = /explorations\/(\d{4})_\[.\]_/.exec(line)
+    const m = match.exec(line)
     if (!m || ts === null) continue
     const prev = seen.get(m[1])
     if (prev === undefined || ts < prev) seen.set(m[1], ts)
   }
   return seen
+}
+
+/**
+ * When each exploration first appeared. Rename detection stays ON (git's
+ * default) so only TRUE adds count: a document whose birth predates this
+ * checkout's history must stay undated rather than acquire the date of a later
+ * status flip, which would be younger than the truth and silently wrong.
+ *
+ * This drives staleness, and its behaviour is deliberately unchanged.
+ */
+const firstSeenByNumber = () =>
+  addedByNumber({ noRenames: false, match: /explorations\/(\d{4})_\[.\]_/ })
+
+/**
+ * Births and check-offs for the retirement curve — both with `--no-renames`.
+ *
+ * That flag is load-bearing twice over.
+ *
+ * For check-offs it is the difference between a measurement and nothing: a
+ * status flip IS a rename, so under default detection the arrival of the `[x]`
+ * filename is recorded as R, not A. Detection ON finds 6 check-offs where OFF
+ * finds 195 — a 97% undercount that still looks like data.
+ *
+ * For births it removes a bias that points the wrong way. Detection ON drops
+ * the original add of any document later absorbed into a rename chain, and the
+ * documents that get renamed are exactly the ones that get CHECKED OFF: 51 of
+ * the 195 shipped documents have no birth date under ON. Measuring retirement
+ * against a birth map that preferentially forgets the retirements would report
+ * the backlog as more hopeless than it is.
+ *
+ * These stay separate from `firstSeenByNumber()` rather than replacing it,
+ * because turning detection off there hands a (too-late) birth date to every
+ * previously-undated document and moves the stale count — measured, 41 → 75.
+ * The curve is a display; a display must not move the pass condition.
+ */
+const curveHistory = () => ({
+  born: addedByNumber({ noRenames: true, match: /explorations\/(\d{4})_\[.\]_/ }),
+  done: addedByNumber({ noRenames: true, match: /explorations\/(\d{4})_\[x\]_/ })
+})
+
+/** Day thresholds the retirement curve is sampled at. */
+const SURVIVAL_BUCKETS = [1, 7, 14, 30, 60, 90, 120]
+
+/**
+ * The retirement curve for the backlog (exploration 0424, after Bouk's account
+ * of Winfrey's industrial type curves).
+ *
+ * Decay is only manageable once it has a shape. Measured today: every one of
+ * the 195 check-offs happened within 30 days, 96% of them within a single day,
+ * and the unshipped share never falls — 54% at day 1, 55% at day 120. So an old
+ * `[_]` is not a decision pending, it is a decision already made by inaction.
+ * Publishing the curve is what lets a reader of this index attach a prior to an
+ * age instead of guessing at one.
+ *
+ * Right-censoring matters: a document written yesterday cannot have "failed" to
+ * ship within 30 days, so each bucket only counts documents old enough to have
+ * had the chance. Without that the recent bulge would drag every bucket down and
+ * the curve would report despair instead of a hazard rate.
+ */
+function survivalTable(born, done, nowMs) {
+  const docs = [...born.entries()].map(([number, bornAt]) => ({
+    ageDays: Math.floor((nowMs - bornAt) / DAY_MS),
+    lagDays: done.has(number) ? Math.floor((done.get(number) - bornAt) / DAY_MS) : null
+  }))
+
+  return SURVIVAL_BUCKETS.map((day) => {
+    const cohort = docs.filter((d) => d.ageDays >= day)
+    const shipped = cohort.filter((d) => d.lagDays !== null && d.lagDays <= day)
+    return {
+      day,
+      n: cohort.length,
+      openPct:
+        cohort.length === 0
+          ? null
+          : Math.round((100 * (cohort.length - shipped.length)) / cohort.length)
+    }
+  })
 }
 
 /**
@@ -134,6 +212,7 @@ const field = (fm, key) => {
 }
 
 const firstSeen = firstSeenByNumber()
+const curve = curveHistory()
 const now = Date.now()
 const stale = []
 const undated = []
@@ -194,6 +273,27 @@ if (coverage < MIN_DATE_COVERAGE) {
   process.exit(1)
 }
 
+const survival = survivalTable(curve.born, curve.done, now)
+
+/**
+ * The curve's endpoints, which are the whole finding: it does not fall.
+ *
+ * An earlier version reported "flattens around day N" by scanning for the first
+ * bucket every later one sits within 5 points of. On this data that answers
+ * "day 1" — technically true, and misleading, because it implies a burn-down
+ * that then plateaus. There is no burn-down. Stating both endpoints says the
+ * same thing without inventing a threshold to say it.
+ */
+const measured = survival.filter((row) => row.openPct !== null)
+const shape =
+  measured.length >= 2
+    ? {
+        first: measured[0].openPct,
+        last: measured[measured.length - 1].openPct,
+        lastDay: measured[measured.length - 1].day
+      }
+    : null
+
 const index = [
   '<!-- Generated by scripts/check-exploration-fallow.mjs — do not edit by hand. -->',
   '',
@@ -212,6 +312,30 @@ const index = [
   '```',
   '',
   `**${stale.length}** stale of ${considered} undecided.`,
+  '',
+  '## How this backlog retires',
+  '',
+  'Measured from git history, not assumed (exploration 0424). Each row counts',
+  'only documents old enough to have had that many days, so a recent bulge',
+  'cannot drag the curve down.',
+  '',
+  '| Days since written | Cohort | Still unshipped |',
+  '| --- | --- | --- |',
+  ...survival
+    .filter((row) => row.openPct !== null)
+    .map((row) => `| ${row.day} | ${row.n} | ${row.openPct}% |`),
+  '',
+  ...(shape
+    ? [
+        `The curve does not fall: ${shape.first}% of documents at least a day old are`,
+        `unshipped, and ${shape.last}% at ${shape.lastDay} days. An exploration is checked off`,
+        'within days of being written, or never — so an old `[_]` is not a pending',
+        'decision, it is a decision already made by inaction. Renew it deliberately,',
+        'or withdraw it; both are one line and neither renames the file.',
+        ''
+      ]
+    : []),
+  '## Past review date',
   '',
   '| Exploration | Due | Overdue | Decider |',
   '| --- | --- | --- | --- |',

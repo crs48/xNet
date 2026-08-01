@@ -25,6 +25,16 @@ something genuinely blocks the current work from being used.
 4. A checklist item marked `[x]` on assumption rather than evidence
 5. Unrelated dirty files blocking a clean ship
 
+## Choosing among stale explorations
+
+`docs/explorations/STALE.md` lists every document past its `review:` date, and
+opens with the backlog's **retirement curve** (exploration 0424). Read the curve
+before the list: it does not fall, so an old `[_]` is not work in progress — it
+is a decision already made by inaction. Withdrawing one (`status: withdrawn`) is
+a legitimate closeout and often the honest answer; renewing it (`review:`) is the
+other. Neither renames the file. Proposing to _start_ a 120-day-old document is
+new scope, not follow-up.
+
 ## Output shape
 
 Lead with the concrete next step. Keep it short, and separate:

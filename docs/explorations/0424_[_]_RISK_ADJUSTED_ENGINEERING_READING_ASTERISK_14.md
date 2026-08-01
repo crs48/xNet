@@ -14,9 +14,9 @@ tags: [process, decision-making, ci, evidence, research]
 > **TL;DR** — Asterisk's Risk issue is twelve essays about a single failure:
 > people measure the risk they can see and ignore the one they carry. Reading it
 > against this repository turned up a measured fact nobody had checked. Of the
-> **196** explorations that ever reached `[x]`, **76% were checked off within one
-> day of being written** and **99% within thirty**. The survivor curve is flat
-> after day 14. So the 259 `[_]` documents are not a backlog — they are retired
+> **195** explorations that ever reached `[x]`, **96% were checked off within one
+> day of being written** and **every one within thirty**. The survivor curve never
+> falls at all. So the 260 `[_]` documents are not a backlog — they are retired
 > property still carried on the books, and 0421's 90-day expiry is **three times
 > more generous than the data supports**. Recommendation: three small changes —
 > a `Tripwire:` line on one-way ADRs, a retirement curve in `STALE.md`, and
@@ -62,7 +62,7 @@ a real seam in the code, keep what transfers, and say plainly what does not.
 | _Engineering Peace_ (Martin)                          | Prevention pays ~16:1, but almost nobody records cost          | CI gates measure outcome, never cost           | 🚧 **Note only** — no gate proposed                        |
 | _We're All One Crisis Away…_ (Van Nostrand)           | The risk of inaction is the concrete one                       | Local-first thesis, `.xnetpack` escape hatch   | ✅ **Confirms** existing design                            |
 | _The Doomers Are All Right_ (Brennan)                 | Separate the controllable from the not; build anyway           | ADR-29 vs the Buzz narrative risk (0416)       | ✅ **Confirms** existing posture                           |
-| _These Wild Young People_                             | Warning saturation produces paralysis                          | 41 stale, 259 `[_]`, ~25 workflows             | ⚠️ **Live hazard**                                         |
+| _These Wild Young People_                             | Warning saturation produces paralysis                          | 41 stale, 260 `[_]`, ~25 workflows             | ⚠️ **Live hazard**                                         |
 | _The Mystery in the Medicine Cabinet_ (Dynomight)     | Regulators evaluate drug-by-drug, never head-to-head           | Gates evaluated singly, never compared         | 🚧 **Note only**                                           |
 | _Are Prediction Markets Good for Anything?_ (Schwarz) | Accuracy needs volume **and** 90+ days; thin markets are noise | Any internal forecasting tournament            | 🛑 **Reject** — xNet has one trader                        |
 | _Risk-Adjusted Return_ (editors)                      | "What are we afraid of?"                                       | Frame for the whole document                   | —                                                          |
@@ -82,7 +82,7 @@ flowchart TD
 
     B --> B1["Bouk: survivor curves"]
     B --> B2["Gladstone: abstraction ladder"]
-    B1 --> BX["259 [_] explorations<br/>hazard flat after day 14"]
+    B1 --> BX["260 [_] explorations<br/>curve never falls"]
 
     C --> C1["Cotra/Lee: named indicators"]
     C --> C2["Peterson: yesterday's war"]
@@ -131,8 +131,8 @@ with a real check. **18** claims are enumerated today; **4** carry `pending`.
 
 ### What the backlog actually looks like
 
-`ls docs/explorations` gives **487** documents: **211** `[x]`, **17** `[-]`,
-**259** `[_]`. That much 0421 already established.
+`ls docs/explorations` gives **491** documents: **213** `[x]`, **18** `[-]`,
+**260** `[_]`. That much 0421 already established.
 
 What nobody had computed is the _retirement curve_ — the thing Bouk's essay is
 about. Git records when each document first appeared and when its filename
@@ -142,7 +142,7 @@ checkbox first flipped to `[x]`, so the curve is recoverable from history.
 <summary>How the curve was computed (reproducible)</summary>
 
 Rename detection has to be **off**, or a status flip is recorded as a rename
-rather than the add of a new `[x]` filename — with detection on, only 6 of 196
+rather than the add of a new `[x]` filename — with detection on, only 6 of 195
 check-offs are visible.
 
 ```bash
@@ -154,27 +154,27 @@ Documents are keyed by their four-digit prefix, since the rest of the filename
 changes when the checkbox does. Birth = earliest add of any filename with that
 prefix. Check-off = earliest add of a filename matching `NNNN_[x]_`.
 Right-censoring is handled by restricting each day-$k$ cohort to documents at
-least $k$ days old. 422 of 487 documents have a datable first appearance; the
+least $k$ days old. 413 of 491 documents have a datable first appearance; the
 remainder predate the current history or arrived in a squash.
 
 </details>
 
-**Lag from written to checked off**, over the 196 documents that ever reached
+**Lag from written to checked off**, over the 195 documents that ever reached
 `[x]`:
 
 | Percentile | Lag        |
 | ---------- | ---------- |
 | Median     | **0 days** |
-| p75        | 1 day      |
-| p90        | 14 days    |
-| Max        | 102 days   |
+| p75        | 0 days     |
+| p90        | 0 days     |
+| Max        | 30 days    |
 
-| Threshold | Count | Share   |
-| --------- | ----- | ------- |
-| ≤ 1 day   | 148   | **76%** |
-| ≤ 7 days  | 169   | 86%     |
-| ≤ 30 days | 195   | **99%** |
-| > 30 days | 1     | 1%      |
+| Threshold | Count | Share    |
+| --------- | ----- | -------- |
+| ≤ 1 day   | 187   | **96%**  |
+| ≤ 7 days  | 193   | 99%      |
+| ≤ 30 days | 195   | **100%** |
+| > 30 days | 0     | 0%       |
 
 And the right-censored survivor curve — of documents at least $k$ days old, the
 share still unshipped at day $k$:
@@ -183,46 +183,49 @@ share still unshipped at day $k$:
 share still open
 100% ┤
      │
- 65% ┤●
-     │  ╲
- 59% ┤   ●
- 52% ┤     ●───────●
-     │              ╲        ●───────●
- 54% ┤               ●───────
+ 60% ┤                        ●───────●
+     │  ●───────●                      ╲
+ 54% ┤ 1        ╲     ●───────●         ●
+     │           ●───          30        120
+ 50% ┤          14
      └──┬───┬────┬────┬────┬────┬────┬──
         1   7   14   30   60   90  120   days since written
-       n=410     n=339  n=254  n=137  n=109
+      n=403     n=350  n=254  n=140  n=109
+       54%  52%  50%   52%   59%   59%  55%
 ```
 
 > [!IMPORTANT]
-> The curve **flattens at day 14** and never falls again. Between day 14 and day
-> 120 the unshipped share moves from 52% to 54% — inside the noise of a shrinking
-> cohort. There is no slow burn-down. An exploration is implemented at write
-> time or it is never implemented at all.
+> **The curve never falls.** 54% of documents at least a day old are unshipped;
+> at 120 days it is 55%. There is no burn-down to plateau _after_ — the shape is
+> flat end to end, and the small rise in the middle is a shrinking cohort, not
+> regression. An exploration is checked off within a day of being written or it
+> is never checked off at all: **96%** of everything that ever ships does so
+> inside 24 hours, and **not one** of 195 took longer than 30 days.
 
 This is a survivor curve with the shape of infant mortality followed by
 immortality — except here the immortal population is the _unfinished_ one. In
-Winfrey's terms the 259 `[_]` documents are not property in service. They are
+Winfrey's terms the 260 `[_]` documents are not property in service. They are
 property already retired, still on the books because nobody ever wrote the
 retirement entry.
 
 <details>
-<summary>Cohort table by month written (n = 374 with both a birth month and a current status)</summary>
+<summary>Cohort table by month written (n = 412 with both a birth month and a current status)</summary>
 
 | Cohort  | n   | `[x]` | `[-]` | `[_]` | done   |
 | ------- | --- | ----- | ----- | ----- | ------ |
-| 2026-01 | 4   | 3     | 0     | 1     | 75%    |
-| 2026-02 | 56  | 25    | 3     | 28    | 45%    |
-| 2026-03 | 19  | 1     | 2     | 16    | **5%** |
+| 2026-02 | 94  | 48    | 3     | 43    | 51%    |
+| 2026-03 | 15  | 1     | 2     | 12    | **7%** |
 | 2026-04 | 11  | 0     | 0     | 11    | **0%** |
-| 2026-05 | 17  | 5     | 0     | 12    | 29%    |
-| 2026-06 | 185 | 87    | 1     | 97    | 47%    |
-| 2026-07 | 142 | 61    | 8     | 73    | 43%    |
-| 2026-08 | 5   | 2     | 3     | 0     | 40%    |
+| 2026-05 | 16  | 4     | 0     | 12    | 25%    |
+| 2026-06 | 117 | 70    | 0     | 47    | 60%    |
+| 2026-07 | 149 | 67    | 7     | 75    | 45%    |
+| 2026-08 | 10  | 4     | 5     | 1     | 40%    |
 
-Age does not predict completion. The March and April cohorts — 30 documents,
-four to five months old, one shipped between them — are not "still cooking".
-They are the flat tail of the curve above, visible as a cohort.
+Age does not predict completion. The March and April cohorts — 26 documents,
+four to five months old, **one** shipped between them — are not "still cooking".
+They are the flat curve above, visible as a cohort. February, older still, sits
+at 51%: what separates the cohorts is not how long they have had, it is whether
+anyone picked them up the day they were written.
 
 </details>
 
@@ -332,19 +335,19 @@ responsible for the head-to-head.
 
 ## Key Findings
 
-### 1. The backlog's hazard function is already flat — the 90-day expiry is generous
+### 1. The backlog never burns down — the 90-day expiry is generous
 
 0421 set `review:` at 90 days because 90 marked 41 of 276 documents stale, where
 180 marked zero. That was a calibration against _gate usefulness_. The survivor
-curve is a calibration against _reality_, and it says something stronger: 99% of
-everything that will ever ship has shipped by day 30, and the curve is flat from
-day 14.
+curve is a calibration against _reality_, and it says something stronger: **every
+one** of the 195 check-offs happened within 30 days, 96% of them within a day,
+and the unshipped share never falls at any horizon.
 
 > [!IMPORTANT]
 > The 90-day default is not wrong — but it is **three times longer** than the
 > data supports, and it is quietly teaching everyone that a document three months
 > old is still live. On the measured curve, a document 30 days old and unstarted
-> has roughly a **1%** chance of ever being finished in its current form.
+> has never once been finished in its current form.
 
 This does not mean shortening the expiry to 30 days. It means the _display_
 should carry the curve, so a reader of `STALE.md` can see that a 100-day-old
@@ -506,7 +509,7 @@ failure mode, not the professional one.
 
 ### 5. Warning saturation is a live hazard, and the repo is close to it
 
-41 stale explorations. 259 `[_]`. ~25 workflows. 18 `check:*` scripts. 30 ADRs.
+41 stale explorations. 260 `[_]`. ~25 workflows. 18 `check:*` scripts. 30 ADRs.
 Nested `AGENTS.md` files at five paths. Twelve skills.
 
 Every one of these was individually justified, and most are genuinely good. The
@@ -641,7 +644,7 @@ job or workflow**.
 > `scripts/check-exploration-fallow.mjs` — which already walks git for first
 > appearance — to emit the cohort survival table alongside the stale list.
 > Named consumer: `/mvp-followup`, which today has no principled way to choose
-> among 259 identical-looking candidates and would then have a prior.
+> among 260 identical-looking candidates and would then have a prior.
 >
 > **3. A negative control per values-as-code gate.** Each `check:*` script that
 > guards a Charter commitment gets one fixture it **must** flag, asserted in
@@ -690,32 +693,48 @@ at which point we are hand-rolling the thing we declined to adopt.
 ### 2. Retirement curve in `STALE.md`
 
 The script already resolves each document's first appearance. The addition is a
-second pass keyed on the `[x]` filename and a censored bucket count.
+second `git log` pass keyed on the `[x]` filename, plus a censored bucket count.
+
+> [!WARNING]
+> **The two passes cannot be merged, and this is the subtlety that cost the most
+> time.** `--no-renames` is required to see check-offs at all — a status flip
+> _is_ a rename, so under default detection only **6 of 195** are visible. But
+> switching the existing `firstSeenByNumber()` to `--no-renames` hands a birth
+> date to every previously-undated document and moves the stale count from **41
+> to 75**, breaking the very ratchet this curve is supposed to sit beside. A
+> display must never move the pass condition, so staleness keeps detection on and
+> the curve gets its own pass.
+>
+> The curve's births also need `--no-renames`, for a reason that points the other
+> way: detection **on** drops the original add of any document later absorbed
+> into a rename chain, and the documents that get renamed are exactly the ones
+> that get checked off — **51 of 195** shipped documents have no birth date under
+> it. Measuring retirement against a birth map that preferentially forgets the
+> retirements reported the backlog as markedly more hopeless than it is.
 
 ```js
-/**
- * Cohort survival for the exploration backlog (exploration 0424).
- *
- * Bouk's point, applied here: decay is only manageable once it has a curve.
- * Measured over 422 datable documents, 99% of everything that ever reaches
- * `[x]` gets there within 30 days, and the unshipped share is flat from day 14.
- * So an old `[_]` is not a pending decision — it is a decision already made by
- * inaction, and renewing it should feel like the deliberate act it is.
- *
- * Rename detection MUST be off. A status flip is a rename, and with detection
- * on only 6 of 196 check-offs are visible in the log.
- */
-const BUCKETS = [1, 7, 14, 30, 60, 90, 120]
+/** Day thresholds the retirement curve is sampled at. */
+const SURVIVAL_BUCKETS = [1, 7, 14, 30, 60, 90, 120]
 
-function survivalTable(docs, today) {
-  return BUCKETS.map((k) => {
-    // Right-censoring: only documents old enough to have had k days.
-    const cohort = docs.filter((d) => ageInDays(d.born, today) >= k)
-    const shipped = cohort.filter((d) => d.shippedAfter !== null && d.shippedAfter <= k)
+function survivalTable(born, done, nowMs) {
+  const docs = [...born.entries()].map(([number, bornAt]) => ({
+    ageDays: Math.floor((nowMs - bornAt) / DAY_MS),
+    lagDays: done.has(number) ? Math.floor((done.get(number) - bornAt) / DAY_MS) : null
+  }))
+
+  return SURVIVAL_BUCKETS.map((day) => {
+    // Right-censoring: only documents old enough to have HAD that many days.
+    // Without it the recent bulge drags every bucket down and the curve
+    // reports despair instead of a hazard rate.
+    const cohort = docs.filter((d) => d.ageDays >= day)
+    const shipped = cohort.filter((d) => d.lagDays !== null && d.lagDays <= day)
     return {
-      day: k,
+      day,
       n: cohort.length,
-      openShare: cohort.length === 0 ? null : 1 - shipped.length / cohort.length
+      openPct:
+        cohort.length === 0
+          ? null
+          : Math.round((100 * (cohort.length - shipped.length)) / cohort.length)
     }
   })
 }
@@ -729,13 +748,15 @@ before the list:
 
 | Days since written | Cohort | Still unshipped |
 | ------------------ | ------ | --------------- |
-| 1                  | 410    | 65%             |
-| 14                 | 339    | 52%             |
+| 1                  | 403    | 54%             |
+| 14                 | 350    | 50%             |
 | 30                 | 254    | 52%             |
-| 120                | 109    | 54%             |
+| 120                | 109    | 55%             |
 
-Flat from day 14. A document past 30 days has roughly a 1% chance of being
-finished in its current form — renew it deliberately, or withdraw it.
+The curve does not fall: 54% of documents at least a day old are unshipped, and
+55% at 120 days. An exploration is checked off within days of being written, or
+never — so an old `[_]` is not a pending decision, it is a decision already made
+by inaction.
 ```
 
 ### 3. Negative control for a values-as-code gate
@@ -800,13 +821,13 @@ byte-identical afterwards (`git diff` empty).
 
 ## Risks And Open Questions
 
-| Risk                                                                    | Severity  | Mitigation                                                                                                     |
-| ----------------------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------- |
-| Negative-control fixture leaks into the real gate run and reds every PR | 🔴 High   | Fixture outside production globs, passed explicitly by the test                                                |
-| Tripwire lines become as unread as the rationale they sit beside        | 🟡 Medium | Only the 11 one-way ADRs get one; the other 19 stay clean, so a `Tripwire:` line means something               |
-| Survival table becomes another number nobody reads                      | 🟡 Medium | It goes _inside_ an artefact `/mvp-followup` already reads — no new surface                                    |
-| Curve is an artefact of history rewrites                                | 🟡 Medium | 422 of 487 datable; the 65 missing predate current history, and their exclusion cannot manufacture a flat tail |
-| Publishing "1% chance after 30 days" discourages writing explorations   | 🟢 Low    | The curve argues for _withdrawing_ more, not writing less — 0421's point exactly                               |
+| Risk                                                                      | Severity  | Mitigation                                                                                                      |
+| ------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------- |
+| Negative-control fixture leaks into the real gate run and reds every PR   | 🔴 High   | Fixture outside production globs, passed explicitly by the test                                                 |
+| Tripwire lines become as unread as the rationale they sit beside          | 🟡 Medium | Only the 11 one-way ADRs get one; the other 19 stay clean, so a `Tripwire:` line means something                |
+| Survival table becomes another number nobody reads                        | 🟡 Medium | It goes _inside_ an artefact `/mvp-followup` already reads — no new surface                                     |
+| Curve is an artefact of history rewrites                                  | 🟡 Medium | 413 of 491 datable; the 78 missing predate current history, and their exclusion cannot manufacture a flat curve |
+| Publishing "nothing ships after 30 days" discourages writing explorations | 🟢 Low    | The curve argues for _withdrawing_ more, not writing less — 0421's point exactly                                |
 
 **Open questions.**
 
@@ -840,10 +861,10 @@ byte-identical afterwards (`git diff` empty).
 
 **2. Retirement curve in `STALE.md`**
 
-- [ ] Add the `[x]`-filename pass to `scripts/check-exploration-fallow.mjs`, with `--no-renames`
-- [ ] Add the right-censored bucket computation (`survivalTable` above)
-- [ ] Render the table into `STALE.md` above the stale list, with a one-line reading of it
-- [ ] Confirm `/mvp-followup` picks it up — it is the named consumer, and a table it does not read is dead weight
+- [x] Add the `[x]`-filename pass to `scripts/check-exploration-fallow.mjs`, with `--no-renames`
+- [x] Add the right-censored bucket computation (`survivalTable` above)
+- [x] Render the table into `STALE.md` above the stale list, with a one-line reading of it
+- [x] Confirm `/mvp-followup` picks it up — it is the named consumer, and a table it does not read is dead weight
 
 **3. Negative controls on values-as-code gates**
 
