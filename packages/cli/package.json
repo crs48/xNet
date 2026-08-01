@@ -37,6 +37,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@xnetjs/brain": "workspace:*",
     "@xnetjs/core": "workspace:*",
     "@xnetjs/crypto": "workspace:*",
     "@xnetjs/data": "workspace:*",
@@ -47,6 +48,7 @@
     "@xnetjs/runtime": "workspace:*",
     "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/sync": "workspace:*",
+    "@xnetjs/vectors": "workspace:*",
     "chalk": "^5.3.0",
     "commander": "^12.0.0",
     "smol-toml": "^1.6.0"

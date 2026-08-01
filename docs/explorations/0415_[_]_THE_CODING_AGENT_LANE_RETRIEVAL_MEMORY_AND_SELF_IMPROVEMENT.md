@@ -728,11 +728,36 @@ export function candidatesFromTraces(
 | Risk                                                            | Severity | Mitigation                                                                             |
 | --------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------- |
 | Graph expansion leaks unauthorized nodes                        | 🔴 High  | `authorize` is a required dep in the factory, not optional; test with a denied fixture |
-| Vector tier bloats the CLI / breaks ABI                         | 🟠 Med   | Phase 3 only, behind the daemon; lazy structural import like the app does              |
+| Vector tier bloats the CLI / breaks ABI | 🔴 **Hit** | See the note below — built and tested, but the real model cannot load under system Node in this repo |
 | Daemon becomes a stale-state zombie                             | 🟠 Med   | Loud exit-1 on lock loss (0413 pattern); version handshake on connect                  |
 | Memory extraction surfaces something the user considers private | 🟠 Med   | Recurrence threshold ≥3, approval gate, visible + deletable, redaction honoured        |
 | Self-tuned weights regress quietly                              | 🟡 Low   | Golden-set ratchet; never adopt on a regression; profile is one revertible node        |
 | More retrieval → more tokens, undoing the cost win              | 🟡 Low   | `recall` is budget-capped by construction; benchmark gate on total tokens              |
+
+> [!CAUTION]
+> **The ABI risk landed.** `@xenova/transformers` pulls in `sharp`, and this
+> repo builds `sharp` for **Electron's** ABI (`apps/electron/AGENTS.md`:
+> `rebuild-if-stale.mjs` rebuilds `better-sqlite3`, `usearch` and `sharp`).
+> Under system Node, `xnet serve --vectors` therefore reports:
+>
+> ```text
+> tier:    bm25-graph
+> vectors: unavailable — serving bm25-graph instead
+> ```
+>
+> The tier's plumbing is complete and tested — snapshot persistence, restore,
+> partial-backfill reporting, tier propagation through the handshake — and it
+> reports `hybrid-graph` against an injected engine. What is **not** available
+> today is the real embedding model in a system-Node CLI. Follow-ups: run the
+> daemon under `ELECTRON_RUN_AS_NODE=1` the way the dev hub already does, vendor
+> a `sharp`-free embedding path, or ship the tier only inside the desktop app.
+> Until one of those lands, `--vectors` is honest and inert.
+>
+> The near-miss worth recording: a first draft swallowed the backfill error, and
+> the daemon cheerfully announced `tier hybrid-graph` over an index holding
+> **zero documents** — this exploration's own thesis biting its implementation.
+> The fix (return `null` when nothing indexed, print why) is covered by
+> `packages/cli/src/__tests__/vector-tier.test.ts`.
 
 **Open questions**
 
@@ -779,9 +804,9 @@ export function candidatesFromTraces(
 
 ### Phase 3 — Semantic tier for the agent lane
 
-- [ ] Load the embedding + HNSW tier inside `xnet serve` only (never in a cold verb)
-- [ ] Persist/restore the vector tier via `@xnetjs/brain`'s persist layer
-- [ ] `tier: 'hybrid-graph'` reported by the CLI when the daemon has vectors
+- [x] Load the embedding + HNSW tier inside `xnet serve` only (never in a cold verb)
+- [x] Persist/restore the vector tier via `@xnetjs/brain`'s persist layer
+- [x] `tier: 'hybrid-graph'` reported by the CLI when the daemon has vectors
 
 ### Phase 4 — Memory
 

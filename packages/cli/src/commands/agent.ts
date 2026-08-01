@@ -13,6 +13,7 @@
  * - skill:    print the cross-harness SKILL.md
  */
 
+import type { EntrySearch } from '@xnetjs/brain'
 import type { AgentBackend } from '../utils/agent-remote.js'
 import type {
   AiMutationPlan,
@@ -73,12 +74,30 @@ export type AgentCommandOptions = BackendLadderOptions & { forWrites?: boolean }
 
 export type AgentServicesFactory = (options: AgentCommandOptions) => Promise<AgentCliServices>
 
-export function createAgentServices(backend: AgentBackend): AgentCliServices {
+export type AgentServicesOptions = {
+  /**
+   * Semantic entry search, when the caller has a warm vector tier. Only
+   * `xnet serve --vectors` does; a cold verb must never load an embedding model
+   * (exploration 0415).
+   */
+  semanticEntrySearch?: EntrySearch
+}
+
+export function createAgentServices(
+  backend: AgentBackend,
+  options: AgentServicesOptions = {}
+): AgentCliServices {
   // Exploration 0415: the CLI is the cheapest lane and used to be the least
   // equipped one. Retrieval is built first so the AI surface's context packs
   // walk the graph instead of scanning, and so every command can report the
   // tier it actually ran at.
-  const retrieval = createAgentRetrieval({ store: backend.store, schemas: backend.schemas })
+  const retrieval = createAgentRetrieval({
+    store: backend.store,
+    schemas: backend.schemas,
+    ...(options.semanticEntrySearch
+      ? { semanticEntrySearch: options.semanticEntrySearch }
+      : {})
+  })
   const aiSurface = createAiSurfaceService({
     store: backend.store,
     schemas: backend.schemas,

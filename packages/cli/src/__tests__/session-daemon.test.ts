@@ -21,6 +21,7 @@ import {
   type SessionHandlers,
   type SessionServerHandle
 } from '../utils/session-daemon.js'
+import { SESSION_CLI_VERSION } from '../commands/serve.js'
 
 const VERSION = '9.9.9'
 
@@ -199,5 +200,110 @@ describe('sessionTargetFor', () => {
 
   it('gives different targets different sockets', () => {
     expect(socketPathFor('db:/a.db')).not.toBe(socketPathFor('db:/b.db'))
+  })
+})
+
+/**
+ * The tier a lane reports must be the tier it actually has (exploration 0415).
+ * Driven through `startServe` with an injected engine, because the real one
+ * needs an embedding model this repo cannot load under system Node — `sharp`
+ * is built for Electron's ABI here.
+ */
+describe('xnet serve tier reporting', () => {
+  let dir: string
+  let dbPath: string
+  const KEY = '11'.repeat(32)
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'xnet-serve-tier-'))
+    dbPath = join(dir, 'data.db')
+  })
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  function fakeVectorEngine() {
+    const docs: Array<{ id: string; text: string }> = []
+    return async () =>
+      ({
+        createSemanticSearch: () => ({
+          initialize: async () => {},
+          indexDocument: async (id: string, text: string) => {
+            docs.push({ id, text })
+          },
+          search: async (query: string) =>
+            docs
+              .filter((d) => d.text.toLowerCase().includes(query.toLowerCase()))
+              .map((d, i) => ({ id: d.id, score: 1 - i * 0.1 })),
+          serialize: () => ({ docs: [...docs] }),
+          restore: (data: { docs: typeof docs }) => {
+            docs.length = 0
+            docs.push(...data.docs)
+          },
+          clear: () => {
+            docs.length = 0
+          }
+        })
+      }) as never
+  }
+
+  it('reports bm25-graph without vectors and hybrid-graph with them', async () => {
+    const { startServe } = await import('../commands/serve.js')
+
+    const plain = await startServe({ db: dbPath, key: KEY, socket: join(dir, 'a.sock') })
+    expect(plain.tier).toBe('bm25-graph')
+    expect(plain.vectors).toBeUndefined()
+    await plain.dispose()
+
+    // Seed one node so the backfill has something to index; an empty backfill
+    // correctly yields no tier at all.
+    const { createLocalAgentBackend } = await import('../utils/agent-local.js')
+    const seeded = await createLocalAgentBackend({
+      db: dbPath,
+      agentKey: Uint8Array.from(Buffer.from(KEY, 'hex'))
+    })
+    await seeded.store.create({
+      schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+      properties: { title: 'Cutover runbook', markdown: 'Rollback steps' }
+    })
+    await seeded.client.destroy()
+
+    const withVectors = await startServe({
+      db: dbPath,
+      key: KEY,
+      socket: join(dir, 'b.sock'),
+      vectors: true,
+      vectorSnapshot: join(dir, 'v.json'),
+      loadVectorEngine: fakeVectorEngine()
+    })
+    expect(withVectors.tier).toBe('hybrid-graph')
+    expect(withVectors.vectors?.documents).toBe(1)
+
+    // And the handshake carries it, so a client reports what the daemon has.
+    const client = await connectSession({
+      target: 'unused',
+      version: SESSION_CLI_VERSION,
+      socketPath: join(dir, 'b.sock')
+    })
+    expect(client?.hello.tier).toBe('hybrid-graph')
+    client?.close()
+    await withVectors.dispose()
+  })
+
+  it('reports bm25-graph — not hybrid-graph — when the engine cannot load', async () => {
+    const { startServe } = await import('../commands/serve.js')
+    const handle = await startServe({
+      db: dbPath,
+      key: KEY,
+      socket: join(dir, 'c.sock'),
+      vectors: true,
+      vectorSnapshot: join(dir, 'v.json'),
+      loadVectorEngine: async () => {
+        throw new Error('Could not load the sharp module')
+      }
+    })
+    expect(handle.tier).toBe('bm25-graph')
+    expect(handle.vectors).toBeUndefined()
+    await handle.dispose()
   })
 })

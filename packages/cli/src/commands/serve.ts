@@ -11,7 +11,7 @@
  * are named errors on the client side rather than an empty result set.
  */
 
-import { createAgentRetrieval, type WorkspaceRetrieval } from '@xnetjs/plugins/node'
+import type { WorkspaceRetrieval } from '@xnetjs/plugins/node'
 import { Command } from 'commander'
 import {
   sessionTargetFor,
@@ -20,6 +20,7 @@ import {
   type SessionServerHandle
 } from '../utils/session-daemon.js'
 import { resolveAgentBackend, type BackendLadderOptions } from '../utils/agent-backend.js'
+import { createVectorTier, type VectorTierOptions } from '../utils/vector-tier.js'
 import {
   createAgentServices,
   runDbGet,
@@ -34,6 +35,19 @@ export const SESSION_CLI_VERSION = '0.0.1'
 
 export type ServeOptions = BackendLadderOptions & {
   socket?: string
+  /**
+   * Load the embedding + HNSW tier, upgrading retrieval to `hybrid-graph`.
+   * Opt-in: it costs a model load at startup, which is exactly why it belongs
+   * here and never in a cold verb (exploration 0415).
+   */
+  vectors?: boolean
+  /** Where the vector snapshot lives; defaults to `<db>.vectors.json`. */
+  vectorSnapshot?: string
+  /**
+   * Injection seam for the embedding engine (tests). Production resolves
+   * `@xnetjs/vectors` lazily inside `createVectorTier`.
+   */
+  loadVectorEngine?: VectorTierOptions['loadEngine']
   /** Print the socket path and exit without serving (diagnostics). */
   printPath?: boolean
 }
@@ -98,13 +112,30 @@ export type ServeHandle = SessionServerHandle & {
   /** What the resolved backend actually is, for the operator's benefit. */
   description: string
   tier: WorkspaceRetrieval['tier']
+  /** Present when the semantic tier loaded; absent when it could not. */
+  vectors?: { documents: number; restored: boolean; backfillError?: string }
   dispose: () => Promise<void>
 }
 
 export async function startServe(options: ServeOptions): Promise<ServeHandle> {
   const backend = await resolveAgentBackend(options)
-  const services = createAgentServices(backend)
-  const retrieval = createAgentRetrieval({ store: backend.store, schemas: backend.schemas })
+
+  // The semantic tier is the only reason a lane reports `hybrid-graph`. When it
+  // cannot be loaded we get `null` and serve `bm25-graph` — a smaller claim,
+  // truthfully made, rather than a daemon that refuses to start.
+  const vectorTier = options.vectors
+    ? await createVectorTier({
+        store: backend.store,
+        snapshotPath:
+          options.vectorSnapshot ?? `${options.db ?? process.env.XNET_DB ?? 'xnet'}.vectors.json`,
+        ...(options.loadVectorEngine ? { loadEngine: options.loadVectorEngine } : {})
+      })
+    : null
+
+  const services = createAgentServices(backend, {
+    ...(vectorTier ? { semanticEntrySearch: vectorTier.entrySearch } : {})
+  })
+  const retrieval = services.retrieval
   // Keyed on the options, not `backend.description`: the client has to find
   // this socket without resolving a backend of its own.
   const target = sessionTargetFor(options)
@@ -122,6 +153,15 @@ export async function startServe(options: ServeOptions): Promise<ServeHandle> {
     target,
     description: backend.description,
     tier: retrieval.tier,
+    ...(vectorTier
+      ? {
+          vectors: {
+            documents: vectorTier.documents,
+            restored: vectorTier.restored,
+            ...(vectorTier.backfillError ? { backfillError: vectorTier.backfillError } : {})
+          }
+        }
+      : {}),
     dispose: async () => {
       await handle.stop()
       await backend.dispose()
@@ -138,12 +178,25 @@ export function registerServeCommand(program: Command): void {
     .option('--agent <name>', 'Enrolled agent passport')
     .option('--key <hex>', 'Ed25519 signing key for the local store')
     .option('--socket <path>', 'Override the socket path')
+    .option('--vectors', 'Load the semantic tier (slow start, hybrid-graph retrieval)')
+    .option('--vector-snapshot <path>', 'Where to persist the vector index')
     .action(async (options: ServeOptions) => {
       const handle = await startServe(options)
       // stderr: stdout stays clean for anything scraping a verb's output.
       console.error(`xnet serve — ${handle.description}`)
       console.error(`socket: ${handle.socketPath}`)
       console.error(`tier:   ${handle.tier}`)
+      if (handle.vectors) {
+        const { documents, restored, backfillError } = handle.vectors
+        console.error(
+          `vectors: ${documents} document(s)${restored ? ' (restored from snapshot)' : ''}`
+        )
+        if (backfillError) console.error(`vectors: backfill failed — ${backfillError}`)
+      } else if (options.vectors) {
+        // Asked for and not delivered. Saying nothing here would leave the
+        // operator believing a tier they do not have.
+        console.error('vectors: unavailable — serving bm25-graph instead')
+      }
       const shutdown = (): void => {
         void handle.dispose().then(() => process.exit(0))
       }
