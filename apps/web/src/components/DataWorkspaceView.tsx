@@ -3,10 +3,19 @@
  * (@xnetjs/views, exploration 0276). Web-specific concerns: OPFS store-backed
  * seeding, social feed enrichment, and the moderation render gate.
  */
+import { useNavigate } from '@tanstack/react-router'
+import { useIdentity } from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
-import { useDataWorkspace, DataWorkspaceBody, useSocialFeedEnrichment } from '@xnetjs/views'
+import {
+  useDataWorkspace,
+  DataWorkspaceBody,
+  stashPendingCanvasLens,
+  useSocialFeedEnrichment,
+  type SavedViewCanvasFrameInput
+} from '@xnetjs/views'
 import { Database, Import, Loader2 } from 'lucide-react'
-import { useMemo, type ReactNode } from 'react'
+import { useCallback, useMemo, type ReactNode } from 'react'
+import { deskIdFor } from '../lib/desk'
 import { ModeratedMedia } from './ModeratedMedia'
 
 /**
@@ -21,10 +30,41 @@ const gateVisualItem = (nodeId: string, content: ReactNode): ReactNode => (
 export function DataWorkspaceView(): JSX.Element {
   const { store, isReady: storeReady } = useNodeStore()
   const feedEnrichment = useSocialFeedEnrichment()
+  const navigate = useNavigate()
+  const { identity } = useIdentity()
+  const did = identity?.did
+
+  /**
+   * Send a saved lens to the Desk as a live query frame.
+   *
+   * The Desk is the right target because its id is derived from the identity
+   * and visiting it provisions it — so this needs no "which canvas?" prompt
+   * and no separate create. The request is parked, then claimed by the canvas
+   * once it mounts.
+   */
+  const handleInsertSavedLensAsCanvasFrame = useCallback(
+    (view: SavedViewCanvasFrameInput) => {
+      if (!did) return
+
+      const canvasId = deskIdFor(did)
+      stashPendingCanvasLens({
+        canvasId,
+        viewId: view.id,
+        title: view.title ?? 'Saved lens',
+        descriptorJson: view.descriptor ?? null,
+        ...(view.projection ? { projection: view.projection } : {})
+      })
+      void navigate({ to: '/canvas/$canvasId', params: { canvasId } })
+    },
+    [did, navigate]
+  )
 
   const workspace = useDataWorkspace({
     seedReady: Boolean(store && storeReady),
-    getExistingNode: (id) => (store ? Promise.resolve(store.get(id)) : Promise.resolve(undefined))
+    getExistingNode: (id) => (store ? Promise.resolve(store.get(id)) : Promise.resolve(undefined)),
+    // Without an identity there is no Desk to target, so the canvas actions
+    // stay hidden rather than failing when pressed.
+    ...(did ? { onInsertSavedLensAsCanvasFrame: handleInsertSavedLensAsCanvasFrame } : {})
   })
   const { seeding, seedReady, handleSeedWorkspace } = workspace
 

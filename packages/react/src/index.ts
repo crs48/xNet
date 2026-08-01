@@ -86,6 +86,7 @@ export {
   type SavedViewRowInspectorModel,
   type SavedViewRunnerProps,
   type SavedViewSortDirection,
+  type SavedViewCanvasProjectionEdge,
   type SavedViewVisualCanvasProjectionRequest,
   type SavedViewVisualLayoutId,
   type SavedViewVisualLayoutOption,

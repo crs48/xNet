@@ -392,12 +392,12 @@ collection structure — all local, all owned, all synced.
 
 **WP1 — Canvas wiring**
 
-- [ ] Wire `createSocialCanvasProjectionPlan()` (or retire it in favor of
+- [x] Wire `createSocialCanvasProjectionPlan()` (or retire it in favor of
       `createSavedViewCanvasProjectionNodes`) into the web
       `DataWorkspaceCore` insert path — resolve the duplication between
       `packages/social/src/projection/canvas.ts` and
       `packages/react/src/components/savedViewVisualPreview.ts` first.
-- [ ] Bring `onInsertSavedLensAsCanvasFrame` to parity in `apps/web`
+- [x] Bring `onInsertSavedLensAsCanvasFrame` to parity in `apps/web`
       (Electron-only today).
 
 **WP2 — Enrichment completion**

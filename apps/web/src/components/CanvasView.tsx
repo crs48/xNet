@@ -41,6 +41,7 @@ import {
   isPeekableCanvasDisplayType,
   shouldActivateDatabasePreviewSurface,
   shouldActivateInlinePageSurface,
+  takePendingCanvasLens,
   useCanvasCommands,
   useCanvasQueryFrames,
   useCanvasSourceReferences,
@@ -279,7 +280,9 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     queryFrameTargets,
     manualQueryFrameRefreshRequests,
     selectedQueryFrameDefinition,
-    refreshSelectedQueryFrame
+    refreshSelectedQueryFrame,
+    createQueryFrameFromSavedView,
+    applySocialCanvasProjection
   } = useCanvasQueryFrames({
     doc,
     sceneRevision,
@@ -287,6 +290,34 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     placePrimitiveObject: controller.placePrimitiveObject,
     onUndoBoundary: recordSceneUndoBoundary
   })
+
+  // A lens sent here from the Data Workspace (0419). The workspace parks the
+  // request and navigates; this claims it once the doc is live. Claiming is
+  // one-shot, so revisiting the canvas does not re-insert the frame.
+  useEffect(() => {
+    if (!doc) return
+
+    const pending = takePendingCanvasLens(docId)
+    if (!pending) return
+
+    // A projection places the cards and their connections; without one the
+    // request is for a live lens frame instead.
+    if (pending.projection) {
+      if (!applySocialCanvasProjection(pending.projection)) {
+        console.error('Failed to project saved lens onto the canvas', pending.viewId)
+      }
+      return
+    }
+
+    const inserted = createQueryFrameFromSavedView({
+      viewId: pending.viewId,
+      title: pending.title,
+      descriptorJson: pending.descriptorJson
+    })
+    if (!inserted) {
+      console.error('Failed to insert saved lens as a canvas query frame', pending.viewId)
+    }
+  }, [applySocialCanvasProjection, createQueryFrameFromSavedView, doc, docId])
 
   // Peek (0277 E4): modal preview of the selected card's source without
   // leaving the board; inline editing activates on zoomed-in selection.

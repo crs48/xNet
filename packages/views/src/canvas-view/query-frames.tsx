@@ -34,7 +34,12 @@ import {
   type SavedViewSchemaRegistry,
   type UseSavedViewResult
 } from '@xnetjs/react'
+import type { SocialCanvasProjectionPlan } from '@xnetjs/social'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  applySocialCanvasProjectionPlan,
+  type ApplySocialCanvasProjectionResult
+} from './social-projection.js'
 
 export type SavedViewCanvasQueryFrameInput = {
   viewId: string
@@ -354,6 +359,13 @@ export interface UseCanvasQueryFramesResult {
   selectedQueryFrameDefinition: ReturnType<typeof getCanvasQueryFrameDefinition> | null
   createQueryFrameFromSavedView: (input: SavedViewCanvasQueryFrameInput) => boolean
   refreshSelectedQueryFrame: () => boolean
+  /**
+   * Place a laid-out social projection — individual source-backed cards and
+   * the connections between them — rather than a lens that re-runs (0419).
+   */
+  applySocialCanvasProjection: (
+    plan: SocialCanvasProjectionPlan
+  ) => ApplySocialCanvasProjectionResult | null
 }
 
 export function useCanvasQueryFrames({
@@ -422,6 +434,17 @@ export function useCanvasQueryFrames({
     [onUndoBoundary, placePrimitiveObject]
   )
 
+  const applySocialCanvasProjection = useCallback(
+    (plan: SocialCanvasProjectionPlan): ApplySocialCanvasProjectionResult | null => {
+      if (!doc || plan.nodes.length === 0) return null
+
+      const result = applySocialCanvasProjectionPlan(doc, plan)
+      onUndoBoundary?.()
+      return result
+    },
+    [doc, onUndoBoundary]
+  )
+
   const refreshSelectedQueryFrame = useCallback((): boolean => {
     if (!selectedQueryFrameNode) return false
 
@@ -439,6 +462,7 @@ export function useCanvasQueryFrames({
     selectedQueryFrameNode,
     selectedQueryFrameDefinition,
     createQueryFrameFromSavedView,
-    refreshSelectedQueryFrame
+    refreshSelectedQueryFrame,
+    applySocialCanvasProjection
   }
 }
