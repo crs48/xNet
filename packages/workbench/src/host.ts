@@ -111,7 +111,7 @@ export interface ObservationLike {
 
 export interface HabitSummary {
   done: boolean
-  /** Decaying 0..1 consistency score — lowers on a miss, never resets (0422). */
+  /** Decaying 0..1 consistency score — lowers on a miss, never resets (0426). */
   strength: number
   rate30: number
   completedDays: Set<number>

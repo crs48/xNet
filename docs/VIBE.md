@@ -68,7 +68,7 @@ The loop above is about what we show you of _other people_. This is the same
 rule turned inward, and we learned we needed it the hard way: a 🔥 streak
 counter shipped in the habit widget and the Today panel for months, under two
 documents that ban streaks and a CI gate that claimed to enforce it
-(exploration 0422). Doctrine did not catch it. Nobody was looking, because the
+(exploration 0426). Doctrine did not catch it. Nobody was looking, because the
 question felt settled.
 
 > **xNet may compute anything about you that you asked it to compute, and show
@@ -146,7 +146,7 @@ of what currently travels and what does not.
 Letting go of the wheel is often the right move in a life — you are not smart
 enough to plan it, and the world's feedback knows things your intentions do
 not. It does not follow that letting go is safe in software, and the reason is
-worth stating because it decides features (exploration 0422).
+worth stating because it decides features (exploration 0426).
 
 You can surrender to your own life because life is not optimising against you
 and you could not leave it anyway. Software inverts both halves: it **can** be
@@ -193,7 +193,7 @@ parts (no scorekeeping, no streaks, calm motion) live in CI gates. The
 cultivated parts live in what we ship: the seed workspace demonstrates a
 scene, not a corporation; first-run asks how xNet should feel.
 
-Receipts for the two rules added in exploration 0422:
+Receipts for the two rules added in exploration 0426:
 
 | Rule                            | Receipt                                                                                                                                                                      | Kind          |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
