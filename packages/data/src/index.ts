@@ -703,6 +703,12 @@ export {
   createOperations,
   identity,
   promoteOverlay,
+  // Late ontology — promoting an accumulated overlay key (0422)
+  DEFAULT_PROMOTION_THRESHOLD,
+  proposePromotion,
+  proposePromotions,
+  type PromotionProposal,
+  type ProposePromotionOptions,
   // Sidecar (join-node) extensions
   SIDECAR_PREFIX,
   sidecarId,

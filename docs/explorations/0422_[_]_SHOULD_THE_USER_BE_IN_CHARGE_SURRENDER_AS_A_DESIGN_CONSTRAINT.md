@@ -531,7 +531,7 @@ export function proposePromotion(
       [`docs/VIBE.md`](../VIBE.md) beside "Integration you can walk out with"
 - [x] Cross-reference Rule 3 from [`docs/CHARTER.md`](../CHARTER.md) §5 Agency so
       the AI position states its own justification
-- [ ] Implement `proposePromotion` in `packages/data/src/schema/` with unit tests
+- [x] Implement `proposePromotion` in `packages/data/src/schema/` with unit tests
       covering below-threshold, at-threshold, and round-trip reversal
 - [ ] Surface the proposal in the database view as a dismissible suggestion
       (dismissal persists per key), behind the existing coachmark-style
