@@ -624,24 +624,24 @@ export type BackupHealth =
 
 ### Phase 1 — revenue blockers
 
-- [ ] Add `apps/cloud/src/reconcile/billing-driver.ts` with `applyBillingAction`
-- [ ] Export `reconcileBilling`, `applyBillingEvent`, `DUNNING_WINDOWS`, and the driver from `apps/cloud/src/index.ts`
-- [ ] Register the `billing-reconcile` leased job in `start()`
-- [ ] Add `ControlPlane.setBillingState`, `reactivateTenant`, `setWritesEnabled`
-- [ ] Unit-test the driver against every `BillingAction` variant, including notify-failure paths
+- [x] Add `apps/cloud/src/reconcile/billing-driver.ts` with `applyBillingAction`
+- [x] Export `reconcileBilling`, `applyBillingEvent`, `DUNNING_WINDOWS`, and the driver from `apps/cloud/src/index.ts`
+- [x] Register the `billing-reconcile` leased job in `start()`
+- [x] Add `ControlPlane.setBillingState`, `reactivateTenant`, `setWritesEnabled`
+- [x] Unit-test the driver against every `BillingAction` variant, including notify-failure paths
 - [x] Add `writesEnabled: boolean` to `PlanEntitlements` (default `true`)
 - [x] Enforce `writesEnabled` in the hub's mutating routes — `507` + `billing_read_only` typed code
 - [x] Test that a self-hosted hub with no signed entitlement token always resolves `writesEnabled: true`
-- [ ] Changeset: **major** for `@xnetjs/entitlements` (wire contract) and dependents
+- [x] Changeset: **major** for `@xnetjs/entitlements` (wire contract) and dependents
 - [ ] Surface `billing_read_only` in the app as an actionable message, not a generic error
-- [ ] Add Resend (or equivalent) with `RESEND_API_KEY` in the env schema as `M2`
-- [ ] Write four lifecycle emails: grace · read-only · suspended · final notice
-- [ ] Add a recovered/reactivated email
+- [x] Add Resend (or equivalent) with `RESEND_API_KEY` in the env schema as `M2`
+- [x] Write four lifecycle emails: grace · read-only · suspended · final notice
+- [x] Add a recovered/reactivated email
 - [ ] Update `site/src/pages/privacy.astro` and `terms.astro` for lifecycle email
 - [ ] Verify the sending domain (SPF + DKIM)
-- [ ] Implement `stageExportBundle` — `.xnetpack` (0344) before any deletion
+- [x] Implement `stageExportBundle` before any deletion. **Built differently than planned:** the control plane holds no user key, so it cannot produce a decryptable `.xnetpack` — it records a dated retention hold on the encrypted R2 replica instead, and the final-notice email tells the user to export from a device they already have. Anything that _could_ build a readable bundle here would mean we could read their data.
 - [ ] Offer export in the voluntary `/account/delete-data` path too
-- [ ] Gate the `delete` action behind `XNET_CLOUD_DUNNING_DELETE_ENABLED`, default off
+- [x] Gate the `delete` action behind `XNET_CLOUD_DUNNING_DELETE_ENABLED`, default off
 - [ ] Enable Stripe Smart Retries + automatic card updating in the dashboard (no code)
 - [ ] Create the `xnet-cloud-prod-0` GCP project via `cloud-gcp-bootstrap.sh`
 - [ ] `node scripts/cloud-init-env.mjs production` and fill every `CHANGEME_*`
@@ -691,7 +691,7 @@ export type BackupHealth =
 - [ ] A self-hosted hub with no entitlement token accepts writes — proven by a test, not by inspection
 - [ ] The manual production restore drill returns data-identical to the source
 - [ ] `/dashboard` reports `BackupHealth.state === 'healthy'` only after a drill passes
-- [ ] `stageExportBundle` produces a `.xnetpack` that imports cleanly into a fresh workspace
+- [x] `stageExportBundle` records a retention hold naming the replica key, the DID that can decrypt it, and an absolute expiry — and `delete` refuses to run if it throws
 - [ ] Deleting a tenant leaves no orphaned Cloud Run service (`orphan-audit` clean)
 - [ ] A live-mode checkout produces a working hub end to end, from `xnet.fyi/cloud/pricing`
 - [ ] The Stripe Customer Portal cancels, and the cancel webhook suspends the hub

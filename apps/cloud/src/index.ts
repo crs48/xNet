@@ -22,6 +22,7 @@ import { aiChatDepsFromEnv, aiKeysFromEnv } from './ai/wiring'
 import { runRestoreDrills, pickDrillSample } from './backup/restore-drill'
 import { dayIndex, summarizeDrill, demotionDue, httpReadyProbe } from './backup/schedule'
 import { assertSyncedViaHealth } from './backup/sync-gate'
+import { emailNotifier, mailSenderFromEnv } from './billing/notify'
 import { stripeGatewayFromEnv } from './billing/stripe-gateway'
 import { FakeTenantBillingGateway, type TenantBillingGateway } from './billing-gateway'
 import { ControlPlane } from './control-plane'
@@ -29,6 +30,15 @@ import { type JobRecord } from './jobs/leased'
 import { JobRegistry } from './jobs/runner'
 import { HealthSampleStore, httpHealthProbe, probeFleet } from './observability/health'
 import { cloudRunProvisionerFromEnv } from './provisioner/google-cloud-run-client'
+import { reconcileBilling } from './reconcile/billing'
+import {
+  applyBillingAction,
+  reconcileInputFor,
+  silentNotifier,
+  summarizeSweep,
+  type BillingNotifier,
+  type BillingOutcome
+} from './reconcile/billing-driver'
 import { MemoryTenantStore, type TenantRecord, type TenantStore } from './registry'
 import { createControlPlaneApp } from './server'
 import { InMemoryDocStore } from './stores/durable'
@@ -205,6 +215,41 @@ export {
 export { backupSynced, assertSyncedViaHealth } from './backup/sync-gate'
 export { reconcileTenant, type ReconcileInput, type ReconcileAction } from './reconcile/reconcile'
 export {
+  applyBillingEvent,
+  reconcileBilling,
+  isSubscriptionStatus,
+  DUNNING_WINDOWS,
+  type BillingAction,
+  type BillingEvent,
+  type BillingReconcileInput,
+  type BillingState,
+  type DunningState,
+  type DunningWindows,
+  type SubscriptionStatus
+} from './reconcile/billing'
+export {
+  emailNotifier,
+  mailSenderFromEnv,
+  resendSender,
+  formatDeadline,
+  daysBetween,
+  LIFECYCLE_MAIL,
+  type EmailNotifierConfig,
+  type MailSender
+} from './billing/notify'
+export {
+  applyBillingAction,
+  dunningStateOf,
+  reconcileInputFor,
+  silentNotifier,
+  summarizeSweep,
+  HEALTHY,
+  type BillingDriverOptions,
+  type BillingNotifier,
+  type BillingOutcome,
+  type BillingSweepSummary
+} from './reconcile/billing-driver'
+export {
   fetchHubHealth,
   composeDashboardLive,
   type HubHealth,
@@ -284,6 +329,52 @@ export function buildControlPlane(options: BuildControlPlaneOptions = {}): {
     ...(options.readUsageBytes ? { readUsageBytes: options.readUsageBytes } : {})
   })
   return { controlPlane, billing }
+}
+
+/**
+ * Pick the dunning notifier: real email when a transport is configured, else the
+ * silent one (exploration 0418).
+ *
+ * Silence is a real choice with a real consequence, so it is made once, here,
+ * and logged at boot — a dev or self-hosted control plane has no mail and should
+ * not pretend otherwise. In production the pairing that matters is
+ * `RESEND_API_KEY` set **and** `XNET_CLOUD_DUNNING_DELETE_ENABLED=true`: enabling
+ * deletion without a transport would let the funnel destroy a replica having sent
+ * nothing, which `assertNotifierSafeForDeletion` refuses at startup.
+ */
+export function billingNotifierFromEnv(
+  controlPlane: ControlPlane,
+  billing: BillingIdentityProvider,
+  env: NodeJS.ProcessEnv = process.env
+): BillingNotifier {
+  const mail = mailSenderFromEnv(env)
+  if (!mail) return silentNotifier
+  const dashboardUrl = `${(env.XNET_CLOUD_BASE_URL ?? '').replace(/\/$/, '')}/dashboard`
+  return emailNotifier(mail, {
+    dashboardUrl,
+    emailFor: async (tenant) => {
+      void controlPlane
+      const user = await billing.getUser(tenant.billingUserId)
+      return user?.email ?? null
+    }
+  })
+}
+
+/**
+ * Refuse to boot with deletion armed and no way to warn anyone.
+ *
+ * The driver already treats a failed notice as "do not apply this step", so with
+ * the silent notifier every notice trivially succeeds and the funnel would run
+ * to `delete` in total silence. That combination is never intentional; failing
+ * loudly at startup is much better than discovering it from a deleted tenant.
+ */
+export function assertNotifierSafeForDeletion(env: NodeJS.ProcessEnv = process.env): void {
+  if (env.XNET_CLOUD_DUNNING_DELETE_ENABLED === 'true' && !env.RESEND_API_KEY) {
+    throw new Error(
+      'XNET_CLOUD_DUNNING_DELETE_ENABLED=true requires a mail transport (RESEND_API_KEY): ' +
+        'refusing to delete tenant data with no way to send the final notice.'
+    )
+  }
 }
 
 /**
@@ -384,6 +475,39 @@ function start(): void {
     }
   })
 
+  // (3) Non-payment lifecycle (exploration 0418). `reconcileBilling` is the timer
+  //     half of the dunning state machine — the webhook half (`recordBillingEvent`)
+  //     opens grace, and until this job existed nothing ever closed it. Level-
+  //     triggered like every other reconcile here: re-decide from stored state each
+  //     tick, so a missed run is caught up rather than skipped.
+  const notifier = billingNotifierFromEnv(controlPlane, billing, env)
+  const deleteEnabled = env.XNET_CLOUD_DUNNING_DELETE_ENABLED === 'true'
+  jobs.add({
+    jobId: 'billing-reconcile',
+    intervalMs: Number(env.XNET_CLOUD_BILLING_RECONCILE_MS ?? 60 * 60_000),
+    work: async () => {
+      const now = Date.now()
+      const results: { tenantId: string; outcome: BillingOutcome }[] = []
+      for (const t of await controlPlane.listTenants()) {
+        const action = reconcileBilling(reconcileInputFor(t, now))
+        const outcome = await applyBillingAction(controlPlane, notifier, t, action, now, {
+          deleteEnabled
+        })
+        results.push({ tenantId: t.tenantId, outcome })
+      }
+      const summary = summarizeSweep(results)
+      if (summary.applied || summary.failed || summary.skipped) {
+        // eslint-disable-next-line no-console
+        console.log(`billing-reconcile ${JSON.stringify(summary)}`)
+      }
+      // A failed transition keeps the job due and surfaces as `stale` on
+      // /internal/fleet/jobs rather than as silence.
+      if (summary.failed) {
+        throw new Error(`billing reconcile FAILED for: ${summary.failures.join(', ')}`)
+      }
+    }
+  })
+
   jobs.start()
 
   const app = createControlPlaneApp({
@@ -406,6 +530,7 @@ function start(): void {
     ...(durable ? { nonces: durable.nonces } : {}),
     ...(ai ? { ai } : {})
   })
+  assertNotifierSafeForDeletion(env)
   const port = Number(env.PORT ?? 4455)
   serve({ fetch: app.fetch, port })
   const mode = {
@@ -414,6 +539,8 @@ function start(): void {
     provisioner: env.GCP_ARTIFACT_REGISTRY ? 'cloud-run' : 'memory',
     stores: env.GCP_FIRESTORE_DATABASE ? 'firestore' : 'memory',
     ai: ai ? 'litellm' : 'off',
+    mail: mailSenderFromEnv(env) ? 'resend' : 'off',
+    dunningDelete: deleteEnabled ? 'armed' : 'off',
     sentry: env.SENTRY_DSN ? 'on' : 'off'
   }
   // eslint-disable-next-line no-console
