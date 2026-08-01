@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Relationships now record what you actually do together</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-relationships-now-record-what-you-actual</link>
+      <guid isPermaLink="false">2026-08-01-relationships-now-record-what-you-actual</guid>
+      <pubDate>Sat, 01 Aug 2026 21:46:36 GMT</pubDate>
+      <description>Contacts can hold the shared activities a word like &quot;friend&quot; leaves out, and xNet reads the label from them instead of storing it — including which activities people in that kind of relationship commonly share that you don't.</description>
+    </item>
+    <item>
       <title>Your hub keeps the same address when it moves</title>
       <link>https://xnet.fyi/changelog#2026-08-01-your-hub-keeps-the-same-address-when-it-</link>
       <guid isPermaLink="false">2026-08-01-your-hub-keeps-the-same-address-when-it-</guid>

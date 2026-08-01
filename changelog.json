@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-01-relationships-now-record-what-you-actual",
+      "url": "https://xnet.fyi/changelog#2026-08-01-relationships-now-record-what-you-actual",
+      "title": "Relationships now record what you actually do together",
+      "content_text": "Contacts can hold the shared activities a word like \"friend\" leaves out, and xNet reads the label from them instead of storing it — including which activities people in that kind of relationship commonly share that you don't.\n",
+      "date_published": "2026-08-01T21:46:36Z",
+      "tags": [
+        "crm"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "Contacts can hold the shared activities a word like \"friend\" leaves out, and xNet reads the label from them instead of storing it — including which activities people in that kind of relationship commonly share that you don't.",
+        "highlights": [],
+        "mergedAt": "2026-08-01T21:46:36Z",
+        "pr": 679,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-01-your-hub-keeps-the-same-address-when-it-",
       "url": "https://xnet.fyi/changelog#2026-08-01-your-hub-keeps-the-same-address-when-it-",
       "title": "Your hub keeps the same address when it moves",
