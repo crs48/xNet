@@ -725,7 +725,7 @@ all.
       `packages/hub/src/services/hub-address.ts` (pure, injectable deps)
 - [x] Serve the record from the hub at a well-known path, signed with the hub's
       system identity (the DID already on `/health`)
-- [ ] Mirror it from the control plane for managed tenants, including a
+- [x] Mirror it from the control plane for managed tenants, including a
       `waking` answer for `dataTier: 'cold'`
 - [ ] Client: resolve-then-connect in `packages/react/src/context.ts`, with the
       resolved address cached in local storage and a stale-cache fallback

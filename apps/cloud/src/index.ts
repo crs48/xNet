@@ -18,6 +18,7 @@ import {
   type DidChallengeVerifier
 } from '@xnetjs/cloud/identity'
 import { MemoryProvisioner, type Provisioner } from '@xnetjs/cloud/provisioner'
+import { MemoryAddressMirrorStore } from './address-mirror'
 import { aiChatDepsFromEnv, aiKeysFromEnv } from './ai/wiring'
 import { runRestoreDrills, pickDrillSample } from './backup/restore-drill'
 import {
@@ -556,7 +557,10 @@ function start(): void {
       ? { diagnosticsAlertUrl: env.XNET_CLOUD_DIAGNOSTICS_ALERT_URL }
       : {}),
     ...(durable ? { nonces: durable.nonces } : {}),
-    ...(ai ? { ai } : {})
+    ...(ai ? { ai } : {}),
+    // Hub address resolution (0423). In-memory: the mirror is a cache of each
+    // hub's own signed record, so losing it on restart costs one refetch.
+    addressMirror: { store: new MemoryAddressMirrorStore() }
   })
   assertNotifierSafeForDeletion(env)
   const port = Number(env.PORT ?? 4455)

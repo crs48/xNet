@@ -130,6 +130,30 @@ export function dialCandidates(record: HubAddressRecord): string[] {
   return [record.url, ...(record.fallbacks ?? [])].filter((url) => url.length > 0)
 }
 
+/**
+ * What a *resolver* returns. Two layers, deliberately separated:
+ *
+ * - `record` is hub-signed and is the only thing that decides **where** to
+ *   connect. A mirror cannot author or alter it.
+ * - `liveness` is the mirror's own unsigned observation, and decides only
+ *   **whether to wait** — a UX call, not a security one. A lying mirror can
+ *   make a client pause; it cannot redirect one.
+ *
+ * The split exists because a control plane genuinely cannot sign as a hub, and
+ * the alternative — letting the resolver mint records — would hand every mirror
+ * a redirect primitive.
+ */
+export interface HubLiveness {
+  status: HubAddressStatus | 'unknown'
+  /** How long to wait before re-resolving a `waking` hub. */
+  retryAfterMs?: number
+}
+
+export interface HubAddressResolution {
+  record: HubAddressRecord | null
+  liveness: HubLiveness
+}
+
 export interface HubAddressCache {
   get(did: string): HubAddressRecord | null
   put(record: HubAddressRecord): void

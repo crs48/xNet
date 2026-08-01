@@ -57,7 +57,9 @@ export {
   verifyHubAddress,
   type HubAddressCache,
   type HubAddressRecord,
+  type HubAddressResolution,
   type HubAddressStatus,
+  type HubLiveness,
   type ResolveHubAddressDeps,
   type ResolveOutcome,
   type UnsignedHubAddressRecord

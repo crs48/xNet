@@ -66,6 +66,27 @@ describe('hub address signing', () => {
     expect(verifyHubAddress({ ...signed(), proof: '!!!not base64!!!' })).toBe(false)
   })
 
+  it('matches the canonical byte fixture the control plane mirrors', () => {
+    // `apps/cloud/src/address-mirror.test.ts` pins this exact string. The
+    // control plane re-implements this serializer rather than depending on the
+    // hub package, so the pair of fixtures is what stops the two from drifting
+    // into silently rejecting every record in production.
+    expect(
+      new TextDecoder().decode(
+        canonicalHubAddressBytes({
+          did: 'did:key:zOWNER',
+          hubDid: 'did:key:zHUB',
+          url: 'https://hub.example',
+          status: 'ready',
+          issuedAt: 1_000,
+          validUntil: 61_000
+        })
+      )
+    ).toBe(
+      '["xnet-hub-address-v1","did:key:zOWNER","did:key:zHUB","https://hub.example",[],"ready",null,1000,61000]'
+    )
+  })
+
   it('canonical bytes do not depend on key insertion order', () => {
     const a = unsigned()
     const b: UnsignedHubAddressRecord = {
