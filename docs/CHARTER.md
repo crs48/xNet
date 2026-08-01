@@ -228,7 +228,7 @@ things you would own anyway. The refused rents, each with its receipt:
   ([exploration 0196](./explorations/0196_[_]_PAID_PLUGIN_MARKETPLACE_MONETIZATION_AND_LICENSING.md)).
 - **No rent on your published social graph.** When you publish what you saved,
   the records go into **your own** AT Protocol repo — never ours. xNet runs the
-  *appview* that compares two people's published sets, and bills for that
+  _appview_ that compares two people's published sets, and bills for that
   compute as part of hosting, never as its own tier. The comparison shows
   overlap between two named people and nothing else: no ranking, no global
   count, no "most‑saved". A public like corpus with a scoreboard is a
@@ -242,7 +242,7 @@ things you would own anyway. The refused rents, each with its receipt:
   fails the build if a ranking route appears (exploration 0420).
 
 Covenants are tested in down quarters, not up ones — so the test lives here,
-not in anyone's memory. **Every new revenue lane must pass four tests before
+not in anyone's memory. **Every new revenue lane must pass five tests before
 it ships:**
 
 1. **Improvement test** — the margin pays for labour, capital, or operations
@@ -254,6 +254,11 @@ it ships:**
 4. **Sleep test** — if a well‑funded competitor shipped our entire feature set
    as open source tomorrow, which revenue lines survive? A lane whose answer is
    "none" is a cliff (exploration 0358).
+5. **Rust test** — if we keep every refusal above and a competitor keeps none,
+   do we still reach the people we are refusing on behalf of? **Every refusal
+   must name at least one shipped or building lane that survives it.** A
+   refusal with no surviving lane is not forbidden — it is on borrowed time,
+   and must be labelled so (exploration 0429).
 
 The first three ask whether a lane is fair to the user. The fourth asks whether
 it is durable for us, and it exists because those are not the same question:
@@ -263,8 +268,27 @@ it is durable for us, and it exists because those are not the same question:
 > cliff will eventually break every other promise in this document to keep
 > from falling off it._
 
-A lane that fails any test is redesigned or refused. Exploration documents
-that propose a revenue lane should apply the four tests explicitly.
+The fifth asks whether the refusals are affordable, which is a different
+question again. John and Mack Rust invented the mechanical cotton picker in the
+1930s and attached to it every refusal this document would recognise: the
+patents went into a nonprofit foundation, their own pay was capped at ten times
+their lowest‑paid worker, machines were to be leased only to planters accepting
+fair wages, and they offered marketing control to the Southern Tenant Farmers
+Union. The company went bankrupt around 1940. International Harvester shipped a
+mass‑produced picker in December 1942 with none of it attached, and the
+mechanisation of the Cotton South proceeded as if the Rusts had never existed.
+
+> _A refusal kept only by a company nobody uses is a refusal that never
+> happened. The Rust test exists so that "we must stay competitive in order to
+> influence the field" has to be answered in calm, in writing, and in advance —
+> rather than arriving as a reason to drop a promise in the quarter we can
+> least afford to examine it._
+
+A lane that fails any of the first four tests is redesigned or refused. A
+refusal that fails the fifth is kept and **labelled as on borrowed time** —
+the Rust test never authorises dropping a refusal, which remains a change to
+this document and needs its own ADR. Exploration documents that propose a
+revenue lane should apply all five tests explicitly.
 
 **Worked example — the affinity appview (exploration 0420).** Improvement:
 ✅ the margin pays for crawl, index and compare compute we run; the records
@@ -280,9 +304,14 @@ hosting and **never priced as its own SKU**: a standalone tier would have
 nothing to defend it but being the incumbent index, which is the global
 chokepoint rent this section already refuses.
 
+The per‑refusal Rust verdicts — which lane pays for each refusal above, and
+which refusal is currently on borrowed time — are kept in
+[`ECONOMICS.md`](./ECONOMICS.md) §4a, so they can be revised as lanes ship
+without reopening this covenant.
+
 ### Who can change this section
 
-The refused rents and the four tests bind people who cannot merge a PR — plugin
+The refused rents and the five tests bind people who cannot merge a PR — plugin
 authors, self-hosters, hub operators, paying customers. So they are an
 **in-scope operational rule** under the
 [Rule Change Proposal process](./RULE_CHANGES.md): anyone affected can propose
