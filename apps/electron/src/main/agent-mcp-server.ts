@@ -16,6 +16,7 @@
 
 import type { ParkedApproval } from '@xnetjs/plugins'
 import {
+  createAgentRetrieval,
   createMCPServer,
   createMcpHttpServer,
   type McpHttpServerHandle,
@@ -72,9 +73,16 @@ export async function startAgentMcpServer(): Promise<AgentMcpServerHandle> {
   // the cache only has to be warm by the time a chat turn calls a tool.
   void schemas.ensurePrimed().catch(() => undefined)
 
+  const store = createNodeStoreProxy()
+  // Exploration 0415: the bridged agent had the weakest retrieval of the three
+  // lanes — no graph stage, and a `searchText`-less proxy that turned every
+  // search into 500 nodes over IPC. Both halves are fixed here and in the proxy.
+  const retrieval = createAgentRetrieval({ store, schemas })
+
   const server = createMCPServer({
-    store: createNodeStoreProxy(),
+    store,
     schemas,
+    retrieval,
     // The 0337 ceremony (0394 Phase 2): every AI-surface tool call lands as an
     // AgentAction node, and medium+ risk writes park behind the risk-tiered
     // approval — medium releases on the APPROVE code the agent relays into

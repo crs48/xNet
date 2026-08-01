@@ -18,6 +18,7 @@
  */
 
 import {
+  createAgentRetrieval,
   createMCPServer,
   createMcpHttpServer,
   type MCPServer,
@@ -46,9 +47,14 @@ export type McpAgentSession = {
 
 /** Build an MCP server over a resolved backend. Writes route through its AI surface. */
 export function buildMcpServer(backend: AgentBackend, agent?: McpAgentSession): MCPServer {
+  // Exploration 0415: without this the server's context packs fall back to a
+  // linear keyword scan, and a multi-hop question ("how is Acme tied to Q2?")
+  // is unanswerable because the graph stage never runs.
+  const retrieval = createAgentRetrieval({ store: backend.store, schemas: backend.schemas })
   return createMCPServer({
     store: backend.store,
     schemas: backend.schemas,
+    retrieval,
     ...(agent
       ? {
           agentAudit: {

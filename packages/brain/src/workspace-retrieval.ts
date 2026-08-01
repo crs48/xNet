@@ -389,19 +389,20 @@ export function createWorkspaceRetrieval(
     }
   }
 
-  return {
-    tier,
-    degraded,
-    notice,
-    async retrieveContext(query, { limit }) {
-      const result = await recall(query, {
-        maxEntries: Math.max(limit, 4),
-        maxNodes: Math.max(limit * 4, 24)
-      })
-      return result.items.map((item) => ({ nodeId: item.nodeId, pathLabel: item.pathLabel }))
-    },
-    recall
+  // Arrow properties, not methods: call sites pass these straight into
+  // `retrieveContext` seams, and an unbound method would lose its receiver.
+  const retrieveContext = async (
+    query: string,
+    { limit }: { limit: number }
+  ): Promise<AiRetrievedNodeLike[]> => {
+    const result = await recall(query, {
+      maxEntries: Math.max(limit, 4),
+      maxNodes: Math.max(limit * 4, 24)
+    })
+    return result.items.map((item) => ({ nodeId: item.nodeId, pathLabel: item.pathLabel }))
   }
+
+  return { tier, degraded, notice, retrieveContext, recall }
 }
 
 /** Re-exported so callers can build a graph walk without a second import. */

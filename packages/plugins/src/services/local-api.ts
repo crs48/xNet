@@ -14,6 +14,7 @@ import { URL } from 'url'
 import {
   AI_SCOPES,
   AiSurfaceService,
+  createAgentRetrieval,
   createAiSurfaceService,
   type AiScope,
   type AiSurfaceLimits
@@ -225,12 +226,17 @@ export class LocalAPIServer {
   private unsubscribe?: () => void
 
   constructor(config: LocalAPIConfig) {
+    // `/ai/context-pack` is served from here, so this surface needs the graph
+    // retriever too (exploration 0415) — otherwise every HTTP client gets the
+    // linear keyword scan the CLI just stopped getting.
     const aiSurface =
       config.aiSurface ??
       createAiSurfaceService({
         store: config.store,
         schemas: config.schemas,
-        limits: config.aiLimits
+        limits: config.aiLimits,
+        retrieveContext: createAgentRetrieval({ store: config.store, schemas: config.schemas })
+          .retrieveContext
       })
 
     this.config = {

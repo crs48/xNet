@@ -732,10 +732,10 @@ export function candidatesFromTraces(
 - [x] Add a `searchText` channel to `createNodeStoreProxy` + the renderer handler
 - [x] Write `createWorkspaceRetrieval()` returning `{ tier, retrieveContext, searchText }`
 - [x] Require an `authorize` dependency on the factory; pass it into `retrieve()`
-- [ ] Inject the factory in `buildMcpServer` (`packages/cli/src/commands/mcp.ts`)
-- [ ] Inject the factory in `createAgentServices` (`packages/cli/src/commands/agent.ts`)
-- [ ] Inject the factory in `startAgentMcpServer` (`apps/electron/src/main/agent-mcp-server.ts`)
-- [ ] `scripts/guard-ai-surface-retrieval.mjs` — fail the build on a construction site without a retriever
+- [x] Inject the factory in `buildMcpServer` (`packages/cli/src/commands/mcp.ts`)
+- [x] Inject the factory in `createAgentServices` (`packages/cli/src/commands/agent.ts`)
+- [x] Inject the factory in `startAgentMcpServer` (`apps/electron/src/main/agent-mcp-server.ts`)
+- [x] `scripts/guard-ai-surface-retrieval.mjs` — fail the build on a construction site without a retriever
 - [ ] Propagate `tier`/`degraded`/`notice` through every `runSearch` output format; notice to stderr
 - [ ] Fix `xnet connect` to **merge** into `CLAUDE.md`/`AGENTS.md` instead of overwriting
 

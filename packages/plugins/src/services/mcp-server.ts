@@ -29,6 +29,7 @@ import {
   type ApprovalBroker,
   type ParkedApproval
 } from '../ai-surface/approval-broker'
+import type { WorkspaceRetrieval } from '../ai-surface/retrieval'
 import { McpWriteGuardrail, type McpWriteRequest } from './mcp-guardrail'
 
 /** Schema IRIs for the first-class write tools (exploration 0174/0175). */
@@ -169,6 +170,18 @@ export interface MCPServerConfig {
    * "still pending" — the action itself stays parked until `approvalTtlMs`.
    */
   agentAudit?: AgentAuditContext & { approvalTtlMs?: number; approvalWaitMs?: number }
+  /**
+   * Workspace retrieval for this lane (exploration 0415), built by
+   * `createAgentRetrieval`. Drives the `retrieveContext` seam of the default AI
+   * surface and backs the `xnet_recall` tool.
+   *
+   * Omitting it is a real choice with a real cost — context packs fall back to
+   * a linear keyword scan and multi-hop questions become unanswerable — so
+   * `scripts/guard-ai-surface-retrieval.mjs` fails the build on a call site
+   * that leaves it out. Ignored when a pre-built `aiSurface` is supplied; wire
+   * `retrieveContext` there instead.
+   */
+  retrieval?: WorkspaceRetrieval
 }
 
 /**
@@ -221,6 +234,8 @@ export class MCPServer {
   /** Park/settle over {@link recorder} — the host's handle on parked actions. */
   private broker: ApprovalBroker | null = null
   private agentExtraTools: Map<string, AiExtraTool> = new Map()
+  /** Workspace retrieval backing `xnet_recall` (exploration 0415). */
+  private retrieval: WorkspaceRetrieval | null = null
 
   constructor(config: MCPServerConfig) {
     const aiSurface =
@@ -229,11 +244,14 @@ export class MCPServer {
         store: config.store,
         schemas: config.schemas,
         limits: config.aiLimits,
+        ...(config.retrieval ? { retrieveContext: config.retrieval.retrieveContext } : {}),
         extraTools: [
           ...agentToolsAsExtraTools(config.agentTools ?? []),
           ...(config.extraTools ?? [])
         ]
       })
+
+    this.retrieval = config.retrieval ?? null
 
     this.config = {
       store: config.store,

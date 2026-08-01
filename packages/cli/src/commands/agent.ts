@@ -22,7 +22,8 @@ import type {
   FlatNode,
   NodeData,
   NodeStoreAPI,
-  SchemaRegistryAPI
+  SchemaRegistryAPI,
+  WorkspaceRetrieval
 } from '@xnetjs/plugins/node'
 import { readFile, rename, mkdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
@@ -31,6 +32,7 @@ import {
   AiWorkspaceWatcher,
   ScriptSandbox,
   XNET_AGENT_SKILL_MD,
+  createAgentRetrieval,
   createAgentScriptContext,
   createAiSurfaceService,
   createAiWorkspaceExporter,
@@ -47,6 +49,8 @@ export type AgentCliServices = {
   store: NodeStoreAPI
   schemas: SchemaRegistryAPI
   aiSurface: AiSurfaceService
+  /** Workspace retrieval — backs `xnet recall` and reports the tier (0415). */
+  retrieval: WorkspaceRetrieval
   exporter: AiWorkspaceExporter
   watcher: AiWorkspaceWatcher
   /** Release backend resources (closes the SQLite client in local mode). */
@@ -59,11 +63,21 @@ export type AgentCommandOptions = BackendLadderOptions & { forWrites?: boolean }
 export type AgentServicesFactory = (options: AgentCommandOptions) => Promise<AgentCliServices>
 
 export function createAgentServices(backend: AgentBackend): AgentCliServices {
-  const aiSurface = createAiSurfaceService({ store: backend.store, schemas: backend.schemas })
+  // Exploration 0415: the CLI is the cheapest lane and used to be the least
+  // equipped one. Retrieval is built first so the AI surface's context packs
+  // walk the graph instead of scanning, and so every command can report the
+  // tier it actually ran at.
+  const retrieval = createAgentRetrieval({ store: backend.store, schemas: backend.schemas })
+  const aiSurface = createAiSurfaceService({
+    store: backend.store,
+    schemas: backend.schemas,
+    retrieveContext: retrieval.retrieveContext
+  })
   return {
     store: backend.store,
     schemas: backend.schemas,
     aiSurface,
+    retrieval,
     exporter: createAiWorkspaceExporter({ ...backend, aiSurface }),
     watcher: createAiWorkspaceWatcher({ ...backend, aiSurface })
   }

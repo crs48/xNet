@@ -1711,6 +1711,9 @@ importers:
       '@xnetjs/abuse':
         specifier: workspace:*
         version: link:../abuse
+      '@xnetjs/brain':
+        specifier: workspace:*
+        version: link:../brain
       '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
