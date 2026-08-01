@@ -623,7 +623,7 @@ the one place the token scale is copied rather than referenced.
 
 **Phase 2 — the two confirmed gap sites**
 
-- [ ] Site 2: wrap the tab list in `packages/workbench/src/TabBar.tsx` and add
+- [x] Site 2: wrap the tab list in `packages/workbench/src/TabBar.tsx` and add
       `layout` to each tab.
 - [ ] Site 1: settle the kanban drop in
       `packages/views/src/database-views/BoardView.tsx`, including the

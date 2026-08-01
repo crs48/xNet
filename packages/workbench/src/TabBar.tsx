@@ -14,10 +14,14 @@ import {
   ContextMenu,
   getNodeTransfer,
   hasNodeTransfer,
+  MotionStage,
+  MOTION_TRANSITIONS,
   setNodeTransfer,
   type Action,
   type NodeTransfer
 } from '@xnetjs/ui'
+// The ~4.6KB shell; the feature bundle arrives lazily via <MotionStage>.
+import * as m from 'motion/react-m'
 import {
   ArrowRightFromLine,
   FileText,
@@ -237,44 +241,58 @@ function TabItem({
 
   return (
     <ContextMenu className="contents" menu={<ActionMenuList actions={actions} />}>
-      <div
-        role="tab"
-        aria-selected={active && routed}
-        data-tab-id={tab.id}
-        draggable
-        onDragStart={(e) => {
-          setNodeTransfer(e, {
-            nodeId: tab.nodeId,
-            nodeType: tab.nodeType,
-            title: tab.title,
-            sourceContext: 'tab'
-          })
-          e.dataTransfer.effectAllowed = 'copyMove'
-        }}
-        onDragOver={handleDragOver}
-        onDragLeave={() => setDropEdge(null)}
-        onDrop={handleDrop}
-        onMouseDown={(e) => {
-          if (e.button === 0) activate()
-        }}
-        onAuxClick={(e) => {
-          if (e.button === 1) {
-            e.preventDefault()
-            close()
-          }
-        }}
-        onDoubleClick={() => useWorkbench.getState().promoteTab(tab.id)}
-        className={tabItemClassName(active, routed, variant)}
+      {/*
+        `layout` lives on this wrapper rather than the tab itself because
+        m.div replaces React's onDragStart with Motion's own pan-gesture
+        signature, and the tab below needs the native HTML5 drag handler.
+        "position" (not plain `layout`) animates translation only — tabs keep
+        their size through a reorder, so there is no scale to distort the
+        rounded corners.
+      */}
+      <m.div
+        layout="position"
+        transition={MOTION_TRANSITIONS.move}
+        className={variant === 'pill' ? 'flex min-w-0' : 'flex h-full min-w-0'}
       >
-        <TabDropIndicator dropEdge={dropEdge} />
-        {/* strip: active tab keeps a hairline notch to the editor below */}
-        {variant === 'strip' && active && routed && (
-          <span className="absolute inset-x-0 top-0 h-px bg-accent-ink" />
-        )}
-        <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
-        <TabLabel tab={tab} />
-        <TabActions tab={tab} onClose={close} />
-      </div>
+        <div
+          role="tab"
+          aria-selected={active && routed}
+          data-tab-id={tab.id}
+          draggable
+          onDragStart={(e) => {
+            setNodeTransfer(e, {
+              nodeId: tab.nodeId,
+              nodeType: tab.nodeType,
+              title: tab.title,
+              sourceContext: 'tab'
+            })
+            e.dataTransfer.effectAllowed = 'copyMove'
+          }}
+          onDragOver={handleDragOver}
+          onDragLeave={() => setDropEdge(null)}
+          onDrop={handleDrop}
+          onMouseDown={(e) => {
+            if (e.button === 0) activate()
+          }}
+          onAuxClick={(e) => {
+            if (e.button === 1) {
+              e.preventDefault()
+              close()
+            }
+          }}
+          onDoubleClick={() => useWorkbench.getState().promoteTab(tab.id)}
+          className={tabItemClassName(active, routed, variant)}
+        >
+          <TabDropIndicator dropEdge={dropEdge} />
+          {/* strip: active tab keeps a hairline notch to the editor below */}
+          {variant === 'strip' && active && routed && (
+            <span className="absolute inset-x-0 top-0 h-px bg-accent-ink" />
+          )}
+          <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+          <TabLabel tab={tab} />
+          <TabActions tab={tab} onClose={close} />
+        </div>
+      </m.div>
     </ContextMenu>
   )
 }
@@ -356,16 +374,22 @@ export function TabBar({
         dropTransferOnGroup(navigate, transfer, group.id, group.tabs.length)
       }}
     >
-      {group.tabs.map((tab) => (
-        <TabItem
-          key={tab.id}
-          tab={tab}
-          group={group}
-          active={tab.id === group.activeTabId}
-          routed={routed}
-          variant={variant}
-        />
-      ))}
+      {/*
+        MotionStage renders no DOM of its own (context only), so the tabs stay
+        direct flex children of the tablist and the strip layout is unchanged.
+      */}
+      <MotionStage>
+        {group.tabs.map((tab) => (
+          <TabItem
+            key={tab.id}
+            tab={tab}
+            group={group}
+            active={tab.id === group.activeTabId}
+            routed={routed}
+            variant={variant}
+          />
+        ))}
+      </MotionStage>
       {variant === 'pill' ? <PillControls group={group} /> : <div className="min-w-4 flex-1" />}
     </div>
   )

@@ -24,6 +24,24 @@
 import * as React from 'react'
 
 /**
+ * The motion vocabulary, restated for Motion.
+ *
+ * Motion cannot read CSS custom properties for its own easing, so these values
+ * are the one place --duration-* / --ease-* are duplicated as numbers. Every
+ * call site imports from here rather than inlining literals, so the duplication
+ * stays at one copy instead of one per animation. Keep in sync with
+ * theme/motion.css; docs/MOTION.md explains why the numbers are what they are.
+ */
+export const MOTION_TRANSITIONS = {
+  /** Enter / move: --duration-normal 150ms, --ease-out. */
+  enter: { duration: 0.15, ease: [0, 0, 0.2, 1] },
+  /** Exit: --duration-fast 100ms, --ease-in. */
+  exit: { duration: 0.1, ease: [0.4, 0, 1, 1] },
+  /** Move / morph — something already on screen relocating: --ease-in-out. */
+  move: { duration: 0.15, ease: [0.4, 0, 0.2, 1] }
+} as const
+
+/**
  * Loads LazyMotion + the domMax feature bundle. Split into its own lazy
  * component so everything it pulls in lands in a separate chunk — importing
  * `LazyMotion` at module scope here would defeat the entire boundary.
@@ -31,7 +49,7 @@ import * as React from 'react'
 const MotionFeatures = React.lazy(async () => {
   // domMax is what carries `layout` / `layoutId` (FLIP). Anything less and the
   // two call sites this exists for silently stop animating.
-  const { LazyMotion, domMax } = await import('motion/react')
+  const { LazyMotion, MotionConfig, domMax } = await import('motion/react')
   return {
     default: ({
       children,
@@ -40,12 +58,15 @@ const MotionFeatures = React.lazy(async () => {
       children: React.ReactNode
       reducedMotion: 'user' | 'never'
     }) => (
+      // reducedMotion is a MotionConfig concern, not a LazyMotion one.
       // `strict` throws if a full `motion.*` component is rendered inside,
       // which is the runtime half of the CI guard: it catches a bypass that
       // reached the tree some other way.
-      <LazyMotion features={domMax} strict reducedMotion={reducedMotion}>
-        {children}
-      </LazyMotion>
+      <MotionConfig reducedMotion={reducedMotion}>
+        <LazyMotion features={domMax} strict>
+          {children}
+        </LazyMotion>
+      </MotionConfig>
     )
   }
 })
