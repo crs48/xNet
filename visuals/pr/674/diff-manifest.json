@@ -10,7 +10,7 @@
       "name": "Docs",
       "file": "stories/web-presenceavatars--docs.png",
       "status": "changed",
-      "ssim": 0.987715,
+      "ssim": 0.989786,
       "before": "before/stories/web-presenceavatars--docs.png",
       "after": "stories/web-presenceavatars--docs.png",
       "diff": "diff/stories/web-presenceavatars--docs.png"
@@ -54,7 +54,7 @@
       "label": "Data",
       "file": "routes/data.png",
       "status": "changed",
-      "ssim": 0.995627,
+      "ssim": 0.995587,
       "before": "before/routes/data.png",
       "after": "routes/data.png",
       "diff": "diff/routes/data.png"
@@ -64,7 +64,7 @@
       "label": "Discover",
       "file": "routes/discover.png",
       "status": "changed",
-      "ssim": 0.982678,
+      "ssim": 0.982638,
       "before": "before/routes/discover.png",
       "after": "routes/discover.png",
       "diff": "diff/routes/discover.png"
@@ -74,7 +74,7 @@
       "label": "Social import",
       "file": "routes/social-import.png",
       "status": "changed",
-      "ssim": 0.919246,
+      "ssim": 0.919206,
       "before": "before/routes/social-import.png",
       "after": "routes/social-import.png",
       "diff": "diff/routes/social-import.png"
