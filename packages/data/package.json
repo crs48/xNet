@@ -34,6 +34,10 @@
       "types": "./dist/portability/index.d.ts",
       "import": "./dist/portability/index.js"
     },
+    "./agent-audit": {
+      "types": "./dist/agent-audit/index.d.ts",
+      "import": "./dist/agent-audit/index.js"
+    },
     "./updates": {
       "types": "./dist/updates.d.ts",
       "import": "./dist/updates.js"
@@ -58,7 +62,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsup src/index.ts src/schema/index.ts src/store/index.ts src/database/index.ts src/auth/index.ts src/portability/index.ts src/updates.ts src/sync/awareness.ts --format esm --dts && tsup src/ts-plugin/index.ts --format cjs,esm --dts --outDir dist/ts-plugin",
+    "build": "tsup src/index.ts src/schema/index.ts src/store/index.ts src/database/index.ts src/auth/index.ts src/portability/index.ts src/agent-audit/index.ts src/updates.ts src/sync/awareness.ts --format esm --dts && tsup src/ts-plugin/index.ts --format cjs,esm --dts --outDir dist/ts-plugin",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",

@@ -70,6 +70,15 @@ export {
   type AgentExecutedResult,
   type AgentPendingApproval
 } from './agent-audit'
+// Per-session read budget (exploration 0416)
+export {
+  DEFAULT_EGRESS_BUDGET_BYTES,
+  EgressBudgetError,
+  EgressMeter,
+  METERED_READ_TOOLS,
+  measureBytes,
+  type EgressMeterOptions
+} from './egress-budget'
 export {
   createAgentCeremonyTools,
   createAgentNotificationTools,

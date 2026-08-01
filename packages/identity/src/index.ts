@@ -138,16 +138,28 @@ export {
   type VerifyResult
 } from './ucan'
 
-// Agent Passport (exploration 0337)
+// Agent Passport (exploration 0337) + revocation and foreign enrollment (0416)
 export {
   AGENT_PASSPORT_DEFAULT_TTL_SECONDS,
   assertAttenuated,
   mintAgentPassport,
+  passportTokenHash,
+  revokeAgentPassport,
   verifyAgentPassport,
   type AgentPassportGrant,
   type MintAgentPassportOptions,
+  type PassportRevocationCheck,
   type VerifyAgentPassportOptions
 } from './agent-passport'
+export {
+  FOREIGN_AGENT_ORIGINS,
+  enrollForeignAgent,
+  type EnrollForeignAgentOptions,
+  type ForeignAgentClaim,
+  type ForeignAgentEnrollment,
+  type ForeignAgentOrigin,
+  type ForeignProofVerifier
+} from './foreign-agent'
 
 // Legacy passkey storage (deprecated — use @xnetjs/identity/passkey instead)
 export { type PasskeyStorage, BrowserPasskeyStorage, MemoryPasskeyStorage } from './passkey'

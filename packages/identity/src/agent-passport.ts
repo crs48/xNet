@@ -8,12 +8,18 @@
  *   2. an operator-signed, attenuated UCAN delegating a narrow capability set
  *      to that DID — never the operator's key, never a wildcard.
  *
- * Revocation is expiry: passports default to a 7-day TTL and are re-minted on
- * rotation. Keep TTLs short — a stolen passport is live until it expires.
+ * Passports default to a 7-day TTL and are re-minted on rotation. Expiry is
+ * the backstop, not the only lever: {@link revokeAgentPassport} signs a
+ * denylist entry the operator can publish, and {@link verifyAgentPassport}
+ * consults it when given one (exploration 0416). Keep TTLs short anyway — a
+ * verifier that never sees the denylist still honours a stolen passport until
+ * it expires.
  */
 
+import type { Revocation } from './sharing/types'
 import type { UCANCapability } from './types'
 import { generateIdentity } from './did'
+import { computeTokenHash, createRevocation } from './sharing/revocation'
 import { createUCAN, verifyUCAN, type VerifyResult } from './ucan'
 
 /** Default passport TTL: 7 days (exploration 0337 — rotate weekly). */
@@ -92,16 +98,32 @@ export function mintAgentPassport(options: MintAgentPassportOptions): AgentPassp
   }
 }
 
+/**
+ * The denylist half of revocation (exploration 0416). Narrower than
+ * `RevocationStore` on purpose — a verifier only needs to ask the question,
+ * and the narrow type lets a hub back it with anything (an HTTP-served list,
+ * a table) without importing the store.
+ */
+export type PassportRevocationCheck = {
+  isRevoked(tokenHash: string): boolean
+}
+
 export type VerifyAgentPassportOptions = {
   /** Require the delegation audience to be this agent DID. */
   agentDID?: string
   /** Require the delegation issuer to be this operator DID. */
   operatorDID?: string
+  /**
+   * Consulted denylist. Without it, expiry is the only revocation — which is
+   * the gap 0337 shipped with and 0416 closes: a stolen passport stayed live
+   * for up to its full TTL.
+   */
+  revocations?: PassportRevocationCheck
 }
 
 /**
  * Verify a passport UCAN: signature + chain via `verifyUCAN`, plus optional
- * audience/issuer pinning.
+ * audience/issuer pinning and a revocation-denylist check.
  */
 export function verifyAgentPassport(
   token: string,
@@ -116,5 +138,33 @@ export function verifyAgentPassport(
   if (options.operatorDID && result.payload.iss !== options.operatorDID) {
     return { valid: false, error: 'Passport issuer does not match operator DID' }
   }
+  if (options.revocations?.isRevoked(passportTokenHash(token))) {
+    return { valid: false, error: 'Passport has been revoked' }
+  }
   return result
+}
+
+/**
+ * The denylist key for a passport. Same hash the share-revocation lane uses,
+ * so one `RevocationStore` can hold both kinds of entry.
+ */
+export function passportTokenHash(token: string): string {
+  return computeTokenHash(token)
+}
+
+/**
+ * Revoke a passport before it expires. Only the operator that issued the
+ * delegation can sign this — `createRevocation` enforces the issuer match.
+ *
+ * Feed the result to a `RevocationStore` (or any {@link PassportRevocationCheck}
+ * backend) and pass that store to {@link verifyAgentPassport}.
+ *
+ * @throws {Error} If `operatorDID` is not the token's issuer.
+ */
+export function revokeAgentPassport(
+  operatorDID: string,
+  operatorKey: Uint8Array,
+  token: string
+): Revocation {
+  return createRevocation(operatorDID, operatorKey, token)
 }

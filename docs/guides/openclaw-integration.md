@@ -1,4 +1,4 @@
-# Driving xNet from OpenClaw and Hermes (and other MCP agents)
+# Driving xNet from OpenClaw, Hermes, Buzz (and other MCP agents)
 
 xNet exposes its workspace as an **MCP substrate**: any MCP client — OpenClaw,
 Hermes Agent, Claude Code, Codex, Cline, Goose — can read and safely mutate
@@ -120,6 +120,75 @@ Hermes: its learning loop autonomously writes new skill documents — the audit
 trail is how you retrace *which* self-written skill drove an action, so keep
 enrolled mode on.
 
+## Buzz (agents that already have a key)
+
+Block's [Buzz](https://github.com/block/buzz) gives every agent its own Nostr
+keypair, so a Buzz agent arrives already carrying a credential worth believing.
+xNet accepts it as **evidence of identity only** — the `npub` proves *who*, and
+your UCAN still decides *what*:
+
+```ts
+import { enrollBuzzAgent } from '@xnetjs/comms'
+
+const enrollment = enrollBuzzAgent({
+  npub: 'npub1…',                      // the agent's Buzz identity
+  proof,                                // signed Nostr event (kind 27235)
+  challenge,                            // YOUR single-use challenge bytes
+  operatorDID,
+  operatorKey,
+  capabilities: [{ with: 'xnet://space/inbox', can: 'node/create' }]
+})
+```
+
+The proof must sign the exact challenge you issued — a replayed signature over
+an older challenge is refused, as is a proof signed by any key other than the
+one the `npub` encodes. On success you get a normal Agent Passport: a **fresh**
+xNet `did:key`, scoped by your capabilities. The Nostr key never becomes an
+xNet signing key.
+
+`connectBuzzRelay()` then routes that agent's tool calls through the same
+guardrail everything else goes through — Buzz's own team access controls are
+host configuration, and xNet never honours them in place of its own.
+
+> **Why not just trust Buzz's permissions?** Because xNet's signature would
+> then attest to a decision xNet never verified. See ADR-29.
+
+## Verifying what an agent did
+
+Every enrolled agent's actions export as a self-contained receipt that anyone
+can check **offline** — no hub, no account, no network:
+
+```bash
+xnet audit verify ./agent-audit.json
+```
+
+It checks four independent things, and fails loudly on any of them:
+
+1. the passport verifies and names your operator DID as issuer;
+2. every change hash-verifies and signature-verifies under the *agent's* DID;
+3. the per-author chain is unbroken (this is what catches a **removed**
+   action — a per-change check alone cannot);
+4. every high/critical action carries an approval signed by **you**, not the
+   agent.
+
+Export is free and always will be (`docs/CHARTER.md` §6).
+
+## Revoking a passport early
+
+Expiry is the backstop, not the only lever:
+
+```ts
+import { revokeAgentPassport, verifyAgentPassport } from '@xnetjs/identity'
+import { RevocationStore } from '@xnetjs/identity'
+
+store.revoke(revokeAgentPassport(operatorDID, operatorKey, passportUcan))
+verifyAgentPassport(passportUcan, { revocations: store }) // → { valid: false }
+```
+
+Only the operator that issued the delegation can sign the revocation. A
+verifier that is never given the denylist still honours the passport until it
+expires, so keep TTLs short regardless.
+
 ## Hardening OpenClaw
 
 OpenClaw's defaults are permissive and it has a documented history of security
@@ -153,3 +222,5 @@ use-case and xNet doesn't have to.
 - [ClawHub skill](../integrations/openclaw/xnet-workspace-skill.md)
 - [Connect a model](./connect-a-model.md)
 - [xNet-as-substrate exploration](../explorations/0175_[_]_XNET_AS_A_SUBSTRATE_FOR_OPENCLAW.md)
+- [Agent harness or agent substrate (0416)](../explorations/0416_[_]_AGENT_HARNESS_OR_AGENT_SUBSTRATE.md)
+  — why xNet is not a competing harness (ADR-29)

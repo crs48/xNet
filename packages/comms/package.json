@@ -18,8 +18,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.0.1",
     "@xnetjs/crypto": "workspace:*",
-    "@xnetjs/data": "workspace:*"
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/identity": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

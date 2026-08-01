@@ -223,7 +223,11 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
   // Framed bridge display (0392/0394): the agent's own tool use, cost, and
   // permission asks, previously flattened away by the OpenAI-compatible wire.
   const [bridgeCost, setBridgeCost] = useState<{ usd?: number; outputTokens?: number } | null>(null)
-  const [bridgePermission, setBridgePermission] = useState<string | null>(null)
+  const [bridgePermission, setBridgePermission] = useState<{
+    id: string
+    tool: string
+  } | null>(null)
+  const [permissionBusy, setPermissionBusy] = useState(false)
   const bridgeToolNamesRef = useRef(new Map<string, string>())
 
   const handlers = useMemo(
@@ -265,7 +269,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
         ...(frame.outputTokens !== undefined ? { outputTokens: frame.outputTokens } : {})
       })
     } else if (frame.type === 'permission_request') {
-      setBridgePermission(frame.tool)
+      setBridgePermission({ id: frame.id, tool: frame.tool })
     }
   }, [])
 
@@ -372,6 +376,43 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     selected?.tier === 'bridge' && selected.available
       ? baseUrlFromDetail(selected.detail)
       : undefined
+  // Answer a parked permission request (exploration 0416). Until the daemon
+  // grew an answer channel this panel could only *display* the ask and point
+  // at the agent's own session — which put the consent decision outside the
+  // log that is supposed to prove a human made it.
+  const decidePermission = useCallback(
+    async (approved: boolean) => {
+      if (!bridgePermission || !bridgeBaseUrl || typeof fetch === 'undefined') return
+      setPermissionBusy(true)
+      try {
+        const response = await fetch(`${bridgeBaseUrl}/v1/agent/permission`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${bridgeToken}`
+          },
+          body: JSON.stringify({ id: bridgePermission.id, approved })
+        })
+        if (!response.ok) {
+          // Say so rather than clearing the prompt: a dismissed prompt reads as
+          // "handled", and the agent would still be waiting.
+          setError(
+            response.status === 501
+              ? 'This bridge cannot take approvals. Update the xNet desktop app.'
+              : `Could not send the decision (HTTP ${response.status}).`
+          )
+          return
+        }
+        setBridgePermission(null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not send the decision.')
+      } finally {
+        setPermissionBusy(false)
+      }
+    },
+    [bridgePermission, bridgeBaseUrl, bridgeToken]
+  )
+
   useEffect(() => {
     if (!bridgeBaseUrl || typeof fetch === 'undefined') {
       setBridgeHealth(null)
@@ -692,10 +733,29 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
               </p>
             )}
             {bridgePermission && (
-              <p className="border-b border-hairline px-3 py-1.5 text-[11px] text-amber-600">
-                The agent is asking to use <code>{bridgePermission}</code>. This chat has no channel
-                to approve it — decide in the agent&apos;s own session.
-              </p>
+              <div className="border-b border-hairline px-3 py-2 text-[11px]">
+                <p className="text-amber-600">
+                  The agent is asking to use <code>{bridgePermission.tool}</code>.
+                </p>
+                <div className="mt-1.5 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={permissionBusy}
+                    onClick={() => void decidePermission(true)}
+                    className="rounded border border-hairline px-2 py-0.5 font-medium hover:bg-surface disabled:opacity-50"
+                  >
+                    Allow once
+                  </button>
+                  <button
+                    type="button"
+                    disabled={permissionBusy}
+                    onClick={() => void decidePermission(false)}
+                    className="rounded border border-hairline px-2 py-0.5 hover:bg-surface disabled:opacity-50"
+                  >
+                    Deny
+                  </button>
+                </div>
+              </div>
             )}
           </>
         ) : (

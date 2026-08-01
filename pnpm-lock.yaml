@@ -907,12 +907,21 @@ importers:
 
   packages/comms:
     dependencies:
+      '@noble/curves':
+        specifier: ^2.0.1
+        version: 2.0.1
+      '@noble/hashes':
+        specifier: ^2.0.1
+        version: 2.0.1
       '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../crypto
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
+      '@xnetjs/identity':
+        specifier: workspace:*
+        version: link:../identity
     devDependencies:
       tsup:
         specifier: ^8.0.0

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { assertAttenuated, mintAgentPassport, verifyAgentPassport } from './agent-passport'
+import {
+  assertAttenuated,
+  mintAgentPassport,
+  passportTokenHash,
+  revokeAgentPassport,
+  verifyAgentPassport
+} from './agent-passport'
 import { generateIdentity } from './did'
+import { computeTokenHash, RevocationStore } from './sharing/index'
 import { createUCAN, hasCapability, rootIssuers, verifyUCAN } from './ucan'
 
 const operator = generateIdentity()
@@ -111,5 +118,58 @@ describe('rootIssuers', () => {
 
   it('returns [] for garbage input', () => {
     expect(rootIssuers('not-a-token')).toEqual([])
+  })
+})
+
+describe('passport revocation (exploration 0416)', () => {
+  const grantFor = (op = operator) =>
+    mintAgentPassport({
+      operatorDID: op.identity.did,
+      operatorKey: op.privateKey,
+      capabilities: CAPS
+    })
+
+  it('verifies while unrevoked and fails loudly once revoked', () => {
+    const grant = grantFor()
+    const store = new RevocationStore()
+
+    expect(verifyAgentPassport(grant.ucan, { revocations: store }).valid).toBe(true)
+
+    store.revoke(revokeAgentPassport(operator.identity.did, operator.privateKey, grant.ucan))
+
+    const result = verifyAgentPassport(grant.ucan, { revocations: store })
+    expect(result.valid).toBe(false)
+    expect(result.error).toMatch(/revoked/i)
+  })
+
+  it('revokes only the named passport, not every passport from that operator', () => {
+    const revoked = grantFor()
+    const untouched = grantFor()
+    const store = new RevocationStore()
+    store.revoke(revokeAgentPassport(operator.identity.did, operator.privateKey, revoked.ucan))
+
+    expect(verifyAgentPassport(revoked.ucan, { revocations: store }).valid).toBe(false)
+    expect(verifyAgentPassport(untouched.ucan, { revocations: store }).valid).toBe(true)
+  })
+
+  it('only the issuing operator can revoke', () => {
+    const grant = grantFor()
+    const stranger = generateIdentity()
+    expect(() =>
+      revokeAgentPassport(stranger.identity.did, stranger.privateKey, grant.ucan)
+    ).toThrow(/does not match token issuer/)
+  })
+
+  it('without a denylist, expiry remains the only revocation (0337 behaviour preserved)', () => {
+    const grant = grantFor()
+    // Revoked in a store the verifier is never given — must still verify.
+    const store = new RevocationStore()
+    store.revoke(revokeAgentPassport(operator.identity.did, operator.privateKey, grant.ucan))
+    expect(verifyAgentPassport(grant.ucan).valid).toBe(true)
+  })
+
+  it('hashes a passport to the same key the share lane uses', () => {
+    const grant = grantFor()
+    expect(passportTokenHash(grant.ucan)).toBe(computeTokenHash(grant.ucan))
   })
 })

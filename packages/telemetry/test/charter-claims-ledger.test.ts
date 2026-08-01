@@ -135,6 +135,15 @@ const CLAIMS: Claim[] = [
     enforcedBy: 'packages/data/src/portability/portability.test.ts'
   },
   {
+    id: 'commons-no-ground-rent-agent-audit',
+    source:
+      'Charter §Commons/No ground rent — an agent audit receipt exports free and verifies ' +
+      'offline, with no hub, account, or network (0416). Charging for the passport, the ' +
+      'signature, the ability to verify, or the export would be rent on your own record.',
+    backing: 'enforced',
+    enforcedBy: 'packages/data/src/agent-audit/agent-audit.test.ts'
+  },
+  {
     id: 'commons-no-per-member-pricing',
     source:
       'Charter §Commons/No ground rent — "no per-member pricing on communities: hosting is ' +
