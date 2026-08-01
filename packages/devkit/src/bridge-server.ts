@@ -29,6 +29,7 @@
 
 import type { AgentFrame } from './agent-frames'
 import type { AgentTaskResult } from './dev-loop'
+import type { PermissionBroker } from './permission-broker'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { bridgeHealth, type BridgeRunRequest } from './bridge'
@@ -76,6 +77,13 @@ export interface BridgeServerConfig {
    * gate), so callers enable it explicitly.
    */
   run?: (request: BridgeRunRequest) => Promise<AgentTaskResult>
+  /**
+   * Permission broker backing `POST /v1/agent/permission` (exploration 0416).
+   * When present, a `permission_request` frame can be answered by the panel
+   * mid-turn instead of merely displayed. Absent = no answer channel, and the
+   * agent's own default (deny) stands.
+   */
+  permissions?: PermissionBroker
   /**
    * Conversation → CLI-session map. Defaults to an in-memory store (lost on
    * restart); pass a durable one (see `createBridgeSessionStore` with
@@ -246,7 +254,56 @@ export function createBridgeServer(config: BridgeServerConfig): BridgeServerHand
         } else {
           sendJson(res, 502, { error: { message: messageOf(err) } })
         }
+      } finally {
+        // A turn is over; nothing parked can still be answered. Deny rather
+        // than leaving the agent blocked on a prompt no one will ever see.
+        config.permissions?.denyAll()
       }
+      return
+    }
+
+    // Settle a parked permission request (exploration 0416). This is the
+    // answer channel that makes in-chat approval real rather than advisory.
+    if (req.method === 'POST' && path === '/v1/agent/permission') {
+      if (!isTokenValid(headerStr(req.headers.authorization), pairingToken)) {
+        sendJson(res, 401, { error: { message: 'invalid or missing pairing token' } })
+        return
+      }
+      if (!config.permissions) {
+        sendJson(res, 501, { error: { message: 'permission brokering is not enabled' } })
+        return
+      }
+      let body: Record<string, unknown>
+      try {
+        body = await readJson(req)
+      } catch (err) {
+        sendJson(res, 400, { error: { message: messageOf(err) } })
+        return
+      }
+      const id = typeof body.id === 'string' ? body.id : ''
+      if (!id) {
+        sendJson(res, 400, { error: { message: 'id is required' } })
+        return
+      }
+      // Anything but an explicit `true` denies: a malformed answer must never
+      // read as consent.
+      const settled = config.permissions.settle(id, body.approved === true)
+      if (!settled) {
+        sendJson(res, 404, { error: { message: `no pending permission ${id}` } })
+        return
+      }
+      sendJson(res, 200, { ok: true, id, approved: body.approved === true })
+      return
+    }
+
+    // List parked permission requests, so a panel that reconnects mid-turn
+    // still sees what it must answer.
+    if (req.method === 'GET' && path === '/v1/agent/permission') {
+      if (!isTokenValid(headerStr(req.headers.authorization), pairingToken)) {
+        sendJson(res, 401, { error: { message: 'invalid or missing pairing token' } })
+        return
+      }
+      sendJson(res, 200, { pending: config.permissions?.list() ?? [] })
       return
     }
 

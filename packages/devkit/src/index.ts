@@ -42,6 +42,12 @@ export {
   type CodexAppServerOptions
 } from './codex-app-server'
 export { acpChatAgent, foldAcpUpdate, type AcpAgentOptions } from './acp-agent'
+export {
+  createPermissionBroker,
+  type PendingPermission,
+  type PermissionBroker,
+  type PermissionBrokerOptions
+} from './permission-broker'
 
 export { Git, GitError, type GitCheckpoint } from './git'
 

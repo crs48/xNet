@@ -538,7 +538,7 @@ requires the operator's signing key — which the agent never has.
 
 ### Lane 2 — finish the client (the visible half)
 
-- [ ] Panel renders `tool_call` / `tool_result` frames and an in-chat approval
+- [x] Panel renders `tool_call` / `tool_result` frames and an in-chat approval
       UI wired to `permission_request` (0392 open item)
 - [x] `codexAppServerChatAgent` — JSON-RPC over stdio to `codex app-server`
       (0392 open item)

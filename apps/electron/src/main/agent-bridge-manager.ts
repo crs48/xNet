@@ -21,6 +21,7 @@ import {
   cliChatAgent,
   cliStreamingChatAgent,
   createBridgeServer,
+  createPermissionBroker,
   mcpHttpConfigFor,
   NodeCommandRunner,
   NodeLineRunner,
@@ -146,11 +147,17 @@ export async function startAgentBridge(
     const args = buildAgentArgs(agentCmd, { ...(mcpConfigPath ? { mcpConfigPath } : {}) })
     agent = cliChatAgent(runner, { command: agentCmd, cwd, args })
   }
+  // The answer channel for in-chat approvals (0416). Writes are only reachable
+  // when the workspace MCP tools are actually wired, so that flag is the
+  // ceiling per-action consent narrows — approving in chat can never grant a
+  // capability the daemon was not started with.
+  const permissions = createPermissionBroker({ writesAllowed: mcpConfigPath !== undefined })
   const server = createBridgeServer({
     agent,
     agentName: agentCmd,
     version: app.getVersion(),
-    allowedOrigins: resolveAllowedOrigins()
+    allowedOrigins: resolveAllowedOrigins(),
+    permissions
   })
   try {
     await server.start()
