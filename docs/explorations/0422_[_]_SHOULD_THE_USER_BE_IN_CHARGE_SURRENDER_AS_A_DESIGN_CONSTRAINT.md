@@ -515,10 +515,10 @@ export function proposePromotion(
 
 **Status:** ░░░░░░░░░░ 0/9 items
 
-- [ ] Replace the `🔥 {streak}` header in
+- [x] Replace the `🔥 {streak}` header in
       [`streak-heatmap-widget.tsx`](../../packages/dashboard/src/widgets/streak-heatmap-widget.tsx)
       with a plain `completionRate` over the visible window
-- [ ] Leave `computeStreak`/`longestStreak` in
+- [x] Leave `computeStreak`/`longestStreak` in
       [`experiments`](../../packages/experiments/src/streak.ts) (they are honest
       math with tests) but stop importing them into render paths
 - [ ] Add the two dark-pattern rules above to
