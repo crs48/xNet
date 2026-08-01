@@ -9,6 +9,7 @@
  *     connection failure it produces today.
  */
 
+import { ShardAllocator } from '@xnetjs/cloud/provisioner'
 import { createDIDFromEd25519PublicKey, generateSigningKeyPair, hybridSign } from '@xnetjs/crypto'
 import { resolveEntitlements } from '@xnetjs/entitlements'
 import { describe, expect, it, vi } from 'vitest'
@@ -197,5 +198,47 @@ describe('resolveTenantAddress', () => {
     url = 'https://fargate.example'
     const after = await resolveTenantAddress(tenant({ hubUrl: url }), deps)
     expect(after?.record?.url).toBe('https://fargate.example')
+  })
+})
+
+/**
+ * The fleet drill (exploration 0423). Two tenants placed across a simulated
+ * project-shard boundary must both resolve, and neither address may be
+ * something a client could have hard-coded.
+ */
+describe('fleet drill across a project-shard boundary', () => {
+  it('resolves both tenants, and neither address is client configuration', async () => {
+    // servicesPerProject: 1 puts tenant 2 in the NEXT project shard, which is
+    // where a per-project assumption would break.
+    const allocator = new ShardAllocator({ projectPrefix: 'xnet-hub', servicesPerProject: 1 })
+    const placements = [allocator.allocate(), allocator.allocate()]
+    expect(placements).toEqual(['xnet-hub-0', 'xnet-hub-1'])
+
+    const store = new MemoryAddressMirrorStore()
+    const urlFor = (project: string): string => `https://hub-${project}.run.app`
+    const resolutions = await Promise.all(
+      placements.map((project, i) =>
+        resolveTenantAddress(tenant({ tenantId: `t${i}`, hubUrl: urlFor(project) }), {
+          store,
+          fetchImpl: (async (input: string) =>
+            jsonResponse(
+              signedRecord({
+                url: input.replace(HUB_ADDRESS_PATH, '')
+              })
+            )) as never
+        })
+      )
+    )
+
+    expect(resolutions.map((r) => r?.record?.url)).toEqual([
+      'https://hub-xnet-hub-0.run.app',
+      'https://hub-xnet-hub-1.run.app'
+    ])
+    // Each tenant's address came from resolution, not from a stored constant:
+    // the client only ever held the hub's DID.
+    for (const resolution of resolutions) {
+      expect(resolution?.record?.did).toBe(HUB_DID)
+      expect(resolution?.liveness.status).toBe('ready')
+    }
   })
 })

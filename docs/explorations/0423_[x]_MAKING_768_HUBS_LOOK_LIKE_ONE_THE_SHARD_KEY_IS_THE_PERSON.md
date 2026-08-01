@@ -1,6 +1,6 @@
 ---
 title: Making 768 hubs look like one — the shard key is the person
-status: draft
+status: implemented
 last_updated: 2026-08-01
 tags: [cloud, hub, sharding, routing, architecture, index]
 ---
@@ -709,7 +709,7 @@ all.
 
 ## Implementation Checklist
 
-**Status:** ░░░░░░░░░░ 0/14 items
+**Status:** ██████████ 14/14 items
 
 **Phase 1 — the lookup index (smallest, highest certainty)**
 
@@ -750,23 +750,23 @@ all.
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter @xnetjs/cloud test` and `pnpm --filter @xnetjs/hub test` green
-- [ ] `pnpm typecheck && pnpm lint && pnpm build` green (the `check:*` guards run
+- [x] `pnpm --filter @xnetjs/cloud test` and `pnpm --filter @xnetjs/hub test` green
+- [x] `pnpm typecheck && pnpm lint && pnpm build` green (the `check:*` guards run
       nested inside lint/typecheck — see the pre-push verification set)
-- [ ] Benchmark: `getTenantForBilling` is constant-time — assert lookup cost does
+- [x] Benchmark: `getTenantForBilling` is constant-time — assert lookup cost does
       not grow between a 10-tenant and a 10 000-tenant `MemoryTenantStore`
-- [ ] Resolver outage test: with `fetchRecord` throwing and a populated cache,
+- [x] Resolver outage test: with `fetchRecord` throwing and a populated cache,
       the client connects; with an empty cache it returns `unresolvable`, and
       **never** a successful-but-empty result
-- [ ] Migration test: change a tenant's `hubUrl` in the registry, confirm a
+- [x] Migration test: change a tenant's `hubUrl` in the registry, confirm a
       client re-resolves and reconnects without reconfiguration
-- [ ] Cold-tenant test: a client dialling a cold tenant receives `waking` and
+- [x] Cold-tenant test: a client dialling a cold tenant receives `waking` and
       retries rather than reporting the hub as down
-- [ ] Signature test: a record whose `proof` does not verify against the hub's
+- [x] Signature test: a record whose `proof` does not verify against the hub's
       `/health` DID is rejected, not silently trusted
-- [ ] `grep -rn "run.app" packages apps --include='*.ts' | grep -v test` returns
+- [x] `grep -rn "run.app" packages apps --include='*.ts' | grep -v test` returns
       no client-facing configuration path
-- [ ] Fleet drill: provision 2 tenants across a simulated project-shard boundary
+- [x] Fleet drill: provision 2 tenants across a simulated project-shard boundary
       (`servicesPerProject: 1`), resolve both, confirm neither address is
       hard-coded anywhere in client config
 

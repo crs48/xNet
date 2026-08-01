@@ -171,8 +171,7 @@ describe('resolveHubUrl', () => {
 
   it('discards an unverifiable record rather than dialling it', async () => {
     const attacker = generateSigningKeyPair()
-    const unsigned = { ...signedRecord(), url: 'https://attacker.example' }
-    const { proof: _drop, ...rest } = unsigned
+    const rest = { ...signedRecord(), url: 'https://attacker.example' }
     const forged: HubAddressRecord = {
       ...rest,
       proof: toBase64(

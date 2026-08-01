@@ -71,7 +71,10 @@ export const createHubAddressRoutes = (
       return c.json({ error: 'Hub has no configured public URL', code: 'NO_PUBLIC_URL' }, 503)
     }
     const record = buildHubAddressRecord(identity, options)
-    c.header('Cache-Control', `public, max-age=${Math.floor((record.validUntil - record.issuedAt) / 1000)}`)
+    c.header(
+      'Cache-Control',
+      `public, max-age=${Math.floor((record.validUntil - record.issuedAt) / 1000)}`
+    )
     return c.json(record)
   })
 

@@ -13,7 +13,7 @@
  * scaffolding" becomes "a second search architecture nobody chose".
  */
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { resolveConfig } from '../src/config'
@@ -61,14 +61,14 @@ describe('shard ring dormancy', () => {
 // Tiny local fs helpers so the walk above stays readable.
 function readdirSyncSafe(dir: string): string[] {
   try {
-    return require('node:fs').readdirSync(dir) as string[]
+    return readdirSync(dir)
   } catch {
     return []
   }
 }
 function isDir(path: string): boolean {
   try {
-    return (require('node:fs').statSync(path) as { isDirectory(): boolean }).isDirectory()
+    return statSync(path).isDirectory()
   } catch {
     return false
   }

@@ -95,10 +95,13 @@ export function verifyHubAddress(record: HubAddressRecord): boolean {
     if (!publicKey) return false
     const signature = base64ToBytes(record.proof)
     if (signature.length !== 64) return false
-    const { proof: _proof, ...unsigned } = record
-    return hybridVerify(canonicalHubAddressBytes(unsigned), { level: 0, ed25519: signature }, {
-      ed25519: publicKey
-    }).valid
+    return hybridVerify(
+      canonicalHubAddressBytes(record),
+      { level: 0, ed25519: signature },
+      {
+        ed25519: publicKey
+      }
+    ).valid
   } catch {
     return false
   }
