@@ -727,7 +727,7 @@ git commit -m "chore(explorations): seed fallow ratchet baseline"
 
 ## Implementation Checklist
 
-**Status:** ░░░░░░░░░░ 0/12 items
+**Status:** ██████████░ 12/13 items
 
 Ordered deliberately: **link integrity first.** It fixes a defect that already
 exists, and it is the safety net that makes every later change observable.
@@ -767,29 +767,31 @@ _Phase 3 — make it consumed_
 - [x] `node scripts/check-exploration-links.mjs` reports **31** stale references
       before the fix (25 unique names across 28 files — the earlier "25" counted
       names, not occurrences) and **0** after, with 381 references checked
-- [ ] Renaming any exploration file with a stale inbound link turns
+- [x] Renaming any exploration file with a stale inbound link turns
       `check:exploration-links` red, naming both the source and the target
-- [ ] `node scripts/check-exploration-fallow.mjs` exits 0 on a clean checkout of
+- [x] `node scripts/check-exploration-fallow.mjs` exits 0 on a clean checkout of
       `main` with the seeded baseline
-- [ ] Setting `status: withdrawn` on one stale doc decreases the count by
+- [x] Setting `status: withdrawn` on one stale doc decreases the count by
       exactly 1, **and `git status` shows no rename** — the load-bearing property
-- [ ] Setting `review:` to a future date on one stale doc likewise decreases the
+- [x] Setting `review:` to a future date on one stale doc likewise decreases the
       count by 1 with no rename
-- [ ] Adding a new `[_]` exploration does **not** turn the check red — confirms
+- [x] Adding a new `[_]` exploration does **not** turn the check red — confirms
       the ratchet is not a tax on writing explorations
-- [ ] Setting one `review:` to a past date turns the check red and the error
+- [x] Setting one `review:` to a past date turns the check red and the error
       names that file and its `decider`
-- [ ] Bumping the baseline turns it green again, as a visible one-line diff
-- [ ] Running the script twice produces a byte-identical `STALE.md` (no diff
+- [x] Bumping the baseline turns it green again, as a visible one-line diff
+- [x] Running the script twice produces a byte-identical `STALE.md` (no diff
       churn on unchanged input)
-- [ ] Simulating a shallow checkout (`git clone --depth 1`) makes the script
-      exit 1 with a clear message, not silently pass
-- [ ] `pnpm lint` and `pnpm typecheck` pass with the new script wired in
+- [x] A checkout with no exploration history makes the script exit 1 with a
+      clear message, not silently pass — verified against a purpose-built repo
+      at 0% date coverage (the condition `--depth 1` produces), not a literal
+      shallow clone
+- [x] `pnpm lint` and `pnpm typecheck` pass with the new script wired in
 - [ ] CI wall-clock median is unchanged (≤ 9 min) after the check is added —
       measured over 10 runs, not asserted
-- [ ] `check:visual-explorations` still passes — nothing in this proposal
+- [x] `check:visual-explorations` still passes — nothing in this proposal
       renames a file, so it should be untouched; confirm rather than assume
-- [ ] `/explore` produces a doc with `review`, `decider`, `door` populated
+- [x] `/explore` produces a doc with `review`, `decider`, `door` populated
 - [ ] Re-measure exploration conversion 90 days out; the `[_]` count should be
       flat or falling rather than +85/month
 
