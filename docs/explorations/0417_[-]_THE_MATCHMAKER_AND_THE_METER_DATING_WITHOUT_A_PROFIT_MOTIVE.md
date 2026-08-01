@@ -624,7 +624,7 @@ stateDiagram-v2
 - [x] Pin the receipt in the claims ledger
       (`packages/telemetry/test/charter-claims-ledger.test.ts`).
 - [x] Cross-link this exploration from 0174 and vice versa.
-- [ ] Write a changelog fragment (`node scripts/changelog/new.mjs`) — a new
+- [x] Write a changelog fragment (`node scripts/changelog/new.mjs`) — a new
       essay is user-visible.
 - [ ] Open the PR; no changeset needed unless `scripts/` counts as a
       publishable package (it does not).
