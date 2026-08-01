@@ -1,6 +1,6 @@
 ---
 title: Should The User Be In Charge? Surrender As A Design Constraint
-status: draft # mirrors the [_]/[-]/[x] filename checkbox
+status: partial # mirrors the [_]/[-]/[x] filename checkbox
 last_updated: 2026-08-01
 tags: [design, charter, vibe, schema, agents, philosophy]
 ---
@@ -483,6 +483,22 @@ export function proposePromotion(
 
 ---
 
+> [!CAUTION]
+> **Found during implementation: the promotion suggestion has nothing to suggest
+> yet.** `proposePromotion` landed and is tested, but the UI wiring (checklist
+> item 9) is **blocked on a missing producer**. Nothing in the repo ever creates
+> an `ext:` overlay key at runtime — `addExtensionField`
+> ([`packages/data/src/database/extension-field-operations.ts`](../../packages/data/src/database/extension-field-operations.ts))
+> has **zero call sites** outside its own tests, and no `ext:` literal is written
+> anywhere outside `packages/data/src`. Database rows key their cells by
+> `fieldId` through `fromCellProperties`, not by overlay key.
+>
+> So a suggestion banner in the database view could never fire. Shipping one
+> would read as a finished feature while being dead code — the exact
+> "plausible-looking normal state" `AGENTS.md` §Errors warns against. The
+> prerequisite is a user-facing path that creates extension fields; until that
+> exists, the counting half stays a library function with tests.
+
 ## Risks And Open Questions
 
 - **Removing the streak may be unpopular with its users.** The habit tracker
@@ -539,24 +555,36 @@ export function proposePromotion(
 
 ## Validation Checklist
 
-- [ ] `pnpm lint` passes with the new humane-pattern rules — and **fails** on a
+- [x] `pnpm lint` passes with the new humane-pattern rules — and **fails** on a
       deliberately re-added `🔥 {streak}` before the fix lands
-- [ ] `node scripts/check-humane-patterns.mjs --selftest` passes with the new
+- [x] `node scripts/check-humane-patterns.mjs --selftest` passes with the new
       planted cases
-- [ ] `pnpm --filter @xnetjs/dashboard test` and
+- [x] `pnpm --filter @xnetjs/dashboard test` and
       `pnpm --filter @xnetjs/experiments test` green after the widget change
-- [ ] `pnpm --filter @xnetjs/data test` green, including new `proposePromotion`
+- [x] `pnpm --filter @xnetjs/data test` green, including new `proposePromotion`
       cases
-- [ ] Grep proves no remaining streak/flame render path:
+- [x] Grep proves no remaining streak/flame render path:
       `grep -rn "computeStreak\|🔥" packages apps --include="*.tsx"` returns only
       `humane-ok`-annotated lines
 - [ ] Drive the real app (per
       [`apps/electron/AGENTS.md`](../../apps/electron/AGENTS.md)) and confirm the
       habit widget still reads usefully with a rate instead of a chain
+      — **attempted, not achieved.** The web app booted with test bypass and a
+      full seed, but neither habit surface was reachable: `Today` is a
+      `dock.left` slot view that the web shell's sidebar+editor layout does not
+      surface, and the seeded dashboard writes `widgetType: 'heatmap.streak'`
+      while the widget registers as `experiments.streak-heatmap`
+      ([`dashboard-builder.ts:155`](../../packages/devtools/src/seed/builders/dashboard-builder.ts)),
+      so the seeded widget resolves to nothing. That stale id is a pre-existing
+      bug, filed separately. The behaviour change is covered by unit tests,
+      typecheck and the gate; only the visual read is unconfirmed.
 - [ ] Promotion suggestion verified end to end in the running app: appears at
       threshold, dismissal survives reload, accepting is reversible
-- [ ] Changelog fragment written explaining the streak removal in user terms
-- [ ] VIBE.md's "How this document stays honest" section updated so both new
+      — **blocked** on the same missing producer as implementation item 9;
+      nothing creates an `ext:` overlay key at runtime, so there is nothing to
+      verify yet.
+- [x] Changelog fragment written explaining the streak removal in user terms
+- [x] VIBE.md's "How this document stays honest" section updated so both new
       rules carry receipts
 
 ---

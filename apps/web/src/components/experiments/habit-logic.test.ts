@@ -59,7 +59,10 @@ describe('habit-logic', () => {
     // Exploration 0422: a chain a single miss destroys must not reach a surface
     // the user did not go looking at. Strength decays, rate lowers; neither breaks.
     const today = day('2026-06-14')
-    const summary = habitSummary(meditate, [obs('m1', today)], today) as Record<string, unknown>
+    const summary = habitSummary(meditate, [obs('m1', today)], today) as unknown as Record<
+      string,
+      unknown
+    >
     expect(summary).not.toHaveProperty('streak')
     expect(summary).not.toHaveProperty('longest')
   })

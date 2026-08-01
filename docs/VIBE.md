@@ -191,7 +191,27 @@ portability.
 Like the charter, a feel with no receipt is just marketing. The enforced
 parts (no scorekeeping, no streaks, calm motion) live in CI gates. The
 cultivated parts live in what we ship: the seed workspace demonstrates a
-scene, not a corporation; first-run asks how xNet should feel. When a
-design review needs a tiebreak, the question this document contributes is:
+scene, not a corporation; first-run asks how xNet should feel.
+
+Receipts for the two rules added in exploration 0422:
+
+| Rule                            | Receipt                                                                                                                                                                      | Kind          |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| Measurement is pull, never push | [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs) — streak math in a render path, loss-aversion iconography; dark scope covers workbench/dashboard | Enforced      |
+| Measurement is pull, never push | [`streak-heatmap-widget.tsx`](../packages/dashboard/src/widgets/streak-heatmap-widget.tsx), [`TodayPanel.tsx`](../packages/workbench/src/views/TodayPanel.tsx) render rates  | Architectural |
+| Surrender scales with exit      | `scaffold` default + cognitive-debt guard ([`ai/runtime.ts`](../packages/plugins/src/ai/runtime.ts)); §Exit is the bound                                                     | Architectural |
+| Surrender scales with exit      | No gate can check "did this feature point at its exit path" — it is a review question                                                                                        | Cultural      |
+
+That last row is the honest gap: a rule enforced only by attention is a rule
+that will eventually be missed. The streak is the proof — it shipped under two
+documents that banned it. When a gate cannot decide the question, the mitigation
+is that the question gets asked out loud in review, not that we call it enforced.
+
+When a design review needs a tiebreak, the questions this document contributes
+are:
 
 > _Does this widen the scene's room, or claim it for the platform?_
+>
+> _Did the user go looking for this number, or did it come to them?_
+>
+> _If they want this to stop, what does stopping cost?_
