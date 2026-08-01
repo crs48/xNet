@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Your imported social library is now legible, projectable, and searchable by transcript</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-your-imported-social-library-is-now-legi</link>
+      <guid isPermaLink="false">2026-08-01-your-imported-social-library-is-now-legi</guid>
+      <pubDate>Sat, 01 Aug 2026 22:42:15 GMT</pubDate>
+      <description>Imported TikTok favourites and collections get their own feeds, every surface now shows real titles and thumbnails instead of platform ids, a saved lens can be projected onto the canvas as cards with the connections between them, and YouTube transcripts can be fetched per import run so an AI agent can search what was actually said in videos you saved.</description>
+    </item>
+    <item>
       <title>Habit tracking shows a completion rate, not a breakable streak</title>
       <link>https://xnet.fyi/changelog#2026-08-01-habit-tracking-shows-a-completion-rate-n</link>
       <guid isPermaLink="false">2026-08-01-habit-tracking-shows-a-completion-rate-n</guid>

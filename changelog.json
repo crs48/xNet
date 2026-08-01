@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-01-your-imported-social-library-is-now-legi",
+      "url": "https://xnet.fyi/changelog#2026-08-01-your-imported-social-library-is-now-legi",
+      "title": "Your imported social library is now legible, projectable, and searchable by transcript",
+      "content_text": "Imported TikTok favourites and collections get their own feeds, every surface now shows real titles and thumbnails instead of platform ids, a saved lens can be projected onto the canvas as cards with the connections between them, and YouTube transcripts can be fetched per import run so an AI agent can search what was actually said in videos you saved.\n",
+      "date_published": "2026-08-01T22:42:15Z",
+      "tags": [
+        "app",
+        "ai"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "Imported TikTok favourites and collections get their own feeds, every surface now shows real titles and thumbnails instead of platform ids, a saved lens can be projected onto the canvas as cards with the connections between them, and YouTube transcripts can be fetched per import run so an AI agent can search what was actually said in videos you saved.",
+        "highlights": [],
+        "mergedAt": "2026-08-01T22:42:15Z",
+        "pr": 674,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-01-habit-tracking-shows-a-completion-rate-n",
       "url": "https://xnet.fyi/changelog#2026-08-01-habit-tracking-shows-a-completion-rate-n",
       "title": "Habit tracking shows a completion rate, not a breakable streak",
