@@ -489,15 +489,15 @@ function start(): void {
     jobId: 'cold-demotion-sweep',
     intervalMs: sweepMs,
     work: async () => {
-      const tenants = await controlPlane.listTenants()
       const now = Date.now()
-      for (const t of tenants) {
+      // Paged (0423): a sweep tick never materialises the whole fleet.
+      await controlPlane.forEachTenant(async (t) => {
         if (demotionDue(t, now, coldAfterMs)) {
           await controlPlane
             .demoteIfCold(t.tenantId, { coldAfterMs, assertSynced })
             .catch(() => undefined)
         }
-      }
+      })
     }
   })
 
@@ -514,13 +514,15 @@ function start(): void {
     work: async () => {
       const now = Date.now()
       const results: { tenantId: string; outcome: BillingOutcome }[] = []
-      for (const t of await controlPlane.listTenants()) {
+      // Paged (0423): the dunning sweep is per-tenant and level-triggered, so it
+      // walks the fleet a page at a time rather than loading all of it.
+      await controlPlane.forEachTenant(async (t) => {
         const action = reconcileBilling(reconcileInputFor(t, now))
         const outcome = await applyBillingAction(controlPlane, notifier, t, action, now, {
           deleteEnabled
         })
         results.push({ tenantId: t.tenantId, outcome })
-      }
+      })
       const summary = summarizeSweep(results)
       if (summary.applied || summary.failed || summary.skipped) {
         // eslint-disable-next-line no-console

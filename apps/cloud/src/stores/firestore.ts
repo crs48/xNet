@@ -10,11 +10,16 @@
 
 import type { TenantRecord, TenantStore } from '../registry'
 import type { BindingStore, TenantBinding } from '@xnetjs/cloud/identity'
-import { Firestore, type CollectionReference, type DocumentData } from '@google-cloud/firestore'
+import {
+  FieldPath,
+  Firestore,
+  type CollectionReference,
+  type DocumentData
+} from '@google-cloud/firestore'
 import { type JobRecord } from '../jobs/leased'
 import { nonceStoreFromDocs, type NonceRecord, type NonceStore } from '../nonce'
 import { type RolloutRun, type RolloutRunStore } from '../rollout/run-record'
-import { bindingStoreFromDocs, tenantStoreFromDocs, type DocStore } from './durable'
+import { bindingStoreFromDocs, tenantStoreFromDocs, type DocPage, type DocStore } from './durable'
 
 export class FirestoreDocStore<T> implements DocStore<T> {
   constructor(private readonly col: CollectionReference) {}
@@ -32,6 +37,29 @@ export class FirestoreDocStore<T> implements DocStore<T> {
   async list(): Promise<T[]> {
     const snap = await this.col.get()
     return snap.docs.map((d) => d.data() as T)
+  }
+  /**
+   * A real indexed query — the point of the port (0423). Firestore serves
+   * single-field equality from its automatic index, so the billing-webhook
+   * lookup costs one document read instead of a full-collection scan.
+   */
+  async findWhere(field: string, value: string): Promise<T[]> {
+    const snap = await this.col
+      .where(field, '==', value)
+      .orderBy(FieldPath.documentId())
+      .get()
+    return snap.docs.map((d) => d.data() as T)
+  }
+  async page(cursor: string | null, limit: number): Promise<DocPage<T>> {
+    if (limit < 1) throw new Error(`page limit must be >= 1, got ${limit}`)
+    let query = this.col.orderBy(FieldPath.documentId()).limit(limit)
+    if (cursor !== null) query = query.startAfter(cursor)
+    const snap = await query.get()
+    const items = snap.docs.map((d) => d.data() as T)
+    // A short page means the collection is exhausted; a full page may or may
+    // not be, so we hand back a cursor and let the next call find out.
+    const next = items.length < limit ? null : (snap.docs[snap.docs.length - 1]?.id ?? null)
+    return { items, next }
   }
 }
 

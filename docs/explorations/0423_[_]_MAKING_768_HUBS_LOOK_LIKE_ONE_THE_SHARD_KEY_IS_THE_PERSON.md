@@ -713,11 +713,11 @@ all.
 
 **Phase 1 — the lookup index (smallest, highest certainty)**
 
-- [ ] Add `getByBillingUser` to the `TenantStore` interface in `apps/cloud/src/registry.ts`
-- [ ] Implement it in `MemoryTenantStore` with an index `Map` maintained in `put`/`delete`
-- [ ] Rewrite `ControlPlane.getTenantForBilling` to call it; remove the `list().find()` scan
-- [ ] Add `page(cursor, limit)` to `TenantStore` and use it wherever `list()` drives a loop
-- [ ] Unit test: index stays consistent across `put` → `put` (billing user changed) → `delete`
+- [x] Add `getByBillingUser` to the `TenantStore` interface in `apps/cloud/src/registry.ts`
+- [x] Implement it in `MemoryTenantStore` with an index `Map` maintained in `put`/`delete`
+- [x] Rewrite `ControlPlane.getTenantForBilling` to call it; remove the `list().find()` scan
+- [x] Add `page(cursor, limit)` to `TenantStore` and use it wherever `list()` drives a loop
+- [x] Unit test: index stays consistent across `put` → `put` (billing user changed) → `delete`
 
 **Phase 2 — the hub address record**
 
