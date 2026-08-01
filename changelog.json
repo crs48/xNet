@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-31-record-your-screen-without-anything-leav",
+      "url": "https://xnet.fyi/changelog#2026-07-31-record-your-screen-without-anything-leav",
+      "title": "Record your screen without anything leaving your device",
+      "content_text": "Capture your screen and camera, get a transcript, and let xNet propose cuts for dead air — all on your machine. Edits are non-destructive: every cut is listed, reversible, and the original is never overwritten.\n",
+      "date_published": "2026-08-01T01:34:42Z",
+      "tags": [
+        "app",
+        "ai"
+      ],
+      "_xnet": {
+        "date": "July 31, 2026",
+        "summary": "Capture your screen and camera, get a transcript, and let xNet propose cuts for dead air — all on your machine. Edits are non-destructive: every cut is listed, reversible, and the original is never overwritten.",
+        "highlights": [],
+        "mergedAt": "2026-08-01T01:34:42Z",
+        "pr": 666,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-31-approve-an-agent-s-high-risk-changes-wit",
       "url": "https://xnet.fyi/changelog#2026-07-31-approve-an-agent-s-high-risk-changes-wit",
       "title": "Approve an agent's high-risk changes without leaving the app",

@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Record your screen without anything leaving your device</title>
+      <link>https://xnet.fyi/changelog#2026-07-31-record-your-screen-without-anything-leav</link>
+      <guid isPermaLink="false">2026-07-31-record-your-screen-without-anything-leav</guid>
+      <pubDate>Sat, 01 Aug 2026 01:34:42 GMT</pubDate>
+      <description>Capture your screen and camera, get a transcript, and let xNet propose cuts for dead air — all on your machine. Edits are non-destructive: every cut is listed, reversible, and the original is never overwritten.</description>
+    </item>
+    <item>
       <title>Approve an agent's high-risk changes without leaving the app</title>
       <link>https://xnet.fyi/changelog#2026-07-31-approve-an-agent-s-high-risk-changes-wit</link>
       <guid isPermaLink="false">2026-07-31-approve-an-agent-s-high-risk-changes-wit</guid>
