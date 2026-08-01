@@ -4,5 +4,14 @@
   "title": "A failed payment no longer silently stalls your hub",
   "summary": "If a card fails, xNet Cloud now walks a clear path instead of doing nothing: two weeks of normal service while the charge retries, then read-only (everything stays readable and exportable), then a paused hub with your encrypted data kept in cold storage. You get an email at every step, with real dates, and paying at any point restores everything immediately. Data on your own devices is never affected.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 673,
+  "mergedAt": "2026-08-01T20:23:44Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
