@@ -267,6 +267,10 @@ export {
   useDataWorkspace,
   getDefaultSocialWorkspaceSeeds,
   upsertDefaultSocialWorkspace,
+  clearPendingCanvasLens,
+  stashPendingCanvasLens,
+  takePendingCanvasLens,
+  type PendingCanvasLens,
   type DataWorkspaceBodyProps,
   type GraphAtlasRow,
   type SavedViewCanvasFrameInput,
@@ -276,6 +280,10 @@ export {
   type UseDataWorkspaceResult,
   type WorkspaceMetric
 } from './data-workspace/index.js'
+
+// Social feed enrichment (0170/0419) — shared so the desktop app gets the
+// same titles and thumbnails the web app has had since 0170.
+export { useSocialFeedEnrichment } from './social-enrichment/index.js'
 
 // Shared CanvasView core (exploration 0277 / 0230 Phase 5): canvas
 // capabilities both the web and desktop CanvasViews consume.
@@ -294,6 +302,8 @@ export {
   CanvasWidgetNodeCard,
   getCanvasQueryFrameTargets,
   parseSavedViewDescriptorForCanvasFrame,
+  applySocialCanvasProjectionPlan,
+  describeSocialCanvasProjection,
   useCanvasQueryFrames,
   isPeekableCanvasDisplayType,
   shouldActivateDatabasePreviewSurface,

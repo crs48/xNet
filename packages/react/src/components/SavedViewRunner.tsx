@@ -240,6 +240,21 @@ export type SavedViewVisualLayoutOption = {
   projectionGroupBy: 'platform' | 'kind' | 'creator' | 'privacy'
 }
 
+/**
+ * A relationship between two projected nodes.
+ *
+ * `relationshipKind` stays an open string here rather than the social
+ * package's closed vocabulary: this package must not depend on that one, and
+ * the consumer that cares narrows it when it builds a layout plan.
+ */
+export type SavedViewCanvasProjectionEdge = {
+  id: string
+  sourceId: string
+  targetId: string
+  relationshipKind: string
+  label?: string
+}
+
 export type SavedViewVisualCanvasProjectionRequest = {
   id: string
   title: string
@@ -254,6 +269,8 @@ export type SavedViewVisualCanvasProjectionRequest = {
     projectionGroupBy: SavedViewVisualLayoutOption['projectionGroupBy']
   }
   nodes: SavedViewCanvasProjectionNode[]
+  /** Relationships between the projected nodes, when the result carries any. */
+  edges: SavedViewCanvasProjectionEdge[]
   sourceNodeIds: string[]
   omittedNodeCount: number
   previewCount: number
@@ -1027,6 +1044,18 @@ export function SavedViewRunner({
     () => deriveSavedViewVisualGraphEdges(arrangedVisualPreviews),
     [arrangedVisualPreviews]
   )
+  // The same relationships, in the shape a canvas projection consumes (0419).
+  const visualCanvasProjectionEdges = useMemo<SavedViewCanvasProjectionEdge[]>(
+    () =>
+      visualGraphEdges.map((edge) => ({
+        id: edge.id,
+        sourceId: edge.sourceNodeId,
+        targetId: edge.targetNodeId,
+        relationshipKind: edge.kind,
+        label: edge.kind
+      })),
+    [visualGraphEdges]
+  )
   const presentationModeOptions = useMemo(
     () =>
       createSavedViewPresentationModeOptions({
@@ -1494,6 +1523,7 @@ export function SavedViewRunner({
           <SavedViewVisualCanvasProjectionPanel
             previews={arrangedVisualPreviews}
             projectionNodes={visualCanvasProjectionNodes}
+            projectionEdges={visualCanvasProjectionEdges}
             layout={activeVisualLayout}
             descriptor={result.descriptor ?? descriptor}
             title={title ?? result.title ?? 'Visual saved view'}
@@ -2185,6 +2215,7 @@ export function createSavedViewVisualCanvasProjectionRequest(input: {
   layout: SavedViewVisualLayoutOption
   previews: readonly SavedViewVisualPreviewModel[]
   nodes: readonly SavedViewCanvasProjectionNode[]
+  edges?: readonly SavedViewCanvasProjectionEdge[]
 }): SavedViewVisualCanvasProjectionRequest {
   const id = ['saved-view-visual-projection', input.sourceQueryId ?? 'query', input.layout.id].join(
     ':'
@@ -2204,6 +2235,12 @@ export function createSavedViewVisualCanvasProjectionRequest(input: {
       projectionGroupBy: input.layout.projectionGroupBy
     },
     nodes: [...input.nodes],
+    // Only relationships between nodes that made the projection cut; an edge
+    // to something that was not placed would render as a line to nowhere.
+    edges: (input.edges ?? []).filter((edge) => {
+      const placed = new Set(input.nodes.map((node) => node.id))
+      return placed.has(edge.sourceId) && placed.has(edge.targetId)
+    }),
     sourceNodeIds: input.nodes.map((node) => node.id),
     omittedNodeCount: Math.max(0, input.previews.length - input.nodes.length),
     previewCount: input.previews.length
@@ -2229,6 +2266,7 @@ function groupCanvasProjectionNodes(
 function SavedViewVisualCanvasProjectionPanel({
   previews,
   projectionNodes,
+  projectionEdges,
   layout,
   descriptor,
   title,
@@ -2239,6 +2277,7 @@ function SavedViewVisualCanvasProjectionPanel({
 }: {
   previews: SavedViewVisualPreviewModel[]
   projectionNodes: SavedViewCanvasProjectionNode[]
+  projectionEdges?: SavedViewCanvasProjectionEdge[]
   layout: SavedViewVisualLayoutOption
   descriptor?: SavedViewDescriptor | string | null
   title: string
@@ -2266,7 +2305,8 @@ function SavedViewVisualCanvasProjectionPanel({
     sourceSchemaId,
     layout,
     previews,
-    nodes: projectionNodes
+    nodes: projectionNodes,
+    ...(projectionEdges ? { edges: projectionEdges } : {})
   })
 
   return (
