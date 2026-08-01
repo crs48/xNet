@@ -701,13 +701,17 @@ And the one-line extension to the index engine:
 
 **WP0 — Unblock (nothing else can start)**
 
-- [ ] Fix [`site/public/oauth/atproto-client.json`](../../site/public/oauth/atproto-client.json)
+- [x] Fix [`site/public/oauth/atproto-client.json`](../../site/public/oauth/atproto-client.json)
       scope: `atproto repo:fyi.xnet.identity.binding repo:community.lexicon.bookmarks.bookmark`
       (0372 D1, still 0 records network-wide as of 2026-08-01).
-- [ ] Verify end-to-end that `putRecord` succeeds after the scope change —
-      measure `fyi.xnet.identity.binding` count moving off zero.
-- [ ] Publish `fyi.xnet.*` lexicon schemas via `com.atproto.lexicon.schema` and
-      add the `_lexicon.xnet.fyi` TXT record (absent today, verified).
+- [ ] **Ops, not code:** verify end-to-end that `putRecord` succeeds after the
+      scope change — measure `fyi.xnet.identity.binding` count moving off zero.
+      Needs a real PDS session and a consenting user.
+- [x] Author `fyi.xnet.*` lexicon schemas under `lexicons/` + a validating
+      publish script (`scripts/atproto/publish-lexicons.mjs --dry-run`).
+- [ ] **Ops, not code:** run the publish script against the xNet DID and add the
+      `_lexicon.xnet.fyi` TXT record (absent today, verified). Needs registrar
+      access and a live session — cannot be done from CI.
 
 **WP1 — The projector**
 
