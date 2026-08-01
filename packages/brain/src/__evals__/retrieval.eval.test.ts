@@ -17,6 +17,15 @@
 
 import { describe, expect, it } from 'vitest'
 import { retrieve } from '../retrieve'
+import { DEFAULT_BUDGET, type RetrievalBudget } from '../types'
+import {
+  budgetFromProfile,
+  DEFAULT_RETRIEVAL_PROFILE,
+  normalizeProfile,
+  ratchetProfile,
+  type ProfileScores,
+  type RetrievalProfile
+} from '../retrieval-profile'
 import { createDeps } from './corpus'
 import { GOLDEN, mean, recallAt, reciprocalRank, round2 } from './golden'
 
@@ -59,11 +68,11 @@ interface CaseResult {
   returned: string[]
 }
 
-async function runGoldenSet(): Promise<CaseResult[]> {
+async function runGoldenSet(budget: Partial<RetrievalBudget> = BUDGET): Promise<CaseResult[]> {
   const deps = createDeps()
   const results: CaseResult[] = []
   for (const testCase of GOLDEN) {
-    const pack = await retrieve(testCase.query, BUDGET, deps)
+    const pack = await retrieve(testCase.query, budget, deps)
     // Budget overflow is still "found" for recall purposes — the agent can pull
     // an expandable ref with a tool. Ranking is what MRR measures.
     const returned = [
@@ -159,5 +168,80 @@ describe('golden-set retrieval eval (0394)', () => {
       expect(pack.items.map((i) => i.nodeId)).not.toContain(secret)
       expect(pack.expandable.map((r) => r.nodeId)).not.toContain(secret)
     }
+  })
+})
+
+/**
+ * The ratchet, scored against this eval (exploration 0415).
+ *
+ * A locally-tuned `RetrievalProfile` is only adopted when the *pinned* golden
+ * set does not regress. Scoring a profile on the behaviour that produced it is
+ * how a retriever convinces itself it has improved while getting worse at
+ * everything the user has not done yet — so the gate is this fixed corpus, and
+ * nothing else.
+ */
+describe('retrieval profile ratchet (0415)', () => {
+  async function score(profile: RetrievalProfile): Promise<ProfileScores> {
+    const results = await runGoldenSet(budgetFromProfile(profile, { ...DEFAULT_BUDGET, ...BUDGET }))
+    const graph = results.filter((r) => r.kind === 'graph')
+    return {
+      recallAll: round2(mean(results.map((r) => r.recall))),
+      recallGraph: round2(mean(graph.map((r) => r.recall))),
+      mrr: round2(mean(results.map((r) => r.rr)))
+    }
+  }
+
+  /**
+   * Measured, not assumed. The first draft of this test asserted that a steep
+   * hop penalty (0.2) would regress the graph cases — it does the opposite:
+   *
+   *   hopDecay=0.55 (shipped)  all=0.81  graph=0.50  mrr=0.69
+   *   hopDecay=0.20            all=0.85  graph=0.60  mrr=0.71
+   *
+   * 0394's sweep only covered [0.35, 0.85] and found no winner inside it. The
+   * default has NOT been moved on this: the whole gap is one or two golden
+   * cases, which is this eval's resolution rather than a signal — the same
+   * argument 0394 made for leaving it alone. What the ratchet proves here is
+   * that it would accept the change if the evidence were stronger, and that it
+   * is scoring the pinned corpus rather than the user's own behaviour.
+   */
+  it('adopts a measured improvement on the pinned corpus', async () => {
+    const baseline = await score(DEFAULT_RETRIEVAL_PROFILE)
+    const candidate = normalizeProfile({ ...DEFAULT_RETRIEVAL_PROFILE, hopDecay: 0.2 })
+    const scored = await score(candidate)
+    const decision = ratchetProfile({ candidate, baseline, scored })
+
+    console.log(
+      `[0415 ratchet] hopDecay 0.55 → 0.2: all ${baseline.recallAll}→${scored.recallAll} ` +
+        `graph ${baseline.recallGraph}→${scored.recallGraph} mrr ${baseline.mrr}→${scored.mrr} ` +
+        `(${decision.adopt ? 'ADOPT' : 'REJECT'}: ${decision.reason})`
+    )
+    expect(decision.adopt).toBe(true)
+    expect(scored.recallGraph).toBeGreaterThan(baseline.recallGraph)
+  })
+
+  it('refuses a candidate that regresses any metric', async () => {
+    const baseline = await score(DEFAULT_RETRIEVAL_PROFILE)
+    // No in-bounds profile regresses this corpus, so the regression is
+    // constructed: the assertion under test is the ratchet's decision rule, and
+    // it must refuse even when overall recall went up.
+    const decision = ratchetProfile({
+      candidate: normalizeProfile({ ...DEFAULT_RETRIEVAL_PROFILE, hopDecay: 0.3 }),
+      baseline,
+      scored: { ...baseline, recallAll: baseline.recallAll + 0.1, mrr: baseline.mrr - 0.05 }
+    })
+    expect(decision.adopt).toBe(false)
+    expect(decision.reason).toContain('mrr')
+  })
+
+  it('refuses a profile that merely matches the baseline', async () => {
+    const baseline = await score(DEFAULT_RETRIEVAL_PROFILE)
+    const decision = ratchetProfile({
+      candidate: DEFAULT_RETRIEVAL_PROFILE,
+      baseline,
+      scored: await score(DEFAULT_RETRIEVAL_PROFILE)
+    })
+    expect(decision.adopt).toBe(false)
+    expect(decision.reason).toBe('no measurable improvement')
   })
 })

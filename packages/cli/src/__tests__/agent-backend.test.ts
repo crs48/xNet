@@ -70,13 +70,19 @@ describe('agent backend ladder', () => {
     }
   })
 
-  it('search returns FTS hits from the standalone store', async () => {
+  it('search returns FTS hits from the standalone store, and says it indexed them', async () => {
     await seedDb(dbPath, KEY)
     const backend = await resolveAgentBackend({ db: dbPath, key: KEY })
     try {
       const services = createAgentServices(backend)
-      const output = await runSearch(services, { text: 'milestone' })
+      const warnings: string[] = []
+      const output = await runSearch(services, { text: 'milestone', warn: (m) => warnings.push(m) })
       expect(output).toContain('Ladder milestone')
+      // The whole point of 0415: a real index reports a real tier, and stays
+      // silent — the warning is reserved for the case that earns it.
+      expect(output.split('\n')[0]).toBe('tier\tbm25-graph')
+      expect(output).toContain('index\tfts5')
+      expect(warnings).toHaveLength(0)
     } finally {
       await backend.dispose()
     }

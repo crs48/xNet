@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  createNodeStoreProxy,
   createSchemaRegistryProxy,
   sendStoreRequest,
   setupStoreResponseHandler
@@ -121,5 +122,50 @@ describe('createSchemaRegistryProxy', () => {
       iri: 'xnet://xnet.fyi/Page@1.0.0',
       name: 'Page'
     })
+  })
+})
+
+/**
+ * The bridged agent's lane had the weakest retrieval of the three: the proxy
+ * carried no `searchText`, so the AI surface fell back to `list({ limit: 500 })`
+ * + substring match — 500 nodes over IPC per search, and a result the agent
+ * could not tell from an exhaustive one (exploration 0415).
+ */
+describe('createNodeStoreProxy searchText', () => {
+  it('asks the renderer, which is the process that owns nodes_fts', async () => {
+    const seen: StoreRequest[] = []
+    windows.push({
+      webContents: {
+        send: (_channel, request) => {
+          seen.push(request)
+          queueMicrotask(() => {
+            for (const listener of respond) {
+              listener(null, {
+                id: request.id,
+                result:
+                  request.operation === 'searchText' ? [{ nodeId: 'page_1', rank: -3.2 }] : null
+              })
+            }
+          })
+        }
+      }
+    })
+
+    const store = createNodeStoreProxy()
+    await expect(store.searchText?.('cutover', 20, { schemaId: 'S' })).resolves.toEqual([
+      { nodeId: 'page_1', rank: -3.2 }
+    ])
+    expect(seen[0]).toMatchObject({
+      operation: 'searchText',
+      params: { query: 'cutover', limit: 20, schemaId: 'S' }
+    })
+  })
+
+  it('passes a renderer `null` straight through, so "no index" stays distinguishable', async () => {
+    // `null` means the storage has no FTS. Coercing it to `[]` here would make
+    // "I cannot search" read as "nothing matched".
+    attachWindow(() => null)
+    const store = createNodeStoreProxy()
+    await expect(store.searchText?.('cutover', 20)).resolves.toBeNull()
   })
 })

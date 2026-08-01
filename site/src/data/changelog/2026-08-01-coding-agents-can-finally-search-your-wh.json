@@ -1,0 +1,11 @@
+{
+  "id": "2026-08-01-coding-agents-can-finally-search-your-wh",
+  "date": "August 1, 2026",
+  "title": "Coding agents can finally search your whole workspace",
+  "summary": "Claude Code and Codex now use xNet's real retrieval instead of scanning the first 500 nodes, the new `xnet recall` answers questions that span several notes and shows how it got there, and xNet remembers what you have told it between sessions.",
+  "highlights": [],
+  "tags": [
+    "ai",
+    "platform"
+  ]
+}

@@ -26,8 +26,7 @@ for (const d of readdirSync(join(root, 'packages'))) {
   }
 }
 
-const published = (name) =>
-  Boolean(meta[name]) && meta[name].private !== true && !ignore.has(name)
+const published = (name) => Boolean(meta[name]) && meta[name].private !== true && !ignore.has(name)
 
 let bad = 0
 for (const [name, p] of Object.entries(meta)) {
@@ -49,7 +48,7 @@ if (bad) {
   console.error(
     `\n✗ ${bad} broken-closure dependency(ies): a published package depends on an` +
       ` unpublished @xnetjs package.\n  Fix by publishing the dependency, inlining it,` +
-      ` or demoting it to devDependencies/peerDependencies.`,
+      ` or demoting it to devDependencies/peerDependencies.`
   )
   process.exit(1)
 }

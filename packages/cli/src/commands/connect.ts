@@ -77,6 +77,59 @@ async function upsertFile(path: string, content: string): Promise<ConnectChange>
   return { path, status: existing === null ? 'created' : 'updated' }
 }
 
+/** Fences marking the region of an instruction file that `xnet connect` owns. */
+export const MANAGED_BEGIN = '<!-- xnet:begin (managed by `xnet connect` — edits here are lost) -->'
+export const MANAGED_END = '<!-- xnet:end -->'
+
+/**
+ * Replace only the block we own, and leave the rest of the file alone.
+ *
+ * `CLAUDE.md` and `AGENTS.md` are the user's, not ours — in this very repo
+ * `CLAUDE.md` is the entry point to the whole instruction tree. `xnet connect`
+ * used to write them wholesale, so wiring up a workspace destroyed whatever was
+ * already there. `.mcp.json` was carefully merged the whole time; the
+ * instruction files just never got the same care (exploration 0415).
+ *
+ * Three cases: no file → create with the block; markers present → replace
+ * between them; content but no markers → append, preserving every existing byte.
+ */
+export function mergeManagedBlock(existing: string | null, block: string): string {
+  const managed = `${MANAGED_BEGIN}\n\n${block.trim()}\n\n${MANAGED_END}\n`
+  if (existing === null || existing.trim() === '') return managed
+
+  const begin = existing.indexOf(MANAGED_BEGIN)
+  const end = existing.indexOf(MANAGED_END)
+  if (begin !== -1 && end > begin) {
+    const before = existing.slice(0, begin)
+    const after = existing.slice(end + MANAGED_END.length).replace(/^\n/, '')
+    return `${before}${managed}${after}`
+  }
+
+  const separator = existing.endsWith('\n') ? '\n' : '\n\n'
+  return `${existing}${separator}${managed}`
+}
+
+/** Idempotently merge the managed block into an instruction file. */
+export async function upsertManagedFile(path: string, block: string): Promise<ConnectChange> {
+  let existing: string | null = null
+  try {
+    existing = await readFile(path, 'utf8')
+  } catch {
+    // absent
+  }
+  const next = mergeManagedBlock(existing, block)
+  if (existing === next) return { path, status: 'unchanged' }
+  await mkdir(dirname(path), { recursive: true })
+  await writeFile(path, next, 'utf8')
+  return {
+    path,
+    status: existing === null ? 'created' : 'updated',
+    ...(existing !== null && !existing.includes(MANAGED_BEGIN)
+      ? { note: 'appended; existing content preserved' }
+      : {})
+  }
+}
+
 /** Merge `mcpServers.xnet` into a Claude Code `.mcp.json` (project scope). */
 export async function writeMcpJson(dir: string, entry: McpServerEntry): Promise<ConnectChange> {
   const path = join(dir, '.mcp.json')
@@ -192,9 +245,9 @@ export async function runConnect(
       )
     }
     changes.push(await writeMcpJson(dir, entry))
-    changes.push(await upsertFile(join(dir, 'CLAUDE.md'), renderHarnessInstructions()))
+    changes.push(await upsertManagedFile(join(dir, 'CLAUDE.md'), renderHarnessInstructions()))
   } else {
-    changes.push(await upsertFile(join(dir, 'AGENTS.md'), renderHarnessInstructions()))
+    changes.push(await upsertManagedFile(join(dir, 'AGENTS.md'), renderHarnessInstructions()))
     changes.push(await writeCodexConfig(dir, entry))
   }
 
@@ -230,7 +283,7 @@ async function bootstrapVault(options: ConnectOptions): Promise<ConnectChange[]>
       })
     const changes: ConnectChange[] = [{ path: vaultDir, status: 'updated', note: 'vault checkout' }]
     // Claude Code's native instruction filename beside the exporter's AGENTS.md.
-    changes.push(await upsertFile(join(vaultDir, 'CLAUDE.md'), renderHarnessInstructions()))
+    changes.push(await upsertManagedFile(join(vaultDir, 'CLAUDE.md'), renderHarnessInstructions()))
     changes.push(await upsertFile(join(vaultDir, 'index.md'), renderVaultIndex(entries)))
     return changes
   } finally {

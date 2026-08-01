@@ -22,7 +22,7 @@
 import type { InferNode } from '../types'
 import { presets } from '../../auth'
 import { defineSchema } from '../define'
-import { date, number, relation, select, text } from '../properties'
+import { checkbox, date, json, number, relation, select, text } from '../properties'
 
 export const MEMORY_ITEM_SCHEMA_IRI = 'xnet://xnet.fyi/MemoryItem@1.0.0' as const
 
@@ -57,3 +57,46 @@ export const MemoryItemSchema = defineSchema({
 })
 
 export type MemoryItem = InferNode<(typeof MemoryItemSchema)['_properties']>
+
+// ─── Retrieval tuning ────────────────────────────────────────────────────────
+
+export const RETRIEVAL_PROFILE_SCHEMA_IRI = 'xnet://xnet.fyi/RetrievalProfile@1.0.0' as const
+
+/**
+ * Locally-learned retrieval weights (exploration 0415).
+ *
+ * Deliberately **not** a `MemoryItem`. Memories are facts about the user and
+ * their work; this is four numbers describing how their retriever is tuned.
+ * MemPrivacy's argument, and the reason for the split: personalized memory and
+ * an agent's self-improvement state obey different retention, retrieval and
+ * privacy rules, and collapsing them turns "make search better" into "build a
+ * profile of the user".
+ *
+ * Private, like memories, and equally ordinary: it syncs, exports and deletes
+ * as a node. `adoptedAt`/`baseline` record *why* a profile was accepted, so a
+ * tuning decision is auditable rather than something the retriever just did.
+ */
+export const RetrievalProfileSchema = defineSchema({
+  name: 'RetrievalProfile',
+  namespace: 'xnet://xnet.fyi/',
+  properties: {
+    /** Score multiplier per hop away from an entry node. */
+    hopDecay: number({ min: 0, max: 1 }),
+    /** Weight of the semantic side when fusing with keyword hits. */
+    vectorWeight: number({ min: 0, max: 1 }),
+    /** Entry nodes pulled before graph expansion. */
+    maxEntries: number({ integer: true, min: 1 }),
+    /** Whether a reranker runs over the candidate set. */
+    rerank: checkbox(),
+    /** When this profile was adopted (epoch ms). */
+    adoptedAt: date(),
+    /** The golden-set scores that justified adopting it. */
+    baseline: json<{ recallAll: number; recallGraph: number; mrr: number }>({}),
+    /** Why it was adopted — the ratchet's verdict, in words. */
+    reason: text({ maxLength: 500 })
+  },
+  document: undefined,
+  authorization: presets.private()
+})
+
+export type RetrievalProfileNode = InferNode<(typeof RetrievalProfileSchema)['_properties']>

@@ -10,6 +10,7 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY packages/hub/package.json packages/hub/
 COPY packages/abuse/package.json packages/abuse/
 COPY packages/billing/package.json packages/billing/
+COPY packages/brain/package.json packages/brain/
 COPY packages/entitlements/package.json packages/entitlements/
 COPY packages/core/package.json packages/core/
 COPY packages/crypto/package.json packages/crypto/
@@ -37,6 +38,7 @@ RUN corepack enable && pnpm install --frozen-lockfile --filter @xnetjs/hub...
 COPY packages/hub/ packages/hub/
 COPY packages/abuse/ packages/abuse/
 COPY packages/billing/ packages/billing/
+COPY packages/brain/ packages/brain/
 COPY packages/entitlements/ packages/entitlements/
 COPY packages/core/ packages/core/
 COPY packages/crypto/ packages/crypto/
@@ -68,6 +70,7 @@ COPY --from=builder /build/pnpm-lock.yaml /build/pnpm-workspace.yaml /build/pack
 COPY --from=builder /build/packages/hub/package.json packages/hub/
 COPY --from=builder /build/packages/abuse/package.json packages/abuse/
 COPY --from=builder /build/packages/billing/package.json packages/billing/
+COPY --from=builder /build/packages/brain/package.json packages/brain/
 COPY --from=builder /build/packages/entitlements/package.json packages/entitlements/
 COPY --from=builder /build/packages/core/package.json packages/core/
 COPY --from=builder /build/packages/crypto/package.json packages/crypto/
@@ -106,6 +109,7 @@ RUN apk add --no-cache --virtual .build-deps python3 make g++ \
 COPY --from=builder /build/packages/hub/dist packages/hub/dist/
 COPY --from=builder /build/packages/abuse/dist packages/abuse/dist/
 COPY --from=builder /build/packages/billing/dist packages/billing/dist/
+COPY --from=builder /build/packages/brain/dist packages/brain/dist/
 COPY --from=builder /build/packages/entitlements/dist packages/entitlements/dist/
 COPY --from=builder /build/packages/core/dist packages/core/dist/
 COPY --from=builder /build/packages/crypto/dist packages/crypto/dist/

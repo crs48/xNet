@@ -121,6 +121,14 @@ export async function createLocalAgentBackend(
     delete: async (id) => {
       await client.store.delete(id)
     },
+    // The client's store is a real NodeStore over SQLite, so `nodes_fts` is
+    // right there — this adapter just never forwarded it (exploration 0415).
+    // Without the forward, the `--db` lane scanned 500 nodes for every search
+    // while sitting on top of a working BM25 index.
+    searchText: (query, limit, searchOptions) =>
+      client.store.searchText(query, limit, {
+        ...(searchOptions?.schemaId ? { schemaId: searchOptions.schemaId as SchemaIRI } : {})
+      }),
     subscribe: (listener) =>
       client.store.subscribe((event: { change: { type: string } }) => {
         listener({ change: { type: event.change.type }, node: null, isRemote: false })

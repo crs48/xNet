@@ -16,6 +16,7 @@ import { DEFAULTS } from '../core/constants'
 import { useDevTools } from '../provider/useDevTools'
 import { AbusePanel } from './AbusePanel/AbusePanel'
 import { AgentAuditPanel } from './AgentAuditPanel/AgentAuditPanel'
+import { MemoryPanel } from './MemoryPanel/MemoryPanel'
 import { AuthZPanel } from './AuthZPanel/AuthZPanel'
 import { ChangeTimeline } from './ChangeTimeline/ChangeTimeline'
 import { DevToolsPalette } from './CommandPalette/DevToolsPalette'
@@ -254,6 +255,8 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
       return <AbusePanel />
     case 'agent-audit':
       return <AgentAuditPanel />
+    case 'memory':
+      return <MemoryPanel />
     case 'telemetry':
       return <TelemetryPanel />
     case 'schemas':

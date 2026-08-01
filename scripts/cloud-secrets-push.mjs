@@ -131,7 +131,9 @@ for (const [key, secret] of Object.entries(SECRET_NAMES)) {
   pushed++
 }
 
-console.log(`\n${dryRun ? '[dry-run] ' : ''}${pushed} secret(s) ${dryRun ? 'pending' : 'pushed'}, ${skipped} skipped.`)
+console.log(
+  `\n${dryRun ? '[dry-run] ' : ''}${pushed} secret(s) ${dryRun ? 'pending' : 'pushed'}, ${skipped} skipped.`
+)
 if (!dryRun && pushed > 0) {
   console.log(`Verify: gcloud secrets list --project ${projectArg}`)
 }

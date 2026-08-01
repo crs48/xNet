@@ -42,7 +42,7 @@ for (const { dir, name } of publishable) {
     execFileSync('pnpm', ['exec', 'publint', dir, '--level', 'error'], {
       cwd: ROOT,
       encoding: 'utf8',
-      stdio: 'pipe',
+      stdio: 'pipe'
     })
   } catch (err) {
     process.stderr.write(`\n✗ publint: ${name}\n${err.stdout ?? ''}${err.stderr ?? ''}\n`)

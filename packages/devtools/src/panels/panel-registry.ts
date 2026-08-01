@@ -18,6 +18,7 @@ import {
   ArrowLeftRight,
   BarChart3,
   Bot,
+  Brain,
   Boxes,
   Braces,
   Clock,
@@ -191,6 +192,15 @@ export const DEVTOOLS_PANELS: DevtoolsPanelDef[] = [
     tier: 'secondary',
     keywords: ['moderation', 'labels', 'reputation', 'quota', 'policy'],
     description: 'Policy decisions, labels, and peer scores'
+  },
+  {
+    id: 'memory',
+    label: 'Memory',
+    icon: Brain,
+    group: 'activity',
+    tier: 'secondary',
+    keywords: ['memory', 'remember', 'preference', 'recall', 'retrieval', 'profile'],
+    description: 'What xNet remembers about this workspace, and what reaches a session'
   },
   {
     id: 'agent-audit',

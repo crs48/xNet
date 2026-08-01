@@ -51,22 +51,58 @@ const RULES = [
   {
     name: 'inline raw background',
     re: /background(?:Color)?:\s*['"]?(?:#[0-9a-fA-F]{3}|hsl\(\s*\d|rgb\(\s*\d|white\b|black\b)/,
-    fix: "use hsl(var(--token)) or a bg-* utility so light/dark both resolve"
+    fix: 'use hsl(var(--token)) or a bg-* utility so light/dark both resolve'
   }
 ]
 
 /** Intentional raw colors — each entry allows lines matching `re` in `file`. */
 const ALLOWLIST = [
   { file: 'apps/web/src/comms/CallDock.tsx', re: /bg-black/, why: 'video tile letterbox' },
-  { file: 'apps/web/src/components/ShareDialog.tsx', re: /bg-white p-1/, why: 'QR code quiet zone must stay white' },
-  { file: 'apps/web/src/components/LabView.tsx', re: /bg-white/, why: 'sandboxed iframe backing (unthemed document)' },
-  { file: 'apps/web/src/routes/stories.tsx', re: /bg-white/, why: 'storybook iframe backing (unthemed until it loads)' },
-  { file: 'apps/web/src/routes/settings.tsx', re: /bg-black|background: 'hsl/, why: 'theme-variant color swatches (literal samples)' },
-  { file: 'apps/web/src/lib/boot-diagnostics.ts', re: /background:#/, why: 'pre-theme boot error screen (tokens not loaded yet)' },
-  { file: 'packages/react/src/components/ErrorBoundary.tsx', re: /background: '#/, why: 'crash screen renders outside the themed tree' },
-  { file: 'packages/react/src/components/OfflineIndicator.tsx', re: /background: '#/, why: 'renders outside the themed tree' },
-  { file: 'packages/react/src/components/SavedViewRunner.tsx', re: /bg-black/, why: 'media/video letterbox' },
-  { file: 'packages/react/src/components/SavedViewVisualFeed.tsx', re: /bg-black/, why: 'media/video letterbox' }
+  {
+    file: 'apps/web/src/components/ShareDialog.tsx',
+    re: /bg-white p-1/,
+    why: 'QR code quiet zone must stay white'
+  },
+  {
+    file: 'apps/web/src/components/LabView.tsx',
+    re: /bg-white/,
+    why: 'sandboxed iframe backing (unthemed document)'
+  },
+  {
+    file: 'apps/web/src/routes/stories.tsx',
+    re: /bg-white/,
+    why: 'storybook iframe backing (unthemed until it loads)'
+  },
+  {
+    file: 'apps/web/src/routes/settings.tsx',
+    re: /bg-black|background: 'hsl/,
+    why: 'theme-variant color swatches (literal samples)'
+  },
+  {
+    file: 'apps/web/src/lib/boot-diagnostics.ts',
+    re: /background:#/,
+    why: 'pre-theme boot error screen (tokens not loaded yet)'
+  },
+  {
+    file: 'packages/react/src/components/ErrorBoundary.tsx',
+    re: /background: '#/,
+    why: 'crash screen renders outside the themed tree'
+  },
+  {
+    file: 'packages/react/src/components/OfflineIndicator.tsx',
+    re: /background: '#/,
+    why: 'renders outside the themed tree'
+  },
+  {
+    file: 'packages/react/src/components/SavedViewRunner.tsx',
+    re: /bg-black/,
+    why: 'media/video letterbox'
+  },
+  {
+    file: 'packages/react/src/components/SavedViewVisualFeed.tsx',
+    re: /bg-black/,
+    why: 'media/video letterbox'
+  }
 ]
 
 function collect(dir, out) {

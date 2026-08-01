@@ -481,8 +481,11 @@ export {
   MEMORY_ITEM_SCHEMA_IRI,
   MEMORY_KINDS,
   MemoryItemSchema,
+  RETRIEVAL_PROFILE_SCHEMA_IRI,
+  RetrievalProfileSchema,
   type MemoryItem,
-  type MemoryKind
+  type MemoryKind,
+  type RetrievalProfileNode
 } from './memory'
 
 // Agent schema pack (exploration 0337)
@@ -724,6 +727,8 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/GameAsset@1.0.0': () => import('./game').then((m) => m.GameAssetSchema),
   // Memory schema pack (exploration 0211)
   'xnet://xnet.fyi/MemoryItem@1.0.0': () => import('./memory').then((m) => m.MemoryItemSchema),
+  'xnet://xnet.fyi/RetrievalProfile@1.0.0': () =>
+    import('./memory').then((m) => m.RetrievalProfileSchema),
   // Agent schema pack (exploration 0337)
   'xnet://xnet.fyi/AgentPassport@1.0.0': () => import('./agent').then((m) => m.AgentPassportSchema),
   'xnet://xnet.fyi/AgentSession@1.0.0': () => import('./agent').then((m) => m.AgentSessionSchema),
@@ -848,6 +853,8 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/GameAsset': () => import('./game').then((m) => m.GameAssetSchema),
   // Memory schema pack (exploration 0211)
   'xnet://xnet.fyi/MemoryItem': () => import('./memory').then((m) => m.MemoryItemSchema),
+  'xnet://xnet.fyi/RetrievalProfile': () =>
+    import('./memory').then((m) => m.RetrievalProfileSchema),
   // Agent schema pack (exploration 0337)
   'xnet://xnet.fyi/AgentPassport': () => import('./agent').then((m) => m.AgentPassportSchema),
   'xnet://xnet.fyi/AgentSession': () => import('./agent').then((m) => m.AgentSessionSchema),

@@ -37,10 +37,11 @@
   },
   "dependencies": {
     "@xnetjs/abuse": "workspace:*",
+    "@xnetjs/brain": "workspace:*",
     "@xnetjs/core": "workspace:*",
-    "@xnetjs/trust": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/slack-compat": "workspace:*",
+    "@xnetjs/trust": "workspace:*",
     "acorn": "^8.15.0",
     "yjs": "^13.6.24"
   },

@@ -14,6 +14,7 @@ import { URL } from 'url'
 import {
   AI_SCOPES,
   AiSurfaceService,
+  createAgentRetrieval,
   createAiSurfaceService,
   type AiScope,
   type AiSurfaceLimits
@@ -225,12 +226,17 @@ export class LocalAPIServer {
   private unsubscribe?: () => void
 
   constructor(config: LocalAPIConfig) {
+    // `/ai/context-pack` is served from here, so this surface needs the graph
+    // retriever too (exploration 0415) — otherwise every HTTP client gets the
+    // linear keyword scan the CLI just stopped getting.
     const aiSurface =
       config.aiSurface ??
       createAiSurfaceService({
         store: config.store,
         schemas: config.schemas,
-        limits: config.aiLimits
+        limits: config.aiLimits,
+        retrieveContext: createAgentRetrieval({ store: config.store, schemas: config.schemas })
+          .retrieveContext
       })
 
     this.config = {
@@ -245,6 +251,19 @@ export class LocalAPIServer {
       aiLimits: config.aiLimits
     }
     this.eventBuffer = new EventBuffer()
+  }
+
+  /**
+   * The port actually bound.
+   *
+   * `port: 0` asks the OS to choose one, which was previously unreachable —
+   * the configured value stayed 0 and nothing exposed the real one, so an
+   * ephemeral port could be listened on but never connected to. Returns `null`
+   * before `start()` resolves.
+   */
+  getPort(): number | null {
+    const address = this.server?.address()
+    return address && typeof address === 'object' ? address.port : null
   }
 
   /**

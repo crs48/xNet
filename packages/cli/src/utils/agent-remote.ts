@@ -76,6 +76,25 @@ export async function createRemoteAgentBackend(
       const result = await request('GET', `/api/v1/nodes${query}`)
       return isRecord(result) && Array.isArray(result.nodes) ? (result.nodes as NodeData[]) : []
     },
+    // Full-text search runs in the process that owns the FTS index, not here
+    // (exploration 0415). Without this the CLI's own AI surface finds no
+    // `searchText` on the store and silently degrades to a substring scan over
+    // the first 500 nodes — in the configuration users are most likely to run.
+    searchText: async (query, limit, searchOptions) => {
+      const params = new URLSearchParams({ q: query, limit: String(limit) })
+      if (searchOptions?.schemaId) params.set('schemaId', searchOptions.schemaId)
+      const result = await request('GET', `/api/v1/ai/search?${params.toString()}`)
+      if (!isRecord(result) || !Array.isArray(result.results)) return null
+      // The server scanned instead of indexing. Returning its rows would launder
+      // a degraded search into an indexed-looking one; `null` lets the caller
+      // report the degradation it actually got.
+      if (result.degraded === true) return null
+      return result.results.flatMap((row) => {
+        if (!isRecord(row) || typeof row.id !== 'string') return []
+        // Local-API scores are higher-is-better; FTS rank is more-negative-is-better.
+        return [{ nodeId: row.id, rank: -(typeof row.score === 'number' ? row.score : 0) }]
+      })
+    },
     create: async ({ schemaId, properties }) =>
       (await request('POST', '/api/v1/nodes', { schema: schemaId, properties })) as NodeData,
     update: async (id, { properties }) =>

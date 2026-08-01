@@ -45,6 +45,18 @@ export {
   type AiValidator
 } from './validation'
 export { AiSurfaceService, createAiSurfaceService } from './service'
+// One retrieval construction path for every agent lane (exploration 0415).
+export {
+  ALLOW_ALL_NODES,
+  createAgentRetrieval,
+  isDegradedTier,
+  relationFieldNames,
+  schemaRegistryRelationFields,
+  type AgentRetrievalOptions,
+  type RecallResult,
+  type RetrievalTier,
+  type WorkspaceRetrieval
+} from './retrieval'
 // Agent audit + ceremony (exploration 0337)
 export {
   AgentAuditRecorder,

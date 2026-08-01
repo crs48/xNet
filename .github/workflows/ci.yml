@@ -67,6 +67,12 @@ jobs:
       - name: Humane patterns (0234)
         run: pnpm check:humane-patterns
 
+      # Every agent lane must build its retrieval. The omission is invisible in
+      # review — the call reads fine, it is what it doesn't pass that drops the
+      # lane to a keyword scan with no graph stage. (0415.)
+      - name: AI surfaces wire retrieval (0415)
+        run: pnpm check:ai-retrieval
+
       # The dev-only point-and-change source stamp must never reach a
       # production bundle — it would publish the repo's directory layout in the
       # DOM of every page. A diff cannot show that; this can. (0399.)
@@ -75,6 +81,13 @@ jobs:
 
       - name: Publish closure (0220)
         run: pnpm check:publish-closure
+
+      # The hub Dockerfile hand-lists the packages it COPYs. A dependency added
+      # three packages away silently staled that list, and nothing failed until
+      # a six-minute image build died on "Cannot find module" — the same build
+      # Railway runs, so the first symptom can be a failed deploy. (0415.)
+      - name: Hub image copies its dependency closure (0415)
+        run: pnpm check:hub-image
 
       - name: Electron parity (0238)
         run: pnpm check:electron-parity

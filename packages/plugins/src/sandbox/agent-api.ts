@@ -35,15 +35,64 @@ export type AgentWriteProposal =
       rationale?: string
     }
 
+/** One hit from `api.recall`, carrying the graph path it was reached by. */
+export type AgentRecallHit = {
+  id: string
+  title: string
+  /** Readable provenance, e.g. "Acme Corp →(contacts) Dana Reyes". */
+  path: string
+  /** 0 for a direct match, ≥1 for a graph-expanded one. */
+  hops: number
+  snippet: string
+}
+
+/** One typed edge from `api.graph`. */
+export type AgentGraphEdge = {
+  id: string
+  relation: string
+  direction: 'outbound' | 'inbound'
+  hops: number
+}
+
 export interface AgentApi {
   /** Query the loaded workspace slice by schema IRI. */
   nodes(schemaIRI?: string): ReadonlyArray<Readonly<FlatNode>>
   /** Search titles and string properties of the loaded slice. */
   search(text: string): ReadonlyArray<Readonly<AgentSearchResult>>
+  /**
+   * Retrieve beyond the loaded slice: full-workspace entry search plus bounded
+   * graph expansion, each hit carrying its provenance path (exploration 0415).
+   *
+   * Synchronous, because the sandbox bans `await` on purpose. The host runs the
+   * script twice — a priming pass that records every query, then the real pass
+   * with the answers in hand — so the queries must not depend on the script's
+   * own writes. A query the priming pass never saw **throws**; it does not
+   * return an empty array.
+   */
+  recall(query: string): ReadonlyArray<Readonly<AgentRecallHit>>
+  /** Typed relation edges out of a node, up to `hops` away. Same two-pass rule. */
+  graph(nodeId: string, hops?: number): ReadonlyArray<Readonly<AgentGraphEdge>>
   /** Propose a property update; becomes a mutation plan, never a direct write. */
   proposeUpdate(nodeId: string, properties: Record<string, unknown>, rationale?: string): void
   /** Propose a new node; becomes a mutation plan, never a direct write. */
   proposeCreate(schemaId: string, properties: Record<string, unknown>, rationale?: string): void
+}
+
+/** Answers the host resolved between the priming pass and the real one. */
+export type AgentResolvedContext = {
+  recall: ReadonlyMap<string, readonly AgentRecallHit[]>
+  graph: ReadonlyMap<string, readonly AgentGraphEdge[]>
+}
+
+/** Queries a priming pass observed, for the host to resolve. */
+export type AgentRequestedContext = {
+  recall: string[]
+  graph: Array<{ nodeId: string; hops: number }>
+}
+
+/** Cache key for a graph request; shared by the recorder and the resolver. */
+export function graphRequestKey(nodeId: string, hops: number): string {
+  return `${nodeId}@${hops}`
 }
 
 export type AgentScriptContext = ScriptContext & { api: Readonly<AgentApi> }
@@ -55,10 +104,18 @@ export type CreateAgentScriptContextInput = {
   node?: FlatNode
   /** Cap on proposals per run; guards against runaway scripts. */
   maxProposals?: number
+  /**
+   * Answers for `api.recall`/`api.graph`. Omit for the **priming pass**: the
+   * calls then return empty and are recorded in {@link AgentScriptSession.getRequestedContext}
+   * for the host to resolve. Supply it for the real pass.
+   */
+  resolved?: AgentResolvedContext
 }
 
 export type AgentScriptSession = {
   context: AgentScriptContext
+  /** What the script asked for. Meaningful after a priming pass. */
+  getRequestedContext(): AgentRequestedContext
   getProposals(): AgentWriteProposal[]
   /** Lift accumulated proposals into a validated mutation plan (or none). */
   toMutationPlan(input: {
@@ -91,10 +148,51 @@ export function createAgentScriptContext(input: CreateAgentScriptContextInput): 
     }
   }
 
+  const requestedRecall = new Set<string>()
+  const requestedGraph = new Map<string, { nodeId: string; hops: number }>()
+  const priming = input.resolved === undefined
+
   const apiImplementation: AgentApi = {
     nodes: base.nodes,
 
     search: (text: string) => Object.freeze(searchFlatNodes(input.nodes, text)),
+
+    recall: (query: string) => {
+      const key = String(query ?? '')
+      if (priming) {
+        requestedRecall.add(key)
+        return Object.freeze([])
+      }
+      const hits = input.resolved?.recall.get(key)
+      if (!hits) {
+        // Loud, not empty: an unresolved query means the priming pass never saw
+        // it, which means the script's queries are not deterministic. Returning
+        // [] would read to the script — and to whoever reads its digest — as
+        // "the workspace has nothing matching".
+        throw new Error(
+          `api.recall(${JSON.stringify(key)}) was not resolved: agent scripts run twice ` +
+            `(a priming pass records the queries, then the real pass answers them), so every ` +
+            `recall query must be the same on both passes.`
+        )
+      }
+      return Object.freeze(hits.map((hit) => Object.freeze({ ...hit })))
+    },
+
+    graph: (nodeId: string, hops = 1) => {
+      const key = graphRequestKey(String(nodeId ?? ''), hops)
+      if (priming) {
+        requestedGraph.set(key, { nodeId: String(nodeId ?? ''), hops })
+        return Object.freeze([])
+      }
+      const edges = input.resolved?.graph.get(key)
+      if (!edges) {
+        throw new Error(
+          `api.graph(${JSON.stringify(nodeId)}, ${hops}) was not resolved: see api.recall's ` +
+            `note on the two-pass execution model.`
+        )
+      }
+      return Object.freeze(edges.map((edge) => Object.freeze({ ...edge })))
+    },
 
     proposeUpdate: (nodeId, properties, rationale) => {
       guardProposalCount()
@@ -130,6 +228,10 @@ export function createAgentScriptContext(input: CreateAgentScriptContextInput): 
 
   return {
     context,
+    getRequestedContext: () => ({
+      recall: [...requestedRecall],
+      graph: [...requestedGraph.values()]
+    }),
     getProposals: () => [...proposals],
     toMutationPlan: ({ actor, intent, clock }) => {
       if (proposals.length === 0) return null

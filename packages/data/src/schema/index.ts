@@ -370,8 +370,11 @@ export {
   MEMORY_ITEM_SCHEMA_IRI,
   MEMORY_KINDS,
   MemoryItemSchema,
+  RETRIEVAL_PROFILE_SCHEMA_IRI,
+  RetrievalProfileSchema,
   type MemoryItem,
-  type MemoryKind
+  type MemoryKind,
+  type RetrievalProfileNode
 } from './schemas'
 // Agent schema pack (exploration 0337)
 export {

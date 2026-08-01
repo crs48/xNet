@@ -31,12 +31,13 @@
   },
   "scripts": {
     "dev": "tsx src/cli.ts",
-    "build": "tsup src/index.ts src/cli.ts --format esm --dts",
+    "build": "tsup src/index.ts src/cli.ts --format esm --dts --external @xnetjs/vectors",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@xnetjs/brain": "workspace:*",
     "@xnetjs/core": "workspace:*",
     "@xnetjs/crypto": "workspace:*",
     "@xnetjs/data": "workspace:*",
@@ -52,10 +53,11 @@
     "smol-toml": "^1.6.0"
   },
   "devDependencies": {
+    "@xnetjs/vectors": "workspace:*",
     "tsup": "^8.0.0",
-    "yjs": "^13.6.0",
     "tsx": "^4.0.0",
     "typescript": "^5.4.0",
-    "vitest": "^4.0.0"
+    "vitest": "^4.0.0",
+    "yjs": "^13.6.0"
   }
 }

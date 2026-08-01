@@ -13,16 +13,22 @@
  * - skill:    print the cross-harness SKILL.md
  */
 
+import type { EntrySearch } from '@xnetjs/brain'
 import type { AgentBackend } from '../utils/agent-remote.js'
 import type {
   AiMutationPlan,
   AiSurfaceService,
   AiWorkspaceExportKind,
   AiWorkspaceWatcherScanResult,
+  AgentGraphEdge,
+  AgentRecallHit,
+  AgentRequestedContext,
+  AgentResolvedContext,
   FlatNode,
   NodeData,
   NodeStoreAPI,
-  SchemaRegistryAPI
+  SchemaRegistryAPI,
+  WorkspaceRetrieval
 } from '@xnetjs/plugins/node'
 import { readFile, rename, mkdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
@@ -31,15 +37,20 @@ import {
   AiWorkspaceWatcher,
   ScriptSandbox,
   XNET_AGENT_SKILL_MD,
+  createAgentRetrieval,
   createAgentScriptContext,
   createAiSurfaceService,
   createAiWorkspaceExporter,
   createAiWorkspaceWatcher,
   flattenRowForTsv,
+  graphRequestKey,
   toTsv
 } from '@xnetjs/plugins/node'
 import { Command } from 'commander'
 import { resolveAgentBackend, type BackendLadderOptions } from '../utils/agent-backend.js'
+import { connectSession, sessionTargetFor, type SessionClient } from '../utils/session-daemon.js'
+import { registerMemoryCommands, renderMemoryPreamble } from './memory.js'
+import { SESSION_CLI_VERSION } from './serve.js'
 
 // ─── Services ────────────────────────────────────────────────────────────────
 
@@ -47,6 +58,8 @@ export type AgentCliServices = {
   store: NodeStoreAPI
   schemas: SchemaRegistryAPI
   aiSurface: AiSurfaceService
+  /** Workspace retrieval — backs `xnet recall` and reports the tier (0415). */
+  retrieval: WorkspaceRetrieval
   exporter: AiWorkspaceExporter
   watcher: AiWorkspaceWatcher
   /** Release backend resources (closes the SQLite client in local mode). */
@@ -58,12 +71,38 @@ export type AgentCommandOptions = BackendLadderOptions & { forWrites?: boolean }
 
 export type AgentServicesFactory = (options: AgentCommandOptions) => Promise<AgentCliServices>
 
-export function createAgentServices(backend: AgentBackend): AgentCliServices {
-  const aiSurface = createAiSurfaceService({ store: backend.store, schemas: backend.schemas })
+export type AgentServicesOptions = {
+  /**
+   * Semantic entry search, when the caller has a warm vector tier. Only
+   * `xnet serve --vectors` does; a cold verb must never load an embedding model
+   * (exploration 0415).
+   */
+  semanticEntrySearch?: EntrySearch
+}
+
+export function createAgentServices(
+  backend: AgentBackend,
+  options: AgentServicesOptions = {}
+): AgentCliServices {
+  // Exploration 0415: the CLI is the cheapest lane and used to be the least
+  // equipped one. Retrieval is built first so the AI surface's context packs
+  // walk the graph instead of scanning, and so every command can report the
+  // tier it actually ran at.
+  const retrieval = createAgentRetrieval({
+    store: backend.store,
+    schemas: backend.schemas,
+    ...(options.semanticEntrySearch ? { semanticEntrySearch: options.semanticEntrySearch } : {})
+  })
+  const aiSurface = createAiSurfaceService({
+    store: backend.store,
+    schemas: backend.schemas,
+    retrieveContext: retrieval.retrieveContext
+  })
   return {
     store: backend.store,
     schemas: backend.schemas,
     aiSurface,
+    retrieval,
     exporter: createAiWorkspaceExporter({ ...backend, aiSurface }),
     watcher: createAiWorkspaceWatcher({ ...backend, aiSurface })
   }
@@ -238,6 +277,29 @@ export type SearchOptions = {
   schema?: string
   limit?: number
   format?: AgentOutputFormat
+  /** Diagnostics sink; injectable so tests can read what the user would see. */
+  warn?: (message: string) => void
+}
+
+/**
+ * How the search was answered, as a line the agent reads before the results.
+ *
+ * `index` comes from the AI surface (`fts5` vs `scan`); `tier` from the
+ * retrieval factory. They can disagree — a `bm25-graph` lane whose FTS probe
+ * failed answers `scan` — and when they do, the weaker one is the truth.
+ */
+function provenanceLine(
+  tier: string,
+  result: Record<string, unknown>
+): { line: string; degraded: boolean } {
+  const degraded = result.degraded === true
+  const effective = degraded ? 'scan' : tier
+  const parts = [`tier\t${effective}`]
+  if (typeof result.index === 'string') parts.push(`index\t${result.index}`)
+  if (degraded && typeof result.degradedReason === 'string') {
+    parts.push(`degraded\t${result.degradedReason}`)
+  }
+  return { line: parts.join('\n'), degraded }
 }
 
 export async function runSearch(
@@ -250,17 +312,103 @@ export async function runSearch(
     limit: options.limit
   })
   const results = Array.isArray(result.results) ? (result.results as Record<string, unknown>[]) : []
-  if (options.format === 'json') return JSON.stringify(result)
+  const { line, degraded } = provenanceLine(services.retrieval.tier, result)
+
+  // stderr, always, and before anything else: a degradation notice on stdout
+  // is one `| head` away from vanishing, and an agent that loses it will state
+  // "no such node" with total confidence (exploration 0415).
+  if (degraded) {
+    const warn = options.warn ?? ((message: string) => process.stderr.write(`${message}\n`))
+    warn(
+      typeof result.notice === 'string'
+        ? result.notice
+        : 'Search ran degraded; results may be incomplete.'
+    )
+  }
+
+  if (options.format === 'json') {
+    return JSON.stringify({ ...result, tier: degraded ? 'scan' : services.retrieval.tier })
+  }
+  // jsonl stays one-object-per-line so `jq` keeps working; its provenance rides
+  // stderr alone.
   if (options.format === 'jsonl') return results.map((row) => JSON.stringify(row)).join('\n')
+
   const compact = results.map((row) => ({
     id: row.id,
     schemaId: row.schemaId,
     title: row.title,
     snippet: row.snippet
   }))
-  if (results.length === 0) return 'no results'
-  if (options.format === 'md') return toMarkdownTable(compact)
-  return toTsv(compact).trimEnd()
+  if (results.length === 0) return `${line}\nno results`
+  if (options.format === 'md') return `${line}\n\n${toMarkdownTable(compact)}`
+  return `${line}\n${toTsv(compact).trimEnd()}`
+}
+
+// ─── recall ──────────────────────────────────────────────────────────────────
+
+export type RecallOptions = {
+  text: string
+  budget?: number
+  hops?: number
+  limit?: number
+  format?: AgentOutputFormat
+  warn?: (message: string) => void
+}
+
+/**
+ * `xnet recall` — one call that replaces "search, then read eight nodes".
+ *
+ * The difference from `search` is not the ranking, it is the shape: this
+ * returns a *budgeted pack* whose hits each carry the graph path they were
+ * reached by, plus the ids it dropped for budget so the agent can pull them
+ * just-in-time instead of the CLI guessing (exploration 0415).
+ */
+export async function runRecall(
+  services: AgentCliServices,
+  options: RecallOptions
+): Promise<string> {
+  const result = await services.retrieval.recall(options.text, {
+    ...(options.budget !== undefined ? { maxTokens: options.budget } : {}),
+    ...(options.hops !== undefined ? { maxHops: options.hops } : {}),
+    ...(options.limit !== undefined ? { maxEntries: options.limit } : {})
+  })
+
+  if (result.degraded) {
+    const warn = options.warn ?? ((message: string) => process.stderr.write(`${message}\n`))
+    warn(result.notice ?? 'Recall ran degraded; results may be incomplete.')
+  }
+
+  if (options.format === 'json') return JSON.stringify(result)
+  if (options.format === 'jsonl') return result.items.map((item) => JSON.stringify(item)).join('\n')
+
+  const stats = result.stats
+  const header =
+    `tier\t${result.tier}\t` +
+    `entries=${stats.entries} expanded=${stats.expanded} denied=${stats.denied} ` +
+    `dropped=${stats.dropped} tokens=${stats.tokens}`
+
+  const rows = result.items.map((item) => ({
+    id: item.nodeId,
+    title: item.title,
+    // The path is the provenance the agent quotes back to the user; without it
+    // a graph-reached hit looks like a keyword hit that simply matched oddly.
+    path: item.pathLabel,
+    snippet: item.snippet.replace(/\s+/g, ' ').slice(0, 200)
+  }))
+
+  const body =
+    rows.length === 0
+      ? 'no results'
+      : options.format === 'md'
+        ? toMarkdownTable(rows)
+        : toTsv(rows).trimEnd()
+
+  const expandable =
+    result.expandable.length > 0
+      ? `\nexpandable\t${result.expandable.map((ref) => ref.nodeId).join(', ')}`
+      : ''
+
+  return `${header}\n${body}${expandable}`
 }
 
 // ─── query ───────────────────────────────────────────────────────────────────
@@ -386,6 +534,85 @@ export type RunScriptOptions = {
   timeoutMs?: number
 }
 
+/**
+ * Answer the queries a priming pass recorded.
+ *
+ * `recall` goes through the retrieval factory, so a script gets the same graph
+ * walk and the same provenance paths the `recall` verb does — the point of the
+ * code-execution lane is that it should not be a weaker view of the workspace
+ * than the tool lane, only a cheaper one.
+ */
+export async function resolveScriptContext(
+  services: AgentCliServices,
+  requested: AgentRequestedContext
+): Promise<AgentResolvedContext> {
+  const recall = new Map<string, AgentRecallHit[]>()
+  for (const query of requested.recall) {
+    const pack = await services.retrieval.recall(query)
+    recall.set(
+      query,
+      pack.items.map((item) => ({
+        id: item.nodeId,
+        title: item.title,
+        path: item.pathLabel,
+        hops: item.hops,
+        snippet: item.snippet
+      }))
+    )
+  }
+
+  const graph = new Map<string, AgentGraphEdge[]>()
+  for (const request of requested.graph) {
+    graph.set(
+      graphRequestKey(request.nodeId, request.hops),
+      await expandFrom(services, request.nodeId, request.hops)
+    )
+  }
+
+  return { recall, graph }
+}
+
+/** Walk typed relations out of one node, breadth-first, up to `hops`. */
+async function expandFrom(
+  services: AgentCliServices,
+  nodeId: string,
+  hops: number
+): Promise<AgentGraphEdge[]> {
+  const edges: AgentGraphEdge[] = []
+  const seen = new Set<string>([nodeId])
+  let frontier = [nodeId]
+  for (let depth = 1; depth <= Math.max(0, hops); depth++) {
+    const next: string[] = []
+    for (const id of frontier) {
+      const node = await services.store.get(id)
+      if (!node || node.deleted) continue
+      const schema = await services.schemas.get(node.schemaId).catch(() => null)
+      const relationFields = schema
+        ? Object.entries(schema.properties)
+            .filter(
+              ([, value]) =>
+                typeof value === 'object' &&
+                value !== null &&
+                (value as { type?: unknown }).type === 'relation'
+            )
+            .map(([name]) => name)
+        : []
+      for (const field of relationFields) {
+        const value = node.properties[field]
+        for (const target of Array.isArray(value) ? value : [value]) {
+          if (typeof target !== 'string' || target.length === 0 || seen.has(target)) continue
+          seen.add(target)
+          next.push(target)
+          edges.push({ id: target, relation: field, direction: 'outbound', hops: depth })
+        }
+      }
+    }
+    frontier = next
+    if (frontier.length === 0) break
+  }
+  return edges
+}
+
 export async function runScript(
   services: AgentCliServices,
   options: RunScriptOptions
@@ -399,11 +626,25 @@ export async function runScript(
   const flatNodes = nodes.filter((node) => !node.deleted).map(toFlatNode)
   const currentNode = options.node ? flatNodes.find((node) => node.id === options.node) : undefined
 
-  const session = createAgentScriptContext({
+  const sandbox = new ScriptSandbox({ timeoutMs: options.timeoutMs ?? 5000 })
+
+  // Two passes (exploration 0415). The sandbox bans `await` on purpose, so
+  // `api.recall`/`api.graph` cannot be async — instead a priming run records
+  // what the script asks for, the host resolves it out here where awaiting is
+  // allowed, and the real run gets the answers. The priming run's proposals are
+  // discarded: only the second session's plan is kept.
+  const priming = createAgentScriptContext({
     nodes: flatNodes,
     ...(currentNode ? { node: currentNode } : {})
   })
-  const sandbox = new ScriptSandbox({ timeoutMs: options.timeoutMs ?? 5000 })
+  await sandbox.execute(code, priming.context).catch(() => undefined)
+  const resolved = await resolveScriptContext(services, priming.getRequestedContext())
+
+  const session = createAgentScriptContext({
+    nodes: flatNodes,
+    ...(currentNode ? { node: currentNode } : {}),
+    resolved
+  })
   const result = await sandbox.execute(code, session.context)
 
   const plan = session.toMutationPlan({ actor: options.actor ?? 'xnet-cli-script' })
@@ -515,6 +756,22 @@ export function registerAgentCommands(
    * Resolve services via the backend ladder, run `fn`, and always dispose the
    * backend afterwards (closing the SQLite client in local mode).
    */
+  /**
+   * Connect to a warm `xnet serve`, or return `null` when there is none.
+   *
+   * `$XNET_SESSION=0` opts out entirely. A *stale* daemon is not opted out of:
+   * `connectSession` throws on a version mismatch, and that throw propagates —
+   * quietly falling back to the cold path would discard the one signal that
+   * says the answer you were about to get was wrong.
+   */
+  const tryConnectSession = async (options: AgentCommandOptions): Promise<SessionClient | null> => {
+    if (process.env.XNET_SESSION === '0') return null
+    return connectSession({
+      target: sessionTargetFor(options),
+      version: SESSION_CLI_VERSION
+    })
+  }
+
   const withServices = async (
     options: AgentCommandOptions,
     fn: (services: AgentCliServices) => Promise<string>
@@ -525,6 +782,37 @@ export function registerAgentCommands(
     } finally {
       await services.dispose?.()
     }
+  }
+
+  /**
+   * Read verbs: ask a warm `xnet serve` first, fall back to a cold process.
+   *
+   * No daemon is the ordinary case and stays silent. A daemon that is present
+   * but stale, or that dies mid-request, throws — the cold path is *not* a
+   * fallback for those, because retrying quietly would hide exactly the
+   * failure we bothered to detect (exploration 0415).
+   */
+  const withWarmServices = async (
+    options: AgentCommandOptions,
+    op: 'search' | 'recall' | 'query' | 'get',
+    params: Record<string, unknown>,
+    fn: (services: AgentCliServices) => Promise<string>
+  ): Promise<void> => {
+    const client = await tryConnectSession(options)
+    if (client) {
+      try {
+        const result = (await client.call(op, params)) as {
+          output: string
+          warnings?: string[]
+        }
+        for (const warning of result.warnings ?? []) process.stderr.write(`${warning}\n`)
+        print(result.output)
+        return
+      } finally {
+        client.close()
+      }
+    }
+    await withServices(options, fn)
   }
 
   /** Flags shared by every agent verb: which backend to talk to. */
@@ -581,7 +869,25 @@ export function registerAgentCommands(
       .option('-l, --limit <n>', 'Max results', parseIntOption)
       .option('--format <format>', 'Output format: tsv|jsonl|json', 'tsv')
   ).action(async (text, options) => {
-    await withServices(options, (services) => runSearch(services, { ...options, text }))
+    await withWarmServices(options, 'search', { ...options, text }, (services) =>
+      runSearch(services, { ...options, text })
+    )
+  })
+
+  registerMemoryCommands(program, { withServices, withBackendFlags, parseIntOption })
+
+  withBackendFlags(
+    program
+      .command('recall <text>')
+      .description('Budgeted context pack with provenance paths (TSV: id, title, path, snippet)')
+      .option('-b, --budget <tokens>', 'Token budget for the pack', parseIntOption)
+      .option('--hops <n>', 'Graph expansion depth (0 disables the graph stage)', parseIntOption)
+      .option('-l, --limit <n>', 'Max entry nodes before expansion', parseIntOption)
+      .option('--format <format>', 'Output format: tsv|md|jsonl|json', 'tsv')
+  ).action(async (text, options) => {
+    await withWarmServices(options, 'recall', { ...options, text }, (services) =>
+      runRecall(services, { ...options, text })
+    )
   })
 
   withBackendFlags(
@@ -657,12 +963,25 @@ export function registerAgentCommands(
     })
   })
 
-  program
-    .command('skill')
-    .description('Print the cross-harness xNet SKILL.md')
-    .action(() => {
+  withBackendFlags(
+    program
+      .command('skill')
+      .description('Print the cross-harness xNet SKILL.md')
+      // The skill is static; what the agent remembers is not. `--memories`
+      // appends the top-k memory preamble so a fresh session starts knowing
+      // what the last one learned (exploration 0415).
+      .option('--memories', 'Append what xNet remembers about this workspace')
+      .option('--no-memories', 'Print the skill alone')
+  ).action(async (options) => {
+    if (!options.memories) {
       print(XNET_AGENT_SKILL_MD)
+      return
+    }
+    await withServices(options, async (services) => {
+      const preamble = await renderMemoryPreamble(services)
+      return preamble ? `${XNET_AGENT_SKILL_MD}\n${preamble}\n` : XNET_AGENT_SKILL_MD
     })
+  })
 }
 
 function parseIntOption(value: string): number {

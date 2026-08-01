@@ -15,6 +15,7 @@ import {
   runDbGet,
   runDbSet,
   runQuery,
+  runRecall,
   runScript,
   runSearch,
   runStatus,
@@ -117,12 +118,99 @@ describe('agent CLI commands', () => {
     expect(await runStatus(services, { dir: rootDir })).toBe('clean')
   })
 
-  it('search returns TSV results', async () => {
+  it('search returns TSV results behind a provenance line', async () => {
     const services = createTestServices()
     const output = await runSearch(services, { text: 'planning' })
     const lines = output.split('\n')
-    expect(lines[0].split('\t')).toEqual(['id', 'schemaId', 'title', 'snippet'])
+    // The memory store has no FTS, so this lane is honestly a scan.
+    expect(lines[0]).toBe('tier\tscan')
+    const header = lines.find((line) => line.startsWith('id\t'))
+    expect(header?.split('\t')).toEqual(['id', 'schemaId', 'title', 'snippet'])
     expect(output).toContain('page_1')
+  })
+
+  it('warns on stderr when the search ran degraded', async () => {
+    const services = createTestServices()
+    const warnings: string[] = []
+    await runSearch(services, { text: 'planning', warn: (m) => warnings.push(m) })
+    expect(warnings).toHaveLength(1)
+    // Wording varies with whether the scan was truncated — a scan that read
+    // every node is complete but poorly ranked, and says so rather than
+    // claiming an incompleteness it doesn't have.
+    expect(warnings[0]).toMatch(/full-text index unavailable/i)
+  })
+
+  it('carries the degradation into json and jsonl too', async () => {
+    const services = createTestServices()
+    const warnings: string[] = []
+    const json = JSON.parse(
+      await runSearch(services, { text: 'planning', format: 'json', warn: (m) => warnings.push(m) })
+    )
+    expect(json.tier).toBe('scan')
+    expect(json.degraded).toBe(true)
+    expect(json.notice).toBeDefined()
+
+    // jsonl stays one object per line for `jq`; its warning rides stderr.
+    warnings.length = 0
+    const jsonl = await runSearch(services, {
+      text: 'planning',
+      format: 'jsonl',
+      warn: (m) => warnings.push(m)
+    })
+    expect(jsonl.split('\n').every((line) => line.startsWith('{'))).toBe(true)
+    expect(warnings).toHaveLength(1)
+  })
+
+  it('recall returns a budgeted pack with a provenance path per hit', async () => {
+    const services = createTestServices()
+    const output = await runRecall(services, { text: 'planning', warn: () => {} })
+    const lines = output.split('\n')
+    expect(lines[0]).toMatch(/^tier\t/)
+    expect(lines[0]).toMatch(/entries=\d+ expanded=\d+ denied=\d+ dropped=\d+ tokens=\d+/)
+    const header = lines.find((line) => line.startsWith('id\t'))
+    expect(header?.split('\t')).toEqual(['id', 'title', 'path', 'snippet'])
+    expect(output).toContain('page_1')
+  })
+
+  it('recall reports its budget accounting in json', async () => {
+    const services = createTestServices()
+    const json = JSON.parse(await runRecall(services, { text: 'planning', format: 'json' }))
+    expect(json.tier).toBe('scan')
+    expect(json.stats).toMatchObject({ entries: expect.any(Number), tokens: expect.any(Number) })
+    expect(Array.isArray(json.expandable)).toBe(true)
+    expect(json.items[0]).toHaveProperty('pathLabel')
+  })
+
+  // The sandbox bans `await`, so api.recall is synchronous and the host runs
+  // the script twice: a priming pass records the queries, the real pass answers
+  // them (exploration 0415).
+  it('run: api.recall reaches past the loaded slice, with provenance paths', async () => {
+    const services = createTestServices()
+    const scriptPath = join(rootDir, 'digest.js')
+    await writeFile(
+      scriptPath,
+      `(node, ctx) => {
+        const hits = ctx.api.recall('planning')
+        return {
+          count: hits.length,
+          first: hits[0] ? hits[0].id : null,
+          path: hits[0] ? hits[0].path : null
+        }
+      }`,
+      'utf8'
+    )
+    const output = JSON.parse(await runScript(services, { file: scriptPath }))
+    expect(output.result.count).toBeGreaterThan(0)
+    expect(output.result.first).toBe('page_1')
+    expect(output.result.path).toBeTruthy()
+  })
+
+  it('run: api.graph walks typed relations from a node', async () => {
+    const services = createTestServices()
+    const scriptPath = join(rootDir, 'graph.js')
+    await writeFile(scriptPath, `(node, ctx) => ctx.api.graph('db_projects', 1)`, 'utf8')
+    const output = JSON.parse(await runScript(services, { file: scriptPath }))
+    expect(Array.isArray(output.result)).toBe(true)
   })
 
   it('query returns TSV rows with flattened properties and supports where filters', async () => {
@@ -197,8 +285,10 @@ describe('agent CLI commands', () => {
 
   it('renders markdown tables for search and query when requested', async () => {
     const services = createTestServices()
-    const search = await runSearch(services, { text: 'planning', format: 'md' })
-    expect(search.split('\n')[0]).toMatch(/^\| id \| schemaId \| title \| snippet \|$/)
+    const search = await runSearch(services, { text: 'planning', format: 'md', warn: () => {} })
+    expect(search.split('\n').find((line) => line.startsWith('| id '))).toMatch(
+      /^\| id \| schemaId \| title \| snippet \|$/
+    )
     const query = await runQuery(services, { databaseId: 'db_projects', format: 'md' })
     expect(query).toContain('| --- |')
     expect(query).toContain('| row_1 |')

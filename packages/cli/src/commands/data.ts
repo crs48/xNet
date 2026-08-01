@@ -291,7 +291,11 @@ export function registerDataCommand(program: Command): void {
       try {
         const aiSurface = plugins.createAiSurfaceService({
           store: backend.store,
-          schemas: backend.schemas
+          schemas: backend.schemas,
+          retrieveContext: plugins.createAgentRetrieval({
+            store: backend.store,
+            schemas: backend.schemas
+          }).retrieveContext
         })
         const exporter = plugins.createAiWorkspaceExporter({ ...backend, aiSurface })
         const result = await exporter.exportWorkspace({ rootDir: resolve(opts.out) })

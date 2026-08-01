@@ -78,6 +78,51 @@ export {
 } from './locality'
 export { relationFieldsResolver, schemaRelationFields, type SchemaLike } from './schema'
 export {
+  ALLOW_ALL_NODES,
+  bm25EntrySearch,
+  createWorkspaceRetrieval,
+  DEGRADED_TIERS,
+  fuseByReciprocalRank,
+  isDegradedTier,
+  nodeTextParts,
+  NoTextIndexError,
+  queryVariants,
+  scanEntrySearch,
+  type AiRetrievedNodeLike,
+  type RecallResult,
+  type RelationFieldsLookup,
+  type RetrievalNode,
+  type RetrievalStore,
+  type RetrievalTier,
+  type WorkspaceRetrieval,
+  type WorkspaceRetrievalOptions
+} from './workspace-retrieval'
+export {
+  budgetFromProfile,
+  DEFAULT_RETRIEVAL_PROFILE,
+  localGoldenCases,
+  normalizeProfile,
+  preferencePairs,
+  PROFILE_BOUNDS,
+  proposeProfile,
+  ratchetProfile,
+  RATCHET_TOLERANCE,
+  RETRIEVAL_PROFILE_SCHEMA_IRI,
+  type LocalGoldenCase,
+  type PreferencePair,
+  type ProfileScores,
+  type RatchetDecision,
+  type RecallOutcome,
+  type RetrievalProfile
+} from './retrieval-profile'
+export {
+  candidatesFromTraces,
+  isRedactedInstruction,
+  type AgentActionLike,
+  type TraceCandidate,
+  type TraceCandidateOptions
+} from './memory-from-traces'
+export {
   applyMemoryOp,
   rememberFact,
   type AppliedMemory,
