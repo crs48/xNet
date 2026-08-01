@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-01-new-essay-the-matchmaker-and-the-meter",
+      "url": "https://xnet.fyi/changelog#2026-08-01-new-essay-the-matchmaker-and-the-meter",
+      "title": "New essay: The Matchmaker and the Meter",
+      "content_text": "Why dating apps are metered on purpose — match scarcity as inventory, the market for lemons run on people — and what the matchmakers people actually loved got right. The essay ships with a receipt: a new CI rule and Charter clause mean xNet can never sell an introduction.\n",
+      "date_published": "2026-08-01T19:49:06Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "Why dating apps are metered on purpose — match scarcity as inventory, the market for lemons run on people — and what the matchmakers people actually loved got right. The essay ships with a receipt: a new CI rule and Charter clause mean xNet can never sell an introduction.",
+        "highlights": [],
+        "mergedAt": "2026-08-01T19:49:06Z",
+        "pr": 670,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-01-verify-what-your-agent-did",
       "url": "https://xnet.fyi/changelog#2026-08-01-verify-what-your-agent-did",
       "title": "Verify what your agent did",
