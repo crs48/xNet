@@ -14,13 +14,16 @@ import {
   queryOperators,
   validateSavedViewDescriptor
 } from '@xnetjs/data'
-import { SocialCollectionSchema, SocialContentSchema } from '../schemas'
+import { SocialCollectionSchema, SocialContentSchema, SocialInteractionSchema } from '../schemas'
 
 export type SocialFeedViewId =
   | 'social.feed.youtube-videos'
   | 'social.feed.youtube-playlists'
   | 'social.feed.instagram-saved'
   | 'social.feed.instagram-likes'
+  | 'social.feed.tiktok-videos'
+  | 'social.feed.tiktok-collections'
+  | 'social.feed.activity-timeline'
 
 export type SocialFeedViewScope = NonNullable<SavedViewDescriptor['scope']>
 
@@ -28,7 +31,7 @@ export type SocialFeedViewDefinition = {
   id: SocialFeedViewId
   title: string
   description: string
-  platform: 'youtube' | 'instagram'
+  platform: 'youtube' | 'instagram' | 'tiktok' | 'all'
   descriptor: SavedViewDescriptor
   savedViewProperties: {
     title: string
@@ -49,6 +52,19 @@ const DEFAULT_FEED_PRESENTATION: SavedViewPresentationHint = {
   mode: 'feed',
   feedLayout: 'grid',
   feedDensity: 'cozy'
+}
+
+/**
+ * The activity view opens on the time axis rather than the grid.
+ *
+ * Interactions carry a timestamp and no thumbnail of their own, so a grid of
+ * them would be a grid of blank cards; the same records read well as a
+ * calendar of when things were watched, liked and saved.
+ */
+const TIMELINE_PRESENTATION: SavedViewPresentationHint = {
+  mode: 'timeline',
+  feedLayout: 'list',
+  feedDensity: 'compact'
 }
 
 function page(options: SocialFeedViewOptions) {
@@ -101,6 +117,7 @@ export function createDefaultSocialFeedViews(
   const scope = options.scope ?? 'workspace'
   const content = queryOperators<(typeof SocialContentSchema)['_properties']>()
   const collection = queryOperators<(typeof SocialCollectionSchema)['_properties']>()
+  const interaction = queryOperators<(typeof SocialInteractionSchema)['_properties']>()
 
   return [
     defineSocialFeedView({
@@ -158,6 +175,48 @@ export function createDefaultSocialFeedViews(
           content.startsWith('platformContentKind', 'liked')
         ),
         orderBy: { observedAt: 'desc', importedAt: 'desc' },
+        page: page(options)
+      })
+    }),
+    defineSocialFeedView({
+      id: 'social.feed.tiktok-videos',
+      title: 'TikTok Videos',
+      description:
+        'Videos you liked or added to favourites on TikTok, newest first. TikTok records the like and the favourite as separate acts against the same video, so both land here.',
+      platform: 'tiktok',
+      scope,
+      query: defineNodeQueryAST(SocialContentSchema, {
+        where: and(content.eq('platform', 'tiktok'), content.eq('contentKind', 'video')),
+        orderBy: { observedAt: 'desc', publishedAt: 'desc', importedAt: 'desc' },
+        page: page(options)
+      })
+    }),
+    defineSocialFeedView({
+      id: 'social.feed.tiktok-collections',
+      title: 'TikTok Collections',
+      description: 'Your TikTok favourite folders and topic collections, as browsable cards.',
+      platform: 'tiktok',
+      scope,
+      query: defineNodeQueryAST(SocialCollectionSchema, {
+        where: collection.eq('platform', 'tiktok'),
+        orderBy: { title: 'asc', observedAt: 'desc' },
+        page: page(options)
+      })
+    }),
+    defineSocialFeedView({
+      id: 'social.feed.activity-timeline',
+      title: 'Activity Timeline',
+      description:
+        'Everything you watched, liked, saved and bookmarked across platforms, on the time axis. Search history is deliberately absent — it is the most revealing bucket in the archive and the least useful as a calendar.',
+      platform: 'all',
+      scope,
+      presentation: TIMELINE_PRESENTATION,
+      query: defineNodeQueryAST(SocialInteractionSchema, {
+        where: and(
+          interaction.neq('interactionKind', 'search'),
+          interaction.neq('interactionKind', 'message')
+        ),
+        orderBy: { observedAt: 'desc', publishedAt: 'desc', importedAt: 'desc' },
         page: page(options)
       })
     })
