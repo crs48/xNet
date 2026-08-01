@@ -44,10 +44,7 @@ export class FirestoreDocStore<T> implements DocStore<T> {
    * lookup costs one document read instead of a full-collection scan.
    */
   async findWhere(field: string, value: string): Promise<T[]> {
-    const snap = await this.col
-      .where(field, '==', value)
-      .orderBy(FieldPath.documentId())
-      .get()
+    const snap = await this.col.where(field, '==', value).orderBy(FieldPath.documentId()).get()
     return snap.docs.map((d) => d.data() as T)
   }
   async page(cursor: string | null, limit: number): Promise<DocPage<T>> {

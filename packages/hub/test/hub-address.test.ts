@@ -185,7 +185,10 @@ describe('resolveHubAddress', () => {
 
   it('discards an unverifiable record rather than following it', async () => {
     const attacker = generateIdentity()
-    const forged = signHubAddress(unsigned({ url: 'https://attacker.example' }), attacker.privateKey)
+    const forged = signHubAddress(
+      unsigned({ url: 'https://attacker.example' }),
+      attacker.privateKey
+    )
     const out = await resolveHubAddress(OWNER, {
       fetchRecord: async () => forged,
       cache: memoryCache(),
