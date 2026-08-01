@@ -496,10 +496,10 @@ refusal has no mapped lane and no `pending` marker.
 - [x] Add the `manufactured urgency` rule to `scripts/check-humane-patterns.mjs`.
 - [x] Add the three self-test cases (positive, `expiresIn` negative, `countdown`
       negative) to the script's harness.
-- [ ] Add ledger claim `calm-no-manufactured-urgency` (`enforcedBy` the script).
-- [ ] Add ledger claim `economics-refusals-are-affordable` with a `pending`
+- [x] Add ledger claim `calm-no-manufactured-urgency` (`enforcedBy` the script).
+- [x] Add ledger claim `economics-refusals-are-affordable` with a `pending`
       reason naming the context-capture gap.
-- [ ] Replace the prose copy rule at `apps/cloud/src/billing/notify.ts:19` with
+- [x] Replace the prose copy rule at `apps/cloud/src/billing/notify.ts:19` with
       a pointer to the now-enforcing rule.
 
 ## Validation Checklist
@@ -507,15 +507,23 @@ refusal has no mapped lane and no `pending` marker.
 - [x] `node scripts/check-humane-patterns.mjs` passes on a clean tree — the new
       rule does not fire on any existing source file.
 - [x] The script's self-tests pass, including both negative cases.
-- [ ] `pnpm --filter @xnetjs/telemetry test` passes with both new claims.
+- [x] `pnpm exec vitest run --project unit packages/telemetry/test/charter-claims-ledger.test.ts`
+      passes with both new claims. (Not `pnpm --filter @xnetjs/telemetry test` —
+      the root config's globs are repo-root-relative, so running vitest from the
+      package cwd finds no test files at all. See `AGENTS.md` § Build & test.)
 - [x] Deliberately introducing `const spotsLeft = 3` in a UI file **fails** the
       humane-patterns gate (the rule can actually go red).
 - [x] Adding `/* humane-ok: capacity display, not a sales prompt */` to that
       line makes it pass again (the escape hatch works).
 - [x] Every §6 refusal appears exactly once in the §4a mapping — none silently
       omitted.
-- [ ] `pnpm check:exploration-links` passes (nothing moved or renamed).
-- [ ] `pnpm lint` and `pnpm typecheck` pass.
+- [x] `pnpm check:exploration-links` passes (nothing moved or renamed).
+- [x] `pnpm lint` passes (0 errors) and `pnpm typecheck` introduces no new
+      failures. **Known pre-existing exception:** `@xnetjs/cli#typecheck` fails
+      on main because `packages/plugins` emits `dist/services/node.js` without a
+      matching `.d.ts`, so `@xnetjs/plugins/node` resolves to `any` and cascades
+      into ~25 TS7006/TS7016 errors. Verified pre-existing by stashing this
+      branch's changes and re-running; unrelated to a `.mjs` gate and three docs.
 
 ---
 

@@ -17,6 +17,12 @@
  *  - **One action, one link.** Every message ends at the billing portal, except
  *    the final notice, which also says how to get the data out.
  *  - **No dark patterns.** No countdown urgency, no guilt, no "we'll miss you".
+ *    This one is no longer kept by memory: the `manufactured urgency` rule in
+ *    `scripts/check-humane-patterns.mjs` fails the build on scarcity and
+ *    act-now identifiers, and the `calm-no-manufactured-urgency` claim in
+ *    `packages/telemetry/test/charter-claims-ledger.test.ts` pins the rule so it
+ *    cannot be quietly narrowed (exploration 0424). Dunning is where urgency
+ *    converts best, which is exactly why the gate has to reach this file.
  */
 
 import type { BillingNotifier } from '../reconcile/billing-driver'
