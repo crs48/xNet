@@ -43,9 +43,16 @@ const root = resolve(process.cwd())
 // bar as the app. Only .ts/.tsx are scanned, so the essays' prose (.astro/.md)
 // is untouched — the gate guards code, not copy.
 const SURPLUS_ROOTS = [join(root, 'packages'), join(root, 'apps'), join(root, 'site')]
+// Dark-pattern rules only run on code that renders. The list must track where
+// the UI actually lives: `workbench` is the only desktop shell (0406) and
+// `dashboard` hosts the widgets, so a streak shipped in either for months
+// without the gate ever looking at it (exploration 0422).
 const DARK_DIR_MARKERS = [
   `${join('packages', 'ui', 'src')}`,
   `${join('packages', 'react', 'src')}`,
+  `${join('packages', 'workbench', 'src')}`,
+  `${join('packages', 'dashboard', 'src')}`,
+  `${join('packages', 'views', 'src')}`,
   `${join('apps', 'web', 'src')}`,
   `${join('site', 'src')}`
 ]
@@ -69,6 +76,27 @@ const RULES = [
     group: 'dark-pattern',
     re: /\b(streakCount|streakCounter|streakDays|dailyStreak|loginStreak|currentStreak)\b/,
     fix: 'streaks weaponize loss aversion; track progress without a punishable chain'
+  },
+  {
+    // The identifier rule above only catches a streak that admits its name. The
+    // one we shipped was a local called `streak` fed by computeStreak(), which
+    // sailed through for months (exploration 0422). Match the *math* reaching a
+    // render path instead of the spelling someone happened to choose.
+    // Note `habitStrength` is deliberately absent: it decays on a miss instead
+    // of resetting to zero, which is the humane alternative this rule pushes
+    // toward — banning it would ban the fix.
+    name: 'streak chain in a render path',
+    group: 'dark-pattern',
+    re: /\b(computeStreak|longestStreak)\s*\(/,
+    fix: 'a consecutive-day chain in UI punishes a miss; render completionRate or habitStrength over a window instead — same information, nothing to break'
+  },
+  {
+    // Flame/lightning/100 next to a count is streak iconography wearing a
+    // different hat: the icon exists to make the number feel losable.
+    name: 'loss-aversion iconography',
+    group: 'dark-pattern',
+    re: /[🔥⚡💯]\s*\{|<Flame\b/,
+    fix: 'flame/lightning beside a count is streak iconography — show the number plainly, or show a rate that cannot be broken'
   },
   {
     name: 'confirmshaming',
@@ -260,6 +288,31 @@ function runSelfTest() {
       dark: true,
       text: 'let dailyStreak = 0',
       expect: (v) => v.some((x) => x.rule === 'streak counter')
+    },
+    {
+      // The exact line that shipped in the habit widget for months.
+      label: 'flags a streak chain even when the local is just called `streak`',
+      dark: true,
+      text: 'const streak = computeStreak(completed, scheduledDays, today)',
+      expect: (v) => v.some((x) => x.rule === 'streak chain in a render path')
+    },
+    {
+      label: 'flags a flame emoji beside a count',
+      dark: true,
+      text: '<span className="text-orange-500">🔥 {streak}</span>',
+      expect: (v) => v.some((x) => x.rule === 'loss-aversion iconography')
+    },
+    {
+      label: 'flags a Flame icon component',
+      dark: true,
+      text: '<Flame size={10} strokeWidth={2} />',
+      expect: (v) => v.some((x) => x.rule === 'loss-aversion iconography')
+    },
+    {
+      label: 'completionRate is not a streak chain',
+      dark: true,
+      text: 'const rate = completionRate(completed, visibleScheduled)',
+      expect: (v) => v.length === 0
     },
     {
       label: 'flags ratio scorekeeping in a UI file',
