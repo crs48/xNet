@@ -435,6 +435,28 @@ export {
   type MeetingSegment,
   type MeetingTemplateId
 } from './schemas'
+// Recording schema pack (exploration 0414)
+export {
+  RecordingSchema,
+  RecordingTranscriptSchema,
+  RECORDING_SCHEMA_IRI,
+  RECORDING_TRANSCRIPT_SCHEMA_IRI,
+  CUT_REASONS,
+  CAMERA_CORNERS,
+  CAMERA_SHAPES,
+  CAPTURE_PATHS,
+  DEFAULT_CAMERA_LAYOUT,
+  type Recording,
+  type RecordingTranscript,
+  type RecordingSegment,
+  type Cut,
+  type CutReason,
+  type Chapter,
+  type CameraLayout,
+  type CameraCorner,
+  type CameraShape,
+  type CapturePathId
+} from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
 export {
   MapSchema,

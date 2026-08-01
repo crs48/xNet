@@ -26,3 +26,23 @@ jobs:
       - name: Build xnet-audiotee (release)
         working-directory: apps/electron/native/audiotee
         run: swift build -c release
+
+  build-screencap:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build xnet-screencap (release)
+        working-directory: apps/electron/native/screencap
+        run: swift build -c release
+
+      # The helper only gets a Screen Recording TCC entry on macOS 26 if it
+      # ships inside a bundle (exploration 0414). electron-builder assembles
+      # that from the binary plus Info.plist, so a malformed plist would only
+      # surface at release time — check it here, where the runner is already paid.
+      - name: Validate helper Info.plist
+        working-directory: apps/electron/native/screencap
+        run: |
+          plutil -lint Info.plist
+          test "$(plutil -extract CFBundleExecutable raw Info.plist)" = "xnet-screencap"

@@ -60,6 +60,7 @@ const workspaceAliases = {
   '@xnetjs/licenses': new URL('./packages/licenses/src/index.ts', import.meta.url).pathname,
   '@xnetjs/maps': new URL('./packages/maps/src/index.ts', import.meta.url).pathname,
   '@xnetjs/meetings': new URL('./packages/meetings/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/recordings': new URL('./packages/recordings/src/index.ts', import.meta.url).pathname,
   '@xnetjs/network': new URL('./packages/network/src/index.ts', import.meta.url).pathname,
   '@xnetjs/publish': new URL('./packages/publish/src/index.ts', import.meta.url).pathname,
   '@xnetjs/plugins/node': new URL('./packages/plugins/src/services/node.ts', import.meta.url)
@@ -125,8 +126,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,publish,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
-            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,publish,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
+            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,recordings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,publish,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
+            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,recordings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,publish,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
             // Control-plane app logic (xNet Cloud — managed-hosting explorations 0174/0175)
             'apps/cloud/src/**/*.test.ts',
             // Demo apps — pure logic only (Connect Four fold, exploration 0314)

@@ -30,11 +30,30 @@ export type AudioInput =
       mimeType: string
     }
 
+/** One timed word, when the engine reports word-level alignment. */
+export interface TranscriptWord {
+  text: string
+  startMs: number
+  endMs: number
+}
+
 /** A timed slice of a transcript, when the engine reports word/segment timings. */
 export interface TranscriptSegment {
   text: string
   startMs: number
   endMs: number
+  /**
+   * Word-level timings, when the engine emits them. Optional because most
+   * engines do not: Whisper needs DTW over decoder cross-attention and
+   * sherpa-onnx needs a re-export with alignment heads, so an engine without
+   * this field is the norm, not a fault.
+   *
+   * Consumers that need to locate something *inside* a sentence — cutting a
+   * filler word, seeking to a clicked word — must degrade when it is absent
+   * rather than interpolate positions the engine never measured
+   * (exploration 0414).
+   */
+  words?: TranscriptWord[]
 }
 
 /** The result of transcribing one clip. */

@@ -1875,6 +1875,34 @@ importers:
         specifier: ^10.3.0
         version: 10.3.0(patch_hash=4d16af1c85349d375eae1f4b72449eef7f06864dbc31d84aecf09b53cb0dedd9)(yjs@13.6.29)
 
+  packages/recordings:
+    dependencies:
+      '@xnetjs/data':
+        specifier: workspace:*
+        version: link:../data
+      '@xnetjs/dictation':
+        specifier: workspace:*
+        version: link:../dictation
+      '@xnetjs/meetings':
+        specifier: workspace:*
+        version: link:../meetings
+      '@xnetjs/plugins':
+        specifier: workspace:*
+        version: link:../plugins
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.30
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(@microsoft/api-extractor@7.58.11(@types/node@20.19.30))(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.0
+        version: 4.0.18(@opentelemetry/api@1.9.1)(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.9.0)
+
   packages/runtime:
     dependencies:
       '@xnetjs/core':
@@ -2317,6 +2345,9 @@ importers:
       '@xnetjs/react':
         specifier: workspace:*
         version: link:../react
+      '@xnetjs/recordings':
+        specifier: workspace:*
+        version: link:../recordings
       '@xnetjs/social':
         specifier: workspace:*
         version: link:../social

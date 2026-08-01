@@ -226,6 +226,28 @@ export {
   type MeetingSegment,
   type MeetingTemplateId
 } from './meeting'
+// Recording schema pack (exploration 0414)
+export {
+  RecordingSchema,
+  RecordingTranscriptSchema,
+  RECORDING_SCHEMA_IRI,
+  RECORDING_TRANSCRIPT_SCHEMA_IRI,
+  CUT_REASONS,
+  CAMERA_CORNERS,
+  CAMERA_SHAPES,
+  CAPTURE_PATHS,
+  DEFAULT_CAMERA_LAYOUT,
+  type Recording,
+  type RecordingTranscript,
+  type RecordingSegment,
+  type Cut,
+  type CutReason,
+  type Chapter,
+  type CameraLayout,
+  type CameraCorner,
+  type CameraShape,
+  type CapturePathId
+} from './recording'
 export { CanvasSchema, type Canvas } from './canvas'
 export {
   MapSchema,
@@ -628,6 +650,10 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Meeting@1.0.0': () => import('./meeting').then((m) => m.MeetingSchema),
   'xnet://xnet.fyi/MeetingTranscript@1.0.0': () =>
     import('./meeting').then((m) => m.MeetingTranscriptSchema),
+  // Recording schema pack (exploration 0414)
+  'xnet://xnet.fyi/Recording@1.0.0': () => import('./recording').then((m) => m.RecordingSchema),
+  'xnet://xnet.fyi/RecordingTranscript@1.0.0': () =>
+    import('./recording').then((m) => m.RecordingTranscriptSchema),
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Map@1.0.0': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
@@ -761,6 +787,9 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Meeting': () => import('./meeting').then((m) => m.MeetingSchema),
   'xnet://xnet.fyi/MeetingTranscript': () =>
     import('./meeting').then((m) => m.MeetingTranscriptSchema),
+  'xnet://xnet.fyi/Recording': () => import('./recording').then((m) => m.RecordingSchema),
+  'xnet://xnet.fyi/RecordingTranscript': () =>
+    import('./recording').then((m) => m.RecordingTranscriptSchema),
   'xnet://xnet.fyi/Canvas': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Map': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),

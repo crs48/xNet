@@ -1,87 +1,104 @@
 {
-  "appId": "dev.xnet.app",
-  "productName": "xNet",
-  "copyright": "Copyright 2024 xNet Contributors",
+  appId: 'dev.xnet.app',
+  productName: 'xNet',
+  copyright: 'Copyright 2024 xNet Contributors',
 
-  "directories": {
-    "output": "dist",
-    "buildResources": "build"
+  directories: {
+    output: 'dist',
+    buildResources: 'build'
   },
 
-  "files": ["out/**/*", "package.json"],
+  files: ['out/**/*', 'package.json'],
 
-  "mac": {
-    "category": "public.app-category.productivity",
-    "icon": "build/icon.icns",
-    "hardenedRuntime": true,
-    "gatekeeperAssess": false,
-    "entitlements": "build/entitlements.mac.plist",
-    "entitlementsInherit": "build/entitlements.mac.plist",
+  mac: {
+    category: 'public.app-category.productivity',
+    icon: 'build/icon.icns',
+    hardenedRuntime: true,
+    gatekeeperAssess: false,
+    entitlements: 'build/entitlements.mac.plist',
+    entitlementsInherit: 'build/entitlements.mac.plist',
     // Arch is driven by the CI `--mac --<arch>` flag (one arch per matrix job).
     // Hardcoding both here made a single job build both arches in one invocation,
     // where @electron/rebuild cross-contaminates the native modules — landing the
     // wrong-arch better_sqlite3.node in a package (see the Linux x64 boot crash).
-    "target": ["dmg", "zip"],
+    target: ['dmg', 'zip'],
     // Meeting capture (exploration 0279): mic prompt + the audio-capture TCC
     // category the Core Audio tap helper triggers on macOS 14.4+.
-    "extendInfo": {
-      "NSMicrophoneUsageDescription": "xNet records your microphone during meetings you choose to capture.",
-      "NSAudioCaptureUsageDescription": "xNet captures system audio during meetings you choose to capture, so the other side of the call can be transcribed."
+    extendInfo: {
+      NSMicrophoneUsageDescription: 'xNet records your microphone during meetings you choose to capture.',
+      NSAudioCaptureUsageDescription: 'xNet captures system audio during meetings you choose to capture, so the other side of the call can be transcribed.',
+      // Screen recording (exploration 0414): the camera prompt for the bubble
+      // track. Screen Recording itself has no usage-description key — macOS
+      // prompts on first ScreenCaptureKit use.
+      NSCameraUsageDescription: 'xNet records your camera alongside your screen when you choose to include it in a recording.'
     },
-    // The Swift tap helper (native/audiotee, built by CI: `swift build -c release`).
-    // Missing binary is fine — the app falls back to Chromium loopback.
-    "extraResources": [
+    // Swift helpers (native/*, built by CI: `swift build -c release`).
+    // A missing binary is fine — each falls back a rung: audiotee to Chromium
+    // loopback, screencap to the Chromium desktopCapturer path.
+    //
+    // screencap ships inside a .app bundle deliberately: macOS 26 (Tahoe) no
+    // longer lists bare executables in the Screen Recording privacy pane, so a
+    // loose Mach-O could never be granted the permission it needs.
+    extraResources: [
       {
-        "from": "native/audiotee/.build/release/xnet-audiotee",
-        "to": "xnet-audiotee"
-      }
-    ]
-  },
-
-  "dmg": {
-    "contents": [
-      {
-        "x": 130,
-        "y": 220
+        from: 'native/audiotee/.build/release/xnet-audiotee',
+        to: 'xnet-audiotee'
       },
       {
-        "x": 410,
-        "y": 220,
-        "type": "link",
-        "path": "/Applications"
-      }
-    ]
-  },
-
-  "win": {
-    "icon": "build/icon.ico",
-    "target": [
+        from: 'native/screencap/.build/release/xnet-screencap',
+        to: 'xnet-screencap.app/Contents/MacOS/xnet-screencap'
+      },
       {
-        "target": "nsis",
-        "arch": ["x64"]
+        from: 'native/screencap/Info.plist',
+        to: 'xnet-screencap.app/Contents/Info.plist'
       }
     ]
   },
 
-  "nsis": {
-    "oneClick": false,
-    "perMachine": false,
-    "allowToChangeInstallationDirectory": true,
-    "deleteAppDataOnUninstall": false
+  dmg: {
+    contents: [
+      {
+        x: 130,
+        y: 220
+      },
+      {
+        x: 410,
+        y: 220,
+        type: 'link',
+        path: '/Applications'
+      }
+    ]
   },
 
-  "linux": {
-    "icon": "build/icon.png",
-    "category": "Office",
+  win: {
+    icon: 'build/icon.ico',
+    target: [
+      {
+        target: 'nsis',
+        arch: ['x64']
+      }
+    ]
+  },
+
+  nsis: {
+    oneClick: false,
+    perMachine: false,
+    allowToChangeInstallationDirectory: true,
+    deleteAppDataOnUninstall: false
+  },
+
+  linux: {
+    icon: 'build/icon.png',
+    category: 'Office',
     // Arch driven by the CI `--linux --<arch>` flag (one arch per matrix job) so a
     // single invocation never rebuilds native modules for two arches and packs the
     // wrong-arch better_sqlite3.node (root cause of the packaged x64 boot crash).
-    "target": ["AppImage", "deb"]
+    target: ['AppImage', 'deb']
   },
 
-  "publish": {
-    "provider": "github",
-    "owner": "xnet-dev",
-    "repo": "xnet"
+  publish: {
+    provider: 'github',
+    owner: 'xnet-dev',
+    repo: 'xnet'
   }
 }

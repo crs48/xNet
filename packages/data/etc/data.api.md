@@ -1403,6 +1403,39 @@ export const builtInSchemas: {
         space: PropertyBuilder<string>;
         visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
     }>>;
+    readonly 'xnet://xnet.fyi/Recording@1.0.0': () => Promise<DefinedSchema<{
+        title: PropertyBuilder<string>;
+        startedAt: PropertyBuilder<number>;
+        durationMs: PropertyBuilder<number>;
+        screenTrack: PropertyBuilder<FileRef>;
+        cameraTrack: PropertyBuilder<FileRef>;
+        cuts: PropertyBuilder<Cut[]>;
+        chapters: PropertyBuilder<Chapter[]>;
+        cameraLayout: PropertyBuilder<CameraLayout>;
+        transcript: PropertyBuilder<string>;
+        capturePath: PropertyBuilder<"unknown" | "screencapturekit-helper" | "chromium-desktop-capturer" | "display-media">;
+        width: PropertyBuilder<number>;
+        height: PropertyBuilder<number>;
+        truncated: PropertyBuilder<boolean>;
+        truncationReason: PropertyBuilder<string>;
+        folder: PropertyBuilder<string>;
+        tags: PropertyBuilder<string[]>;
+        sortKey: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+    }>>;
+    readonly 'xnet://xnet.fyi/RecordingTranscript@1.0.0': () => Promise<DefinedSchema<{
+        recording: PropertyBuilder<string>;
+        fullText: PropertyBuilder<string>;
+        segments: PropertyBuilder<RecordingSegment[]>;
+        language: PropertyBuilder<string>;
+        engineId: PropertyBuilder<string>;
+        modelId: PropertyBuilder<string>;
+        verbatim: PropertyBuilder<boolean>;
+        durationMs: PropertyBuilder<number>;
+        space: PropertyBuilder<string>;
+        visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+    }>>;
     readonly 'xnet://xnet.fyi/Canvas@1.0.0': () => Promise<DefinedSchema<{
         title: PropertyBuilder<string>;
         icon: PropertyBuilder<string>;
@@ -2657,6 +2690,39 @@ export const builtInSchemas: {
         space: PropertyBuilder<string>;
         visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
     }>>;
+    readonly 'xnet://xnet.fyi/Recording': () => Promise<DefinedSchema<{
+        title: PropertyBuilder<string>;
+        startedAt: PropertyBuilder<number>;
+        durationMs: PropertyBuilder<number>;
+        screenTrack: PropertyBuilder<FileRef>;
+        cameraTrack: PropertyBuilder<FileRef>;
+        cuts: PropertyBuilder<Cut[]>;
+        chapters: PropertyBuilder<Chapter[]>;
+        cameraLayout: PropertyBuilder<CameraLayout>;
+        transcript: PropertyBuilder<string>;
+        capturePath: PropertyBuilder<"unknown" | "screencapturekit-helper" | "chromium-desktop-capturer" | "display-media">;
+        width: PropertyBuilder<number>;
+        height: PropertyBuilder<number>;
+        truncated: PropertyBuilder<boolean>;
+        truncationReason: PropertyBuilder<string>;
+        folder: PropertyBuilder<string>;
+        tags: PropertyBuilder<string[]>;
+        sortKey: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+    }>>;
+    readonly 'xnet://xnet.fyi/RecordingTranscript': () => Promise<DefinedSchema<{
+        recording: PropertyBuilder<string>;
+        fullText: PropertyBuilder<string>;
+        segments: PropertyBuilder<RecordingSegment[]>;
+        language: PropertyBuilder<string>;
+        engineId: PropertyBuilder<string>;
+        modelId: PropertyBuilder<string>;
+        verbatim: PropertyBuilder<boolean>;
+        durationMs: PropertyBuilder<number>;
+        space: PropertyBuilder<string>;
+        visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+    }>>;
     readonly 'xnet://xnet.fyi/Canvas': () => Promise<DefinedSchema<{
         title: PropertyBuilder<string>;
         icon: PropertyBuilder<string>;
@@ -3437,6 +3503,31 @@ export interface BundleYjsPort {
 }
 
 // @public
+export const CAMERA_CORNERS: readonly ["bottom-left", "bottom-right", "top-left", "top-right"];
+
+// @public (undocumented)
+export const CAMERA_SHAPES: readonly ["circle", "rounded", "square"];
+
+// @public (undocumented)
+export type CameraCorner = (typeof CAMERA_CORNERS)[number];
+
+// @public
+export interface CameraLayout {
+    // (undocumented)
+    corner: CameraCorner;
+    hiddenSpans?: Array<{
+        startMs: number;
+        endMs: number;
+    }>;
+    // (undocumented)
+    shape: CameraShape;
+    size: number;
+}
+
+// @public (undocumented)
+export type CameraShape = (typeof CAMERA_SHAPES)[number];
+
+// @public
 export function canEnterAtmosphere(visibility: NodeVisibilityValue): boolean;
 
 // @public
@@ -3486,6 +3577,12 @@ export const CanvasSchema: DefinedSchema<{
     space: PropertyBuilder<string>;
     visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
 }>;
+
+// @public
+export const CAPTURE_PATHS: readonly ["screencapturekit-helper", "chromium-desktop-capturer", "display-media", "unknown"];
+
+// @public (undocumented)
+export type CapturePathId = (typeof CAPTURE_PATHS)[number];
 
 // @public
 export function captureUpdate(doc: YDoc, authorDID: string, signingKey: Uint8Array, parentHash: string, vectorClock: VectorClock, callback: () => void): SignedUpdate | null;
@@ -3559,6 +3656,13 @@ export const ChannelSchema: DefinedSchema<{
     createdAt: PropertyBuilder<number>;
     createdBy: PropertyBuilder<`did:key:${string}`>;
 }>;
+
+// @public
+export interface Chapter {
+    startMs: number;
+    summary?: string;
+    title: string;
+}
 
 // @public (undocumented)
 export type ChatMessage = InferNode<(typeof ChatMessageSchema)['_properties']>;
@@ -4352,6 +4456,20 @@ export interface CursorPosition {
 }
 
 // @public
+export interface Cut {
+    enabled: boolean;
+    endMs: number;
+    reason: CutReason;
+    startMs: number;
+}
+
+// @public
+export const CUT_REASONS: readonly ["silence", "filler", "manual"];
+
+// @public (undocumented)
+export type CutReason = (typeof CUT_REASONS)[number];
+
+// @public
 export type Dashboard = InferNode<(typeof DashboardSchema)['_properties']>;
 
 // @public
@@ -4722,6 +4840,9 @@ export function decodeAnchor<T extends AnchorData>(json: string): T;
 
 // @public (undocumented)
 export function decodeNodeQueryCursor(cursor: string): NodeQueryCursor | null;
+
+// @public
+export const DEFAULT_CAMERA_LAYOUT: CameraLayout;
 
 // @public (undocumented)
 export const DEFAULT_CHANNEL_TIER: ChannelNotifyTier;
@@ -9103,6 +9224,70 @@ export function rebalanceSortKeys(rowIds: string[]): Map<string, string>;
 
 // @public (undocumented)
 export type RebuildNodeIndexesOptions = SetNodeOptions;
+
+// @public
+export type Recording = InferNode<(typeof RecordingSchema)['_properties']>;
+
+// @public (undocumented)
+export const RECORDING_SCHEMA_IRI: "xnet://xnet.fyi/Recording@1.0.0";
+
+// @public (undocumented)
+export const RECORDING_TRANSCRIPT_SCHEMA_IRI: "xnet://xnet.fyi/RecordingTranscript@1.0.0";
+
+// @public (undocumented)
+export const RecordingSchema: DefinedSchema<{
+    title: PropertyBuilder<string>;
+    startedAt: PropertyBuilder<number>;
+    durationMs: PropertyBuilder<number>;
+    screenTrack: PropertyBuilder<FileRef>;
+    cameraTrack: PropertyBuilder<FileRef>;
+    cuts: PropertyBuilder<Cut[]>;
+    chapters: PropertyBuilder<Chapter[]>;
+    cameraLayout: PropertyBuilder<CameraLayout>;
+    transcript: PropertyBuilder<string>;
+    capturePath: PropertyBuilder<"unknown" | "screencapturekit-helper" | "chromium-desktop-capturer" | "display-media">;
+    width: PropertyBuilder<number>;
+    height: PropertyBuilder<number>;
+    truncated: PropertyBuilder<boolean>;
+    truncationReason: PropertyBuilder<string>;
+    folder: PropertyBuilder<string>;
+    tags: PropertyBuilder<string[]>;
+    sortKey: PropertyBuilder<string>;
+    space: PropertyBuilder<string>;
+    visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+}>;
+
+// @public
+export interface RecordingSegment {
+    // (undocumented)
+    endMs: number;
+    // (undocumented)
+    startMs: number;
+    // (undocumented)
+    text: string;
+    words?: Array<{
+        text: string;
+        startMs: number;
+        endMs: number;
+    }>;
+}
+
+// @public
+export type RecordingTranscript = InferNode<(typeof RecordingTranscriptSchema)['_properties']>;
+
+// @public (undocumented)
+export const RecordingTranscriptSchema: DefinedSchema<{
+    recording: PropertyBuilder<string>;
+    fullText: PropertyBuilder<string>;
+    segments: PropertyBuilder<RecordingSegment[]>;
+    language: PropertyBuilder<string>;
+    engineId: PropertyBuilder<string>;
+    modelId: PropertyBuilder<string>;
+    verbatim: PropertyBuilder<boolean>;
+    durationMs: PropertyBuilder<number>;
+    space: PropertyBuilder<string>;
+    visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+}>;
 
 // @public
 export interface RecordLens {
