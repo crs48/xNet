@@ -424,9 +424,9 @@ collection structure — all local, all owned, all synced.
 
 **WP4 — Agent context**
 
-- [ ] Define a social `RetrievalProfile` (content + transcripts + collection
+- [x] Define a social `RetrievalProfile` (content + transcripts + collection
       structure; sensitive buckets excluded by default).
-- [ ] Seed one or two social context packs via the existing
+- [x] Seed one or two social context packs via the existing
       `xnet_create_context_pack` shape ("everything I saved about X").
 - [ ] Changelog fragment ("Your imported social library now …") — user-facing
       feature, no `skip-changelog`.
