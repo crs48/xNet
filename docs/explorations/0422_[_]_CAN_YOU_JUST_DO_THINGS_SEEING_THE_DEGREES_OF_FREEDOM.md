@@ -10,14 +10,30 @@ tags: [charter, product, ux, onboarding, agency, ci]
 > [!TIP]
 > **TL;DR** — Cate Hall defines agency as the capacity to **see** and to **act
 > on** the degrees of freedom available to you. xNet ships the second half
-> obsessively and the first half almost not at all: the layout-tree flag, the
-> AI assist mode, the command palette, and four claims-ledger entries are all
+> obsessively and the first half almost not at all: the AI assist mode, the
+> entire first-run coachmark system, and four claims-ledger entries are all
 > capabilities that exist in code and are invisible or unreachable from the UI.
 > Recommendation: promote the existing `LABS_FLAGS` registry into a
 > **Capability Register**, back it with a `check-capability-surface.mjs` CI
 > gate, add the *seeing* half to Charter §5, and pin it with an
 > `agency-capabilities-are-visible` claim. A capability with no surface is not
 > a feature — it is a rumour.
+
+> [!IMPORTANT]
+> **Corrected during implementation.** Two findings below were written from
+> the source and did not survive contact with it. Both corrections are kept in
+> place rather than quietly edited out, because what replaced them is better
+> evidence for the same argument. See [Corrections](#corrections).
+>
+> 1. The `xnet:experiment:layout-tree` flag is **not** a hidden capability. It
+>    was deleted in `59973833c` (July 2026) once the shell always rendered the
+>    tree; what remained was a stale doc comment describing a control that no
+>    longer existed.
+> 2. The coachmark finding was **too generous**. It is not that four of ~22
+>    views have a tip — it is that all four registered tips pointed at
+>    `data-coach` selectors present in no component, and `CoachmarkLayer`
+>    returns `null` when an anchor does not resolve. The first-run tip system
+>    had been rendering **nothing at all**.
 
 ---
 
@@ -65,20 +81,27 @@ The audit answer is no, and it is not close.
 | Charter §5 covers the *seeing* half                                               | ❌ No — it is entirely an anti-deskilling claim                                 |
 | The fix needs new architecture                                                    | ❌ No — a registry, a CI gate, and a charter paragraph                          |
 
-The three headline measurements, each verified against the working tree:
+The headline measurements, as corrected during implementation:
 
 ```text
-┌──────────────────────────────┬──────────┬──────────────────────────────────┐
-│ Capability                   │ In code  │ Reachable / visible to a user    │
-├──────────────────────────────┼──────────┼──────────────────────────────────┤
-│ xnet:experiment:* flags      │    3     │  2 registered in Settings › Labs │
-│ Addressable views (coachmark)│   ~22    │  4 have a first-run tip          │
-│ AI assist mode (scaffold/draft)│   2     │  0 — no UI consumer at all       │
-└──────────────────────────────┴──────────┴──────────────────────────────────┘
+┌────────────────────────────────┬──────────┬────────────────────────────────┐
+│ Capability                     │ In code  │ Reachable / visible to a user  │
+├────────────────────────────────┼──────────┼────────────────────────────────┤
+│ xnet:experiment:* flags        │    2     │  2 in Settings › Labs  ✅      │
+│ Core first-run coachmarks      │    4     │  0 — every anchor was dead     │
+│ AI assist mode (scaffold/draft)│    2     │  0 — no UI consumer at all     │
+└────────────────────────────────┴──────────┴────────────────────────────────┘
 ```
 
-The third line is the one that should sting: Charter §5 says `draft` mode is
-"opt-in only," and there is nowhere in either app to opt in.
+Two of the three lines are zero. The assist-mode row is the one that should
+sting hardest: Charter §5 says `draft` mode is "opt-in only," and there was
+nowhere in either app to opt in — the promise described a control that existed
+only in the type system.
+
+The flag row is the good news, and it is worth saying plainly: the Labs
+registry works. Every flag a user can flip was already declared and surfaced.
+The failure is not that xNet is careless with the mechanism it has — it is that
+the mechanism only ever covered one population.
 
 ---
 
@@ -125,18 +148,30 @@ That is Hall's first term, implemented. It just is not applied to everything:
 ```
 $ grep -rhoE "xnet:experiment:[a-zA-Z0-9:._-]+" apps packages
 xnet:experiment:desk-radial     ← registered in LABS_FLAGS
-xnet:experiment:layout-tree     ← NOT registered
+xnet:experiment:layout-tree     ← in a doc comment only (see below)
 xnet:experiment:quiet-default   ← registered in LABS_FLAGS
 ```
 
 > [!WARNING]
-> The unregistered one is the **largest** degree of freedom in the shell.
-> [`packages/workbench/src/state.ts:184`](../../packages/workbench/src/state.ts)
-> documents `xnet:experiment:layout-tree` as the flag behind exploration 0280's
-> layout tree — regions → slots → views, "the single data model behind every
-> shell posture," with the old shells demoted to presets over it. Exploration
-> 0280 is checked off `[x]`. The malleable workbench shipped. No user can find
-> the switch.
+> **This finding did not survive verification, and the correction is more
+> useful than the finding was.** The draft argued that `layout-tree` — the flag
+> behind exploration 0280's layout tree — was the largest unregistered degree
+> of freedom in the shell.
+>
+> It is not a flag. `git log -S` finds `59973833c`, *"remove the layout-tree
+> Labs flag entirely"*, July 2026: **"The single shell always renders the tree,
+> so the `xnet:experiment:layout-tree` flag has no meaning."** It deleted the
+> Labs entry and ungated panel drag. `ShellFrame` reads `state.tree`
+> unconditionally. The malleable workbench did not ship hidden — it shipped to
+> everyone, which is the outcome we wanted.
+>
+> What survived the deletion was the **doc comment** at
+> [`packages/workbench/src/state.ts`](../../packages/workbench/src/state.ts),
+> still advertising the flag as though a user could flip it. That is the same
+> failure pointed the other way: prose describing a control nobody can use.
+> A scan of raw source cannot tell the two apart — which is precisely why the
+> gate this exploration recommends strips comments before scanning, and checks
+> the register in **both** directions. The bug found the gate's design for us.
 
 ### 2. Coachmarks — an engine with almost nothing in it
 
@@ -152,6 +187,24 @@ view ids. [`tips.ts`](../../apps/web/src/coachmarks/tips.ts) registers **four**:
 `crm:overview@1`, `tasks:overview@1`, `discover:overview@1`,
 `home:command-palette@1`. Canvas, database, dashboard, map, space, channel,
 person, tag, saved views, lab — every one of them silent on first open.
+
+> [!CAUTION]
+> **The real number is zero, and the draft was too generous.** Every one of
+> those four tips anchors on a `[data-coach="rail.*"]` selector. Grepping the
+> product for the attribute returns `quiet.dock`, `workspace.grab`,
+> `workspace.switch` — and `rail.crm` **only inside a test file**. Not one
+> `rail.*` anchor existed in a component.
+>
+> [`CoachmarkLayer.tsx`](../../apps/web/src/coachmarks/CoachmarkLayer.tsx)
+> line 27 is `if (!current || !anchor) return null`. Correct behaviour, and
+> completely silent. The engine is real, the registry is real, the tests pass,
+> the Storybook stories render — and in the running app, the first-run tip
+> system has been showing **nothing at all**.
+>
+> This is the single best example in the repo of the thing this document is
+> about, and it is worse than the class it belongs to: not a capability you
+> cannot find, but a *signifier* that renders nothing while every green check
+> reports it working. Coverage counted the tips; nothing counted the anchors.
 
 The extensibility story exists precisely so this would not happen, and it
 happened anyway. That is the tell that this needs a gate, not a reminder.
@@ -337,9 +390,11 @@ nothing to people whose are not.
    non-subtraction. Hall's first term is absent, so nothing in CI can regress
    against it.
 
-2. **The gap is measurable, and measured:** 2/3 experiment flags registered;
-   4 of ~22 views with a first-run tip; 0 application consumers of a
-   two-valued AI mode the charter calls opt-in.
+2. **The gap is measurable, and measured:** 2/2 experiment flags registered
+   (the mechanism that exists works); **0 of 4** core coachmarks with a live
+   anchor; **0** application consumers of a two-valued AI mode the charter
+   calls opt-in. The failure is not sloppiness inside a population — it is
+   populations with no mechanism at all.
 
 3. **There is a live charter inaccuracy.** Charter §5 says `draft` is opt-in.
    There is no opt-in path. This must be fixed in the charter's wording or in
@@ -751,30 +806,41 @@ seeing half grows past a paragraph.
 
 **Step 2 — charter**
 
-- [ ] Amend [`docs/CHARTER.md`](../CHARTER.md) §5 with the *seeing* half, citing
+- [x] Amend [`docs/CHARTER.md`](../CHARTER.md) §5 with the *seeing* half, citing
       Hall's two-term definition and linking the Asterisk interview.
-- [ ] Mark the seeing half's backing honestly. The gate landed in the same
+- [x] Mark the seeing half's backing honestly. The gate landed in the same
       change, so the commitment is **Enforced**; what stays **Aspirational** is
       the *population* — commands, shortcuts and plugin capabilities are out of
       scope until the flag population has held green.
 
 **Step 3 — register**
 
-- [ ] Grow `apps/web/src/lib/labs.ts` into `capabilities.ts`: add `surface`,
+- [x] Grow `apps/web/src/lib/labs.ts` into `capabilities.ts`: add `surface`,
       optional `hidden`, and `stable` to the `stage` union. Keep `LABS_FLAGS` as
       a derived export so Settings and its tests need no change.
-- [ ] Register `xnet:experiment:layout-tree` with a labs surface **and** a
-      coachmark — the highest-value single line in this document.
-- [ ] Register the AI assist mode as a capability with a settings surface.
-- [ ] Add coachmark tips for the top three unsignposted views (canvas,
-      database, dashboard), following `docs/ONBOARDING.md`'s length rules.
+- [ ] ~~Register `xnet:experiment:layout-tree` with a labs surface **and** a
+      coachmark~~ — **void, see correction 1.** There is no such flag; it was
+      deleted in `59973833c` and the shell renders the tree for everyone.
+      Replaced by: delete the stale doc comment in
+      `packages/workbench/src/state.ts` that still advertises it, and make the
+      gate strip comments so prose can never mint a phantom capability again.
+- [x] Register the AI assist mode as a capability with a settings surface.
+- [x] Make the coachmark anchors real before adding any tip: give the rail
+      buttons a `data-coach={`rail.${surface.id}`}` attribute so the four
+      existing core tips stop resolving to null, and add a source tripwire
+      test that fails when a registered tip names an anchor no component
+      renders. A tip that cannot render is decoration.
+- [x] Add coachmark tips for the top three unsignposted views, following
+      `docs/ONBOARDING.md`'s length rules. **Substituted:** `finance`,
+      `analytics`, `meetings` rather than canvas / database / dashboard — see
+      correction 3, the original three have no rail anchor to point at.
 
 **Step 4 — gate and receipt**
 
-- [ ] Add `scripts/check-capability-surface.mjs` (advisory), wire
+- [x] Add `scripts/check-capability-surface.mjs` (advisory), wire
       `pnpm check:capability-surface`, and name its consumer in CI per the
       `AGENTS.md` rule that every check needs a named consumer.
-- [ ] Add the `agency-capabilities-are-visible` claim to
+- [x] Add the `agency-capabilities-are-visible` claim to
       `packages/telemetry/test/charter-claims-ledger.test.ts`.
 - [ ] Flip the gate to `--strict` one release after it lands, and record the
       target release in the PR description.
@@ -800,6 +866,27 @@ seeing half grows past a paragraph.
       grew the shape rather than replacing it.
 - [ ] Charter §5 reads accurately about assist mode: whatever step 1 chose, the
       charter and the app now agree.
+
+---
+
+## Corrections
+
+Recorded rather than edited away, on the same principle as
+[`docs/decisions/rule-changes.md`](../decisions/rule-changes.md) keeping the
+declined proposals: a record of only the findings that held up is marketing.
+
+| # | Draft claim | What verification found | Effect on the argument |
+| - | ----------- | ----------------------- | ---------------------- |
+| 1 | `xnet:experiment:layout-tree` is an unregistered, invisible flag | The flag was **deleted** in `59973833c` (July 2026); only a stale doc comment remained | ❌ Finding withdrawn. It became the design rationale for stripping comments before scanning, and for checking the register in both directions. |
+| 2 | 4 of ~22 views have a first-run tip | All four tips anchor on `data-coach` selectors present in **no** component; `CoachmarkLayer` returns `null` and renders nothing | ⬆️ Finding strengthened. The real number is 0, and the failure mode is worse than the class it belonged to. |
+| 3 | Three tips should be added for canvas, database and dashboard | None of those is a rail surface, so none has an anchor to point at — the tips would have rendered nothing, exactly like the four already there | ↔️ Substituted: `finance`, `analytics`, `meetings`, the three unsignposted **route** surfaces the rail can anchor today. |
+
+The pattern across all three is the same, and it is the document's own thesis
+turned on the document: **every one of these was invisible to a source read and
+obvious to a run.** Finding 1 needed `git log -S`; finding 2 needed grepping
+for the attribute rather than the tip; finding 3 needed the surface registry.
+An exploration written only from the code it describes will reproduce the
+codebase's own blind spots.
 
 ---
 
