@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Your hub keeps the same address when it moves</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-your-hub-keeps-the-same-address-when-it-</link>
+      <guid isPermaLink="false">2026-08-01-your-hub-keeps-the-same-address-when-it-</guid>
+      <pubDate>Sat, 01 Aug 2026 21:41:27 GMT</pubDate>
+      <description>Apps can now find your hub by name instead of a fixed URL, so moving it between regions or hosts no longer leaves your devices pointing at the wrong place. A hub waking from sleep says so and reconnects, instead of looking offline, and an exported backup carries the address so it alone is enough to get you syncing again.</description>
+    </item>
+    <item>
       <title>Publish what you saved, and find what you have in common</title>
       <link>https://xnet.fyi/changelog#2026-08-01-publish-what-you-saved-and-find-what-you</link>
       <guid isPermaLink="false">2026-08-01-publish-what-you-saved-and-find-what-you</guid>
