@@ -1,0 +1,18 @@
+{
+  "id": "2026-08-01-your-hub-keeps-the-same-address-when-it-",
+  "date": "August 1, 2026",
+  "title": "Your hub keeps the same address when it moves",
+  "summary": "Apps can now find your hub by name instead of a fixed URL, so moving it between regions or hosts no longer leaves your devices pointing at the wrong place. A hub waking from sleep says so and reconnects, instead of looking offline, and an exported backup carries the address so it alone is enough to get you syncing again.",
+  "highlights": [],
+  "tags": [
+    "sync",
+    "platform"
+  ],
+  "pr": 678,
+  "mergedAt": "2026-08-01T21:41:27Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

@@ -18,6 +18,7 @@ import type { PlanId } from '@xnetjs/entitlements'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
+import { resolveTenantAddress, type AddressMirrorDeps } from './address-mirror'
 import { parseAiBudgetForm } from './ai/budget-form'
 import { createAiRoute, type AiChatDeps } from './ai/route'
 import { backupsHealthyFor, type BackupHealth } from './backup/schedule'
@@ -120,6 +121,13 @@ export interface ControlPlaneAppDeps {
    * (0315 P4). Ignored when `onDiagnosticsFirstSeen` is supplied directly.
    */
   diagnosticsAlertUrl?: string
+  /**
+   * Mirrors each hub's own signed address record so a client can find its hub
+   * without already knowing where it is (exploration 0423). Omit to leave
+   * `/resolve/:tenantId` unmounted — self-hosters resolve against their hub's
+   * own `/.well-known/xnet-hub-address` instead.
+   */
+  addressMirror?: AddressMirrorDeps
 }
 
 interface ProvisionBody {
@@ -631,6 +639,26 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     if (!record) return c.json({ error: 'not_found' }, 404)
     return c.json(record)
   })
+
+  // Where is this tenant's hub? Unauthenticated by design: the answer is an
+  // address the client is about to dial anyway, and gating it would require
+  // reaching the hub to find out where the hub is (exploration 0423).
+  //
+  // This is resolution, NOT proxying — the client dials the returned URL
+  // directly, and the record it dials by is signed by the hub, so this endpoint
+  // cannot redirect anyone even if it is compromised.
+  if (deps.addressMirror) {
+    const mirror = deps.addressMirror
+    app.get('/resolve/:tenantId', async (c) => {
+      const tenant = await deps.controlPlane.getTenant(c.req.param('tenantId'))
+      const resolution = await resolveTenantAddress(tenant, mirror)
+      if (!resolution) return c.json({ error: 'not_found' }, 404)
+      if (resolution.liveness.retryAfterMs !== undefined) {
+        c.header('Retry-After', String(Math.ceil(resolution.liveness.retryAfterMs / 1000)))
+      }
+      return c.json(resolution)
+    })
+  }
 
   // ── Internal routes (admin tooling) ──────────────────────────────────────────
   const requireInternal = (c: { req: { header: (k: string) => string | undefined } }): boolean =>

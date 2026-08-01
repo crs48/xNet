@@ -38,7 +38,7 @@ import {
 import { diagnosticsSecretFor } from './diagnostics'
 import { fetchHubHealth } from './hub-status'
 import { applyBillingEvent, type BillingEvent, type DunningState } from './reconcile/billing'
-import { type TenantRecord, type TenantStore } from './registry'
+import { type TenantPage, type TenantRecord, type TenantStore } from './registry'
 import { saga, sagaStep } from './saga'
 
 /**
@@ -455,10 +455,14 @@ export class ControlPlane {
     return record as TenantRecord
   }
 
-  /** Find the tenant owned by a billing identity (dashboard + claim lookup). */
+  /**
+   * Find the tenant owned by a billing identity (dashboard + claim lookup).
+   *
+   * Every Stripe webhook lands here, so it goes through the store's lookup index
+   * rather than scanning the fleet (exploration 0423).
+   */
   async getTenantForBilling(billingUserId: string): Promise<TenantRecord | null> {
-    const all = await this.deps.tenants.list()
-    return all.find((t) => t.billingUserId === billingUserId) ?? null
+    return this.deps.tenants.getByBillingUser(billingUserId)
   }
 
   /**
@@ -878,6 +882,38 @@ export class ControlPlane {
   /** Every tenant the control plane knows about (fleet observability + rollouts). */
   listTenants(): Promise<TenantRecord[]> {
     return this.deps.tenants.list()
+  }
+
+  /** One page of the fleet in `tenantId` order (exploration 0423). */
+  pageTenants(cursor: string | null, limit: number): Promise<TenantPage> {
+    return this.deps.tenants.page(cursor, limit)
+  }
+
+  /**
+   * Walk the whole fleet a page at a time, applying `visit` to each tenant.
+   *
+   * This is the shape every periodic sweep wants: a tick never materialises the
+   * whole fleet, and because `visit` is per-tenant the loop can later be split
+   * across workers by `hash(tenantId) % W` without restructuring the callers
+   * (exploration 0423). `visit` is called in `tenantId` order; a page that comes
+   * back empty with a cursor still advances, so a deleted tail cannot loop.
+   */
+  async forEachTenant(
+    visit: (tenant: TenantRecord) => Promise<void>,
+    opts?: { pageSize?: number }
+  ): Promise<number> {
+    const pageSize = opts?.pageSize ?? 100
+    let cursor: string | null = null
+    let seen = 0
+    for (;;) {
+      const page: TenantPage = await this.deps.tenants.page(cursor, pageSize)
+      for (const tenant of page.items) {
+        seen += 1
+        await visit(tenant)
+      }
+      if (page.next === null) return seen
+      cursor = page.next
+    }
   }
 
   /** R2 object path holding a tenant's SQLite snapshot (matches the Litestream replica path). */

@@ -69,7 +69,9 @@ priority order, a watermark + snooze model, and a hard cap.
   exploration 0199) and the humane‑patterns gate bans dark‑pattern primitives —
   infinite scroll, streak counters, confirmshaming
   ([`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs),
-  `dark-pattern` rules).
+  `dark-pattern` rules). The streak rules match the underlying math reaching a
+  render path, not just identifier spellings, and cover the workbench and
+  dashboard packages — a gap that let a 🔥 counter ship (exploration 0422).
 - **Architectural:** chronological feeds
   ([`packages/social/src/feeds/defaults.ts`](../packages/social/src/feeds/defaults.ts)),
   rule‑based notifications
@@ -101,6 +103,14 @@ respects authorization. By default the assistant **scaffolds** — it proposes a
 cites, you write and own — rather than silently doing your thinking for you (a
 direct answer to the MIT "cognitive debt" finding on LLM deskilling). Anything the
 model authored is marked as `ai-generated` provenance.
+
+**Why scaffolding is the default, and not timidity:** the autonomy a feature may
+take is bounded by how cheaply it can be revoked and how completely you leave
+with your data — see [`VIBE.md`](./VIBE.md) §"Surrender scales with exit"
+(exploration 0422). Handing the wheel to your own judgement is one thing;
+handing it to a vendor's model is another, and §Exit is what keeps the two
+distinguishable. That makes §Exit a precondition on every autonomy feature here,
+not a separate promise about portability.
 
 - **Architectural / tested:** governed GraphRAG retrieval
   ([`packages/brain/src/retrieve.ts`](../packages/brain/src/retrieve.ts)),
@@ -176,6 +186,22 @@ things you would own anyway. The refused rents, each with its receipt:
   in
   [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)
   (exploration 0417).
+- **No scored intimacy.** Relationships are made legible, never scored. xNet
+  will record what two people actually do together — the shared activities a
+  label like "friend" compresses away — and will derive a reading from them.
+  It will not grade that reading: no relationship health score, no closeness
+  ranking, no list of the people you are neglecting. A score is the artefact an
+  operator sells, and it inverts the purpose — the point is to be intentional
+  about a relationship, not to be measured against it. So a derivation returns
+  a **set difference** (activities common to this kind of relationship that you
+  don't share) and never a number standing for the relationship itself.
+  **Enforced:** the `scored intimacy` rule in
+  [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
+  fails CI on scoring identifiers (`relationshipScore`, `friendshipScore`,
+  `connectionHealth`, `neglectedContacts`, …); the receipt is pinned by
+  `commons-no-scored-intimacy` in
+  [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)
+  (exploration 0422).
 - **No behavioural surplus.** Restates §1 as a refused rent. **Enforced:**
   [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
   (`surplus` rules).

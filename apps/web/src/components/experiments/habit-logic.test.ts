@@ -42,7 +42,7 @@ describe('habit-logic', () => {
     expect(byDay.get(day('2026-06-14'))?.value).toBe(0)
   })
 
-  it('computes streak/strength over scheduled days only', () => {
+  it('computes strength/rate over scheduled days only', () => {
     const today = day('2026-06-14')
     const observations = [
       obs('m1', day('2026-06-12')),
@@ -51,8 +51,20 @@ describe('habit-logic', () => {
     ]
     const summary = habitSummary(meditate, observations, today)
     expect(summary.done).toBe(true)
-    expect(summary.streak).toBe(3)
     expect(summary.strength).toBeGreaterThan(0)
+    expect(summary.rate30).toBeGreaterThan(0)
+  })
+
+  it('carries no consecutive-day chain into the UI-facing summary', () => {
+    // Exploration 0422: a chain a single miss destroys must not reach a surface
+    // the user did not go looking at. Strength decays, rate lowers; neither breaks.
+    const today = day('2026-06-14')
+    const summary = habitSummary(meditate, [obs('m1', today)], today) as unknown as Record<
+      string,
+      unknown
+    >
+    expect(summary).not.toHaveProperty('streak')
+    expect(summary).not.toHaveProperty('longest')
   })
 
   it('treats a boolean value of 0 as not done', () => {
