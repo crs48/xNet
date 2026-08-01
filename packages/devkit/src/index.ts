@@ -20,8 +20,28 @@ export {
   type FakeCommandScript,
   type LineRunner,
   type StreamRunOptions,
-  type FakeLineScript
+  type FakeLineScript,
+  NodeDuplexRunner
 } from './command-runner'
+
+// JSON-RPC agent adapters (Codex app-server, ACP) — exploration 0416
+export {
+  JsonRpcError,
+  JsonRpcSession,
+  type DuplexProcess,
+  type DuplexRunOptions,
+  type DuplexRunner,
+  type JsonRpcMessage,
+  type JsonRpcSessionOptions,
+  type NotificationHandler,
+  type RequestHandler
+} from './json-rpc-stdio'
+export {
+  codexAppServerChatAgent,
+  foldCodexNotification,
+  type CodexAppServerOptions
+} from './codex-app-server'
+export { acpChatAgent, foldAcpUpdate, type AcpAgentOptions } from './acp-agent'
 
 export { Git, GitError, type GitCheckpoint } from './git'
 

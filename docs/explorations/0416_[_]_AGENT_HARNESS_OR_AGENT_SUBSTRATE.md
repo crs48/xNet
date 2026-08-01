@@ -540,9 +540,9 @@ requires the operator's signing key — which the agent never has.
 
 - [ ] Panel renders `tool_call` / `tool_result` frames and an in-chat approval
       UI wired to `permission_request` (0392 open item)
-- [ ] `codexAppServerChatAgent` — JSON-RPC over stdio to `codex app-server`
+- [x] `codexAppServerChatAgent` — JSON-RPC over stdio to `codex app-server`
       (0392 open item)
-- [ ] ACP adapter behind the same frames (`gemini --experimental-acp`)
+- [x] ACP adapter behind the same frames (`gemini --experimental-acp`)
       (0392 open item)
 - [ ] Model-lane `generateWithTools` + `AiSurfaceService` loop emit the same
       frames; retire the Phase-0 badge where fidelity is `reliable`

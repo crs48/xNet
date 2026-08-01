@@ -9,6 +9,7 @@
  */
 
 import { spawn } from 'node:child_process'
+import type { DuplexProcess, DuplexRunner, DuplexRunOptions } from './json-rpc-stdio'
 
 export interface CommandResult {
   /** `true` when the process exited 0. */
@@ -270,4 +271,80 @@ export class FakeCommandRunner implements CommandRunner {
 /** Convenience matcher: command + a prefix of args (e.g. `cmd('git', ['commit'])`). */
 export function cmd(command: string, argPrefix: string[] = []): FakeCommandScript['match'] {
   return (c, args) => c === command && argPrefix.every((a, i) => args[i] === a)
+}
+
+// ─── Duplex runner (JSON-RPC agents: Codex app-server, ACP — 0416) ───────────
+
+/**
+ * Spawns a real duplex subprocess: writable stdin, line-delimited stdout.
+ * Node-only. The bidirectional counterpart of {@link NodeLineRunner}, for
+ * agents that are driven rather than merely read (see `json-rpc-stdio.ts`).
+ */
+export class NodeDuplexRunner implements DuplexRunner {
+  spawn(command: string, args: string[], options: DuplexRunOptions): DuplexProcess {
+    const child = spawn(command, args, {
+      cwd: options.cwd,
+      env: { ...process.env, ...options.env },
+      shell: false,
+      stdio: ['pipe', 'pipe', 'pipe']
+    })
+
+    const pending: string[] = []
+    let buffer = ''
+    let closed = false
+    let wake: (() => void) | undefined
+    const notify = (): void => {
+      wake?.()
+      wake = undefined
+    }
+
+    let idleTimer: ReturnType<typeof setTimeout> | undefined
+    const bumpIdle = (): void => {
+      if (!options.idleTimeoutMs || options.idleTimeoutMs <= 0) return
+      if (idleTimer) clearTimeout(idleTimer)
+      idleTimer = setTimeout(() => child.kill('SIGKILL'), options.idleTimeoutMs)
+    }
+    bumpIdle()
+
+    child.stdout?.on('data', (data: Buffer) => {
+      bumpIdle()
+      buffer += data.toString()
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      for (const line of lines) if (line.length > 0) pending.push(line)
+      if (pending.length > 0) notify()
+    })
+    const finish = (): void => {
+      if (idleTimer) clearTimeout(idleTimer)
+      if (buffer.length > 0) pending.push(buffer)
+      buffer = ''
+      closed = true
+      notify()
+    }
+    child.on('error', finish)
+    child.on('close', finish)
+
+    return {
+      write(line: string): void {
+        child.stdin?.write(line.endsWith('\n') ? line : `${line}\n`)
+      },
+      async *lines(): AsyncIterable<string> {
+        while (true) {
+          const line = pending.shift()
+          if (line !== undefined) {
+            yield line
+            continue
+          }
+          if (closed) return
+          await new Promise<void>((resolve) => {
+            wake = resolve
+          })
+        }
+      },
+      kill(): void {
+        if (idleTimer) clearTimeout(idleTimer)
+        child.kill()
+      }
+    }
+  }
 }
