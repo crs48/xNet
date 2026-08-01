@@ -65,4 +65,12 @@ export { type VCardContact, toVCard, toVCards, parseVCard } from './vcard'
 
 export { type LineItemLike, type PriceLookup, lineItemTotal, dealLineItemTotal } from './catalog'
 
-export { type ContactErasurePatch, anonymizeContactPatch, isErased } from './erasure'
+export {
+  type ContactErasurePatch,
+  type ErasablePractice,
+  anonymizeContactPatch,
+  isErased,
+  practiceErasureIds
+} from './erasure'
+
+export { type BundleReading, deriveBundle, bundlesFromPrimitives } from './bundle'

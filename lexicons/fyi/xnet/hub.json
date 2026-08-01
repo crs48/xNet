@@ -1,0 +1,18 @@
+{
+  "lexicon": 1,
+  "id": "fyi.xnet.hub",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A claim that the hub at this hostname belongs to the account holding this record. The rkey IS the hostname, so com.atproto.sync.listReposByCollection enumerates every hub an account claims. The binding is genuine only when the hub's own GET /xrpc/fyi.xnet.owner names the same account back — two-sided, registry-free, and secret-free, after Tangled's knot handshake.",
+      "key": "any",
+      "record": {
+        "type": "object",
+        "required": ["createdAt"],
+        "properties": {
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

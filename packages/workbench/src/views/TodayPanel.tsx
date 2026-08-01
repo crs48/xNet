@@ -5,7 +5,7 @@
  * section for continuous metrics, and an editor for configuring any metric.
  */
 import { cn } from '@xnetjs/ui'
-import { ArrowUpRight, Check, Flame, FlaskConical, Pencil, Plus, StickyNote } from 'lucide-react'
+import { ArrowUpRight, Check, FlaskConical, Pencil, Plus, StickyNote } from 'lucide-react'
 import { useState, type JSX } from 'react'
 import { workbenchHost, type HabitSummary, type MetricLike } from '../host'
 import { PlatformLink } from '../platform'
@@ -150,10 +150,12 @@ function MetricRow({
               {typeof metric.icon === 'string' && metric.icon ? `${metric.icon} ` : ''}
               {metricName(metric)}
             </span>
-            {habit && summary.streak > 0 && (
-              <span className="flex shrink-0 items-center gap-0.5 text-[10px] text-orange-500">
-                <Flame size={10} strokeWidth={2} />
-                {summary.streak}
+            {habit && summary.rate30 > 0 && (
+              <span
+                className="shrink-0 text-[10px] text-ink-3"
+                title="Completed, of the days this was due in the last 30"
+              >
+                {Math.round(summary.rate30 * 100)}%
               </span>
             )}
             <button
@@ -285,7 +287,7 @@ export function TodayPanel(): JSX.Element {
           <p className="px-2 text-xs text-ink-3">Loading…</p>
         ) : due.length === 0 ? (
           <p className="px-2 py-1 text-xs text-ink-3">
-            Nothing scheduled. Add a habit to start a streak.
+            Nothing scheduled. Add a habit to start tracking one.
           </p>
         ) : (
           <div className="flex flex-col">

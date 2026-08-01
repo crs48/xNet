@@ -1,7 +1,7 @@
 /**
  * Labs — the registry behind Settings › Labs (exploration 0282).
  *
- * Labs is now a *view* of the capability register (0422) rather than its own
+ * Labs is now a *view* of the capability register (0428) rather than its own
  * list: entries live in `capabilities.ts`, and the ones carrying a `labs`
  * surface render here as honest toggles — the Obsidian-core-plugins pattern,
  * not the chrome://flags incantation. Flag KEY constants stay where their

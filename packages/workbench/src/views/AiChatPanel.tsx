@@ -557,7 +557,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
           systemPrompt: promptParts.join('\n\n'),
           // Charter §Agency: `scaffold` unless the user opted into `draft` in
           // Settings › AI. Read per-runtime so a change applies to the next
-          // conversation without a reload (0422).
+          // conversation without a reload (0428).
           assistMode: readAssistMode(),
           ...(surface
             ? {

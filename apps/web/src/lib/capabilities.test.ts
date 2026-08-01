@@ -1,5 +1,5 @@
 /**
- * The capability register (0422). The CI gate proves *structure* — every flag
+ * The capability register (0428). The CI gate proves *structure* — every flag
  * declared, every entry surfaced. These tests hold the parts a source scan
  * cannot see: that the copy is honest and that Labs stays a view of the
  * register rather than a second list that can drift from it.

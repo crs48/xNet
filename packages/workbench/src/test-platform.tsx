@@ -127,8 +127,6 @@ export function createTestWorkbenchHost(overrides: Partial<WorkbenchHost> = {}):
         due: [],
         summaryFor: () => ({
           done: false,
-          streak: 0,
-          longest: 0,
           strength: 0,
           rate30: 0,
           completedDays: new Set<number>(),

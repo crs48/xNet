@@ -1,5 +1,5 @@
 /**
- * Assist-mode preference (0422): the opt-in Charter §Agency promises must
+ * Assist-mode preference (0428): the opt-in Charter §Agency promises must
  * round-trip, and every failure path must land on `scaffold`.
  */
 import { afterEach, describe, expect, it } from 'vitest'

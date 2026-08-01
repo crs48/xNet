@@ -715,7 +715,7 @@ report(problems, { strict: process.argv.includes('--strict') })
   id: 'agency-capabilities-are-visible',
   source:
     'Charter §Agency — "a capability you cannot see is not a degree of freedom you have" ' +
-    '(0422, after Cate Hall\'s two-term definition of agency: see AND act)',
+    '(0428, after Cate Hall\'s two-term definition of agency: see AND act)',
   backing: 'enforced',
   assert: () => {
     const gate = readFileSync(

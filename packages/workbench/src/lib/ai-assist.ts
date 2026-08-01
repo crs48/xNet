@@ -1,5 +1,5 @@
 /**
- * The user's AI assist mode (exploration 0422).
+ * The user's AI assist mode (exploration 0428).
  *
  * `AiAssistMode` has existed in the runtime since the Charter §Agency work,
  * with `draft` documented as "opt-in only" — but nothing in either app read,

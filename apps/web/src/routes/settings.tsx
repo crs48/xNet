@@ -158,7 +158,7 @@ function SettingsPage() {
 // ─── AI Settings ──────────────────────────────────────────────────────────────
 
 /**
- * AI (exploration 0422). Charter §Agency has always said `draft` mode is
+ * AI (exploration 0428). Charter §Agency has always said `draft` mode is
  * "opt-in only" — this is the opt-in. `AiAssistMode` shipped in the runtime
  * with no UI consumer at all, which made the promise unverifiable and the mode
  * invisible: a degree of freedom that existed only in the type system.

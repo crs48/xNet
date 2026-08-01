@@ -29,6 +29,7 @@ import { log } from './provider/debug'
 import { useHubAuthToken } from './provider/use-hub-auth-token'
 import { useHubSearchIndex } from './provider/use-hub-search-index'
 import { useNodeStoreRuntime } from './provider/use-node-store-runtime'
+import { useResolvedHubUrl, type HubAddressConfig } from './provider/use-resolved-hub-url'
 import {
   useBridgeSyncWiring,
   useHubStatus,
@@ -73,6 +74,20 @@ export interface XNetConfig {
   signalingServers?: string[]
   /** Hub WebSocket URL for always-on sync (overrides signalingServers[0]) */
   hubUrl?: string
+  /**
+   * Resolve the hub's address from a stable name instead of hard-coding a
+   * substrate URL (exploration 0423).
+   *
+   * A managed hub's URL belongs to whoever hosts it today, so a region or
+   * substrate move silently misconfigures every device that stored it. Give the
+   * client a name and a resolver and it re-resolves instead. Resolution only —
+   * the client dials the resolved hub DIRECTLY; nothing proxies its traffic.
+   *
+   * `hubUrl` still works and remains the right answer for self-hosting. When
+   * both are set, `hubUrl` is the fallback used until (and unless) resolution
+   * succeeds, so a resolver outage never costs reachability.
+   */
+  hubAddress?: HubAddressConfig
   /**
    * Optional billing config (exploration 0187), surfaced to `useBilling`. The
    * default redirect-checkout flow needs neither field — the hub creates checkout
@@ -317,15 +332,26 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
 
   const platform = config.platform ?? 'web'
   const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
-  const hubUrl = config.hubUrl ?? null
+  const configuredHubUrl = config.hubUrl ?? null
+  // Resolve-then-connect (0423). Yields `configuredHubUrl` until resolution
+  // succeeds, so the resolver is never on the critical path.
+  const resolved = useResolvedHubUrl(config.hubAddress, configuredHubUrl)
+  const hubUrl = resolved.url
+  const resolvedFallbackKey = resolved.fallbacks.join('\n')
   const signalingServersKey = (config.signalingServers ?? []).join('\n')
   const signalingServers = useMemo(
     () => (signalingServersKey ? signalingServersKey.split('\n') : []),
     [signalingServersKey]
   )
   const signalingUrls = useMemo(
-    () => resolveConfiguredSignalingUrls(hubUrl, signalingServers),
-    [hubUrl, signalingServers]
+    () =>
+      resolveConfiguredSignalingUrls(hubUrl, [
+        // A resolved record's fallbacks are alternates for the SAME hub, so they
+        // belong after it and before any statically configured servers.
+        ...(resolvedFallbackKey ? resolvedFallbackKey.split('\n') : []),
+        ...signalingServers
+      ]),
+    [hubUrl, resolvedFallbackKey, signalingServers]
   )
   const hubOptions = config.hubOptions
   const autoAuth = hubOptions?.autoAuth ?? true

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Every user-flippable capability has a surface a person could find it through
- * (exploration 0422, Charter §Agency).
+ * (exploration 0428, Charter §Agency).
  *
  * Cate Hall's definition of agency is the capacity to *both see and act on*
  * the degrees of freedom available to you. Every other check in this repo asks
@@ -28,7 +28,7 @@
  * phantom entries.
  *
  * Advisory by default (exit 0) so the first release is cheap; `--strict` turns
- * findings into failures. Scheduled to go strict — see exploration 0422.
+ * findings into failures. Scheduled to go strict — see exploration 0428.
  *
  * Run: `node scripts/check-capability-surface.mjs [--strict]`
  *      (or `pnpm check:capability-surface`)

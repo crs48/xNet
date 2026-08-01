@@ -1,5 +1,5 @@
 /**
- * The capability register (exploration 0422).
+ * The capability register (exploration 0428).
  *
  * Grown from the Labs registry (0282), which had the right shape for the wrong
  * scope: it declared `xnet:experiment:*` flags only, so any *other* kind of

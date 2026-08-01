@@ -27,7 +27,7 @@ const CORE_TIPS: CoachTip[] = [
     // `rail.people`, not `rail.crm`: the unified nav (0353) is the default
     // path and names this section `people`. The legacy surface id `crm` only
     // renders when tabs are on, so anchoring there hid the tip from almost
-    // everyone (0422).
+    // everyone (0428).
     anchor: '[data-coach="rail.people"]',
     title: 'Your CRM',
     body: 'Contacts, deals, and organizations live here. Drag a deal between lanes to update its stage.',
@@ -49,7 +49,7 @@ const CORE_TIPS: CoachTip[] = [
     body: 'Discover others who share your interests. You stay invisible until you opt in.',
     side: 'right'
   },
-  // The three unsignposted route surfaces (0422). The exploration named
+  // The three unsignposted route surfaces (0428). The exploration named
   // canvas, database and dashboard — none of those is a rail surface, so none
   // has an anchor to point at, and a tip with no anchor renders nothing at
   // all. These are the three a first-time visitor arrives at cold and that the

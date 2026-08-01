@@ -75,7 +75,7 @@ function PrimaryRow({ surface }: { surface: SurfaceDef }) {
       type="button"
       onClick={() => activate(surface)}
       onDoubleClick={() => promoteSurface(surface)}
-      // Coachmark anchor (0206/0422). Derived from the surface id so a new
+      // Coachmark anchor (0206/0428). Derived from the surface id so a new
       // surface is anchorable the day it lands — the core tips previously
       // named `rail.*` selectors that existed in no component, so every one of
       // them resolved to null and rendered nothing, silently.

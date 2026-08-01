@@ -78,8 +78,8 @@ jobs:
       # code is correct — none asks whether a shipped capability is findable,
       # so a feature can land reachable-but-invisible and nothing notices.
       # Advisory for now; goes --strict once the flag population has held
-      # green for a release. (0422.)
-      - name: Capability surfaces (0422)
+      # green for a release. (0428.)
+      - name: Capability surfaces (0428)
         run: pnpm check:capability-surface
 
       # Every agent lane must build its retrieval. The omission is invisible in

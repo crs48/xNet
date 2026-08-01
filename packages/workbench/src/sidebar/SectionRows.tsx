@@ -86,7 +86,7 @@ export function SectionRow({ section }: { section: SidebarSection }): React.JSX.
       active={active}
       testId={`section-${section.id}`}
       // The unified nav (0353) is the default path, so this — not PrimaryRow —
-      // is where first-run tips actually land for most people (0422).
+      // is where first-run tips actually land for most people (0428).
       coachAnchor={`rail.${section.id}`}
       onClick={() => activate(section)}
       trailing={

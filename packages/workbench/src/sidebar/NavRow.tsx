@@ -25,7 +25,7 @@ export function NavRow({
   /** Badge, count, or affordance rendered at the row's end. */
   trailing?: ReactNode
   testId?: string
-  /** Coachmark anchor name, e.g. `rail.crm` (0206/0422). */
+  /** Coachmark anchor name, e.g. `rail.crm` (0206/0428). */
   coachAnchor?: string
 }): React.JSX.Element {
   return (

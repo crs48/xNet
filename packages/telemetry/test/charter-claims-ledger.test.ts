@@ -177,7 +177,7 @@ const CLAIMS: Claim[] = [
     source:
       'Charter §Agency/You can see what you are able to do — "a capability you cannot see is ' +
       'not a degree of freedom you have"; every user-flippable capability is declared with a ' +
-      "surface, or a written reason it is internal (0422, after Cate Hall's two-term " +
+      "surface, or a written reason it is internal (0428, after Cate Hall's two-term " +
       'definition of agency: see AND act)',
     backing: 'enforced',
     assert: () => {
@@ -195,7 +195,7 @@ const CLAIMS: Claim[] = [
       )
 
       // The receipt that matters is the register itself: the AI assist mode —
-      // the capability whose absence from every UI is what prompted 0422 — is
+      // the capability whose absence from every UI is what prompted 0428 — is
       // declared and carries a surface a person can actually reach.
       const register = readFileSync(
         fileURLToPath(new URL('apps/web/src/lib/capabilities.ts', `file://${repoRoot}`)),
@@ -205,6 +205,39 @@ const CLAIMS: Claim[] = [
       expect(register, 'the assist mode must have a settings surface').toContain(
         "{ kind: 'settings', section: 'ai' }"
       )
+    }
+  },
+  {
+    id: 'commons-no-scored-intimacy',
+    source:
+      'Charter §Commons/No ground rent — "no scored intimacy: relationships are made legible, ' +
+      'never scored — no health score, no ranking, no neglect list" (0422)',
+    backing: 'enforced',
+    assert: () => {
+      // Same shape as the metered-connection receipt: the enforcer is the CI
+      // gate, so the receipt pins the rule name and the scoring identifiers it
+      // must keep banning. It also pins the `surplus` group — demoting the rule
+      // to `dark-pattern` would silently narrow it to UI files and stop it
+      // seeing the derivation in @xnetjs/crm, which is the whole point.
+      const gate = readFileSync(
+        fileURLToPath(new URL('scripts/check-humane-patterns.mjs', `file://${repoRoot}`)),
+        'utf8'
+      )
+      expect(gate, 'the scored-intimacy rule must exist').toContain("name: 'scored intimacy'")
+      const rule = gate.slice(gate.indexOf("name: 'scored intimacy'"))
+      expect(
+        rule.slice(0, 200),
+        'scored intimacy must stay in the all-packages surplus scope'
+      ).toContain("group: 'surplus'")
+      for (const token of [
+        'relationshipScore',
+        'friendshipScore',
+        'intimacyScore',
+        'connectionHealth',
+        'neglectedContacts'
+      ]) {
+        expect(gate, `scored-intimacy rule must ban ${token}`).toContain(token)
+      }
     }
   },
   {

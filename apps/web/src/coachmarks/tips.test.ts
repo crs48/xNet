@@ -1,5 +1,5 @@
 /**
- * Core tips point at anchors that exist (0422).
+ * Core tips point at anchors that exist (0428).
  *
  * `CoachmarkLayer` renders `null` when a tip's anchor selector resolves to no
  * element — correct behaviour, and completely silent. Before this test every
