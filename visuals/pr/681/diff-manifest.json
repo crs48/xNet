@@ -9,11 +9,8 @@
       "id": "data",
       "label": "Data",
       "file": "routes/data.png",
-      "status": "changed",
-      "ssim": 0.995579,
-      "before": "before/routes/data.png",
-      "after": "routes/data.png",
-      "diff": "diff/routes/data.png"
+      "status": "unchanged",
+      "ssim": 0.999044
     }
   ],
   "electron": [
@@ -26,5 +23,5 @@
     }
   ],
   "flows": [],
-  "changedCount": 1
+  "changedCount": 0
 }
