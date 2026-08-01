@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-01-the-assistant-now-tells-you-when-its-sea",
+      "url": "https://xnet.fyi/changelog#2026-08-01-the-assistant-now-tells-you-when-its-sea",
+      "title": "The assistant now tells you when its search was incomplete",
+      "content_text": "When the full-text index is unavailable, the in-app assistant falls back to scanning a limited window of your workspace. It now says so alongside its answer instead of replying as if it had searched everything, and cites the path it followed to each item it used.\n",
+      "date_published": "2026-08-01T22:57:51Z",
+      "tags": [
+        "ai"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "When the full-text index is unavailable, the in-app assistant falls back to scanning a limited window of your workspace. It now says so alongside its answer instead of replying as if it had searched everything, and cites the path it followed to each item it used.",
+        "highlights": [],
+        "mergedAt": "2026-08-01T22:57:51Z",
+        "pr": 687,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-01-your-imported-social-library-is-now-legi",
       "url": "https://xnet.fyi/changelog#2026-08-01-your-imported-social-library-is-now-legi",
       "title": "Your imported social library is now legible, projectable, and searchable by transcript",
