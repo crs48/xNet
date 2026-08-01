@@ -14,9 +14,10 @@ tags: [process, velocity, explorations, ci, decision-making]
 > been decided: **choosing what to build.** xNet writes ~85 more explorations
 > per month than it closes, and 259 sit at `[_]` forever. Recommendation: stop
 > tuning CI (measured, not the bottleneck), and give explorations the two things
-> every fast project on the list had — **a decider and an expiry** — enforced by
-> a fallow ratchet, with ceremony tiered by reversibility rather than applied
-> flat.
+> every fast project on the list had — **a decider and an expiry** (90 days,
+> measured) — signalled in **frontmatter, never in the filename**, because
+> filename status changes have already broken 25 inbound links. Nothing is moved
+> or deleted, ever.
 
 ## Problem Statement
 
@@ -49,6 +50,7 @@ Measured against this repository's own git history:
 | CI reliability | **6 of 25** recent runs red (24%) | 🚧 Real tax, small |
 | Exploration → shipped | **210 `[x]` / 485 files** (43%) | ❌ The bottleneck |
 | Backlog growth | ~**+85 `[_]` per month**, net | ❌ Unbounded |
+| Inbound link integrity | **25 of 192** filename-spelling links broken (13%) | ❌ Undetected defect |
 | Stranded work | 1 PR at **592h** (24.7 days); 7 stranded branches (0410) | 🚧 Tail risk |
 
 The build phase is Collison-fast. The **decide** phase has no clock at all — no
@@ -192,6 +194,43 @@ flowchart LR
   style CI fill:#1e3a5f,stroke:#3b82f6,color:#fff
 ```
 
+### Status lives in the filename, and it is already rotting links
+
+This is the finding that constrains every option below, and it was not visible
+until measured.
+
+Because status is encoded in the filename, **every status transition renames the
+file and breaks every inbound link that spelled the old name.** Counting
+path-based references to explorations from outside `docs/explorations/`:
+
+```text
+426  total inbound references
+192  spell the full filename, checkbox included
+ 25  are already broken  ← 13% rot, purely from checkbox transitions
+```
+
+The mechanism, confirmed case by case:
+
+| Linked as | Actual file today | Broke because |
+| --- | --- | --- |
+| `0403_[_]_MDX_VISUAL_EXPLORATIONS_ON_STORYBOOK.md` | `0403_[x]_…` | `/implement` checked it off |
+| `0391_[_]_XNET_AS_THE_DAILY_DRIVER_AI_INTERFACE.md` | `0391_[x]_…` | same |
+| `0416_[_]_AGENT_HARNESS_OR_AGENT_SUBSTRATE.md` | `0416_[-]_…` | partial check-off |
+| `0328_[_]_TLDRAW_CANVAS_ALTERNATIVE.md` | `0328_[_]_TLDRAW_CANVAS_REPLACEMENT_OR_ALTERNATIVE_SURFACE.md` | title edited |
+
+The casualties are not confined to scratch docs. They include
+`site/src/pages/terms.astro`, `privacy.astro`, `dpa.astro`,
+`marketplace-terms.astro`, three package `README`s, and
+`docs/specs/protocol/README.md`.
+
+> [!CAUTION]
+> **The filename checkbox is a link-rot generator with 25 live casualties, and
+> the rot is invisible — nothing checks it.** Any proposal that adds a fifth
+> status value, or moves expired documents to another directory, multiplies a
+> defect the repo already has and cannot currently detect. This kills the `[~]`
+> idea outright (see Recommendation) and makes an `expired/` directory the worst
+> available option rather than the tidy one.
+
 ---
 
 ## External Research
@@ -271,6 +310,11 @@ accountable for the sum.
 6. **Ceremony is already tiered correctly for code, and not at all for
    decisions.** `.husky/pre-push` skips markdown; `fallow.yml` ratchets instead
    of gating. Explorations get one flat treatment regardless of blast radius.
+7. **Encoding status in the filename is already costing the repo, silently.**
+   25 of 192 filename-spelling links are broken (13%), including four public
+   `site/` legal pages, entirely because status transitions rename files. This
+   was invisible before measurement and constrains every fix: **signal expiry in
+   frontmatter, never in the filename, and never by moving the file.**
 
 ---
 
@@ -287,8 +331,11 @@ accountable for the sum.
 | **B** — Fallow ratchet on `[_]` | decide phase | ~150 LOC + baseline | ✅ Recommended |
 | **C** — Decider + expiry in frontmatter | decide phase | `/explore` change | ✅ Recommended |
 | **D** — Ceremony tiered by reversibility | both | doc + skill change | ✅ Recommended |
+| **G** — Link-integrity check | correctness | ~80 LOC | ✅ Recommended — **ship first** |
 | **E** — Cut CI gates | build phase | high risk | 🛑 Rejected — measured non-bottleneck |
 | **F** — Hard "ship within N days" mandate | decide phase | — | 🛑 Rejected — manufactures fake deadlines |
+| **H** — `[~]` withdrawn state in the filename | decide phase | mass rename | 🛑 Rejected — multiplies the 25-link rot defect |
+| **I** — Move expired docs to `expired/` | decide phase | mass `git mv` | 🛑 Rejected — same defect at 10× scale, and irreversible |
 
 <details>
 <summary>Why E is rejected, in detail</summary>
@@ -361,84 +408,154 @@ still undecided and load-bearing" (not fine).
 
 The missing states are the whole point:
 
+The original sin is that one field answers two unrelated questions. **Split the
+axes**: the filename keeps answering *"is it built?"* (owned by `/implement`,
+unchanged, no new values), and frontmatter answers *"is this still a live
+claim?"* — a field no link ever spells, so changing it renames nothing.
+
 ```mermaid
 stateDiagram-v2
-    [*] --> Unstarted : /explore writes [_]
-    Unstarted --> Partial : /implement, some items
-    Partial --> Done : all items checked
-    Unstarted --> Done : implemented in one pass
+    direction LR
 
-    Unstarted --> Stale : decide_by date passes
-    Partial --> Stale : decide_by date passes
+    state "FILENAME — is it built?  (unchanged, renames on transition)" as F {
+        [*] --> Unstarted : /explore writes [_]
+        Unstarted --> Partial : [-]
+        Partial --> Done : [x]
+        Unstarted --> Done : one pass
+    }
 
-    Stale --> Unstarted : re-decided, new decide_by
-    Stale --> Withdrawn : superseded or rejected
-    Stale --> Partial : picked back up
+    state "FRONTMATTER — is it live?  (new, renames nothing)" as S {
+        [*] --> Live : review: 2026-11-01
+        Live --> Stale : review date passes
+        Stale --> Live : re-decided, new date
+        Stale --> Withdrawn : status: withdrawn
+        Withdrawn --> Live : revived
+    }
 
-    Withdrawn --> [*]
-    Done --> [*]
-
-    note right of Stale
-      NEW. Surfaced by the fallow
-      ratchet. Not a failure —
-      a prompt to re-decide.
+    note right of F
+      Owned by /implement.
+      Adding a 4th value here
+      would break more of the
+      192 filename-spelling
+      links. Do not touch.
     end note
 
-    note right of Withdrawn
-      NEW: [~] in the filename.
-      Records that a decision was
-      made. Today this state does
-      not exist, so "rejected" and
-      "ignored" look identical.
+    note right of S
+      Cheap to change: no rename,
+      no broken link, no git mv.
+      Surfaced by a generated
+      index, not by the filename.
     end note
 ```
+
+The two axes are genuinely independent — an exploration can be `[-]` partially
+built *and* withdrawn (we built some of it, then decided against the rest), a
+state today's single field cannot represent at all.
 
 ---
 
 ## Recommendation
 
 > [!IMPORTANT]
-> **Adopt B + C + D. Reject E and F.** Leave CI and the `check:*` surface
+> **Adopt G first, then B + C + D. Reject E, F, H and I.** Leave CI and the `check:*` surface
 > entirely alone — they are measured-fast and structurally not veto points.
 > Apply the Collison mechanisms (**decider, deadline, frozen scope**) to the one
 > phase that has none of them: deciding what to build. Enforce with a ratchet,
 > never an absolute, per `AGENTS.md`.
 
-Three concrete changes:
+### How long until an exploration expires? **90 days.**
 
-**1. A `[~]` withdrawn state.** Filename checkbox gains a fourth value.
-`docs(exploration): withdraw <topic>` becomes a legitimate, celebrated outcome.
-This is the Lindbergh move: shipping the *decision to cut* is shipping.
+Not a guess — the age distribution of the 260 `[_]` explorations picks the
+number, against the criterion that today's stale set must be a *meaningful
+minority* rather than either a rounding error or the whole corpus:
 
-**2. Frontmatter gains `door:` and `decide_by:`.**
+| Window | Stale today | Verdict |
+| --- | --- | --- |
+| 30d | 181 (69%) | ❌ Catches nearly everything; meaningless |
+| 60d | 82 (31%) | 🚧 Defensible |
+| **90d** | **70 (26%)** | ✅ **Recommended** |
+| 120d | 59 (22%) | 🚧 Defensible |
+| 180d | 14 (5%) | 🛑 **A cliff, not a window** — see below |
+| 240d | 0 (0%) | 🛑 Vacuous |
+
+> [!WARNING]
+> **The 180-day figure in the first draft of this document was wrong**, and
+> wrong in an instructive way. `main`'s first commit is 2026-01-20 — the repo is
+> **193 days old**. A 180-day window therefore catches 14 documents today and
+> roughly 200 in three months, as the June/July bulge (192 and 154 explorations
+> written) crosses the line at once. That is a cliff that fires long after the
+> author has forgotten the rule, which is precisely how a gate teaches people to
+> ignore red. 90 days is both a meaningful minority now *and* stable as the
+> corpus ages.
+
+The window is a **default, not a policy**: it applies only when a document
+declines to name its own date. Deliberately long-horizon research says so
+explicitly — 0412 already carries "revisit Nov 2026" in prose — and a
+`review: 2026-11-01` field simply makes that machine-readable.
+
+### What happens to an expired exploration? **Nothing moves. Nothing is deleted.**
+
+| Option | Verdict | Why |
+| --- | --- | --- |
+| Delete the file | 🛑 Rejected | git retains the bytes but kills discoverability; breaks all 426 inbound references; an idea rejected once is the cheapest thing to re-derive *only if you can still find why* |
+| `git mv` to `docs/explorations/expired/` | 🛑 Rejected | Path-based links break en masse — this is the 25-broken-links defect at 10× scale, and the move is the *only* irreversible option here |
+| Add `[~]` to the filename | 🛑 Rejected | Same rot mechanism; a mass rename of ~70 documents would break more of the 192 filename-spelling links than every transition to date combined |
+| **Leave it exactly where it is** | ✅ **Recommended** | Expiry is a property of the *decision*, not of the *document* |
+
+> [!IMPORTANT]
+> Expiry does not mean "this document is worthless." It means **the claim it
+> makes on future attention has lapsed and must be renewed or released.** The
+> document is the record of an investigation; that record is valuable whatever
+> was decided. What expires is the implicit promise that somebody will get to it.
+
+### How is expiry signalled? **In frontmatter, and in a generated index.**
+
+Never in the filename — that is the whole lesson of the 25 broken links.
 
 ```yaml
-door: two-way        # or one-way — drives the ceremony tier (Option D)
-decide_by: 2026-11-01  # when to re-decide, NOT when to ship
-decider: chris       # who closes it; single name, never a list
+---
+title: …
+status: draft # mirrors the [_]/[-]/[x] filename checkbox — unchanged
+review: 2026-11-01 # when to RE-DECIDE. Absent ⇒ created + 90d
+decider: chris # who closes it; a single name, never a list
+door: two-way # or one-way — drives the ceremony tier (Option D)
+---
 ```
 
-`decider` as a single name is deliberate — Kelly Johnson, not a committee.
+Three signals, in ascending order of intrusiveness:
 
-**3. `scripts/check-exploration-fallow.mjs`, ratcheted.**
+1. **In the file** — `review:` is visible to anyone who opens it, and to
+   `graphify`, and to agents doing retrieval. Costs nothing.
+2. **In a generated index** — `docs/explorations/STALE.md`, rebuilt by the
+   check, listing every lapsed document with its `decider` and age. This is the
+   *named consumer* `AGENTS.md` requires: `/mvp-followup` reads it to answer
+   "what's next," which today it cannot do against 259 identical-looking
+   candidates.
+3. **In CI** — the lint job prints the count on every run, green or red, and
+   fails only when the count **exceeds the committed baseline**. Never an
+   absolute.
 
-- **Named consumer:** whoever opens a PR; the count is printed in the lint job.
-- **Decidable pass condition:** the number of explorations past `decide_by`
-  (or, lacking one, older than 180 days at `[_]`) must be **≤ the committed
-  baseline** in `docs/explorations/.fallow-baseline.json`.
-- Never gates an absolute. A green repo today stays green tomorrow; the count
-  can only go down or stay flat.
+`decider` as a single name is deliberate: Kelly Johnson, not a committee.
+Renewing is a one-line diff (`review: 2027-02-01`) and needs no ceremony —
+the point is to force a *conscious* renewal, not to make renewal expensive.
 
-This makes the backlog **bounded** without pretending a solo repo can hold a
-wartime deadline. It also gives `/mvp-followup` a real input — right now it has
-no principled way to answer "what's next" against 259 equal-looking candidates.
+### The higher-value gate found along the way
+
+`check:exploration-links` — assert that every path-based reference to an
+exploration resolves. It is strictly more valuable than the fallow ratchet:
+the defect is **already present** (25 broken, including four public-facing
+`site/` legal pages), it is mechanically decidable with zero judgement, and it
+is the safety net that makes any future rename survivable. It should land
+**first**.
 
 ### What this does *not* change
 
 - CI stays at 7 jobs and 8 minutes.
 - All 16 `check:*` gates stay.
 - The `.husky` hooks stay, including the pre-push `typecheck && test`.
-- No exploration is auto-deleted, ever. Staleness surfaces; humans decide.
+- The filename checkbox keeps exactly three values, owned by `/implement`.
+- No exploration is moved, renamed, or deleted by any of this — ever.
+  Staleness surfaces; humans decide.
 
 ---
 
@@ -456,7 +573,7 @@ import { join } from 'node:path'
 
 const DIR = 'docs/explorations'
 const BASELINE = join(DIR, '.fallow-baseline.json')
-const DEFAULT_WINDOW_DAYS = 180
+const DEFAULT_WINDOW_DAYS = 90 // measured: 26% stale today, stable as corpus ages
 
 /** Parse `NNNN_[s]_TITLE.md` — returns null for non-exploration files. */
 const parseName = (f) => {
@@ -464,10 +581,10 @@ const parseName = (f) => {
   return m ? { num: m[1], status: m[2], file: f } : null
 }
 
-/** `decide_by:` from frontmatter, or null. Absent is not an error. */
-const decideBy = (src) => {
-  const m = /^decide_by:\s*(\d{4}-\d{2}-\d{2})/m.exec(src)
-  return m ? new Date(m[1]) : null
+/** Frontmatter scalar, or null. Absent is not an error — it means "use default". */
+const field = (src, key) => {
+  const m = new RegExp(`^${key}:\\s*(\\S+)`, 'm').exec(src)
+  return m ? m[1] : null
 }
 
 const now = new Date()
@@ -475,28 +592,38 @@ const entries = (await readdir(DIR)).map(parseName).filter(Boolean)
 const stale = []
 
 for (const e of entries) {
-  if (e.status === 'x' || e.status === '~') continue // done or withdrawn
+  if (e.status === 'x') continue // built; nothing left to decide
   const src = await readFile(join(DIR, e.file), 'utf8')
-  const by = decideBy(src)
-  const deadline =
-    by ?? new Date(gitAddedAt(e.file).getTime() + DEFAULT_WINDOW_DAYS * 864e5)
-  if (now > deadline) stale.push({ ...e, deadline, explicit: Boolean(by) })
+  if (field(src, 'status') === 'withdrawn') continue // decided against, on purpose
+
+  const review = field(src, 'review')
+  const deadline = review
+    ? new Date(review)
+    : new Date(gitAddedAt(e.file).getTime() + DEFAULT_WINDOW_DAYS * 864e5)
+
+  if (now > deadline) {
+    stale.push({ ...e, deadline, explicit: Boolean(review), decider: field(src, 'decider') })
+  }
 }
 
+// The named consumer: a generated index /mvp-followup can actually read.
+await writeStaleIndex(join(DIR, 'STALE.md'), stale)
+
 const baseline = JSON.parse(await readFile(BASELINE, 'utf8'))
-console.log(`explorations past decide-by: ${stale.length} (baseline ${baseline.count})`)
+console.log(`explorations past review date: ${stale.length} (baseline ${baseline.count})`)
 
 if (stale.length > baseline.count) {
   console.error(
-    `\n✗ Stale explorations increased: ${stale.length} > ${baseline.count}.\n` +
-      `  Close, withdraw ([~]), or push out decide_by on one of:\n` +
+    `\n✗ Stale explorations increased: ${stale.length} > ${baseline.count}.\n\n` +
+      `  Renew, withdraw, or implement one of:\n` +
       stale
         .slice(0, 10)
-        .map((s) => `    ${s.file}`)
+        .map((s) => `    ${s.file}${s.decider ? `  (${s.decider})` : ''}`)
         .join('\n') +
-      `\n\n  Withdrawing is a valid, encouraged outcome:\n` +
-      `    git mv "${DIR}/${stale[0]?.file}" \\\n` +
-      `      "${DIR}/${stale[0]?.file.replace(/\[.\]/, '[~]')}"\n`,
+      `\n\n  Both fixes are one-line frontmatter edits — NO rename, so no\n` +
+      `  inbound link breaks:\n` +
+      `    review: 2027-02-01     # renew the claim\n` +
+      `    status: withdrawn      # release it; the document stays put\n`,
   )
   process.exit(1)
 }
@@ -515,12 +642,13 @@ if (stale.length > baseline.count) {
 <details>
 <summary>Frontmatter migration — the 259 existing <code>[_]</code> docs</summary>
 
-Do **not** backfill `decide_by` on all 259 at once. That is a 259-decision batch
+Do **not** backfill `review:` on all 259 at once. That is a 259-decision batch
 nobody will make honestly, and a dishonest backfill sets the baseline wrong
 forever.
 
-Instead: set the baseline to today's stale count, so the repo starts green, and
-let the ratchet force one decision at a time as the 180-day default expires.
+Instead: set the baseline to today's stale count (70), so the repo starts green,
+and let the ratchet force one decision at a time as the 90-day default expires.
+Because no file is renamed, this migration cannot break a single inbound link.
 
 ```bash
 node scripts/check-exploration-fallow.mjs --write-baseline
@@ -534,81 +662,107 @@ git commit -m "chore(explorations): seed fallow ratchet baseline"
 
 ## Risks And Open Questions
 
-> [!CAUTION]
-> **The one-way door in this proposal is `[~]`.** A fourth checkbox value is a
-> filename convention change touching 485 files' worth of tooling
-> (`check:visual-explorations`, `/implement`, `/explore`, the memory index,
-> `graphify`). Every glob written as `*_\[_\]_*` and every regex assuming three
-> states must be found first. This is the highest-risk item here and should land
-> as its own PR, ahead of the ratchet.
+> [!NOTE]
+> **There is no longer a one-way door in this proposal.** An earlier draft
+> recommended a `[~]` filename state; the link-rot measurement killed it. Every
+> remaining change is a frontmatter field, a new script, or a generated index —
+> all reversible by deletion, none renaming a file. That is the door test
+> applied to this document's own recommendation.
 
 | Risk | Likelihood | Mitigation |
 | --- | --- | --- |
-| `[~]` breaks existing glob/regex consumers | High | Grep `\[.\]` across `scripts/`, `.claude/`, workflows **before** the rename PR |
-| Baseline gets bumped instead of fixed | Medium | Require the bump in its own commit with a reason; it is visible in review |
-| `decide_by` becomes cargo-cult boilerplate | Medium | `/explore` must ask for a *reason*, not just a date |
-| Shallow CI checkout makes every file look new | High | `fetch-depth: 0` on the lint job; assert non-shallow in the script |
-| Ratchet adds a 17th gate — the thing we criticised | Low | It is mechanically decidable with a named consumer, per `AGENTS.md`; it can always go green by withdrawing one doc |
+| Shallow CI checkout makes every file look new | High | `fetch-depth: 0` on the lint job; **assert non-shallow and exit 1** rather than silently treating all 485 as fresh |
+| `review:` becomes cargo-cult boilerplate | Medium | `/explore` must ask for a *reason*, not just a date; a date with no rationale is worse than no date |
+| Baseline gets bumped instead of fixed | Medium | Require the bump in its own commit with a reason; it is a visible one-line diff in review |
+| `STALE.md` regenerates noisily on every run | Medium | Sort deterministically; commit it, so the diff is empty unless the set genuinely changed |
+| Ratchet adds a 17th gate — the thing we criticised | Low | Mechanically decidable, named consumer, always greenable by a one-line frontmatter edit — per `AGENTS.md` |
+| `check:exploration-links` finds far more than 25 once it covers relative links inside `docs/explorations/` too | Medium | Seed it as a ratchet as well, then burn the baseline down |
 
 **Open questions:**
 
-- Should `decide_by` be mandatory for `door: one-way` and optional otherwise?
+- Should `review:` be mandatory for `door: one-way` and optional otherwise?
   Leaning yes — that is the whole point of tiering.
-- Does the 24% CI red rate deserve its own exploration, or is it fully covered
-  by [0283](0283_[_]_CI_FAILURE_PATTERNS_AND_PIPELINE_HEALTH.md)? Needs a look at whether 0283's
-  "75% non-code" finding still holds at current volume.
-- Is 180 days the right default window? It is a guess. It should be set so
-  today's stale count is a *meaningful minority*, not 250 of 259.
+- Should the 25 known-broken links be fixed in the same PR as
+  `check:exploration-links`, or ahead of it? Leaning ahead, so the check lands
+  green at zero rather than with a non-zero baseline that normalises rot.
+- Is the filename checkbox worth keeping at all, now that it is a measured
+  link-rot generator? Out of scope here — it is deeply wired into `/implement`,
+  `AGENTS.md`, and the memory index — but it deserves its own exploration.
+  <mark>The honest answer may be that status belongs in frontmatter entirely and
+  the filename should carry only `NNNN_TITLE.md`.</mark>
+- Does the 24% CI red rate deserve its own exploration, or is it covered by
+  [0283](0283_[_]_CI_FAILURE_PATTERNS_AND_PIPELINE_HEALTH.md)? Needs a check on
+  whether 0283's "75% non-code" finding still holds at current volume.
 - Should `/explore` refuse to write a new doc while the stale count exceeds
-  baseline? Tempting — it is the purest form of "cut scope to hit the date" —
-  but it blocks research at exactly the moment research is most needed. Probably
-  a warning, not a block.
+  baseline? Tempting — the purest form of "cut scope to hit the date" — but it
+  blocks research exactly when research is most needed. Probably a warning.
 
 ---
 
 ## Implementation Checklist
 
-**Status:** ░░░░░░░░░░ 0/11 items
+**Status:** ░░░░░░░░░░ 0/12 items
 
-- [ ] Grep every consumer of the `[_]`/`[-]`/`[x]` filename convention across
-      `scripts/`, `.claude/skills/`, `.github/workflows/`, and `graphify-out/`;
-      record the list in this doc before changing anything
-- [ ] Land `[~]` (withdrawn) as its own PR: update every consumer found above,
-      document the state in `.claude/skills/explore/SKILL.md` and
-      `.claude/skills/implement/SKILL.md`
-- [ ] Add `door:` and `decide_by:` to the `/explore` frontmatter template;
+Ordered deliberately: **link integrity first.** It fixes a defect that already
+exists, and it is the safety net that makes every later change observable.
+
+_Phase 1 — stop the bleeding (independently valuable; ship even if the rest is dropped)_
+
+- [ ] Write `scripts/check-exploration-links.mjs`: assert every path-based
+      reference to `docs/explorations/NNNN_*` resolves, repo-wide
+- [ ] Fix the 25 currently-broken references (they are stale checkbox or title
+      spellings; the target file exists under the same `NNNN`)
+- [ ] Wire `check:exploration-links` into the `lint` job at **zero** baseline
+
+_Phase 2 — give the backlog a clock_
+
+- [ ] Add `review:`, `decider:`, `door:` to the `/explore` frontmatter template;
       require a one-line *reason* alongside the date
-- [ ] Add `decider:` (single name, never a list) to the same template
-- [ ] Write `scripts/check-exploration-fallow.mjs` with the ratchet semantics
-      above; scrub `GIT_*` before any `git` subprocess
-- [ ] Seed `docs/explorations/.fallow-baseline.json` from today's count
-- [ ] Wire `check:exploration-fallow` into the `lint` job in `ci.yml`; set
-      `fetch-depth: 0` on that job
-- [ ] Print the stale count unconditionally (green runs included) so the number
-      is visible before it is ever binding
-- [ ] Update `.claude/skills/mvp-followup/SKILL.md` to read `decide_by` when
+- [ ] Write `scripts/check-exploration-fallow.mjs` with a **90-day** default
+      window; scrub `GIT_*` before any `git` subprocess (0413 hazard)
+- [ ] Make the script exit 1 on a shallow checkout rather than treating every
+      file as new
+- [ ] Generate and commit `docs/explorations/STALE.md`, sorted deterministically
+- [ ] Seed `docs/explorations/.fallow-baseline.json` at today's count (~70)
+- [ ] Wire `check:exploration-fallow` into the `lint` job with `fetch-depth: 0`
+- [ ] Print the stale count unconditionally (green runs too) so the number is
+      visible before it is ever binding
+
+_Phase 3 — make it consumed_
+
+- [ ] Update `.claude/skills/mvp-followup/SKILL.md` to read `STALE.md` when
       answering "what's next"
 - [ ] Document the door test in `docs/TRADEOFFS.md` — one-way vs two-way, and
       that ADRs are for one-way doors only
-- [ ] Add a changelog fragment or apply `skip-changelog` (internal process
-      change — likely the latter)
+- [ ] Apply `skip-changelog` (internal process change, no user-visible effect)
 
 ## Validation Checklist
 
+- [ ] `node scripts/check-exploration-links.mjs` reports exactly 25 broken
+      references before the fix, and 0 after
+- [ ] Renaming any exploration file with a stale inbound link turns
+      `check:exploration-links` red, naming both the source and the target
 - [ ] `node scripts/check-exploration-fallow.mjs` exits 0 on a clean checkout of
       `main` with the seeded baseline
-- [ ] Renaming one `[_]` doc to `[~]` decreases the reported count by exactly 1
-- [ ] Adding a new `[_]` exploration does **not** turn the check red (it is not
-      yet stale) — confirms the ratchet is not a creation tax
-- [ ] Artificially setting one `decide_by` to a past date turns the check red,
-      and the error message names that file
-- [ ] Bumping the baseline turns it green again, and the bump is a visible
-      one-line diff in review
+- [ ] Setting `status: withdrawn` on one stale doc decreases the count by
+      exactly 1, **and `git status` shows no rename** — the load-bearing property
+- [ ] Setting `review:` to a future date on one stale doc likewise decreases the
+      count by 1 with no rename
+- [ ] Adding a new `[_]` exploration does **not** turn the check red — confirms
+      the ratchet is not a tax on writing explorations
+- [ ] Setting one `review:` to a past date turns the check red and the error
+      names that file and its `decider`
+- [ ] Bumping the baseline turns it green again, as a visible one-line diff
+- [ ] Running the script twice produces a byte-identical `STALE.md` (no diff
+      churn on unchanged input)
+- [ ] Simulating a shallow checkout (`git clone --depth 1`) makes the script
+      exit 1 with a clear message, not silently pass
 - [ ] `pnpm lint` and `pnpm typecheck` pass with the new script wired in
 - [ ] CI wall-clock median is unchanged (≤ 9 min) after the check is added —
       measured over 10 runs, not asserted
-- [ ] `check:visual-explorations` still passes after the `[~]` rename lands
-- [ ] `/explore` produces a doc with `door`, `decide_by`, `decider` populated
+- [ ] `check:visual-explorations` still passes — nothing in this proposal
+      renames a file, so it should be untouched; confirm rather than assume
+- [ ] `/explore` produces a doc with `review`, `decider`, `door` populated
 - [ ] Re-measure exploration conversion 90 days out; the `[_]` count should be
       flat or falling rather than +85/month
 
