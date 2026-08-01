@@ -746,7 +746,7 @@ export function candidatesFromTraces(
 - [x] Inject the factory in `startAgentMcpServer` (`apps/electron/src/main/agent-mcp-server.ts`)
 - [x] `scripts/guard-ai-surface-retrieval.mjs` — fail the build on a construction site without a retriever
 - [x] Propagate `tier`/`degraded`/`notice` through every `runSearch` output format; notice to stderr
-- [ ] Fix `xnet connect` to **merge** into `CLAUDE.md`/`AGENTS.md` instead of overwriting
+- [x] Fix `xnet connect` to **merge** into `CLAUDE.md`/`AGENTS.md` instead of overwriting
 
 ### Phase 2 — Speed and the code lane
 

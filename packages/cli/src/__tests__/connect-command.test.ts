@@ -10,6 +10,9 @@ import { parse as parseToml } from 'smol-toml'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   buildServerEntry,
+  MANAGED_BEGIN,
+  MANAGED_END,
+  mergeManagedBlock,
   runConnect,
   writeCodexConfig,
   writeMcpJson,
@@ -72,6 +75,53 @@ describe('xnet connect', () => {
     const doc = JSON.parse(await readFile(join(dir, '.mcp.json'), 'utf8'))
     expect(doc.mcpServers.other.command).toBe('foo')
     expect(doc.mcpServers.xnet.command).toBe('xnet')
+  })
+
+  // `.mcp.json` was merged from day one; the instruction files were written
+  // wholesale, so connecting a repo that already had a CLAUDE.md destroyed it
+  // (exploration 0415).
+  it('preserves an existing CLAUDE.md, appending the managed block', async () => {
+    const original = '# My project\n\n@AGENTS.md\n\nHouse rules that took months.\n'
+    await writeFile(join(dir, 'CLAUDE.md'), original)
+
+    await runConnect('claude-code', { ...base, dir })
+    const merged = await readFile(join(dir, 'CLAUDE.md'), 'utf8')
+    expect(merged).toContain('# My project')
+    expect(merged).toContain('House rules that took months.')
+    expect(merged).toContain('@AGENTS.md')
+    expect(merged).toContain(MANAGED_BEGIN)
+    expect(merged).toContain("Working with the user's xNet workspace")
+  })
+
+  it('rewrites only the managed block on a re-run, leaving edits outside it', async () => {
+    await runConnect('claude-code', { ...base, dir })
+    const first = await readFile(join(dir, 'CLAUDE.md'), 'utf8')
+    await writeFile(join(dir, 'CLAUDE.md'), `${first}\n## My own section\n\nKeep me.\n`)
+
+    const again = await runConnect('claude-code', { ...base, dir })
+    const merged = await readFile(join(dir, 'CLAUDE.md'), 'utf8')
+    expect(merged).toContain('## My own section')
+    expect(merged).toContain('Keep me.')
+    // Exactly one managed block, not one per run.
+    expect(merged.split(MANAGED_BEGIN)).toHaveLength(2)
+    expect(again.find((c) => c.path.endsWith('CLAUDE.md'))?.status).toBe('unchanged')
+  })
+
+  it('preserves an existing AGENTS.md on the codex path', async () => {
+    await writeFile(join(dir, 'AGENTS.md'), '# Existing agent rules\n')
+    await runConnect('codex', { ...base, dir })
+    const merged = await readFile(join(dir, 'AGENTS.md'), 'utf8')
+    expect(merged).toContain('# Existing agent rules')
+    expect(merged).toContain(MANAGED_BEGIN)
+  })
+
+  it('mergeManagedBlock replaces between markers without touching the surroundings', () => {
+    const existing = `head\n\n${MANAGED_BEGIN}\n\nold\n\n${MANAGED_END}\ntail\n`
+    const next = mergeManagedBlock(existing, 'new')
+    expect(next).toContain('head')
+    expect(next).toContain('tail')
+    expect(next).toContain('new')
+    expect(next).not.toContain('old')
   })
 
   it('preserves unrelated keys when merging .codex/config.toml', async () => {
