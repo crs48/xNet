@@ -630,12 +630,12 @@ a gate that over-claims what it proves is the same failure wearing a lab coat.
 
 **Status:** `░░░░░░░░░░ 0/9 items`
 
-- [ ] Add `AiRetrievalProvenance` / `AiRetrievalResult` to
+- [x] Add `AiRetrievalProvenance` / `AiRetrievalResult` to
       `packages/plugins/src/ai-surface/service.ts` and export from the barrel
-- [ ] Widen `AiContextRetriever` to the union return; keep the array form valid
-- [ ] Return `{ nodes, provenance }` from `WorkspaceRetrieval.retrieveContext`
+- [x] Widen `AiContextRetriever` to the union return; keep the array form valid
+- [x] Return `{ nodes, provenance }` from `WorkspaceRetrieval.retrieveContext`
       in `packages/brain/src/workspace-retrieval.ts`
-- [ ] Thread provenance through `candidateNodeIdsForQuery` → `createContextPack`,
+- [x] Thread provenance through `candidateNodeIdsForQuery` → `createContextPack`,
       and stop discarding `pathLabel`
 - [ ] Give `packages/workbench/src/views/ai-graph-retriever.ts` a tier — it has
       none today, so it must report the tier it actually is
