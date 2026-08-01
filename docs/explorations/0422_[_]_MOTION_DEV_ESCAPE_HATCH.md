@@ -508,16 +508,24 @@ The guard rule — one entry appended to the existing `RULES` array:
 // scripts/check-motion-vocab.mjs
 {
   name: 'static motion/react import',
-  re: /^\s*import\s[^\n]*?['"]motion\/react(?:-m|-mini)?['"]/m,
-  fix: 'motion/react may only be reached via dynamic import inside packages/ui/src/motion/MotionStage.tsx — a static import puts ~30KB on the default path (docs/MOTION.md)'
+  re: /^\s*import\s[^\n]*?['"]motion\/react['"]/m,
+  fix: "motion/react may only be reached via the dynamic import in packages/ui/src/motion/MotionStage.tsx — a static import puts ~34KB on the default path. Import `m` from 'motion/react-m' instead (docs/MOTION.md)"
 }
 ```
 
+> [!IMPORTANT]
+> **Correction found during implementation.** An earlier draft of this rule also
+> banned `motion/react-m` and `motion/react-mini`, which contradicted the site-2
+> sketch below — those subpaths are exactly the tree-shakeable shells the
+> `LazyMotion` split exists to provide, and `m` is inert without a provider.
+> Only the **full `motion/react` barrel** (~34 KB) is banned. The regex ends at
+> a closing quote so `motion/react-m` does not match.
+
 > [!WARNING]
-> The rule must **exempt nothing by filename** — `MotionStage.tsx` uses
-> `import(...)` expressions, which the `^\s*import\s` anchor does not match. If a
-> future edit there needs an exemption, that is the signal the boundary has been
-> breached, not that the rule needs loosening.
+> The rule must **exempt nothing by filename** — `MotionStage.tsx` uses an
+> `import(...)` *expression*, which the `^\s*import\s` statement anchor does not
+> match. If a future edit there needs an exemption, that is the signal the
+> boundary has been breached, not that the rule needs loosening.
 
 <details>
 <summary>Site 2 sketch — tab reorder FLIP</summary>
@@ -560,10 +568,14 @@ the one place the token scale is copied rather than referenced.
 
 **Open questions**
 
-1. **Is tab reorder worth 30 KB of lazy chunk at all?** If site 2 is the only one
-   we care about, Option D (`auto-animate`, 1.6 KB) is the better answer and this
-   exploration should be re-scoped. **This is the decision to make before
-   starting.**
+1. ~~**Is tab reorder worth 30 KB of lazy chunk at all?**~~ **RESOLVED —
+   Motion (Option C).** Both confirmed sites land, not just site 2. Site 1's
+   kanban drop settle has to track the pointer and animate a card *between*
+   columns; `auto-animate` observes DOM mutations and cannot couple to a drag,
+   so it would close site 2 and leave site 1 exactly as janky as it is now.
+   Taking it would mean two animation dependencies covering one and a half
+   gaps — the opposite of a small vocabulary. Option D stays the right answer
+   only under the counterfactual where site 1 is dropped.
 2. **Should a bundle-size budget land independently?** The absence of any size
    guard is a latent risk far larger than Motion. It deserves its own
    exploration; it should not block this one.
@@ -583,11 +595,11 @@ the one place the token scale is copied rather than referenced.
 
 **Phase 0 — honest docs (do this even if nothing else ships)**
 
-- [ ] Correct the size claim in `docs/MOTION.md` §"When you genuinely need more":
+- [x] Correct the size claim in `docs/MOTION.md` §"When you genuinely need more":
       FLIP requires `domMax`, so the real cost is ~30 KB, not the 4.6 KB shell.
-- [ ] Name `<MotionStage>` in that paragraph as the only sanctioned entry point,
+- [x] Name `<MotionStage>` in that paragraph as the only sanctioned entry point,
       replacing the bare "reach for `motion/react`".
-- [ ] Decide open question 1 (Motion vs `auto-animate` for tab reorder) and
+- [x] Decide open question 1 (Motion vs `auto-animate` for tab reorder) and
       record the answer in this document before writing code.
 
 **Phase 1 — the boundary and its guard**

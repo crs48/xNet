@@ -122,9 +122,33 @@ just doesn't move. `usePrefersReducedMotion()` is available for custom logic
 ## When you genuinely need more (the escape hatch)
 
 Drag-coupled motion and FLIP layout animations are the ~5% this vocabulary
-doesn't cover. Reach for `motion/react` (LazyMotion + `m`, ~4.6KB shell) **only**
-there, and **only behind a lazy/code-split boundary** so it never weighs down
-the default bundle. Everything else stays CSS-first.
+doesn't cover. Everything else stays CSS-first.
+
+The one sanctioned entry point is **`<MotionStage>`** from `@xnetjs/ui`
+([`packages/ui/src/motion/MotionStage.tsx`](../packages/ui/src/motion/MotionStage.tsx)).
+Wrap the subtree that needs it, then use `m.*` components inside:
+
+```tsx
+import { MotionStage } from '@xnetjs/ui'
+import * as m from 'motion/react-m'
+
+<MotionStage>
+  {items.map((it) => (
+    <m.div key={it.id} layout>…</m.div>
+  ))}
+</MotionStage>
+```
+
+**Sizes — the numbers that decide whether you should.** `motion/react-m` is the
+~4.6KB `m` shell and is inert without a provider; `MotionStage` lazily loads the
+feature bundle. FLIP (`layout` / `layoutId`) lives in `domMax`, which is **+25KB**
+— so the real cost of a layout animation is **~30KB**, not the shell figure.
+`domAnimation` (+15KB) covers gestures and exit but **not** `layout`.
+
+`scripts/check-motion-vocab.mjs` fails CI on a static `import … from 'motion/react'`
+— the full barrel is ~34KB and must only ever be reached through `MotionStage`'s
+dynamic import. `motion/react-m` and `motion/react-mini` are fine to import
+statically; that split is the whole point.
 
 ## For AI agents
 
@@ -136,5 +160,7 @@ When asked to animate something in `apps/web` or `packages/ui`:
   `ease-bounce`. `scripts/check-motion-vocab.mjs` fails CI on these.
 - Enter → `ease-out` + `duration-normal`. Exit → `ease-in` + `duration-fast`.
 - Mount/unmount in React → `<Presence>`. Base UI open/close → already handled.
+- Drag-coupled or FLIP reorder → `<MotionStage>` + `motion/react-m` (above).
+  Never `pnpm add framer-motion`, and never a static `motion/react` import.
 - Spring is for things the user is directly pushing, nothing else.
 - Default to **less**. A single 150ms fade usually beats a bespoke sequence.
