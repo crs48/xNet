@@ -152,6 +152,37 @@ const CLAIMS: Claim[] = [
     enforcedBy: 'packages/entitlements/src/plans.test.ts'
   },
   {
+    id: 'cloud-restore-commitment-drilled',
+    source:
+      '/cloud/durability — "a restore actually restores, and we prove the check can fail: ' +
+      'every change backs up a real database, restores it, verifies it physically and ' +
+      'logically, then corrupts a copy on purpose and requires the drill to fail" (0418)',
+    backing: 'enforced',
+    enforcedBy: 'tests/reliability/restore/restore-drill.test.ts'
+  },
+  {
+    id: 'cloud-no-unbacked-availability-claim',
+    source:
+      '/cloud/pricing + /cloud/durability + /status — every published availability figure ' +
+      'is one the plan catalog backs. The page shipped "99.9% best-effort availability" ' +
+      'over a tier whose SlaLevel resolved to no objective at all (0418).',
+    backing: 'enforced',
+    enforcedBy: 'packages/entitlements/src/durability.test.ts'
+  },
+  {
+    id: 'cloud-blob-durability-gap-disclosed',
+    source:
+      '/cloud/durability §"What is not covered yet" — attachments are not yet replicated ' +
+      'to object storage, and we say so rather than letting "encrypted backup" imply it (0418)',
+    backing: 'building',
+    pending:
+      "Exploration 0288's [P0] blob/file sync sidecar is unshipped: Litestream covers the " +
+      'SQLite DB, but dataDir/{blobs,files} lives on the container volume only, so a cold ' +
+      'demotion loses every attachment. The gap is excluded from DURABILITY_POSTURE.covered ' +
+      '(guarded by durability.test.ts) and disclosed on the durability page, which generates ' +
+      'its gap list from that same constant. Ship: exploration 0288 [P0].'
+  },
+  {
     id: 'economics-anchor-tenancy-parity',
     source:
       'Charter §Commons/No ground rent + ECONOMICS.md §5 — "xNet Cloud runs the same hub ' +

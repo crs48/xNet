@@ -767,8 +767,8 @@ describe('durability posture never outruns the code', () => {
 - [x] Rewrite [`terms.astro`](../../site/src/pages/terms.astro) §"The Hosted Hub" to point at both pages; add a **cap on direct damages** (fees paid, trailing 24 months) to §"Limitation of Liability".
 - [ ] Name the governing-law jurisdiction in [`terms.astro:262`](../../site/src/pages/terms.astro).
 - [x] Surface the `backups` component and per-tier objective on [`site/src/data/status.ts`](../../site/src/data/status.ts) / `/status`.
-- [ ] Add the three claims-ledger entries to [`charter-claims-ledger.test.ts`](../../packages/telemetry/test/charter-claims-ledger.test.ts).
-- [ ] Record **ADR-30 — "We refund loss, not downtime"** in [`decisions.mdx`](../../site/src/content/docs/docs/architecture/decisions.mdx).
+- [x] Add the three claims-ledger entries to [`charter-claims-ledger.test.ts`](../../packages/telemetry/test/charter-claims-ledger.test.ts).
+- [x] Record **ADR-30 — "We refund loss, not downtime"** in [`decisions.mdx`](../../site/src/content/docs/docs/architecture/decisions.mdx).
 
 ### Phase 3 — The felt version
 
