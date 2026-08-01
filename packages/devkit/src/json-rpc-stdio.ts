@@ -207,6 +207,8 @@ export class JsonRpcSession {
   }
 
   private warn(message: string): void {
-    ;(this.options.onWarning ?? ((m: string) => console.warn(`[xnet/json-rpc] ${m}`)))(message)
+    const report =
+      this.options.onWarning ?? ((m: string) => console.warn(`[xnet/json-rpc] ${m}`))
+    report(message)
   }
 }

@@ -1,5 +1,5 @@
 import { schnorr } from '@noble/curves/secp256k1.js'
-import { generateIdentity } from '@xnetjs/identity'
+import { generateIdentity, hasCapability, verifyUCAN } from '@xnetjs/identity'
 import { describe, expect, it, vi } from 'vitest'
 import { computeEventId, verifyNostrEvent, type NostrEvent } from './event'
 import { bytesToHex, decodeBech32, decodeNpub, hexToBytes } from './nip19'
@@ -131,6 +131,25 @@ describe('Buzz enrollment (exploration 0416)', () => {
     expect(enrollment.agentDID).not.toContain(nostrPubHex)
   })
 
+  it('grants only the delegated capability — a write outside it is refused', () => {
+    const challenge = 'c'
+    const enrollment = enrollBuzzAgent({
+      npub,
+      proof: proofFor(challenge),
+      challenge: new TextEncoder().encode(challenge),
+      operatorDID: operator.identity.did,
+      operatorKey: operator.privateKey,
+      capabilities: CAPS
+    })
+    const payload = verifyUCAN(enrollment.ucan).payload!
+
+    expect(hasCapability(payload, 'xnet://space/inbox', 'node/create')).toBe(true)
+    // Another space, another action, and a delete — none of them delegated.
+    expect(hasCapability(payload, 'xnet://space/private', 'node/create')).toBe(false)
+    expect(hasCapability(payload, 'xnet://space/inbox', 'node/update')).toBe(false)
+    expect(hasCapability(payload, 'xnet://space/inbox', 'node/delete')).toBe(false)
+  })
+
   it('refuses a proof over a different challenge (replay)', () => {
     expect(() =>
       enrollBuzzAgent({
@@ -193,7 +212,8 @@ describe('Buzz relay routing (exploration 0416)', () => {
       send: (data) => sent.push(data),
       close: vi.fn(),
       addEventListener: (type: string, handler: (e: never) => void) => {
-        ;(handlers[type] ??= []).push(handler)
+        const list = (handlers[type] ??= [])
+        list.push(handler)
       }
     }
     const emit = (data: string) => handlers.message?.forEach((h) => h({ data } as never))

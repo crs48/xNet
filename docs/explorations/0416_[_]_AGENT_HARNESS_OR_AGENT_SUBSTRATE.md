@@ -576,26 +576,26 @@ requires the operator's signing key — which the agent never has.
 
 ## Validation Checklist
 
-- [ ] A Buzz-identified agent enrolls, writes one page, and the change is
+- [x] A Buzz-identified agent enrolls, writes one page, and the change is
       signed by the **passport DID** (not the operator's, not Buzz's)
-- [ ] An enrolled foreign agent attempting a write outside its delegated
+- [x] An enrolled foreign agent attempting a write outside its delegated
       capability set is refused, and the refusal is recorded
-- [ ] `xnet audit verify` passes on a clean bundle and **fails loudly** on a
+- [x] `xnet audit verify` passes on a clean bundle and **fails loudly** on a
       bundle whose approval is signed by the agent rather than the operator
-- [ ] Tamper test: mutate one `AgentAction` in an exported bundle → verify
+- [x] Tamper test: mutate one `AgentAction` in an exported bundle → verify
       exits non-zero naming the broken link
-- [ ] A high-risk action requested from Buzz chat is refused in chat and
+- [x] A high-risk action requested from Buzz chat is refused in chat and
       releasable only from an xNet surface (same guarantee as OpenClaw today)
 - [ ] Panel shows tool calls and an approval prompt for a bridged Claude Code
       turn that writes; denying it produces no change
-- [ ] Codex `app-server` two-turn conversation reuses one thread (no
+- [x] Codex `app-server` two-turn conversation reuses one thread (no
       full-history replay); interrupt works
-- [ ] Egress budget: a query exceeding the session budget is truncated with a
+- [x] Egress budget: a query exceeding the session budget is truncated with a
       **typed failure**, never a silently short result (per `AGENTS.md`
       error policy)
-- [ ] Charter claims-ledger test asserts the audit export is free and
+- [x] Charter claims-ledger test asserts the audit export is free and
       verifiable offline (new `commons-no-ground-rent-agent-audit` receipt)
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint` green
+- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint` green
 
 ## References
 
