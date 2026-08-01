@@ -35,7 +35,7 @@
       "label": "Settings",
       "file": "routes/settings.png",
       "status": "changed",
-      "ssim": 0.967708,
+      "ssim": 0.967743,
       "before": "before/routes/settings.png",
       "after": "routes/settings.png",
       "diff": "diff/routes/settings.png"
