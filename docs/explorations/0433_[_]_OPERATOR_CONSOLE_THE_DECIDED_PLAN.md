@@ -497,21 +497,21 @@ sale — either re-opens the consent model.
 - [x] Add `unmeasured` to `ComponentStatus` and the status severity ordering
 - [x] Replace the hardcoded `control-plane: operational` with a measured signal
 - [x] `timingSafeEqual` in `requireInternal`
-- [ ] WorkOS organisation + `operator` role; read the role claim from the JWT
-- [ ] Operator session: distinct sealed cookie, separate from the tenant session
-- [ ] `workosUser → did:key` binding store in Firestore, via the device-grant claim
+- [x] WorkOS organisation + `operator` role; read the role claim from the JWT
+- [x] Operator session: distinct sealed cookie, separate from the tenant session
+- [x] `workosUser → did:key` binding store in Firestore, via the device-grant claim
 - [ ] Stand up the ops hub: GCP, own project, outside the fleet provisioner
 - [ ] Seed the first operator DID via a `scripts/cloud-*.mjs`
-- [ ] `AuditLog` port: tier-1 Firestore append, fail-closed, before the action
-- [ ] Tier-2 publisher: signed node authored by the operator DID, async
-- [ ] Publish-queue depth exposed as an alertable metric
+- [x] `AuditLog` port: tier-1 Firestore append, fail-closed, before the action
+- [x] Tier-2 publisher: signed node authored by the operator DID, async
+- [x] Publish-queue depth exposed as an alertable metric
 - [x] Move `POST /internal/account/recover` behind operator identity + reason
 - [x] Move `POST /internal/tenants/:id/plan` and `/account/delete-data` likewise
 - [x] Mutation routes reject `x-internal-secret` outright
 - [x] Confirm `cloud-company-metrics.mjs` still works unchanged
-- [ ] Privacy policy: audit retention, what it holds, that it survives deletion
-- [ ] ADR-31 and ADR-32 in `decisions.mdx`, each with its `Tripwire:`
-- [ ] **Negative control** — `--selftest` planting a stale window and a real budget burn, both of which the gate MUST flag, fixtures in memory (0430)
+- [x] Privacy policy: audit retention, what it holds, that it survives deletion
+- [x] ADR-31 and ADR-32 in `decisions.mdx`, each with its `Tripwire:`
+- [x] **Negative control** — `--selftest` planting a stale window and a real budget burn, both of which the gate MUST flag, fixtures in memory (0430)
 
 ### Phase 1 — fleet console
 
