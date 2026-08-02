@@ -103,6 +103,17 @@ export type NodeRelayOptions = {
    */
   quotaBytes?: number
   /**
+   * Aggregate storage cap in bytes for the WHOLE tenant (exploration 0435).
+   * Unset ⇒ unbounded, which is both the self-host default and what a hub
+   * running a token signed before the field existed resolves to.
+   *
+   * This is not redundant with {@link quotaBytes}: that one is per author, so
+   * on a 5-seat plan it permits five times its own value in aggregate. A
+   * storage add-on is sold and billed per tenant, so it has to be enforced
+   * against the tenant's total.
+   */
+  tenantQuotaBytes?: number
+  /**
    * Returns true when the hub's disk is at/near capacity. When it does, new
    * changes are shed with `STORAGE_FULL` so a full volume degrades gracefully
    * instead of crashing the process.
@@ -203,6 +214,26 @@ export class NodeRelayService {
   private bumpUsageBytes(did: string, delta: number): void {
     const entry = this.usageByDid.get(did)
     if (entry) entry.bytes += delta
+    if (this.tenantUsage) this.tenantUsage.bytes += delta
+  }
+
+  /** Tenant-wide usage cache, same TTL discipline as {@link usageByDid}. */
+  private tenantUsage: { bytes: number; fetchedAt: number } | null = null
+
+  private async cachedTenantUsageBytes(): Promise<number> {
+    if (
+      this.tenantUsage &&
+      Date.now() - this.tenantUsage.fetchedAt < NodeRelayService.USAGE_TTL_MS
+    ) {
+      return this.tenantUsage.bytes
+    }
+    return this.refreshTenantUsageBytes()
+  }
+
+  private async refreshTenantUsageBytes(): Promise<number> {
+    const bytes = await this.storage.getUsageBytesTotal()
+    this.tenantUsage = { bytes, fetchedAt: Date.now() }
+    return bytes
   }
 
   async handleNodeChange(msg: NodeChangeMessage, auth: AuthContext): Promise<boolean> {
@@ -331,6 +362,25 @@ export class NodeRelayService {
             'QUOTA_EXCEEDED',
             `Storage limit reached (${this.options.quotaBytes} bytes per user). ` +
               `Delete some data, upgrade your plan, or use your own hub for more space.`
+          )
+        }
+      }
+    }
+
+    // Aggregate tenant cap (exploration 0435). Separate from the per-user check
+    // above because that one multiplies by seat count: a 5-seat plan whose
+    // per-user quota is 250 GiB permits 1.25 TiB in total, so a storage pack
+    // sold once would be provisioned five times. Same two-step discipline —
+    // never reject on a cached number without re-reading the truth first.
+    if (this.options.tenantQuotaBytes !== undefined) {
+      let used = await this.cachedTenantUsageBytes()
+      if (used + quotaDelta > this.options.tenantQuotaBytes) {
+        used = await this.refreshTenantUsageBytes()
+        if (used + quotaDelta > this.options.tenantQuotaBytes) {
+          throw new NodeRelayError(
+            'QUOTA_EXCEEDED',
+            `Storage limit reached (${this.options.tenantQuotaBytes} bytes for this hub). ` +
+              `Delete some data, add a storage pack, or use your own hub for more space.`
           )
         }
       }

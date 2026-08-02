@@ -94,6 +94,25 @@ describe('writesEnabled (exploration 0418)', () => {
     expect(verifyEntitlements(`${payload}.${sig}`, secret).writesEnabled).toBe(true)
   })
 
+  // Exploration 0435. Same fail-open rule, same reason: every hub in the fleet
+  // is running a token signed before `tenantQuotaBytes` existed. Reading the
+  // missing field as `0` would give all of them a zero-byte aggregate ceiling.
+  it('leaves tenantQuotaBytes ABSENT (= unlimited) on a token signed before it existed', () => {
+    const legacy = { ...resolveEntitlements('personal') } as Record<string, unknown>
+    delete legacy.tenantQuotaBytes
+    const payload = Buffer.from(JSON.stringify(legacy)).toString('base64url')
+    const sig = createHmac('sha256', secret).update(payload).digest().toString('base64url')
+    expect(verifyEntitlements(`${payload}.${sig}`, secret).tenantQuotaBytes).toBeUndefined()
+  })
+
+  it('round-trips tenantQuotaBytes when it IS signed into the token', () => {
+    const token = signEntitlements(
+      { ...resolveEntitlements('personal'), tenantQuotaBytes: 525 * 1024 * 1024 * 1024 },
+      secret
+    )
+    expect(verifyEntitlements(token, secret).tenantQuotaBytes).toBe(525 * 1024 * 1024 * 1024)
+  })
+
   it('a self-hosted hub with no HUB_PLAN always resolves writesEnabled true', () => {
     // The anti-lock-in invariant (0174): no control plane, no read-only switch.
     expect(entitlementsFromEnv({}).writesEnabled).toBe(true)

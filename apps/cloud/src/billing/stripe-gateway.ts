@@ -13,13 +13,24 @@
 import { PLAN_CATALOG, isSeatMetered, type PlanId } from '@xnetjs/entitlements'
 import Stripe from 'stripe'
 import {
+  STORAGE_PACK_UNIT_GB,
   WebhookSignatureError,
   type CheckoutArgs,
   type PortalArgs,
+  type StoragePackArgs,
   type TenantBillingGateway,
   type WebhookResult
 } from '../billing-gateway'
 import { isSubscriptionStatus } from '../reconcile/billing'
+
+/** Stripe proration modes this gateway uses (exploration 0435). */
+export type StripeProration = 'always_invoice' | 'none'
+
+/** The subscription shape the storage add-on needs (items + their prices). */
+export interface StripeSubscription {
+  id: string
+  items: { data: Array<{ id: string; price: { id: string }; quantity?: number }> }
+}
 
 /** The slice of the Stripe SDK this gateway uses (mock it in tests). */
 export interface StripeClient {
@@ -46,6 +57,26 @@ export interface StripeClient {
   billingPortal: {
     sessions: { create(params: { customer: string; return_url: string }): Promise<{ url: string }> }
   }
+  subscriptions: {
+    list(params: {
+      customer: string
+      status?: string
+      limit?: number
+    }): Promise<{ data: StripeSubscription[] }>
+  }
+  subscriptionItems: {
+    create(params: {
+      subscription: string
+      price: string
+      quantity: number
+      proration_behavior: StripeProration
+    }): Promise<{ id: string }>
+    update(
+      id: string,
+      params: { quantity: number; proration_behavior: StripeProration }
+    ): Promise<{ id: string }>
+    del(id: string, params?: { proration_behavior?: StripeProration }): Promise<{ id: string }>
+  }
   webhooks: {
     constructEvent(
       payload: string,
@@ -61,9 +92,15 @@ export interface StripeGatewayConfig {
   /**
    * Stripe Tax. On by default — a SaaS seller owes VAT/sales tax from the first
    * sale, so the safe default is to collect it. Set `false` only for a seller
-   * with no collection obligation at all, and say so deliberately.
+   * with no collection obligation at all, and say so deliberately (0436).
    */
   automaticTax?: boolean
+  /**
+   * Stripe Price for the storage add-on, billed per 100 GiB unit (0435).
+   * Unset ⇒ `setStoragePack` throws and the dashboard hides the picker, rather
+   * than silently granting space nobody is billed for.
+   */
+  storagePriceId?: string
 }
 
 /**
@@ -72,7 +109,7 @@ export interface StripeGatewayConfig {
  * Flat-billed plans are always `1`: `community` serves an unlimited, uncounted
  * membership, and multiplying its price by headcount would be the per-member
  * meter Charter §6 refuses. Seat-metered plans bill their seat count, floored at
- * the plan's catalog minimum — you cannot buy `team` with one seat.
+ * the plan's catalog minimum — you cannot buy `team` with one seat (0436).
  */
 export function checkoutQuantity(plan: PlanId, seats?: number): number {
   const base = PLAN_CATALOG[plan]
@@ -156,6 +193,96 @@ export class StripeTenantBillingGateway implements TenantBillingGateway {
     return { url: session.url }
   }
 
+  /**
+   * Add, resize or remove the storage add-on line item (exploration 0435).
+   *
+   * Deliberately does NOT touch the base subscription price — the tenant keeps
+   * their plan, seats, AI budget and SLA exactly as they were, which is the
+   * whole promise of a storage-only upgrade.
+   */
+  async setStoragePack(args: StoragePackArgs): Promise<{ storagePackGb: number }> {
+    const price = this.config.storagePriceId
+    if (!price) throw new Error('No Stripe price configured for storage add-ons')
+    if (!Number.isInteger(args.packGb) || args.packGb < 0) {
+      throw new Error(`Invalid storage pack: ${args.packGb}`)
+    }
+    if (args.packGb % STORAGE_PACK_UNIT_GB !== 0) {
+      throw new Error(`Storage pack must be a multiple of ${STORAGE_PACK_UNIT_GB} GiB`)
+    }
+    const customer = await this.findCustomer(args.customerRef)
+    if (!customer) throw new Error(`No Stripe customer for ${args.customerRef}`)
+
+    const subs = await this.stripe.subscriptions.list({ customer, status: 'active', limit: 1 })
+    const sub = subs.data[0]
+    if (!sub) throw new Error(`No active subscription for ${args.customerRef}`)
+
+    const existing = sub.items.data.find((item) => item.price.id === price)
+    const quantity = args.packGb / STORAGE_PACK_UNIT_GB
+    const current = existing?.quantity ?? 0
+
+    // Growing costs money now; shrinking waits for the period boundary so we
+    // never owe a refund and the over-quota guard gets a full cycle of runway.
+    const proration: StripeProration = quantity > current ? 'always_invoice' : 'none'
+
+    if (quantity === 0) {
+      if (existing)
+        await this.stripe.subscriptionItems.del(existing.id, { proration_behavior: 'none' })
+    } else if (existing) {
+      await this.stripe.subscriptionItems.update(existing.id, {
+        quantity,
+        proration_behavior: proration
+      })
+    } else {
+      await this.stripe.subscriptionItems.create({
+        subscription: sub.id,
+        price,
+        quantity,
+        proration_behavior: proration
+      })
+    }
+    return { storagePackGb: args.packGb }
+  }
+
+  /**
+   * Total add-on GiB on a subscription, read from its line items.
+   *
+   * Items are the only place the quantity exists — checkout session metadata
+   * carries the plan and nothing else, so a pack bought or resized through the
+   * customer portal is invisible to a metadata-only reader (0435).
+   */
+  private storagePackFromItems(obj: unknown): number | undefined {
+    const price = this.config.storagePriceId
+    if (!price) return undefined
+    const items = (obj as StripeSubscription | undefined)?.items?.data
+    if (!Array.isArray(items)) return undefined
+    const item = items.find((i) => i?.price?.id === price)
+    // An active subscription with no storage item means the pack is zero, which
+    // is a real value (someone removed it) — distinct from "no items at all",
+    // which means this event cannot tell us and must not be read as a removal.
+    return (item?.quantity ?? 0) * STORAGE_PACK_UNIT_GB
+  }
+
+  /**
+   * Billed seats, read off the subscription ITEM rather than the metadata.
+   *
+   * Metadata records what was bought at checkout and never moves when a customer
+   * adds a seat in the portal, which is exactly the drift that made "add seats
+   * any time" untrue (exploration 0436 G5).
+   *
+   * Matched by PRICE ID, not by position: a subscription now routinely carries
+   * two items — the plan and a storage add-on (0435) — so `items.data[0]` would
+   * read the storage quantity as a seat count whenever Stripe ordered them the
+   * other way round.
+   */
+  private seatsFromItems(obj: unknown, plan: PlanId | undefined): number | undefined {
+    const price = plan ? this.config.priceByPlan[plan] : undefined
+    if (!price) return undefined
+    const items = (obj as StripeSubscription | undefined)?.items?.data
+    if (!Array.isArray(items)) return undefined
+    const quantity = items.find((i) => i?.price?.id === price)?.quantity
+    return Number.isInteger(quantity) && (quantity as number) > 0 ? quantity : undefined
+  }
+
   async parseWebhook(rawBody: string, headers: Record<string, string>): Promise<WebhookResult> {
     const sig = headers['stripe-signature'] ?? headers['Stripe-Signature'] ?? ''
     let event: { type: string; data: { object: unknown } }
@@ -204,19 +331,21 @@ export class StripeTenantBillingGateway implements TenantBillingGateway {
     ) {
       return { type: 'payment_recovered', customerRef }
     }
-    if (
-      event.type === 'customer.subscription.updated' &&
-      meta.customerRef &&
-      isSubscriptionStatus(obj.status)
-    ) {
-      // Read seats off the ITEM, not the metadata: metadata records what was
-      // bought at checkout and never moves when a customer adds a seat later.
-      const quantity = obj.items?.data?.[0]?.quantity
-      return {
-        type: 'subscription_status',
-        customerRef: meta.customerRef,
-        status: obj.status,
-        ...(Number.isInteger(quantity) && (quantity as number) > 0 ? { seats: quantity } : {})
+    if (event.type === 'customer.subscription.updated' && meta.customerRef) {
+      const storagePackGb = this.storagePackFromItems(event.data.object)
+      const seats = this.seatsFromItems(event.data.object, meta.plan as PlanId | undefined)
+      if (isSubscriptionStatus(obj.status)) {
+        return {
+          type: 'subscription_status',
+          customerRef: meta.customerRef,
+          status: obj.status,
+          ...(storagePackGb !== undefined ? { storagePackGb } : {}),
+          ...(seats !== undefined ? { seats } : {})
+        }
+      }
+      // A pure add-on change carries no status transition; still actionable.
+      if (storagePackGb !== undefined) {
+        return { type: 'storage_pack', customerRef: meta.customerRef, storagePackGb }
       }
     }
     return { type: 'ignored' }
@@ -239,6 +368,8 @@ export function stripeGatewayFromEnv(
       ...(env.STRIPE_PRICE_FAMILY ? { family: env.STRIPE_PRICE_FAMILY } : {}),
       ...(env.STRIPE_PRICE_TEAM ? { team: env.STRIPE_PRICE_TEAM } : {}),
       ...(env.STRIPE_PRICE_COMMUNITY ? { community: env.STRIPE_PRICE_COMMUNITY } : {})
-    }
+    },
+    // Unset ⇒ storage add-ons stay off entirely rather than being granted free.
+    ...(env.STRIPE_PRICE_STORAGE_100GB ? { storagePriceId: env.STRIPE_PRICE_STORAGE_100GB } : {})
   })
 }

@@ -122,6 +122,58 @@ export function estimateCogs(scenario: PricingScenario): PlanCostBreakdown {
   }
 }
 
+/**
+ * Published price of a storage add-on, USD per GiB-month (exploration 0435).
+ *
+ * Flat, not tiered. Both price and cost are linear in size, so a single rate
+ * holds the same gross margin at every pack size — one number to defend instead
+ * of three, and no volume-discount cliff to explain.
+ */
+export const STORAGE_PACK_PRICE_PER_GB_MONTH = 0.03
+
+/**
+ * Defensive multiplier for R2 Class A/B operations on top of raw storage.
+ *
+ * At realistic object sizes (multi-MB media) operations land nearer 1–3% of the
+ * storage line, so 10% is deliberately conservative: a pack that clears the
+ * margin floor under this assumption clears it comfortably in practice.
+ */
+export const STORAGE_OPS_MULTIPLIER = 1.1
+
+/** The packs sold on the pricing page, in GiB. */
+export const STORAGE_PACK_SIZES_GB: readonly number[] = [100, 500, 1000]
+
+/**
+ * Monthly COGS and margin for a storage add-on of `packGb`.
+ *
+ * The marginal Stripe cost is the **percentage only**: an add-on is a second
+ * `SubscriptionItem` on a subscription that already exists, so the $0.30 fixed
+ * fee is paid by the base plan's invoice and must not be charged twice here.
+ * Applying `stripeFixedPerCharge` again would understate the margin — and, on
+ * the +100 GiB pack, by enough to change the answer.
+ */
+export function storagePackMargin(packGb: number): PlanCostBreakdown {
+  if (!Number.isFinite(packGb) || packGb < 0) {
+    throw new Error(`Invalid storage pack: ${packGb}`)
+  }
+  const monthlyRevenue = packGb * STORAGE_PACK_PRICE_PER_GB_MONTH
+  const storage = packGb * UNIT_COSTS.r2StoragePerGbMonth * STORAGE_OPS_MULTIPLIER
+  const stripe = monthlyRevenue * UNIT_COSTS.stripePercent
+  const totalCogs = storage + stripe
+  const margin = monthlyRevenue - totalCogs
+
+  return {
+    computeUsd: 0,
+    storageUsd: round(storage),
+    identityUsd: 0,
+    stripeUsd: round(stripe),
+    totalCogsUsd: round(totalCogs),
+    monthlyRevenueUsd: round(monthlyRevenue),
+    grossMarginUsd: round(margin),
+    grossMarginPct: monthlyRevenue > 0 ? round(margin / monthlyRevenue) : 0
+  }
+}
+
 /** Recommended default billing period per plan (entry tier → annual amortizes the Stripe fee). */
 export const DEFAULT_BILLING_PERIOD: Partial<Record<PlanId, 'month' | 'year'>> = {
   personal: 'year'

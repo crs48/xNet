@@ -212,6 +212,18 @@ things you would own anyway. The refused rents, each with its receipt:
   never phones home to us. **Architectural:** root [`LICENSE`](../LICENSE),
   [`packages/sync/src/change.ts`](../packages/sync/src/change.ts),
   [`packages/entitlements/`](../packages/entitlements/).
+- **No rent on storage you could hold yourself.** Cloud storage add‑ons are
+  billed on the bytes we rent, replicate and back up for you — an operation we
+  run — never on reaching data you already own. Keeping it on your own devices
+  stays free and unlimited, export stays free, egress is zero, and the same hub
+  self‑hosts against your own bucket. **Enforced:** the add‑on is per tenant and
+  additive over the plan base, so it can neither become a per‑member meter
+  through the storage door nor shrink a tenant who changes plan
+  ([`packages/entitlements/src/plans.ts`](../packages/entitlements/src/plans.ts),
+  `withStoragePack`); the receipt is pinned by
+  `commons-storage-is-an-improvement-charge` in
+  [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)
+  (exploration 0435, ADR‑33).
 - **No per‑member pricing on communities.** Hosting is billed on the
   operations we run — storage, concurrency, AI — never on the size of the
   audience you brought. A per‑member meter would charge you for access to a

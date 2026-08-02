@@ -5,7 +5,7 @@
 import type { HubConfig, HubInstance } from './types'
 import { mkdirSync } from 'fs'
 import { getDemoOverrides } from './config'
-import { createServer } from './server'
+import { createServer, type HubServerDeps } from './server'
 import { DEFAULT_CONFIG } from './types'
 export { resolveConfig } from './config'
 
@@ -14,6 +14,13 @@ export { DEMO_DEFAULTS } from './types'
 export { getDemoOverrides } from './config'
 export { loadOrCreateHubIdentity, type HubIdentity } from './hub-identity'
 export { HUB_ROLES, isHubRole, rolePreset } from './roles'
+export type { HubServerDeps } from './server'
+export {
+  createMemoryBlobStore,
+  filesystemBlobStore,
+  objectStoreFromAdapter,
+  type BlobObjectStore
+} from './storage'
 export {
   AtprotoIndexService,
   assertDerivedOnlyDataDir,
@@ -108,7 +115,10 @@ export {
  * await hub.start()
  * ```
  */
-export const createHub = async (config: Partial<HubConfig> = {}): Promise<HubInstance> => {
+export const createHub = async (
+  config: Partial<HubConfig> = {},
+  deps: HubServerDeps = {}
+): Promise<HubInstance> => {
   const resolved: HubConfig = { ...DEFAULT_CONFIG, ...config }
 
   // `demo: true` must always carry enforceable limits: the CLI path resolves
@@ -121,5 +131,5 @@ export const createHub = async (config: Partial<HubConfig> = {}): Promise<HubIns
 
   mkdirSync(resolved.dataDir, { recursive: true })
 
-  return createServer(resolved)
+  return createServer(resolved, deps)
 }

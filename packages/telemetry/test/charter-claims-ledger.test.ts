@@ -144,6 +144,17 @@ const CLAIMS: Claim[] = [
     enforcedBy: 'packages/data/src/agent-audit/agent-audit.test.ts'
   },
   {
+    id: 'commons-storage-is-an-improvement-charge',
+    source:
+      'Charter §Commons/No ground rent — storage add-ons bill the operation we run (bytes ' +
+      'rented from an object store, replicated and backed up), never access to data you ' +
+      'would own anyway (0435, ADR-33). The pack is per TENANT, so it can never become a ' +
+      'per-member meter through the storage door; and it is additive over the plan base, ' +
+      'so a plan change re-derives the quota instead of silently shrinking what was bought.',
+    backing: 'enforced',
+    enforcedBy: 'packages/entitlements/src/plans.test.ts'
+  },
+  {
     id: 'commons-no-per-member-pricing',
     source:
       'Charter §Commons/No ground rent — "no per-member pricing on communities: hosting is ' +

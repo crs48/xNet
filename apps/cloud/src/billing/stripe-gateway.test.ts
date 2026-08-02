@@ -11,6 +11,10 @@ interface FakeOpts {
   existingCustomer?: string | null
   event?: { type: string; data: { object: unknown } }
   throwVerify?: boolean
+  /** Storage add-on items already on the active subscription (0435). */
+  subscriptionItems?: Array<{ id: string; price: { id: string }; quantity?: number }>
+  /** No active subscription at all. */
+  noSubscription?: boolean
 }
 
 function makeStripe(opts: FakeOpts = {}) {
@@ -40,6 +44,27 @@ function makeStripe(opts: FakeOpts = {}) {
           return { url: 'https://portal.stripe/x' }
         })
       }
+    },
+    subscriptions: {
+      list: vi.fn(async () => ({
+        data: opts.noSubscription
+          ? []
+          : [{ id: 'sub_1', items: { data: opts.subscriptionItems ?? [] } }]
+      }))
+    },
+    subscriptionItems: {
+      create: vi.fn(async (p) => {
+        calls.itemCreate = p
+        return { id: 'si_new' }
+      }),
+      update: vi.fn(async (id, p) => {
+        calls.itemUpdate = { id, ...p }
+        return { id }
+      }),
+      del: vi.fn(async (id, p) => {
+        calls.itemDel = { id, ...p }
+        return { id }
+      })
     },
     webhooks: {
       constructEvent: vi.fn(() => {
@@ -288,7 +313,14 @@ describe('seats and tax on checkout', () => {
           object: {
             metadata: { customerRef: 'user_a', plan: 'team', seats: '3' },
             status: 'active',
-            items: { data: [{ quantity: 7 }] }
+            // Two items, storage FIRST: reading `items.data[0]` would report the
+            // storage quantity as a seat count (exploration 0435 + 0436).
+            items: {
+              data: [
+                { price: { id: 'price_storage' }, quantity: 5 },
+                { price: { id: 'price_t' }, quantity: 7 }
+              ]
+            }
           }
         }
       }
@@ -296,5 +328,182 @@ describe('seats and tax on checkout', () => {
     const gw = new StripeTenantBillingGateway(stripe, config)
     const result = await gw.parseWebhook('{}', { 'stripe-signature': 'sig' })
     expect(result).toMatchObject({ type: 'subscription_status', seats: 7 })
+  })
+})
+
+/**
+ * Storage add-on line items (exploration 0435). The add-on is a SECOND
+ * subscription item — the base plan's price, seats, AI budget and SLA are never
+ * touched, which is the whole promise of a storage-only upgrade.
+ */
+describe('StripeTenantBillingGateway.setStoragePack (0435)', () => {
+  const STORAGE_PRICE = 'price_storage_100gb'
+  const storageGw = (s: StripeClient) =>
+    new StripeTenantBillingGateway(s, { ...config, storagePriceId: STORAGE_PRICE })
+
+  it('adds a new item and invoices the proration immediately on a first purchase', async () => {
+    const s = makeStripe({ existingCustomer: 'cus_1' })
+
+    await expect(
+      storageGw(s.stripe).setStoragePack({ customerRef: 'user_a', packGb: 500 })
+    ).resolves.toEqual({ storagePackGb: 500 })
+
+    expect(s.calls.itemCreate).toEqual({
+      subscription: 'sub_1',
+      price: STORAGE_PRICE,
+      quantity: 5, // 500 GiB / 100 GiB units
+      proration_behavior: 'always_invoice'
+    })
+    // The base plan price is untouched — no checkout session, no price swap.
+    expect(s.calls.session).toBeUndefined()
+  })
+
+  it('updates the quantity in place when a pack already exists', async () => {
+    const s = makeStripe({
+      existingCustomer: 'cus_1',
+      subscriptionItems: [{ id: 'si_1', price: { id: STORAGE_PRICE }, quantity: 1 }]
+    })
+
+    await storageGw(s.stripe).setStoragePack({ customerRef: 'user_a', packGb: 1000 })
+
+    expect(s.calls.itemUpdate).toEqual({
+      id: 'si_1',
+      quantity: 10,
+      proration_behavior: 'always_invoice'
+    })
+    expect(s.calls.itemCreate).toBeUndefined()
+  })
+
+  // Shrinking waits for the period boundary: no refund to owe, and the
+  // over-quota guard gets a whole cycle of runway to warn the tenant.
+  it('does NOT prorate a reduction', async () => {
+    const s = makeStripe({
+      existingCustomer: 'cus_1',
+      subscriptionItems: [{ id: 'si_1', price: { id: STORAGE_PRICE }, quantity: 10 }]
+    })
+
+    await storageGw(s.stripe).setStoragePack({ customerRef: 'user_a', packGb: 100 })
+
+    expect(s.calls.itemUpdate).toEqual({ id: 'si_1', quantity: 1, proration_behavior: 'none' })
+  })
+
+  it('removes the item entirely at zero', async () => {
+    const s = makeStripe({
+      existingCustomer: 'cus_1',
+      subscriptionItems: [{ id: 'si_1', price: { id: STORAGE_PRICE }, quantity: 5 }]
+    })
+
+    await storageGw(s.stripe).setStoragePack({ customerRef: 'user_a', packGb: 0 })
+
+    expect(s.calls.itemDel).toEqual({ id: 'si_1', proration_behavior: 'none' })
+  })
+
+  it('is a no-op (not a crash) when removing a pack that was never bought', async () => {
+    const s = makeStripe({ existingCustomer: 'cus_1' })
+    await expect(
+      storageGw(s.stripe).setStoragePack({ customerRef: 'user_a', packGb: 0 })
+    ).resolves.toEqual({ storagePackGb: 0 })
+    expect(s.calls.itemDel).toBeUndefined()
+  })
+
+  // Failing loudly beats granting space nobody is billed for.
+  it('refuses when no storage price is configured', async () => {
+    const s = makeStripe({ existingCustomer: 'cus_1' })
+    await expect(
+      gw(s.stripe).setStoragePack({ customerRef: 'user_a', packGb: 100 })
+    ).rejects.toThrow(/No Stripe price configured for storage/)
+  })
+
+  it('refuses a size that is not a whole number of 100 GiB units', async () => {
+    const s = makeStripe({ existingCustomer: 'cus_1' })
+    await expect(
+      storageGw(s.stripe).setStoragePack({ customerRef: 'user_a', packGb: 150 })
+    ).rejects.toThrow(/multiple of 100/)
+  })
+
+  it('refuses a negative pack', async () => {
+    const s = makeStripe({ existingCustomer: 'cus_1' })
+    await expect(
+      storageGw(s.stripe).setStoragePack({ customerRef: 'user_a', packGb: -100 })
+    ).rejects.toThrow(/Invalid storage pack/)
+  })
+
+  it('refuses when the customer has no active subscription', async () => {
+    const s = makeStripe({ existingCustomer: 'cus_1', noSubscription: true })
+    await expect(
+      storageGw(s.stripe).setStoragePack({ customerRef: 'user_a', packGb: 100 })
+    ).rejects.toThrow(/No active subscription/)
+  })
+})
+
+describe('storage pack on the subscription webhook (0435)', () => {
+  const STORAGE_PRICE = 'price_storage_100gb'
+  const storageGw = (s: StripeClient) =>
+    new StripeTenantBillingGateway(s, { ...config, storagePriceId: STORAGE_PRICE })
+
+  const updatedEvent = (object: unknown) => ({
+    type: 'customer.subscription.updated',
+    data: { object }
+  })
+
+  // The quantity exists ONLY on the items — session metadata carries the plan
+  // and nothing else, so a portal-bought pack is invisible to a metadata reader.
+  it('reads the pack size off the subscription ITEMS, not metadata', async () => {
+    const s = makeStripe({
+      event: updatedEvent({
+        metadata: { customerRef: 'user_a' },
+        status: 'active',
+        items: { data: [{ id: 'si_1', price: { id: STORAGE_PRICE }, quantity: 5 }] }
+      })
+    })
+
+    expect(await storageGw(s.stripe).parseWebhook('{}', { 'stripe-signature': 'sig' })).toEqual({
+      type: 'subscription_status',
+      customerRef: 'user_a',
+      status: 'active',
+      storagePackGb: 500
+    })
+  })
+
+  it('reports a removed pack as zero, not as absent', async () => {
+    const s = makeStripe({
+      event: updatedEvent({
+        metadata: { customerRef: 'user_a' },
+        status: 'active',
+        items: { data: [{ id: 'si_base', price: { id: 'price_p' }, quantity: 1 }] }
+      })
+    })
+
+    expect(
+      await storageGw(s.stripe).parseWebhook('{}', { 'stripe-signature': 'sig' })
+    ).toMatchObject({ storagePackGb: 0 })
+  })
+
+  // "No items on the event" is unreadable, not "the pack was removed" — the
+  // difference between those two is a tenant silently losing paid-for space.
+  it('omits the pack entirely when the event carries no items', async () => {
+    const s = makeStripe({
+      event: updatedEvent({ metadata: { customerRef: 'user_a' }, status: 'active' })
+    })
+
+    const result = await storageGw(s.stripe).parseWebhook('{}', { 'stripe-signature': 'sig' })
+    expect(result).toEqual({ type: 'subscription_status', customerRef: 'user_a', status: 'active' })
+    expect(result).not.toHaveProperty('storagePackGb')
+  })
+
+  it('surfaces a pure add-on change that carries no status transition', async () => {
+    const s = makeStripe({
+      event: updatedEvent({
+        metadata: { customerRef: 'user_a' },
+        status: 'trialing', // not a status we act on
+        items: { data: [{ id: 'si_1', price: { id: STORAGE_PRICE }, quantity: 10 }] }
+      })
+    })
+
+    expect(await storageGw(s.stripe).parseWebhook('{}', { 'stripe-signature': 'sig' })).toEqual({
+      type: 'storage_pack',
+      customerRef: 'user_a',
+      storagePackGb: 1000
+    })
   })
 })

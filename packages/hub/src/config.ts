@@ -74,6 +74,11 @@ const resolvePlanLimits = (): Partial<HubConfig> => {
   const entitlements = entitlementsFromEnv(process.env)
   return {
     defaultQuota: entitlements.quotaBytes,
+    // Absent in the token ⇒ absent here ⇒ no aggregate cap. Coercing a missing
+    // field to 0 would give every hub signed before 0435 a zero-byte ceiling.
+    ...(entitlements.tenantQuotaBytes !== undefined
+      ? { tenantQuota: entitlements.tenantQuotaBytes }
+      : {}),
     maxBlobSize: entitlements.maxBlobBytes,
     maxConnections: entitlements.maxConnections,
     writesEnabled: entitlements.writesEnabled
@@ -159,6 +164,18 @@ export const getDemoOverrides = (isDemo: boolean): DemoOverrides | null => {
 export const resolvePerUserQuota = (config: HubConfig): number =>
   config.demo && config.demoOverrides ? config.demoOverrides.quota : config.defaultQuota
 
+/**
+ * Aggregate storage ceiling for the whole hub; `null` = no aggregate cap
+ * (exploration 0435).
+ *
+ * Deliberately NOT symmetric with {@link resolvePerUserQuota}, which has a
+ * self-host default. This one is only ever set by a signed entitlement token,
+ * because it exists to hold a managed tenant to the storage they bought — a
+ * self-hosted operator bought nothing from us and gets no ceiling. A demo hub
+ * keeps its own disk limit via the watchdog rather than a plan number.
+ */
+export const resolveTenantQuota = (config: HubConfig): number | null => config.tenantQuota ?? null
+
 // ─── Per-cap resolvers (0383 W1) ─────────────────────────────────────────────
 // The #603 rule, applied wholesale: every demo-vs-plan decision is made HERE,
 // once, by name. Server code calls a resolver and branches on its result; it
@@ -169,9 +186,22 @@ export const resolvePerUserQuota = (config: HubConfig): number =>
 export const resolveMaxBlobBytes = (config: HubConfig): number =>
   config.demo && config.demoOverrides ? config.demoOverrides.maxBlob : config.maxBlobSize
 
-/** Disk-watchdog budget; `null` = no watchdog (watchdog stays demo-only, 0291). */
-export const resolveDiskWatchdogBytes = (config: HubConfig): number | null =>
-  config.demo && config.demoOverrides ? config.demoOverrides.diskLimitBytes : null
+/**
+ * Disk-watchdog budget; `null` = no watchdog.
+ *
+ * Was demo-only (0291), which left every PAYING tenant with no aggregate disk
+ * guard at all — and on Cloud Run a full filesystem is a full memory allocation,
+ * i.e. an OOM kill rather than a graceful degradation (exploration 0435).
+ *
+ * Sized from the **substrate**, never from the plan quota: the plan says what
+ * the tenant bought, the volume says what the machine can physically hold, and
+ * shedding writes is about the second. Unset ⇒ still no watchdog, so a
+ * self-hosted hub on an unknown disk is unchanged.
+ */
+export const resolveDiskWatchdogBytes = (config: HubConfig): number | null => {
+  if (config.demo && config.demoOverrides) return config.demoOverrides.diskLimitBytes
+  return config.diskLimitBytes ?? null
+}
 
 /** Periodic full-reset cadence; `null` = never (demo's disposable volume only). */
 export const resolveResetIntervalMs = (config: HubConfig): number | null =>
@@ -210,6 +240,11 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
     process.env.HUB_DATA_DIR ??
     cliOptions.dataDir ??
     DEFAULT_CONFIG.dataDir
+
+  // Physical capacity of the writable filesystem, injected by whoever knows the
+  // substrate (0435). Not derivable inside the hub: on Cloud Run the writable
+  // filesystem is RAM, and nothing in the container reports the instance limit.
+  const diskLimitBytes = toNumber(process.env.HUB_DISK_LIMIT_BYTES) ?? cliOptions.diskLimitBytes
 
   const auth = toBoolean(process.env.HUB_AUTH) ?? cliOptions.auth ?? DEFAULT_CONFIG.auth
 
@@ -280,6 +315,7 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
     ...resolvePlanLimits(),
     port,
     dataDir,
+    ...(diskLimitBytes !== undefined ? { diskLimitBytes } : {}),
     auth,
     storage,
     logLevel,

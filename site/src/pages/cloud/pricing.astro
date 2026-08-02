@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro'
 import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
-import { PRICING, FAQS, updated } from '../../data/pricing'
+import { PRICING, FAQS, STORAGE_ADD_ONS, updated } from '../../data/pricing'
 
 const editUrl = 'https://github.com/crs48/xNet/blob/main/site/src/data/pricing.ts'
 ---
@@ -99,6 +99,36 @@ const editUrl = 'https://github.com/crs48/xNet/blob/main/site/src/data/pricing.t
           ))
         }
       </div>
+
+      <!-- Storage add-ons (exploration 0435) -->
+      <section class="mx-auto mt-16 max-w-3xl rounded-2xl border border-border bg-surface/30 p-8">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white">Need more room?</h2>
+        <p class="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+          Add storage to any paid plan without changing anything else about it — same hub,
+          same seats, same AI budget, same SLA. Extra space applies immediately and is
+          prorated for the rest of the month.
+        </p>
+        <div class="mt-6 grid gap-4 sm:grid-cols-3">
+          {
+            STORAGE_ADD_ONS.map((pack) => (
+              <div class="rounded-xl border border-border bg-surface/40 p-5 text-center">
+                <div class="text-2xl font-bold text-gray-800 dark:text-white">
+                  +{pack.gb >= 1000 ? `${pack.gb / 1000} TB` : `${pack.gb} GB`}
+                </div>
+                <div class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  ${pack.pricePerMonth}<span class="text-xs">/mo</span>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+        <p class="mt-5 text-xs leading-relaxed text-gray-500">
+          Three cents per GB per month, at every size — we pay for storage by the gigabyte,
+          so you do too, with no tier you have to grow into. Keeping data on your own
+          devices is always free and unlimited, and you can self-host the same hub against
+          your own storage bucket whenever you prefer.
+        </p>
+      </section>
 
       <p class="mt-6 text-center text-xs text-gray-500">
         Also available on request: <strong class="text-gray-600 dark:text-gray-300">Community</strong> and

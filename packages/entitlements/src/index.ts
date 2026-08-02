@@ -17,6 +17,8 @@ export {
   PLAN_ORDER,
   resolveEntitlements,
   withStorage,
+  withStoragePack,
+  STORAGE_PACK_UNIT_BYTES,
   isSeatMetered,
   withSeats,
   seatsUsed,

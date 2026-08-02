@@ -79,6 +79,17 @@ export interface TenantRecord {
   /** `hot` = live hub; `cold` = DB lives only in R2, restored on reactivation. */
   dataTier: 'hot' | 'cold'
   /**
+   * Purchased storage add-on in GiB — the Stripe `SubscriptionItem.quantity`
+   * times 100 (exploration 0435). Unset/0 = plan defaults only.
+   *
+   * Stored as the **pack**, never as a resolved absolute quota. Every read
+   * re-derives `quota = planBase + pack`, so a tenant who changes plan keeps
+   * the space they bought and picks up the new plan's base. Persisting a
+   * resolved `quotaBytes` override instead would make a `personal`+500 GiB
+   * tenant upgrading to `family` silently *shrink* from 750 GiB to 525.
+   */
+  storagePackGb?: number
+  /**
    * Subscription lifecycle from the billing provider's view. `active` while paid;
    * `canceled` after a cancel webhook (hub suspended, R2 retained until deleted).
    * Undefined for tenants provisioned by the internal/admin route.

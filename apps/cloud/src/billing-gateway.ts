@@ -42,6 +42,20 @@ export interface PortalArgs {
   returnUrl: string
 }
 
+/**
+ * Bytes-per-unit of the storage add-on price. One Stripe Price sold in units of
+ * 100 GiB, so the published +100/+500/+1000 packs are quantities 1/5/10 against
+ * a single price id rather than three separate SKUs (exploration 0435).
+ */
+export const STORAGE_PACK_UNIT_GB = 100
+
+/** Args for changing a tenant's storage add-on. `packGb: 0` removes it. */
+export interface StoragePackArgs {
+  customerRef: string
+  /** Total add-on size in GiB; must be a multiple of {@link STORAGE_PACK_UNIT_GB}. */
+  packGb: number
+}
+
 /** A verified, parsed provider webhook reduced to a control-plane action. */
 export type WebhookResult =
   | {
@@ -52,6 +66,13 @@ export type WebhookResult =
       seats?: number
     }
   | { type: 'subscription.canceled'; customerRef: string }
+  /**
+   * The subscription's storage add-on changed (exploration 0435). Read from the
+   * subscription's line ITEMS, never from checkout session metadata — the
+   * metadata does not carry the quantity, so a pack bought through the customer
+   * portal would be invisible to a metadata-only reader.
+   */
+  | { type: 'storage_pack'; customerRef: string; storagePackGb: number }
   /** An invoice payment attempt failed — dunning begins (exploration 0260). */
   | { type: 'payment_failed'; customerRef: string; attemptCount?: number }
   /** An invoice was paid — the subscription recovered. */
@@ -64,9 +85,12 @@ export type WebhookResult =
       /**
        * Seats as Stripe now sees them, read off the subscription ITEM rather
        * than the checkout metadata — the metadata is a snapshot of the original
-       * purchase and does not move when a customer adds a seat in the portal.
+       * purchase and does not move when a customer adds a seat in the portal
+       * (exploration 0436).
        */
       seats?: number
+      /** Add-on storage read off the same event's items, when present (0435). */
+      storagePackGb?: number
     }
   | { type: 'ignored' }
 
@@ -87,6 +111,20 @@ export interface TenantBillingGateway {
   createPortal(args: PortalArgs): Promise<{ url: string }>
   /** Verify + parse a provider webhook. Throws `WebhookSignatureError` on a bad signature. */
   parseWebhook(rawBody: string, headers: Record<string, string>): Promise<WebhookResult>
+  /**
+   * Set the storage add-on on an existing subscription (exploration 0435).
+   *
+   * A second line ITEM, never a swap of the base price: the plan keeps its own
+   * price id and its invoice, so the tenant's plan, seats and AI budget are
+   * untouched and the marginal payment cost is the percentage only. An increase
+   * prorates and invoices immediately (they want the space now); a decrease
+   * takes effect at period end with no proration, which also gives the
+   * over-quota guard a full cycle of runway.
+   *
+   * Optional: gateways without a configured storage price omit it, and the
+   * route reports the feature as unavailable rather than half-charging.
+   */
+  setStoragePack?(args: StoragePackArgs): Promise<{ storagePackGb: number }>
 }
 
 /**

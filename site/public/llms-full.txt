@@ -10863,7 +10863,71 @@ not a promise.
 first enterprise negotiation that makes standing access a condition of sale —
 either re-opens the consent model rather than shipping an exception under it.
 
-## ADR-33: A tenant is a roster of DIDs, and the hub enforces it
+## ADR-33: Storage is sold as a flat per-GB add-on, not a plan tier
+
+**Status:** Accepted
+**Context:** Exploration 0435 asked whether a customer could buy 100, 500 or
+1000 GB while keeping everything else about their plan unchanged. The
+entitlement machinery already supported it — `withStorage()` and
+`requiresMigration()` treat a quota change inside an isolation tier as a live
+flip — but two things did not. Bulk bytes were written to the hub's local
+filesystem, which on Cloud Run is an in-memory tmpfs capped at 32 GiB, so the
+catalog's existing `company` (1 TiB) and `enterprise` (5 TiB) quotas were
+already unbuildable. And `quotaBytes` is enforced **per user**, so a pack sold
+once per tenant would have been provisioned once per seat.
+
+Welding storage to the plan tier had also produced a live inversion: `family`
+($15/mo) shipped 250 GiB while the strictly more expensive, more isolated `team`
+tier shipped 100 GiB.
+
+**Decision:** Sell storage as an **additive per-tenant add-on at a flat
+$0.03/GiB-month** — +100 GB $3, +500 GB $15, +1000 GB $30 — billed as a second
+Stripe `SubscriptionItem`, never as a new plan tier and never per seat.
+
+Three invariants make it safe:
+
+- **The pack is stored; the quota is derived.** `TenantRecord.storagePackGb`
+  holds the purchase and every resolve recomputes `planBase + pack`. Persisting
+  a resolved absolute would make a `personal`+500 GiB tenant upgrading to
+  `family` silently shrink from 750 GiB to 525.
+- **Enforced against a per-tenant ceiling.** `tenantQuotaBytes` is a new signed
+  field, absent meaning unlimited, so the pack is not multiplied by seat count.
+- **Billing leads the entitlement.** The Stripe webhook applies the flip, so
+  held space always equals billed space.
+
+**Rationale:**
+
+- **It is the cleanest improvement charge xNet has.** Every GB sold is a GB
+  rented from Cloudflare at $0.015 and replicated, monitored and backed up. The
+  margin rides on an operation we run, not on access to bytes the customer would
+  own anyway — Charter §6's improvement test, passed more squarely than by seats
+  or AI markup.
+- **The BATNA is real and stays real.** Keeping data local is free and
+  unlimited, export is free, egress is zero, and the same MIT hub self-hosts
+  against the customer's own bucket. Consumer clouds sell 2 TB below our raw
+  input cost; the honest answer to that comparison is bring-your-own-bucket, not
+  a price war we would lose.
+- **A flat rate over a linear cost holds one margin.** 42% at every pack size —
+  one number to defend, no volume-discount cliff, and a floor-margin test that
+  fails if a future edit tiers the price.
+- **Per-seat storage was rejected twice over.** It would smuggle back the
+  per-member meter `withSeats()` refuses for `community` (0359), and it prices
+  out the single-seat customer with a 1 TB archive, who is the actual demand.
+
+**Tradeoff:** $0.03/GiB is roughly six times iCloud's headline rate, and the
+comparison will be made. Accepted: we are selling capacity inside a live,
+synced, exportable hub, and the customer who only wants a cheap byte locker
+should use one.
+
+**Tripwire:** if storage becomes a material share of revenue, the incentive to
+degrade local-first storage appears. The first proposal to cap on-device
+storage, throttle local sync, or slow export for large workspaces re-opens this
+decision — charging for cloud bytes is an improvement charge only for as long as
+**not** buying them remains fully functional. Separately, R2 Infrequent Access
+at $0.010/GiB would make a lower published rate viable; a sustained gap between
+our price and blended COGS is a reason to cut the price, not to bank the margin.
+
+## ADR-34: A tenant is a roster of DIDs, and the hub enforces it
 
 **Status:** Accepted
 **Context:** xNet Cloud provisioned hubs but had no model of who was inside one.
@@ -10921,7 +10985,7 @@ Accepted: the alternative is a hub anyone on the internet can write to.
 grant model — the roster decides admission, never permission — or the first hub
 shipped with `HUB_TRUSTED_DIDS` written as an empty string. Either re-opens this.
 
-## ADR-34: Seats bill collaborators, never audience
+## ADR-35: Seats bill collaborators, never audience
 
 **Status:** Accepted
 **Context:** `team` was advertised at `$12/seat/mo` from three seats while

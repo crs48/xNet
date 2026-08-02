@@ -14,8 +14,11 @@ import {
   withConcurrency,
   isSeatMetered,
   withSeats,
-  withStorage
+  withStorage,
+  withStoragePack
 } from './plans'
+
+const GiB = 1024 * 1024 * 1024
 
 describe('PLAN_CATALOG', () => {
   it('has an entry for every ordered plan id', () => {
@@ -36,6 +39,23 @@ describe('PLAN_CATALOG', () => {
 
   it('refuses to attach a seat count to a flat-billed plan', () => {
     expect(() => withSeats(PLAN_CATALOG.community, 50)).toThrow(/flat-billed/)
+  })
+
+  // Exploration 0435 Gap 3. `quotaBytes` is enforced PER USER by the node relay,
+  // so a plan's real capacity has always been quota x seats. Stating it keeps a
+  // per-tenant storage pack from being multiplied by seat count at enforcement
+  // time — we would bill once and provision N times. Pinning the relationship
+  // here catches drift when either number is edited alone.
+  it('gives every seat-metered plan an aggregate ceiling of quota x seats', () => {
+    for (const plan of PLAN_ORDER) {
+      const ent = PLAN_CATALOG[plan]
+      if (!isSeatMetered(ent)) continue
+      expect(ent.tenantQuotaBytes).toBe(ent.quotaBytes * ent.seats)
+    }
+  })
+
+  it('leaves the flat-billed plan with no aggregate ceiling (members are not seats)', () => {
+    expect(PLAN_CATALOG.community.tenantQuotaBytes).toBeUndefined()
   })
 
   it('keeps the free tier pooled and the enterprise tier region-pinned', () => {
@@ -129,6 +149,44 @@ describe('capacity flips', () => {
     const bigger = withStorage(base, 100 * 1024 * 1024 * 1024)
     expect(bigger.quotaBytes).toBe(100 * 1024 * 1024 * 1024)
     expect(base.quotaBytes).toBe(PLAN_CATALOG.personal.quotaBytes)
+  })
+
+  it('adds a storage pack on top of the plan base, never as an absolute', () => {
+    const packed = withStoragePack(base, 500)
+    expect(packed.quotaBytes).toBe(PLAN_CATALOG.personal.quotaBytes + 500 * GiB)
+    expect(packed.tenantQuotaBytes).toBe(PLAN_CATALOG.personal.tenantQuotaBytes! + 500 * GiB)
+    expect(base.quotaBytes).toBe(PLAN_CATALOG.personal.quotaBytes)
+  })
+
+  // Exploration 0435 R4. The pack is stored as a PACK and the quota derived from
+  // whatever plan is current; persisting a resolved absolute instead would make
+  // this upgrade silently SHRINK the tenant from 750 GiB to 525 GiB.
+  it('re-derives the quota from the new plan on upgrade (personal+500 → family = 750 GiB)', () => {
+    const withPack = withStoragePack(resolveEntitlements('personal'), 500)
+    expect(withPack.quotaBytes).toBe(25 * GiB + 500 * GiB)
+
+    const upgraded = withStoragePack(resolveEntitlements('family'), 500)
+    expect(upgraded.quotaBytes).toBe(750 * GiB)
+    expect(upgraded.quotaBytes).toBeGreaterThan(withPack.quotaBytes)
+  })
+
+  it('treats a zero pack as the identity, so removing a pack restores the plan default', () => {
+    const restored = withStoragePack(withStoragePack(base, 1000), 0)
+    expect(restored.quotaBytes).toBe(PLAN_CATALOG.personal.quotaBytes)
+    expect(restored.tenantQuotaBytes).toBe(PLAN_CATALOG.personal.tenantQuotaBytes)
+  })
+
+  it('rejects a fractional or negative pack', () => {
+    expect(() => withStoragePack(base, 1.5)).toThrow(/Invalid storage pack/)
+    expect(() => withStoragePack(base, -100)).toThrow(/Invalid storage pack/)
+  })
+
+  // Charter §6 / exploration 0359: a flat plan has no aggregate ceiling, and a
+  // storage pack must not invent a member-scaled one through the back door.
+  it('never gives a flat-billed plan an aggregate ceiling', () => {
+    const community = withStoragePack(resolveEntitlements('community'), 1000)
+    expect(community.tenantQuotaBytes).toBeUndefined()
+    expect(community.quotaBytes).toBe(PLAN_CATALOG.community.quotaBytes + 1000 * GiB)
   })
 
   it('changes seats and concurrency', () => {
