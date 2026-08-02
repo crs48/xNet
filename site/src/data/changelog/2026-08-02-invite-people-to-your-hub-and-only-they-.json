@@ -7,5 +7,12 @@
   "tags": [
     "platform",
     "identity"
+  ],
+  "pr": 699,
+  "mergedAt": "2026-08-02T17:58:06Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
