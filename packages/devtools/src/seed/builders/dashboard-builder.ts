@@ -5,7 +5,10 @@
  * Each widget carries a `SavedViewDescriptor` (`{version:1, title, query}`) the
  * dashboard runtime executes via `useSavedView`. Widget types + config shapes
  * mirror the built-in widgets in `@xnetjs/dashboard` (metric.count, chart.*,
- * view.saved, list.tasks, links.pages, heatmap.streak).
+ * view.saved, list.tasks, links.pages, experiments.streak-heatmap) — a type id
+ * that isn't registered renders as an unknown widget, silently, so
+ * `dashboard-widgets.test.ts` resolves every id emitted here against the real
+ * registry.
  */
 
 import type {
@@ -152,7 +155,7 @@ export function streakHeatmap(slug: string, label: string): WidgetSpec {
   return {
     widget: {
       id: wid(slug),
-      widgetType: 'heatmap.streak',
+      widgetType: 'experiments.streak-heatmap',
       config: { weeks: 16 },
       query: descriptor(label, nodeQuery(OBSERVATION, { first: 5000 })),
       timeField: 'day'
