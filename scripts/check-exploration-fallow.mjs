@@ -40,13 +40,13 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { join, resolve } from 'node:path'
+import { dayDiff, dueDay, formatDay, isOverdue, overdueDays } from './exploration-fallow/dates.mjs'
 
 const root = resolve(process.cwd())
 const DIR = join(root, 'docs/explorations')
 const BASELINE = join(DIR, '.fallow-baseline.json')
 const STALE_INDEX = join(DIR, 'STALE.md')
 const DEFAULT_WINDOW_DAYS = 90
-const DAY_MS = 86_400_000
 
 const writeBaseline = process.argv.includes('--write-baseline')
 
@@ -169,11 +169,16 @@ const SURVIVAL_BUCKETS = [1, 7, 14, 30, 60, 90, 120]
  * ship within 30 days, so each bucket only counts documents old enough to have
  * had the chance. Without that the recent bulge would drag every bucket down and
  * the curve would report despair instead of a hazard rate.
+ *
+ * Ages are whole UTC days, like every other number in this report — measuring
+ * them as elapsed milliseconds since a commit instant made each bucket tick
+ * over at whatever time of day the document happened to be committed at, so the
+ * table moved between two runs an hour apart on the same date.
  */
 function survivalTable(born, done, nowMs) {
   const docs = [...born.entries()].map(([number, bornAt]) => ({
-    ageDays: Math.floor((nowMs - bornAt) / DAY_MS),
-    lagDays: done.has(number) ? Math.floor((done.get(number) - bornAt) / DAY_MS) : null
+    ageDays: dayDiff(nowMs, bornAt),
+    lagDays: done.has(number) ? dayDiff(done.get(number), bornAt) : null
   }))
 
   return SURVIVAL_BUCKETS.map((day) => {
@@ -230,12 +235,9 @@ for (const file of readdirSync(DIR).sort()) {
   considered++
   const review = field(fm, 'review')
   const born = firstSeen.get(number)
-  let due
-  if (review && /^\d{4}-\d{2}-\d{2}$/.test(review)) {
-    due = Date.parse(`${review}T00:00:00Z`)
-  } else if (born !== undefined) {
-    due = born + DEFAULT_WINDOW_DAYS * DAY_MS
-  } else {
+  const due = dueDay({ review, bornMs: born, windowDays: DEFAULT_WINDOW_DAYS })
+
+  if (due === null) {
     // No creation date and no explicit review date. NOT "not yet due" — its age
     // is simply unknown, and the two must stay distinguishable. Reported, never
     // counted as stale, and fixable by giving the document a `review:` date.
@@ -243,15 +245,20 @@ for (const file of readdirSync(DIR).sort()) {
     continue
   }
 
-  if (now > due) {
+  if (isOverdue(due, now)) {
     stale.push({
       file,
       number,
       status,
-      due: new Date(due).toISOString().slice(0, 10),
-      explicit: Boolean(review),
+      // Printed and counted off the same UTC day, so the two columns can never
+      // disagree — the whole reason this arithmetic lives in `dates.mjs`.
+      due: formatDay(due),
+      // Whether the date was *used*, not merely present: a malformed `review:`
+      // falls through to the birth window, and labelling that row explicit
+      // would hide the one thing its author needs to fix.
+      explicit: formatDay(due) === review,
       decider: field(fm, 'decider'),
-      days: Math.floor((now - due) / DAY_MS)
+      days: overdueDays(due, now)
     })
   }
 }

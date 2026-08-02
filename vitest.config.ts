@@ -140,6 +140,9 @@ export default defineConfig({
             // the tests are .mjs too. Pure functions over strings plus a
             // tmpdir-backed ledger; no network.
             'scripts/syndicate/**/*.test.mjs',
+            // Date arithmetic for the exploration fallow ratchet (0421/0430) —
+            // pure UTC-day maths, no git, no filesystem.
+            'scripts/exploration-fallow/**/*.test.mjs',
             // Social matching layer — pure connect modules only; the
             // social importer/view tests need package subpath resolution that
             // this shared pool doesn't provide, so they stay on the package config.
