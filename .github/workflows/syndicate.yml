@@ -64,6 +64,10 @@ jobs:
         with:
           ref: main
           token: ${{ steps.app-token.outputs.token || secrets.CHANGELOG_BOT_TOKEN || github.token }}
+          # Explicit: the ledger commit below pushes with this credential, so
+          # it has to survive in .git/config. This is the default, stated so
+          # nobody "hardens" it to false and silently breaks the push.
+          persist-credentials: true
 
       - uses: actions/setup-node@v4
         with:

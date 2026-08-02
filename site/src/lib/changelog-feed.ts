@@ -57,9 +57,11 @@ export function buildJsonFeed(entries: ChangelogEntry[]): object {
         highlights: entry.highlights,
         ...(entry.mergedAt ? { mergedAt: entry.mergedAt } : {}),
         ...(entry.pr ? { pr: entry.pr } : {}),
-        // Only emitted when true — the syndicator reads this off the DEPLOYED
-        // feed to decide what to announce (exploration 0432).
-        ...(entry.syndicate ? { syndicate: true } : {}),
+        // Only emitted when EXACTLY true — the syndicator reads this off the
+        // DEPLOYED feed to decide what to announce (exploration 0432). A
+        // truthy non-boolean (the string "false", say) must not opt an entry
+        // in if it ever slips past validate-changelog.ts.
+        ...(entry.syndicate === true ? { syndicate: true } : {}),
         ...(() => {
           // Everyone who contributed; fall back to the legacy single author.
           const authors = entry.authors?.length

@@ -704,6 +704,16 @@ had a failure mode that looked like success.
 | **Corrupt ledger throws** rather than reading as `{posted: []}` | One bad write re-announces the entire backlog |
 | **`--max` cap (default 3)**, and a capped run logs what it deferred | A feed glitch floods the account; a silent cap reads as "covered everything" |
 | **Blog feed under-parse throws** — `<item>` count must equal parsed count | A feed format change reads as "no new posts" forever, and nothing ever alerts |
+| **Reconcile against the repo before writing** — `listRecords`, skip anything whose canonical URL is already posted | `createRecord` succeeds, then the process dies or the ledger push is rejected → the next run posts a **duplicate** |
+| **Truncate the headline** when it overflows on its own | Dropping `detail` isn't always enough; the server rejects the post and the ledger retries it until it gives up |
+| **15s timeout on every `fetch`** | An unresponsive PDS hangs the job, and `concurrency: syndicate` makes the next run queue behind it |
+
+> [!IMPORTANT]
+> The ledger alone cannot make this idempotent, because the post happens before
+> the ledger is committed. The usual fix — a deterministic record key — is not
+> available: `app.bsky.feed.post` declares `key: "tid"`, so the rkey is not ours
+> to choose (exploration 0420 hit the same wall). Reconciling against what is
+> actually on the repo is what survives that, and Bluesky reads are free.
 
 `BLUESKY_PDS` was also added as an override — it makes a self-hosted PDS
 possible later (0372/0420), and it is what let the failure path be tested
@@ -740,7 +750,7 @@ against a stub rather than asserted.
 
 ## Implementation Checklist
 
-**Status:** ██░░░░░░░░ 2/15 items
+**Status:** █████████░ 15/16 items — the one remaining needs a human (secrets)
 
 **Phase 0 — point the site at the accounts** ✅
 

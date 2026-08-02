@@ -89,6 +89,33 @@ describe('render', () => {
     expect(graphemes(out)).toBeLessThanOrEqual(MAX_GRAPHEMES)
   })
 
+  it('truncates a headline that overflows on its own', () => {
+    // Dropping `detail` is not enough here — the headline alone busts the
+    // budget, and an un-truncated post would be rejected by the server and
+    // retried forever.
+    const out = render({
+      headline: 'H'.repeat(400),
+      detail: '',
+      url: 'https://xnet.fyi/blog/a'
+    })
+    expect(graphemes(out)).toBeLessThanOrEqual(MAX_GRAPHEMES)
+    expect(out).toContain('…')
+    expect(out).toContain('https://xnet.fyi/blog/a')
+  })
+
+  it('never splits an emoji when truncating', () => {
+    const out = render({ headline: '🌾'.repeat(400), detail: '', url: 'https://xnet.fyi/b' })
+    expect(graphemes(out)).toBeLessThanOrEqual(MAX_GRAPHEMES)
+    // A code-unit slice would leave a lone surrogate here.
+    expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(out)).toBe(false)
+  })
+
+  it('throws when the url alone leaves no room', () => {
+    expect(() =>
+      render({ headline: 'x', detail: '', url: `https://xnet.fyi/${'a'.repeat(320)}` })
+    ).toThrow(/no room for any text/)
+  })
+
   it('handles a missing detail', () => {
     expect(render({ headline: 'Just this', detail: '', url: 'https://xnet.fyi/x' })).toBe(
       'Just this\n\nhttps://xnet.fyi/x'

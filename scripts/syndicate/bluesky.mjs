@@ -14,6 +14,13 @@ import { graphemes, linkFacets, MAX_GRAPHEMES, verifyFacets } from './facets.mjs
 export const DEFAULT_PDS = 'https://bsky.social'
 
 /**
+ * Per-request timeout. Without it an unresponsive PDS hangs the job for the
+ * runner's full default, and `concurrency: syndicate` means the next run
+ * queues behind it rather than recovering.
+ */
+export const REQUEST_TIMEOUT_MS = 15_000
+
+/**
  * Sign in with an app password (revocable, scoped — never the account
  * password) and assert we are who we think we are.
  *
@@ -25,7 +32,8 @@ export async function createSession({ pds = DEFAULT_PDS, handle, appPassword, di
   const res = await fetch(`${pds}/xrpc/com.atproto.server.createSession`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ identifier: handle, password: appPassword })
+    body: JSON.stringify({ identifier: handle, password: appPassword }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   })
   if (!res.ok) {
     throw new Error(`Bluesky createSession ${res.status}: ${await res.text()}`)
@@ -70,7 +78,8 @@ export async function createPost({ pds = DEFAULT_PDS, session, text, now }) {
         createdAt: now ?? new Date().toISOString(),
         facets
       }
-    })
+    }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   })
   if (!res.ok) {
     throw new Error(`Bluesky createRecord ${res.status}: ${await res.text()}`)
@@ -82,4 +91,41 @@ export async function createPost({ pds = DEFAULT_PDS, session, text, now }) {
 /** Web URL for an at:// post uri. */
 export function postUrl(handleOrDid, uri) {
   return `https://bsky.app/profile/${handleOrDid}/post/${uri.split('/').pop()}`
+}
+
+/**
+ * Canonical URLs already present in our recent posts.
+ *
+ * The ledger alone cannot make this idempotent: if `createRecord` succeeds and
+ * the process dies — or the ledger commit to `main` is rejected — the next run
+ * would announce the same item again. A deterministic rkey would be the usual
+ * fix, but `app.bsky.feed.post` declares `key: "tid"`, so the record key is not
+ * ours to choose (exploration 0420). Reconciling against what is actually on
+ * the repo is the approach that survives that.
+ *
+ * Reads are free and unmetered on Bluesky, so this costs nothing per run.
+ */
+export async function recentlyPostedUrls({ pds = DEFAULT_PDS, session, limit = 100 }) {
+  const params = new URLSearchParams({
+    repo: session.did,
+    collection: 'app.bsky.feed.post',
+    limit: String(limit)
+  })
+  const res = await fetch(`${pds}/xrpc/com.atproto.repo.listRecords?${params}`, {
+    headers: { authorization: `Bearer ${session.accessJwt}` },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+  })
+  if (!res.ok) {
+    // Don't silently fall back to "nothing posted" — that is exactly the state
+    // that causes a duplicate. Let the caller decide, loudly.
+    throw new Error(`Bluesky listRecords ${res.status}: ${await res.text()}`)
+  }
+  const { records = [] } = await res.json()
+  const urls = new Set()
+  for (const r of records) {
+    for (const m of String(r.value?.text ?? '').matchAll(/https?:\/\/[^\s<>()]+[^\s<>().,;:!?]/g)) {
+      urls.add(m[0])
+    }
+  }
+  return urls
 }

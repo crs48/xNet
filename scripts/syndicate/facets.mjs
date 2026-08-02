@@ -28,6 +28,19 @@ export function graphemes(s) {
   return [...segmenter.segment(s)].length
 }
 
+/**
+ * Cut to `max` graphemes, ending with an ellipsis when anything was removed.
+ *
+ * Grapheme-wise rather than by code unit, so this can never split an emoji or a
+ * combining sequence in half.
+ */
+export function truncateGraphemes(s, max) {
+  const parts = [...segmenter.segment(s)].map((g) => g.segment)
+  if (parts.length <= max) return s
+  if (max <= 1) return '…'
+  return parts.slice(0, max - 1).join('').trimEnd() + '…'
+}
+
 // Trailing `[^\s<>().,;:!?]` keeps sentence punctuation out of the URL, so a
 // link at the end of a sentence doesn't swallow the full stop.
 const URL_RE = /https?:\/\/[^\s<>()]+[^\s<>().,;:!?]/g

@@ -33,7 +33,7 @@ import {
   writeLedger
 } from './ledger.mjs'
 import { flaggedEntries, parseBlogFeed, select, SITE_URL } from './select.mjs'
-import { createPost, createSession } from './bluesky.mjs'
+import { createPost, createSession, recentlyPostedUrls } from './bluesky.mjs'
 
 function parseArgs(argv) {
   const out = { dryRun: false, base: SITE_URL, max: 3, ledger: LEDGER_PATH }
@@ -51,8 +51,11 @@ function parseArgs(argv) {
   return out
 }
 
+const FEED_TIMEOUT_MS = 15_000
+
 async function fetchText(url) {
-  const res = await fetch(url)
+  // A hung feed fetch must not stall the job indefinitely.
+  const res = await fetch(url, { signal: AbortSignal.timeout(FEED_TIMEOUT_MS) })
   if (!res.ok) throw new Error(`GET ${url} → ${res.status}`)
   return res.text()
 }
@@ -124,14 +127,27 @@ async function main() {
   }
 
   let session
+  let alreadyOnBluesky = new Set()
   if (canPost) {
     session = await createSession({ pds, handle, appPassword, did })
+    // Reconcile before writing. The ledger is committed AFTER the post, so a
+    // crash — or a rejected ledger push — would otherwise re-announce the same
+    // item next run. Reads are free here.
+    alreadyOnBluesky = await recentlyPostedUrls({ pds, session })
   }
 
   const failures = []
   const summary = ['## Syndication', '']
 
   for (const item of planned) {
+    if (alreadyOnBluesky.has(item.url)) {
+      // Posted for real, but the ledger never recorded it. Adopt the receipt
+      // rather than posting a duplicate.
+      console.log(`\n--- ${item.key}: already on Bluesky, reconciling the ledger`)
+      recordPosted(ledger, { ...item, bluesky: { reconciled: true } }, now)
+      writeLedger(ledger, args.ledger)
+      continue
+    }
     console.log(`\n--- ${item.key} (${item.kind})`)
     console.log(item.text)
 

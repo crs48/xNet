@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { graphemes, linkFacets, MAX_GRAPHEMES, verifyFacets } from './facets.mjs'
+import { graphemes, linkFacets, MAX_GRAPHEMES, truncateGraphemes, verifyFacets } from './facets.mjs'
 
 // The fixture from exploration 0432: one line using the punctuation this repo
 // actually writes — em dash, curly quotes, bullet, curly apostrophe, emoji —
@@ -7,6 +7,9 @@ import { graphemes, linkFacets, MAX_GRAPHEMES, verifyFacets } from './facets.mjs
 const REAL_COPY =
   'New essay — “The Harvest You Can Count” • it’s about ledgers 🌾\n\nhttps://xnet.fyi/blog/the-harvest-you-can-count'
 const REAL_URL = 'https://xnet.fyi/blog/the-harvest-you-can-count'
+
+// An unpaired surrogate — what slicing by code unit through an emoji produces.
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/
 
 describe('linkFacets', () => {
   it('produces a byte range that decodes back to the URL', () => {
@@ -83,5 +86,29 @@ describe('graphemes', () => {
 
   it('keeps the fixture inside the budget', () => {
     expect(graphemes(REAL_COPY)).toBeLessThanOrEqual(MAX_GRAPHEMES)
+  })
+})
+
+describe('truncateGraphemes', () => {
+  it('leaves a short string alone', () => {
+    expect(truncateGraphemes('hello', 10)).toBe('hello')
+  })
+
+  it('cuts to the budget with an ellipsis', () => {
+    const out = truncateGraphemes('x'.repeat(50), 10)
+    expect(graphemes(out)).toBe(10)
+    expect(out.endsWith('…')).toBe(true)
+  })
+
+  it('never splits an emoji', () => {
+    const out = truncateGraphemes('🌾'.repeat(50), 10)
+    expect(graphemes(out)).toBeLessThanOrEqual(10)
+    // Slicing by code unit here would leave a lone surrogate.
+    // The real hazard: a code-unit slice leaves an unpaired surrogate.
+    expect(LONE_SURROGATE.test(out)).toBe(false)
+  })
+
+  it('degenerates safely at a budget of one', () => {
+    expect(truncateGraphemes('abcdef', 1)).toBe('…')
   })
 })

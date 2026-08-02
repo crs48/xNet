@@ -11,7 +11,7 @@
  * judgement is a human boolean on the fragment.
  */
 
-import { graphemes, MAX_GRAPHEMES } from './facets.mjs'
+import { graphemes, MAX_GRAPHEMES, truncateGraphemes } from './facets.mjs'
 
 export const SITE_URL = 'https://xnet.fyi'
 
@@ -71,9 +71,17 @@ export function flaggedEntries(feed) {
  */
 export function render({ headline, detail, url }) {
   const room = MAX_GRAPHEMES - graphemes(url) - 2 // the two newlines before the link
+  if (room < 1) {
+    // A canonical URL this long is pathological. Fail loudly rather than emit a
+    // post the server will reject and the ledger will retry forever.
+    throw new Error(`url is ${graphemes(url)} graphemes — no room for any text`)
+  }
   const first = (detail ?? '').split(/(?<=\.)\s/)[0].trim()
   const full = first ? `${headline} — ${first}` : headline
-  return `${graphemes(full) <= room ? full : headline}\n\n${url}`
+  // Dropping `detail` is the first fallback, but a long headline alone can
+  // still overflow — truncate so the post is always postable.
+  const body = graphemes(full) <= room ? full : truncateGraphemes(headline, room)
+  return `${body}\n\n${url}`
 }
 
 /**
