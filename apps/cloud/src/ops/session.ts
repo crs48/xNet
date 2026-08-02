@@ -13,8 +13,8 @@
  * during an incident.
  */
 
-import { hasOperatorRole, OPERATOR_COOKIE, type OperatorIdentity } from './operator'
 import { sealSession, readSession, type SessionData } from '../session'
+import { hasOperatorRole, OPERATOR_COOKIE, type OperatorIdentity } from './operator'
 
 export { OPERATOR_COOKIE }
 

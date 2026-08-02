@@ -12,6 +12,7 @@
  */
 
 import type { ControlPlane } from './control-plane'
+import type { OperatorIdentity } from './ops/operator'
 import type { UsageLedger } from '@xnetjs/cloud/billing'
 import type { BillingIdentityProvider, DidChallenge } from '@xnetjs/cloud/identity'
 import type { PlanId } from '@xnetjs/entitlements'
@@ -61,7 +62,6 @@ import {
   type AuditAction,
   type AuditLog
 } from './ops/audit'
-import type { OperatorIdentity } from './ops/operator'
 import { timingSafeEqualStr } from './secret-compare'
 import { reportToSentry } from './sentry'
 import { SESSION_COOKIE, readSession, sealSession, type SessionData } from './session'

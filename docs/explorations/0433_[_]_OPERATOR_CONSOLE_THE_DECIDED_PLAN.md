@@ -501,7 +501,7 @@ sale — either re-opens the consent model.
 - [x] Operator session: distinct sealed cookie, separate from the tenant session
 - [x] `workosUser → did:key` binding store in Firestore, via the device-grant claim
 - [ ] Stand up the ops hub: GCP, own project, outside the fleet provisioner
-- [ ] Seed the first operator DID via a `scripts/cloud-*.mjs`
+- [x] Seed the first operator DID via a `scripts/cloud-*.mjs`
 - [x] `AuditLog` port: tier-1 Firestore append, fail-closed, before the action
 - [x] Tier-2 publisher: signed node authored by the operator DID, async
 - [x] Publish-queue depth exposed as an alertable metric

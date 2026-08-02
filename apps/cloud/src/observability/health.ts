@@ -8,6 +8,7 @@
  */
 
 import { type PlanId } from '@xnetjs/entitlements'
+import { type ProbeOutcome, type SliBucketStore } from './buckets'
 import {
   availability,
   errorRate,
@@ -17,7 +18,6 @@ import {
   type HealthSample
 } from './sli'
 import { budgetPolicy, sloForPlan, type BudgetPolicy } from './slo'
-import { type ProbeOutcome, type SliBucketStore } from './buckets'
 
 /** One probe result. `coldStart` means it answered, but only after waking. */
 export interface ProbeResult {

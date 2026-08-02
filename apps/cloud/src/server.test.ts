@@ -1,8 +1,8 @@
 import { MemoryBillingIdentityProvider } from '@xnetjs/cloud/identity'
 import { describe, expect, it } from 'vitest'
+import { AuditLog, type AuditEntry } from './ops/audit'
 import { createControlPlaneApp } from './server'
 import { SESSION_COOKIE, sealSession } from './session'
-import { AuditLog, type AuditEntry } from './ops/audit'
 import { InMemoryDocStore } from './stores/durable'
 import { buildControlPlane } from './index'
 

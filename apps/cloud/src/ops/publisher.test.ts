@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
 import type { AuditEntry } from './audit'
+import { describe, expect, it, vi } from 'vitest'
 import { DEFAULT_OPS_SPACE, opsHubPublisher, opsHubPublisherFromEnv, toAuditNode } from './publisher'
 
 const entry: AuditEntry = {
