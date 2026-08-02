@@ -693,6 +693,29 @@ appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Paste to X\n\n\`\`\`\n${text
 
 ---
 
+## What The Build Added
+
+Four guards the plan did not specify, each because the obvious implementation
+had a failure mode that looked like success.
+
+| Guard | Without it |
+| ----- | ---------- |
+| **Seed on first run** — adopt everything already published, announce none of it | The very first run announces all **21** existing essays at once |
+| **Corrupt ledger throws** rather than reading as `{posted: []}` | One bad write re-announces the entire backlog |
+| **`--max` cap (default 3)**, and a capped run logs what it deferred | A feed glitch floods the account; a silent cap reads as "covered everything" |
+| **Blog feed under-parse throws** — `<item>` count must equal parsed count | A feed format change reads as "no new posts" forever, and nothing ever alerts |
+
+`BLUESKY_PDS` was also added as an override — it makes a self-hosted PDS
+possible later (0372/0420), and it is what let the failure path be tested
+against a stub rather than asserted.
+
+> [!NOTE]
+> All four are the same rule from AGENTS.md: a `catch`, default or coercion
+> that returns a value callers cannot distinguish from success is a bug, not a
+> guard. "Nothing new" and "could not tell" must be different outcomes.
+
+---
+
 ## Risks And Open Questions
 
 | Risk | Severity | Mitigation |
@@ -757,7 +780,7 @@ appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Paste to X\n\n\`\`\`\n${text
 - [x] A changelog fragment without `syndicate: true` never appears in a plan
 - [ ] The first real post appears on Bluesky with a **clickable** link (facet applied, not plain text)
 - [x] The run's job summary contains paste-ready X text matching the Bluesky post
-- [ ] A failing Bluesky call makes the job exit **non-zero** and the ledger records the failure rather than marking the item posted
+- [x] A failing Bluesky call makes the job exit **non-zero** and the ledger records the failure rather than marking the item posted
 - [ ] Committing the ledger does **not** trigger `deploy-site` (check the Actions tab after the first real run)
 - [x] No X credentials exist anywhere in the repo, its secrets, or its variables
 - [x] `xnet.fyi` loads zero third-party requests after the footer change (verified: `performance.getEntriesByType('resource')` returns no non-origin entries)
