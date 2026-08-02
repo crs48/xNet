@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-01-demo-dashboards-show-the-habit-heatmap-a",
+      "url": "https://xnet.fyi/changelog#2026-08-01-demo-dashboards-show-the-habit-heatmap-a",
+      "title": "Demo dashboards show the habit heatmap again",
+      "content_text": "The seeded demo dashboard referenced a widget type that no longer existed, so its habit heatmap rendered as an empty tile. It now resolves to the real widget, and a test checks every seeded widget against the registry.\n",
+      "date_published": "2026-08-02T01:47:42Z",
+      "tags": [
+        "devtools"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "The seeded demo dashboard referenced a widget type that no longer existed, so its habit heatmap rendered as an empty tile. It now resolves to the real widget, and a test checks every seeded widget against the registry.",
+        "highlights": [],
+        "mergedAt": "2026-08-02T01:47:42Z",
+        "pr": 690,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-01-kanban-cards-settle-into-place-instead-o",
       "url": "https://xnet.fyi/changelog#2026-08-01-kanban-cards-settle-into-place-instead-o",
       "title": "Kanban cards settle into place instead of jumping",
