@@ -468,7 +468,27 @@ sale — either re-opens the consent model.
 
 ---
 
-## Implementation Checklist
+## What shipped, and what did not
+
+> [!IMPORTANT]
+> **Ship-first defects and all of Phase 0 are done. Phases 1–3 (the console
+> itself) are deliberately deferred**, for two reasons that are not "we ran out
+> of time":
+>
+> 1. **The ops hub does not exist yet.** Standing it up is an `[operator]` action
+>    — a GCP project, a WorkOS organisation with the `operator` role, and the
+>    seed script run against real credentials. Every code path that depends on it
+>    is built and unit-tested against its port, but nothing has talked to a real
+>    one.
+> 2. **Docker is unavailable in this environment**, so the risk this plan
+>    explicitly flagged — *"prove the Docker image still builds with a workspace
+>    devDep in the closure"* — cannot be discharged. Landing the Vite/Dockerfile
+>    changes without it would ship precisely the unverified risk the plan named.
+>
+> Phase 0 stands on its own: it removes a live deploy-safety hazard and closes an
+> unattributed account-takeover path, neither of which needed a console.
+
+
 
 **Status:** ░░░░░░░░░░ 0/52 items
 

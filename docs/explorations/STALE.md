@@ -14,7 +14,7 @@ review: 2027-02-01 # renew the claim
 status: withdrawn # release it; the document stays exactly where it is
 ```
 
-**41** stale of 284 undecided.
+**41** stale of 285 undecided.
 
 ## How this backlog retires
 
@@ -86,7 +86,7 @@ or withdraw it; both are one line and neither renames the file.
 
 ## Undated
 
-44 exploration(s) predate this checkout's history and carry no
+45 exploration(s) predate this checkout's history and carry no
 `review:` date, so their age is unknown. They are **not** counted as stale —
 unknown age and not-yet-due are different facts. Give one a `review:` date to
 move it out of this list.
@@ -134,4 +134,5 @@ move it out of this list.
 - [0362_[_]_PUBLISHING_ON_XNET_GHOST_SUBSTACK_AND_THE_OWNED_AUDIENCE.md](0362_%5B_%5D_PUBLISHING_ON_XNET_GHOST_SUBSTACK_AND_THE_OWNED_AUDIENCE.md)
 - [0372_[_]_JOINING_THE_ATMOSPHERE_ADOPT_EXTEND_MINT_AND_THE_HUB_AS_A_KNOT.md](0372_%5B_%5D_JOINING_THE_ATMOSPHERE_ADOPT_EXTEND_MINT_AND_THE_HUB_AS_A_KNOT.md)
 - [0426_[-]_SHOULD_THE_USER_BE_IN_CHARGE_SURRENDER_AS_A_DESIGN_CONSTRAINT.md](0426_%5B-%5D_SHOULD_THE_USER_BE_IN_CHARGE_SURRENDER_AS_A_DESIGN_CONSTRAINT.md)
+- [0427_[-]_MOTION_DEV_ESCAPE_HATCH.md](0427_%5B-%5D_MOTION_DEV_ESCAPE_HATCH.md)
 - [0428_[-]_CAN_YOU_JUST_DO_THINGS_SEEING_THE_DEGREES_OF_FREEDOM.md](0428_%5B-%5D_CAN_YOU_JUST_DO_THINGS_SEEING_THE_DEGREES_OF_FREEDOM.md)

@@ -11,7 +11,7 @@ tags: [cloud, operations, sre, support, security, observability]
 # xNet Cloud operator console — administration, site reliability, and support
 
 > [!IMPORTANT]
-> **Superseded as a plan by [exploration 0433](./0433_[_]_OPERATOR_CONSOLE_THE_DECIDED_PLAN.md).**
+> **Superseded as a plan by [exploration 0433](./0433_[-]_OPERATOR_CONSOLE_THE_DECIDED_PLAN.md).**
 > This document stays as the **research** — its findings (the amnesiac SLI
 > window, the unattributed account-takeover primitive, the confidentiality gap)
 > are the evidence base and remain citable. Its *recommendations* were revised
