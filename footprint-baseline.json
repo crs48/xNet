@@ -1,0 +1,32 @@
+{
+  "$comment": "Charter §7 'Floor' — the committed baseline for scripts/check-footprint-budget.mjs (exploration 0434). Raising a value here is a deliberate decision that must be explained in the commit that does it; run the gate with --update to record one.",
+  "floor": {
+    "description": "a 2017-class laptop, dual-core x86-64, 8 GB RAM",
+    "ram_gb": 8,
+    "os": {
+      "macos": "11 (Big Sur)",
+      "windows": "10",
+      "linux": "glibc 2.31 (Ubuntu 20.04)"
+    },
+    "why": "the oldest OS our shell supports — Electron 33 ships Chromium 130. The floor is set by an explicit commitment, not by whatever an Electron major happens to require next; moving it is a reviewed change to docs/CHARTER.md §7.",
+    "declaredAt": "2026-08-02"
+  },
+  "metrics": {
+    "web.initial-bytes-gzip": {
+      "value": 1987101,
+      "unit": "bytes (gzip)",
+      "measuredAt": "2026-08-02",
+      "note": "index.html plus every script, modulepreload and stylesheet it references — what a cold visit pays before anything renders. Recorded as-found, not as-desired: 1.9 MB is heavy for the declared floor, and freezing it is the point of a ratchet. This number should go down."
+    },
+    "floor.cold-open-ms": {
+      "status": "pending",
+      "unit": "ms on the declared floor device",
+      "note": "no cloud runner is a 2017 laptop, so this is measured by hand, quarterly. Disclosed as pending rather than filled with a number from faster hardware — a plausible-looking figure measured somewhere else would be worse than an empty one."
+    },
+    "floor.peak-rss-mb": {
+      "status": "pending",
+      "unit": "MB resident, steady state on the declared floor device",
+      "note": "same reason as cold-open. 8 GB is the floor, so the number that matters is headroom on that machine, not RSS on a CI runner."
+    }
+  }
+}

@@ -19,6 +19,8 @@
  *                              feature; "every bus is the last bus" (0429)
  *
  *   surplus       (scoped to all of packages/ + apps/)
+ *     ✗ unbacked green claims → we claim a hardware floor, never a carbon
+ *       footprint, and never sell efficiency as a tier (§7, 0434)
  *     ✗ third-party ad/analytics SDKs (gtag, fbq, Segment, Mixpanel,
  *       Amplitude SDK, Hotjar, FullStory, Google Analytics/Tag Manager)
  *       → there is no behavioral-surplus pipeline; consent-gated, scrubbed,
@@ -156,6 +158,24 @@ const RULES = [
     group: 'surplus',
     re: /\b(relationshipScore|friendshipScore|intimacyScore|closenessScore|connectionHealth|relationshipStreak|neglectedContacts|atRiskFriend)\b/,
     fix: 'relationships are never scored or ranked — a health score is behavioural surplus with a friendly face (Charter §6 "no scored intimacy", exploration 0422)'
+  },
+  {
+    // The floor lesson (exploration 0434): xNet claims a hardware floor, never
+    // a carbon footprint. Local-first is not obviously greener — hyperscale PUE
+    // runs ~1.1, and the Sustainable Web Design model puts *user devices* at the
+    // heaviest energy coefficient of its four segments, so moving work to the
+    // client moves it toward the larger number. A green badge would be an
+    // unfalsifiable claim; a green tier would be worse, because a margin on a
+    // clean SKU is a standing reason to keep the default one dirty. Charter §7
+    // and §6 "no sustainability upcharge".
+    //
+    // Deliberately NOT matched: `carbonIntensity`, `energyUsage`, `gridRegion`
+    // and similar — measuring is fine and may become useful for scheduling
+    // work. It is the *claim* and the *badge* that are banned, not the physics.
+    name: 'unbacked green claim',
+    group: 'surplus',
+    re: /\b(carbonNeutral|carbonOffset|co2Saved|carbonSaved|carbonFootprintSaved|greenTier|greenPlan|ecoBadge|ecoTier|climatePositive)\b/,
+    fix: 'xNet claims a hardware floor, not a carbon footprint — see docs/CHARTER.md §7 and exploration 0434; fold efficiency into the flat bill, never a badge or a tier'
   },
   {
     name: 'third-party ad/analytics SDK',
@@ -393,6 +413,26 @@ function runSelfTest() {
       dark: false,
       text: "import mixpanel from 'mixpanel-browser'",
       expect: (v) => v.some((x) => x.rule === 'third-party ad/analytics SDK')
+    },
+    {
+      label: 'flags an unbacked green claim anywhere, not just UI scope',
+      dark: false,
+      text: 'const carbonNeutral = plan.tier === "green"',
+      expect: (v) => v.some((x) => x.rule === 'unbacked green claim')
+    },
+    {
+      label: 'flags a green pricing tier',
+      dark: true,
+      text: 'const greenTier = plans.find((p) => p.id === "eco")',
+      expect: (v) => v.some((x) => x.rule === 'unbacked green claim')
+    },
+    {
+      // Measuring energy is allowed; claiming a footprint is not. A rule that
+      // banned the physics would ban the only honest version of this work.
+      label: 'measuring grid carbon intensity is not a green claim',
+      dark: false,
+      text: 'const carbonIntensity = await readGridIntensity(region)',
+      expect: (v) => v.length === 0
     },
     {
       label: 'honors a reasoned humane-ok on the line above',

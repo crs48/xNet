@@ -45,6 +45,29 @@ and both should feel safe in exactly the same way.
 The fourth thing — the **scene** — is not our layer at all. It is what people
 build on top. Every design decision should widen their room to do it.
 
+### The permacomputing debt, paid
+
+"Permacomputing" sat in that first row as a borrowed word for a long time.
+Exploration 0434 went and read the actual list, and found that seven of its ten
+principles already describe how this project is built — which is worth saying
+out loud, because a lineage nobody can check is decoration:
+
+| Permacomputing principle                   | What makes it true here                                                   |
+| ------------------------------------------ | ------------------------------------------------------------------------- |
+| _Hope for the best, prepare for the worst_ | offline queue, multi-hub failover — sync degrades instead of blocking     |
+| _Not doing_                                | the humane-patterns gate is institutionalised refusal                     |
+| _Expose the seams_                         | signed, hash-chained change log; public spec; a devtools log you can read |
+| _Keep it flexible_                         | schema-driven nodes, lenses, a sandboxed plugin surface                   |
+| _Build on solid ground_                    | SQLite, Yjs, Ed25519 — boring on purpose                                  |
+| _(Almost) everything has a place_          | BYO hub, MIT core anyone can fork, a FRAND trademark                      |
+| _Observe first_                            | committed baselines, ratchets over absolutes                              |
+
+The one it **failed** was _care for all hardware_ — nothing measured whether a
+release made an older machine worse. That is now Charter §7 and a CI ratchet,
+and it is the only material claim we make. The list's tenth principle
+("integrate renewables") stays a category error for a client app, and §6's "no
+sustainability upcharge" is why we don't pretend otherwise.
+
 ## The loop: reciprocity legible, never scored
 
 What made the old tracker communities hum was a loop: contribute passively

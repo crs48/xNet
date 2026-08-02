@@ -299,13 +299,107 @@ const CLAIMS: Claim[] = [
       'refusal must name at least one shipped or building lane that survives it" (0429)',
     backing: 'building',
     pending:
-      'Twelve of the thirteen §6 refusals map to a lane that pays for them (hosting carries 8, ' +
+      'Thirteen of the fourteen §6 refusals map to a lane that pays for them (hosting carries 9, ' +
       'support 2, the marketplace 1, all-lanes 1). "No context capture" maps to NONE: ' +
       'ECONOMICS.md §6 calls it the most expensive decision in the Charter, and the ' +
       'compensating slopes — operated trust and multiplayer — are weaker per unit than a ' +
       'captive graph, with multiplayer not yet revenue-bearing. The refusal stands and is ' +
       'labelled on borrowed time in docs/ECONOMICS.md §4a. Dropping it needs its own ADR; ' +
       'the Rust test does not authorise it. Ship: a revenue-bearing multiplayer lane.'
+  },
+  {
+    id: 'floor-old-hardware-keeps-working',
+    source:
+      'Charter §7 Floor — "we declare a minimum supported device, we publish what the app ' +
+      'costs to run there, and CI fails a change that raises it"; manufacturing is ~70-90% of ' +
+      "a device's lifetime emissions, so obsoleting hardware is the harm (0434)",
+    backing: 'enforced',
+    assert: () => {
+      // A floor nobody wrote down is a system requirement, not a commitment.
+      // Assert the declaration exists and names the three things that make it
+      // answerable: the machine, its RAM, and the oldest OS we support.
+      const baseline = JSON.parse(
+        readFileSync(
+          fileURLToPath(new URL('footprint-baseline.json', `file://${repoRoot}`)),
+          'utf8'
+        )
+      )
+      expect(baseline.floor?.description, 'the floor device must be declared').toBeTruthy()
+      expect(baseline.floor?.ram_gb, 'the floor must name a RAM figure').toBeGreaterThan(0)
+      expect(Object.keys(baseline.floor?.os ?? {}).length, 'the floor must name OS floors').toBe(3)
+
+      // The receipt that can actually fail a build: a committed byte budget.
+      const bytes = baseline.metrics?.['web.initial-bytes-gzip']
+      expect(typeof bytes?.value, 'the byte budget must be a committed number').toBe('number')
+
+      // The weaker half must stay labelled as weaker. Cold-open and RSS are
+      // hand-measured on hardware no runner has, so each must either carry a
+      // date or say `pending` — never a bare number that reads like the byte
+      // budget's equal while having been measured somewhere else entirely.
+      for (const id of ['floor.cold-open-ms', 'floor.peak-rss-mb']) {
+        const metric = baseline.metrics?.[id]
+        expect(
+          metric?.status === 'pending' || typeof metric?.measuredAt === 'string',
+          `${id} must be dated or disclosed as pending`
+        ).toBe(true)
+      }
+
+      // The enforcer is a CI gate, so pin the branch that makes green mean
+      // something: a metric that stops being measurable must fail rather than
+      // pass. Deleting it would leave a gate that cannot tell a lean app from
+      // a broken measurement.
+      const gate = readFileSync(
+        fileURLToPath(new URL('scripts/check-footprint-budget.mjs', `file://${repoRoot}`)),
+        'utf8'
+      )
+      expect(gate, 'an unmeasurable metric must fail, not pass').toContain("kind: 'unmeasured'")
+      expect(gate, 'the budget must ratchet against the baseline').toContain('footprint-baseline')
+      expect(gate, 'the gate must carry its own negative control').toContain('--selftest')
+
+      // And the promise itself. §7 is the only Charter section that could be
+      // softened to an aspiration without any code changing, so the receipt
+      // reads the prose too: the section must exist and must still claim to be
+      // enforced. Downgrading it becomes a visible, reviewed edit here.
+      const charter = readFileSync(
+        fileURLToPath(new URL('docs/CHARTER.md', `file://${repoRoot}`)),
+        'utf8'
+      )
+      expect(charter, 'Charter §7 must exist').toContain('## 7. Floor')
+      const section = charter.slice(charter.indexOf('## 7. Floor'))
+      expect(
+        section.slice(0, section.indexOf('\n---')),
+        '§7 must keep an Enforced claim'
+      ).toContain('**Enforced:**')
+      expect(charter, '§7 must refuse the carbon claim in writing').toContain(
+        'We make no carbon claim'
+      )
+    }
+  },
+  {
+    id: 'floor-no-sustainability-upcharge',
+    source:
+      'Charter §6/No ground rent + §7 — "efficiency is not a tier": no green/carbon-neutral ' +
+      'SKU, and no claim that xNet is greener than an alternative. A margin on a clean tier ' +
+      'is a standing reason to keep the default one dirty (0434)',
+    backing: 'enforced',
+    assert: () => {
+      const gate = readFileSync(
+        fileURLToPath(new URL('scripts/check-humane-patterns.mjs', `file://${repoRoot}`)),
+        'utf8'
+      )
+      expect(gate, 'the green-claim rule must exist').toContain("name: 'unbacked green claim'")
+      const rule = gate.slice(gate.indexOf("name: 'unbacked green claim'"))
+      const pattern = rule.slice(0, rule.indexOf('\n', rule.indexOf('re:')))
+      for (const token of ['carbonNeutral', 'co2Saved', 'greenTier', 'ecoBadge']) {
+        expect(pattern, `green-claim rule must ban ${token}`).toContain(token)
+      }
+      // The negative half: measuring energy is honest work and may become
+      // useful for scheduling. A rule that also fired on the physics would be
+      // a rule that bans the only defensible version of this.
+      for (const legitimate of ['carbonIntensity', 'energyUsage', 'gridRegion']) {
+        expect(pattern, `green-claim rule must NOT fire on ${legitimate}`).not.toContain(legitimate)
+      }
+    }
   },
   {
     id: 'governance-rule-change-path',

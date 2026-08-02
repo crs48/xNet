@@ -252,6 +252,20 @@ things you would own anyway. The refused rents, each with its receipt:
   `commons-no-scored-intimacy` in
   [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)
   (exploration 0422).
+- **No sustainability upcharge.** Efficiency is not a tier. We will not sell a
+  "green," "carbon‑neutral" or "eco" hosting SKU, and we will not claim xNet is
+  greener than any alternative. Both refusals have the same root: a margin
+  earned on a clean tier is a standing reason to keep the default tier dirty —
+  the introductions problem (above) wearing a leaf. Whatever efficiency work we
+  do rides the flat hosting bill, and the only material claim we make is the
+  one in §7, which is measured rather than asserted. **Enforced:** the
+  `unbacked green claim` rule in
+  [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
+  fails CI on marketing identifiers (`carbonNeutral`, `co2Saved`, `greenTier`,
+  `ecoBadge`, …); the receipt is pinned by `floor-no-sustainability-upcharge`
+  in
+  [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)
+  (exploration 0434).
 - **No behavioural surplus.** Restates §1 as a refused rent. **Enforced:**
   [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
   (`surplus` rules).
@@ -374,6 +388,64 @@ include both of the refusals above that exploration 0358 added, a proposal we
 **declined** (relicensing the core under copyleft), and a revenue lane we
 **withdrew** after proposing it — because a record of only the flattering
 decisions is marketing (exploration 0361).
+
+## 7. Floor — your old hardware keeps working
+
+Software is how working computers become waste. Manufacturing is roughly 70–90%
+of a personal device's lifetime emissions, so the fastest way for an application
+to do environmental harm is not to burn CPU — it is to **make a working machine
+feel broken** until someone replaces it. Windows 10's support cut‑off is the
+scale of that mechanism: hundreds of millions of functioning devices pushed
+toward replacement by a software decision.
+
+So xNet declares a **floor**: the oldest machine we promise to work on, what the
+app costs to run there, and a CI gate that fails a change which raises it.
+
+> The floor is a justice commitment before it is an ecological one. A tool that
+> quietly requires this year's laptop has decided who is allowed to use it.
+
+**The declared floor** (`floor` block in
+[`footprint-baseline.json`](../footprint-baseline.json)): a 2017‑class laptop,
+dual‑core x86‑64, **8 GB RAM**, on the oldest OS our shell supports — macOS 11
+Big Sur, Windows 10, or a glibc‑2.31‑era Linux (Electron 33 / Chromium 130).
+Raising any of those is a deliberate, reviewed change to this document, never a
+side effect of a dependency bump.
+
+**What we do not claim.** We make no carbon claim, and §6's "no sustainability
+upcharge" is the refused rent that goes with it. Local‑first is not obviously
+greener than a well‑run data centre — hyperscale PUE runs ≈1.1–1.2, the
+Sustainable Web Design model puts user devices at the _heaviest_ energy
+coefficient of the four segments, and a space replicated across nine devices is
+nine copies doing nine merges. "Greener" would be marketing. "Your old laptop
+keeps working" is measurable, so that is the only claim we make.
+
+- **Enforced:** the footprint ratchet
+  ([`scripts/check-footprint-budget.mjs`](../scripts/check-footprint-budget.mjs))
+  measures the bytes a first load actually costs and fails when a change
+  regresses past the committed baseline. It ratchets against
+  [`footprint-baseline.json`](../footprint-baseline.json) rather than an
+  absolute, and a metric that stops being measurable fails as `unmeasured`
+  rather than passing — absent and unreadable are different values. The
+  greenwashing half is enforced by the `unbacked green claim` rule in
+  [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs).
+  Both receipts are pinned by `floor-old-hardware-keeps-working` and
+  `floor-no-sustainability-upcharge` in
+  [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts).
+- **Architectural:** the properties that make an old machine viable are already
+  load‑bearing — the local store is the primary copy (§1), the client works with
+  no hub at all
+  ([`packages/runtime/src/sync/offline-queue.ts`](../packages/runtime/src/sync/offline-queue.ts)),
+  one hub dying is survivable
+  ([`packages/runtime/src/sync/MultiHubSyncManager.ts`](../packages/runtime/src/sync/MultiHubSyncManager.ts)),
+  and old protocol versions keep working rather than being cut off
+  ([`packages/sync/src/negotiation.ts`](../packages/sync/src/negotiation.ts),
+  [`packages/sync/src/deprecation.ts`](../packages/sync/src/deprecation.ts)).
+- **Aspirational:** cold‑open time and peak memory **on the floor device
+  itself** cannot be measured by a cloud runner, so they are recorded by hand
+  and carry a `measuredAt` date the gate checks for staleness. That is a weaker
+  receipt than the byte budget and is labelled as one. Widening the gate to the
+  hub — "runs on a Raspberry Pi" — is tracked in exploration 0434 and
+  deliberately deferred until the client budget has held green.
 
 ---
 

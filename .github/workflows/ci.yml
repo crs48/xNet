@@ -64,10 +64,11 @@ jobs:
       - name: Plugin license policy (0196)
         run: pnpm check:plugin-licenses
 
-      # The negative control for the two values-as-code gates (0430). They are
-      # the only checks whose green state is otherwise unfalsifiable: a regex
-      # that stopped matching after a rename looks exactly like a clean tree.
-      # This plants violations they MUST flag, so green means something.
+      # The negative control for the values-as-code gates (0430). Their green
+      # state is otherwise unfalsifiable: a regex that stopped matching after a
+      # rename looks exactly like a clean tree, and a footprint metric that
+      # stopped being measurable looks exactly like a lean app. This plants
+      # violations they MUST flag, so green means something.
       - name: Gate negative controls (0430)
         run: pnpm check:gate-controls
 
@@ -228,6 +229,16 @@ jobs:
       # Errors only; the suggestion tier is unpassable by design. (0370)
       - name: Packaging validity (0370)
         run: pnpm check:packaging
+
+      # Charter §7 "Floor": software is how working computers become waste, so
+      # a change that raises what a first load costs is a change that retires
+      # someone's hardware. Ratchets the critical-path bytes against
+      # footprint-baseline.json. Lives here rather than in `lint` for the same
+      # reason check:api-report does -- it reads build output, and `lint` is
+      # deliberately build-free (0193). Its negative control runs in `lint`
+      # beside the other gate controls. (0434)
+      - name: Footprint budget (0434)
+        run: pnpm check:footprint-budget
 
   test:
     runs-on: ubuntu-latest
