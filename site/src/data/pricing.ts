@@ -36,7 +36,7 @@ export interface PricingTier {
   featured?: boolean
 }
 
-export const updated = 'June 2026'
+export const updated = 'August 2026'
 
 /**
  * Public-facing tiers, cheapest → richest. The full catalog also has `community`
@@ -127,6 +127,28 @@ export const PRICING: PricingTier[] = [
   }
 ]
 
+/**
+ * Storage add-on (exploration 0435). Sold on top of ANY paid plan and changing
+ * nothing else about it — same hub, same seats, same AI budget, same SLA.
+ *
+ * Flat per-GB, because our own cost is flat per-GB: R2 bills $0.015/GB-month
+ * with no volume discount, so inventing one here would mean either a tiered
+ * price we cannot sustain or a cliff we would have to explain.
+ */
+export interface StorageAddOn {
+  gb: number
+  pricePerMonth: number
+}
+
+/** Published price per GB-month for add-on storage. */
+export const STORAGE_PRICE_PER_GB = 0.03
+
+export const STORAGE_ADD_ONS: StorageAddOn[] = [
+  { gb: 100, pricePerMonth: 3 },
+  { gb: 500, pricePerMonth: 15 },
+  { gb: 1000, pricePerMonth: 30 }
+]
+
 /** How onboarding actually works, surfaced on the /cloud page. */
 export interface OnboardingStep {
   n: number
@@ -186,6 +208,14 @@ export const FAQS: CloudFaq[] = [
   {
     q: 'Where does the margin come from?',
     a: 'From operations and support — running your hub, backups, isolation, SLAs, and admin — never from access to your own data. Export everything for free, pay no egress fees, and self-host the same open-source hub whenever you like. Our Charter calls this the "no ground rent" rule and links every one of those promises to the code that backs it.'
+  },
+  {
+    q: 'What if I need more storage than my plan includes?',
+    a: 'Add it to the plan you already have. Storage is sold separately — 100 GB for $3/mo, 500 GB for $15/mo, 1 TB for $30/mo — and buying it changes nothing else: same hub, same seats, same AI budget, same SLA, same price for all of that. Extra space applies immediately and is prorated for the rest of the month. Removing it takes effect at the end of your billing period, and only once your data actually fits; we will never shrink a quota out from under data you have stored.'
+  },
+  {
+    q: 'Why is storage more expensive than iCloud or Google One?',
+    a: 'Because we buy ours. Apple and Google own their datacenters and price consumer storage below what an object store costs the rest of us; we pay Cloudflare $0.015 per GB per month and charge three cents, which covers replication, backups, restore drills and support. If you mainly want cheap bulk bytes, you have two better options and we would rather point you at them: keep the data on your own devices, where it is free and unlimited and always the authoritative copy, or self-host the same open-source hub against your own storage bucket. We charge for running things, not for letting you reach your own data.'
   },
   {
     q: 'Do I pay for AI usage?',

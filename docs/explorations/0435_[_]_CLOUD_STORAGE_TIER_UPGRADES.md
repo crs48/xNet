@@ -784,9 +784,9 @@ export function storagePackMargin(packGb: number): PlanCostBreakdown {
 ### Phase 3 — surfaces
 
 - [x] Dashboard: a storage card with used/quota, a pack picker, and prorated-price preview
-- [ ] `site/src/data/pricing.ts`: an add-on row on `/cloud/pricing`, plus an FAQ entry on how storage is priced and why BYOB exists
-- [ ] Changelog fragment: "Add storage to any plan without changing anything else"
-- [ ] ADR in `site/src/content/docs/docs/architecture/decisions.mdx` — new revenue lane, with the **Tripwire** from the Recommendation section
+- [x] `site/src/data/pricing.ts`: an add-on row on `/cloud/pricing`, plus an FAQ entry on how storage is priced and why BYOB exists
+- [x] Changelog fragment: "Add storage to any plan without changing anything else"
+- [x] ADR in `site/src/content/docs/docs/architecture/decisions.mdx` — new revenue lane, with the **Tripwire** from the Recommendation section
 
 ### Phase 4 — BYOB (ships alongside, not after)
 
@@ -805,7 +805,7 @@ export function storagePackMargin(packGb: number): PlanCostBreakdown {
 - [x] Floor-margin test green for +100/+500/+1000 at the published prices
 - [ ] Stripe test-mode: buy → prorate → webhook → quota flip observed on the hub's `/health`
 - [ ] Nightly restore drill still passes for a tenant holding a 1 TB pack
-- [ ] Charter claims-ledger test updated so "no ground rent" still has a receipt with a storage line item in the catalogue
+- [x] Charter claims-ledger test updated so "no ground rent" still has a receipt with a storage line item in the catalogue
 
 ## References
 
