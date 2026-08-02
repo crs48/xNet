@@ -6,19 +6,7 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 03 Aug 2026 09:00:00 GMT</lastBuildDate>
-    <item>
-      <title>The Harvest You Can Count</title>
-      <link>https://xnet.fyi/blog/the-harvest-you-can-count</link>
-      <guid isPermaLink="true">https://xnet.fyi/blog/the-harvest-you-can-count</guid>
-      <description>A video claims every food forest on Earth was deliberately erased. It is wrong, and it is pointing at something real. Layered perennial food systems existed on every inhabited continent, and most of them lost, though not the way the romantic version tells it. Grain genuinely won on calories and on labour. What the forest was better at was variance, soil carbon, micronutrients and independence from inputs, and no ledger has ever had a column for any of them. On appropriability, why a tenant cannot plant a ten-year asset, and why a local-first tool is illegible to a procurement department for exactly the same reason.</description>
-      <dc:creator>crs48</dc:creator>
-      <dc:creator>Claude</dc:creator>
-      <pubDate>Mon, 03 Aug 2026 09:00:00 GMT</pubDate>
-      <category>essay</category>
-      <category>economics</category>
-      <category>philosophy</category>
-    </item>
+    <lastBuildDate>Sat, 01 Aug 2026 19:49:06 GMT</lastBuildDate>
     <item>
       <title>The Matchmaker and the Meter</title>
       <link>https://xnet.fyi/blog/the-matchmaker-and-the-meter</link>
@@ -26,7 +14,19 @@
       <description>Hinge says it is designed to be deleted; its parent company is paid while you stay. On the meter dating apps run on — match scarcity as inventory, the market for lemons run on people — and the matchmakers people actually loved: the shadchan, the paseo, the dance hall, whose intermediaries answered for the outcome rather than the search. What people are running to instead, offline and on; why the good forms charge effort rather than money; and the CI rule that keeps xNet from ever selling an introduction.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Sat, 01 Aug 2026 17:00:00 GMT</pubDate>
+      <pubDate>Sat, 01 Aug 2026 19:49:06 GMT</pubDate>
+      <category>essay</category>
+      <category>economics</category>
+      <category>philosophy</category>
+    </item>
+    <item>
+      <title>The Harvest You Can Count</title>
+      <link>https://xnet.fyi/blog/the-harvest-you-can-count</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-harvest-you-can-count</guid>
+      <description>A video claims every food forest on Earth was deliberately erased. It is wrong, and it is pointing at something real. Layered perennial food systems existed on every inhabited continent, and most of them lost, though not the way the romantic version tells it. Grain genuinely won on calories and on labour. What the forest was better at was variance, soil carbon, micronutrients and independence from inputs, and no ledger has ever had a column for any of them. On appropriability, why a tenant cannot plant a ten-year asset, and why a local-first tool is illegible to a procurement department for exactly the same reason.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sun, 19 Jul 2026 08:04:19 GMT</pubDate>
       <category>essay</category>
       <category>economics</category>
       <category>philosophy</category>
@@ -38,8 +38,21 @@
       <description>The board game that taught a century of children to build monopolies was patented in 1904 to show that monopolies are unjust, and the cautionary rule set is the one that sold thirty million copies. On runaway leaders and the dead zone, why every table removes the auction and adds the Free Parking jackpot, what Hayek meant by competition as a discovery procedure, and why the rules of a rigged game are usually exposed by someone who got sued rather than by anyone’s transparency report.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Mon, 20 Jul 2026 09:00:00 GMT</pubDate>
+      <pubDate>Sun, 19 Jul 2026 03:55:42 GMT</pubDate>
       <category>essay</category>
+      <category>economics</category>
+      <category>philosophy</category>
+    </item>
+    <item>
+      <title>Palimpsest</title>
+      <link>https://xnet.fyi/blog/palimpsest</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/palimpsest</guid>
+      <description>Overwriting was always an economy measure. The economy changed. In 1229 a scribe scraped the only copy of Archimedes’ Method to reuse the parchment; it took a particle accelerator to partially undo the knife. Every UPDATE in every mutable database is that knife, and for the first time we can price it: microseconds, half a kilobyte, pennies a year. On what a signed, append-only history actually costs, measured on the shipped code, and why the trade that made erasure rational has permanently inverted.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sat, 18 Jul 2026 19:07:15 GMT</pubDate>
+      <category>essay</category>
+      <category>protocol</category>
       <category>economics</category>
       <category>philosophy</category>
     </item>
@@ -50,24 +63,11 @@
       <description>In 2004 a pink website with a pig mascot became the most complete music collection on the internet: run by one person, governed by its members, and killed by a police raid. Its community rediscovered Elinor Ostrom’s commons principles from scratch and was denied only the one no tracker could have: the right to exist. On ratio economies and the anxiety they bred, scenius and the ground scenes rent, and the promise the Palace couldn’t make that local-first software can: the scene outlives the server.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Sun, 19 Jul 2026 17:00:00 GMT</pubDate>
+      <pubDate>Sat, 18 Jul 2026 18:56:51 GMT</pubDate>
       <category>essay</category>
       <category>philosophy</category>
       <category>decentralization</category>
       <category>economics</category>
-    </item>
-    <item>
-      <title>Palimpsest</title>
-      <link>https://xnet.fyi/blog/palimpsest</link>
-      <guid isPermaLink="true">https://xnet.fyi/blog/palimpsest</guid>
-      <description>Overwriting was always an economy measure. The economy changed. In 1229 a scribe scraped the only copy of Archimedes’ Method to reuse the parchment; it took a particle accelerator to partially undo the knife. Every UPDATE in every mutable database is that knife, and for the first time we can price it: microseconds, half a kilobyte, pennies a year. On what a signed, append-only history actually costs, measured on the shipped code, and why the trade that made erasure rational has permanently inverted.</description>
-      <dc:creator>crs48</dc:creator>
-      <dc:creator>Claude</dc:creator>
-      <pubDate>Sat, 18 Jul 2026 23:00:00 GMT</pubDate>
-      <category>essay</category>
-      <category>protocol</category>
-      <category>economics</category>
-      <category>philosophy</category>
     </item>
     <item>
       <title>Tree Rings</title>
@@ -76,7 +76,7 @@
       <description>A tree never edits a ring: growth accretes on the outside, and the whole history stays legible in the grain. Rich Hickey has spent two decades arguing software should be built the same way: values that accrete, not places that overwrite. On Effective Programs and its pyramid of what actually costs money, Simple Made Easy, the epochal time model, and what taking the middle of that pyramid seriously looks like in a working protocol, and the three places we deliberately depart from the hammock.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Sat, 18 Jul 2026 21:00:00 GMT</pubDate>
+      <pubDate>Sat, 18 Jul 2026 16:24:17 GMT</pubDate>
       <category>essay</category>
       <category>philosophy</category>
       <category>protocol</category>
@@ -88,7 +88,7 @@
       <description>For forty years, one man has been making the same argument from inside the machine: a VR pioneer, a working musician, Microsoft’s in-house heretic, insisting that digital information is really just people in disguise. On Jaron Lanier’s long war against the siren servers, what his ideas look like when you actually build them, and the one prescription we deliberately refuse.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Sat, 18 Jul 2026 17:00:00 GMT</pubDate>
+      <pubDate>Sat, 18 Jul 2026 15:59:45 GMT</pubDate>
       <category>essay</category>
       <category>philosophy</category>
       <category>privacy</category>
@@ -101,7 +101,7 @@
       <description>On 28 January 1958 the LEGO Group patented not a brick but a coupling, stud and tube, and with them clutch power: a grip firm enough to build with that still comes apart by hand. The web never got a coupling for data, so every app moulds pieces that fit only its own set, and the APIs that promised otherwise were drawbridges. On the four frozen interfaces xNet ships instead (one node shape, one namespace anyone can mint into, one merge rule, one permission algebra) and why the grip matters as much as the snap: nobody plays with your bricks unless you say so.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Tue, 14 Jul 2026 17:00:00 GMT</pubDate>
+      <pubDate>Tue, 14 Jul 2026 03:57:44 GMT</pubDate>
       <category>essay</category>
       <category>protocol</category>
       <category>decentralization</category>
@@ -114,7 +114,7 @@
       <description>Graduates are booing AI executives at commencement, then going home to run open-weight models on their own laptops. Two video essays, one quiet revolution: a generation trading rented everything for things it can hold (model weights, assets, film cameras, businesses of its own) and what that exit means for who owns your software.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Fri, 10 Jul 2026 17:00:00 GMT</pubDate>
+      <pubDate>Fri, 10 Jul 2026 20:09:44 GMT</pubDate>
       <category>essay</category>
       <category>economics</category>
       <category>privacy</category>
@@ -127,7 +127,7 @@
       <description>A personal essay on autism, dissociation, and the network I dreamed while I was away from my body. The word has three meanings: the punishment corner, the huddle a team calls for itself, and the quiet that falls when a peer stops answering. I have lived in all three. On finding out at thirty-five, on the years of taking everything in from a distance, and on discovering that the protocol I built treats going quiet exactly the way I needed to be treated: a timeout is a duration, not a verdict, and when the peer comes back, the log catches it up on everything it missed.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Wed, 08 Jul 2026 17:00:00 GMT</pubDate>
+      <pubDate>Wed, 08 Jul 2026 23:04:02 GMT</pubDate>
       <category>essay</category>
       <category>personal</category>
       <category>philosophy</category>
@@ -139,7 +139,7 @@
       <description>When Google Reader died, everyone got an export, and discovered the file was a brick, shaped for a renderer that no longer existed. The modern app is a vault: it holds your data and the only window onto it. But the vault is a twenty-five-year detour, not the tradition. From Codd’s data independence through Solid’s pods to local-first and “apps as views, not vaults”, five decades of people have insisted the data is the ground and the software is the weather. On that lineage, why the first pod-shaped attempt stalled, how xNet ships the inversion, and why AI-cheap views make user-owned data the only stable ground left.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Tue, 07 Jul 2026 21:00:00 GMT</pubDate>
+      <pubDate>Tue, 07 Jul 2026 20:09:29 GMT</pubDate>
       <category>essay</category>
       <category>philosophy</category>
       <category>decentralization</category>
@@ -152,7 +152,7 @@
       <description>DotA was a custom map. Counter-Strike was a mod. The battle royale came from a photographer tinkering with a military sim. Modding built half of modern gaming, then the modern app welded its doors shut, with reasons that are half sincere and half convenient. On what the walled garden actually costs, why the fix is scoping authority rather than banning code, and what software looks like when the application is just a view over data you own, especially now that anyone can cook.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Sun, 05 Jul 2026 23:00:00 GMT</pubDate>
+      <pubDate>Sun, 05 Jul 2026 23:30:03 GMT</pubDate>
       <category>essay</category>
       <category>philosophy</category>
       <category>decentralization</category>
@@ -164,7 +164,7 @@
       <description>Everyone is arguing about one alignment problem: will the AI want what we want? But alignment is a stack (physics, planet, society, technology, AI) and we are bolting an aligned machine onto a civilization that steers by the wrong stars. The oldest word for the fix is the root of “cybernetics” and “govern”: the steersman, correcting course a hundred times a minute. What it takes to actually hold a course, and the small, real instruments a piece of software can hand back.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Fri, 03 Jul 2026 15:00:00 GMT</pubDate>
+      <pubDate>Fri, 03 Jul 2026 16:21:40 GMT</pubDate>
       <category>essay</category>
       <category>philosophy</category>
       <category>decentralization</category>
@@ -176,7 +176,7 @@
       <description>You write useQuery(TaskSchema) and get a live, local, cryptographically-authorised, syncing database, with no API endpoint, no auth middleware, and no cache to invalidate. A developer&apos;s tour of xNet&apos;s React hooks on the surface, then a dive beneath the waterline to the SQLite database running in a worker, the priority scheduler, and the signed change log that make “just trust the client” safe. The tip is small on purpose; the iceberg is yours to open.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Mon, 29 Jun 2026 17:30:00 GMT</pubDate>
+      <pubDate>Mon, 29 Jun 2026 17:04:02 GMT</pubDate>
       <category>essay</category>
       <category>protocol</category>
       <category>decentralization</category>
@@ -188,7 +188,7 @@
       <description>The Luddites didn&apos;t fear machines; they refused looms they weren&apos;t allowed to open. Follow one note, “Buy milk,” all the way through xNet&apos;s internals: a file on your own disk, a signed change log, a name you mint instead of an account, and a three-line merge that settles conflicts with no server in the middle. A guided tour of a machine you&apos;re allowed to open, written for developers and everyone else at once.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Mon, 29 Jun 2026 01:09:07 GMT</pubDate>
+      <pubDate>Mon, 29 Jun 2026 01:09:06 GMT</pubDate>
       <category>essay</category>
       <category>protocol</category>
       <category>decentralization</category>
@@ -224,7 +224,7 @@
       <description>Every year a dead desert blows across an ocean and feeds the most alive place on Earth, replacing almost exactly what the rainforest loses. What Saharan dust, the bees nobody watches, and the maintainers nobody thanks teach us about the invisible substrate the open web runs on.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Sun, 28 Jun 2026 21:46:46 GMT</pubDate>
+      <pubDate>Sun, 28 Jun 2026 21:46:45 GMT</pubDate>
       <category>essay</category>
       <category>philosophy</category>
       <category>nature</category>
@@ -248,7 +248,7 @@
       <description>Beneath every forest runs a fungal network: the original internet. What mycelium, the human nervous system, and Tesla’s Warp teach us about building one worth living in, and how to heal one that’s gone sick.</description>
       <dc:creator>crs48</dc:creator>
       <dc:creator>Claude</dc:creator>
-      <pubDate>Sun, 28 Jun 2026 01:23:39 GMT</pubDate>
+      <pubDate>Sun, 28 Jun 2026 01:23:38 GMT</pubDate>
       <category>essay</category>
       <category>philosophy</category>
       <category>nature</category>
