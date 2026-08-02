@@ -487,13 +487,13 @@ sale — either re-opens the consent model.
 
 ### Phase 0 — substrate
 
-- [ ] `SliBucket` + `DurableSliStore` over the existing `DocStore` port
-- [ ] Hourly write-through: in-memory current hour, flush on the hour
-- [ ] Separate `coldStart` from `failed` in `httpHealthProbe`
-- [ ] Raise the probe timeout above measured worst-case cold start (open question 1)
-- [ ] `windowState()` — measured / stale / young
-- [ ] `fleetGate()` — stale freezes, young excluded, empty freezes
-- [ ] Daily rollup job: hourly → daily at 30 days, retained 13 months
+- [x] `SliBucket` + `DurableSliStore` over the existing `DocStore` port
+- [x] Hourly write-through: in-memory current hour, flush on the hour
+- [x] Separate `coldStart` from `failed` in `httpHealthProbe`
+- [x] Raise the probe timeout above measured worst-case cold start (open question 1)
+- [x] `windowState()` — measured / stale / young
+- [x] `fleetGate()` — stale freezes, young excluded, empty freezes
+- [x] Daily rollup job: hourly → daily at 30 days, retained 13 months
 - [ ] Add `unmeasured` to `ComponentStatus` and the status severity ordering
 - [ ] Replace the hardcoded `control-plane: operational` with a measured signal
 - [ ] `timingSafeEqual` in `requireInternal`
