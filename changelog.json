@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-02-invite-people-to-your-hub-and-only-they-",
+      "url": "https://xnet.fyi/changelog#2026-08-02-invite-people-to-your-hub-and-only-they-",
+      "title": "Invite people to your hub, and only they can connect",
+      "content_text": "Family, Team and Community plans can now invite collaborators from the dashboard — they create their own passkey and read you a short code, so their keys never touch us. A managed hub now only accepts the people on your list, seats are billed as advertised, and the free tier finally has a working sign-up button.\n",
+      "date_published": "2026-08-02T17:58:06Z",
+      "tags": [
+        "platform",
+        "identity"
+      ],
+      "_xnet": {
+        "date": "August 2, 2026",
+        "summary": "Family, Team and Community plans can now invite collaborators from the dashboard — they create their own passkey and read you a short code, so their keys never touch us. A managed hub now only accepts the people on your list, seats are billed as advertised, and the free tier finally has a working sign-up button.",
+        "highlights": [],
+        "mergedAt": "2026-08-02T17:58:06Z",
+        "pr": 699,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-02-add-storage-to-any-plan-without-changing",
       "url": "https://xnet.fyi/changelog#2026-08-02-add-storage-to-any-plan-without-changing",
       "title": "Add storage to any plan without changing anything else",

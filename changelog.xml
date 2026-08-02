@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Invite people to your hub, and only they can connect</title>
+      <link>https://xnet.fyi/changelog#2026-08-02-invite-people-to-your-hub-and-only-they-</link>
+      <guid isPermaLink="false">2026-08-02-invite-people-to-your-hub-and-only-they-</guid>
+      <pubDate>Sun, 02 Aug 2026 17:58:06 GMT</pubDate>
+      <description>Family, Team and Community plans can now invite collaborators from the dashboard — they create their own passkey and read you a short code, so their keys never touch us. A managed hub now only accepts the people on your list, seats are billed as advertised, and the free tier finally has a working sign-up button.</description>
+    </item>
+    <item>
       <title>Add storage to any plan without changing anything else</title>
       <link>https://xnet.fyi/changelog#2026-08-02-add-storage-to-any-plan-without-changing</link>
       <guid isPermaLink="false">2026-08-02-add-storage-to-any-plan-without-changing</guid>
