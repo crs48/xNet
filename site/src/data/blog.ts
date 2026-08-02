@@ -16,6 +16,11 @@
  * Conventions:
  *   - `slug` matches the page filename and the URL (`/blog/<slug>`).
  *   - `pubDate` is an ISO-8601 instant (UTC). Newest-first ordering is by `pubDate`.
+ *     It records when the post actually went live — the moment its page landed on
+ *     `main` and the site deployed — not when the essay was drafted or when the PR
+ *     was opened. Take it from the merge commit rather than rounding to a tidy hour,
+ *     and never post-date a post: a future `pubDate` pins it to the top of the index
+ *     and the feed until the clock catches up.
  *   - `draft: true` hides a post from the index and the feed (still reachable by URL
  *     during authoring). Production never lists drafts.
  *
@@ -97,6 +102,23 @@ export interface BlogPost {
 
 const posts: BlogPost[] = [
   {
+    slug: 'the-matchmaker-and-the-meter',
+    title: 'The Matchmaker and the Meter',
+    description:
+      'Hinge says it is designed to be deleted; its parent company is paid ' +
+      'while you stay. On the meter dating apps run on — match scarcity as ' +
+      'inventory, the market for lemons run on people — and the matchmakers ' +
+      'people actually loved: the shadchan, the paseo, the dance hall, whose ' +
+      'intermediaries answered for the outcome rather than the search. What ' +
+      'people are running to instead, offline and on; why the good forms ' +
+      'charge effort rather than money; and the CI rule that keeps xNet from ' +
+      'ever selling an introduction.',
+    pubDate: '2026-08-01T19:49:06Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'economics', 'philosophy'],
+    readingMinutes: 11
+  },
+  {
     slug: 'the-harvest-you-can-count',
     title: 'The Harvest You Can Count',
     description:
@@ -109,27 +131,10 @@ const posts: BlogPost[] = [
       'ledger has ever had a column for any of them. On appropriability, why ' +
       'a tenant cannot plant a ten-year asset, and why a local-first tool is ' +
       'illegible to a procurement department for exactly the same reason.',
-    pubDate: '2026-08-03T09:00:00Z',
+    pubDate: '2026-07-19T08:04:19Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'economics', 'philosophy'],
     readingMinutes: 18
-  },
-  {
-    slug: 'the-matchmaker-and-the-meter',
-    title: 'The Matchmaker and the Meter',
-    description:
-      'Hinge says it is designed to be deleted; its parent company is paid ' +
-      'while you stay. On the meter dating apps run on — match scarcity as ' +
-      'inventory, the market for lemons run on people — and the matchmakers ' +
-      'people actually loved: the shadchan, the paseo, the dance hall, whose ' +
-      'intermediaries answered for the outcome rather than the search. What ' +
-      'people are running to instead, offline and on; why the good forms ' +
-      'charge effort rather than money; and the CI rule that keeps xNet from ' +
-      'ever selling an introduction.',
-    pubDate: '2026-08-01T17:00:00Z',
-    authors: ['crs48', 'claude'],
-    tags: ['essay', 'economics', 'philosophy'],
-    readingMinutes: 11
   },
   {
     slug: 'rig-the-game-or-play',
@@ -143,26 +148,9 @@ const posts: BlogPost[] = [
       'competition as a discovery procedure, and why the rules of a rigged ' +
       'game are usually exposed by someone who got sued rather than by ' +
       'anyone’s transparency report.',
-    pubDate: '2026-07-20T09:00:00Z',
+    pubDate: '2026-07-19T03:55:42Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'economics', 'philosophy'],
-    readingMinutes: 14
-  },
-  {
-    slug: 'the-worlds-greatest-record-store',
-    title: 'The World’s Greatest Record Store',
-    description:
-      'In 2004 a pink website with a pig mascot became the most complete ' +
-      'music collection on the internet: run by one person, governed by its ' +
-      'members, and killed by a police raid. Its community rediscovered ' +
-      'Elinor Ostrom’s commons principles from scratch and was denied only ' +
-      'the one no tracker could have: the right to exist. On ratio economies ' +
-      'and the anxiety they bred, scenius and the ground scenes rent, and ' +
-      'the promise the Palace couldn’t make that local-first software can: ' +
-      'the scene outlives the server.',
-    pubDate: '2026-07-19T17:00:00Z',
-    authors: ['crs48', 'claude'],
-    tags: ['essay', 'philosophy', 'decentralization', 'economics'],
     readingMinutes: 14
   },
   {
@@ -177,10 +165,27 @@ const posts: BlogPost[] = [
       'pennies a year. On what a signed, append-only history actually ' +
       'costs, measured on the shipped code, and why the trade that made ' +
       'erasure rational has permanently inverted.',
-    pubDate: '2026-07-18T23:00:00Z',
+    pubDate: '2026-07-18T19:07:15Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'protocol', 'economics', 'philosophy'],
     readingMinutes: 13
+  },
+  {
+    slug: 'the-worlds-greatest-record-store',
+    title: 'The World’s Greatest Record Store',
+    description:
+      'In 2004 a pink website with a pig mascot became the most complete ' +
+      'music collection on the internet: run by one person, governed by its ' +
+      'members, and killed by a police raid. Its community rediscovered ' +
+      'Elinor Ostrom’s commons principles from scratch and was denied only ' +
+      'the one no tracker could have: the right to exist. On ratio economies ' +
+      'and the anxiety they bred, scenius and the ground scenes rent, and ' +
+      'the promise the Palace couldn’t make that local-first software can: ' +
+      'the scene outlives the server.',
+    pubDate: '2026-07-18T18:56:51Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'philosophy', 'decentralization', 'economics'],
+    readingMinutes: 14
   },
   {
     slug: 'tree-rings',
@@ -194,7 +199,7 @@ const posts: BlogPost[] = [
       'time model, and what taking the middle of that pyramid seriously looks ' +
       'like in a working protocol, and the three places we deliberately ' +
       'depart from the hammock.',
-    pubDate: '2026-07-18T21:00:00Z',
+    pubDate: '2026-07-18T16:24:17Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'protocol'],
     readingMinutes: 14
@@ -209,7 +214,7 @@ const posts: BlogPost[] = [
       'people in disguise. On Jaron Lanier’s long war against the siren ' +
       'servers, what his ideas look like when you actually build them, and ' +
       'the one prescription we deliberately refuse.',
-    pubDate: '2026-07-18T17:00:00Z',
+    pubDate: '2026-07-18T15:59:45Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'privacy', 'economics'],
     readingMinutes: 14
@@ -227,7 +232,7 @@ const posts: BlogPost[] = [
       'one namespace anyone can mint into, one merge rule, one permission ' +
       'algebra) and why the grip matters as much as the snap: nobody ' +
       'plays with your bricks unless you say so.',
-    pubDate: '2026-07-14T17:00:00Z',
+    pubDate: '2026-07-14T03:57:44Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'protocol', 'decentralization', 'philosophy'],
     readingMinutes: 14
@@ -241,7 +246,7 @@ const posts: BlogPost[] = [
       'quiet revolution: a generation trading rented everything for things it ' +
       'can hold (model weights, assets, film cameras, businesses of its own) ' +
       'and what that exit means for who owns your software.',
-    pubDate: '2026-07-10T17:00:00Z',
+    pubDate: '2026-07-10T20:09:44Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'economics', 'privacy', 'decentralization'],
     readingMinutes: 13
@@ -259,7 +264,7 @@ const posts: BlogPost[] = [
       'built treats going quiet exactly the way I needed to be treated: a ' +
       'timeout is a duration, not a verdict, and when the peer comes back, ' +
       'the log catches it up on everything it missed.',
-    pubDate: '2026-07-08T17:00:00Z',
+    pubDate: '2026-07-08T23:04:02Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'personal', 'philosophy'],
     readingMinutes: 13
@@ -277,7 +282,7 @@ const posts: BlogPost[] = [
       'the ground and the software is the weather. On that lineage, why the ' +
       'first pod-shaped attempt stalled, how xNet ships the inversion, and ' +
       'why AI-cheap views make user-owned data the only stable ground left.',
-    pubDate: '2026-07-07T21:00:00Z',
+    pubDate: '2026-07-07T20:09:29Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'decentralization', 'protocol'],
     readingMinutes: 14
@@ -293,7 +298,7 @@ const posts: BlogPost[] = [
       'actually costs, why the fix is scoping authority rather than banning ' +
       'code, and what software looks like when the application is just a view ' +
       'over data you own, especially now that anyone can cook.',
-    pubDate: '2026-07-05T23:00:00Z',
+    pubDate: '2026-07-05T23:30:03Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'decentralization'],
     readingMinutes: 14
@@ -309,7 +314,7 @@ const posts: BlogPost[] = [
       '“govern”: the steersman, correcting course a hundred times a minute. What it ' +
       'takes to actually hold a course, and the small, real instruments a piece of ' +
       'software can hand back.',
-    pubDate: '2026-07-03T15:00:00Z',
+    pubDate: '2026-07-03T16:21:40Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'decentralization'],
     readingMinutes: 15
@@ -319,7 +324,7 @@ const posts: BlogPost[] = [
     title: 'The Tip of the Hook',
     description:
       "You write useQuery(TaskSchema) and get a live, local, cryptographically-authorised, syncing database, with no API endpoint, no auth middleware, and no cache to invalidate. A developer's tour of xNet's React hooks on the surface, then a dive beneath the waterline to the SQLite database running in a worker, the priority scheduler, and the signed change log that make “just trust the client” safe. The tip is small on purpose; the iceberg is yours to open.",
-    pubDate: '2026-06-29T17:30:00Z',
+    pubDate: '2026-06-29T17:04:02Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'protocol', 'decentralization'],
     readingMinutes: 14
@@ -329,7 +334,7 @@ const posts: BlogPost[] = [
     title: 'The Loom You Can Read',
     description:
       "The Luddites didn't fear machines; they refused looms they weren't allowed to open. Follow one note, “Buy milk,” all the way through xNet's internals: a file on your own disk, a signed change log, a name you mint instead of an account, and a three-line merge that settles conflicts with no server in the middle. A guided tour of a machine you're allowed to open, written for developers and everyone else at once.",
-    pubDate: '2026-06-29T01:09:07Z',
+    pubDate: '2026-06-29T01:09:06Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'protocol', 'decentralization'],
     readingMinutes: 15
@@ -359,7 +364,7 @@ const posts: BlogPost[] = [
     title: 'The Desert That Feeds the Forest',
     description:
       'Every year a dead desert blows across an ocean and feeds the most alive place on Earth, replacing almost exactly what the rainforest loses. What Saharan dust, the bees nobody watches, and the maintainers nobody thanks teach us about the invisible substrate the open web runs on.',
-    pubDate: '2026-06-28T21:46:46Z',
+    pubDate: '2026-06-28T21:46:45Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'nature'],
     readingMinutes: 13
@@ -379,7 +384,7 @@ const posts: BlogPost[] = [
     title: 'Data Should Work Like Soil',
     description:
       'Beneath every forest runs a fungal network: the original internet. What mycelium, the human nervous system, and Tesla’s Warp teach us about building one worth living in, and how to heal one that’s gone sick.',
-    pubDate: '2026-06-28T01:23:39Z',
+    pubDate: '2026-06-28T01:23:38Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'nature'],
     readingMinutes: 12
