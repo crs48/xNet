@@ -136,6 +136,10 @@ export default defineConfig({
             // functions and a Babel visitor, so they run in the node project
             // rather than dragging jsdom in.
             'apps/web/vite-plugins/**/*.test.ts',
+            // Social syndication (exploration 0432) — zero-dep .mjs scripts, so
+            // the tests are .mjs too. Pure functions over strings plus a
+            // tmpdir-backed ledger; no network.
+            'scripts/syndicate/**/*.test.mjs',
             // Social matching layer — pure connect modules only; the
             // social importer/view tests need package subpath resolution that
             // this shared pool doesn't provide, so they stay on the package config.

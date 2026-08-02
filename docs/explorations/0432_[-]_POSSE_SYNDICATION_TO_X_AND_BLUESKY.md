@@ -734,11 +734,11 @@ appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Paste to X\n\n\`\`\`\n${text
 
 **Phase 2 — the syndicator**
 
-- [ ] `scripts/syndicate/facets.mjs` — `linkFacets()` UTF-8 byte offsets + `graphemes()`, unit tested against `—`, `’` and emoji
-- [ ] `scripts/syndicate/bluesky.mjs` — DID-pinned sink, app password session, facets
-- [ ] `scripts/syndicate/select.mjs` — the two rules, nothing else
-- [ ] `scripts/syndicate/ledger.mjs` — read/append `docs/syndication/log.json` with reasons for skips
-- [ ] `scripts/syndicate/run.mjs` — orchestration, `--dry-run`, X paste text to `$GITHUB_STEP_SUMMARY`, non-zero exit on partial failure
+- [x] `scripts/syndicate/facets.mjs` — `linkFacets()` UTF-8 byte offsets + `graphemes()`, unit tested against `—`, `’` and emoji
+- [x] `scripts/syndicate/bluesky.mjs` — DID-pinned sink, app password session, facets
+- [x] `scripts/syndicate/select.mjs` — the two rules, nothing else
+- [x] `scripts/syndicate/ledger.mjs` — read/append `docs/syndication/log.json` with reasons for skips
+- [x] `scripts/syndicate/run.mjs` — orchestration, `--dry-run`, X paste text to `$GITHUB_STEP_SUMMARY`, non-zero exit on partial failure
 
 **Phase 3 — CI and gates**
 
@@ -749,9 +749,9 @@ appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Paste to X\n\n\`\`\`\n${text
 
 ## Validation Checklist
 
-- [ ] `node scripts/syndicate/run.mjs --dry-run` prints the exact text of every planned post and touches no network sink
-- [ ] Running it twice with an unchanged ledger plans **zero** posts (idempotency)
-- [ ] `linkFacets()` returns correct ranges for text containing an em dash, a curly apostrophe and an emoji before the URL
+- [x] `node scripts/syndicate/run.mjs --dry-run` prints the exact text of every planned post and touches no network sink
+- [x] Running it twice with an unchanged ledger plans **zero** posts (idempotency)
+- [x] `linkFacets()` returns correct ranges for text containing an em dash, a curly apostrophe and an emoji before the URL
 - [ ] `check:syndication --selftest` goes **red** on a post missing the canonical link, red on one at 301 graphemes, and red on a facet whose byte range does not decode back to its URL
 - [ ] A `draft: true` blog post never appears in a plan
 - [ ] A changelog fragment without `syndicate: true` never appears in a plan
