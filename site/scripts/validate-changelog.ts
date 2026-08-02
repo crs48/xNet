@@ -57,6 +57,11 @@ function checkRequired(e: ChangelogEntry): void {
   if (e.mergedAt !== undefined && (typeof e.mergedAt !== 'string' || !MERGED_AT.test(e.mergedAt))) {
     err(id, `mergedAt must be an ISO-8601 UTC instant (e.g. 2026-06-17T16:41:38Z)`)
   }
+  // A truthy non-boolean here (e.g. the string "false") would silently opt an
+  // entry into being announced, so require a real boolean (exploration 0432).
+  if (e.syndicate !== undefined && typeof e.syndicate !== 'boolean') {
+    err(id, `syndicate must be a boolean (got ${JSON.stringify(e.syndicate)})`)
+  }
   if (e.author && !e.author.login) err(id, 'author is missing a login')
   for (const [i, a] of (e.authors ?? []).entries()) {
     if (!a?.login) err(id, `authors[${i}] is missing a login`)

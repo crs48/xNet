@@ -77,6 +77,20 @@ export interface ChangelogEntry {
   /** Originating pull request number, when applicable. */
   pr?: number
   /**
+   * Opt in to announcing this entry on social (exploration 0432). Default
+   * `false` — the changelog page is the full record, and only entries an author
+   * judges worth interrupting people for get syndicated.
+   *
+   * This is a **human** boolean on purpose: nothing in this repo means "major".
+   * There were 155 fragments in July and 23 `v*` tags in 15 days, tags describe
+   * area rather than significance, and a semver major means "breaking", not
+   * "interesting". Any heuristic would announce the wrong things.
+   *
+   * Blog posts do NOT need this — they syndicate automatically from the blog
+   * feed. Set it with `scripts/changelog/new.mjs --syndicate`.
+   */
+  syndicate?: boolean
+  /**
    * ISO-8601 UTC instant the originating PR was merged into `main`
    * (e.g. `"2026-06-17T16:41:38Z"`). This is what entries are ordered by —
    * reverse-chronological with time-of-day precision, so several PRs merged on
