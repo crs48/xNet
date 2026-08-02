@@ -12,6 +12,7 @@
  * keeping this package free of the heavy SDK (exploration 0196).
  */
 
+import { requiresWarmInstance } from '@xnetjs/entitlements'
 import { ShardAllocator } from '../sharding'
 import { UnknownTenantError, type HubHandle, type ProvisionSpec, type Provisioner } from '../types'
 
@@ -129,8 +130,12 @@ export class CloudRunLitestreamProvisioner implements Provisioner {
   }
 
   private minInstances(spec: ProvisionSpec): number {
-    // Always-warm tier keeps one instance hot; everyone else scales to zero.
-    return spec.entitlements.isolation === 'dedicated-warm' ? 1 : 0
+    // A plan that publishes an availability objective keeps one instance hot;
+    // everyone else scales to zero. Derived from the SLA, NOT the isolation tier:
+    // the tier check gave the warm instance to `dedicated-warm` (best-effort, so
+    // it can never burn an error budget) and withheld it from `dedicated-project`
+    // and `region-pinned`, which sell 99.9% and 99.95% (exploration 0433 D1).
+    return requiresWarmInstance(spec.entitlements) ? 1 : 0
   }
 
   private image(targetVersion: string): string {

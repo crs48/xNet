@@ -80,13 +80,43 @@ describe('CloudRunLitestreamProvisioner', () => {
     expect((await client.get(REF))?.env.LITESTREAM_RESTORE).toBeUndefined()
   })
 
-  it('keeps one warm instance for the always-warm tier', async () => {
+  // Exploration 0433 D1. Warmth follows the published availability objective, not
+  // the isolation tier. The previous rule keyed off `dedicated-warm`, which is
+  // `team` — a best-effort plan that can never burn an error budget — while the
+  // three plans that DO sell an objective all scaled to zero.
+  it.each([
+    ['community', 't_community', 't-community'],
+    ['company', 't_company', 't-company'],
+    ['enterprise', 't_enterprise', 't-enterprise']
+  ] as const)(
+    'provisions %s warm — it publishes an availability objective',
+    async (plan, tenantId, service) => {
+      const { client, provisioner } = setup()
+      await provisioner.provision(spec({ tenantId, entitlements: resolveEntitlements(plan) }))
+      expect((await client.get({ ...REF, service }))?.minInstances).toBe(1)
+    }
+  )
+
+  it('keeps team warm on its isolation tier, though it publishes no objective', async () => {
     const { client, provisioner } = setup()
     await provisioner.provision(
       spec({ tenantId: 't_team', entitlements: resolveEntitlements('team') })
     )
     expect((await client.get({ ...REF, service: 't-team' }))?.minInstances).toBe(1)
   })
+
+  it.each([
+    ['demo', 't_demo', 't-demo'],
+    ['personal', 't_personal', 't-personal'],
+    ['family', 't_family', 't-family']
+  ] as const)(
+    'scales %s to zero — no objective and not a warm tier',
+    async (plan, tenantId, service) => {
+      const { client, provisioner } = setup()
+      await provisioner.provision(spec({ tenantId, entitlements: resolveEntitlements(plan) }))
+      expect((await client.get({ ...REF, service }))?.minInstances).toBe(0)
+    }
+  )
 
   it('upgrades the image while preserving env', async () => {
     const { client, provisioner } = setup()

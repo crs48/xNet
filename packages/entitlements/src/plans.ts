@@ -380,3 +380,49 @@ export function asPlanId(value: unknown): PlanId {
   if (!isPlanId(value)) throw new Error(`Invalid plan id: ${String(value)}`)
   return value
 }
+
+/**
+ * The availability objective an SLA level commits to, as a fraction, or `null`
+ * when the plan publishes no measurable objective.
+ *
+ * This lives beside {@link PLAN_CATALOG} rather than in the control plane
+ * because BOTH planes need it and they must not disagree: the control plane
+ * measures error budgets against it, and the provisioner decides always-warm
+ * placement from it (exploration 0433 D1). A second copy of this mapping is how
+ * a tenant ends up sold an objective its own infrastructure cannot serve.
+ */
+export function availabilityObjective(sla: SlaLevel): number | null {
+  switch (sla) {
+    case '99.9':
+      return 0.999
+    case 'custom':
+      return 0.9995
+    case 'best-effort':
+    case 'none':
+    default:
+      return null
+  }
+}
+
+/**
+ * Whether a plan must be provisioned always-warm (no scale-to-zero).
+ *
+ * Two independent reasons to stay warm, and the bug was treating the second as
+ * the only one (exploration 0433 D1):
+ *
+ *  1. **It publishes an availability objective.** You cannot serve 99.9% from a
+ *     service that has to cold-start — one cold start can spend a large fraction
+ *     of a 43-minute monthly budget. This is the clause that was missing, which
+ *     left `community`, `company` and `enterprise` scaling to zero.
+ *  2. **Its isolation tier is explicitly `dedicated-warm`.** `team` is
+ *     `best-effort`, so it can never burn an error budget — but it is sold as a
+ *     warm tier and `PLAN_PRICING` models it with `warm: true`. Dropping it to
+ *     scale-to-zero would quietly degrade a paying tier to save COGS the price
+ *     already covers.
+ *
+ * So warmth is a floor built from both, never one replacing the other.
+ */
+export function requiresWarmInstance(entitlements: PlanEntitlements): boolean {
+  if (availabilityObjective(entitlements.sla) !== null) return true
+  return entitlements.isolation === 'dedicated-warm'
+}

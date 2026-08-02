@@ -1,0 +1,10 @@
+{
+  "id": "2026-08-01-cloud-plans-with-an-uptime-guarantee-no-",
+  "date": "August 1, 2026",
+  "title": "Cloud plans with an uptime guarantee no longer sleep",
+  "summary": "Plans that publish an uptime target now keep a warm instance, so they are not woken from cold on first use. We also corrected wording across the site and dashboard that said we cannot read your data — on a managed hub we can, and now say so plainly, along with what our operators may see and the signed log that records it.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ]
+}

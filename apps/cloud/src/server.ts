@@ -12,6 +12,7 @@
  */
 
 import type { ControlPlane } from './control-plane'
+import type { OperatorIdentity } from './ops/operator'
 import type { UsageLedger } from '@xnetjs/cloud/billing'
 import type { BillingIdentityProvider, DidChallenge } from '@xnetjs/cloud/identity'
 import type { PlanId } from '@xnetjs/entitlements'
@@ -54,6 +55,14 @@ import {
 import { MemoryNonceStore, type NonceStore } from './nonce'
 import { fleetSummary, tenantSli, type HealthSampleStore } from './observability/health'
 import { publicStatus } from './observability/status'
+import {
+  AuditWriteError,
+  ReasonRequiredError,
+  audited,
+  type AuditAction,
+  type AuditLog
+} from './ops/audit'
+import { timingSafeEqualStr } from './secret-compare'
 import { reportToSentry } from './sentry'
 import { SESSION_COOKIE, readSession, sealSession, type SessionData } from './session'
 
@@ -96,8 +105,19 @@ export interface ControlPlaneAppDeps {
   marketingUrl?: string
   /** Base URL of the hosted web app ("Open the app"). Defaults to the marketing app. */
   appUrl?: string
-  /** Shared secret for internal routes; if unset, internal routes are disabled. */
+  /** Shared secret for internal READ routes; if unset, internal routes are disabled. */
   internalSecret?: string
+  /**
+   * Operator identity resolver (exploration 0433, decisions 4 and 11).
+   *
+   * Mutating `/internal/*` routes require this and reject the shared secret: a
+   * secret names nobody, and `/internal/account/recover` clears a tenant's bound
+   * DID, so an unattributed caller could take over any hub without leaving a
+   * record. Returns null when the request carries no valid operator session.
+   */
+  resolveOperator?: (c: Context) => Promise<OperatorIdentity | null>
+  /** Two-tier audit log. Mutating routes refuse to run without it (fail-closed). */
+  audit?: AuditLog
   /** Optional bulk-storage reader (R2) for the `/open` usage snapshot's GB-stored (Tier 1). */
   usageStorage?: StorageUsageReader
   /** Optional per-hub usage probe; defaults to GETting each hot hub's `/health`. */
@@ -221,6 +241,14 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
           tenantSli(deps.health!, { tenantId: t.tenantId, plan: t.plan, hubUrl: t.hubUrl }, now())
         )
       : []
+    // Is anything actually being measured? A fleet with hot tenants but no probe
+    // samples must read `unmeasured`, not `operational` (exploration 0433). With no
+    // hot tenants at all there is nothing to measure and nothing to claim, so the
+    // component stays measured-and-empty rather than alarming.
+    const fleetMeasured = hot.length === 0 || slis.some((s) => s.sampleCount > 0)
+    // The control plane reports from its periodic jobs. `undefined` (job reporting
+    // unwired) renders `unmeasured` — never a tautological green.
+    const jobs = deps.jobs ? await deps.jobs.health() : null
     const status = publicStatus({
       nowMs: now(),
       fleet: fleetSummary(slis),
@@ -228,7 +256,9 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
       aiConfigured: Boolean(deps.ai),
       // `unproven` reports as unknown (null), NOT as healthy: a configured
       // bucket nobody has restored from is not a backup we should claim.
-      backupsHealthy: backupsHealthyFor(deps.backupHealth?.())
+      backupsHealthy: backupsHealthyFor(deps.backupHealth?.()),
+      fleetMeasured,
+      ...(jobs ? { controlPlaneJobsHealthy: !jobs.some((j) => j.stale) } : {})
     })
     return c.json(status)
   })
@@ -661,47 +691,93 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   }
 
   // ── Internal routes (admin tooling) ──────────────────────────────────────────
+  //
+  // READ routes keep the shared secret — `scripts/cloud-company-metrics.mjs` is a
+  // real machine consumer and the blast radius of "can read fleet aggregates" is
+  // small. MUTATION routes reject it outright and require an operator identity
+  // instead (exploration 0433, decision 11): the secret is unattributable, and
+  // `/internal/account/recover` clears a tenant's bound DID, so anyone holding it
+  // could take over any hub and leave no record of having done so.
   const requireInternal = (c: { req: { header: (k: string) => string | undefined } }): boolean =>
-    Boolean(deps.internalSecret) && c.req.header('x-internal-secret') === deps.internalSecret
+    Boolean(deps.internalSecret) &&
+    timingSafeEqualStr(c.req.header('x-internal-secret'), deps.internalSecret)
+
+  /**
+   * Gate a mutating internal route on a named operator plus a typed reason, and
+   * wrap the action so the audit entry is durable BEFORE it runs.
+   *
+   * Returns a Response on refusal, or the action's result. The shared secret is
+   * not consulted at all here — presenting it grants nothing on this path.
+   */
+  const asOperator = async <T>(
+    c: Context,
+    action: AuditAction,
+    tenantId: string,
+    run: (op: OperatorIdentity) => Promise<T>
+  ): Promise<{ ok: true; value: T } | { ok: false; res: Response }> => {
+    if (!deps.resolveOperator || !deps.audit) {
+      return { ok: false, res: c.json({ error: 'operator_identity_not_configured' }, 503) }
+    }
+    const operator = await deps.resolveOperator(c)
+    if (!operator) return { ok: false, res: c.json({ error: 'forbidden' }, 403) }
+    const reason = c.req.header('x-operator-reason') ?? ''
+    try {
+      const value = await audited(
+        deps.audit,
+        {
+          operator: operator.workosUserId,
+          ...(operator.did ? { operatorDid: operator.did } : {}),
+          action,
+          tenantId,
+          reason
+        },
+        () => run(operator)
+      )
+      return { ok: true, value }
+    } catch (err) {
+      if (err instanceof ReasonRequiredError) {
+        return { ok: false, res: c.json({ error: 'reason_required' }, 400) }
+      }
+      if (err instanceof AuditWriteError) {
+        // Fail closed: no durable record, no action.
+        return { ok: false, res: c.json({ error: 'audit_unavailable' }, 503) }
+      }
+      return { ok: false, res: c.json({ error: (err as Error).message }, 422) }
+    }
+  }
 
   app.post('/internal/tenants', async (c) => {
-    if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
     const body = (await c.req.json().catch(() => ({}))) as ProvisionBody
     if (!body.tenantId || !body.plan || !body.billingUserId || !body.challenge) {
       return c.json({ error: 'bad_request' }, 400)
     }
-    try {
-      const record = await deps.controlPlane.provisionTenant({
-        tenantId: body.tenantId,
+    const out = await asOperator(c, 'tenant.provision', body.tenantId, () =>
+      deps.controlPlane.provisionTenant({
+        tenantId: body.tenantId as string,
         plan: body.plan as never,
-        billingUserId: body.billingUserId,
-        challenge: body.challenge,
+        billingUserId: body.billingUserId as string,
+        challenge: body.challenge as never,
         ...(body.overrides ? { overrides: body.overrides as never } : {}),
         ...(body.region ? { region: body.region } : {})
       })
-      return c.json(record, 201)
-    } catch (err) {
-      return c.json({ error: (err as Error).message }, 422)
-    }
+    )
+    return out.ok ? c.json(out.value, 201) : out.res
   })
 
   app.post('/internal/tenants/:id/plan', async (c) => {
-    if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
     const body = (await c.req.json().catch(() => ({}))) as {
       plan?: string
       overrides?: Record<string, unknown>
     }
     if (!body.plan) return c.json({ error: 'bad_request' }, 400)
-    try {
-      const result = await deps.controlPlane.changePlan(
+    const out = await asOperator(c, 'tenant.plan-change', c.req.param('id'), () =>
+      deps.controlPlane.changePlan(
         c.req.param('id'),
         body.plan as never,
         (body.overrides ?? {}) as never
       )
-      return c.json(result)
-    } catch (err) {
-      return c.json({ error: (err as Error).message }, 422)
-    }
+    )
+    return out.ok ? c.json(out.value) : out.res
   })
 
   // Fleet observability — per-tenant SLIs + an aggregate (exploration 0193).
@@ -747,16 +823,16 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     return c.json(usage)
   })
 
+  // The account-takeover primitive: `recoverAccount` clears the tenant's bound
+  // DID, so the next device to present a passkey claims their hub. Operator
+  // identity + typed reason only — the shared secret is rejected here.
   app.post('/internal/account/recover', async (c) => {
-    if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
     const body = (await c.req.json().catch(() => ({}))) as { billingUserId?: string }
     if (!body.billingUserId) return c.json({ error: 'bad_request' }, 400)
-    try {
-      const result = await deps.controlPlane.recoverAccount(body.billingUserId)
-      return c.json(result)
-    } catch (err) {
-      return c.json({ error: (err as Error).message }, 422)
-    }
+    const out = await asOperator(c, 'tenant.recover', body.billingUserId, () =>
+      deps.controlPlane.recoverAccount(body.billingUserId as string)
+    )
+    return out.ok ? c.json(out.value) : out.res
   })
 
   return app

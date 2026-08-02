@@ -1,16 +1,37 @@
 import { MemoryBillingIdentityProvider } from '@xnetjs/cloud/identity'
 import { describe, expect, it } from 'vitest'
+import { AuditLog, type AuditEntry } from './ops/audit'
 import { createControlPlaneApp } from './server'
 import { SESSION_COOKIE, sealSession } from './session'
+import { InMemoryDocStore } from './stores/durable'
 import { buildControlPlane } from './index'
 
 const INTERNAL = 'secret123'
 const SESSION_SECRET = 'session-secret-xyz'
 
-function app() {
+/**
+ * Mutating internal routes need a named operator and a typed reason (0433
+ * decision 11). Tests present the operator via a header the fake resolver reads;
+ * production resolves it from the sealed operator cookie.
+ */
+const OPERATOR = { workosUserId: 'user_ops', did: 'did:key:zOps' }
+const asOperator = (reason = 'test') => ({
+  'x-operator': OPERATOR.workosUserId,
+  'x-operator-reason': reason
+})
+
+function app(over: Partial<Parameters<typeof createControlPlaneApp>[0]> = {}) {
   const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
   const { controlPlane } = buildControlPlane({ billing, verifyDid: async () => true })
-  return createControlPlaneApp({ controlPlane, billing, internalSecret: INTERNAL })
+  return createControlPlaneApp({
+    controlPlane,
+    billing,
+    internalSecret: INTERNAL,
+    audit: new AuditLog({ docs: new InMemoryDocStore<AuditEntry>() }),
+    resolveOperator: async (c) =>
+      c.req.header('x-operator') === OPERATOR.workosUserId ? OPERATOR : null,
+    ...over
+  })
 }
 
 const provisionBody = {
@@ -32,7 +53,7 @@ describe('control-plane HTTP API', () => {
     // Provision a real (hot, hub-bearing) tenant, then confirm it can't surface.
     await a.request('/internal/tenants', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-internal-secret': INTERNAL },
+      headers: { 'content-type': 'application/json', ...asOperator() },
       body: JSON.stringify(provisionBody)
     })
     const res = await a.request('/status.json')
@@ -44,7 +65,10 @@ describe('control-plane HTTP API', () => {
       components: { id: string }[]
       errorBudgetPolicy: Record<string, number>
     }
-    expect(status.overall).toBe('operational')
+    // `unmeasured`, not `operational`: this server has no observability or job
+    // reporting wired, so there is no evidence of health to publish. Claiming
+    // green here is exactly the defect exploration 0433 decision 10 removes.
+    expect(status.overall).toBe('unmeasured')
     expect(status.components.map((c) => c.id)).toContain('hub-fleet')
     expect(status.errorBudgetPolicy).toMatchObject({ ship: 0, caution: 0, freeze: 0 })
   })
@@ -56,7 +80,7 @@ describe('control-plane HTTP API', () => {
     expect(res.headers.get('location')).toContain('state=abc')
   })
 
-  it('guards internal routes behind the shared secret', async () => {
+  it('refuses a mutating internal route with no operator identity', async () => {
     const res = await app().request('/internal/tenants', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -65,11 +89,64 @@ describe('control-plane HTTP API', () => {
     expect(res.status).toBe(403)
   })
 
+  // The heart of 0433 decision 11: the shared secret is unattributable, so it
+  // must not open a route that mutates a tenant — least of all `recover`, which
+  // clears the bound DID and lets the next device claim the hub.
+  it('rejects the shared secret on every mutating internal route', async () => {
+    const a = app()
+    const secretOnly = { 'content-type': 'application/json', 'x-internal-secret': INTERNAL }
+    const cases: [string, unknown][] = [
+      ['/internal/tenants', provisionBody],
+      ['/internal/tenants/acme/plan', { plan: 'family' }],
+      ['/internal/account/recover', { billingUserId: 'user_a' }]
+    ]
+    for (const [path, body] of cases) {
+      const res = await a.request(path, {
+        method: 'POST',
+        headers: secretOnly,
+        body: JSON.stringify(body)
+      })
+      expect(res.status, `${path} must refuse the shared secret`).toBe(403)
+    }
+  })
+
+  it('still accepts the shared secret on internal READ routes', async () => {
+    const res = await app().request('/internal/metrics/usage', {
+      headers: { 'x-internal-secret': INTERNAL }
+    })
+    expect(res.status).toBe(200)
+  })
+
+  it('refuses a mutation with an operator but no reason', async () => {
+    const res = await app().request('/internal/account/recover', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-operator': OPERATOR.workosUserId },
+      body: JSON.stringify({ billingUserId: 'user_a' })
+    })
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({ error: 'reason_required' })
+  })
+
+  // Fail-closed: if the durable audit write cannot land, the action must not run.
+  it('refuses to act when the audit store is unavailable', async () => {
+    const docs = new InMemoryDocStore<AuditEntry>()
+    docs.put = async () => {
+      throw new Error('firestore down')
+    }
+    const res = await app({ audit: new AuditLog({ docs }) }).request('/internal/tenants', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...asOperator() },
+      body: JSON.stringify(provisionBody)
+    })
+    expect(res.status).toBe(503)
+    expect(await res.json()).toMatchObject({ error: 'audit_unavailable' })
+  })
+
   it('provisions a tenant through the internal route and reads it back', async () => {
     const a = app()
     const res = await a.request('/internal/tenants', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-internal-secret': INTERNAL },
+      headers: { 'content-type': 'application/json', ...asOperator() },
       body: JSON.stringify(provisionBody)
     })
     expect(res.status).toBe(201)
@@ -118,7 +195,7 @@ describe('control-plane HTTP API', () => {
   it('rejects malformed provisioning input', async () => {
     const res = await app().request('/internal/tenants', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-internal-secret': INTERNAL },
+      headers: { 'content-type': 'application/json', ...asOperator() },
       body: JSON.stringify({ tenantId: 'x' })
     })
     expect(res.status).toBe(400)
@@ -128,19 +205,19 @@ describe('control-plane HTTP API', () => {
     const a = app()
     await a.request('/internal/tenants', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-internal-secret': INTERNAL },
+      headers: { 'content-type': 'application/json', ...asOperator() },
       body: JSON.stringify(provisionBody)
     })
     const flip = await a.request('/internal/tenants/acme/plan', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-internal-secret': INTERNAL },
+      headers: { 'content-type': 'application/json', ...asOperator() },
       body: JSON.stringify({ plan: 'family' })
     })
     expect((await flip.json()).kind).toBe('flipped')
 
     const migrate = await a.request('/internal/tenants/acme/plan', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-internal-secret': INTERNAL },
+      headers: { 'content-type': 'application/json', ...asOperator() },
       body: JSON.stringify({ plan: 'community' })
     })
     expect((await migrate.json()).kind).toBe('migration-required')

@@ -8,6 +8,7 @@
  */
 
 import { type PlanId } from '@xnetjs/entitlements'
+import { type ProbeOutcome, type SliBucketStore } from './buckets'
 import {
   availability,
   errorRate,
@@ -18,13 +19,47 @@ import {
 } from './sli'
 import { budgetPolicy, sloForPlan, type BudgetPolicy } from './slo'
 
-/** Probes a single hub. The real adapter hits `${hubUrl}/health`. */
-export interface HealthProbe {
-  probe(hubUrl: string): Promise<{ ok: boolean; latencyMs: number }>
+/** One probe result. `coldStart` means it answered, but only after waking. */
+export interface ProbeResult {
+  ok: boolean
+  latencyMs: number
+  coldStart?: boolean
 }
 
+/** Probes a single hub. The real adapter hits `${hubUrl}/health`. */
+export interface HealthProbe {
+  probe(hubUrl: string): Promise<ProbeResult>
+}
+
+/**
+ * How long a hub may take to answer before we call it down.
+ *
+ * Deliberately generous, and deliberately NOT the old 5s: a scale-to-zero hub
+ * has to cold-start Cloud Run and restore a SQLite database from R2 before it
+ * can answer, and 5s recorded that as an outage — the opposite of what `sli.ts`
+ * documents (exploration 0431 Finding 2).
+ *
+ * @remarks **This number is not measured.** Exploration 0433 open question 1: no
+ * cold-start figure exists anywhere in the repo. 30s is a placeholder chosen to
+ * be safely above a plausible restore, not a value anyone has observed. Measure a
+ * real Litestream restore-on-boot and replace it; until then, over-waiting costs
+ * a slow probe while under-waiting fabricates downtime.
+ */
+export const DEFAULT_PROBE_TIMEOUT_MS = 30_000
+
+/**
+ * Above this, an answering hub is recorded as having cold-started rather than
+ * served promptly. Cold starts count as available (they answered) but are tracked
+ * separately so the console can say "sleeping, woke in 8s" instead of "degraded".
+ */
+export const DEFAULT_COLD_START_MS = 2_000
+
 /** Default probe: GET `${hubUrl}/health`, ok on a 2xx within the timeout. */
-export function httpHealthProbe(fetchImpl: typeof fetch = fetch, timeoutMs = 5000): HealthProbe {
+export function httpHealthProbe(
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs = DEFAULT_PROBE_TIMEOUT_MS,
+  coldStartMs = DEFAULT_COLD_START_MS
+): HealthProbe {
   return {
     async probe(hubUrl: string) {
       const startedAtMs = Date.now()
@@ -32,7 +67,8 @@ export function httpHealthProbe(fetchImpl: typeof fetch = fetch, timeoutMs = 500
       const timer = setTimeout(() => ctrl.abort(), timeoutMs)
       try {
         const res = await fetchImpl(`${hubUrl.replace(/\/$/, '')}/health`, { signal: ctrl.signal })
-        return { ok: res.ok, latencyMs: Date.now() - startedAtMs }
+        const latencyMs = Date.now() - startedAtMs
+        return { ok: res.ok, latencyMs, coldStart: res.ok && latencyMs >= coldStartMs }
       } catch {
         return { ok: false, latencyMs: Date.now() - startedAtMs }
       } finally {
@@ -42,10 +78,16 @@ export function httpHealthProbe(fetchImpl: typeof fetch = fetch, timeoutMs = 500
   }
 }
 
+/** The bucket outcome a probe result folds into. */
+export function outcomeOf(result: ProbeResult): ProbeOutcome {
+  if (!result.ok) return 'failed'
+  return result.coldStart ? 'cold-start' : 'ok'
+}
+
 /** Scripted probe for tests — maps a hubUrl to a fixed result. */
 export class FakeHealthProbe implements HealthProbe {
-  constructor(private readonly results: Record<string, { ok: boolean; latencyMs: number }>) {}
-  async probe(hubUrl: string): Promise<{ ok: boolean; latencyMs: number }> {
+  constructor(private readonly results: Record<string, ProbeResult>) {}
+  async probe(hubUrl: string): Promise<ProbeResult> {
     return this.results[hubUrl] ?? { ok: false, latencyMs: 0 }
   }
 }
@@ -72,11 +114,24 @@ export async function sampleTenantHealth(
   probe: HealthProbe,
   store: HealthSampleStore,
   tenant: { tenantId: string; hubUrl: string },
-  nowMs: number
+  nowMs: number,
+  /**
+   * Durable bucket store (exploration 0433). The in-memory `store` above stays as
+   * the short-window view the live dashboard tiles poll; `buckets` is what the SLO
+   * window, the error budget, and the deploy gate actually read, because it is the
+   * only one that survives a restart.
+   */
+  buckets?: SliBucketStore
 ): Promise<HealthSample> {
   const r = await probe.probe(tenant.hubUrl)
-  const sample: HealthSample = { ok: r.ok, latencyMs: r.latencyMs, atMs: nowMs }
+  const sample: HealthSample = {
+    ok: r.ok,
+    latencyMs: r.latencyMs,
+    atMs: nowMs,
+    ...(r.coldStart ? { coldStart: true } : {})
+  }
   store.record(tenant.tenantId, sample)
+  buckets?.record(tenant.tenantId, outcomeOf(r), r.latencyMs, nowMs)
   return sample
 }
 
@@ -90,14 +145,18 @@ export async function probeFleet(
   probe: HealthProbe,
   store: HealthSampleStore,
   tenants: { tenantId: string; hubUrl: string; dataTier: 'hot' | 'cold' }[],
-  nowMs: number
+  nowMs: number,
+  buckets?: SliBucketStore
 ): Promise<number> {
   const hot = tenants.filter((t) => t.dataTier === 'hot' && Boolean(t.hubUrl))
   await Promise.all(
     hot.map((t) =>
-      sampleTenantHealth(probe, store, { tenantId: t.tenantId, hubUrl: t.hubUrl }, nowMs)
+      sampleTenantHealth(probe, store, { tenantId: t.tenantId, hubUrl: t.hubUrl }, nowMs, buckets)
     )
   )
+  // Persist immediately: a flush deferred to an hourly timer would lose the whole
+  // current hour to a deploy, which is the amnesia this replaced.
+  if (buckets) await buckets.flush(nowMs)
   return hot.length
 }
 

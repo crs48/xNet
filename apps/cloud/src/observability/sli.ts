@@ -15,6 +15,12 @@ export interface HealthSample {
   ok: boolean
   latencyMs: number
   atMs: number
+  /**
+   * The hub answered, but only after waking from cold. Counted as available —
+   * the request succeeded — and tracked separately so a sleeping tenant reads as
+   * "slow to wake" rather than "down" (exploration 0433).
+   */
+  coldStart?: boolean
 }
 
 /** Samples within `[nowMs - windowMs, nowMs]`. */
@@ -23,10 +29,19 @@ export function windowed(samples: HealthSample[], windowMs: number, nowMs: numbe
   return samples.filter((s) => s.atMs >= floor && s.atMs <= nowMs)
 }
 
-/** Availability = successful / valid probes. Empty window → 1 (no evidence of failure). */
+/**
+ * Availability = successful / valid probes. A cold start counts as successful:
+ * the request answered, it was just slow to wake.
+ *
+ * @remarks Empty window → 1. This is the legacy in-memory path, kept for the live
+ * dashboard tiles. **Do not use it for the deploy gate** — "no samples" reading as
+ * "perfectly available" is exploration 0431 Finding 1. `windowState()` in
+ * `buckets.ts` returns an explicit `young`/`stale` instead, and `fleetGate()`
+ * freezes on both.
+ */
 export function availability(samples: HealthSample[]): number {
   if (samples.length === 0) return 1
-  return samples.filter((s) => s.ok).length / samples.length
+  return samples.filter((s) => s.ok || s.coldStart).length / samples.length
 }
 
 /** Error rate = 1 − availability. */

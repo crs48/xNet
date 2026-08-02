@@ -30,7 +30,7 @@ export interface SiteMetrics {
 export const siteMetrics: SiteMetrics = {
   packages: 47,
   publishableLibs: 18,
-  tests: 9600,
+  tests: 12000,
   devtoolsPanels: 21,
   platforms: ['Web (PWA)', 'Desktop (Electron)', 'Mobile (Expo, soon)']
 }

@@ -1236,12 +1236,12 @@ export const layers: CompareLayer[] = [
       },
       {
         id: 'atproto-complement',
-        text: 'Not a competitor — a complement. AT Protocol is a public broadcast network; xNet is the end-to-end encrypted workspace for your ATProto identity, the private half the atmosphere is not built to hold. xNet is to workspaces what Germ is to DMs: sign in with your Bluesky identity, keep your drafts and members-only spaces private and live, and publish a card to the atmosphere only when the work is ready. Identity, discovery and recovery ride on ATProto; the confidential body stays on a hub that never sees plaintext.',
+        text: 'Not a competitor — a complement. AT Protocol is a public broadcast network; xNet is the private workspace for your ATProto identity, the half the atmosphere is not built to hold. xNet is to workspaces what Germ is to DMs: sign in with your Bluesky identity, keep your drafts and members-only spaces private and live, and publish a card to the atmosphere only when the work is ready. Identity, discovery and recovery ride on ATProto; the confidential body stays on a hub — yours to self-host, or one we run for you.',
         sourceUrl: 'https://github.com/crs48/xNet/tree/main/docs/explorations'
       },
       {
         id: 'habitat-ods',
-        text: "Habitat's Organizational Data Server hosts all member repositories on one org-owned server; member DIDs are minted by the org, and an OAuth credential for the org's DID can read every space on it. Access control is enforced at the server API, not by encryption — the inverse of xNet's hub, which never sees plaintext but also never gets a master read credential. Implements the draft atproto permissioned-spaces proposal (0016); pre-1.0 with breaking changes and a spaces→PDS migration announced.",
+        text: "Habitat's Organizational Data Server hosts all member repositories on one org-owned server; member DIDs are minted by the org, and an OAuth credential for the org's DID can read every space on it. Access control is enforced at the server API, not by encryption — where xNet differs is that no master credential exists that can read every space. Implements the draft atproto permissioned-spaces proposal (0016); pre-1.0 with breaking changes and a spaces→PDS migration announced.",
         sourceUrl:
           'https://github.com/habitat-network/habitat/blob/master/api-docs/docs/building/auth.mdx'
       },
