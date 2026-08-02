@@ -173,6 +173,51 @@ describe('SQLite storage routes bulk bytes through the sink (0435)', () => {
     expect(await storage.getFileData('cid1')).toEqual(bytes('legacy-edited'))
   })
 
+  // Bytes before pointer. A crash between the two must leave an orphan BLOB
+  // (cheap, sweepable) rather than a pointer row naming bytes that do not
+  // exist — the direction that loses data.
+  it('writes the bytes BEFORE the pointer row', async () => {
+    const dir = tempDir()
+    const order: string[] = []
+    const inner = createMemoryBlobStore()
+    const storage = createSQLiteStorage(dir, {
+      blobs: {
+        get: inner.get,
+        delete: inner.delete,
+        async put(key, data) {
+          order.push('bytes')
+          await inner.put(key, data)
+        }
+      }
+    })
+
+    await storage.putFile('cid1', bytes('x'), fileMeta('cid1', 1))
+    order.push('pointer-visible:' + String((await storage.getFileMeta('cid1')) !== null))
+
+    expect(order).toEqual(['bytes', 'pointer-visible:true'])
+  })
+
+  it('leaves no pointer row when the byte write fails', async () => {
+    const dir = tempDir()
+    const storage = createSQLiteStorage(dir, {
+      blobs: {
+        async get() {
+          return null
+        },
+        async put() {
+          throw new Error('object store unavailable')
+        },
+        async delete() {}
+      }
+    })
+
+    await expect(storage.putFile('cid1', bytes('x'), fileMeta('cid1', 1))).rejects.toThrow(
+      /object store unavailable/
+    )
+    // The upload failed loudly and left nothing behind claiming to be a file.
+    expect(await storage.getFileMeta('cid1')).toBeNull()
+  })
+
   it('reports a missing blob as null, not a crash', async () => {
     const storage = createSQLiteStorage(tempDir(), { blobs: createMemoryBlobStore() })
     expect(await storage.getFileData('never-stored')).toBeNull()
