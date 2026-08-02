@@ -763,15 +763,15 @@ export function storagePackMargin(packGb: number): PlanCostBreakdown {
 - [ ] Migrate existing tenants' on-disk blobs to R2, with an orphan-pointer audit for `file_meta` rows whose bytes are gone
 - [ ] Replace `measureDataUsage`-based `usedBytes` on `/health` with a figure that counts R2-resident bytes
 - [ ] Promote the disk watchdog out of demo-only, sized from the **substrate** (instance memory) rather than the plan quota
-- [ ] Add `tenantQuotaBytes` to `PlanEntitlements`, absent ⇒ unlimited, with a fail-open test mirroring `writesEnabled`
+- [x] Add `tenantQuotaBytes` to `PlanEntitlements`, absent ⇒ unlimited, with a fail-open test mirroring `writesEnabled`
 - [ ] Enforce `tenantQuotaBytes` as an aggregate ceiling in `NodeRelayService` alongside the existing per-user check
 
 ### Phase 1 — entitlements + control plane
 
-- [ ] `withStoragePack(entitlements, packGb)` in `packages/entitlements`, with a changeset
+- [x] `withStoragePack(entitlements, packGb)` in `packages/entitlements`, with a changeset
 - [ ] `storagePackGb?: number` on `TenantRecord`
 - [ ] Derive quota from the stored pack **inside** `changePlan` / `provisionForBilling`, so no call site can drop it
-- [ ] Regression test: `personal` + 500 GB pack → upgrade to `family` → quota is 750 GiB, not 525 GiB
+- [x] Regression test: `personal` + 500 GB pack → upgrade to `family` → quota is 750 GiB, not 525 GiB
 - [ ] `ControlPlane.setStoragePack(tenantId, packGb)` routing a reduction through the existing over-quota guard
 
 ### Phase 2 — billing
