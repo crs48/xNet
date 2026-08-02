@@ -58,6 +58,27 @@ number; `deploy-site` fills it in from git history at deploy time.
 Valid `--tags`: `app`, `crm`, `finance`, `tasks`, `ai`, `plugins`, `editor`,
 `sync`, `identity`, `platform`, `performance`, `devtools`, `ci`.
 
+## Announcing it (`--syndicate`)
+
+Add `--syndicate` and the entry is posted to Bluesky once it deploys
+(exploration 0432):
+
+```bash
+node scripts/changelog/new.mjs --title "…" --tags sync --syndicate
+```
+
+**Off by default, and most entries should stay that way.** The changelog page
+is the full record; syndication is for the handful of changes worth
+interrupting people for — roughly two to four a month. Nothing in this repo
+can decide that automatically, which is why it's your call.
+
+Ask: would a stranger following the project be glad this arrived in their
+feed? If it's an internal refactor, a CI fix, or one step of a larger feature
+that isn't usable yet, leave it off.
+
+Blog posts don't need the flag — they syndicate automatically from the blog
+feed. X is not automated; the workflow prints paste-ready text instead.
+
 ## Wording
 
 Lead with what the user can now do, in their vocabulary.

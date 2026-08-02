@@ -1,0 +1,113 @@
+name: Syndicate
+
+# Announce new work on Bluesky (exploration 0432).
+#
+# POSSE: xnet.fyi is where things are published; this posts a copy that links
+# home. It reads the DEPLOYED feeds, so it runs on `workflow_run` after the site
+# deploy has actually succeeded — deploy-site takes ~9 minutes, and a timer or a
+# push trigger would read the PREVIOUS deploy's feed (exploration 0364).
+#
+# What gets posted: every published blog essay, plus changelog entries whose
+# author set `"syndicate": true`. Nothing else.
+#
+# X is deliberately NOT automated — it charges $0.20 per post containing a link,
+# and every POSSE post carries one. The run prints paste-ready X text to the job
+# summary instead. Do not add X credentials to this repo.
+#
+# Setup (one-time): create a Bluesky app password (Settings → App Passwords —
+# never the account password) and set the BLUESKY_APP_PASSWORD secret plus the
+# BLUESKY_HANDLE and BLUESKY_DID repo variables. Until then this safely plans
+# and posts nothing.
+
+on:
+  workflow_run:
+    workflows: ['Deploy Site to GitHub Pages']
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Plan only — never sign in or post'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+# One run at a time; the ledger is a file on main, so concurrent runs would race
+# each other's commits.
+concurrency:
+  group: syndicate
+  cancel-in-progress: false
+
+jobs:
+  syndicate:
+    # Never syndicate off a failed deploy: the feed would be stale or absent,
+    # and an absent feed must not read as "nothing new".
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      # Mint a short-lived installation token from the same GitHub App the
+      # changelog stamp uses, so the ledger commit is made by an actor that can
+      # be added to the `main` ruleset bypass list. Gated on the App-id repo
+      # *variable* (not a secret, so it's usable in `if`); continue-on-error
+      # means a missing key never fails the job.
+      - name: Mint a GitHub App token (when configured)
+        id: app-token
+        if: ${{ vars.CHANGELOG_APP_ID != '' }}
+        continue-on-error: true
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.CHANGELOG_APP_ID }}
+          private-key: ${{ secrets.CHANGELOG_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ steps.app-token.outputs.token || secrets.CHANGELOG_BOT_TOKEN || github.token }}
+          # Explicit: the ledger commit below pushes with this credential, so
+          # it has to survive in .git/config. This is the default, stated so
+          # nobody "hardens" it to false and silently breaks the push.
+          persist-credentials: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Zero-dep script — no install step. Missing credentials degrade to a
+      # plan; a genuine post failure exits non-zero and reds the run.
+      - name: Announce
+        run: node scripts/syndicate/run.mjs ${{ inputs.dry-run && '--dry-run' || '' }}
+        env:
+          BLUESKY_HANDLE: ${{ vars.BLUESKY_HANDLE }}
+          BLUESKY_DID: ${{ vars.BLUESKY_DID }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+
+      # The receipts. `docs/**` is outside deploy-site's `paths:` filter, so
+      # this commit does NOT retrigger the deploy — which would retrigger this
+      # workflow. Moving the ledger under `site/` would close that loop.
+      - name: Commit the ledger
+        if: always()
+        run: |
+          if [ -z "$(git status --porcelain docs/syndication)" ]; then
+            echo "Ledger unchanged."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/syndication
+          git commit -m "chore(syndicate): record announced posts [skip ci]"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "Ledger updated."
+              exit 0
+            fi
+            echo "push rejected — rebasing onto main (attempt ${attempt})…"
+            git pull --rebase origin main || break
+          done
+          # A lost ledger write means the next run would re-announce these
+          # posts, so this is a warning you want to see, not a silent no-op.
+          echo "::warning title=syndicate::Could not push the syndication ledger to main. \
+          The next run may re-announce these posts. Configure the changelog GitHub App \
+          (CHANGELOG_APP_ID + CHANGELOG_APP_PRIVATE_KEY) and add it to the main ruleset \
+          bypass list."
+          exit 0

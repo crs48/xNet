@@ -80,6 +80,13 @@ jobs:
       - name: Humane patterns (0234)
         run: pnpm check:humane-patterns
 
+      # POSSE's machine-checkable half (0432): a syndicated post is a mirror,
+      # so every announced post must carry a link home to xnet.fyi, fit
+      # Bluesky's 300-grapheme budget, and have link facets whose byte ranges
+      # actually decode to their URL.
+      - name: Syndication invariants (0432)
+        run: pnpm check:syndication
+
       # Charter §Agency's second half: a capability you cannot see is not a
       # degree of freedom you have. Every other check here asks whether the
       # code is correct — none asks whether a shipped capability is findable,
