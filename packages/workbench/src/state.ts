@@ -181,9 +181,10 @@ interface WorkbenchState {
   /**
    * The layout tree (exploration 0280): regions → slots → views, the
    * single data model behind every shell posture. The former shells are
-   * presets over this tree; behind `xnet:experiment:layout-tree` the
-   * ShellFrame renders it directly, and the legacy axes (`layout`,
-   * `chrome`) are kept coherent with it during the transition.
+   * presets over this tree, and ShellFrame always renders it — the
+   * `xnet:experiment:layout-tree` flag that gated it during the transition
+   * was removed in `59973833c` once the single shell made it meaningless.
+   * The legacy axes (`layout`, `chrome`) are kept coherent with the tree.
    */
   tree: LayoutTree
   /** Active primary mode of the calm shell (0250). */

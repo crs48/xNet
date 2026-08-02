@@ -55,7 +55,7 @@ Their Table 5.1 names the switching cost that grows fastest over time:
 
 ## 2. The Moat Register
 
-The Charter's §6 lists seven refused rents. It does not say what we **keep**.
+The Charter's §6 lists thirteen refused rents. It does not say what we **keep**.
 Both halves belong in the open. Honesty labels match the Charter's vocabulary:
 **Enforced** (a gate fails the build), **Architectural** (the code shape makes
 it true), **Aspirational** (stated policy, not yet shipped).
@@ -150,22 +150,73 @@ Every future row added here is either fixed or disclosed — never omitted.
 
 ---
 
-## 4. The four tests, applied to every current lane
+## 4. The five tests, applied to every current lane
 
 From [`CHARTER.md`](./CHARTER.md) §6. The first three ask whether a lane is
-fair to the user; the fourth asks whether it is durable for us.
+fair to the user; the fourth asks whether it is durable for us; the fifth asks
+whether it still pays **while we keep every refusal**.
 
-| Lane | Improvement | BATNA | Vanish | Sleep |
-| --- | --- | --- | --- | --- |
-| Hub hosting + ops (`personal`…`enterprise`) | ✅ real servers, backups, uptime | ✅ same MIT hub self-hostable; entitlements are MIT and never phone home | ✅ `.xnetpack` out, self-host in | ✅ someone must still run it |
-| AI metering (`includedAiUsd` / `aiMonthlyBudgetUsd`) | ✅ pass-through + real inference COGS | ✅ BYO-key path preserved | ✅ outputs are nodes in your log | ✅ COGS is COGS |
-| Support / SLA / indemnity | ✅ pure labour and risk transfer | ✅ unaffected | ✅ nothing sealed to us | ✅ labour |
-| Managed marketplace listing (10%) | ✅ distribution work we perform | ✅ BYO-billing path is 0% and MIT | ✅ licences DID-bound, offline-verifiable | ✅ running a store is operating |
-| Direct creator sales (**0%**) | n/a — refused | ✅ | ✅ | n/a |
+| Lane | Improvement | BATNA | Vanish | Sleep | Rust |
+| --- | --- | --- | --- | --- | --- |
+| Hub hosting + ops (`personal`…`enterprise`) | ✅ real servers, backups, uptime | ✅ same MIT hub self-hostable; entitlements are MIT and never phone home | ✅ `.xnetpack` out, self-host in | ✅ someone must still run it | ✅ carries 8 of the 13 refusals; free exit does not reduce the need to run it |
+| AI metering (`includedAiUsd` / `aiMonthlyBudgetUsd`) | ✅ pass-through + real inference COGS | ✅ BYO-key path preserved | ✅ outputs are nodes in your log | ✅ COGS is COGS | ✅ no refusal touches inference cost |
+| Support / SLA / indemnity | ✅ pure labour and risk transfer | ✅ unaffected | ✅ nothing sealed to us | ✅ labour | ✅ labour is unaffected by what we refuse to charge for |
+| Managed marketplace listing (10%) | ✅ distribution work we perform | ✅ BYO-billing path is 0% and MIT | ✅ licences DID-bound, offline-verifiable | ✅ running a store is operating | ✅ ranking neutrality is the product, not a tax on it |
+| Direct creator sales (**0%**) | n/a — refused | ✅ | ✅ | n/a | n/a |
 
 A lane that would fail: **"sync quota"** or **"premium protocol version."**
 Both charge for access to something the user already owns, and neither
 survives a competitor open-sourcing the feature set. Neither exists.
+
+---
+
+## 4a. The Rust test — which lane pays for each refusal
+
+§4 reads lane-first: _does this lane survive our refusals?_ This section reads
+the other way, refusal-first: _which lane pays for this one?_ Both directions
+are needed, because the failure the Rust test guards against is not any single
+lane dying — it is the refusal set as a whole becoming unaffordable, which is
+how the Rust brothers' governance innovations reached nobody
+([exploration 0429](./explorations/0429_[x]_THE_RUST_TEST_ASTERISK_15_AND_THE_PRICE_OF_A_REFUSAL.md)).
+
+**Pass condition:** every refusal in `CHARTER.md` §6 names ≥1 shipped or
+building lane that survives it. All thirteen appear below; none is omitted.
+
+| Refusal (`CHARTER.md` §6) | Lane that pays for it | Verdict |
+| --- | --- | --- |
+| No take rate on direct creator sales | Hub hosting + ops | ✅ creators pay for hosting whether or not they sell |
+| No egress or export fees | Hub hosting + ops | ✅ the margin is running servers, not holding bytes |
+| No identity ransom | Hub hosting + ops | ✅ a portable `did:key` still needs a hub to sync to |
+| No protocol tolls | Support / SLA / indemnity | ✅ we sell standing behind the spec, not access to it |
+| No per‑member pricing on communities | Hub hosting + ops (flat) | ✅ billed on storage/concurrency/AI (0359) |
+| No rent on introductions | Hub hosting + ops | ✅ connection rides the flat hosting bill (0417) |
+| No scored intimacy | Hub hosting + ops | ✅ legibility is the product; the score would have been the surplus (0422) |
+| No behavioural surplus | All lanes | ✅ there was never ad revenue to forgo |
+| No global chokepoint tier | Hub hosting + ops | ✅ anchor tenancy on a substrate anyone can run (§5) |
+| A FRAND trademark | Support / SLA / indemnity | ✅ the name never fenced the revenue; labour did |
+| No marketplace self‑preferencing | Managed marketplace listing (10%) | ✅ the 10% pays for distribution work neutrality does not remove |
+| No rent on your published social graph | Hub hosting + ops | ✅ folded into hosting, never its own SKU — which is also why its Sleep verdict is honestly ⚠️ weak (0420) |
+| **No context capture** | — | ⚠️ **On borrowed time** — see below |
+
+> [!WARNING]
+> **"No context capture" has no lane that pays for it.** §6 of this document
+> already calls it the most expensive decision in the Charter: GitHub made exit
+> nearly free and was still worth $7.5B because the contribution graph, profile
+> and teams do not travel. Our compensating answers — operated trust and
+> multiplayer — are both slopes, both weaker per unit than a captive graph, and
+> multiplayer is **not yet revenue-bearing**.
+>
+> This is the intended, honest first result of the Rust test, not a defect in
+> it. The refusal stands. What the label buys is that the day someone argues
+> for "a slightly stickier graph, so that we survive to keep the other eleven,"
+> that argument meets a verdict already written down in calm rather than an
+> empty page. Dropping the refusal remains a change to `CHARTER.md` §6 and
+> needs its own ADR; the Rust test does not authorise it.
+
+The ledger claim `economics-refusals-are-affordable`
+([`charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts))
+pins this section as a disclosed `pending` gap, so it cannot be closed in prose
+alone.
 
 ---
 
@@ -245,6 +296,7 @@ exit.**
 | [0349](./explorations/0349_[_]_FIRST_CLASS_PAYMENTS_CREATOR_COMMERCE_AND_ECONOMIC_EXCHANGE.md) | 0% on direct creator sales; payment-mints-capability; receipts-as-nodes |
 | [0196](./explorations/0196_[_]_PAID_PLUGIN_MARKETPLACE_MONETIZATION_AND_LICENSING.md) | The 10% managed lane vs the 0% sovereign lane |
 | [0358](./explorations/0358_[x]_VALUE_CAPTURE_WITHOUT_ENCLOSURE_MOATS_SUBSTRATES_AND_THE_SLEEP_TEST.md) | The rent/improvement frame, the Sleep test, this register |
+| [0429](./explorations/0429_[x]_THE_RUST_TEST_ASTERISK_15_AND_THE_PRICE_OF_A_REFUSAL.md) | The Rust test and §4a; refusals must be affordable, not just kept |
 
 The plan ladder itself is machine-readable in
 [`packages/entitlements/src/plans.ts`](../packages/entitlements/src/plans.ts);

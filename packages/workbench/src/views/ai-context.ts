@@ -25,28 +25,38 @@ const MAX_RESOURCE_CHARS = 2000
 
 /**
  * Format a context pack into the (zero or one) system messages to inject before
- * the conversation history. Returns `[]` when the pack has no resources, so a
- * turn with no relevant context adds nothing.
+ * the conversation history.
+ *
+ * A degraded retrieval produces a message even with zero resources — an empty
+ * result from a bounded substring scan is precisely the case where the model
+ * would otherwise assert "there is no such thing" from a search that never
+ * looked (exploration 0424).
  */
 export function formatContextMessages(pack: AiContextPack | null | undefined): AIMessage[] {
   const resources = pack?.resources ?? []
-  if (resources.length === 0) return []
+  const notice = pack?.retrieval?.degraded ? pack.retrieval.notice : undefined
+  if (resources.length === 0 && !notice) return []
 
   const blocks = resources.map((resource) => {
-    const { kind, id } = resource.citation
+    const { kind, id, path } = resource.citation
     const text =
       resource.text.length > MAX_RESOURCE_CHARS
         ? `${resource.text.slice(0, MAX_RESOURCE_CHARS)}…`
         : resource.text
-    return `### ${kind} · ${id}\n${text.trim()}`
+    // The path is how this item was reached from the query's entry node — the
+    // provenance the retriever computed and the pack used to discard.
+    const heading = path ? `### ${kind} · ${id} (via ${path})` : `### ${kind} · ${id}`
+    return `${heading}\n${text.trim()}`
   })
+
+  const header = notice
+    ? `Workspace context (read-only, INCOMPLETE — ${notice} Say so if you cannot answer):`
+    : 'Workspace context (read-only, may be incomplete — cite items you use):'
 
   return [
     {
       role: 'system',
-      content:
-        'Workspace context (read-only, may be incomplete — cite items you use):\n\n' +
-        blocks.join('\n\n')
+      content: blocks.length > 0 ? `${header}\n\n${blocks.join('\n\n')}` : header
     }
   ]
 }

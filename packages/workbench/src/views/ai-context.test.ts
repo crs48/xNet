@@ -54,4 +54,42 @@ describe('formatContextMessages', () => {
     expect(messages[0].content).toContain('…')
     expect(messages[0].content.length).toBeLessThan(long.length)
   })
+
+  // Exploration 0424 — the model was told what was found but never how, so an
+  // empty bounded scan and an empty exhaustive search read identically.
+  it('names the retrieval path a resource was reached by', () => {
+    const messages = formatContextMessages(
+      pack([resource({ citation: { kind: 'node', id: 'n2', path: 'Acme → contacts → n2' } })])
+    )
+    expect(messages[0].content).toContain('via Acme → contacts → n2')
+  })
+
+  it('marks the context INCOMPLETE and carries the notice when retrieval degraded', () => {
+    const messages = formatContextMessages({
+      ...pack([resource()]),
+      retrieval: { tier: 'scan', degraded: true, notice: 'Results may be incomplete.' }
+    })
+    expect(messages[0].content).toContain('INCOMPLETE')
+    expect(messages[0].content).toContain('Results may be incomplete.')
+  })
+
+  it('still emits the warning when a degraded search found nothing', () => {
+    const messages = formatContextMessages({
+      ...pack([]),
+      retrieval: { tier: 'scan', degraded: true, notice: 'Results may be incomplete.' }
+    })
+    expect(messages).toHaveLength(1)
+    expect(messages[0].content).toContain('Results may be incomplete.')
+  })
+
+  it('says nothing extra when retrieval was not degraded', () => {
+    const messages = formatContextMessages({
+      ...pack([resource()]),
+      retrieval: { tier: 'bm25-graph', degraded: false }
+    })
+    expect(messages[0].content).not.toContain('INCOMPLETE')
+    expect(
+      formatContextMessages({ ...pack([]), retrieval: { tier: 'bm25', degraded: false } })
+    ).toEqual([])
+  })
 })

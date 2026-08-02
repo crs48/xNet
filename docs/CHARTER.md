@@ -112,13 +112,63 @@ handing it to a vendor's model is another, and §Exit is what keeps the two
 distinguishable. That makes §Exit a precondition on every autonomy feature here,
 not a separate promise about portability.
 
+**`draft` mode is yours to choose, in Settings › AI.** The default is
+`scaffold`, and the choice states its own cost rather than selling the faster
+option. Saying "opt‑in only" while providing no way to opt in would describe an
+internal default and call it a freedom — which is the failure §Agency's second
+half exists to catch (exploration 0428).
+
 - **Architectural / tested:** governed GraphRAG retrieval
   ([`packages/brain/src/retrieve.ts`](../packages/brain/src/retrieve.ts)),
   provenance tiers ([`packages/trust/src/index.ts`](../packages/trust/src/index.ts)),
   the runtime's default `scaffold` assist mode + `ai-generated` turn provenance
-  ([`packages/plugins/src/ai/runtime.ts`](../packages/plugins/src/ai/runtime.ts)).
+  ([`packages/plugins/src/ai/runtime.ts`](../packages/plugins/src/ai/runtime.ts)),
+  and the opt‑in itself — Settings › AI, backed by
+  [`packages/workbench/src/lib/ai-assist.ts`](../packages/workbench/src/lib/ai-assist.ts)
+  (exploration 0428).
 - **Aspirational:** surfacing citations + an `ai-generated` badge in the editor UI
   — tracked in exploration 0234 (Wave 2).
+
+### You can see what you are able to do
+
+The commitment above is only half of agency. Cate Hall's definition —
+[_Can You Just Do Things?_, Asterisk 12](https://asteriskmag.com/issues/12/can-you-just-do-things)
+— is the capacity to **both see and act on** the degrees of freedom available
+to you, and the word doing the work is _both_. Everything above answers _"we
+did not take capability away from you."_ This answers the other half.
+
+**A capability you cannot see is not a degree of freedom you have.** A feature
+reachable only by knowing a `localStorage` key, reading the source, or asking
+the assistant the right question is folklore, not agency — and it fails the
+people whose constraints are tightest, which is the opposite of what the slogan
+claims for itself. The burden of making a capability visible belongs to the
+tool, not to the user.
+
+Concretely: every user‑flippable capability is declared in the capability
+register with at least one surface a person could find it through — a Labs
+toggle, a named Settings control, a first‑run coachmark, or a command — or it
+carries a written reason it is deliberately internal, in the same shape as the
+`humane-ok` escape hatch below. Adding a capability with no surface and no
+reason fails the build.
+
+- **Enforced:** the capability‑surface gate
+  ([`scripts/check-capability-surface.mjs`](../scripts/check-capability-surface.mjs))
+  scans the source for `xnet:experiment:*` flags, requires each to be declared in
+  [`apps/web/src/lib/capabilities.ts`](../apps/web/src/lib/capabilities.ts), and
+  fails on any entry with no surface and no `hidden` reason; the receipt is
+  pinned by `agency-capabilities-are-visible` in
+  [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)
+  (exploration 0428).
+- **Aspirational:** the register covers experiment flags and the assist mode
+  today. Commands, keyboard shortcuts, and plugin capabilities are not yet in
+  scope — widening the population is tracked in exploration 0428, deliberately
+  after the first population has held green.
+
+> [!NOTE]
+> This does **not** license a product tour, a nag, or a "did you know" feed.
+> Calm (§3) still binds: the answer is a contextual, dismissible, one‑at‑a‑time
+> coachmark and an honest Settings row, never an interruption that teaches you
+> to wait for the app to tell you what to do next.
 
 ## 6. Commons — you own your audience and your space
 
@@ -228,7 +278,7 @@ things you would own anyway. The refused rents, each with its receipt:
   ([exploration 0196](./explorations/0196_[_]_PAID_PLUGIN_MARKETPLACE_MONETIZATION_AND_LICENSING.md)).
 - **No rent on your published social graph.** When you publish what you saved,
   the records go into **your own** AT Protocol repo — never ours. xNet runs the
-  *appview* that compares two people's published sets, and bills for that
+  _appview_ that compares two people's published sets, and bills for that
   compute as part of hosting, never as its own tier. The comparison shows
   overlap between two named people and nothing else: no ranking, no global
   count, no "most‑saved". A public like corpus with a scoreboard is a
@@ -242,7 +292,7 @@ things you would own anyway. The refused rents, each with its receipt:
   fails the build if a ranking route appears (exploration 0420).
 
 Covenants are tested in down quarters, not up ones — so the test lives here,
-not in anyone's memory. **Every new revenue lane must pass four tests before
+not in anyone's memory. **Every new revenue lane must pass five tests before
 it ships:**
 
 1. **Improvement test** — the margin pays for labour, capital, or operations
@@ -254,6 +304,11 @@ it ships:**
 4. **Sleep test** — if a well‑funded competitor shipped our entire feature set
    as open source tomorrow, which revenue lines survive? A lane whose answer is
    "none" is a cliff (exploration 0358).
+5. **Rust test** — if we keep every refusal above and a competitor keeps none,
+   do we still reach the people we are refusing on behalf of? **Every refusal
+   must name at least one shipped or building lane that survives it.** A
+   refusal with no surviving lane is not forbidden — it is on borrowed time,
+   and must be labelled so (exploration 0429).
 
 The first three ask whether a lane is fair to the user. The fourth asks whether
 it is durable for us, and it exists because those are not the same question:
@@ -263,8 +318,27 @@ it is durable for us, and it exists because those are not the same question:
 > cliff will eventually break every other promise in this document to keep
 > from falling off it._
 
-A lane that fails any test is redesigned or refused. Exploration documents
-that propose a revenue lane should apply the four tests explicitly.
+The fifth asks whether the refusals are affordable, which is a different
+question again. John and Mack Rust invented the mechanical cotton picker in the
+1930s and attached to it every refusal this document would recognise: the
+patents went into a nonprofit foundation, their own pay was capped at ten times
+their lowest‑paid worker, machines were to be leased only to planters accepting
+fair wages, and they offered marketing control to the Southern Tenant Farmers
+Union. The company went bankrupt around 1940. International Harvester shipped a
+mass‑produced picker in December 1942 with none of it attached, and the
+mechanisation of the Cotton South proceeded as if the Rusts had never existed.
+
+> _A refusal kept only by a company nobody uses is a refusal that never
+> happened. The Rust test exists so that "we must stay competitive in order to
+> influence the field" has to be answered in calm, in writing, and in advance —
+> rather than arriving as a reason to drop a promise in the quarter we can
+> least afford to examine it._
+
+A lane that fails any of the first four tests is redesigned or refused. A
+refusal that fails the fifth is kept and **labelled as on borrowed time** —
+the Rust test never authorises dropping a refusal, which remains a change to
+this document and needs its own ADR. Exploration documents that propose a
+revenue lane should apply all five tests explicitly.
 
 **Worked example — the affinity appview (exploration 0420).** Improvement:
 ✅ the margin pays for crawl, index and compare compute we run; the records
@@ -280,9 +354,14 @@ hosting and **never priced as its own SKU**: a standalone tier would have
 nothing to defend it but being the incumbent index, which is the global
 chokepoint rent this section already refuses.
 
+The per‑refusal Rust verdicts — which lane pays for each refusal above, and
+which refusal is currently on borrowed time — are kept in
+[`ECONOMICS.md`](./ECONOMICS.md) §4a, so they can be revised as lanes ship
+without reopening this covenant.
+
 ### Who can change this section
 
-The refused rents and the four tests bind people who cannot merge a PR — plugin
+The refused rents and the five tests bind people who cannot merge a PR — plugin
 authors, self-hosters, hub operators, paying customers. So they are an
 **in-scope operational rule** under the
 [Rule Change Proposal process](./RULE_CHANGES.md): anyone affected can propose

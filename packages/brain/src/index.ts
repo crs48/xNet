@@ -88,6 +88,8 @@ export {
   NoTextIndexError,
   queryVariants,
   scanEntrySearch,
+  SCAN_NOTICE,
+  type AiRetrievalResultLike,
   type AiRetrievedNodeLike,
   type RecallResult,
   type RelationFieldsLookup,

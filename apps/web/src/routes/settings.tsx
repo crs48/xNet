@@ -17,11 +17,17 @@ import {
   serializeEscrow,
   serializeShare
 } from '@xnetjs/identity'
-import { deleteDay, getCommandRegistry, leaveWithEverything } from '@xnetjs/plugins'
+import {
+  deleteDay,
+  getCommandRegistry,
+  leaveWithEverything,
+  type AiAssistMode
+} from '@xnetjs/plugins'
 import { useIdentity, useNodeStore, useQuery, useXNet } from '@xnetjs/react'
 import { useXNetInternal } from '@xnetjs/react/internal'
 import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle, useTheme } from '@xnetjs/ui'
 import { MeetingEngineSettings } from '@xnetjs/views'
+import { readAssistMode, writeAssistMode } from '@xnetjs/workbench'
 import {
   Layers,
   Sun,
@@ -128,6 +134,7 @@ function SettingsPage() {
     <div className="-m-6 h-full overflow-auto p-6">
       {activeSection === 'profile' && <ProfileSettings />}
       {activeSection === 'appearance' && <AppearanceSettings />}
+      {activeSection === 'ai' && <AiSettings />}
       {activeSection === 'labs' && <LabsSettings />}
       {activeSection === 'dictation' && <MeetingEngineSettings />}
       {activeSection === 'safety' && (
@@ -145,6 +152,78 @@ function SettingsPage() {
       {activeSection === 'account' && <AccountSettings />}
       {activeSection === 'about' && <AboutSettings />}
     </div>
+  )
+}
+
+// ─── AI Settings ──────────────────────────────────────────────────────────────
+
+/**
+ * AI (exploration 0428). Charter §Agency has always said `draft` mode is
+ * "opt-in only" — this is the opt-in. `AiAssistMode` shipped in the runtime
+ * with no UI consumer at all, which made the promise unverifiable and the mode
+ * invisible: a degree of freedom that existed only in the type system.
+ *
+ * Framed as a choice with a stated cost, not a feature toggle. The default is
+ * scaffold, and the copy says plainly what draft trades away.
+ */
+function AiSettings() {
+  const [mode, setMode] = useState<AiAssistMode>(() => readAssistMode())
+
+  const choose = (next: AiAssistMode) => () => {
+    writeAssistMode(next)
+    setMode(next)
+  }
+
+  const OPTIONS: { id: AiAssistMode; label: string; description: string }[] = [
+    {
+      id: 'scaffold',
+      label: 'Scaffold — help me think',
+      description:
+        'The assistant proposes, outlines, and cites its sources. You write the words and own them. This is the default, and it is the guard against letting the model do your thinking for you.'
+    },
+    {
+      id: 'draft',
+      label: 'Draft — write it for me',
+      description:
+        'The assistant produces finished prose you can edit. Faster, and the trade is real: work you did not write is work you understand less well. Either way the result is tagged as AI-generated.'
+    }
+  ]
+
+  return (
+    <SettingsPanel
+      title="AI"
+      description="How the assistant relates to your work. Nothing here changes which model you use or where it runs."
+    >
+      <SettingsGroup label="Assist mode" className="[&>div]:space-y-2">
+        {OPTIONS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={choose(option.id)}
+            aria-pressed={mode === option.id}
+            className={`w-full cursor-pointer rounded-lg border px-4 py-3 text-left transition-colors ${
+              mode === option.id
+                ? 'border-accent bg-surface-2'
+                : 'border-hairline bg-surface-0 hover:bg-surface-1'
+            }`}
+          >
+            <div className="flex items-center gap-2 text-sm text-ink-1">
+              {option.label}
+              {option.id === 'scaffold' && (
+                <span className="rounded-full border border-hairline px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-ink-3">
+                  default
+                </span>
+              )}
+            </div>
+            <div className="mt-1 text-xs text-ink-3">{option.description}</div>
+          </button>
+        ))}
+      </SettingsGroup>
+      <p className="mt-4 text-xs text-ink-3">
+        Applies to the next conversation you start. Anything the model authored is marked with
+        AI-generated provenance in both modes.
+      </p>
+    </SettingsPanel>
   )
 }
 

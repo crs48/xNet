@@ -16,6 +16,13 @@ export {
 } from './commit'
 export { detectSocialArchive, probeSocialArchive, type SocialArchiveDetection } from './detector'
 export {
+  parseSocialImportRunOptions,
+  runWantsTranscripts,
+  serializeSocialImportRunOptions,
+  DEFAULT_SOCIAL_IMPORT_RUN_OPTIONS,
+  type SocialImportRunOptions
+} from './run-options'
+export {
   clearCompletedSocialImportJobs,
   createSocialImportJob,
   createSocialImportJobCheckpointAccumulator,

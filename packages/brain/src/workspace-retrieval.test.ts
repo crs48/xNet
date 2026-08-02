@@ -111,6 +111,21 @@ describe('createWorkspaceRetrieval', () => {
     expect(result.degraded).toBe(true)
   })
 
+  it('reports the call-time downgrade through retrieveContext too, not just recall', async () => {
+    // The seam the in-app assistant uses. Before exploration 0424 it returned a
+    // bare node array, so this downgrade was invisible to every caller that did
+    // not reach past it to `recall()` — which the app never did.
+    const retrieval = createWorkspaceRetrieval({
+      store: makeStore({ withIndex: true, indexReturnsNull: true }),
+      relationFieldsOf,
+      authorize: ALLOW_ALL_NODES
+    })
+    const { provenance } = await retrieval.retrieveContext('acme', { limit: 5 })
+    expect(provenance.tier).toBe('scan')
+    expect(provenance.degraded).toBe(true)
+    expect(provenance.notice).toMatch(/do not conclude that something does not exist/i)
+  })
+
   it('walks typed relations to reach a node the query text never mentions', async () => {
     const retrieval = createWorkspaceRetrieval({
       store: makeStore(),
@@ -161,11 +176,42 @@ describe('createWorkspaceRetrieval', () => {
       relationFieldsOf,
       authorize: ALLOW_ALL_NODES
     })
-    const nodes = await retrieval.retrieveContext('Acme', { limit: 5 })
+    const { nodes } = await retrieval.retrieveContext('Acme', { limit: 5 })
     expect(nodes.length).toBeGreaterThan(0)
     expect(nodes[0]).toHaveProperty('nodeId')
     expect(nodes[0]).toHaveProperty('pathLabel')
   })
+
+  // One case per tier: `retrieveContext` is the seam the app uses, and it must
+  // agree with `recall()` — the seam the CLI uses — on every one of them.
+  const TIER_CASES = [
+    {
+      tier: 'hybrid-graph',
+      options: {
+        semanticEntrySearch: async () => [{ nodeId: 'acme', score: 1, source: 'vector' as const }]
+      }
+    },
+    { tier: 'bm25-graph', options: {} },
+    { tier: 'bm25', options: { budget: { maxHops: 0 } } },
+    { tier: 'scan', options: {}, store: () => makeStore({ withIndex: false }) }
+  ] as const
+
+  for (const testCase of TIER_CASES) {
+    it(`retrieveContext reports ${testCase.tier}, matching recall()`, async () => {
+      const retrieval = createWorkspaceRetrieval({
+        store: 'store' in testCase ? testCase.store() : makeStore(),
+        relationFieldsOf,
+        authorize: ALLOW_ALL_NODES,
+        ...testCase.options
+      })
+      const recalled = await retrieval.recall('Acme')
+      const { provenance } = await retrieval.retrieveContext('Acme', { limit: 5 })
+      expect(provenance.tier).toBe(testCase.tier)
+      expect(provenance.tier).toBe(recalled.tier)
+      expect(provenance.degraded).toBe(recalled.degraded)
+      expect(provenance.notice).toBe(recalled.notice)
+    })
+  }
 
   it('drops to budget and hands the rest back as expandable refs', async () => {
     const retrieval = createWorkspaceRetrieval({
