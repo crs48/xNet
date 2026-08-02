@@ -82,6 +82,9 @@ async function main() {
   const handle = process.env.BLUESKY_HANDLE
   const appPassword = process.env.BLUESKY_APP_PASSWORD
   const did = process.env.BLUESKY_DID
+  // Defaults to bsky.social; overridable for a self-hosted PDS (0372/0420) and
+  // for exercising the failure path against a stub.
+  const pds = process.env.BLUESKY_PDS || undefined
   // No credentials is a normal, supported state (an unconfigured repo), so it
   // degrades to a plan rather than failing the job.
   const canPost = Boolean(handle && appPassword) && !args.dryRun
@@ -122,7 +125,7 @@ async function main() {
 
   let session
   if (canPost) {
-    session = await createSession({ handle, appPassword, did })
+    session = await createSession({ pds, handle, appPassword, did })
   }
 
   const failures = []
@@ -137,7 +140,7 @@ async function main() {
       continue
     }
     try {
-      const bluesky = await createPost({ session, text: item.text, now })
+      const bluesky = await createPost({ pds, session, text: item.text, now })
       recordPosted(ledger, { ...item, bluesky }, now)
       console.log(`posted → ${bluesky.url}`)
       summary.push(`- ✅ [${item.headline}](${bluesky.url})`)

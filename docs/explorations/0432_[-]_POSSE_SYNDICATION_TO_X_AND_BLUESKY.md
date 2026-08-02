@@ -742,24 +742,24 @@ appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Paste to X\n\n\`\`\`\n${text
 
 **Phase 3 — CI and gates**
 
-- [ ] `.github/workflows/syndicate.yml` on `workflow_run` + dispatch
+- [x] `.github/workflows/syndicate.yml` on `workflow_run` + dispatch
 - [ ] Set `BLUESKY_APP_PASSWORD` secret + `BLUESKY_HANDLE` / `BLUESKY_DID` variables **(human: Bluesky → Settings → App Passwords)**
-- [ ] Reuse the `CHANGELOG_APP_ID` GitHub App to commit the ledger with `[skip ci]`
-- [ ] `scripts/check-syndication.mjs` + `check:syndication`, with `--selftest` wired into `check:gate-controls`
+- [x] Reuse the `CHANGELOG_APP_ID` GitHub App to commit the ledger with `[skip ci]`
+- [x] `scripts/check-syndication.mjs` + `check:syndication`, with `--selftest` wired into `check:gate-controls`
 
 ## Validation Checklist
 
 - [x] `node scripts/syndicate/run.mjs --dry-run` prints the exact text of every planned post and touches no network sink
 - [x] Running it twice with an unchanged ledger plans **zero** posts (idempotency)
 - [x] `linkFacets()` returns correct ranges for text containing an em dash, a curly apostrophe and an emoji before the URL
-- [ ] `check:syndication --selftest` goes **red** on a post missing the canonical link, red on one at 301 graphemes, and red on a facet whose byte range does not decode back to its URL
-- [ ] A `draft: true` blog post never appears in a plan
-- [ ] A changelog fragment without `syndicate: true` never appears in a plan
+- [x] `check:syndication --selftest` goes **red** on a post missing the canonical link, red on one at 301 graphemes, and red on a facet whose byte range does not decode back to its URL
+- [x] A `draft: true` blog post never appears in a plan
+- [x] A changelog fragment without `syndicate: true` never appears in a plan
 - [ ] The first real post appears on Bluesky with a **clickable** link (facet applied, not plain text)
-- [ ] The run's job summary contains paste-ready X text matching the Bluesky post
+- [x] The run's job summary contains paste-ready X text matching the Bluesky post
 - [ ] A failing Bluesky call makes the job exit **non-zero** and the ledger records the failure rather than marking the item posted
 - [ ] Committing the ledger does **not** trigger `deploy-site` (check the Actions tab after the first real run)
-- [ ] No X credentials exist anywhere in the repo, its secrets, or its variables
+- [x] No X credentials exist anywhere in the repo, its secrets, or its variables
 - [x] `xnet.fyi` loads zero third-party requests after the footer change (verified: `performance.getEntriesByType('resource')` returns no non-origin entries)
 
 ---
