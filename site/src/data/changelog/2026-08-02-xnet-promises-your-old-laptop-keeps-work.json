@@ -1,0 +1,11 @@
+{
+  "id": "2026-08-02-xnet-promises-your-old-laptop-keeps-work",
+  "date": "August 2, 2026",
+  "title": "xNet promises your old laptop keeps working",
+  "summary": "The Charter now declares the oldest machine xNet supports — a 2017-class laptop with 8 GB of RAM — and a CI check fails any change that makes a first load cost more there. We make no claim to be greener than anything else, and we will never sell efficiency as a paid tier.",
+  "highlights": [],
+  "tags": [
+    "platform",
+    "performance"
+  ]
+}

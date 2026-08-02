@@ -686,33 +686,70 @@ And the copy guard, dropped into the existing `RULES` array:
 
 ## Implementation checklist
 
-**Status:** ░░░░░░░░░░ 0/12 items
+**Status:** ███████████░ 11/12 items
 
 - [x] Decide and write down the floor device (model class, RAM, OS range)
 - [x] Add `docs/CHARTER.md` §7 Floor, in Enforced/Architectural/Aspirational shape
 - [x] Add the `No sustainability upcharge` refused rent to `docs/CHARTER.md` §6
 - [x] Record the option-E refusal and its five-test verdicts in `docs/ECONOMICS.md` §4a
-- [ ] Extend `scripts/collect-core-platform-baselines.ts` to emit bytes and peak RSS
+- [x] Put the byte measurement in the gate itself, **not** in
+      `collect-core-platform-baselines.ts` — see "Deviations" below
 - [x] Commit `footprint-baseline.json` with the first measured baseline
 - [x] Write `scripts/check-footprint-budget.mjs` with the ratchet and `--selftest`
-- [x] Wire it into the `lint` job in `ci.yml`, with the selftest as a sibling step
+- [x] Wire it into `ci.yml` — the `typecheck` job, with the control in `lint`
 - [x] Add the `unbacked green claim` rule to `scripts/check-humane-patterns.mjs`
 - [x] Pin `floor-old-hardware-keeps-working` in `packages/telemetry/test/charter-claims-ledger.test.ts`
 - [x] Credit the seven passing permacomputing principles in `docs/VIBE.md`'s protocol row
-- [ ] Add a changelog fragment ("xNet now promises your old laptop keeps working")
+- [x] Add a changelog fragment ("xNet now promises your old laptop keeps working")
+
+### Deviations from the plan, and what is left open
+
+Two things changed once the code was read rather than assumed, and one thing
+cannot be finished from a keyboard.
+
+1. **The collector was the wrong host** (item 5, rewritten above).
+   `scripts/collect-core-platform-baselines.ts` turned out to be a NodeStore
+   data-layer benchmark — it populates in-memory stores and prints a markdown
+   table of query timings, knows nothing about the web bundle, and does not run
+   in CI. Teaching it to weigh `apps/web/dist` would have coupled two unrelated
+   concerns and put the measurement somewhere no gate reads. The measurement
+   lives in `check-footprint-budget.mjs` instead, where the consumer is.
+2. **The job moved from `lint` to `typecheck`** (item 8). `lint` is deliberately
+   build-free (exploration 0193) and a byte budget has nothing to weigh without
+   a build. The gate runs where `check:api-report` runs, for the same stated
+   reason; the negative control stays in `lint` because it is pure in-memory
+   logic.
+3. **The floor device has not been measured** — the one validation item still
+   open. No CI runner is a 2017 laptop and none was to hand, so
+   `floor.cold-open-ms` and `floor.peak-rss-mb` ship as `pending` in the
+   baseline. That is a disclosed gap in the claims-ledger's own idiom, not a
+   silent one: the gate prints both every run, the ledger asserts they stay
+   dated-or-pending, and filling them with numbers measured on faster hardware
+   would have been worse than leaving them empty.
+
+> [!IMPORTANT]
+> **The first measured number is bad, and that is the point.** A cold visit
+> costs **1.94 MB gzipped** on the critical path today — heavy for a machine
+> with 8 GB of RAM and a slow connection. The baseline records it as-found
+> rather than as-desired, because a ratchet's job is to stop the number rising
+> while the work to lower it happens. Treat 1,987,101 bytes as a debt with a
+> receipt, not as a passing grade.
 
 ## Validation checklist
 
-- [ ] `node scripts/check-footprint-budget.mjs` passes on a clean `main`
-- [ ] `node scripts/check-footprint-budget.mjs --selftest` goes **red** on a planted regression
-- [ ] Deleting a metric from the measured input produces `unmeasured`, not a pass
-- [ ] A deliberate +20% bundle regression on a scratch branch fails CI
-- [ ] `pnpm check:humane-patterns` fails on a planted `carbonNeutral` identifier
-- [ ] `pnpm check:humane-patterns --selftest` still passes with the new rule added
-- [ ] The claims-ledger test fails if `docs/CHARTER.md` §7 loses its Enforced claim
+- [x] `node scripts/check-footprint-budget.mjs` passes on a clean `main`
+- [x] `node scripts/check-footprint-budget.mjs --selftest` goes **red** on a planted regression
+- [x] Deleting a metric from the measured input produces `unmeasured`, not a pass
+- [x] A deliberate +20% bundle regression on a scratch branch fails CI
+- [x] `pnpm check:humane-patterns` fails on a planted `carbonNeutral` identifier
+- [x] `pnpm check:humane-patterns --selftest` still passes with the new rule added
+- [x] The claims-ledger test fails if `docs/CHARTER.md` §7 loses its Enforced claim
 - [ ] The app cold-opens on real floor hardware, timed and recorded once by hand
-- [ ] `pnpm check:exploration-links` passes (every reference in this doc resolves)
-- [ ] No copy anywhere in `site/` claims xNet is greener than an alternative
+      — **open**, and disclosed as `pending` in the baseline rather than faked
+      (see "Deviations" above). Owner: the `decider`; due at the first quarterly
+      floor measurement.
+- [x] `pnpm check:exploration-links` passes (every reference in this doc resolves)
+- [x] No copy anywhere in `site/` claims xNet is greener than an alternative
 
 ---
 
