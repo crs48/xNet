@@ -13,7 +13,19 @@
 import type { FleetSummary } from './health'
 import type { BudgetPolicy } from './slo'
 
-export type ComponentStatus = 'operational' | 'degraded' | 'down' | 'not-configured'
+/**
+ * `unmeasured` is not a degraded state — it is the absence of evidence
+ * (exploration 0433, decision 10). Before it existed, a component with no SLI
+ * window at all reported `operational`, which is the same defect as an empty
+ * sample window reading as 100% available: "absent" and "unreadable" must not
+ * look like "fine" (`AGENTS.md`).
+ */
+export type ComponentStatus =
+  | 'operational'
+  | 'degraded'
+  | 'down'
+  | 'not-configured'
+  | 'unmeasured'
 
 export interface StatusComponent {
   id: string
@@ -42,17 +54,39 @@ export interface PublicStatusInput {
   backupsHealthy: boolean | null
   /** Suppress the fleet availability number below this many hot tenants. */
   kAnonFloor?: number
+  /**
+   * Whether the hub fleet's SLI window is actually being measured right now.
+   * `false` renders `unmeasured` instead of `operational` — the public page must
+   * not assert health nobody has observed (decision 10). Defaults to `true` so
+   * existing callers keep their behaviour until they pass the real signal.
+   */
+  fleetMeasured?: boolean
+  /**
+   * Whether the control plane's own periodic jobs are completing. The old code
+   * hardcoded `control-plane: operational`, which was tautological — it said only
+   * that the process had answered THIS request. `false` means a leased job has
+   * gone stale; `undefined` means job reporting is not wired, which renders
+   * `unmeasured` rather than green.
+   */
+  controlPlaneJobsHealthy?: boolean
 }
 
 /** Default k-anonymity floor — matches the run-in-public metrics cohort floor. */
 export const STATUS_K_ANON_FLOOR = 5
 
-/** Severity ordering so the banner reflects the worst non-trivial component. */
+/**
+ * Severity ordering so the banner reflects the worst non-trivial component.
+ *
+ * `unmeasured` sits just ABOVE `operational`: it must be able to displace a green
+ * banner (we are not claiming health we cannot show) but must never masquerade as
+ * an outage, which would page someone over a missing probe.
+ */
 const SEVERITY: Record<ComponentStatus, number> = {
   'not-configured': 0,
   operational: 1,
-  degraded: 2,
-  down: 3
+  unmeasured: 2,
+  degraded: 3,
+  down: 4
 }
 
 function worstStatus(components: StatusComponent[]): ComponentStatus {
@@ -73,7 +107,16 @@ export function publicStatus(input: PublicStatusInput): PublicStatus {
   const mean = n ? input.availabilities.reduce((sum, a) => sum + a, 0) / n : 1
   const fleetAvailability = n >= floor ? Number(mean.toFixed(4)) : null
 
-  const hubFleet: ComponentStatus = input.fleet.freezing > 0 ? 'degraded' : 'operational'
+  // A frozen error budget is still the degraded signal, but only when there IS a
+  // measurement behind it. Unmeasured outranks operational so the banner cannot
+  // read green on no evidence.
+  const measured = input.fleetMeasured ?? true
+  const hubFleet: ComponentStatus = !measured
+    ? 'unmeasured'
+    : input.fleet.freezing > 0
+      ? 'degraded'
+      : 'operational'
+
   const backups: ComponentStatus =
     input.backupsHealthy === null
       ? 'not-configured'
@@ -81,9 +124,23 @@ export function publicStatus(input: PublicStatusInput): PublicStatus {
         ? 'operational'
         : 'degraded'
 
+  // The control plane reports from its periodic jobs, not from the fact that it
+  // answered this request — a process can serve /status.json perfectly while every
+  // background reconciler has silently stopped.
+  const controlPlane: ComponentStatus =
+    input.controlPlaneJobsHealthy === undefined
+      ? 'unmeasured'
+      : input.controlPlaneJobsHealthy
+        ? 'operational'
+        : 'degraded'
+
   const components: StatusComponent[] = [
-    { id: 'control-plane', status: 'operational' },
-    { id: 'hub-fleet', status: hubFleet, availability: fleetAvailability },
+    { id: 'control-plane', status: controlPlane },
+    {
+      id: 'hub-fleet',
+      status: hubFleet,
+      availability: measured ? fleetAvailability : null
+    },
     { id: 'ai-gateway', status: input.aiConfigured ? 'operational' : 'not-configured' },
     { id: 'backups', status: backups }
   ]

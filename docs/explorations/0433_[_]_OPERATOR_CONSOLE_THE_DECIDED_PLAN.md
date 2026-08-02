@@ -494,9 +494,9 @@ sale — either re-opens the consent model.
 - [x] `windowState()` — measured / stale / young
 - [x] `fleetGate()` — stale freezes, young excluded, empty freezes
 - [x] Daily rollup job: hourly → daily at 30 days, retained 13 months
-- [ ] Add `unmeasured` to `ComponentStatus` and the status severity ordering
-- [ ] Replace the hardcoded `control-plane: operational` with a measured signal
-- [ ] `timingSafeEqual` in `requireInternal`
+- [x] Add `unmeasured` to `ComponentStatus` and the status severity ordering
+- [x] Replace the hardcoded `control-plane: operational` with a measured signal
+- [x] `timingSafeEqual` in `requireInternal`
 - [ ] WorkOS organisation + `operator` role; read the role claim from the JWT
 - [ ] Operator session: distinct sealed cookie, separate from the tenant session
 - [ ] `workosUser → did:key` binding store in Firestore, via the device-grant claim

@@ -44,7 +44,10 @@ describe('control-plane HTTP API', () => {
       components: { id: string }[]
       errorBudgetPolicy: Record<string, number>
     }
-    expect(status.overall).toBe('operational')
+    // `unmeasured`, not `operational`: this server has no observability or job
+    // reporting wired, so there is no evidence of health to publish. Claiming
+    // green here is exactly the defect exploration 0433 decision 10 removes.
+    expect(status.overall).toBe('unmeasured')
     expect(status.components.map((c) => c.id)).toContain('hub-fleet')
     expect(status.errorBudgetPolicy).toMatchObject({ ship: 0, caution: 0, freeze: 0 })
   })

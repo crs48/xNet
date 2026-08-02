@@ -14,7 +14,10 @@ const component = (s: ReturnType<typeof publicStatus>, id: string) =>
   s.components.find((c) => c.id === id)!
 
 describe('publicStatus', () => {
-  it('reports operational with no fleet data', () => {
+  // Exploration 0433 decision 10. This used to assert `operational` on both the
+  // control plane and an unmeasured fleet — the same defect as an empty sample
+  // window reading as 100% available. Absent evidence is now its own state.
+  it('reports unmeasured, not operational, when nothing has been measured', () => {
     const s = publicStatus({
       nowMs: 1000,
       fleet: fleet(),
@@ -22,11 +25,55 @@ describe('publicStatus', () => {
       aiConfigured: false,
       backupsHealthy: null
     })
-    expect(s.overall).toBe('operational')
-    expect(component(s, 'control-plane').status).toBe('operational')
+    expect(component(s, 'control-plane').status).toBe('unmeasured')
     expect(component(s, 'hub-fleet').availability).toBeNull() // no tenants → suppressed
     expect(component(s, 'ai-gateway').status).toBe('not-configured')
     expect(component(s, 'backups').status).toBe('not-configured')
+    expect(s.overall).toBe('unmeasured')
+  })
+
+  it('reports the control plane from its jobs, not from having answered', () => {
+    const base = {
+      nowMs: 1000,
+      fleet: fleet(),
+      availabilities: [],
+      aiConfigured: false,
+      backupsHealthy: null
+    }
+    expect(
+      component(publicStatus({ ...base, controlPlaneJobsHealthy: true }), 'control-plane').status
+    ).toBe('operational')
+    expect(
+      component(publicStatus({ ...base, controlPlaneJobsHealthy: false }), 'control-plane').status
+    ).toBe('degraded')
+  })
+
+  it('renders an unmeasured fleet without an availability number', () => {
+    const s = publicStatus({
+      nowMs: 1,
+      fleet: fleet({ tenantCount: 10 }),
+      availabilities: Array(10).fill(0.999),
+      aiConfigured: true,
+      backupsHealthy: true,
+      controlPlaneJobsHealthy: true,
+      fleetMeasured: false
+    })
+    expect(component(s, 'hub-fleet').status).toBe('unmeasured')
+    expect(component(s, 'hub-fleet').availability).toBeNull()
+    expect(s.overall).toBe('unmeasured')
+  })
+
+  it('ranks unmeasured above operational but below degraded', () => {
+    const withDegraded = publicStatus({
+      nowMs: 1,
+      fleet: fleet({ tenantCount: 10, freezing: 1 }),
+      availabilities: Array(10).fill(0.9),
+      aiConfigured: true,
+      backupsHealthy: false,
+      controlPlaneJobsHealthy: undefined
+    })
+    // A real degradation still wins the banner over a missing measurement.
+    expect(withDegraded.overall).toBe('degraded')
   })
 
   it('publishes the fleet availability only at/above the k-anon floor', () => {

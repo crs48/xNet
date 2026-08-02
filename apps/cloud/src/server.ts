@@ -54,6 +54,7 @@ import {
 import { MemoryNonceStore, type NonceStore } from './nonce'
 import { fleetSummary, tenantSli, type HealthSampleStore } from './observability/health'
 import { publicStatus } from './observability/status'
+import { timingSafeEqualStr } from './secret-compare'
 import { reportToSentry } from './sentry'
 import { SESSION_COOKIE, readSession, sealSession, type SessionData } from './session'
 
@@ -221,6 +222,14 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
           tenantSli(deps.health!, { tenantId: t.tenantId, plan: t.plan, hubUrl: t.hubUrl }, now())
         )
       : []
+    // Is anything actually being measured? A fleet with hot tenants but no probe
+    // samples must read `unmeasured`, not `operational` (exploration 0433). With no
+    // hot tenants at all there is nothing to measure and nothing to claim, so the
+    // component stays measured-and-empty rather than alarming.
+    const fleetMeasured = hot.length === 0 || slis.some((s) => s.sampleCount > 0)
+    // The control plane reports from its periodic jobs. `undefined` (job reporting
+    // unwired) renders `unmeasured` — never a tautological green.
+    const jobs = deps.jobs ? await deps.jobs.health() : null
     const status = publicStatus({
       nowMs: now(),
       fleet: fleetSummary(slis),
@@ -228,7 +237,9 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
       aiConfigured: Boolean(deps.ai),
       // `unproven` reports as unknown (null), NOT as healthy: a configured
       // bucket nobody has restored from is not a backup we should claim.
-      backupsHealthy: backupsHealthyFor(deps.backupHealth?.())
+      backupsHealthy: backupsHealthyFor(deps.backupHealth?.()),
+      fleetMeasured,
+      ...(jobs ? { controlPlaneJobsHealthy: !jobs.some((j) => j.stale) } : {})
     })
     return c.json(status)
   })
@@ -661,8 +672,15 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   }
 
   // ── Internal routes (admin tooling) ──────────────────────────────────────────
+  //
+  // READ routes keep the shared secret — `scripts/cloud-company-metrics.mjs` is a
+  // real machine consumer and the blast radius of "can read fleet aggregates" is
+  // small. MUTATION routes reject it outright and require an operator identity
+  // instead (exploration 0433, decision 11): the secret is unattributable, and
+  // `/internal/account/recover` clears a tenant's bound DID, so anyone holding it
+  // could take over any hub and leave no record of having done so.
   const requireInternal = (c: { req: { header: (k: string) => string | undefined } }): boolean =>
-    Boolean(deps.internalSecret) && c.req.header('x-internal-secret') === deps.internalSecret
+    Boolean(deps.internalSecret) && timingSafeEqualStr(c.req.header('x-internal-secret'), deps.internalSecret)
 
   app.post('/internal/tenants', async (c) => {
     if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
