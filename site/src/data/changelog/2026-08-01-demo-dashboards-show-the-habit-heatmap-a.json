@@ -4,5 +4,14 @@
   "title": "Demo dashboards show the habit heatmap again",
   "summary": "The seeded demo dashboard referenced a widget type that no longer existed, so its habit heatmap rendered as an empty tile. It now resolves to the real widget, and a test checks every seeded widget against the registry.",
   "highlights": [],
-  "tags": ["devtools"]
+  "tags": [
+    "devtools"
+  ],
+  "pr": 690,
+  "mergedAt": "2026-08-02T01:47:42Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
