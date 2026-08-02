@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-02-add-storage-to-any-plan-without-changing",
+      "url": "https://xnet.fyi/changelog#2026-08-02-add-storage-to-any-plan-without-changing",
+      "title": "Add storage to any plan without changing anything else",
+      "content_text": "Need more room? Buy 100 GB, 500 GB or 1 TB on top of the plan you already have — same hub, same seats, same AI budget, same price for all of it. Extra space applies immediately; removing it waits until your data fits, so a quota never shrinks out from under stored data.\n",
+      "date_published": "2026-08-02T15:46:59Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "August 2, 2026",
+        "summary": "Need more room? Buy 100 GB, 500 GB or 1 TB on top of the plan you already have — same hub, same seats, same AI budget, same price for all of it. Extra space applies immediately; removing it waits until your data fits, so a quota never shrinks out from under stored data.",
+        "highlights": [],
+        "mergedAt": "2026-08-02T15:46:59Z",
+        "pr": 696,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-02-xnet-promises-your-old-laptop-keeps-work",
       "url": "https://xnet.fyi/changelog#2026-08-02-xnet-promises-your-old-laptop-keeps-work",
       "title": "xNet promises your old laptop keeps working",
