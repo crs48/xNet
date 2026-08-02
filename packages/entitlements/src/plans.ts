@@ -297,6 +297,53 @@ export function isSeatMetered(entitlements: PlanEntitlements): boolean {
 }
 
 /**
+ * What a member of a tenant may be.
+ *
+ * `guest` exists to keep the Charter's line drawable in code. A seat is capacity
+ * we provision for a collaborator; an audience member the customer brought is
+ * not one, and billing them would be the per-member meter §6 refuses. Guests are
+ * therefore admitted to the hub and **never counted** — see {@link seatsUsed}.
+ */
+export type TenantMemberRole = 'owner' | 'member' | 'guest'
+
+/** The minimum a roster entry must have for seat maths. */
+export interface SeatBearing {
+  role: TenantMemberRole
+}
+
+/**
+ * Seats consumed by a roster. Owners and members count; guests do not.
+ *
+ * Exported from the MIT entitlements package rather than the control plane so
+ * the rule lives with the contract it enforces, and so a self-hoster reading
+ * `seats` can see exactly what the number means.
+ */
+export function seatsUsed(members: readonly SeatBearing[]): number {
+  return members.filter((m) => m.role === 'owner' || m.role === 'member').length
+}
+
+/**
+ * Can this tenant admit one more **billed** member?
+ *
+ * Flat plans always can — that is what flat-billed means. Seat-metered plans
+ * are capped at their seat count.
+ *
+ * Note what this is not: it is not a check on whether an already-connected
+ * member may keep working. Seat enforcement refuses ADMISSION and never evicts
+ * a live session — in a local-first product, disconnecting someone mid-sync
+ * reads as data loss even when it technically is not (exploration 0436).
+ */
+export function canAdmitMember(
+  entitlements: PlanEntitlements,
+  members: readonly SeatBearing[],
+  role: TenantMemberRole = 'member'
+): boolean {
+  if (role === 'guest') return true
+  if (!isSeatMetered(entitlements)) return true
+  return seatsUsed(members) < entitlements.seats
+}
+
+/**
  * Change the billed seat count — flows to Stripe `SubscriptionItem.quantity`.
  *
  * Refuses on a flat plan: adding a seat count to `community` would quietly

@@ -362,6 +362,7 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
         budgetUsd: tenant.entitlements.aiMonthlyBudgetUsd
       }
     }
+    const members = tenant ? await deps.controlPlane.listMembers(tenant.tenantId) : null
     return c.html(
       renderDashboard({
         billingUserId: s.billingUserId,
@@ -372,6 +373,7 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
         appUrl: deps.appUrl ?? 'https://xnet.fyi/app',
         marketingUrl: deps.marketingUrl ?? 'https://xnet.fyi/cloud',
         gettingStartedHidden: getCookie(c, 'xnet_gs_hidden') === '1',
+        ...(members ? { members } : {}),
         ...(aiUsage ? { aiUsage } : {})
       })
     )
@@ -647,15 +649,87 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
       return c.json({ error: 'invalid_nonce' }, 400)
     }
     try {
+      // An `owner` grant is the claim-your-hub flow and rebinds the tenant's
+      // data identity. A `member`/`guest` grant is an INVITATION — the DID was
+      // already added to the roster when the owner approved it, so binding here
+      // would hand the whole tenant to the invitee (exploration 0436 G4).
+      if (grant.role && grant.role !== 'owner') {
+        const tenant = await deps.controlPlane.getTenantForBilling(grant.approvedBy)
+        devices.markClaimed(grant.deviceCode)
+        return c.json({ status: 'complete', hubUrl: tenant?.hubUrl ?? '', role: grant.role })
+      }
       const tenant = await deps.controlPlane.bindDataIdentity({
         billingUserId: grant.approvedBy,
         challenge: body.challenge
       })
       devices.markClaimed(grant.deviceCode)
-      return c.json({ status: 'complete', hubUrl: tenant.hubUrl })
+      return c.json({ status: 'complete', hubUrl: tenant.hubUrl, role: 'owner' })
     } catch (err) {
       return c.json({ error: (err as Error).message }, 422)
     }
+  })
+
+  // ── Tenant membership (exploration 0436 G4) ──────────────────────────────────
+
+  // Who is on this tenant, and how many seats they use.
+  app.get('/account/members', async (c) => {
+    const s = session(c)
+    if (!s) return c.json({ error: 'unauthorized' }, 401)
+    const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    if (!tenant) return c.json({ error: 'no_tenant' }, 404)
+    const view = await deps.controlPlane.listMembers(tenant.tenantId)
+    return c.json(view ?? { members: [], seatsUsed: 0, seats: 0 })
+  })
+
+  /**
+   * Invite a member: the owner approves the short code their collaborator's app
+   * is showing, and that DID joins the roster.
+   *
+   * Reuses the device grant rather than inventing a second handshake — the
+   * invitee's key is minted on their own device and proven by the same signed
+   * challenge, so no key material ever passes through us.
+   */
+  app.post('/account/members/invite', async (c) => {
+    const s = session(c)
+    if (!s) return c.redirect('/auth/start')
+    const body = await c.req.parseBody()
+    const userCode = String(body.userCode ?? '')
+    const role = String(body.role ?? 'member') === 'guest' ? 'guest' : 'member'
+    const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    if (!tenant) return c.json({ error: 'no_tenant' }, 404)
+    const grant = devices.getByUserCode(userCode)
+    if (!grant) return c.json({ error: 'unknown_code' }, 404)
+    if (isExpired(grant, now())) return c.json({ error: 'expired_code' }, 400)
+    const added = await deps.controlPlane.addTenantMember(tenant.tenantId, {
+      did: grant.did,
+      role,
+      addedBy: s.billingUserId
+    })
+    if (!added.ok) {
+      // "Out of seats" is a normal answer, not an exception: the existing
+      // members keep working and the owner is told what to do about it.
+      const status = added.reason === 'seats-exhausted' ? 409 : 400
+      return c.json({ error: added.reason, used: added.used, seats: added.seats }, status)
+    }
+    // Only approve the grant once the seat check has passed, so a refused invite
+    // does not leave a code the invitee can redeem.
+    devices.approve(userCode, s.billingUserId, role)
+    return c.json({ ok: true, did: grant.did, role })
+  })
+
+  // Remove a member. The DID loses admission on the hub's next revision; the
+  // copy already on their own device is theirs and is never touched.
+  app.post('/account/members/remove', async (c) => {
+    const s = session(c)
+    if (!s) return c.redirect('/auth/start')
+    const body = await c.req.parseBody()
+    const did = String(body.did ?? '')
+    if (!did) return c.json({ error: 'bad_request' }, 400)
+    const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    if (!tenant) return c.json({ error: 'no_tenant' }, 404)
+    const removed = await deps.controlPlane.removeTenantMember(tenant.tenantId, did)
+    if (!removed.ok) return c.json({ error: removed.reason }, 400)
+    return c.json({ ok: true })
   })
 
   // The dashboard side: the signed-in user approves a device code (proves billing).

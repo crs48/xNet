@@ -33,13 +33,15 @@ import {
   resolveEntitlements,
   signEntitlements,
   type PlanEntitlements,
-  type PlanId
+  type PlanId,
+  type TenantMemberRole
 } from '@xnetjs/entitlements'
 import { diagnosticsSecretFor } from './diagnostics'
 import { fetchHubHealth } from './hub-status'
 import { applyBillingEvent, type BillingEvent, type DunningState } from './reconcile/billing'
-import { type TenantPage, type TenantRecord, type TenantStore } from './registry'
+import { type TenantMember, type TenantPage, type TenantRecord, type TenantStore } from './registry'
 import { saga, sagaStep } from './saga'
+import { addMember, removeMember, rosterFor, seatsUsedBy, trustedDidsEnv } from './roster'
 import { gatewayTokenFor, planKeyIdFor, planSecretFor } from './tenant-secrets'
 
 /**
@@ -200,7 +202,18 @@ export class ControlPlane {
     return this.deps.nowMs ? this.deps.nowMs() : Date.now()
   }
 
-  private hubEnv(tenantId: string, entitlements: PlanEntitlements): Record<string, string> {
+  /**
+   * Env for one tenant's hub.
+   *
+   * `roster` supplies the trusted-root policy. It is a `Pick` of the tenant
+   * record rather than the record itself so the two provision paths — where no
+   * record exists yet — can pass the DID they are about to bind.
+   */
+  private hubEnv(
+    tenantId: string,
+    entitlements: PlanEntitlements,
+    roster?: Pick<TenantRecord, 'members' | 'did'>
+  ): Record<string, string> {
     // The hub verifies this token locally and enforces the limits — no runtime
     // call back to the control plane (anti-lock-in invariant). It needs a signing
     // secret to verify HUB_PLAN (the hub crashes on boot otherwise), and that
@@ -235,6 +248,17 @@ export class ControlPlane {
         tenantId
       )
     }
+    // Admission control (exploration 0436 G3). Without this the hub applies no
+    // trusted-root policy at all, so a self-issued UCAN from a key minted
+    // seconds ago is accepted on a hub somebody else is paying for.
+    //
+    // Written only when there is a roster to write. `checkTrustedRoots` treats
+    // absent and empty identically ("no policy"), so an empty value would leave
+    // the hub wide open while looking configured — and a self-hosted hub, which
+    // never receives this env at all, keeps behaving exactly as it does today
+    // (the anti-lock-in invariant, 0174).
+    const trusted = roster ? trustedDidsEnv(roster) : undefined
+    if (trusted) env.HUB_TRUSTED_DIDS = trusted
     return env
   }
 
@@ -331,7 +355,7 @@ export class ControlPlane {
             entitlements,
             targetVersion: this.deps.defaultTargetVersion,
             region: args.region,
-            env: this.hubEnv(args.tenantId, entitlements)
+            env: this.hubEnv(args.tenantId, entitlements, { did: args.challenge.did })
           })
         },
         // Removes the Cloud Run service (the billable compute) and frees the
@@ -425,6 +449,9 @@ export class ControlPlane {
             entitlements,
             targetVersion: this.deps.defaultTargetVersion,
             region: args.region,
+            // No DID is bound yet on the billing path — the device grant binds
+            // one later and `completeBind` pushes the policy then. Writing a
+            // policy now would lock out the owner who has not arrived.
             env: this.hubEnv(tenantId, entitlements)
           })
         },
@@ -526,9 +553,115 @@ export class ControlPlane {
       challenge: args.challenge,
       nowMs: this.now()
     })
-    const updated: TenantRecord = { ...tenant, did: args.challenge.did }
+    // The owner joins (or rejoins) the roster here. `addMember` de-duplicates, so
+    // a rebind onto the same DID is a no-op rather than a second row.
+    const invite = addMember(tenant, tenant.entitlements, {
+      did: args.challenge.did,
+      role: 'owner',
+      addedAtMs: this.now(),
+      addedBy: args.billingUserId
+    })
+    const updated: TenantRecord = {
+      ...tenant,
+      did: args.challenge.did,
+      ...(invite.ok ? { members: invite.members } : {})
+    }
     await this.deps.tenants.put(updated)
+    // Push the policy BEFORE the caller is told to connect. With a trusted-root
+    // policy in force, a device that claims a hub and then finds itself
+    // untrusted is indistinguishable from a broken hub (exploration 0436, the
+    // recovery-ordering open question).
+    await this.pushRoster(updated)
     return updated
+  }
+
+  /**
+   * Push a tenant's roster to its hub as `HUB_TRUSTED_DIDS`.
+   *
+   * Best-effort by design: a cold or unreachable hub gets the policy on its next
+   * natural revision, and the roster on the record stays authoritative either
+   * way. Deliberately NOT fatal — refusing to add a member because their hub is
+   * asleep would make the feature unusable on every scale-to-zero plan.
+   */
+  private async pushRoster(record: TenantRecord): Promise<void> {
+    if (!record.substrateRef || record.dataTier !== 'hot') return
+    await this.deps.provisioner.setEnv(
+      record.substrateRef,
+      this.hubEnv(record.tenantId, record.entitlements, record)
+    )
+  }
+
+  /**
+   * Everyone entitled to this tenant's hub, plus how many seats they consume.
+   *
+   * Reads through `rosterFor`, so a record written before `members` existed
+   * reports its owner rather than an empty list.
+   */
+  async listMembers(
+    tenantId: string
+  ): Promise<{ members: TenantMember[]; seatsUsed: number; seats: number } | null> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return null
+    return {
+      members: rosterFor(record),
+      seatsUsed: seatsUsedBy(record),
+      seats: record.entitlements.seats
+    }
+  }
+
+  /**
+   * Add a member to a tenant's roster and push the new trusted-root policy.
+   *
+   * Returns the refusal rather than throwing, because "you are out of seats" is
+   * a normal answer the dashboard renders — not an exception.
+   */
+  async addTenantMember(
+    tenantId: string,
+    member: { did: string; role?: TenantMemberRole; addedBy: string; label?: string }
+  ): Promise<
+    | { ok: true; tenant: TenantRecord }
+    | { ok: false; reason: string; used?: number; seats?: number }
+  > {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return { ok: false, reason: 'unknown-tenant' }
+    const result = addMember(record, record.entitlements, {
+      did: member.did,
+      role: member.role ?? 'member',
+      addedAtMs: this.now(),
+      addedBy: member.addedBy,
+      ...(member.label ? { label: member.label } : {})
+    })
+    if (!result.ok) {
+      return result.reason === 'seats-exhausted'
+        ? { ok: false, reason: result.reason, used: result.used, seats: result.seats }
+        : { ok: false, reason: result.reason }
+    }
+    const updated: TenantRecord = { ...record, members: result.members }
+    await this.deps.tenants.put(updated)
+    await this.pushRoster(updated)
+    return { ok: true, tenant: updated }
+  }
+
+  /**
+   * Remove a member and push the narrowed policy.
+   *
+   * The removed DID loses ADMISSION on the hub's next revision. It does not lose
+   * the data already on its own device — that copy is authoritative and always
+   * theirs, which is the whole point of local-first and why removal here is a
+   * safe, reversible operation rather than a destructive one.
+   */
+  async removeTenantMember(
+    tenantId: string,
+    did: string
+  ): Promise<{ ok: true; tenant: TenantRecord } | { ok: false; reason: string }> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return { ok: false, reason: 'unknown-tenant' }
+    const result = removeMember(record, did)
+    if (!result.ok) return { ok: false, reason: result.reason }
+    const updated: TenantRecord = { ...record, members: result.members }
+    await this.deps.tenants.put(updated)
+    await this.pushRoster(updated)
+    return { ok: true, tenant: updated }
   }
 
   /**
@@ -567,7 +700,7 @@ export class ControlPlane {
     }
     const handle = await this.deps.provisioner.setEnv(
       record.substrateRef,
-      this.hubEnv(record.tenantId, next)
+      this.hubEnv(record.tenantId, next, record)
     )
     const updated: TenantRecord = {
       ...record,
@@ -706,7 +839,7 @@ export class ControlPlane {
 
     const handle = await this.deps.provisioner.setEnv(
       record.substrateRef,
-      this.hubEnv(record.tenantId, next)
+      this.hubEnv(record.tenantId, next, record)
     )
     const aiPatch = await this.reconcileAiKey(record, next)
     const updated: TenantRecord = {
@@ -759,7 +892,7 @@ export class ControlPlane {
       entitlements: next,
       targetVersion: record.targetVersion,
       region: record.region,
-      env: this.hubEnv(tenantId, next)
+      env: this.hubEnv(tenantId, next, record)
       // No `restoreFromR2` → the new hub boots EMPTY (this is the wipe).
     })
     const aiPatch = await this.reconcileAiKey(record, next)
@@ -984,7 +1117,7 @@ export class ControlPlane {
       entitlements: record.entitlements,
       targetVersion: record.targetVersion,
       region: record.region,
-      env: this.hubEnv(tenantId, record.entitlements),
+      env: this.hubEnv(tenantId, record.entitlements, record),
       restoreFromR2: this.snapshotKey(tenantId)
     })
     const updated: TenantRecord = {

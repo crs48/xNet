@@ -11,6 +11,7 @@
  * code generator is injectable so tests are deterministic.
  */
 
+import type { TenantMemberRole } from '@xnetjs/entitlements'
 import { randomInt } from 'node:crypto'
 
 export interface DeviceGrant {
@@ -23,6 +24,17 @@ export interface DeviceGrant {
   status: 'pending' | 'approved' | 'claimed'
   /** WorkOS billing user that approved this device (set on approval). */
   approvedBy?: string
+  /**
+   * What the approver granted (set on approval; default `owner`).
+   *
+   * The same handshake serves two jobs (exploration 0436 G4). `owner` is the
+   * original "claim your hub" flow — it binds the tenant's data identity.
+   * `member`/`guest` is an INVITATION: the DID joins the roster and gains
+   * admission to the hub, and the tenant's own bound DID is untouched. Without
+   * this distinction, inviting a colleague would rebind the tenant onto their
+   * key and take the hub away from its owner.
+   */
+  role?: TenantMemberRole
   createdAtMs: number
 }
 
@@ -53,8 +65,11 @@ export interface DeviceGrantStore {
   start(did: string, nowMs: number): DeviceGrant
   getByDeviceCode(deviceCode: string): DeviceGrant | null
   getByUserCode(userCode: string): DeviceGrant | null
-  /** Mark a device approved by a billing identity. Returns the grant, or null if unknown. */
-  approve(userCode: string, billingUserId: string): DeviceGrant | null
+  /**
+   * Mark a device approved by a billing identity, at a role. Returns the grant,
+   * or null if unknown. `role` defaults to `owner` — the claim-your-hub flow.
+   */
+  approve(userCode: string, billingUserId: string, role?: TenantMemberRole): DeviceGrant | null
   markClaimed(deviceCode: string): void
 }
 
@@ -87,13 +102,18 @@ export class MemoryDeviceGrantStore implements DeviceGrantStore {
     return code ? this.getByDeviceCode(code) : null
   }
 
-  approve(userCode: string, billingUserId: string): DeviceGrant | null {
+  approve(
+    userCode: string,
+    billingUserId: string,
+    role: TenantMemberRole = 'owner'
+  ): DeviceGrant | null {
     const code = this.byUser.get(userCode.trim().toUpperCase())
     if (!code) return null
     const g = this.byDevice.get(code)
     if (!g) return null
     g.status = 'approved'
     g.approvedBy = billingUserId
+    g.role = role
     return { ...g }
   }
 

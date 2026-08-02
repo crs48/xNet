@@ -985,14 +985,14 @@ const session = await this.stripe.checkout.sessions.create({
 
 ### Phase T — the tenant roster
 
-- [ ] `TenantMember` + `members?: TenantMember[]` on `TenantRecord`, absent ⇒ implicit `[owner]`
-- [ ] Extend the device grant to bind an additional DID (`POST /account/members/invite`)
-- [ ] `POST /account/members/:did/remove`, owner-only, with an audit entry
-- [ ] Project the roster into `HUB_TRUSTED_DIDS`; refuse to write an empty value
-- [ ] `seatsUsed()` / `canAdmitMember()` in `@xnetjs/entitlements`, with a changeset
-- [ ] Refuse the invitation that would exceed `seats`; never evict a live session
-- [ ] Push the roster inside `recoverAccount` **before** the new DID is expected to connect
-- [ ] Dashboard: a members card with roles, invite, remove, and seats used/total
+- [x] `TenantMember` + `members?: TenantMember[]` on `TenantRecord`, absent ⇒ implicit `[owner]`
+- [x] Extend the device grant to bind an additional DID (`POST /account/members/invite`)
+- [x] `POST /account/members/:did/remove`, owner-only, with an audit entry
+- [x] Project the roster into `HUB_TRUSTED_DIDS`; refuse to write an empty value
+- [x] `seatsUsed()` / `canAdmitMember()` in `@xnetjs/entitlements`, with a changeset
+- [x] Refuse the invitation that would exceed `seats`; never evict a live session
+- [x] Push the roster inside `recoverAccount` **before** the new DID is expected to connect
+- [x] Dashboard: a members card with roles, invite, remove, and seats used/total
 
 ### Phase C — commerce
 
@@ -1005,8 +1005,8 @@ const session = await this.stripe.checkout.sessions.create({
 
 ### Phase E — enterprise truth
 
-- [ ] `residency` honoured in `cloud-run-litestream.ts`, or removed from the Enterprise card
-- [ ] `ShardAllocator` keyed by `(project, region)` and rehydrated from the tenant store on boot
+- [x] `residency` honoured in `cloud-run-litestream.ts`, or removed from the Enterprise card
+- [x] `ShardAllocator` keyed by `(project, region)` and rehydrated from the tenant store on boot
 - [ ] WorkOS Organization → roster mapping; `organizationId` on `TenantRecord`; `/auth/start` passes it
 - [ ] An SLA credit policy that issues credits, or the numeric SLA comes off `community`/`company`
 - [ ] Two ADRs in `site/src/content/docs/docs/architecture/decisions.mdx`: the membership contract, and seat billing (with the tripwire above)
