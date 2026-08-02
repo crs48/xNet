@@ -6,6 +6,20 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>New posts on Bluesky are announced automatically</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-new-posts-on-bluesky-are-announced-autom</link>
+      <guid isPermaLink="false">2026-08-01-new-posts-on-bluesky-are-announced-autom</guid>
+      <pubDate>Sun, 02 Aug 2026 05:52:00 GMT</pubDate>
+      <description>Follow xNet on Bluesky and you'll see new blog essays as they publish, plus the changelog entries worth interrupting you for — not every commit. Links in the posts are properly clickable.</description>
+    </item>
+    <item>
+      <title>Follow xNet on Bluesky and X</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-follow-xnet-on-bluesky-and-x</link>
+      <guid isPermaLink="false">2026-08-01-follow-xnet-on-bluesky-and-x</guid>
+      <pubDate>Sun, 02 Aug 2026 05:52:00 GMT</pubDate>
+      <description>The site footer now links the project's Bluesky and X accounts, so you can follow along for new essays and release notes. The icons are inline artwork — no platform embed scripts, so the pages still load nothing third-party.</description>
+    </item>
+    <item>
       <title>Demo dashboards show the habit heatmap again</title>
       <link>https://xnet.fyi/changelog#2026-08-01-demo-dashboards-show-the-habit-heatmap-a</link>
       <guid isPermaLink="false">2026-08-01-demo-dashboards-show-the-habit-heatmap-a</guid>

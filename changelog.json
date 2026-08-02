@@ -6,6 +6,50 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-01-new-posts-on-bluesky-are-announced-autom",
+      "url": "https://xnet.fyi/changelog#2026-08-01-new-posts-on-bluesky-are-announced-autom",
+      "title": "New posts on Bluesky are announced automatically",
+      "content_text": "Follow xNet on Bluesky and you'll see new blog essays as they publish, plus the changelog entries worth interrupting you for — not every commit. Links in the posts are properly clickable.\n",
+      "date_published": "2026-08-02T05:52:00Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "Follow xNet on Bluesky and you'll see new blog essays as they publish, plus the changelog entries worth interrupting you for — not every commit. Links in the posts are properly clickable.",
+        "highlights": [],
+        "mergedAt": "2026-08-02T05:52:00Z",
+        "pr": 691,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-08-01-follow-xnet-on-bluesky-and-x",
+      "url": "https://xnet.fyi/changelog#2026-08-01-follow-xnet-on-bluesky-and-x",
+      "title": "Follow xNet on Bluesky and X",
+      "content_text": "The site footer now links the project's Bluesky and X accounts, so you can follow along for new essays and release notes. The icons are inline artwork — no platform embed scripts, so the pages still load nothing third-party.\n",
+      "date_published": "2026-08-02T05:52:00Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "The site footer now links the project's Bluesky and X accounts, so you can follow along for new essays and release notes. The icons are inline artwork — no platform embed scripts, so the pages still load nothing third-party.",
+        "highlights": [],
+        "mergedAt": "2026-08-02T05:52:00Z",
+        "pr": 691,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-01-demo-dashboards-show-the-habit-heatmap-a",
       "url": "https://xnet.fyi/changelog#2026-08-01-demo-dashboards-show-the-habit-heatmap-a",
       "title": "Demo dashboards show the habit heatmap again",
