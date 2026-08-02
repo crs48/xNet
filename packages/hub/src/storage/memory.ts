@@ -844,6 +844,15 @@ export const createMemoryStorage = (): HubStorage => {
     return bytes
   }
 
+  const getUsageBytesTotal = async (): Promise<number> => {
+    // Same sum as getUsageBytesByDid, across every author (exploration 0435).
+    let bytes = 0
+    for (const change of nodeChangesByHash.values()) {
+      bytes += JSON.stringify(change.payload).length + change.signatureB64.length
+    }
+    return bytes
+  }
+
   const resetAllUserData = async (): Promise<{ nodeChanges: number; docStates: number }> => {
     const nodeChanges = nodeChangesByHash.size
     const docStateCount = docStates.size
@@ -1170,6 +1179,7 @@ export const createMemoryStorage = (): HubStorage => {
     appendNodeChange,
     getNodeChangesByAuthor,
     getUsageBytesByDid,
+    getUsageBytesTotal,
     addChangeToRoom,
     getRoomChangesSince,
     getLatestProfileHash,

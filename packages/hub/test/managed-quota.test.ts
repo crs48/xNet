@@ -10,17 +10,19 @@
 import type { AuthContext } from '../src/auth/ucan'
 import type { SerializedNodeChange } from '../src/storage/interface'
 import type { DID } from '@xnetjs/core'
+import { createHmac } from 'node:crypto'
 import { bytesToBase64, generateSigningKeyPair } from '@xnetjs/crypto'
 import {
   PLAN_CATALOG,
   resolveEntitlements,
   signEntitlements,
-  withStorage
+  withStorage,
+  withStoragePack
 } from '@xnetjs/entitlements'
 import { identityFromPrivateKey } from '@xnetjs/identity'
 import { createChangeId, createUnsignedChange, signChange } from '@xnetjs/sync'
 import { afterEach, describe, expect, it } from 'vitest'
-import { resolveConfig, resolvePerUserQuota } from '../src/config'
+import { resolveConfig, resolvePerUserQuota, resolveTenantQuota } from '../src/config'
 import { NodeRelayService } from '../src/services/node-relay'
 import { createMemoryStorage } from '../src/storage/memory'
 import { DEMO_DEFAULTS } from '../src/types'
@@ -36,7 +38,17 @@ afterEach(() => {
 const { privateKey } = generateSigningKeyPair()
 const identity = identityFromPrivateKey(privateKey)
 
-const makeSignedChange = (nodeId: string, lamport: number): SerializedNodeChange => {
+// A second member of the same hub. The aggregate ceiling only differs from the
+// per-user one when more than one DID is writing, so proving 0435's gate needs
+// two authors — with one, the two caps are indistinguishable.
+const { privateKey: privateKey2 } = generateSigningKeyPair()
+const identity2 = identityFromPrivateKey(privateKey2)
+
+const makeSignedChangeAs = (
+  who: { did: string; key: Uint8Array },
+  nodeId: string,
+  lamport: number
+): SerializedNodeChange => {
   const payload = {
     nodeId,
     schemaId: 'xnet://xnet.dev/Task',
@@ -47,11 +59,11 @@ const makeSignedChange = (nodeId: string, lamport: number): SerializedNodeChange
     type: 'node-change',
     payload,
     parentHash: null,
-    authorDID: identity.did as DID,
+    authorDID: who.did as DID,
     wallTime: 1_700_000_000_000 + lamport,
     lamport
   })
-  const signed = signChange(unsigned, privateKey)
+  const signed = signChange(unsigned, who.key)
   return {
     id: signed.id,
     type: signed.type,
@@ -72,6 +84,9 @@ const makeSignedChange = (nodeId: string, lamport: number): SerializedNodeChange
     batchSize: signed.batchSize
   }
 }
+
+const makeSignedChange = (nodeId: string, lamport: number): SerializedNodeChange =>
+  makeSignedChangeAs({ did: identity.did, key: privateKey }, nodeId, lamport)
 
 /** Mirrors the relay's own accounting (`changeUsageBytes`). */
 const usageOf = (change: SerializedNodeChange): number =>
@@ -140,5 +155,110 @@ describe('change-log append gate on a managed plan (0381)', () => {
     await expect(
       relay.handleNodeChange(relayMsg(makeSignedChange('node-1', 1)), allowAuth)
     ).resolves.toBe(true)
+  })
+})
+
+/**
+ * Aggregate tenant ceiling (exploration 0435).
+ *
+ * The per-user cap is enforced per DID, so on a seat-metered plan the hub's real
+ * capacity has always been quota × seats. A storage pack is sold once, per
+ * tenant — billing it against the per-user number would provision it N times.
+ */
+describe('aggregate tenant quota (0435)', () => {
+  const allowAuth2 = { did: identity2.did, can: () => true } as unknown as AuthContext
+  const asMember2 = (nodeId: string, lamport: number) =>
+    makeSignedChangeAs({ did: identity2.did, key: privateKey2 }, nodeId, lamport)
+
+  it('stops a SECOND member that the per-user cap would have let through', async () => {
+    const storage = createMemoryStorage()
+    const first = makeSignedChange('node-1', 1)
+    const second = asMember2('node-2', 2)
+
+    // Per-user quota is generous (each member is well under it); the tenant
+    // ceiling budgets exactly one change. Without the aggregate gate the second
+    // member's append sails through — that is the bug this pins.
+    const relay = new NodeRelayService(
+      storage,
+      {},
+      { quotaBytes: 10_000_000, tenantQuotaBytes: usageOf(first) }
+    )
+
+    await expect(relay.handleNodeChange(relayMsg(first), allowAuth)).resolves.toBe(true)
+    await expect(relay.handleNodeChange(relayMsg(second), allowAuth2)).rejects.toMatchObject({
+      code: 'QUOTA_EXCEEDED'
+    })
+  })
+
+  it('reports the hub-wide limit, not the per-user one, when the aggregate trips', async () => {
+    const storage = createMemoryStorage()
+    const first = makeSignedChange('node-1', 1)
+    const relay = new NodeRelayService(
+      storage,
+      {},
+      { quotaBytes: 10_000_000, tenantQuotaBytes: usageOf(first) }
+    )
+    await relay.handleNodeChange(relayMsg(first), allowAuth)
+
+    await expect(
+      relay.handleNodeChange(relayMsg(asMember2('node-2', 2)), allowAuth2)
+    ).rejects.toThrow(/for this hub/)
+  })
+
+  it('is unbounded when unset — the self-host and pre-0435-token default', async () => {
+    const storage = createMemoryStorage()
+    // No tenantQuotaBytes at all: exactly what `resolveTenantQuota` yields for a
+    // hub with no HUB_PLAN, and for one whose token predates the field.
+    const relay = new NodeRelayService(storage, {}, { quotaBytes: 10_000_000 })
+
+    await expect(
+      relay.handleNodeChange(relayMsg(makeSignedChange('n1', 1)), allowAuth)
+    ).resolves.toBe(true)
+    await expect(relay.handleNodeChange(relayMsg(asMember2('n2', 2)), allowAuth2)).resolves.toBe(
+      true
+    )
+  })
+
+  it('admits members up to the ceiling and only then refuses', async () => {
+    const storage = createMemoryStorage()
+    const a = makeSignedChange('node-1', 1)
+    const b = asMember2('node-2', 2)
+    const relay = new NodeRelayService(
+      storage,
+      {},
+      { quotaBytes: 10_000_000, tenantQuotaBytes: usageOf(a) + usageOf(b) }
+    )
+
+    await expect(relay.handleNodeChange(relayMsg(a), allowAuth)).resolves.toBe(true)
+    await expect(relay.handleNodeChange(relayMsg(b), allowAuth2)).resolves.toBe(true)
+    await expect(
+      relay.handleNodeChange(relayMsg(asMember2('node-3', 3)), allowAuth2)
+    ).rejects.toMatchObject({ code: 'QUOTA_EXCEEDED' })
+  })
+})
+
+describe('resolveTenantQuota (0435)', () => {
+  it('carries a signed tenantQuotaBytes through to the hub config', () => {
+    const packed = withStoragePack(resolveEntitlements('personal'), 500)
+    process.env.HUB_PLAN = signEntitlements(packed, SECRET)
+    process.env.XNET_PLAN_SECRET = SECRET
+
+    expect(resolveTenantQuota(resolveConfig({}))).toBe(packed.tenantQuotaBytes)
+  })
+
+  it('is null for a self-hosted hub — we cannot cap what we do not host', () => {
+    // The anti-lock-in invariant (0174): no HUB_PLAN, no ceiling.
+    expect(resolveTenantQuota(resolveConfig({}))).toBeNull()
+  })
+
+  it('is null when the signed token predates the field (fails OPEN)', () => {
+    const legacy = { ...resolveEntitlements('personal') } as Record<string, unknown>
+    delete legacy.tenantQuotaBytes
+    const payload = Buffer.from(JSON.stringify(legacy)).toString('base64url')
+    const sig = createHmac('sha256', SECRET).update(payload).digest().toString('base64url')
+    process.env.HUB_PLAN = `${payload}.${sig}`
+    process.env.XNET_PLAN_SECRET = SECRET
+
+    expect(resolveTenantQuota(resolveConfig({}))).toBeNull()
   })
 })

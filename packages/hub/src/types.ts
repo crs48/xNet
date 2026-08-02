@@ -26,6 +26,12 @@ export type HubConfig = {
   maxConnections: number
   /** Default storage quota per DID in bytes (default: 1GB). */
   defaultQuota: number
+  /**
+   * Aggregate storage ceiling for the whole hub in bytes. `undefined` = no
+   * aggregate cap, which is the self-host default: only a managed tenant's
+   * signed entitlement token sets one (exploration 0435).
+   */
+  tenantQuota?: number
   /** Maximum backup blob size in bytes (default: 50MB). */
   maxBlobSize: number
   /**

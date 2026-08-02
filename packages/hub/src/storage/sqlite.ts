@@ -1267,6 +1267,10 @@ export const createSQLiteStorage = (
       SELECT COALESCE(SUM(LENGTH(payload_json) + LENGTH(signature_b64)), 0) AS bytes
       FROM node_changes WHERE author_did = ?
     `),
+    getUsageBytesTotal: db.prepare(`
+      SELECT COALESCE(SUM(LENGTH(payload_json) + LENGTH(signature_b64)), 0) AS bytes
+      FROM node_changes
+    `),
     addChangeToRoom: db.prepare(`
       INSERT OR IGNORE INTO node_change_rooms (room, hash) VALUES (?, ?)
     `),
@@ -2363,6 +2367,11 @@ export const createSQLiteStorage = (
     return row?.bytes ?? 0
   }
 
+  const getUsageBytesTotal = async (): Promise<number> => {
+    const row = stmts.getUsageBytesTotal.get() as { bytes: number } | undefined
+    return row?.bytes ?? 0
+  }
+
   const addChangeToRoom = async (room: string, hash: string): Promise<void> => {
     stmts.addChangeToRoom.run(room, hash)
   }
@@ -2811,6 +2820,7 @@ export const createSQLiteStorage = (
     hasNodeChange,
     appendNodeChange,
     getUsageBytesByDid,
+    getUsageBytesTotal,
     addChangeToRoom,
     getRoomChangesSince,
     getLatestProfileHash,

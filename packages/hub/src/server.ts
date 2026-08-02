@@ -33,6 +33,7 @@ import {
   resolveHandshakeDemoLimits,
   resolveMaxBlobBytes,
   resolvePerUserQuota,
+  resolveTenantQuota,
   resolveResetIntervalMs,
   resolveResetOnCorruption,
   resolveWritesEnabled
@@ -59,10 +60,10 @@ import { createAuditRoutes } from './routes/audit'
 import { createBackupRoutes } from './routes/backup'
 import { createCrawlRoutes } from './routes/crawl'
 import { createDiscoveryRoutes } from './routes/dids'
-import { HUB_ADDRESS_PATH, createHubAddressRoutes } from './routes/hub-address'
 import { createExportRoutes } from './routes/export'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
+import { HUB_ADDRESS_PATH, createHubAddressRoutes } from './routes/hub-address'
 import { createKeyRegistryRoutes } from './routes/keys'
 import { createKnotRoutes } from './routes/knot'
 import { createPublicRoutes } from './routes/public'
@@ -241,6 +242,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // demo-override-vs-plan choice is made (#603's rule; 0383 W1). Server code
   // never re-derives `demo ? x : y` inline.
   const perUserQuota = resolvePerUserQuota(config)
+  // Aggregate ceiling for the whole tenant; null on any self-hosted hub (0435).
+  const tenantQuota = resolveTenantQuota(config)
   const maxBlobBytes = resolveMaxBlobBytes(config)
   // Watchdog budget is demo-only (0291): watch the data dir and shed relay
   // writes before the small disposable volume fills (the 0290 502).
@@ -390,6 +393,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // watchdog stay demo-only; this is the append gate alone.
   const nodeRelay = new NodeRelayService(storage, remoteMutationTelemetry, {
     quotaBytes: perUserQuota,
+    // The per-user cap multiplies by seat count, so it cannot stand in for the
+    // storage a tenant actually bought (0435). Absent ⇒ unbounded, as before.
+    ...(tenantQuota !== null ? { tenantQuotaBytes: tenantQuota } : {}),
     isStorageFull,
     // Billing read-only (0418): the sync socket is the primary write path, so
     // the HTTP middleware alone would not actually stop writes.

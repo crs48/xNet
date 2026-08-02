@@ -764,7 +764,7 @@ export function storagePackMargin(packGb: number): PlanCostBreakdown {
 - [ ] Replace `measureDataUsage`-based `usedBytes` on `/health` with a figure that counts R2-resident bytes
 - [ ] Promote the disk watchdog out of demo-only, sized from the **substrate** (instance memory) rather than the plan quota
 - [x] Add `tenantQuotaBytes` to `PlanEntitlements`, absent ⇒ unlimited, with a fail-open test mirroring `writesEnabled`
-- [ ] Enforce `tenantQuotaBytes` as an aggregate ceiling in `NodeRelayService` alongside the existing per-user check
+- [x] Enforce `tenantQuotaBytes` as an aggregate ceiling in `NodeRelayService` alongside the existing per-user check
 
 ### Phase 1 — entitlements + control plane
 
@@ -797,10 +797,10 @@ export function storagePackMargin(packGb: number): PlanCostBreakdown {
 
 - [ ] A tenant with a +500 GB pack can actually write 500 GB, verified end to end against R2 — not asserted from the quota field
 - [ ] Killing the hub instance mid-upload loses no committed blob (the Phase 0 durability fix, proven by test)
-- [ ] A `family` tenant with 5 seats and a +100 GB pack is capped at plan-base + 100 GB **in aggregate**, not +500 GB
+- [x] A `family` tenant with 5 seats and a +100 GB pack is capped at plan-base + 100 GB **in aggregate**, not +500 GB
 - [ ] Plan change preserves the pack: `personal`+500 → `family` yields 750 GiB (the R4 regression test, green)
 - [ ] Removing a pack while over the target quota returns `over-quota` and **keeps billing the pack** — no silent shrink, no data loss
-- [ ] A hub whose `HUB_PLAN` token predates `tenantQuotaBytes` boots and accepts writes (fail-open confirmed, not assumed)
+- [x] A hub whose `HUB_PLAN` token predates `tenantQuotaBytes` boots and accepts writes (fail-open confirmed, not assumed)
 - [ ] A self-hosted hub with no `HUB_PLAN` and no object-store config still stores blobs locally and is unaffected by every change above
 - [ ] Floor-margin test green for +100/+500/+1000 at the published prices
 - [ ] Stripe test-mode: buy → prorate → webhook → quota flip observed on the hub's `/health`

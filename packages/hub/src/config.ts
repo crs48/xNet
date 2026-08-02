@@ -74,6 +74,11 @@ const resolvePlanLimits = (): Partial<HubConfig> => {
   const entitlements = entitlementsFromEnv(process.env)
   return {
     defaultQuota: entitlements.quotaBytes,
+    // Absent in the token ⇒ absent here ⇒ no aggregate cap. Coercing a missing
+    // field to 0 would give every hub signed before 0435 a zero-byte ceiling.
+    ...(entitlements.tenantQuotaBytes !== undefined
+      ? { tenantQuota: entitlements.tenantQuotaBytes }
+      : {}),
     maxBlobSize: entitlements.maxBlobBytes,
     maxConnections: entitlements.maxConnections,
     writesEnabled: entitlements.writesEnabled
@@ -131,6 +136,18 @@ export const getDemoOverrides = (isDemo: boolean): DemoOverrides | null => {
  */
 export const resolvePerUserQuota = (config: HubConfig): number =>
   config.demo && config.demoOverrides ? config.demoOverrides.quota : config.defaultQuota
+
+/**
+ * Aggregate storage ceiling for the whole hub; `null` = no aggregate cap
+ * (exploration 0435).
+ *
+ * Deliberately NOT symmetric with {@link resolvePerUserQuota}, which has a
+ * self-host default. This one is only ever set by a signed entitlement token,
+ * because it exists to hold a managed tenant to the storage they bought — a
+ * self-hosted operator bought nothing from us and gets no ceiling. A demo hub
+ * keeps its own disk limit via the watchdog rather than a plan number.
+ */
+export const resolveTenantQuota = (config: HubConfig): number | null => config.tenantQuota ?? null
 
 // ─── Per-cap resolvers (0383 W1) ─────────────────────────────────────────────
 // The #603 rule, applied wholesale: every demo-vs-plan decision is made HERE,
