@@ -582,6 +582,18 @@ export type HubStorage = {
    */
   getUsageBytesByDid: (did: string) => Promise<number>
   /**
+   * Bytes of node-change data across **every** author — the whole tenant's
+   * footprint, not one member's. Backs the aggregate `tenantQuotaBytes` ceiling
+   * a storage add-on is billed against (exploration 0435).
+   *
+   * Kept separate from {@link getUsageBytesByDid} because the per-user cap and
+   * the per-tenant cap answer different questions: one stops a single member
+   * starving the others, the other stops the tenant exceeding what they bought.
+   * On a seat-metered plan the per-user number multiplies by seat count, so it
+   * can never stand in for this one.
+   */
+  getUsageBytesTotal: () => Promise<number>
+  /**
    * Delete every stored node-change for a room and return how many were
    * removed. Used by the "reset my data" dev tool — clearing a room is gated
    * on `hub/relay` for that room (you can only wipe rooms you can write to).

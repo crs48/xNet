@@ -36,9 +36,10 @@ import type {
   DatabaseFilterGroup,
   DatabaseFilterCondition
 } from './interface'
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, unlinkSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import Database from 'better-sqlite3'
+import { filesystemBlobStore, type BlobObjectStore } from './blob-store'
 import { NODE_SYNC_PAGE_SIZE } from './interface'
 import { litestreamWalPragmas } from './litestream'
 
@@ -855,8 +856,11 @@ function openHubDatabase(dbPath: string, resetOnCorruption: boolean): Database.D
 
 export const createSQLiteStorage = (
   dataDir: string,
-  options: { resetOnCorruption?: boolean } = {}
+  options: { resetOnCorruption?: boolean; blobs?: BlobObjectStore } = {}
 ): HubStorage => {
+  // Where bulk bytes go. Defaults to the local filesystem, so a self-hosted hub
+  // is completely unaffected by object-store support existing (0435/0174).
+  const blobStore = options.blobs ?? filesystemBlobStore
   mkdirSync(dataDir, { recursive: true })
   mkdirSync(join(dataDir, 'blobs'), { recursive: true })
   mkdirSync(join(dataDir, 'files'), { recursive: true })
@@ -1267,6 +1271,10 @@ export const createSQLiteStorage = (
       SELECT COALESCE(SUM(LENGTH(payload_json) + LENGTH(signature_b64)), 0) AS bytes
       FROM node_changes WHERE author_did = ?
     `),
+    getUsageBytesTotal: db.prepare(`
+      SELECT COALESCE(SUM(LENGTH(payload_json) + LENGTH(signature_b64)), 0) AS bytes
+      FROM node_changes
+    `),
     addChangeToRoom: db.prepare(`
       INSERT OR IGNORE INTO node_change_rooms (room, hash) VALUES (?, ?)
     `),
@@ -1330,7 +1338,9 @@ export const createSQLiteStorage = (
   const putBlob = async (key: string, data: Uint8Array, meta: BlobMeta): Promise<void> => {
     const blobDir = join(dataDir, 'blobs')
     const blobPath = assertSafePath(blobDir, key)
-    writeFileSync(blobPath, data)
+    // Bytes first, pointer second: a crash between the two leaves an orphan
+    // BLOB (cheap, sweepable) rather than a pointer to nothing (data loss).
+    await blobStore.put(blobPath, data)
 
     stmts.insertBackup.run(
       key,
@@ -1346,13 +1356,7 @@ export const createSQLiteStorage = (
   const getBlob = async (key: string): Promise<Uint8Array | null> => {
     const row = stmts.getBackup.get(key) as BackupRow
     if (!row) return null
-
-    try {
-      const data = readFileSync(row.blob_path)
-      return new Uint8Array(data)
-    } catch {
-      return null
-    }
+    return blobStore.get(row.blob_path)
   }
 
   const listBlobs = async (ownerDid: string): Promise<BlobMeta[]> => {
@@ -1391,7 +1395,7 @@ export const createSQLiteStorage = (
   ): Promise<void> => {
     const fileDir = join(dataDir, 'files')
     const filePath = assertSafePath(fileDir, cid)
-    writeFileSync(filePath, data)
+    await blobStore.put(filePath, data)
 
     stmts.insertFileMeta.run(
       cid,
@@ -1408,19 +1412,12 @@ export const createSQLiteStorage = (
   const getFileData = async (cid: string): Promise<Uint8Array | null> => {
     const row = stmts.getFileMeta.get(cid) as FileMetaRow | undefined
     if (!row) return null
-    try {
-      const data = readFileSync(row.file_path)
-      return new Uint8Array(data)
-    } catch {
-      return null
-    }
+    return blobStore.get(row.file_path)
   }
 
   const deleteFile = async (cid: string): Promise<void> => {
     const row = stmts.deleteFileMeta.get(cid) as { file_path: string } | undefined
-    if (row?.file_path && existsSync(row.file_path)) {
-      unlinkSync(row.file_path)
-    }
+    if (row?.file_path) await blobStore.delete(row.file_path)
   }
 
   const listFiles = async (uploaderDid: string): Promise<FileMeta[]> => {
@@ -1971,9 +1968,7 @@ export const createSQLiteStorage = (
 
   const deleteBlob = async (key: string): Promise<void> => {
     const row = stmts.deleteBackup.get(key) as BackupRow
-    if (row?.blob_path && existsSync(row.blob_path)) {
-      unlinkSync(row.blob_path)
-    }
+    if (row?.blob_path) await blobStore.delete(row.blob_path)
   }
 
   const setDocMeta = async (docId: string, meta: DocMeta): Promise<void> => {
@@ -2360,6 +2355,11 @@ export const createSQLiteStorage = (
 
   const getUsageBytesByDid = async (did: string): Promise<number> => {
     const row = stmts.getUsageBytesByDid.get(did) as { bytes: number } | undefined
+    return row?.bytes ?? 0
+  }
+
+  const getUsageBytesTotal = async (): Promise<number> => {
+    const row = stmts.getUsageBytesTotal.get() as { bytes: number } | undefined
     return row?.bytes ?? 0
   }
 
@@ -2811,6 +2811,7 @@ export const createSQLiteStorage = (
     hasNodeChange,
     appendNodeChange,
     getUsageBytesByDid,
+    getUsageBytesTotal,
     addChangeToRoom,
     getRoomChangesSince,
     getLatestProfileHash,

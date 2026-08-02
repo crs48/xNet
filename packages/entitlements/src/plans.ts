@@ -47,8 +47,30 @@ export type SlaLevel = 'none' | 'best-effort' | '99.9' | 'custom'
 export interface PlanEntitlements {
   plan: PlanId
   isolation: IsolationTier
-  /** Storage quota per tenant, in bytes (maps to hub `defaultQuota`). */
+  /**
+   * Storage quota **per user**, in bytes (maps to hub `defaultQuota`).
+   *
+   * Despite the plan-level name this is enforced per DID by the hub's node
+   * relay, so one member of a shared hub cannot eat the whole thing. It is NOT
+   * the number we bill against — see {@link tenantQuotaBytes}.
+   */
   quotaBytes: number
+  /**
+   * Aggregate storage ceiling for the WHOLE tenant, in bytes — the number a
+   * storage add-on is billed against (exploration 0435).
+   *
+   * Distinct from {@link quotaBytes}, which is per user. On a 5-seat plan the
+   * per-user quota multiplies by seat count, so billing a per-tenant pack
+   * against it would provision five times what was sold. The hub enforces both:
+   * per-user keeps one member from starving the others, and this keeps the
+   * tenant inside what they bought.
+   *
+   * **Absent means unlimited**, not zero — the same fail-open rule as
+   * {@link writesEnabled}, and for the same reason: a token signed before this
+   * field existed must keep working, and the failure mode of the alternative is
+   * freezing every hub in the fleet the moment it ships.
+   */
+  tenantQuotaBytes?: number
   /** Max single blob/backup size, in bytes (maps to hub `maxBlobSize`). */
   maxBlobBytes: number
   /** Max concurrent connections — the concurrency lever (maps to hub `maxConnections`). */
@@ -150,6 +172,9 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     plan: 'demo',
     isolation: 'pooled',
     quotaBytes: 10 * MiB,
+    // Aggregate = per-user quota x seats: the capacity this plan was always
+    // modeled to allow, now stated instead of implied (exploration 0435).
+    tenantQuotaBytes: 10 * MiB,
     maxBlobBytes: 2 * MiB,
     maxConnections: 50,
     seats: 1,
@@ -163,6 +188,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     plan: 'personal',
     isolation: 'dedicated-sleep',
     quotaBytes: 25 * GiB,
+    tenantQuotaBytes: 25 * GiB,
     maxBlobBytes: 50 * MiB,
     maxConnections: 250,
     seats: 1,
@@ -178,6 +204,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     plan: 'family',
     isolation: 'dedicated-sleep',
     quotaBytes: 250 * GiB,
+    tenantQuotaBytes: 5 * 250 * GiB,
     maxBlobBytes: 100 * MiB,
     maxConnections: 500,
     seats: 5,
@@ -193,6 +220,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     plan: 'team',
     isolation: 'dedicated-warm',
     quotaBytes: 100 * GiB,
+    tenantQuotaBytes: 3 * 100 * GiB,
     maxBlobBytes: 100 * MiB,
     maxConnections: 1000,
     seats: 3,
@@ -224,6 +252,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     plan: 'company',
     isolation: 'dedicated-project',
     quotaBytes: 1024 * GiB,
+    tenantQuotaBytes: 10 * 1024 * GiB,
     maxBlobBytes: 500 * MiB,
     maxConnections: 4000,
     seats: 10,
@@ -239,6 +268,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     plan: 'enterprise',
     isolation: 'region-pinned',
     quotaBytes: 5 * 1024 * GiB,
+    tenantQuotaBytes: 25 * 5 * 1024 * GiB,
     maxBlobBytes: 1024 * MiB,
     maxConnections: 10000,
     seats: 25,
@@ -286,6 +316,50 @@ export function withStorage(entitlements: PlanEntitlements, quotaBytes: number):
     throw new Error(`Invalid quotaBytes: ${quotaBytes}`)
   }
   return { ...entitlements, quotaBytes }
+}
+
+/** Bytes in one GiB — the unit a storage pack is sold in (exploration 0435). */
+export const STORAGE_PACK_UNIT_BYTES = GiB
+
+/**
+ * Apply a purchased storage add-on of `packGb` GiB — an in-place entitlement
+ * flip, no migration (exploration 0435).
+ *
+ * **Additive over the plan's own base, never an absolute.** The caller passes
+ * the pack; this derives the quota. That ordering is what makes a plan change
+ * safe: a `personal` tenant with a +500 GiB pack who upgrades to `family` gets
+ * `250 + 500 = 750` GiB, not a stale absolute that would silently shrink them.
+ * Persisting a resolved `quotaBytes` override instead is a bug generator — see
+ * `TenantRecord.storagePackGb`.
+ *
+ * Both ceilings move together: `quotaBytes` (per user) so a single member can
+ * actually use the space on a one-seat plan, and `tenantQuotaBytes` (aggregate)
+ * because that is what was billed. A flat-billed plan has no aggregate ceiling
+ * to begin with (members are not seats — 0359), so the pack leaves it unset
+ * rather than inventing a member-scaled cap the Charter refuses.
+ *
+ * `packGb: 0` is the identity: it restores the plan's catalog defaults, which
+ * is exactly what removing a pack must do.
+ */
+export function withStoragePack(entitlements: PlanEntitlements, packGb: number): PlanEntitlements {
+  if (!Number.isInteger(packGb) || packGb < 0) {
+    throw new Error(`Invalid storage pack: ${packGb}`)
+  }
+  const base = PLAN_CATALOG[entitlements.plan]
+  if (!base) throw new Error(`Unknown plan: ${entitlements.plan}`)
+  const packBytes = packGb * STORAGE_PACK_UNIT_BYTES
+  const next: PlanEntitlements = {
+    ...entitlements,
+    quotaBytes: base.quotaBytes + packBytes
+  }
+  // Absent aggregate ceiling means unlimited; adding one here would newly cap a
+  // flat plan that has deliberately never had one.
+  if (base.tenantQuotaBytes === undefined) {
+    delete next.tenantQuotaBytes
+    return next
+  }
+  next.tenantQuotaBytes = base.tenantQuotaBytes + packBytes
+  return next
 }
 
 /**
