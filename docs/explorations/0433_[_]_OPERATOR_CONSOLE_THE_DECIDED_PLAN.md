@@ -18,7 +18,7 @@ tags: [cloud, operations, sre, support, security, observability, decisions]
 > served same-origin from `apps/cloud`, running **on xNet for the record and
 > REST for the readings**. Two defects found while deciding ship **before**
 > any of it: the tiers that sell a 99.9% SLO are provisioned scale-to-zero, and
-> four user-facing surfaces claim we cannot read data the hub demonstrably
+> five user-facing surfaces claim we cannot read data the hub demonstrably
 > indexes.
 
 ---
@@ -52,7 +52,7 @@ boundary between shape and content must be **enforced and logged**.
 | Layer | Decision | Phase |
 | ----- | -------- | ----- |
 | Warm provisioning | `minInstances` derived from the SLO, not the isolation tier | 🔴 Ship first |
-| Confidentiality copy | Correct all four claims | 🔴 Ship first |
+| Confidentiality copy | Correct all five claims | 🔴 Ship first |
 | SLI durability | Hourly buckets in `DocStore`; 30d raw + daily rollup to 13mo | 0 |
 | Gate semantics | Stale → freeze · young → excluded · fleet-wide zero → freeze | 0 |
 | Public status | New `unmeasured` component state | 0 |
@@ -131,14 +131,21 @@ adds ~$6/month per SLO tenant.
 `PricingScenario` at all**, so its margin floor is unasserted — that predates
 this work and is noted rather than fixed here.
 
-### D2 — four surfaces claim we cannot read data the hub indexes
+### D2 — five surfaces claim we cannot read data the hub indexes
 
-| Location | Claim |
-| -------- | ----- |
-| [`dashboard.ts:650`](../../apps/cloud/src/dashboard.ts) | "we only ever hold encrypted bytes" |
-| [`site/src/pages/cloud/index.astro:20`](../../site/src/pages/cloud/index.astro) | "We hold encrypted bytes we cannot read." |
-| [`site/src/data/compare.ts:1239`](../../site/src/data/compare.ts) | "the confidential body stays on a hub that **never sees plaintext**" |
-| [`site/src/pages/privacy.astro:113`](../../site/src/pages/privacy.astro) | "we cannot read your data with it" — scoped to email recovery; likely fine, verify in context |
+> [!NOTE]
+> Implementation found **five**, not four. Two were in the same `compare.ts`
+> entry as the one already flagged, and a fifth was in the Habitat comparison
+> two rows below it. The count in the decision interview was low.
+
+| Location | Claim | Verdict |
+| -------- | ----- | ------- |
+| [`dashboard.ts:650`](../../apps/cloud/src/dashboard.ts) | "we only ever hold encrypted bytes" | ✅ corrected |
+| [`site/src/pages/cloud/index.astro:20`](../../site/src/pages/cloud/index.astro) | "We hold encrypted bytes we cannot read." | ✅ corrected |
+| [`site/src/data/compare.ts:1239`](../../site/src/data/compare.ts) | "the confidential body stays on a hub that **never sees plaintext**" | ✅ corrected |
+| `compare.ts:1239` (same entry) | "xNet is **the end-to-end encrypted workspace**" | ✅ corrected — the exact claim `HonestMachine.astro` refuses |
+| [`compare.ts:1244`](../../site/src/data/compare.ts) | "xNet's hub, which **never sees plaintext**" | ✅ corrected — kept the true half (no master read credential) |
+| [`site/src/pages/privacy.astro:113`](../../site/src/pages/privacy.astro) | "we cannot read your data with it" | ✅ **no change needed** — "with it" scopes to the billing identity, and the surrounding paragraph is explicitly about the billing/data identity split |
 
 [`search-indexer.ts`](../../packages/hub/src/services/search-indexer.ts) extracts
 plaintext from rich text to build the FTS index. Exploration
@@ -472,10 +479,10 @@ sale — either re-opens the consent model.
 - [x] Test: `community`, `company`, `enterprise` provision warm; `personal`, `family`, `demo` do not
 - [x] Test: `region-pinned` no longer falls through to 0
 - [x] Model the cost delta against `packages/cloud/src/cost/pricing.ts`
-- [ ] Correct `apps/cloud/src/dashboard.ts:650`
-- [ ] Correct `site/src/pages/cloud/index.astro:20`
-- [ ] Correct `site/src/data/compare.ts:1239`
-- [ ] Verify `site/src/pages/privacy.astro:113` reads correctly in context
+- [x] Correct `apps/cloud/src/dashboard.ts:650`
+- [x] Correct `site/src/pages/cloud/index.astro:20`
+- [x] Correct `site/src/data/compare.ts:1239`
+- [x] Verify `site/src/pages/privacy.astro:113` reads correctly in context
 - [ ] Changeset: **major** for `@xnetjs/entitlements` if the warmth mapping is exported
 
 ### Phase 0 — substrate

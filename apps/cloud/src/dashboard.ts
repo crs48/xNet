@@ -647,7 +647,7 @@ function dangerZone(): string {
         <strong>Cancel subscription</strong> stops billing and suspends your hub; your
         encrypted backup is retained so you can re-subscribe or export.
         <strong>Delete my data</strong> destroys the hub and its backup — this is
-        irreversible, and not even we can recover it (we only ever hold encrypted bytes).
+        irreversible, and once it runs there is no copy left for us to restore from.
       </p>
       <div class="danger-actions">
         <a class="btn ghost" href="/account/recover">Recover account</a>
