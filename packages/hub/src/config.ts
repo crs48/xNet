@@ -159,9 +159,22 @@ export const resolveTenantQuota = (config: HubConfig): number | null => config.t
 export const resolveMaxBlobBytes = (config: HubConfig): number =>
   config.demo && config.demoOverrides ? config.demoOverrides.maxBlob : config.maxBlobSize
 
-/** Disk-watchdog budget; `null` = no watchdog (watchdog stays demo-only, 0291). */
-export const resolveDiskWatchdogBytes = (config: HubConfig): number | null =>
-  config.demo && config.demoOverrides ? config.demoOverrides.diskLimitBytes : null
+/**
+ * Disk-watchdog budget; `null` = no watchdog.
+ *
+ * Was demo-only (0291), which left every PAYING tenant with no aggregate disk
+ * guard at all — and on Cloud Run a full filesystem is a full memory allocation,
+ * i.e. an OOM kill rather than a graceful degradation (exploration 0435).
+ *
+ * Sized from the **substrate**, never from the plan quota: the plan says what
+ * the tenant bought, the volume says what the machine can physically hold, and
+ * shedding writes is about the second. Unset ⇒ still no watchdog, so a
+ * self-hosted hub on an unknown disk is unchanged.
+ */
+export const resolveDiskWatchdogBytes = (config: HubConfig): number | null => {
+  if (config.demo && config.demoOverrides) return config.demoOverrides.diskLimitBytes
+  return config.diskLimitBytes ?? null
+}
 
 /** Periodic full-reset cadence; `null` = never (demo's disposable volume only). */
 export const resolveResetIntervalMs = (config: HubConfig): number | null =>
@@ -200,6 +213,11 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
     process.env.HUB_DATA_DIR ??
     cliOptions.dataDir ??
     DEFAULT_CONFIG.dataDir
+
+  // Physical capacity of the writable filesystem, injected by whoever knows the
+  // substrate (0435). Not derivable inside the hub: on Cloud Run the writable
+  // filesystem is RAM, and nothing in the container reports the instance limit.
+  const diskLimitBytes = toNumber(process.env.HUB_DISK_LIMIT_BYTES) ?? cliOptions.diskLimitBytes
 
   const auth = toBoolean(process.env.HUB_AUTH) ?? cliOptions.auth ?? DEFAULT_CONFIG.auth
 
@@ -270,6 +288,7 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
     ...resolvePlanLimits(),
     port,
     dataDir,
+    ...(diskLimitBytes !== undefined ? { diskLimitBytes } : {}),
     auth,
     storage,
     logLevel,

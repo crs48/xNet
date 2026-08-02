@@ -99,7 +99,7 @@ import { ShardQueryRouter } from './services/shard-router'
 import { ShareAccessService } from './services/share-access'
 import { createSignalingService } from './services/signaling'
 import { TaskIdentifierService } from './services/task-identifiers'
-import { createStorage } from './storage'
+import { createStorage, type BlobObjectStore } from './storage'
 import { LitestreamSyncTracker, readLitestreamMetrics, isBackupFresh } from './storage/litestream'
 import { setupHubTelemetry } from './telemetry/bridge'
 import { authorizeRoomAction, denyAndCloseSocket } from './ws/authorize'
@@ -196,7 +196,24 @@ const isSecureWsEndpoint = (endpoint: string): boolean => {
 const endpointClaimFor = (endpoint: string, resource: string, exp: number): string =>
   createHash('sha256').update(`${endpoint}|${resource}|${exp}`).digest('base64url')
 
-export const createServer = async (config: HubConfig): Promise<HubInstance> => {
+/** Composition-root dependencies a host can inject (exploration 0435). */
+export interface HubServerDeps {
+  /**
+   * Where bulk bytes (file uploads, backup blobs) are stored. Omit and they go
+   * to the local filesystem exactly as before — the self-host default, and the
+   * reason a hub never needs an object store to run (0174).
+   *
+   * The managed fleet injects an S3/R2-backed store here so a tenant's storage
+   * ceiling is the bucket rather than the instance's 32 GiB of RAM. Build one
+   * from `@xnetjs/cloud`'s `S3BlobAdapter` with `objectStoreFromAdapter`.
+   */
+  blobs?: BlobObjectStore
+}
+
+export const createServer = async (
+  config: HubConfig,
+  deps: HubServerDeps = {}
+): Promise<HubInstance> => {
   const app = new Hono()
   const log = createLogger({ level: config.logLevel, base: { service: 'xnet-hub' } })
   // Browser clients live on other origins than the hub (the deployed app on
@@ -236,7 +253,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     assertDerivedOnlyDataDir(config.dataDir)
   }
   const storage = await createStorage(config.storage, config.dataDir, {
-    resetOnCorruption: resolveResetOnCorruption(config)
+    resetOnCorruption: resolveResetOnCorruption(config),
+    ...(deps.blobs ? { blobs: deps.blobs } : {})
   })
   // Every per-user cap goes through a config resolver — the single place the
   // demo-override-vs-plan choice is made (#603's rule; 0383 W1). Server code

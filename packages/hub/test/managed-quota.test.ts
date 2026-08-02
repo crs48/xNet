@@ -22,14 +22,19 @@ import {
 import { identityFromPrivateKey } from '@xnetjs/identity'
 import { createChangeId, createUnsignedChange, signChange } from '@xnetjs/sync'
 import { afterEach, describe, expect, it } from 'vitest'
-import { resolveConfig, resolvePerUserQuota, resolveTenantQuota } from '../src/config'
+import {
+  resolveConfig,
+  resolveDiskWatchdogBytes,
+  resolvePerUserQuota,
+  resolveTenantQuota
+} from '../src/config'
 import { NodeRelayService } from '../src/services/node-relay'
 import { createMemoryStorage } from '../src/storage/memory'
 import { DEMO_DEFAULTS } from '../src/types'
 
 const ROOM = 'managed-room'
 const SECRET = 'hub-plan-secret'
-const ENV_KEYS = ['HUB_PLAN', 'XNET_PLAN_SECRET', 'HUB_MODE']
+const ENV_KEYS = ['HUB_PLAN', 'XNET_PLAN_SECRET', 'HUB_MODE', 'HUB_DISK_LIMIT_BYTES']
 
 afterEach(() => {
   for (const key of ENV_KEYS) delete process.env[key]
@@ -260,5 +265,42 @@ describe('resolveTenantQuota (0435)', () => {
     process.env.XNET_PLAN_SECRET = SECRET
 
     expect(resolveTenantQuota(resolveConfig({}))).toBeNull()
+  })
+})
+
+/**
+ * Disk watchdog on a paying hub (exploration 0435).
+ *
+ * The watchdog was demo-only (0291), so a paying tenant's hub had no aggregate
+ * disk guard at all — and on Cloud Run the writable filesystem is RAM, making a
+ * full disk an OOM kill rather than a graceful shed.
+ */
+describe('resolveDiskWatchdogBytes beyond demo (0435)', () => {
+  it('watches the substrate limit on a managed, non-demo hub', () => {
+    process.env.HUB_DISK_LIMIT_BYTES = String(8 * 1024 * 1024 * 1024)
+    managedConfig() // sets HUB_PLAN/XNET_PLAN_SECRET
+
+    expect(resolveDiskWatchdogBytes(resolveConfig({}))).toBe(8 * 1024 * 1024 * 1024)
+  })
+
+  it('is sized from the SUBSTRATE, not the plan quota', () => {
+    // personal is 25 GiB of entitlement on (say) an 8 GiB machine. The watchdog
+    // must track the machine — shedding writes is about physical capacity.
+    process.env.HUB_DISK_LIMIT_BYTES = String(8 * 1024 * 1024 * 1024)
+    const config = managedConfig()
+
+    expect(resolveDiskWatchdogBytes(config)).toBeLessThan(resolvePerUserQuota(config))
+  })
+
+  it('still has no watchdog when the substrate limit is unknown', () => {
+    // A self-hosted hub on an unmeasured disk is unchanged.
+    expect(resolveDiskWatchdogBytes(resolveConfig({}))).toBeNull()
+  })
+
+  it('keeps the demo override winning in demo mode', () => {
+    process.env.HUB_MODE = 'demo'
+    process.env.HUB_DISK_LIMIT_BYTES = String(99 * 1024 * 1024 * 1024)
+
+    expect(resolveDiskWatchdogBytes(resolveConfig({}))).toBe(DEMO_DEFAULTS.diskLimitBytes)
   })
 })

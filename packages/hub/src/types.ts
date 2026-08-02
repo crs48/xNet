@@ -27,6 +27,13 @@ export type HubConfig = {
   /** Default storage quota per DID in bytes (default: 1GB). */
   defaultQuota: number
   /**
+   * Physical capacity of the volume/filesystem this hub writes to, in bytes.
+   * `undefined` = no watchdog. Set by whoever knows the substrate — on Cloud Run
+   * the writable filesystem is RAM, so this is the instance memory budget, not
+   * a plan number (exploration 0435).
+   */
+  diskLimitBytes?: number
+  /**
    * Aggregate storage ceiling for the whole hub in bytes. `undefined` = no
    * aggregate cap, which is the self-host default: only a managed tenant's
    * signed entitlement token sets one (exploration 0435).
