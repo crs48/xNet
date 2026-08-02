@@ -1,6 +1,5 @@
 ---
 '@xnetjs/devkit': minor
-'@xnetjs/ui': minor
 ---
 
 Add the point-and-change substrate from exploration 0399.

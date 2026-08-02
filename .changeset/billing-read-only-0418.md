@@ -1,6 +1,5 @@
 ---
 '@xnetjs/entitlements': major
-'@xnetjs/hub': major
 ---
 
 Billing read-only mode (exploration 0418).
