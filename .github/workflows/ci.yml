@@ -128,6 +128,14 @@ jobs:
       - name: Publish closure (0220)
         run: pnpm check:publish-closure
 
+      # `changeset version` only runs on push to main, so a malformed changeset
+      # lands green on its own PR and reds the *release* instead — the Version
+      # Packages PR stops refreshing and nothing publishes. Four changesets
+      # mixing ignored and publishable packages did exactly that for 12 days.
+      # changesets aborts on the first offender, so this reports all of them.
+      - name: Changesets assemble into a release plan (0265)
+        run: pnpm check:changesets
+
       # site/public/llms-full.txt is generated from the docs but committed, and
       # CI does not build site/ on pull requests — so an MDX edit that skips the
       # regeneration ships a stale artifact and nothing says so. Commit 4c00be2c7
