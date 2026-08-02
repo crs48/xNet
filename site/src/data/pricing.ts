@@ -21,7 +21,7 @@ export function startUrl(plan: string): string {
 }
 
 export interface PricingTier {
-  id: 'demo' | 'personal' | 'family' | 'team' | 'enterprise'
+  id: 'demo' | 'personal' | 'family' | 'team' | 'community' | 'enterprise'
   name: string
   tagline: string
   /** Display price; `null` for free, `'custom'` for contact-sales. */
@@ -36,12 +36,21 @@ export interface PricingTier {
   featured?: boolean
 }
 
-export const updated = 'June 2026'
+export const updated = 'August 2026'
 
 /**
- * Public-facing tiers, cheapest → richest. The full catalog also has `community`
- * and `company` tiers (variants of team/enterprise isolation); they're available
- * on request but kept off the public grid to keep the decision simple.
+ * Public-facing tiers, cheapest → richest.
+ *
+ * `community` is on the grid because the Charter names it as the receipt for
+ * "no per-member pricing on communities", and a receipt nobody can buy is not
+ * one (exploration 0436 G7). `company` stays off — it is an enterprise-shaped
+ * contract sale and goes through the same contact lane.
+ *
+ * Every claim in this file must map to an enforcing code path. This page ran
+ * ahead of the control plane once — advertising per-seat billing against a
+ * checkout that hard-coded `quantity: 1`, and a 99.9% figure the catalog gave
+ * Team no objective for — and `apps/cloud/src/pricing-claims.test.ts` now
+ * checks it on every run.
  */
 export const PRICING: PricingTier[] = [
   {
@@ -87,8 +96,8 @@ export const PRICING: PricingTier[] = [
     isolation: 'Dedicated hub (scale-to-zero)',
     highlights: [
       'Everything in Personal',
-      '5 seats, one bill',
-      'Shared spaces & folders',
+      '5 people, one bill',
+      'Invite from your dashboard — everyone keeps their own keys',
       'Generous storage for media'
     ],
     cta: { label: 'Get Family', href: startUrl('family') }
@@ -105,9 +114,25 @@ export const PRICING: PricingTier[] = [
       'Always-warm hub — instant sync',
       'Per-seat billing, add seats any time',
       'Roles, grants & shared workspaces',
-      '99.9% best-effort availability'
+      'Best-effort availability, measured on our status page'
     ],
     cta: { label: 'Get Team', href: startUrl('team') }
+  },
+  {
+    id: 'community',
+    name: 'Community',
+    tagline: 'Host a community without paying per member.',
+    price: { amount: 49, unit: '/mo' },
+    storage: '500 GiB',
+    seats: 'Unlimited members',
+    isolation: 'Dedicated project hub (always warm)',
+    highlights: [
+      'Flat price — never per member',
+      'Members are unlimited and uncounted',
+      '99.9% availability objective',
+      'Generous storage, concurrency and AI budget'
+    ],
+    cta: { label: 'Get Community', href: startUrl('community') }
   },
   {
     id: 'enterprise',
@@ -118,10 +143,10 @@ export const PRICING: PricingTier[] = [
     seats: '25+ seats',
     isolation: 'Region-pinned dedicated deployment',
     highlights: [
-      'SSO / SCIM via WorkOS',
-      'Data residency (region pinning)',
+      'Data residency — your hub pinned to a region',
       'Custom SLA & support',
-      'Audit logging & admin controls'
+      'Audit logging & admin controls',
+      'SSO — talk to us about your identity provider'
     ],
     cta: { label: 'Contact sales', href: '/cloud#enterprise' }
   }
@@ -153,7 +178,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     n: 4,
     title: 'Own it',
-    body: 'Manage billing, add seats, export everything, or delete your data — from one dashboard. Cancel any time; self-host with the same data whenever you like.'
+    body: 'Invite people, manage billing, export everything, or delete your data — from one dashboard. Cancel any time; self-host with the same data whenever you like.'
   }
 ]
 
@@ -186,6 +211,10 @@ export const FAQS: CloudFaq[] = [
   {
     q: 'Where does the margin come from?',
     a: 'From operations and support — running your hub, backups, isolation, SLAs, and admin — never from access to your own data. Export everything for free, pay no egress fees, and self-host the same open-source hub whenever you like. Our Charter calls this the "no ground rent" rule and links every one of those promises to the code that backs it.'
+  },
+  {
+    q: 'How do seats work?',
+    a: "A seat is someone we run capacity for — a collaborator whose devices sync against your hub. You invite them from your dashboard: they open xNet, create their own passkey, and read you a short code. Their keys never touch us. Guests you invite for read access don't use a seat, and the Community plan doesn't count people at all — it's a flat price no matter how big your community gets. We won't charge you for the size of an audience you brought."
   },
   {
     q: 'Do I pay for AI usage?',

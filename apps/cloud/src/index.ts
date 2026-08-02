@@ -36,6 +36,7 @@ import { stripeGatewayFromEnv } from './billing/stripe-gateway'
 import { FakeTenantBillingGateway, type TenantBillingGateway } from './billing-gateway'
 import { ControlPlane } from './control-plane'
 import { type JobRecord } from './jobs/leased'
+import { MemorySalesLeadStore } from './leads'
 import { createLogger } from './logger'
 import { JobRegistry } from './jobs/runner'
 import { HealthSampleStore, httpHealthProbe, probeFleet } from './observability/health'
@@ -76,6 +77,7 @@ export {
   type CodeGenerator
 } from './device-grant'
 export { makeDidChallengeVerifier } from './verify-did'
+export { MemorySalesLeadStore, hashString, type SalesLead, type SalesLeadStore } from './leads'
 export {
   MemoryNonceStore,
   nonceStoreFromDocs,
@@ -635,6 +637,10 @@ function start(): void {
       ? { diagnosticsAlertUrl: env.XNET_CLOUD_DIAGNOSTICS_ALERT_URL }
       : {}),
     ...(durable ? { nonces: durable.nonces } : {}),
+    // Sales leads for the contact-sales lane (0436). In-memory by default:
+    // production wires a durable store, and the route 503s when unconfigured
+    // rather than accepting a lead it cannot keep.
+    leads: new MemorySalesLeadStore(),
     ...(ai ? { ai } : {}),
     // Hub address resolution (0423). In-memory: the mirror is a cache of each
     // hub's own signed record, so losing it on restart costs one refetch.

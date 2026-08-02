@@ -996,12 +996,12 @@ const session = await this.stripe.checkout.sessions.create({
 
 ### Phase C — commerce
 
-- [ ] Bill seats as a real Stripe `quantity`; keep it in sync from `customer.subscription.updated`
-- [ ] `automatic_tax` + `customer_update: { address: 'auto' }` + `tax_id_collection` on Checkout
-- [ ] `community` in `CHECKOUT_PLANS`, `PRICE_BY_PLAN`, and the public pricing grid
-- [ ] `POST /account/start-free` provisioning a pooled `demo` tenant — the CTA that currently dead-ends
-- [ ] `POST /contact` lead capture + an operator route converting a lead into a tenant with overrides
-- [ ] Correct `site/src/data/pricing.ts` **today**: Team's "99.9%", "add seats any time", "5 seats, one bill"
+- [x] Bill seats as a real Stripe `quantity`; keep it in sync from `customer.subscription.updated`
+- [x] `automatic_tax` + `customer_update: { address: 'auto' }` + `tax_id_collection` on Checkout
+- [x] `community` in `CHECKOUT_PLANS`, `PRICE_BY_PLAN`, and the public pricing grid
+- [x] `POST /account/start-free` provisioning a pooled `demo` tenant — the CTA that currently dead-ends
+- [x] `POST /contact` lead capture + an operator route converting a lead into a tenant with overrides
+- [x] Correct `site/src/data/pricing.ts` **today**: Team's "99.9%", "add seats any time", "5 seats, one bill"
 
 ### Phase E — enterprise truth
 

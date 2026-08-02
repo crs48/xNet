@@ -212,7 +212,17 @@ const fmtBytes = (n: number): string =>
 
 function planPicker(view: DashboardView): string {
   if (!view.billingEnabled) {
-    return `<p class="muted">Billing isn't configured on this control plane yet.</p>`
+    // The free tier does not need a payment gateway, so it stays available even
+    // when billing is unwired — that is the whole point of a free tier.
+    return `
+      <p class="muted">Paid plans aren't configured on this control plane yet.</p>
+      <div class="plans">
+        <form method="post" action="/account/start-free" class="plan plan-free">
+          <div class="plan-name">Free</div>
+          <div class="plan-price">$0</div>
+          <button type="submit">Start free</button>
+        </form>
+      </div>`
   }
   const cards = view.checkoutPlans
     .map(
@@ -225,7 +235,17 @@ function planPicker(view: DashboardView): string {
       </form>`
     )
     .join('')
-  return `<div class="plans">${cards}</div>`
+  // The free tier's door. Its own form because `demo` is not a checkout — no
+  // gateway, no card — and because the pricing page's primary CTA points here
+  // and used to arrive at a dashboard offering only paid plans (0436 G6).
+  const free = `
+    <form method="post" action="/account/start-free" class="plan plan-free">
+      <div class="plan-name">Free</div>
+      <div class="plan-price">$0</div>
+      <p class="muted" style="margin:4px 0 8px;font-size:12px">A shared hub to try things out. No card.</p>
+      <button type="submit">Start free</button>
+    </form>`
+  return `<div class="plans">${free}${cards}</div>`
 }
 
 function hubCard(tenant: TenantRecord): string {

@@ -29,9 +29,11 @@ import {
   type TenantBinding
 } from '@xnetjs/cloud/identity'
 import {
+  isSeatMetered,
   requiresMigration,
   resolveEntitlements,
   signEntitlements,
+  withSeats,
   type PlanEntitlements,
   type PlanId,
   type TenantMemberRole
@@ -573,6 +575,41 @@ export class ControlPlane {
     // recovery-ordering open question).
     await this.pushRoster(updated)
     return updated
+  }
+
+  /**
+   * Set a tenant's billed seat count, in step with the Stripe subscription item.
+   *
+   * Refuses to shrink below the seats already occupied — the same shape as the
+   * over-quota guard on a storage downgrade (0216): never silently invalidate
+   * people who are already working. The caller is told what to free, and the
+   * existing members keep their admission until somebody is actually removed.
+   *
+   * A no-op on a flat-billed plan, where members are unlimited and uncounted.
+   */
+  async setSeats(
+    tenantId: string,
+    seats: number
+  ): Promise<
+    | { ok: true; tenant: TenantRecord }
+    | { ok: false; reason: 'unknown-tenant' | 'flat-plan' | 'seats-occupied'; used?: number }
+  > {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return { ok: false, reason: 'unknown-tenant' }
+    if (!isSeatMetered(record.entitlements)) return { ok: false, reason: 'flat-plan' }
+    if (record.entitlements.seats === seats) return { ok: true, tenant: record }
+    const used = seatsUsedBy(record)
+    if (seats < used) return { ok: false, reason: 'seats-occupied', used }
+    const next = withSeats(record.entitlements, seats)
+    const updated: TenantRecord = { ...record, entitlements: next }
+    await this.deps.tenants.put(updated)
+    if (updated.substrateRef && updated.dataTier === 'hot') {
+      await this.deps.provisioner.setEnv(
+        updated.substrateRef,
+        this.hubEnv(updated.tenantId, next, updated)
+      )
+    }
+    return { ok: true, tenant: updated }
   }
 
   /**

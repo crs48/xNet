@@ -23,6 +23,18 @@ export interface CheckoutArgs {
   successUrl: string
   cancelUrl: string
   email?: string
+  /**
+   * Billed seats — the Stripe `SubscriptionItem.quantity` (exploration 0436 G5).
+   *
+   * Defaults to the plan's catalog seat count, NOT to 1. Checkout used to
+   * hard-code `quantity: 1` against a pricing page advertising `$12/seat` from
+   * three seats, so a 3-seat Team subscription billed $12.
+   *
+   * Ignored on a flat-billed plan (`seats === 0`), where members are unlimited
+   * and uncounted and a quantity would be the per-member meter Charter §6
+   * refuses.
+   */
+  seats?: number
 }
 
 export interface PortalArgs {
@@ -32,14 +44,30 @@ export interface PortalArgs {
 
 /** A verified, parsed provider webhook reduced to a control-plane action. */
 export type WebhookResult =
-  | { type: 'checkout.completed'; customerRef: string; plan: PlanId }
+  | {
+      type: 'checkout.completed'
+      customerRef: string
+      plan: PlanId
+      /** Billed seats from the line item, when the plan is seat-metered (0436 G5). */
+      seats?: number
+    }
   | { type: 'subscription.canceled'; customerRef: string }
   /** An invoice payment attempt failed — dunning begins (exploration 0260). */
   | { type: 'payment_failed'; customerRef: string; attemptCount?: number }
   /** An invoice was paid — the subscription recovered. */
   | { type: 'payment_recovered'; customerRef: string }
   /** The subscription's status changed (`past_due` / `unpaid` / `active` / `canceled`). */
-  | { type: 'subscription_status'; customerRef: string; status: SubscriptionStatus }
+  | {
+      type: 'subscription_status'
+      customerRef: string
+      status: SubscriptionStatus
+      /**
+       * Seats as Stripe now sees them, read off the subscription ITEM rather
+       * than the checkout metadata — the metadata is a snapshot of the original
+       * purchase and does not move when a customer adds a seat in the portal.
+       */
+      seats?: number
+    }
   | { type: 'ignored' }
 
 /** Thrown when a webhook fails signature verification (route → 401). */
@@ -69,7 +97,10 @@ export interface TenantBillingGateway {
 export const PRICE_BY_PLAN: Partial<Record<PlanId, string>> = {
   personal: 'price_personal',
   family: 'price_family',
-  team: 'price_team'
+  team: 'price_team',
+  // `community` is self-serve (exploration 0436 G7): flat-billed, no residency,
+  // no contract — the only thing keeping it unbuyable was a missing price.
+  community: 'price_community'
 }
 
 const HEADER = 'x-xnet-signature'

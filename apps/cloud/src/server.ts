@@ -45,6 +45,7 @@ import {
 } from './diagnostics'
 import { composeDashboardLive, fetchHubDiagnosticsSummary, fetchHubHealth } from './hub-status'
 import { type JobHealth } from './jobs/leased'
+import { hashString, type SalesLead, type SalesLeadStore } from './leads'
 import { createLogger, type Logger } from './logger'
 import {
   collectUsage,
@@ -128,6 +129,12 @@ export interface ControlPlaneAppDeps {
   resolveOperator?: (c: Context) => Promise<OperatorIdentity | null>
   /** Two-tier audit log. Mutating routes refuse to run without it (fail-closed). */
   audit?: AuditLog
+  /**
+   * Sales-lead store for the contact-sales lane (`company` / `enterprise`).
+   * Omit and `POST /contact` returns 503 — "we cannot take your details right
+   * now" is a truthful answer; silently dropping a lead is not.
+   */
+  leads?: SalesLeadStore
   /** Optional bulk-storage reader (R2) for the `/open` usage snapshot's GB-stored (Tier 1). */
   usageStorage?: StorageUsageReader
   /** Optional per-hub usage probe; defaults to GETting each hot hub's `/health`. */
@@ -182,12 +189,27 @@ const EMPTY_USAGE_LEDGER: UsageLedger = {
   }
 }
 
-/** Plans offered for self-serve checkout (free demo + contract enterprise excluded). */
+/**
+ * Plans offered for self-serve checkout.
+ *
+ * `community` is here because the Charter cites its existence as the receipt for
+ * "no per-member pricing on communities", and a receipt nobody can buy is not
+ * one (exploration 0436 G7). It is flat-billed, needs no residency and no
+ * contract, so nothing but a missing price was keeping it out.
+ *
+ * `demo` is free and has its own route (`/account/start-free`); `company` and
+ * `enterprise` go through the contact-sales lane, because selling a region pin
+ * or a custom SLA self-serve would sell guarantees we would then owe.
+ */
 const CHECKOUT_PLANS: { id: PlanId; label: string; price: string }[] = [
   { id: 'personal', label: 'Personal', price: '$5/mo' },
   { id: 'family', label: 'Family', price: '$15/mo' },
-  { id: 'team', label: 'Team', price: '$12/seat/mo' }
+  { id: 'team', label: 'Team', price: '$12/seat/mo' },
+  { id: 'community', label: 'Community', price: '$49/mo' }
 ]
+
+/** Plans a visitor can ask us about but not buy with a card. */
+const CONTACT_SALES_PLANS: PlanId[] = ['company', 'enterprise']
 
 export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   const app = new Hono()
@@ -507,14 +529,69 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     const body = await c.req.parseBody()
     const plan = String(body.plan ?? '')
     if (!CHECKOUT_PLANS.some((p) => p.id === plan)) return c.json({ error: 'bad_plan' }, 400)
+    // Seats ride the checkout so a 5-seat Team purchase bills $60, not $12.
+    // `checkoutQuantity` floors it at the plan minimum and ignores it entirely
+    // on a flat plan (exploration 0436 G5).
+    const requested = Number(body.seats)
     const out = await deps.payments.createCheckout({
       customerRef: s.billingUserId,
       plan: plan as PlanId,
       successUrl: `${base}/dashboard?provisioning=1`,
       cancelUrl: `${base}/dashboard`,
-      ...(s.email ? { email: s.email } : {})
+      ...(s.email ? { email: s.email } : {}),
+      ...(Number.isInteger(requested) && requested > 0 ? { seats: requested } : {})
     })
     return c.redirect(out.url)
+  })
+
+  /**
+   * The free tier's actual door.
+   *
+   * `/cloud/pricing`'s first card said "Start free — no card required" and led
+   * to a dashboard offering three paid plans, because `demo` was not in
+   * `CHECKOUT_PLANS` and nothing else provisioned a tenant (exploration 0436
+   * G6). This is the missing route: a pooled `demo` hub, no payment gateway
+   * involved.
+   */
+  app.post('/account/start-free', async (c) => {
+    const s = session(c)
+    if (!s) return c.redirect('/auth/start')
+    const existing = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    // Idempotent: a double-submit or a back-button retry lands on the dashboard
+    // rather than erroring or provisioning twice.
+    if (existing) return c.redirect('/dashboard')
+    await deps.controlPlane.provisionForBilling({ plan: 'demo', billingUserId: s.billingUserId })
+    return c.redirect('/dashboard?provisioning=1')
+  })
+
+  /**
+   * Contact-sales lead capture for `company` and `enterprise`.
+   *
+   * Those plans promise a region pin, a custom SLA and SSO. Until each of those
+   * is real, selling them behind a card would be selling the gap; a lead we
+   * answer is honest. Leads land in a durable store an operator drains — never
+   * emailed onward from here.
+   */
+  app.post('/contact', async (c) => {
+    const body = await c.req.parseBody()
+    const email = String(body.email ?? '').trim()
+    const plan = String(body.plan ?? 'enterprise')
+    if (!email.includes('@')) return c.json({ error: 'bad_email' }, 400)
+    if (!CONTACT_SALES_PLANS.includes(plan as PlanId)) return c.json({ error: 'bad_plan' }, 400)
+    if (!deps.leads) return c.json({ error: 'contact_not_configured' }, 503)
+    const lead: SalesLead = {
+      id: `lead_${now()}_${Math.abs(hashString(email)).toString(36)}`,
+      email,
+      plan: plan as PlanId,
+      orgName: String(body.orgName ?? '').slice(0, 200),
+      seats: Number(body.seats) || 0,
+      notes: String(body.notes ?? '').slice(0, 2000),
+      createdAtMs: now(),
+      status: 'new'
+    }
+    await deps.leads.put(lead)
+    log.info('sales_lead', { plan: lead.plan, id: lead.id })
+    return c.json({ ok: true, id: lead.id })
   })
 
   app.post('/portal', async (c) => {
@@ -549,7 +626,10 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     if (event.type === 'checkout.completed') {
       await deps.controlPlane.provisionForBilling({
         plan: event.plan,
-        billingUserId: event.customerRef
+        billingUserId: event.customerRef,
+        // Provision the seats they PAID for, not the catalog default — a 5-seat
+        // Team purchase must not arrive as a 3-seat tenant (exploration 0436 G5).
+        ...(event.seats ? { overrides: { seats: event.seats } } : {})
       })
     } else if (event.type === 'subscription.canceled') {
       const tenant = await deps.controlPlane.getTenantForBilling(event.customerRef)
@@ -564,6 +644,13 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
         kind: 'subscription_status',
         status: event.status
       })
+      // Seats bought (or dropped) in the Customer Portal land here. Keeping the
+      // entitlement in step with the invoice is what makes "add seats any time"
+      // a true statement rather than pricing-page copy.
+      if (event.seats) {
+        const tenant = await deps.controlPlane.getTenantForBilling(event.customerRef)
+        if (tenant) await deps.controlPlane.setSeats(tenant.tenantId, event.seats)
+      }
     }
     return c.json({ received: true })
   }
@@ -870,6 +957,46 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   })
 
   // Fleet observability — per-tenant SLIs + an aggregate (exploration 0193).
+  // Convert a captured lead into a provisioned tenant with the terms that were
+  // actually agreed. Operator identity + typed reason, like every other mutating
+  // internal route (0433 decision 11) — a contract-sales tenant is exactly the
+  // kind of action that must name who did it.
+  app.post('/internal/leads/:id/convert', async (c) => {
+    const id = c.req.param('id')
+    if (!deps.leads) return c.json({ error: 'contact_not_configured' }, 503)
+    const lead = await deps.leads.get(id)
+    if (!lead) return c.json({ error: 'not_found' }, 404)
+    const body = (await c.req.json().catch(() => ({}))) as {
+      billingUserId?: string
+      overrides?: Record<string, unknown>
+      region?: string
+    }
+    if (!body.billingUserId) return c.json({ error: 'bad_request' }, 400)
+    const out = await asOperator(c, 'tenant.provision', lead.id, async () => {
+      const tenant = await deps.controlPlane.provisionForBilling({
+        plan: lead.plan,
+        billingUserId: body.billingUserId as string,
+        ...(body.overrides
+          ? {
+              overrides: body.overrides as Parameters<
+                typeof deps.controlPlane.provisionForBilling
+              >[0]['overrides']
+            }
+          : {}),
+        ...(body.region ? { region: body.region } : {})
+      })
+      await deps.leads!.put({ ...lead, status: 'converted', tenantId: tenant.tenantId })
+      return tenant
+    })
+    return out.ok ? c.json(out.value) : out.res
+  })
+
+  app.get('/internal/leads', async (c) => {
+    if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
+    if (!deps.leads) return c.json({ error: 'contact_not_configured' }, 503)
+    return c.json({ leads: await deps.leads.list() })
+  })
+
   app.get('/internal/fleet/health', async (c) => {
     if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
     if (!deps.health) return c.json({ error: 'observability_not_configured' }, 503)
