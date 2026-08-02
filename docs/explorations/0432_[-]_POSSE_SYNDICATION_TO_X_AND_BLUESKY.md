@@ -1,7 +1,7 @@
 ---
 title: POSSE Syndication — Automating @xnetfyi From the Changelog and Blog
 status: draft
-last_updated: 2026-08-01
+last_updated: 2026-08-02
 review: 2026-11-01 # X repriced its API in Feb 2026 and may again; re-decide the transport, not the shape
 decider: crs48
 door: two-way
@@ -17,17 +17,44 @@ tags: [platform, marketing, ci, publishing]
 > rate of ~150 changelog fragments a month, a firehose would post five times a
 > day and cost **~$30/month** in X API fees, because X now charges **$0.20 per
 > post containing a link**. Recommended: opt-in flag on fragments + a weekly
-> digest thread + immediate posts for blog essays, over OAuth **1.0a** (tokens
-> that don't expire), with a committed syndication ledger kept **outside
-> `site/`**. That is ~4–8 posts a week and **~$2.50/month**.
+> digest thread + immediate posts for blog essays, fanned out to **two live
+> accounts** — Bluesky (free) and X (metered, OAuth **1.0a** so tokens never
+> expire) — with a committed syndication ledger kept **outside `site/`**. That
+> is ~4–8 posts a week and **~$2.50/month**.
 
 ## Problem Statement
 
-There is now an X account at `@xnetfyi` and nothing posts to it. The ask is to
-automate it: changelog entries, blog posts, "any notable change".
+There are now two live accounts and neither has posted anything. The ask is to
+automate both: changelog entries, blog posts, "any notable change" — plus
+footer links so the site actually points at them.
 
-Taken literally that is a firehose, and the firehose is the wrong product. Two
-numbers frame everything below:
+### The accounts
+
+| Network | Handle | Stable id | State (2026-08-02) |
+| ------- | ------ | --------- | ------------------ |
+| X | [`@xnetfyi`](https://x.com/xnetfyi) | — | ⚠️ Not verifiable — the profile returns HTTP 402 to automated fetch |
+| Bluesky | [`xnetfyi.bsky.social`](https://bsky.app/profile/xnetfyi.bsky.social) | `did:plc:26oworspix6mgqcbgmdz4fsu` | ✅ Live, created 2026-08-02, display name `xNet`, bio already links `xnet.fyi`, **0 posts, 0 followers** |
+
+Bluesky's profile was confirmed through the public XRPC endpoint, which needs no
+auth:
+
+```bash
+curl -s "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=xnetfyi.bsky.social"
+```
+
+> [!IMPORTANT]
+> **Pin the DID, not the handle.** `xnetfyi.bsky.social` is a rented name that
+> changes the moment the account moves to a custom domain (`xnet.fyi` is the
+> obvious eventual handle). `did:plc:26oworspix6mgqcbgmdz4fsu` does not change.
+> Config should carry the DID and resolve the handle at runtime — which is the
+> same identity discipline §2 of the Charter applies to users.
+
+Having a free sink alongside the metered one changes the shape of the decision:
+X stops being load-bearing. If its pricing turns hostile, Bluesky alone still
+delivers the whole product.
+
+Taken literally the ask is still a firehose, and the firehose is the wrong
+product. Two numbers frame everything below:
 
 | Signal                        | Volume                              |
 | ----------------------------- | ----------------------------------- |
@@ -62,11 +89,13 @@ of work — but **"what earns a post, and who decides?"**
 | Source of truth             | The **deployed** feeds (`/changelog.json`, `/blog/rss.xml`), not the workspace |
 | Trigger                     | `workflow_run` after **Deploy Site to GitHub Pages** succeeds                  |
 | Selection                   | Opt-in `syndicate` field + weekly digest + automatic for blog posts            |
-| Transport                   | Direct X API v2, **OAuth 1.0a** user context (non-expiring tokens)             |
-| Second sink                 | Bluesky — free, and `lexicons/` + `scripts/atproto/` already exist             |
-| State                       | Committed JSON ledger under `docs/`, **never** under `site/`                   |
-| Cost                        | ~$2.50/month vs ~$30/month for a firehose                                      |
-| Door                        | Two-way — no wire format, no public API, no revenue lane                       |
+| Transport (X) | Direct X API v2, **OAuth 1.0a** user context (non-expiring tokens) |
+| Transport (Bluesky) | `com.atproto.repo.createRecord` + app password. Free, and `scripts/atproto/` already shows the shape |
+| Sink priority | **Bluesky first** — free, so it can never be the thing that breaks; X is the metered mirror |
+| State | Committed JSON ledger under `docs/`, **never** under `site/` |
+| Footer | ✅ **Done** — inline-SVG icons + Community links, zero third-party requests |
+| Cost | ~$2.50/month vs ~$30/month for a firehose. Bluesky adds $0 |
+| Door | Two-way — no wire format, no public API, no revenue lane |
 
 ---
 
@@ -182,6 +211,26 @@ and two more that avoid even Mermaid to keep the promise literal.
 > (exploration 0257). Syndication is outbound only. A plain `<a>` to the profile
 > in the footer is fine; a widget is not.
 
+### ✅ The footer now points at both accounts (shipped)
+
+[`site/src/components/sections/Footer.astro`](../../site/src/components/sections/Footer.astro)
+gained the two accounts in both places it lists community surfaces:
+
+- the brand-column **icon row**, next to GitHub — inline `<svg>` marks with
+  `aria-label="xNet on Bluesky"` / `"xNet on X"`;
+- the **Community** link list, as plain text entries.
+
+Verified against the running Astro dev server: both anchors resolve to the right
+URLs, both SVG paths render with sane geometry (22×19 and 22×20 in a 24×24
+viewBox), and `performance.getEntriesByType('resource')` shows **zero**
+non-origin requests — the "loads nothing third-party" promise still holds,
+because the icons are inline path data rather than a platform script.
+
+> [!NOTE]
+> Unrelated pre-existing bug noticed in the same file: the icon labelled
+> `aria-label="GitHub Discussions"` renders the **Discord** logo path. Left
+> alone here — it is not this exploration's scope.
+
 ---
 
 ## External Research
@@ -272,7 +321,8 @@ the X account can be abandoned at any time without losing anything.
 
 | Route | Cost | Who holds the keys | Verdict |
 | ----- | ---- | ------------------ | ------- |
-| **Direct X API, OAuth 1.0a** | ~$2.50/mo | Us | ✅ **Recommended** |
+| **Bluesky, `createRecord` + app password** | **$0** | Us | ✅ **Recommended — primary sink** |
+| **Direct X API, OAuth 1.0a** | ~$2.50/mo | Us | ✅ **Recommended — metered mirror** |
 | Direct X API, OAuth 2.0 PKCE | same | Us | 🛑 Rotation footgun in CI |
 | Buffer API (GA on all plans, ~100 req/15min) | $0–$5/channel/mo | Buffer | ✅ Viable fallback — Buffer's own X access absorbs the $0.20 |
 | Typefully | Free ≤15 posts/mo | Typefully | 🚧 Fits the volume, but text-networks only and a hard cap |
@@ -285,16 +335,102 @@ and resells it per channel, it sidesteps the link surcharge entirely. It is the
 right fallback if the $0.20 model turns out worse than modelled, and it is a
 one-file change if the sink interface is kept narrow.
 
-### Free sinks worth adding at the same time
+### Bluesky: free, but not a drop-in copy of the X sink
 
-- **Bluesky** — `com.atproto.repo.createRecord` with an app password. No cost,
-  no rate anxiety, and `scripts/atproto/publish-lexicons.mjs` already shows the
-  shape.
-- **Mastodon** — a single `POST /api/v1/statuses` with a bearer token.
+Bluesky costs nothing and has no billing model to defend against, so it should
+be the **primary** sink. But the record format differs from X in three ways that
+will silently produce broken posts if the composer is shared naively.
 
-Both are ~30 lines each behind the same sink interface. Since X is the
-expensive, fragile, values-awkward sink, having two free ones behind the same
-code makes X replaceable rather than load-bearing.
+**1. Links are not clickable unless you attach a facet.** A bare URL in `text`
+renders as plain text. Clickability comes from a `facets` array of
+`app.bsky.richtext.facet#link` entries with byte ranges:
+
+```jsonc
+{
+  "$type": "app.bsky.feed.post",
+  "text": "New essay: The Harvest You Can Count\n\nhttps://xnet.fyi/blog/…",
+  "createdAt": "2026-08-02T09:00:00.000Z",
+  "facets": [
+    {
+      "index": { "byteStart": 38, "byteEnd": 74 },
+      "features": [{ "$type": "app.bsky.richtext.facet#link", "uri": "https://xnet.fyi/blog/…" }]
+    }
+  ]
+}
+```
+
+> [!WARNING]
+> `byteStart`/`byteEnd` are **UTF-8 byte offsets**, not JavaScript string
+> indices. Post copy in this repo routinely contains `—`, `’` and `•`, each of
+> which is 3 bytes and 1 code unit. Compute offsets with
+> `Buffer.byteLength(text.slice(0, i), 'utf8')` — using `indexOf` directly will
+> put the link range in the wrong place and the post will ship with a dead or
+> mis-sliced link. This is the single most likely bug in the whole feature.
+
+<details>
+<summary>Measured: the naive version is off by 12 bytes on one realistic line</summary>
+
+Run against a line using the punctuation this repo actually writes — em dash,
+curly quotes, bullet, emoji:
+
+```text
+New essay — “The Harvest You Can Count” • it’s about ledgers 🌾
+
+https://xnet.fyi/blog/the-harvest-you-can-count
+```
+
+| Method | Start offset | What the range decodes to |
+| ------ | ------------ | ------------------------- |
+| `text.indexOf('https://')` (naive) | 65 | `dgers 🌾\n\nhttps://xnet.fyi/blog/the-harvest-y` ❌ |
+| `Buffer.byteLength(text.slice(0, i))` | 77 | `https://xnet.fyi/blog/the-harvest-you-can-count` ✅ |
+
+The prefix holds one em dash, two curly quotes, one bullet, one curly
+apostrophe and one emoji — 12 bytes more than code units. The naive facet
+would highlight a slice of prose and half the URL.
+
+Also measured on the same line: **111 graphemes, 112 code units, 124 bytes** —
+three different numbers, which is exactly why the budget check must count
+graphemes. The emoji alone is 1 grapheme and 2 code units.
+
+**Use this line as the unit-test fixture.** The assertion that matters is that
+the byte range decodes back to the URL:
+
+```js
+const buf = Buffer.from(text, 'utf8')
+const f = linkFacets(text)[0]
+assert.equal(
+  buf.subarray(f.index.byteStart, f.index.byteEnd).toString('utf8'),
+  f.features[0].uri
+)
+```
+
+</details>
+
+**2. The limit is 300 graphemes, not 280 characters.** The lexicon sets
+`maxGraphemes: 300` and `maxLength: 3000` (bytes) on `text`. Graphemes are user-
+perceived characters, so an emoji with a skin-tone modifier is one grapheme and
+several code units. Use `Intl.Segmenter` to count, not `.length`.
+
+**3. Bluesky does not shorten URLs.** X wraps every link to a fixed 23
+characters via t.co; on Bluesky the full URL counts against the 300. A long
+changelog anchor like `https://xnet.fyi/changelog#2026-08-03-new-essay-the-harvest-you-can-count`
+is 74 graphemes of the budget.
+
+> [!IMPORTANT]
+> These three differences mean **per-sink budgets and per-sink rendering**, not
+> one string posted twice. The composer should produce a neutral
+> `{ headline, detail, url }` and let each sink render it. Sharing a
+> pre-rendered 280-character string across both is the mistake that makes
+> Bluesky posts read truncated for no reason.
+
+Auth is pleasantly boring: `com.atproto.server.createSession` with the handle
+and an app password returns an `accessJwt`. It is short-lived, but you mint a
+fresh session per run from a static app password — so unlike X's OAuth 2.0
+there is nothing to rotate and nothing to write back.
+
+**Mastodon** remains an easy third sink (`POST /api/v1/statuses`, bearer token,
+no facets needed) if an account is ever created. Not proposed now — no account
+exists, and an empty third account is worse than two active ones.
 
 ---
 
@@ -315,6 +451,15 @@ code makes X replaceable rather than load-bearing.
    (improvement / BATNA / vanish) govern *charging*, and nothing here charges
    anyone. The applicable Charter constraint is the mirror-never-origin
    invariant, which POSSE satisfies by construction.
+8. **Bluesky is free, which demotes X from load-bearing to optional.** Two live
+   sinks means the expensive one can be switched off without losing the feature.
+9. **The two networks are not string-compatible.** Different limits (300
+   graphemes vs 280 characters), different link handling (facets with UTF-8 byte
+   offsets vs automatic t.co wrapping). Render per sink from neutral parts.
+10. **Free does not mean "post more".** Bluesky removes the *cost* argument for
+    restraint but not the *editorial* one — 150 posts a month is spam at any
+    price. Same policy on both sinks by default; the cadence is configurable
+    per sink if that ever proves wrong.
 
 ---
 
@@ -334,28 +479,31 @@ flowchart TD
     H -- syndicate:true --> I
     H -- ordinary fragment --> J[Park for weekly digest]
     H -- tag: ci/devtools --> K[Never]
-    I --> L[Compose ≤280 chars]
+    I --> L["Compose neutral<br/>{headline, detail, url}"]
     J -->|Mondays| M[Compose digest thread]
     L --> N
-    M --> N[Sinks]
-    N --> O[X @xnetfyi]
-    N --> P[Bluesky]
-    N --> Q[Mastodon]
-    O --> R[Append receipts to ledger]
-    P --> R
-    Q --> R
+    M --> N{Render per sink}
+    N -->|300 graphemes<br/>+ link facets| P["Bluesky<br/>xnetfyi.bsky.social<br/>FREE — post first"]
+    N -->|280 chars<br/>t.co = 23| O["X @xnetfyi<br/>$0.20 per link post"]
+    P --> R[Append receipts to ledger]
+    O --> R
     R --> S[Commit to main, skip ci]
 ```
+
+> [!TIP]
+> Bluesky is attempted **first** on purpose. It is free and unmetered, so if the
+> X call fails on billing, auth or a rate limit, the content is already public
+> somewhere we control the cost of — and the retry only owes X.
 
 The pipeline in three boxes:
 
 ```text
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  xnet.fyi    │ ──▶ │  Selector +  │ ──▶ │  Sinks       │
-│  (canonical) │     │  Composer    │     │  X / bsky /  │
-│  feeds       │ ◀── │  + ledger    │     │  mastodon    │
-└──────────────┘     └──────────────┘     └──────────────┘
-     origin              decision              mirror
+┌──────────────┐     ┌──────────────┐     ┌──────────────────┐
+│  xnet.fyi    │ ──▶ │  Selector +  │ ──▶ │ bsky  (free)     │
+│  (canonical) │     │  Composer    │     │ X     ($0.20/link)│
+│  feeds       │ ◀── │  + ledger    │     │ …link home        │
+└──────────────┘     └──────────────┘     └──────────────────┘
+     origin              decision                 mirror
 ```
 
 <details>
@@ -380,14 +528,16 @@ sequenceDiagram
     Syn->>Pages: GET /changelog.json
     Pages-->>Syn: entries incl. _xnet.syndicate
     Syn->>GH: read docs/syndication/log.json
-    Syn->>Syn: select unposted, compose ≤280
+    Syn->>Syn: select unposted, compose neutral parts
     alt dry-run or no secrets
-        Syn-->>Dev: print planned posts, exit 0
+        Syn-->>Dev: print planned posts per sink, exit 0
     else configured
-        Syn->>X: POST /2/tweets (OAuth 1.0a)
-        X-->>Syn: {data:{id}}
-        Syn->>BS: com.atproto.repo.createRecord
+        Note over Syn,BS: free sink first — nothing to lose on a retry
+        Syn->>BS: createSession (app password)
+        Syn->>BS: createRecord + link facets (300 graphemes)
         BS-->>Syn: {uri}
+        Syn->>X: POST /2/tweets (OAuth 1.0a, 280 chars)
+        X-->>Syn: {data:{id}}
         Syn->>GH: commit ledger receipts [skip ci]
     end
 ```
@@ -493,13 +643,18 @@ Concretely:
 3. **A weekly digest thread** on Monday covering everything merged in the last
    seven days that was not already posted, grouped by tag. Link in post 1 only.
 4. **Never syndicate** `ci` or `devtools`-only fragments.
-5. **X sink over OAuth 1.0a**; **Bluesky sink** over an app password; Mastodon
-   optional. One narrow interface so Buffer can replace the X sink in one file.
+5. **Bluesky sink first** (app password, DID-pinned, link facets), **X sink
+   second** (OAuth 1.0a). One narrow interface so Buffer can replace the X sink
+   in one file — and so switching X off entirely is a config change, not a
+   rewrite.
 6. **Ledger at `docs/syndication/log.json`**, committed with `[skip ci]` by the
    same GitHub App that `stamp-pr-number.yml` already uses.
 7. **`pnpm check:syndication`** enforcing the POSSE invariant — every composed
-   post carries an `https://xnet.fyi/…` canonical link and is ≤280 characters —
-   with a `--selftest` wired into `check:gate-controls`.
+   post carries an `https://xnet.fyi/…` canonical link, fits its sink's budget
+   (280 chars for X, 300 graphemes for Bluesky), and on Bluesky has a link facet
+   whose byte range actually covers the URL — with a `--selftest` wired into
+   `check:gate-controls`.
+8. **The footer links to both accounts** — ✅ already shipped, see above.
 
 ### Brand spelling
 
@@ -612,12 +767,93 @@ export const xSink = (creds) => ({
 </details>
 
 <details>
+<summary>Bluesky sink — the link facet is where this goes wrong</summary>
+
+```js
+const PDS = 'https://bsky.social'
+/** Pin the DID: the handle changes if the account moves to xnet.fyi. */
+const DID = 'did:plc:26oworspix6mgqcbgmdz4fsu'
+
+/**
+ * Byte ranges for every URL in `text`.
+ *
+ * The offsets are UTF-8 BYTES, not string indices. Our copy is full of em
+ * dashes and curly quotes (3 bytes, 1 code unit each), so using the regex
+ * index directly silently mis-slices the link.
+ */
+export function linkFacets(text) {
+  const facets = []
+  for (const m of text.matchAll(/https?:\/\/[^\s<>()]+[^\s<>().,;:!?]/g)) {
+    facets.push({
+      index: {
+        byteStart: Buffer.byteLength(text.slice(0, m.index), 'utf8'),
+        byteEnd: Buffer.byteLength(text.slice(0, m.index + m[0].length), 'utf8')
+      },
+      features: [{ $type: 'app.bsky.richtext.facet#link', uri: m[0] }]
+    })
+  }
+  return facets
+}
+
+/** 300 GRAPHEMES, not 300 code units — and Bluesky never shortens URLs. */
+const seg = new Intl.Segmenter('en', { granularity: 'grapheme' })
+export const graphemes = (s) => [...seg.segment(s)].length
+
+/** @returns {Sink} */
+export const blueskySink = ({ handle, appPassword }) => ({
+  name: 'bluesky',
+  async post({ text, replyTo, root }) {
+    if (graphemes(text) > 300) throw new Error(`Bluesky: ${graphemes(text)} graphemes > 300`)
+
+    const auth = await fetch(`${PDS}/xrpc/com.atproto.server.createSession`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ identifier: handle, password: appPassword })
+    })
+    if (!auth.ok) throw new Error(`Bluesky auth ${auth.status}`)
+    const { accessJwt, did } = await auth.json()
+    if (did !== DID) throw new Error(`Bluesky: signed in as ${did}, expected ${DID}`)
+
+    const res = await fetch(`${PDS}/xrpc/com.atproto.repo.createRecord`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${accessJwt}`
+      },
+      body: JSON.stringify({
+        repo: did,
+        collection: 'app.bsky.feed.post',
+        record: {
+          $type: 'app.bsky.feed.post',
+          text,
+          createdAt: new Date().toISOString(),
+          facets: linkFacets(text),
+          ...(replyTo ? { reply: { root, parent: replyTo } } : {})
+        }
+      })
+    })
+    if (!res.ok) throw new Error(`Bluesky ${res.status}: ${await res.text()}`)
+    const { uri, cid } = await res.json()
+    const rkey = uri.split('/').pop()
+    return { id: uri, cid, url: `https://bsky.app/profile/${handle}/post/${rkey}` }
+  }
+})
+```
+
+> [!WARNING]
+> Bluesky threads need **both** `reply.root` and `reply.parent` — each a
+> `{ uri, cid }` strongRef. Passing only `parent` (the natural port of X's
+> `in_reply_to_tweet_id`) produces posts that display detached from the thread.
+> This is the same strongRef sharp edge exploration 0420 hit with
+> `interaction.like`.
+
+</details>
+
+<details>
 <summary>Selection + composition, with a deterministic fallback</summary>
 
 ```js
 const NEVER = new Set(['ci', 'devtools'])
-const LIMIT = 280
-const LINK_COST = 23 // t.co wraps every URL to a fixed width
 
 const eligible = (e) => !e.tags.every((t) => NEVER.has(t))
 
@@ -631,18 +867,38 @@ export function select(entries, posted) {
 }
 
 /**
- * Deterministic composer. The AI path (Haiku, mirroring
- * scripts/changelog/ai-release-notes.mjs) refines this and FAILS OPEN to it —
- * a missing ANTHROPIC_API_KEY must never block a post.
+ * Compose NEUTRAL PARTS, never a finished string — the two networks budget
+ * differently (X: 280 chars with links wrapped to a flat 23; Bluesky: 300
+ * graphemes with the full URL counted). A single pre-rendered string makes
+ * Bluesky posts read truncated for no reason.
+ *
+ * The AI path (Haiku, mirroring scripts/changelog/ai-release-notes.mjs) refines
+ * `detail` and FAILS OPEN to this — a missing ANTHROPIC_API_KEY never blocks a
+ * post. Its prompt must say "xNet", never "XNet" (AGENTS.md).
  */
-export function compose(entry) {
-  const room = LIMIT - LINK_COST - 2
-  const head = entry.title.trim()
-  const tail = entry._xnet.summary.split(/(?<=\.)\s/)[0].trim()
-  const body = (head + ' — ' + tail).length <= room
-    ? `${head} — ${tail}`
-    : head.slice(0, room)
-  return `${body}\n\n${entry.url}`
+export function composeParts(entry) {
+  return {
+    headline: entry.title.trim(),
+    detail: entry._xnet.summary.split(/(?<=\.)\s/)[0].trim(),
+    url: entry.url // always an https://xnet.fyi/… canonical link
+  }
+}
+
+const seg = new Intl.Segmenter('en', { granularity: 'grapheme' })
+
+/** Per-sink budgets. `linkCost` is what ONE url costs against the limit. */
+const BUDGET = {
+  x: { limit: 280, linkCost: 23, measure: (s) => s.length },
+  bluesky: { limit: 300, linkCost: null, measure: (s) => [...seg.segment(s)].length }
+}
+
+export function render(parts, sink) {
+  const { limit, linkCost, measure } = BUDGET[sink]
+  const cost = linkCost ?? measure(parts.url)
+  const room = limit - cost - 2 // the two newlines before the link
+  const full = `${parts.headline} — ${parts.detail}`
+  const body = measure(full) <= room ? full : parts.headline
+  return `${body}\n\n${parts.url}`
 }
 ```
 
@@ -708,20 +964,31 @@ jobs:
 | AI composer writes something wrong or off-brand | Medium | Deterministic fallback; `xNet` casing in the prompt; `--dry-run` prints exact text; nothing is auto-deleted so a bad post is a human `gh`/manual fix |
 | Automating into a walled garden reads badly | Low but real | POSSE by construction; canonical link enforced by a gate; no X widgets on `xnet.fyi` |
 | ToS: bulk/duplicate automated content | Low | ~11 posts/month of distinct content is ordinary product-account behaviour |
+| **Bluesky link facet byte offsets computed wrong** | **High — most likely bug here** | `linkFacets()` unit-tested against copy containing `—`, `’` and emoji; gate asserts the byte range decodes back to the URL |
+| Bluesky thread posts detach (missing `reply.root`) | Medium | Always send both `root` and `parent` strongRefs; validate in the digest test |
+| Handle `xnetfyi.bsky.social` changes to a domain handle | Low | DID is pinned in config and asserted after `createSession` |
+| Sharing one rendered string across both sinks | Medium | Composer returns neutral `{headline, detail, url}`; per-sink render; gate checks both budgets |
 
 **Open questions:**
 
 - [ ] Does the $0.20 surcharge apply per-post or per-URL, and does a link **card** or **quote-post** count? Determines whether the thread trick works.
 - [ ] Should the weekly digest post even in a week with nothing notable? (Proposed: no — silence over filler.)
 - [ ] Should the account also syndicate **explorations**? They are internal-facing and there are ~85/month; proposed **no**.
-- [ ] Is `@xnetfyi` already following/posting anything? The profile returned HTTP 402 to automated fetch, so it was not verified during this exploration.
-- [ ] Does a Bluesky sink want its own DID under `fyi.xnet.*` (0372) or is `bsky.social` fine to start? Proposed: `bsky.social` now, revisit with 0420.
+- [ ] Is `@xnetfyi` already following/posting anything? The profile returns HTTP 402 to automated fetch, so it still has not been verified — a human needs to look.
+- [ ] Should the Bluesky handle move to `xnet.fyi` (domain-verified) before the first post? Cheap now, and the DID pin makes it a no-op later. Proposed: yes, but not blocking.
+- [ ] Should Bluesky run a **wider** cadence than X, given it is free? Proposed: no — same editorial policy on both; revisit once either account has an audience.
+- [ ] Does the syndicator want its own PDS under `fyi.xnet.*` (0372/0420), or is `bsky.social` fine? Proposed: `bsky.social` now.
 
 ---
 
 ## Implementation Checklist
 
-**Status:** ░░░░░░░░░░ 0/18 items
+**Status:** █░░░░░░░░░ 2/21 items
+
+**Phase 0 — point the site at the accounts** ✅
+
+- [x] Add Bluesky + X to the footer icon row and Community links in `site/src/components/sections/Footer.astro`, as inline SVG (no platform embed)
+- [x] Verify the footer renders both marks and the page still makes **zero** third-party requests
 
 **Phase 1 — data model**
 
@@ -733,22 +1000,23 @@ jobs:
 **Phase 2 — the syndicator**
 
 - [ ] `scripts/syndicate/oauth.mjs` — OAuth 1.0a signing, zero-dep, unit tested
-- [ ] `scripts/syndicate/sinks.mjs` — `xSink`, `blueskySink`, shared `postThread`
+- [ ] `scripts/syndicate/facets.mjs` — `linkFacets()` UTF-8 byte offsets + `graphemes()`, unit tested against `—`, `’` and emoji
+- [ ] `scripts/syndicate/sinks.mjs` — `blueskySink` (DID-pinned, facets, `root`+`parent`), `xSink`, shared `postThread`
 - [ ] `scripts/syndicate/select.mjs` — eligibility, immediate vs parked, digest roll-up
-- [ ] `scripts/syndicate/compose.mjs` — deterministic composer + Haiku refinement that fails open
-- [ ] `scripts/syndicate/ledger.mjs` — read/append `docs/syndication/log.json` with reasons for skips
-- [ ] `scripts/syndicate/run.mjs` — orchestration, `--dry-run`, non-zero exit on partial failure
+- [ ] `scripts/syndicate/compose.mjs` — neutral `{headline, detail, url}` + per-sink `render()` + Haiku refinement that fails open
+- [ ] `scripts/syndicate/ledger.mjs` — read/append `docs/syndication/log.json` with per-sink receipts and reasons for skips
+- [ ] `scripts/syndicate/run.mjs` — orchestration, **Bluesky before X**, `--dry-run`, non-zero exit on partial failure
 
 **Phase 3 — CI**
 
 - [ ] `.github/workflows/syndicate.yml` on `workflow_run` + Monday cron + dispatch
 - [ ] Reuse the `CHANGELOG_APP_ID` GitHub App to commit the ledger with `[skip ci]`
 - [ ] Set `X_API_KEY` / `X_API_SECRET` / `X_ACCESS_TOKEN` / `X_ACCESS_SECRET` repo secrets **(human, needs the X developer portal)**
-- [ ] Set `BLUESKY_HANDLE` variable + `BLUESKY_APP_PASSWORD` secret **(human)**
+- [ ] Set `BLUESKY_APP_PASSWORD` secret + `BLUESKY_DID` variable (`did:plc:26oworspix6mgqcbgmdz4fsu`) **(human, from Bluesky → Settings → App Passwords)**
 
 **Phase 4 — gates and docs**
 
-- [ ] `scripts/check-syndication.mjs` — POSSE invariant (canonical link present, ≤280 chars, `xNet` casing) with `--selftest`
+- [ ] `scripts/check-syndication.mjs` — POSSE invariant (canonical link present, per-sink budget, facet byte range decodes back to the URL, `xNet` casing) with `--selftest`
 - [ ] Wire `check:syndication` into `package.json` and its selftest into `check:gate-controls`
 - [ ] Document the opt-in field in `.claude/skills/changelog/SKILL.md`
 - [ ] Add a `Sources`-style footer note to `docs/` explaining where the ledger lives and why it is not under `site/`
@@ -758,13 +1026,16 @@ jobs:
 - [ ] `node scripts/syndicate/run.mjs --dry-run` prints the exact text of every planned post and touches no network sink
 - [ ] Running it twice with an unchanged ledger plans **zero** posts (idempotency)
 - [ ] A deliberately failing sink makes the job exit **non-zero**, and the ledger records the failure rather than marking the item posted
-- [ ] `check:syndication --selftest` goes **red** on a planted post that omits the canonical link, and red on one at 281 characters
+- [ ] `check:syndication --selftest` goes **red** on a planted post that omits the canonical link, red on one at 281 characters, red on one at 301 graphemes, and red on a facet whose byte range does not decode back to its URL
+- [ ] `linkFacets()` returns correct ranges for text containing an em dash, a curly apostrophe and an emoji before the URL
 - [ ] A `draft: true` blog post never appears in a plan
 - [ ] A `ci`-only fragment never appears in a plan
-- [ ] The first real post lands on X **and** Bluesky with matching text and a working `xnet.fyi` link
+- [ ] The first real post lands on Bluesky with a **clickable** link (facet applied, not plain text) and on X with a working `xnet.fyi` link
+- [ ] A digest thread on Bluesky displays as one connected thread, not detached replies
+- [ ] Killing the X credentials still lets the Bluesky post succeed, and the run exits non-zero naming X as the failure
 - [ ] Committing the ledger does **not** trigger `deploy-site` (check the Actions tab after the first real run)
 - [ ] The first month's X invoice is within 25% of the ~$2.50 model — if not, reopen the transport decision and price Buffer
-- [ ] `xnet.fyi` still loads zero third-party requests after the change (network panel on `/blog/palimpsest`)
+- [x] `xnet.fyi` loads zero third-party requests after the footer change (verified: `performance.getEntriesByType('resource')` returns no non-origin entries)
 
 ---
 
@@ -782,6 +1053,7 @@ jobs:
 - [`scripts/atproto/publish-lexicons.mjs`](../../scripts/atproto/publish-lexicons.mjs) — zero-dep ATProto client, `--dry-run` mode
 - [`.github/workflows/stamp-pr-number.yml`](../../.github/workflows/stamp-pr-number.yml) — commit-back-to-main via GitHub App
 - [`.github/workflows/deploy-site.yml`](../../.github/workflows/deploy-site.yml) — the `paths:` filter that forces the ledger out of `site/`
+- [`site/src/components/sections/Footer.astro`](../../site/src/components/sections/Footer.astro) — Phase 0, the shipped account links
 - [`scripts/check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs) — the `--selftest` gate pattern
 - [`docs/CHARTER.md`](../../docs/CHARTER.md) §6 — Commons, own your audience, No ground rent
 
@@ -808,3 +1080,6 @@ jobs:
 - [Postiz Review 2026 — linkstartai](https://www.linkstartai.com/en/agents/postiz)
 - [wpowiertowski/posse — Ghost → Mastodon + Bluesky syndicator](https://github.com/wpowiertowski/posse)
 - [xdevplatform/xurl — official X API CLI](https://github.com/xdevplatform/xurl)
+- [Posting via the Bluesky API — facets, links and threads](https://docs.bsky.app/blog/create-post)
+- [`app.bsky.feed.post` lexicon — `maxGraphemes: 300`, `maxLength: 3000`](https://github.com/bluesky-social/atproto/blob/main/lexicons/app/bsky/feed/post.json)
+- [Bluesky posts guide — rich text and reply refs](https://docs.bsky.app/docs/advanced-guides/posts)

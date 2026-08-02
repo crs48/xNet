@@ -186,6 +186,15 @@
       "port": 5221
     },
     {
+      "name": "site-0432 (astro 4396)",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd site && exec node_modules/.bin/astro dev --port 4396 --strictPort"
+      ],
+      "port": 4396
+    },
+    {
       "name": "site-preview",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--dir", "site", "preview", "--port", "4321", "--host"],
