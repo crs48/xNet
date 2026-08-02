@@ -88,15 +88,14 @@ describe('CloudRunLitestreamProvisioner', () => {
     ['community', 't_community', 't-community'],
     ['company', 't_company', 't-company'],
     ['enterprise', 't_enterprise', 't-enterprise']
-  ] as const)('provisions %s warm — it publishes an availability objective', async (
-    plan,
-    tenantId,
-    service
-  ) => {
-    const { client, provisioner } = setup()
-    await provisioner.provision(spec({ tenantId, entitlements: resolveEntitlements(plan) }))
-    expect((await client.get({ ...REF, service }))?.minInstances).toBe(1)
-  })
+  ] as const)(
+    'provisions %s warm — it publishes an availability objective',
+    async (plan, tenantId, service) => {
+      const { client, provisioner } = setup()
+      await provisioner.provision(spec({ tenantId, entitlements: resolveEntitlements(plan) }))
+      expect((await client.get({ ...REF, service }))?.minInstances).toBe(1)
+    }
+  )
 
   it('keeps team warm on its isolation tier, though it publishes no objective', async () => {
     const { client, provisioner } = setup()
@@ -110,15 +109,14 @@ describe('CloudRunLitestreamProvisioner', () => {
     ['demo', 't_demo', 't-demo'],
     ['personal', 't_personal', 't-personal'],
     ['family', 't_family', 't-family']
-  ] as const)('scales %s to zero — no objective and not a warm tier', async (
-    plan,
-    tenantId,
-    service
-  ) => {
-    const { client, provisioner } = setup()
-    await provisioner.provision(spec({ tenantId, entitlements: resolveEntitlements(plan) }))
-    expect((await client.get({ ...REF, service }))?.minInstances).toBe(0)
-  })
+  ] as const)(
+    'scales %s to zero — no objective and not a warm tier',
+    async (plan, tenantId, service) => {
+      const { client, provisioner } = setup()
+      await provisioner.provision(spec({ tenantId, entitlements: resolveEntitlements(plan) }))
+      expect((await client.get({ ...REF, service }))?.minInstances).toBe(0)
+    }
+  )
 
   it('upgrades the image while preserving env', async () => {
     const { client, provisioner } = setup()

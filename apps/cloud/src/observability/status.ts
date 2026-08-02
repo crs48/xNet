@@ -20,12 +20,7 @@ import type { BudgetPolicy } from './slo'
  * sample window reading as 100% available: "absent" and "unreadable" must not
  * look like "fine" (`AGENTS.md`).
  */
-export type ComponentStatus =
-  | 'operational'
-  | 'degraded'
-  | 'down'
-  | 'not-configured'
-  | 'unmeasured'
+export type ComponentStatus = 'operational' | 'degraded' | 'down' | 'not-configured' | 'unmeasured'
 
 export interface StatusComponent {
   id: string

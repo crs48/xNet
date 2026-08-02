@@ -149,10 +149,7 @@ describe('fleetGate', () => {
   })
 
   it('freezes on a stale tenant, however healthy the rest look', () => {
-    const states: WindowState[] = [
-      measured(1),
-      { kind: 'stale', tenantId: 't_b', newestMs: T0 }
-    ]
+    const states: WindowState[] = [measured(1), { kind: 'stale', tenantId: 't_b', newestMs: T0 }]
     expect(fleetGate(states, 0.999)).toBe('freeze')
   })
 

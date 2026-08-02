@@ -75,11 +75,7 @@ const emptyBucket = (tenantId: string, startMs: number, span: 'hour' | 'day'): S
 export type ProbeOutcome = 'ok' | 'cold-start' | 'failed'
 
 /** Fold one probe result into a bucket (mutates and returns it). */
-export function accumulate(
-  bucket: SliBucket,
-  outcome: ProbeOutcome,
-  latencyMs: number
-): SliBucket {
+export function accumulate(bucket: SliBucket, outcome: ProbeOutcome, latencyMs: number): SliBucket {
   if (outcome === 'failed') {
     bucket.failed += 1
     return bucket
@@ -221,9 +217,7 @@ export function fleetGate(states: WindowState[], objective: number | null): Budg
   // Every tenant young: nothing has been measured yet, so there is no evidence of
   // health to deploy against. Absent is not healthy.
   if (measured.length === 0) return 'freeze'
-  const worst = Math.min(
-    ...measured.map((m) => errorBudgetRemaining(m.availability, objective))
-  )
+  const worst = Math.min(...measured.map((m) => errorBudgetRemaining(m.availability, objective)))
   return budgetPolicy(worst)
 }
 

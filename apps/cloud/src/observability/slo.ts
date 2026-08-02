@@ -7,7 +7,12 @@
  * (security/reliability fixes are always exempt — enforced at the call site).
  */
 
-import { PLAN_CATALOG, availabilityObjective, type PlanId, type SlaLevel } from '@xnetjs/entitlements'
+import {
+  PLAN_CATALOG,
+  availabilityObjective,
+  type PlanId,
+  type SlaLevel
+} from '@xnetjs/entitlements'
 
 export interface SloTarget {
   /** Availability objective as a fraction (e.g. 0.999). `null` = no published SLO. */
