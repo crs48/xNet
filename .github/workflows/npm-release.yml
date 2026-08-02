@@ -12,6 +12,12 @@ permissions:
   contents: write
   pull-requests: write
   id-token: write
+  # `issues: write` is what lets the failure alarm below actually ring. A
+  # `permissions:` block is exhaustive — every scope not named here is set to
+  # `none`, so without this line `gh issue create` fails with "Resource not
+  # accessible by integration" and the alarm is silently mute. That is exactly
+  # how 8+ consecutive red runs went unnoticed for 12 days.
+  issues: write
 
 jobs:
   release:
