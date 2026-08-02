@@ -9,6 +9,11 @@
  *
  * --title and --tags are required. Repeat --highlight for each bullet.
  *
+ * Add --syndicate to announce the entry on Bluesky when it deploys (exploration
+ * 0432). Off by default: the changelog page is the full record, and only entries
+ * worth interrupting people for get posted. Blog posts don't need the flag —
+ * they syndicate automatically from the blog feed.
+ *
  * The PR number: by default (`--pr auto`) we ask `gh` for the current branch's PR
  * and bake it in if one already exists — so it's visible in the repo, previews,
  * and local builds, with no extra commit. If there's no PR yet (the common case —
@@ -36,10 +41,18 @@ const KNOWN_TAGS = new Set([
   'ci'
 ])
 
+// Valueless flags. Without this, `--syndicate --tags app` would swallow
+// `--tags` as the flag's value and silently drop the tags.
+const BOOLEAN_FLAGS = new Set(['syndicate'])
+
 function parseArgs(argv) {
   const out = { highlight: [] }
   for (let i = 0; i < argv.length; i++) {
     const key = argv[i].replace(/^--/, '')
+    if (BOOLEAN_FLAGS.has(key)) {
+      out[key] = true
+      continue
+    }
     const val = argv[++i]
     if (key === 'highlight') out.highlight.push(val)
     else out[key] = val
@@ -107,10 +120,12 @@ const entry = {
   summary: args.summary || args.title,
   highlights: args.highlight,
   tags,
-  ...(pr ? { pr } : {})
+  ...(pr ? { pr } : {}),
+  ...(args.syndicate ? { syndicate: true } : {})
 }
 writeFileSync(file, JSON.stringify(entry, null, 2) + '\n')
 console.log(
   `Created ${file} — commit it in your PR.` +
-    (pr ? ` (Linked to PR #${pr}.)` : ' (The PR number is filled in at deploy.)')
+    (pr ? ` (Linked to PR #${pr}.)` : ' (The PR number is filled in at deploy.)') +
+    (args.syndicate ? '\nFlagged for social syndication (exploration 0432).' : '')
 )

@@ -726,11 +726,11 @@ appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Paste to X\n\n\`\`\`\n${text
 
 **Phase 1 — the opt-in flag**
 
-- [ ] Add `syndicate?: boolean` to `ChangelogEntry` in `site/src/data/changelog.ts`
-- [ ] Surface it in the `_xnet` block of `buildJsonFeed()` in `site/src/lib/changelog-feed.ts`
-- [ ] Accept `--syndicate` in `scripts/changelog/new.mjs`
-- [ ] Teach `site/scripts/validate-changelog.ts` about the new field
-- [ ] Document it in `.claude/skills/changelog/SKILL.md` so authors see it when writing the fragment
+- [x] Add `syndicate?: boolean` to `ChangelogEntry` in `site/src/data/changelog.ts`
+- [x] Surface it in the `_xnet` block of `buildJsonFeed()` in `site/src/lib/changelog-feed.ts`
+- [x] Accept `--syndicate` in `scripts/changelog/new.mjs`
+- [x] Teach `site/scripts/validate-changelog.ts` about the new field
+- [x] Document it in `.claude/skills/changelog/SKILL.md` so authors see it when writing the fragment
 
 **Phase 2 — the syndicator**
 
