@@ -483,7 +483,7 @@ sale — either re-opens the consent model.
 - [x] Correct `site/src/pages/cloud/index.astro:20`
 - [x] Correct `site/src/data/compare.ts:1239`
 - [x] Verify `site/src/pages/privacy.astro:113` reads correctly in context
-- [ ] Changeset: **major** for `@xnetjs/entitlements` if the warmth mapping is exported
+- [x] Changeset: ~~**major** for `@xnetjs/entitlements`~~ — **none required**, and the plan was wrong twice: adding `availabilityObjective`/`requiresWarmInstance` is additive (minor at most), and both `@xnetjs/entitlements` and `@xnetjs/cloud` are `private: true`, so `publishable-pathspec.mjs` excludes them entirely (`packages/AGENTS.md`)
 
 ### Phase 0 — substrate
 
