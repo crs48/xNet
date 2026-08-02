@@ -3,17 +3,39 @@
   "baseline": "https://xnet.fyi/visuals-baseline",
   "fallbackUsed": false,
   "unmappedFiles": [],
-  "stories": [],
+  "stories": [
+    {
+      "id": "web-coachmark--below-anchor",
+      "title": "Web/Coachmark",
+      "name": "Below Anchor",
+      "file": "stories/web-coachmark--below-anchor.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-coachmark--command-palette",
+      "title": "Web/Coachmark",
+      "name": "Command Palette",
+      "file": "stories/web-coachmark--command-palette.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-coachmark--docs",
+      "title": "Web/Coachmark",
+      "name": "Docs",
+      "file": "stories/web-coachmark--docs.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
   "routes": [
     {
       "id": "data",
       "label": "Data",
       "file": "routes/data.png",
-      "status": "changed",
-      "ssim": 0.997176,
-      "before": "before/routes/data.png",
-      "after": "routes/data.png",
-      "diff": "diff/routes/data.png"
+      "status": "unchanged",
+      "ssim": 0.99915
     }
   ],
   "electron": [
@@ -26,5 +48,5 @@
     }
   ],
   "flows": [],
-  "changedCount": 1
+  "changedCount": 0
 }
