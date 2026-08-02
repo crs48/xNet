@@ -60,3 +60,7 @@ ds-bundle/
 
 # API Extractor scratch output; the committed report lives in packages/*/etc/
 packages/*/temp/
+
+# Ad-hoc Playwright/browser captures taken while verifying UI locally.
+*-screenshot.png
+footer-social.png
