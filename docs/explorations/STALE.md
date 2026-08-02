@@ -14,7 +14,7 @@ review: 2027-02-01 # renew the claim
 status: withdrawn # release it; the document stays exactly where it is
 ```
 
-**41** stale of 286 undecided.
+**41** stale of 287 undecided.
 
 ## How this backlog retires
 

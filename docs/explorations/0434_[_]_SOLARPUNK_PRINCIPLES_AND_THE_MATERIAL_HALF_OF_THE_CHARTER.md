@@ -443,7 +443,7 @@ Three pieces, all in existing shapes:
 ```mermaid
 sequenceDiagram
     participant Dev as Pull request
-    participant CI as ci.yml (lint job)
+    participant CI as ci.yml (typecheck job)
     participant Base as footprint-baseline.json
     participant Gate as check-footprint-budget.mjs
 
@@ -461,9 +461,19 @@ sequenceDiagram
     Gate-->>CI: must go red, else the gate is blind
 ```
 
-**Named consumer:** the `lint` job in `ci.yml`, alongside the other `check:*`
-guards. **Pass condition:** no regression past the committed baseline — a
-ratchet against a baseline, never an absolute, per `AGENTS.md`.
+**Named consumer:** the `typecheck` job in `ci.yml`. **Pass condition:** no
+regression past the committed baseline — a ratchet against a baseline, never an
+absolute, per `AGENTS.md`.
+
+> [!NOTE]
+> **Corrected during implementation.** This section originally said the `lint`
+> job. `lint` is deliberately build-free (exploration 0193) and a byte budget
+> has nothing to measure without `apps/web/dist`, so the gate runs in
+> `typecheck` — which already runs `pnpm turbo run build` — for exactly the
+> reason `check:api-report` does. The **negative control** still runs in `lint`,
+> inside the existing `check:gate-controls` step: it is pure in-memory logic and
+> needs no build, so keeping it beside the other controls means a blind gate is
+> caught in the fast job.
 
 > [!NOTE]
 > Deliberately _not_ in scope for the first cut: the hub. Server-side footprint
@@ -575,7 +585,7 @@ in-memory negative control.
  * carry a proof the gate can go red. Absolutes here would be meaningless (what
  * is "too many bytes"?) and would teach everyone to ignore the failure.
  *
- * Named consumer: the `lint` job in ci.yml.
+ * Named consumer: the `typecheck` job in ci.yml (it reads build output).
  * Pass condition: no metric exceeds baseline * (1 + tolerance).
  *
  *   node scripts/check-footprint-budget.mjs
@@ -678,17 +688,17 @@ And the copy guard, dropped into the existing `RULES` array:
 
 **Status:** ░░░░░░░░░░ 0/12 items
 
-- [ ] Decide and write down the floor device (model class, RAM, OS range)
-- [ ] Add `docs/CHARTER.md` §7 Floor, in Enforced/Architectural/Aspirational shape
-- [ ] Add the `No sustainability upcharge` refused rent to `docs/CHARTER.md` §6
-- [ ] Record the option-E refusal and its five-test verdicts in `docs/ECONOMICS.md` §4a
+- [x] Decide and write down the floor device (model class, RAM, OS range)
+- [x] Add `docs/CHARTER.md` §7 Floor, in Enforced/Architectural/Aspirational shape
+- [x] Add the `No sustainability upcharge` refused rent to `docs/CHARTER.md` §6
+- [x] Record the option-E refusal and its five-test verdicts in `docs/ECONOMICS.md` §4a
 - [ ] Extend `scripts/collect-core-platform-baselines.ts` to emit bytes and peak RSS
-- [ ] Commit `footprint-baseline.json` with the first measured baseline
-- [ ] Write `scripts/check-footprint-budget.mjs` with the ratchet and `--selftest`
-- [ ] Wire it into the `lint` job in `ci.yml`, with the selftest as a sibling step
-- [ ] Add the `unbacked green claim` rule to `scripts/check-humane-patterns.mjs`
-- [ ] Pin `floor-old-hardware-keeps-working` in `packages/telemetry/test/charter-claims-ledger.test.ts`
-- [ ] Credit the seven passing permacomputing principles in `docs/VIBE.md`'s protocol row
+- [x] Commit `footprint-baseline.json` with the first measured baseline
+- [x] Write `scripts/check-footprint-budget.mjs` with the ratchet and `--selftest`
+- [x] Wire it into the `lint` job in `ci.yml`, with the selftest as a sibling step
+- [x] Add the `unbacked green claim` rule to `scripts/check-humane-patterns.mjs`
+- [x] Pin `floor-old-hardware-keeps-working` in `packages/telemetry/test/charter-claims-ledger.test.ts`
+- [x] Credit the seven passing permacomputing principles in `docs/VIBE.md`'s protocol row
 - [ ] Add a changelog fragment ("xNet now promises your old laptop keeps working")
 
 ## Validation checklist

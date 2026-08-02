@@ -168,6 +168,30 @@ A lane that would fail: **"sync quota"** or **"premium protocol version."**
 Both charge for access to something the user already owns, and neither
 survives a competitor open-sourcing the feature set. Neither exists.
 
+### A lane we proposed and refused: "green hosting" (0434)
+
+Exploration 0434 asked what solarpunk's material principles would cost xNet,
+and the obvious revenue answer — a carbon-neutral or renewable-powered hosting
+tier — was put through the five tests and **refused**:
+
+| Test            | Verdict | Reasoning                                                                                                                                     |
+| --------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Improvement** | ❌ Fail | The margin buys an offset certificate and a badge. Renewable siting is our supplier's labour, not ours — this is rent on someone else's work. |
+| **BATNA**       | ⚠️ Weak | Self-hosting survives, but the tier's pitch is that the free path is dirtier. Degradation by insinuation is still degradation.                |
+| **Vanish**      | ❌ Fail | If xNet disappears the offset disappears with it. Nothing the customer paid for survives.                                                     |
+| **Sleep**       | ❌ Fail | Any competitor can buy the same certificates tomorrow. There is nothing here to defend.                                                       |
+
+The disqualifying property is not the weak margin — it is the **incentive**. An
+operator paid a premium for a clean tier has a standing reason to keep the
+default tier dirty, exactly as an operator paid for match access has a reason to
+make matches scarce (0417). Sustainability sold as an upgrade is sustainability
+withheld as a default.
+
+What replaced it: `CHARTER.md` §7 **Floor** — a declared minimum device and a CI
+ratchet on what a first load costs, with **no carbon claim at all**. Efficiency
+work rides the flat hosting bill. The refusal is recorded in §6 as **"no
+sustainability upcharge"** and appears in §4a below.
+
 ---
 
 ## 4a. The Rust test — which lane pays for each refusal
@@ -180,7 +204,7 @@ how the Rust brothers' governance innovations reached nobody
 ([exploration 0429](./explorations/0429_[x]_THE_RUST_TEST_ASTERISK_15_AND_THE_PRICE_OF_A_REFUSAL.md)).
 
 **Pass condition:** every refusal in `CHARTER.md` §6 names ≥1 shipped or
-building lane that survives it. All thirteen appear below; none is omitted.
+building lane that survives it. All fourteen appear below; none is omitted.
 
 | Refusal (`CHARTER.md` §6)              | Lane that pays for it             | Verdict                                                                                                    |
 | -------------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -191,6 +215,7 @@ building lane that survives it. All thirteen appear below; none is omitted.
 | No per‑member pricing on communities   | Hub hosting + ops (flat)          | ✅ billed on storage/concurrency/AI (0359)                                                                 |
 | No rent on introductions               | Hub hosting + ops                 | ✅ connection rides the flat hosting bill (0417)                                                           |
 | No scored intimacy                     | Hub hosting + ops                 | ✅ legibility is the product; the score would have been the surplus (0422)                                 |
+| No sustainability upcharge             | Hub hosting + ops                 | ✅ hosting is bought for uptime and ops regardless of how the power is sourced; efficiency rides it (0434) |
 | No behavioural surplus                 | All lanes                         | ✅ there was never ad revenue to forgo                                                                     |
 | No global chokepoint tier              | Hub hosting + ops                 | ✅ anchor tenancy on a substrate anyone can run (§5)                                                       |
 | A FRAND trademark                      | Support / SLA / indemnity         | ✅ the name never fenced the revenue; labour did                                                           |
@@ -199,7 +224,8 @@ building lane that survives it. All thirteen appear below; none is omitted.
 | **No context capture**                 | —                                 | ⚠️ **On borrowed time** — see below                                                                        |
 
 > [!WARNING]
-> **"No context capture" has no lane that pays for it.** §6 of this document
+> **Thirteen of the fourteen pass. "No context capture" has no lane that pays
+> for it.** §6 of this document
 > already calls it the most expensive decision in the Charter: GitHub made exit
 > nearly free and was still worth $7.5B because the contribution graph, profile
 > and teams do not travel. Our compensating answers — operated trust and
