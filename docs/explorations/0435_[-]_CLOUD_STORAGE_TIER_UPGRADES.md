@@ -754,7 +754,26 @@ export function storagePackMargin(packGb: number): PlanCostBreakdown {
 
 ## Implementation Checklist
 
-**Status:** ░░░░░░░░░░░░░░░░░░░░ 0/20 items
+**Status:** ██████████████░░░░░░ 24/33 items (17/22 implementation, 7/11 validation)
+
+> [!IMPORTANT]
+> **What is NOT done, and why.** The entitlement, control-plane, billing and
+> pricing-surface work is complete and tested. Two things are deliberately left:
+>
+> - **The R2 wiring itself.** The hub now writes bulk bytes through a
+>   `BlobObjectStore` port (filesystem by default), and `objectStoreFromAdapter`
+>   adapts `S3BlobAdapter` to it — but nothing constructs that adapter at the
+>   managed hub's composition root, because **no such entry point exists yet**.
+>   `packages/hub` is MIT and cannot take the FSL `@xnetjs/cloud` or the AWS SDK,
+>   so the managed image needs a thin wrapper that imports both. Deciding where
+>   that lives is a deployment-architecture call this exploration did not make.
+>   **Until it does, do not sell a pack larger than the substrate can hold.**
+> - **Everything that needs live infrastructure to prove.** Writing a real
+>   500 GB, a Stripe test-mode proration round trip, and the nightly restore
+>   drill at 1 TB are all real gates that cannot be run from a checkout. They
+>   stay unchecked rather than being marked done on the strength of a unit test.
+>
+> BYOB (Phase 4) is untouched — it depends on the R2 wiring above.
 
 ### Phase 0 — make the bytes real (blocks everything)
 
