@@ -75,6 +75,11 @@ function PrimaryRow({ surface }: { surface: SurfaceDef }) {
       type="button"
       onClick={() => activate(surface)}
       onDoubleClick={() => promoteSurface(surface)}
+      // Coachmark anchor (0206/0428). Derived from the surface id so a new
+      // surface is anchorable the day it lands — the core tips previously
+      // named `rail.*` selectors that existed in no component, so every one of
+      // them resolved to null and rendered nothing, silently.
+      data-coach={`rail.${surface.id}`}
       className={`flex w-full items-center gap-2.5 rounded-lg border-none px-2 py-1.5 text-left text-[13px] transition-colors cursor-pointer ${
         active
           ? 'bg-accent font-medium text-ink-1'
@@ -111,6 +116,7 @@ function CompactSurfaceButton({ surface }: { surface: SurfaceDef }) {
       onDoubleClick={() => promoteSurface(surface)}
       title={surface.label}
       aria-label={surface.label}
+      data-coach={`rail.${surface.id}`}
       className={`relative flex h-8 w-8 items-center justify-center rounded-lg border-none transition-colors cursor-pointer ${
         active ? 'bg-accent text-ink-1' : 'bg-transparent text-ink-2 hover:bg-background-muted'
       }`}
@@ -214,6 +220,7 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
               onClick={() => void getCommandRegistry().runCommand('search.open')}
               title="Search (⌘K)"
               aria-label="Search"
+              data-coach="rail.search"
               className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg border-none bg-transparent text-ink-2 cursor-pointer hover:bg-background-muted hover:text-ink-1"
             >
               <Search size={16} strokeWidth={1.75} />
@@ -279,6 +286,7 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
             <button
               type="button"
               onClick={() => void getCommandRegistry().runCommand('search.open')}
+              data-coach="rail.search"
               className="flex w-full items-center gap-2 rounded-[9px] border border-hairline bg-island px-2.5 py-1.5 cursor-pointer hover:border-border-emphasis"
             >
               <Search size={15} strokeWidth={1.75} className="text-ink-3" />

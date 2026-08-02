@@ -14,100 +14,125 @@ review: 2027-02-01 # renew the claim
 status: withdrawn # release it; the document stays exactly where it is
 ```
 
-**41** stale of 281 undecided.
+**41** stale of 283 undecided.
 
-| Exploration | Due | Overdue | Decider |
-| --- | --- | --- | --- |
-| [0079_[_]_AUTH_SCHEMA_DSL_VARIATIONS.md](0079_%5B_%5D_AUTH_SCHEMA_DSL_VARIATIONS.md) | 2026-05-09 *(default)* | 84d | — |
-| [0080_[_]_UCAN_HYBRID_AUTHORIZATION_INTEGRATION.md](0080_%5B_%5D_UCAN_HYBRID_AUTHORIZATION_INTEGRATION.md) | 2026-05-10 *(default)* | 83d | — |
-| [0081_[_]_NODE_PERMISSIONS_UCAN_EVALUATION.md](0081_%5B_%5D_NODE_PERMISSIONS_UCAN_EVALUATION.md) | 2026-05-10 *(default)* | 83d | — |
-| [0082_[_]_GLOBAL_NAMESPACE_AUTHORIZATION.md](0082_%5B_%5D_GLOBAL_NAMESPACE_AUTHORIZATION.md) | 2026-05-10 *(default)* | 83d | — |
-| [0083_[_]_UNIFIED_AUTHORIZATION_ARCHITECTURE.md](0083_%5B_%5D_UNIFIED_AUTHORIZATION_ARCHITECTURE.md) | 2026-05-10 *(default)* | 83d | — |
-| [0084_[_]_GROUPS_AS_RELATIONS.md](0084_%5B_%5D_GROUPS_AS_RELATIONS.md) | 2026-05-10 *(default)* | 83d | — |
-| [0086_[_]_NATIVE_REWRITE_ZIG_RUST.md](0086_%5B_%5D_NATIVE_REWRITE_ZIG_RUST.md) | 2026-05-12 *(default)* | 81d | — |
-| [0088_[_]_DATABASE_UI_COMPETITIVE_ARCHITECTURE.md](0088_%5B_%5D_DATABASE_UI_COMPETITIVE_ARCHITECTURE.md) | 2026-05-13 *(default)* | 80d | — |
-| [0089_[_]_REST_GRAPHQL_INTEROPERABILITY_BOUNDARY.md](0089_%5B_%5D_REST_GRAPHQL_INTEROPERABILITY_BOUNDARY.md) | 2026-05-18 *(default)* | 75d | — |
-| [0090_[_]_ELECTRON_P2P_REMOTE_SHARE_OPTIONS.md](0090_%5B_%5D_ELECTRON_P2P_REMOTE_SHARE_OPTIONS.md) | 2026-05-21 *(default)* | 72d | — |
-| [0091_[_]_GLOBAL_SCHEMA_FEDERATION_MODEL.md](0091_%5B_%5D_GLOBAL_SCHEMA_FEDERATION_MODEL.md) | 2026-05-21 *(default)* | 72d | — |
-| [0093_[_]_NODE_NATIVE_GLOBAL_SCHEMA_FEDERATION_MODEL.md](0093_%5B_%5D_NODE_NATIVE_GLOBAL_SCHEMA_FEDERATION_MODEL.md) | 2026-05-21 *(default)* | 72d | — |
-| [0095_[_]_PACKAGE_PORTFOLIO_CLEANUP_AND_API_SIMPLIFICATION.md](0095_%5B_%5D_PACKAGE_PORTFOLIO_CLEANUP_AND_API_SIMPLIFICATION.md) | 2026-05-30 *(default)* | 63d | — |
-| [0096_[_]_PLAN03_ERP_REALITY_CHECK_AND_EXECUTION_RESET.md](0096_%5B_%5D_PLAN03_ERP_REALITY_CHECK_AND_EXECUTION_RESET.md) | 2026-05-30 *(default)* | 63d | — |
-| [0098_[_]_OPENCLAW_INTEGRATION.md](0098_%5B_%5D_OPENCLAW_INTEGRATION.md) | 2026-06-01 *(default)* | 61d | — |
-| [0099_[_]_DATABASE_EDITING_UX_AND_UNDO_REDO_REMEDIATION_PLAN.md](0099_%5B_%5D_DATABASE_EDITING_UX_AND_UNDO_REDO_REMEDIATION_PLAN.md) | 2026-06-01 *(default)* | 61d | — |
-| [0100_[_]_NPM_PUBLISH_WORKFLOW_FOR_XNETJS.md](0100_%5B_%5D_NPM_PUBLISH_WORKFLOW_FOR_XNETJS.md) | 2026-06-02 *(default)* | 60d | — |
-| [0101_[_]_END_TO_END_NPM_TRUSTED_PUBLISHING_PLAYBOOK.md](0101_%5B_%5D_END_TO_END_NPM_TRUSTED_PUBLISHING_PLAYBOOK.md) | 2026-06-03 *(default)* | 59d | — |
-| [0102_[_]_AFFINE_BLOCKSUITE_INTEGRATION_FEASIBILITY.md](0102_%5B_%5D_AFFINE_BLOCKSUITE_INTEGRATION_FEASIBILITY.md) | 2026-06-03 *(default)* | 58d | — |
-| [0103_[-]_TASKS_EMBEDDED_IN_PAGES_BACKED_BY_NODES_MENTIONS_DUE_DATES_NESTED_SUBTASKS_DATABASES_CANVASES_AND_CROSS_SURFACE_TASK_MODEL.md](0103_%5B-%5D_TASKS_EMBEDDED_IN_PAGES_BACKED_BY_NODES_MENTIONS_DUE_DATES_NESTED_SUBTASKS_DATABASES_CANVASES_AND_CROSS_SURFACE_TASK_MODEL.md) | 2026-06-04 *(default)* | 58d | — |
-| [0104_[-]_EXPLORE_DRAMATICALLY_SIMPLIFYING_THE_UX_AROUND_A_CANVAS_FIRST_PRIMARY_APP_INSPIRED_BY_AFFINE_MINIMIZING_BUTTONS_AND_CHROME_WITH_ZOOM_IN_DOCUMENTS_AND_DATABASES.md](0104_%5B-%5D_EXPLORE_DRAMATICALLY_SIMPLIFYING_THE_UX_AROUND_A_CANVAS_FIRST_PRIMARY_APP_INSPIRED_BY_AFFINE_MINIMIZING_BUTTONS_AND_CHROME_WITH_ZOOM_IN_DOCUMENTS_AND_DATABASES.md) | 2026-06-04 *(default)* | 58d | — |
-| [0105_[_]_WHAT_TO_WORK_ON_NEXT_AFTER_OPEN_SOURCE_LAUNCH.md](0105_%5B_%5D_WHAT_TO_WORK_ON_NEXT_AFTER_OPEN_SOURCE_LAUNCH.md) | 2026-06-05 *(default)* | 57d | — |
-| [0106_[_]_CI_PERF_TESTING_OPTIONS.md](0106_%5B_%5D_CI_PERF_TESTING_OPTIONS.md) | 2026-06-05 *(default)* | 57d | — |
-| [0106_[_]_JOIN_QUERIES_MULTI_TYPE_AGGREGATES_QUERY_PLANNING_API.md](0106_%5B_%5D_JOIN_QUERIES_MULTI_TYPE_AGGREGATES_QUERY_PLANNING_API.md) | 2026-06-05 *(default)* | 57d | — |
-| [0107_[_]_STORYBOOK_PERFORMANCE_PANEL_AND_ELECTRON_IDE_WORKSHOP.md](0107_%5B_%5D_STORYBOOK_PERFORMANCE_PANEL_AND_ELECTRON_IDE_WORKSHOP.md) | 2026-06-06 *(default)* | 56d | — |
-| [0108_[_]_CANVAS_V1_PAGES_DATABASES_AND_INFINITE_CANVAS_DEEP_DIVE.md](0108_%5B_%5D_CANVAS_V1_PAGES_DATABASES_AND_INFINITE_CANVAS_DEEP_DIVE.md) | 2026-06-07 *(default)* | 55d | — |
-| [0108_[_]_EXPO_APP_PARITY_WITH_ELECTRON_AND_WEB.md](0108_%5B_%5D_EXPO_APP_PARITY_WITH_ELECTRON_AND_WEB.md) | 2026-06-07 *(default)* | 55d | — |
-| [0108_[_]_TIMING_FOR_INTEGRATING_CHAT_AND_VIDEO_INTO_XNET_NOW_VS_LATER.md](0108_%5B_%5D_TIMING_FOR_INTEGRATING_CHAT_AND_VIDEO_INTO_XNET_NOW_VS_LATER.md) | 2026-06-07 *(default)* | 55d | — |
-| [0108_[_]_USEQUERY_UPGRADE_TIMING_AND_INTEGRATION_SEQUENCING.md](0108_%5B_%5D_USEQUERY_UPGRADE_TIMING_AND_INTEGRATION_SEQUENCING.md) | 2026-06-07 *(default)* | 55d | — |
-| [0109_[_]_REPOSITORY_AND_PROJECT_SUMMARY_FOR_NON_TECHNICAL_USERS.md](0109_%5B_%5D_REPOSITORY_AND_PROJECT_SUMMARY_FOR_NON_TECHNICAL_USERS.md) | 2026-06-08 *(default)* | 54d | — |
-| [0110_[_]_XNET_AS_A_VIABLE_WIKIPEDIA_ALTERNATIVE.md](0110_%5B_%5D_XNET_AS_A_VIABLE_WIKIPEDIA_ALTERNATIVE.md) | 2026-07-04 *(default)* | 28d | — |
-| [0111_[_]_UNIFIED_WORKBENCH_ARCHITECTURE_FOR_XNET.md](0111_%5B_%5D_UNIFIED_WORKBENCH_ARCHITECTURE_FOR_XNET.md) | 2026-07-04 *(default)* | 28d | — |
-| [0112_[_]_UNIVERSAL_CLIPPER_AND_AI_KNOWLEDGE_GRAPH_INGESTION.md](0112_%5B_%5D_UNIVERSAL_CLIPPER_AND_AI_KNOWLEDGE_GRAPH_INGESTION.md) | 2026-07-04 *(default)* | 28d | — |
-| [0113_[_]_OTHER_INTERNET_INFRASTRUCTURE_ROLES_FOR_XNET.md](0113_%5B_%5D_OTHER_INTERNET_INFRASTRUCTURE_ROLES_FOR_XNET.md) | 2026-07-04 *(default)* | 28d | — |
-| [0114_[_]_DECENTRALIZED_ALTERNATIVES_FOR_NON_XNET_INTERNET_LAYERS.md](0114_%5B_%5D_DECENTRALIZED_ALTERNATIVES_FOR_NON_XNET_INTERNET_LAYERS.md) | 2026-07-04 *(default)* | 28d | — |
-| [0115_[_]_ARCHITECTING_FULLY_DECENTRALIZED_GLOBAL_WEB_SEARCH.md](0115_%5B_%5D_ARCHITECTING_FULLY_DECENTRALIZED_GLOBAL_WEB_SEARCH.md) | 2026-07-06 *(default)* | 26d | — |
-| [0116_[_]_ARCHITECTING_DECENTRALIZED_TWITTER_X_ON_XNET.md](0116_%5B_%5D_ARCHITECTING_DECENTRALIZED_TWITTER_X_ON_XNET.md) | 2026-07-06 *(default)* | 26d | — |
-| [0117_[_]_ARCHITECTING_DECENTRALIZED_AI_ON_XNET.md](0117_%5B_%5D_ARCHITECTING_DECENTRALIZED_AI_ON_XNET.md) | 2026-07-06 *(default)* | 26d | — |
-| [0118_[_]_ARCHITECTING_A_DECENTRALIZED_OSS_FORGE_ON_XNET.md](0118_%5B_%5D_ARCHITECTING_A_DECENTRALIZED_OSS_FORGE_ON_XNET.md) | 2026-07-06 *(default)* | 26d | — |
-| [0119_[_]_XNET_AS_A_COMPELLING_WEB_AND_MOBILE_DEVELOPER_TOOL.md](0119_%5B_%5D_XNET_AS_A_COMPELLING_WEB_AND_MOBILE_DEVELOPER_TOOL.md) | 2026-07-06 *(default)* | 26d | — |
-| [0120_[_]_XNET_PACKAGE_SECURITY_AND_RELIABILITY_EXPLORATION.md](0120_%5B_%5D_XNET_PACKAGE_SECURITY_AND_RELIABILITY_EXPLORATION.md) | 2026-07-06 *(default)* | 25d | — |
+## How this backlog retires
+
+Measured from git history, not assumed (exploration 0430). Each row counts
+only documents old enough to have had that many days, so a recent bulge
+cannot drag the curve down.
+
+| Days since written | Cohort | Still unshipped |
+| ------------------ | ------ | --------------- |
+| 1                  | 404    | 54%             |
+| 7                  | 389    | 52%             |
+| 14                 | 353    | 50%             |
+| 30                 | 254    | 52%             |
+| 60                 | 140    | 59%             |
+| 90                 | 120    | 59%             |
+| 120                | 109    | 55%             |
+
+The curve does not fall: 54% of documents at least a day old are
+unshipped, and 55% at 120 days. An exploration is checked off
+within days of being written, or never — so an old `[_]` is not a pending
+decision, it is a decision already made by inaction. Renew it deliberately,
+or withdraw it; both are one line and neither renames the file.
+
+## Past review date
+
+| Exploration                                                                                                                                                                                                                                                                                                                                                      | Due                    | Overdue | Decider |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------- | ------- |
+| [0079*[*]\_AUTH_SCHEMA_DSL_VARIATIONS.md](0079_%5B_%5D_AUTH_SCHEMA_DSL_VARIATIONS.md)                                                                                                                                                                                                                                                                            | 2026-05-09 _(default)_ | 84d     | —       |
+| [0080*[*]\_UCAN_HYBRID_AUTHORIZATION_INTEGRATION.md](0080_%5B_%5D_UCAN_HYBRID_AUTHORIZATION_INTEGRATION.md)                                                                                                                                                                                                                                                      | 2026-05-10 _(default)_ | 83d     | —       |
+| [0081*[*]\_NODE_PERMISSIONS_UCAN_EVALUATION.md](0081_%5B_%5D_NODE_PERMISSIONS_UCAN_EVALUATION.md)                                                                                                                                                                                                                                                                | 2026-05-10 _(default)_ | 83d     | —       |
+| [0082*[*]\_GLOBAL_NAMESPACE_AUTHORIZATION.md](0082_%5B_%5D_GLOBAL_NAMESPACE_AUTHORIZATION.md)                                                                                                                                                                                                                                                                    | 2026-05-10 _(default)_ | 83d     | —       |
+| [0083*[*]\_UNIFIED_AUTHORIZATION_ARCHITECTURE.md](0083_%5B_%5D_UNIFIED_AUTHORIZATION_ARCHITECTURE.md)                                                                                                                                                                                                                                                            | 2026-05-10 _(default)_ | 83d     | —       |
+| [0084*[*]\_GROUPS_AS_RELATIONS.md](0084_%5B_%5D_GROUPS_AS_RELATIONS.md)                                                                                                                                                                                                                                                                                          | 2026-05-10 _(default)_ | 83d     | —       |
+| [0086*[*]\_NATIVE_REWRITE_ZIG_RUST.md](0086_%5B_%5D_NATIVE_REWRITE_ZIG_RUST.md)                                                                                                                                                                                                                                                                                  | 2026-05-12 _(default)_ | 81d     | —       |
+| [0088*[*]\_DATABASE_UI_COMPETITIVE_ARCHITECTURE.md](0088_%5B_%5D_DATABASE_UI_COMPETITIVE_ARCHITECTURE.md)                                                                                                                                                                                                                                                        | 2026-05-13 _(default)_ | 80d     | —       |
+| [0089*[*]\_REST_GRAPHQL_INTEROPERABILITY_BOUNDARY.md](0089_%5B_%5D_REST_GRAPHQL_INTEROPERABILITY_BOUNDARY.md)                                                                                                                                                                                                                                                    | 2026-05-18 _(default)_ | 75d     | —       |
+| [0090*[*]\_ELECTRON_P2P_REMOTE_SHARE_OPTIONS.md](0090_%5B_%5D_ELECTRON_P2P_REMOTE_SHARE_OPTIONS.md)                                                                                                                                                                                                                                                              | 2026-05-21 _(default)_ | 72d     | —       |
+| [0091*[*]\_GLOBAL_SCHEMA_FEDERATION_MODEL.md](0091_%5B_%5D_GLOBAL_SCHEMA_FEDERATION_MODEL.md)                                                                                                                                                                                                                                                                    | 2026-05-21 _(default)_ | 72d     | —       |
+| [0093*[*]\_NODE_NATIVE_GLOBAL_SCHEMA_FEDERATION_MODEL.md](0093_%5B_%5D_NODE_NATIVE_GLOBAL_SCHEMA_FEDERATION_MODEL.md)                                                                                                                                                                                                                                            | 2026-05-21 _(default)_ | 72d     | —       |
+| [0095*[*]\_PACKAGE_PORTFOLIO_CLEANUP_AND_API_SIMPLIFICATION.md](0095_%5B_%5D_PACKAGE_PORTFOLIO_CLEANUP_AND_API_SIMPLIFICATION.md)                                                                                                                                                                                                                                | 2026-05-30 _(default)_ | 63d     | —       |
+| [0096*[*]\_PLAN03_ERP_REALITY_CHECK_AND_EXECUTION_RESET.md](0096_%5B_%5D_PLAN03_ERP_REALITY_CHECK_AND_EXECUTION_RESET.md)                                                                                                                                                                                                                                        | 2026-05-30 _(default)_ | 63d     | —       |
+| [0098*[*]\_OPENCLAW_INTEGRATION.md](0098_%5B_%5D_OPENCLAW_INTEGRATION.md)                                                                                                                                                                                                                                                                                        | 2026-06-01 _(default)_ | 62d     | —       |
+| [0099*[*]\_DATABASE_EDITING_UX_AND_UNDO_REDO_REMEDIATION_PLAN.md](0099_%5B_%5D_DATABASE_EDITING_UX_AND_UNDO_REDO_REMEDIATION_PLAN.md)                                                                                                                                                                                                                            | 2026-06-01 _(default)_ | 61d     | —       |
+| [0100*[*]\_NPM_PUBLISH_WORKFLOW_FOR_XNETJS.md](0100_%5B_%5D_NPM_PUBLISH_WORKFLOW_FOR_XNETJS.md)                                                                                                                                                                                                                                                                  | 2026-06-02 _(default)_ | 60d     | —       |
+| [0101*[*]\_END_TO_END_NPM_TRUSTED_PUBLISHING_PLAYBOOK.md](0101_%5B_%5D_END_TO_END_NPM_TRUSTED_PUBLISHING_PLAYBOOK.md)                                                                                                                                                                                                                                            | 2026-06-03 _(default)_ | 59d     | —       |
+| [0102*[*]\_AFFINE_BLOCKSUITE_INTEGRATION_FEASIBILITY.md](0102_%5B_%5D_AFFINE_BLOCKSUITE_INTEGRATION_FEASIBILITY.md)                                                                                                                                                                                                                                              | 2026-06-03 _(default)_ | 59d     | —       |
+| [0103\_[-]\_TASKS_EMBEDDED_IN_PAGES_BACKED_BY_NODES_MENTIONS_DUE_DATES_NESTED_SUBTASKS_DATABASES_CANVASES_AND_CROSS_SURFACE_TASK_MODEL.md](0103_%5B-%5D_TASKS_EMBEDDED_IN_PAGES_BACKED_BY_NODES_MENTIONS_DUE_DATES_NESTED_SUBTASKS_DATABASES_CANVASES_AND_CROSS_SURFACE_TASK_MODEL.md)                                                                           | 2026-06-04 _(default)_ | 59d     | —       |
+| [0104\_[-]\_EXPLORE_DRAMATICALLY_SIMPLIFYING_THE_UX_AROUND_A_CANVAS_FIRST_PRIMARY_APP_INSPIRED_BY_AFFINE_MINIMIZING_BUTTONS_AND_CHROME_WITH_ZOOM_IN_DOCUMENTS_AND_DATABASES.md](0104_%5B-%5D_EXPLORE_DRAMATICALLY_SIMPLIFYING_THE_UX_AROUND_A_CANVAS_FIRST_PRIMARY_APP_INSPIRED_BY_AFFINE_MINIMIZING_BUTTONS_AND_CHROME_WITH_ZOOM_IN_DOCUMENTS_AND_DATABASES.md) | 2026-06-04 _(default)_ | 58d     | —       |
+| [0105*[*]\_WHAT_TO_WORK_ON_NEXT_AFTER_OPEN_SOURCE_LAUNCH.md](0105_%5B_%5D_WHAT_TO_WORK_ON_NEXT_AFTER_OPEN_SOURCE_LAUNCH.md)                                                                                                                                                                                                                                      | 2026-06-05 _(default)_ | 57d     | —       |
+| [0106*[*]\_CI_PERF_TESTING_OPTIONS.md](0106_%5B_%5D_CI_PERF_TESTING_OPTIONS.md)                                                                                                                                                                                                                                                                                  | 2026-06-05 _(default)_ | 57d     | —       |
+| [0106*[*]\_JOIN_QUERIES_MULTI_TYPE_AGGREGATES_QUERY_PLANNING_API.md](0106_%5B_%5D_JOIN_QUERIES_MULTI_TYPE_AGGREGATES_QUERY_PLANNING_API.md)                                                                                                                                                                                                                      | 2026-06-05 _(default)_ | 57d     | —       |
+| [0107*[*]\_STORYBOOK_PERFORMANCE_PANEL_AND_ELECTRON_IDE_WORKSHOP.md](0107_%5B_%5D_STORYBOOK_PERFORMANCE_PANEL_AND_ELECTRON_IDE_WORKSHOP.md)                                                                                                                                                                                                                      | 2026-06-06 _(default)_ | 56d     | —       |
+| [0108*[*]\_CANVAS_V1_PAGES_DATABASES_AND_INFINITE_CANVAS_DEEP_DIVE.md](0108_%5B_%5D_CANVAS_V1_PAGES_DATABASES_AND_INFINITE_CANVAS_DEEP_DIVE.md)                                                                                                                                                                                                                  | 2026-06-07 _(default)_ | 55d     | —       |
+| [0108*[*]\_EXPO_APP_PARITY_WITH_ELECTRON_AND_WEB.md](0108_%5B_%5D_EXPO_APP_PARITY_WITH_ELECTRON_AND_WEB.md)                                                                                                                                                                                                                                                      | 2026-06-07 _(default)_ | 55d     | —       |
+| [0108*[*]\_TIMING_FOR_INTEGRATING_CHAT_AND_VIDEO_INTO_XNET_NOW_VS_LATER.md](0108_%5B_%5D_TIMING_FOR_INTEGRATING_CHAT_AND_VIDEO_INTO_XNET_NOW_VS_LATER.md)                                                                                                                                                                                                        | 2026-06-07 _(default)_ | 55d     | —       |
+| [0108*[*]\_USEQUERY_UPGRADE_TIMING_AND_INTEGRATION_SEQUENCING.md](0108_%5B_%5D_USEQUERY_UPGRADE_TIMING_AND_INTEGRATION_SEQUENCING.md)                                                                                                                                                                                                                            | 2026-06-07 _(default)_ | 55d     | —       |
+| [0109*[*]\_REPOSITORY_AND_PROJECT_SUMMARY_FOR_NON_TECHNICAL_USERS.md](0109_%5B_%5D_REPOSITORY_AND_PROJECT_SUMMARY_FOR_NON_TECHNICAL_USERS.md)                                                                                                                                                                                                                    | 2026-06-08 _(default)_ | 54d     | —       |
+| [0110*[*]\_XNET_AS_A_VIABLE_WIKIPEDIA_ALTERNATIVE.md](0110_%5B_%5D_XNET_AS_A_VIABLE_WIKIPEDIA_ALTERNATIVE.md)                                                                                                                                                                                                                                                    | 2026-07-04 _(default)_ | 28d     | —       |
+| [0111*[*]\_UNIFIED_WORKBENCH_ARCHITECTURE_FOR_XNET.md](0111_%5B_%5D_UNIFIED_WORKBENCH_ARCHITECTURE_FOR_XNET.md)                                                                                                                                                                                                                                                  | 2026-07-04 _(default)_ | 28d     | —       |
+| [0112*[*]\_UNIVERSAL_CLIPPER_AND_AI_KNOWLEDGE_GRAPH_INGESTION.md](0112_%5B_%5D_UNIVERSAL_CLIPPER_AND_AI_KNOWLEDGE_GRAPH_INGESTION.md)                                                                                                                                                                                                                            | 2026-07-04 _(default)_ | 28d     | —       |
+| [0113*[*]\_OTHER_INTERNET_INFRASTRUCTURE_ROLES_FOR_XNET.md](0113_%5B_%5D_OTHER_INTERNET_INFRASTRUCTURE_ROLES_FOR_XNET.md)                                                                                                                                                                                                                                        | 2026-07-04 _(default)_ | 28d     | —       |
+| [0114*[*]\_DECENTRALIZED_ALTERNATIVES_FOR_NON_XNET_INTERNET_LAYERS.md](0114_%5B_%5D_DECENTRALIZED_ALTERNATIVES_FOR_NON_XNET_INTERNET_LAYERS.md)                                                                                                                                                                                                                  | 2026-07-04 _(default)_ | 28d     | —       |
+| [0115*[*]\_ARCHITECTING_FULLY_DECENTRALIZED_GLOBAL_WEB_SEARCH.md](0115_%5B_%5D_ARCHITECTING_FULLY_DECENTRALIZED_GLOBAL_WEB_SEARCH.md)                                                                                                                                                                                                                            | 2026-07-06 _(default)_ | 26d     | —       |
+| [0116*[*]\_ARCHITECTING_DECENTRALIZED_TWITTER_X_ON_XNET.md](0116_%5B_%5D_ARCHITECTING_DECENTRALIZED_TWITTER_X_ON_XNET.md)                                                                                                                                                                                                                                        | 2026-07-06 _(default)_ | 26d     | —       |
+| [0117*[*]\_ARCHITECTING_DECENTRALIZED_AI_ON_XNET.md](0117_%5B_%5D_ARCHITECTING_DECENTRALIZED_AI_ON_XNET.md)                                                                                                                                                                                                                                                      | 2026-07-06 _(default)_ | 26d     | —       |
+| [0118*[*]\_ARCHITECTING_A_DECENTRALIZED_OSS_FORGE_ON_XNET.md](0118_%5B_%5D_ARCHITECTING_A_DECENTRALIZED_OSS_FORGE_ON_XNET.md)                                                                                                                                                                                                                                    | 2026-07-06 _(default)_ | 26d     | —       |
+| [0119*[*]\_XNET_AS_A_COMPELLING_WEB_AND_MOBILE_DEVELOPER_TOOL.md](0119_%5B_%5D_XNET_AS_A_COMPELLING_WEB_AND_MOBILE_DEVELOPER_TOOL.md)                                                                                                                                                                                                                            | 2026-07-06 _(default)_ | 26d     | —       |
+| [0120*[*]\_XNET_PACKAGE_SECURITY_AND_RELIABILITY_EXPLORATION.md](0120_%5B_%5D_XNET_PACKAGE_SECURITY_AND_RELIABILITY_EXPLORATION.md)                                                                                                                                                                                                                              | 2026-07-06 _(default)_ | 26d     | —       |
 
 ## Undated
 
-44 exploration(s) predate this checkout's history and carry no
+45 exploration(s) predate this checkout's history and carry no
 `review:` date, so their age is unknown. They are **not** counted as stale —
 unknown age and not-yet-due are different facts. Give one a `review:` date to
 move it out of this list.
 
-- [0001_[_]_graph-performance-research.md](0001_%5B_%5D_graph-performance-research.md)
-- [0010_[_]_I18N_ARCHITECTURE.md](0010_%5B_%5D_I18N_ARCHITECTURE.md)
-- [0012_[_]_PNPM_TO_BUN_MIGRATION.md](0012_%5B_%5D_PNPM_TO_BUN_MIGRATION.md)
-- [0017_[_]_IDENTITY_MIGRATION_PLAN.md](0017_%5B_%5D_IDENTITY_MIGRATION_PLAN.md)
-- [0020_[_]_REGENERATIVE_FARMING_ERP.md](0020_%5B_%5D_REGENERATIVE_FARMING_ERP.md)
-- [0021_[_]_CLOJURE_PORT.md](0021_%5B_%5D_CLOJURE_PORT.md)
-- [0022_[_]_RAMA_HUB_AT_SCALE.md](0022_%5B_%5D_RAMA_HUB_AT_SCALE.md)
-- [0023_[_]_DECENTRALIZED_SEARCH.md](0023_%5B_%5D_DECENTRALIZED_SEARCH.md)
-- [0028_[_]_CHAT_AND_VIDEO.md](0028_%5B_%5D_CHAT_AND_VIDEO.md)
-- [0029_[_]_MASTODON_SOCIAL_NETWORKING.md](0029_%5B_%5D_MASTODON_SOCIAL_NETWORKING.md)
-- [0030_[_]_UNIVERSAL_SOCIAL_PRIMITIVES.md](0030_%5B_%5D_UNIVERSAL_SOCIAL_PRIMITIVES.md)
-- [0031_[_]_NOSTR_INTEGRATION.md](0031_%5B_%5D_NOSTR_INTEGRATION.md)
-- [0033_[_]_NAMING_DATAGARDEN.md](0033_%5B_%5D_NAMING_DATAGARDEN.md)
-- [0037_[_]_USEQUERY_PAGINATION.md](0037_%5B_%5D_USEQUERY_PAGINATION.md)
-- [0038_[_]_YJS_HISTORY_INTEGRATION.md](0038_%5B_%5D_YJS_HISTORY_INTEGRATION.md)
-- [0040_[_]_FIRST_CLASS_RELATIONS.md](0040_%5B_%5D_FIRST_CLASS_RELATIONS.md)
-- [0042_[_]_UNIFIED_QUERY_API.md](0042_%5B_%5D_UNIFIED_QUERY_API.md)
-- [0044_[_]_AI_COLLABORATIVE_EDITING.md](0044_%5B_%5D_AI_COLLABORATIVE_EDITING.md)
-- [0047_[_]_PLUGIN_MARKETPLACE.md](0047_%5B_%5D_PLUGIN_MARKETPLACE.md)
-- [0052_[_]_LIBP2P_REINTEGRATION.md](0052_%5B_%5D_LIBP2P_REINTEGRATION.md)
-- [0057_[_]_USAGE_BASED_DONATIONS.md](0057_%5B_%5D_USAGE_BASED_DONATIONS.md)
-- [0059_[_]_VERSION_COMPATIBILITY.md](0059_%5B_%5D_VERSION_COMPATIBILITY.md)
-- [0061_[_]_AI_AGENT_INTEGRATION.md](0061_%5B_%5D_AI_AGENT_INTEGRATION.md)
-- [0062_[_]_VERSION_COMPATIBILITY_IMPLEMENTATION.md](0062_%5B_%5D_VERSION_COMPATIBILITY_IMPLEMENTATION.md)
-- [0063_[_]_COMMUNITY_TOOLS.md](0063_%5B_%5D_COMMUNITY_TOOLS.md)
-- [0064_[_]_MONOREPO_RELEASE_AUTOMATION.md](0064_%5B_%5D_MONOREPO_RELEASE_AUTOMATION.md)
-- [0065_[_]_SECURE_PASSKEY_FALLBACK.md](0065_%5B_%5D_SECURE_PASSKEY_FALLBACK.md)
-- [0067_[-]_DATABASE_DATA_MODEL_V2.md](0067_%5B-%5D_DATABASE_DATA_MODEL_V2.md)
-- [0068_[-]_CANVAS_OPTIMIZATION.md](0068_%5B-%5D_CANVAS_OPTIMIZATION.md)
-- [0070_[_]_COMPACT_WIRE_FORMAT.md](0070_%5B_%5D_COMPACT_WIRE_FORMAT.md)
-- [0073_[-]_STORAGEADAPTER_REMOVAL.md](0073_%5B-%5D_STORAGEADAPTER_REMOVAL.md)
-- [0076_[_]_AUTHORIZATION_API_DESIGN.md](0076_%5B_%5D_AUTHORIZATION_API_DESIGN.md)
-- [0077_[_]_AUTHORIZATION_API_DESIGN_V2.md](0077_%5B_%5D_AUTHORIZATION_API_DESIGN_V2.md)
-- [0078_[_]_TRULY_P2P_DISCOVERY_AND_ROUTING.md](0078_%5B_%5D_TRULY_P2P_DISCOVERY_AND_ROUTING.md)
-- [0199_[_]_ELEGANT_COMPOSABLE_MOTION_SYSTEM.md](0199_%5B_%5D_ELEGANT_COMPOSABLE_MOTION_SYSTEM.md)
-- [0199_[_]_NOTION_AND_AIRTABLE_GRADE_DATABASE_UI_AND_NATIVE_QUERIES.md](0199_%5B_%5D_NOTION_AND_AIRTABLE_GRADE_DATABASE_UI_AND_NATIVE_QUERIES.md)
-- [0306_[_]_EPOCH_RESOLVED_HUB_ARBITRATION.md](0306_%5B_%5D_EPOCH_RESOLVED_HUB_ARBITRATION.md)
-- [0323_[_]_ENTITY_COMPONENT_SYSTEM_AND_HIGH_FREQUENCY_STATE.md](0323_%5B_%5D_ENTITY_COMPONENT_SYSTEM_AND_HIGH_FREQUENCY_STATE.md)
-- [0345_[_]_COPYLEFT_LICENSING_GPL_AGPL_VS_MIT_PLUS_FSL.md](0345_%5B_%5D_COPYLEFT_LICENSING_GPL_AGPL_VS_MIT_PLUS_FSL.md)
-- [0359_[_]_COMMUNITY_HOSTING_AND_RECURRING_REVENUE_THE_SKOOL_QUESTION.md](0359_%5B_%5D_COMMUNITY_HOSTING_AND_RECURRING_REVENUE_THE_SKOOL_QUESTION.md)
-- [0362_[_]_PUBLISHING_ON_XNET_GHOST_SUBSTACK_AND_THE_OWNED_AUDIENCE.md](0362_%5B_%5D_PUBLISHING_ON_XNET_GHOST_SUBSTACK_AND_THE_OWNED_AUDIENCE.md)
-- [0372_[_]_JOINING_THE_ATMOSPHERE_ADOPT_EXTEND_MINT_AND_THE_HUB_AS_A_KNOT.md](0372_%5B_%5D_JOINING_THE_ATMOSPHERE_ADOPT_EXTEND_MINT_AND_THE_HUB_AS_A_KNOT.md)
-- [0426_[-]_SHOULD_THE_USER_BE_IN_CHARGE_SURRENDER_AS_A_DESIGN_CONSTRAINT.md](0426_%5B-%5D_SHOULD_THE_USER_BE_IN_CHARGE_SURRENDER_AS_A_DESIGN_CONSTRAINT.md)
-- [0427_[-]_MOTION_DEV_ESCAPE_HATCH.md](0427_%5B-%5D_MOTION_DEV_ESCAPE_HATCH.md)
+- [0001*[*]\_graph-performance-research.md](0001_%5B_%5D_graph-performance-research.md)
+- [0010*[*]\_I18N_ARCHITECTURE.md](0010_%5B_%5D_I18N_ARCHITECTURE.md)
+- [0012*[*]\_PNPM_TO_BUN_MIGRATION.md](0012_%5B_%5D_PNPM_TO_BUN_MIGRATION.md)
+- [0017*[*]\_IDENTITY_MIGRATION_PLAN.md](0017_%5B_%5D_IDENTITY_MIGRATION_PLAN.md)
+- [0020*[*]\_REGENERATIVE_FARMING_ERP.md](0020_%5B_%5D_REGENERATIVE_FARMING_ERP.md)
+- [0021*[*]\_CLOJURE_PORT.md](0021_%5B_%5D_CLOJURE_PORT.md)
+- [0022*[*]\_RAMA_HUB_AT_SCALE.md](0022_%5B_%5D_RAMA_HUB_AT_SCALE.md)
+- [0023*[*]\_DECENTRALIZED_SEARCH.md](0023_%5B_%5D_DECENTRALIZED_SEARCH.md)
+- [0028*[*]\_CHAT_AND_VIDEO.md](0028_%5B_%5D_CHAT_AND_VIDEO.md)
+- [0029*[*]\_MASTODON_SOCIAL_NETWORKING.md](0029_%5B_%5D_MASTODON_SOCIAL_NETWORKING.md)
+- [0030*[*]\_UNIVERSAL_SOCIAL_PRIMITIVES.md](0030_%5B_%5D_UNIVERSAL_SOCIAL_PRIMITIVES.md)
+- [0031*[*]\_NOSTR_INTEGRATION.md](0031_%5B_%5D_NOSTR_INTEGRATION.md)
+- [0033*[*]\_NAMING_DATAGARDEN.md](0033_%5B_%5D_NAMING_DATAGARDEN.md)
+- [0037*[*]\_USEQUERY_PAGINATION.md](0037_%5B_%5D_USEQUERY_PAGINATION.md)
+- [0038*[*]\_YJS_HISTORY_INTEGRATION.md](0038_%5B_%5D_YJS_HISTORY_INTEGRATION.md)
+- [0040*[*]\_FIRST_CLASS_RELATIONS.md](0040_%5B_%5D_FIRST_CLASS_RELATIONS.md)
+- [0042*[*]\_UNIFIED_QUERY_API.md](0042_%5B_%5D_UNIFIED_QUERY_API.md)
+- [0044*[*]\_AI_COLLABORATIVE_EDITING.md](0044_%5B_%5D_AI_COLLABORATIVE_EDITING.md)
+- [0047*[*]\_PLUGIN_MARKETPLACE.md](0047_%5B_%5D_PLUGIN_MARKETPLACE.md)
+- [0052*[*]\_LIBP2P_REINTEGRATION.md](0052_%5B_%5D_LIBP2P_REINTEGRATION.md)
+- [0057*[*]\_USAGE_BASED_DONATIONS.md](0057_%5B_%5D_USAGE_BASED_DONATIONS.md)
+- [0059*[*]\_VERSION_COMPATIBILITY.md](0059_%5B_%5D_VERSION_COMPATIBILITY.md)
+- [0061*[*]\_AI_AGENT_INTEGRATION.md](0061_%5B_%5D_AI_AGENT_INTEGRATION.md)
+- [0062*[*]\_VERSION_COMPATIBILITY_IMPLEMENTATION.md](0062_%5B_%5D_VERSION_COMPATIBILITY_IMPLEMENTATION.md)
+- [0063*[*]\_COMMUNITY_TOOLS.md](0063_%5B_%5D_COMMUNITY_TOOLS.md)
+- [0064*[*]\_MONOREPO_RELEASE_AUTOMATION.md](0064_%5B_%5D_MONOREPO_RELEASE_AUTOMATION.md)
+- [0065*[*]\_SECURE_PASSKEY_FALLBACK.md](0065_%5B_%5D_SECURE_PASSKEY_FALLBACK.md)
+- [0067\_[-]\_DATABASE_DATA_MODEL_V2.md](0067_%5B-%5D_DATABASE_DATA_MODEL_V2.md)
+- [0068\_[-]\_CANVAS_OPTIMIZATION.md](0068_%5B-%5D_CANVAS_OPTIMIZATION.md)
+- [0070*[*]\_COMPACT_WIRE_FORMAT.md](0070_%5B_%5D_COMPACT_WIRE_FORMAT.md)
+- [0073\_[-]\_STORAGEADAPTER_REMOVAL.md](0073_%5B-%5D_STORAGEADAPTER_REMOVAL.md)
+- [0076*[*]\_AUTHORIZATION_API_DESIGN.md](0076_%5B_%5D_AUTHORIZATION_API_DESIGN.md)
+- [0077*[*]\_AUTHORIZATION_API_DESIGN_V2.md](0077_%5B_%5D_AUTHORIZATION_API_DESIGN_V2.md)
+- [0078*[*]\_TRULY_P2P_DISCOVERY_AND_ROUTING.md](0078_%5B_%5D_TRULY_P2P_DISCOVERY_AND_ROUTING.md)
+- [0199*[*]\_ELEGANT_COMPOSABLE_MOTION_SYSTEM.md](0199_%5B_%5D_ELEGANT_COMPOSABLE_MOTION_SYSTEM.md)
+- [0199*[*]\_NOTION_AND_AIRTABLE_GRADE_DATABASE_UI_AND_NATIVE_QUERIES.md](0199_%5B_%5D_NOTION_AND_AIRTABLE_GRADE_DATABASE_UI_AND_NATIVE_QUERIES.md)
+- [0306*[*]\_EPOCH_RESOLVED_HUB_ARBITRATION.md](0306_%5B_%5D_EPOCH_RESOLVED_HUB_ARBITRATION.md)
+- [0323*[*]\_ENTITY_COMPONENT_SYSTEM_AND_HIGH_FREQUENCY_STATE.md](0323_%5B_%5D_ENTITY_COMPONENT_SYSTEM_AND_HIGH_FREQUENCY_STATE.md)
+- [0345*[*]\_COPYLEFT_LICENSING_GPL_AGPL_VS_MIT_PLUS_FSL.md](0345_%5B_%5D_COPYLEFT_LICENSING_GPL_AGPL_VS_MIT_PLUS_FSL.md)
+- [0359*[*]\_COMMUNITY_HOSTING_AND_RECURRING_REVENUE_THE_SKOOL_QUESTION.md](0359_%5B_%5D_COMMUNITY_HOSTING_AND_RECURRING_REVENUE_THE_SKOOL_QUESTION.md)
+- [0362*[*]\_PUBLISHING_ON_XNET_GHOST_SUBSTACK_AND_THE_OWNED_AUDIENCE.md](0362_%5B_%5D_PUBLISHING_ON_XNET_GHOST_SUBSTACK_AND_THE_OWNED_AUDIENCE.md)
+- [0372*[*]\_JOINING_THE_ATMOSPHERE_ADOPT_EXTEND_MINT_AND_THE_HUB_AS_A_KNOT.md](0372_%5B_%5D_JOINING_THE_ATMOSPHERE_ADOPT_EXTEND_MINT_AND_THE_HUB_AS_A_KNOT.md)
+- [0426\_[-]\_SHOULD_THE_USER_BE_IN_CHARGE_SURRENDER_AS_A_DESIGN_CONSTRAINT.md](0426_%5B-%5D_SHOULD_THE_USER_BE_IN_CHARGE_SURRENDER_AS_A_DESIGN_CONSTRAINT.md)
+- [0427\_[-]\_MOTION_DEV_ESCAPE_HATCH.md](0427_%5B-%5D_MOTION_DEV_ESCAPE_HATCH.md)
+- [0428\_[-]\_CAN_YOU_JUST_DO_THINGS_SEEING_THE_DEGREES_OF_FREEDOM.md](0428_%5B-%5D_CAN_YOU_JUST_DO_THINGS_SEEING_THE_DEGREES_OF_FREEDOM.md)

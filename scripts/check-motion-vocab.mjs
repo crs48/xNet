@@ -6,19 +6,19 @@
  * packages/ui/src/theme/motion.css and documented in docs/MOTION.md. This
  * guard keeps authors — human or AI — inside it by failing CI on the footguns.
  *
- * Rules come in two scopes, because they protect two different things:
+ * Rules come in two scopes, because they protect two different things (0427):
  *
- *   'vocab'  — the design-token rules below. Only meaningful where the
- *              token-bearing Tailwind config is in play: `packages/ui/src` and
- *              `apps/web/src`. Other packages have their own design systems
- *              (e.g. the editor's --editor-* theme) and stay out of scope.
+ *   'vocab'  — the design-token rules. Only meaningful where the token-bearing
+ *              Tailwind config is in play: `packages/ui/src` and `apps/web/src`.
+ *              Other packages have their own design systems (e.g. the editor's
+ *              --editor-* theme) and are intentionally out of scope.
  *
- *   'global' — the bundle-weight rules (0427). These scan ALL of `packages/`
- *              and `apps/`, because a 34KB static import costs the same in
+ *   'global' — the bundle-weight rules. These scan ALL of `packages/` and
+ *              `apps/`, because a 34KB static import costs the same in
  *              packages/views as in apps/web, and the two call sites that
- *              legitimately use Motion (workbench TabBar, views BoardView)
- *              live outside the 'vocab' scope entirely. A guard that could not
- *              see them would not be a guard.
+ *              legitimately use Motion (workbench TabBar, views BoardView) live
+ *              outside the 'vocab' scope entirely. A guard that could not see
+ *              them would not be a guard.
  *
  *   ✗ transition-all          → animates layout props off the compositor; name
  *                               the property: transition-base / -colors-fast /
@@ -33,7 +33,16 @@
  *   ✗ 'framer-motion'         → renamed to `motion`; same route as above
  *
  * Run: `node scripts/check-motion-vocab.mjs` (or `pnpm check:motion-vocab`).
+ *      `node scripts/check-motion-vocab.mjs --selftest`  (the negative control —
+ *      verifies the gate still catches planted violations, exploration 0430).
  * Pass extra paths as args to scan them too.
+ *
+ * Why the self-test exists: a clean scan has exactly one observable state, and
+ * "the codebase is clean" and "this regex stopped matching after a rename" are
+ * both consistent with it. The control plants violations the gate MUST flag, so
+ * green means something. Fixtures are in-memory strings, never files on disk —
+ * an on-disk fixture would have to be excluded from the production glob, and
+ * that exclusion is one more thing that can silently break.
  */
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
 import { join, resolve, relative } from 'node:path'
@@ -45,14 +54,12 @@ const WIDE_DIRS = [join(root, 'packages'), join(root, 'apps')]
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.turbo', 'coverage'])
 const EXT = new Set(['.ts', '.tsx'])
 
+/** Both rule scopes — the default for scanText and the self-test. */
+const ALL_SCOPES = ['vocab', 'global']
+
 /**
- * The banned patterns. Each entry: a name, a regex, a fix to suggest, and a
- * scope.
- *
- *   scope 'vocab'  — design-token rules. Only meaningful where the token-bearing
- *                    Tailwind config is in play, so they stay in SCOPED_DIRS.
- *   scope 'global' — bundle-weight rules. A 34KB import is just as expensive in
- *                    packages/views as in apps/web, so these scan WIDE_DIRS.
+ * The banned patterns. Each entry: a name, a regex, the fix to suggest, and the
+ * scope that decides which files it is applied to (see the header).
  */
 const RULES = [
   {
@@ -84,10 +91,10 @@ const RULES = [
     // component. It may only be reached through the dynamic import() inside
     // MotionStage, which keeps it in its own chunk. `motion/react-m` (~4.6KB
     // shell) and `motion/react-mini` (2.3KB) are deliberately NOT matched —
-    // the trailing quote in the pattern stops at `react`, and those shells are
-    // the whole reason the LazyMotion split exists.
+    // the pattern's closing quote stops at `react`, and those shells are the
+    // whole reason the LazyMotion split exists.
     //
-    // This matches import STATEMENTS only; `await import('motion/react')` is an
+    // Matches import STATEMENTS only; `await import('motion/react')` is an
     // expression and does not start a line with `import <specifier>`.
     scope: 'global',
     name: 'static motion/react import',
@@ -121,56 +128,200 @@ function collect(dir, out) {
   }
 }
 
-const files = []
-for (const dir of SCOPED_DIRS) collect(dir, files)
-
-// Bundle-weight rules scan every package and app, not just the token-bearing
-// surfaces — importing 34KB is expensive wherever it happens.
-const wideFiles = []
-for (const dir of WIDE_DIRS) collect(dir, wideFiles)
-
-for (const arg of process.argv.slice(2)) {
-  const p = resolve(arg)
-  if (existsSync(p) && statSync(p).isFile()) {
-    if (!files.includes(p)) files.push(p)
-    if (!wideFiles.includes(p)) wideFiles.push(p)
-  }
-}
-
-/** Every file we must read, mapped to the rules that apply to it. */
-const scanned = new Map()
-for (const f of wideFiles) scanned.set(f, ['global'])
-for (const f of files) scanned.set(f, scanned.has(f) ? ['global', 'vocab'] : ['vocab'])
-
-let violations = 0
-for (const [file, scopes] of scanned) {
-  let lines
-  try {
-    lines = readFileSync(file, 'utf8').split('\n')
-  } catch {
-    continue
-  }
-  lines.forEach((line, i) => {
+/**
+ * Scan one file's text. Pure (no I/O) so --selftest can exercise it directly.
+ * `scopes` selects which rules apply; it defaults to all of them so a caller
+ * that does not care about scoping still gets the full gate.
+ * @returns {{ line: number, rule: string, fix: string, text: string }[]}
+ */
+export function scanText(content, scopes = ALL_SCOPES) {
+  const violations = []
+  content.split('\n').forEach((line, i) => {
     for (const rule of RULES) {
       if (!scopes.includes(rule.scope)) continue
       if (rule.re.test(line)) {
-        violations++
-        console.error(`✗ ${relative(root, file)}:${i + 1}  ${rule.name}`)
-        console.error(`    ${line.trim()}`)
-        console.error(`    → ${rule.fix}`)
+        violations.push({ line: i + 1, rule: rule.name, fix: rule.fix, text: line.trim() })
       }
     }
   })
+  return violations
 }
 
-if (violations > 0) {
-  console.error(
-    `\n${violations} motion-vocabulary violation(s). See docs/MOTION.md for the allowed tokens.`
+function runScan(extraPaths) {
+  const files = []
+  for (const dir of SCOPED_DIRS) collect(dir, files)
+
+  // Bundle-weight rules scan every package and app, not just the token-bearing
+  // surfaces — importing 34KB is expensive wherever it happens.
+  const wideFiles = []
+  for (const dir of WIDE_DIRS) collect(dir, wideFiles)
+
+  for (const arg of extraPaths) {
+    const p = resolve(arg)
+    if (existsSync(p) && statSync(p).isFile()) {
+      if (!files.includes(p)) files.push(p)
+      if (!wideFiles.includes(p)) wideFiles.push(p)
+    }
+  }
+
+  /** Every file we must read, mapped to the scopes that apply to it. */
+  const scanned = new Map()
+  for (const f of wideFiles) scanned.set(f, ['global'])
+  for (const f of files) scanned.set(f, scanned.has(f) ? ALL_SCOPES : ['vocab'])
+
+  let violations = 0
+  for (const [file, scopes] of scanned) {
+    let content
+    try {
+      content = readFileSync(file, 'utf8')
+    } catch {
+      continue
+    }
+    for (const v of scanText(content, scopes)) {
+      violations++
+      console.error(`✗ ${relative(root, file)}:${v.line}  ${v.rule}`)
+      console.error(`    ${v.text}`)
+      console.error(`    → ${v.fix}`)
+    }
+  }
+
+  if (violations > 0) {
+    console.error(
+      `\n${violations} motion-vocabulary violation(s). See docs/MOTION.md for the allowed tokens.`
+    )
+    return 1
+  }
+  console.log(
+    `✓ motion vocabulary OK (${files.length} file(s) for token rules in packages/ui + apps/web; ` +
+      `${scanned.size} for import rules across packages + apps)`
   )
-  process.exit(1)
+  return 0
 }
-console.log(
-  `✓ motion vocabulary OK (${files.length} file(s) for token rules in packages/ui + apps/web; ` +
-    `${scanned.size} for import rules across packages + apps)`
-)
-process.exit(0)
+
+/**
+ * The negative control: planted violations the gate must still catch, plus the
+ * near-misses it must NOT (a broadened regex is as broken as a dead one).
+ */
+function runSelfTest() {
+  const cases = [
+    {
+      label: 'flags transition-all',
+      text: '<div className="transition-all duration-fast" />',
+      expect: (v) => v.some((x) => x.rule === 'transition-all')
+    },
+    {
+      label: 'flags a raw duration literal',
+      text: '<div className="transition-base duration-300" />',
+      expect: (v) => v.some((x) => x.rule === 'raw duration literal')
+    },
+    {
+      label: 'flags retired ease-bounce',
+      text: 'const cls = "ease-bounce"',
+      expect: (v) => v.some((x) => x.rule === 'ease-bounce')
+    },
+    {
+      label: 'flags an arbitrary animate-[…]',
+      text: '<div className="animate-[wiggle_1s_ease-in-out]" />',
+      expect: (v) => v.some((x) => x.rule === 'arbitrary animate-[…]')
+    },
+    {
+      label: 'reports the 1-based line of a violation',
+      text: 'const a = 1\nconst b = "transition-all"',
+      expect: (v) => v.length === 1 && v[0].line === 2
+    },
+    // Near-misses. Each of these once looked like a violation to a sloppier
+    // regex; they pin the boundary so a future widening fails here first.
+    {
+      label: 'named duration tokens pass',
+      text: '<div className="transition-base duration-fast" />',
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'a named animate- primitive is not arbitrary',
+      text: '<div className="animate-fade-in" />',
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'ease-out and ease-spring are allowed',
+      text: '<div className="ease-out md:ease-spring" />',
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'a property-named transition passes',
+      text: '<div className="transition-[opacity,transform]" />',
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'an unrelated duration-like number passes',
+      text: 'const timeoutMs = 300',
+      expect: (v) => v.length === 0
+    },
+    // Bundle-weight rules (0427). The near-misses matter more than the hits
+    // here: a regex that also swallowed motion/react-m would ban the very
+    // import the escape hatch tells authors to use.
+    {
+      label: 'flags a static motion/react import',
+      text: "import { motion } from 'motion/react'",
+      expect: (v) => v.some((x) => x.rule === 'static motion/react import')
+    },
+    {
+      label: 'flags a re-export of motion/react',
+      text: "export { motion } from 'motion/react'",
+      expect: (v) => v.some((x) => x.rule === 'static motion/react import')
+    },
+    {
+      label: 'flags the superseded framer-motion name',
+      text: "import { motion } from 'framer-motion'",
+      expect: (v) => v.some((x) => x.rule === 'framer-motion (superseded)')
+    },
+    {
+      label: 'the motion/react-m shell is allowed',
+      text: "import * as m from 'motion/react-m'",
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'the motion/react-mini shell is allowed',
+      text: "import { animate } from 'motion/react-mini'",
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'a dynamic import of motion/react is allowed (that IS the hatch)',
+      text: "const { domMax } = await import('motion/react')",
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'token rules do not fire on a global-only file',
+      text: '<div className="transition-all" />',
+      expect: (v) => scanText('<div className="transition-all" />', ['global']).length === 0
+    }
+  ]
+
+  let failures = 0
+  for (const c of cases) {
+    const found = scanText(c.text)
+    if (c.expect(found)) {
+      console.log(`  ✓ ${c.label}`)
+    } else {
+      failures++
+      console.error(`  ✗ ${c.label} — got ${JSON.stringify(found)}`)
+    }
+  }
+  if (failures > 0) {
+    console.error(
+      `\n${failures} self-test(s) failed — the GATE is broken, not the codebase.\n` +
+        '  A motion-vocab rule stopped matching what it claims to match, so a\n' +
+        '  clean run no longer proves anything. Fix the rule, not the fixture.'
+    )
+    return 1
+  }
+  console.log(`\n✓ motion-vocab self-test passed (${cases.length} cases)`)
+  return 0
+}
+
+// Only run as a CLI when invoked directly (keeps scanText importable for tests).
+const invokedDirectly =
+  process.argv[1] && resolve(process.argv[1]).endsWith('check-motion-vocab.mjs')
+if (invokedDirectly) {
+  const args = process.argv.slice(2)
+  process.exit(args.includes('--selftest') ? runSelfTest() : runScan(args))
+}
