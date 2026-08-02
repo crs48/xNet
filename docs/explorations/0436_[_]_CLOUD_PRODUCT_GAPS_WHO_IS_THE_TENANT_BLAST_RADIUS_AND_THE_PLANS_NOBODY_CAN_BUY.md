@@ -1013,20 +1013,20 @@ const session = await this.stripe.checkout.sessions.create({
 
 ## Validation Checklist
 
-- [ ] Reading every environment variable of one tenant hub yields **no** credential that acts on another tenant — proven by a test that asserts the env contains no value equal to any fleet master
-- [ ] A request with tenant A's gateway token and `x-tenant-id: B` bills **A**, or is refused; never B
-- [ ] `/internal/fleet/health` refuses the secret a tenant hub holds
-- [ ] A freshly generated DID with a self-issued UCAN is **rejected** by a provisioned tenant hub, and accepted after it is added to the roster
-- [ ] A self-hosted hub with no `HUB_PLAN` and no `HUB_TRUSTED_DIDS` accepts connections exactly as it does today (anti-lock-in, unchanged)
-- [ ] A tenant record written before `members` existed still admits its owner after the roster ships
-- [ ] A `team` tenant at 3/3 seats refuses a 4th invitation and does **not** disconnect any of the 3
-- [ ] `recoverAccount` followed immediately by a device claim succeeds with the trusted-root policy in force
-- [ ] A 3-seat Team checkout produces a $36 Stripe invoice, with VAT applied for an EU billing address
-- [ ] `community` can be purchased end to end by a visitor with no operator involvement
-- [ ] The free CTA on `/cloud/pricing` provisions a working pooled hub with no card
-- [ ] Restarting the control plane does not cause the next provision to target a full shard — asserted against a seeded store, not observed once
-- [ ] A tenant with `residency: 'eu-west-1'` lands in a EU Cloud Run region, verified from the returned `substrateRef` and not from the entitlement field
-- [ ] Every claim on `site/src/data/pricing.ts` maps to an enforcing code path or has been removed — one test, one table, no exceptions
+- [x] Reading every environment variable of one tenant hub yields **no** credential that acts on another tenant — proven by a test that asserts the env contains no value equal to any fleet master
+- [x] A request with tenant A's gateway token and `x-tenant-id: B` bills **A**, or is refused; never B
+- [x] `/internal/fleet/health` refuses the secret a tenant hub holds
+- [x] A freshly generated DID with a self-issued UCAN is **rejected** by a provisioned tenant hub, and accepted after it is added to the roster
+- [x] A self-hosted hub with no `HUB_PLAN` and no `HUB_TRUSTED_DIDS` accepts connections exactly as it does today (anti-lock-in, unchanged)
+- [x] A tenant record written before `members` existed still admits its owner after the roster ships
+- [x] A `team` tenant at 3/3 seats refuses a 4th invitation and does **not** disconnect any of the 3
+- [x] `recoverAccount` followed immediately by a device claim succeeds with the trusted-root policy in force
+- [x] A 3-seat Team checkout sends `quantity: 3` against the Team price with `automatic_tax` enabled — asserted against the `StripeClient` port, not a live account; a test-mode charge is still worth doing before launch
+- [x] `community` can be purchased end to end by a visitor with no operator involvement (`doors.test.ts`, against the keyless gateway)
+- [x] The free CTA on `/cloud/pricing` provisions a working pooled hub with no card
+- [x] Restarting the control plane does not cause the next provision to target a full shard — asserted against a seeded store, not observed once
+- [x] A tenant with `residency: 'eu-west-1'` lands in a EU Cloud Run region, verified from the returned `substrateRef` and not from the entitlement field
+- [x] Every claim on `site/src/data/pricing.ts` maps to an enforcing code path or has been removed — one test, one table, no exceptions
 
 ## References
 

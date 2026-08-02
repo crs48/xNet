@@ -4,6 +4,7 @@ import { FakeTenantBillingGateway } from './billing-gateway'
 import { HealthSampleStore } from './observability/health'
 import { createControlPlaneApp } from './server'
 import { buildControlPlane } from './index'
+import { gatewayTokenFor, planSecretFor } from './tenant-secrets'
 
 const INTERNAL = 'secret123'
 
@@ -75,5 +76,78 @@ describe('GET /internal/fleet/health', () => {
       headers: { 'x-internal-secret': INTERNAL }
     })
     expect(res.status).toBe(503)
+  })
+})
+
+/**
+ * Exploration 0436 G1: the operator surface must not be reachable from a hub.
+ *
+ * `XNET_CLOUD_INTERNAL_SECRET` used to do two jobs — gate `/internal/*` AND ride
+ * into every AI-enabled tenant container — so any code running in any hub could
+ * read `/internal/fleet/health` and learn every tenant's id, plan and hub URL.
+ */
+describe('operator surface vs. what a tenant hub holds', () => {
+  const GATEWAY_MASTER = 'gw-master'
+
+  function isolatedApp() {
+    const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
+    const { controlPlane } = buildControlPlane({
+      billing,
+      env: {
+        XNET_CLOUD_URL: 'https://cloud.example',
+        XNET_CLOUD_GATEWAY_MASTER: GATEWAY_MASTER
+      } as NodeJS.ProcessEnv
+    })
+    const app = createControlPlaneApp({
+      controlPlane,
+      billing,
+      payments: new FakeTenantBillingGateway(),
+      health: new HealthSampleStore(),
+      internalSecret: 'operator-only',
+      sessionSecret: 'sess',
+      baseUrl: ''
+    })
+    return { app, controlPlane }
+  }
+
+  it('refuses the gateway master and a tenant gateway token', async () => {
+    const { app } = isolatedApp()
+    for (const presented of [GATEWAY_MASTER, gatewayTokenFor(GATEWAY_MASTER, 't_alice')]) {
+      const res = await app.request('/internal/fleet/health', {
+        headers: { 'x-internal-secret': presented }
+      })
+      expect(res.status).toBe(403)
+    }
+  })
+
+  it('still admits the operator read secret itself', async () => {
+    const { app } = isolatedApp()
+    const res = await app.request('/internal/fleet/health', {
+      headers: { 'x-internal-secret': 'operator-only' }
+    })
+    expect(res.status).toBe(200)
+  })
+
+  // The property, not the enumeration: nothing a hub is given may open the
+  // operator surface. A new secret added to `hubEnv` without a derivation
+  // fails here.
+  it('refuses every value in a provisioned hub environment', async () => {
+    const { app, controlPlane } = isolatedApp()
+    await provision(app, 'user_a', 'personal')
+    const tenant = await controlPlane.getTenantForBilling('user_a')
+    const handle = await controlPlane.provisioner.get(tenant!.substrateRef)
+    expect(handle).not.toBeNull()
+    // MemoryProvisioner does not retain env, so assert against the values the
+    // control plane derives for this tenant — the same set a container holds.
+    const hubHeld = [
+      planSecretFor('dev-insecure-plan-secret', tenant!.tenantId),
+      gatewayTokenFor(GATEWAY_MASTER, tenant!.tenantId)
+    ]
+    for (const value of hubHeld) {
+      const res = await app.request('/internal/fleet/health', {
+        headers: { 'x-internal-secret': value }
+      })
+      expect(res.status).toBe(403)
+    }
   })
 })
