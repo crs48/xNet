@@ -4,7 +4,7 @@ status: draft # draft | withdrawn
 last_updated: 2026-08-01
 review: 2026-11-01 # 90d: gated on the first paying cohort (0418), which lands inside this window
 decider: chris
-door: two-way # a console route and two stores, each deletable in one commit — except operator identity, flagged below
+door: one-way # the ops hub becomes a standing operational dependency; the console and stores alone would be two-way
 tags: [cloud, operations, sre, support, security, observability]
 ---
 
@@ -20,8 +20,12 @@ tags: [cloud, operations, sre, support, security, observability]
 > shared secret, and one of the routes behind it clears a tenant's device
 > binding), and an **honest support-visibility boundary** (the dashboard tells
 > users we hold only encrypted bytes; the hub indexes their plaintext). Fix the
-> substrate first, then render it as a server-rendered `/ops` console in
-> `apps/cloud` — the same shape as the tenant dashboard, no new bundle.
+> substrate first, then render it as a **React + Tailwind console built on
+> `@xnetjs/ui`**, served same-origin by the control plane. Run it **on xNet for
+> the record and REST for the readings**: operator actions become signed nodes on
+> a dedicated ops hub — which turns the audit log from a thing we build into a
+> thing we already have — while SLI buckets and `TenantRecord` stay in Firestore,
+> because a change log is the wrong shape for metrics (0323's 318k-row cliff).
 
 ---
 
@@ -76,8 +80,9 @@ a restart (the moment most likely to have broken something), and it reads
 | Job staleness               | ✅ Shipped     | `/internal/fleet/jobs`, `stale` at 2× interval                                |
 | **Durable SLI window**      | 🛑 **Missing** | in-memory ring; ~33h of a 30-day window; resets on deploy                     |
 | **Operator identity**       | 🛑 **Missing** | one shared secret, no attribution, non-constant-time compare                  |
-| **Control-plane audit log** | 🛑 **Missing** | the *user's* hub has one; the operator's control plane does not               |
+| **Control-plane audit log** | 🛑 **Missing** | the *user's* hub has a signed one (`routes/audit.ts`); the control plane has none |
 | **Operator UI**             | ❌ None        | `/internal/*` is JSON-and-curl only                                           |
+| Component library reuse     | ✅ Available   | `@xnetjs/ui`: 85 components, **zero** `@xnetjs/*` deps, React peer only       |
 | **Support timeline**        | ❌ None        | no way to answer "what happened to this tenant last Tuesday"                  |
 
 > [!IMPORTANT]
@@ -319,8 +324,8 @@ flowchart TB
 
   subgraph Phase0["Phase 0 — substrate (new)"]
     DS[("DurableSliStore<br/>bucketed, persisted")]
-    OI["Operator identity<br/>per-person credential"]
-    AL[("Audit log<br/>append-only")]
+    OI["Operator identity<br/>WorkOS → bound did:key"]
+    AL[("Audit log<br/>tier 1 DocStore gate<br/>tier 2 signed node")]
   end
 
   subgraph Phase1["Phase 1 — /ops console"]
@@ -434,14 +439,242 @@ stateDiagram-v2
 
 ### A. Where the console lives
 
-| Option                                        | Verdict         | Why                                                                                                                                    |
-| --------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **A1. Server-rendered `/ops` in `apps/cloud`** | ✅ **Recommend** | Same origin as the data, same pattern as `dashboard.ts`, zero new deps, ships in the existing container, self-hosters get it free       |
-| A2. React SPA in `apps/web`                   | ❌ Reject       | Cross-origin to the control plane, a second bundle, and puts operator credentials in the same app as tenant data                        |
-| A3. Grafana + Prometheus                      | 🛑 Reject       | Two services to run and secure; the SLI logic would be re-implemented in PromQL as a second source of truth, diverging from `sli.ts`     |
-| A4. Datadog / Better Stack                    | 🛑 Reject       | Fails the vanish test — operations knowledge leaves with the vendor — and mirrors tenant-shaped data into a third party (Charter §4)     |
+Two axes get conflated here and must be separated: **where it is served** (the
+server boundary) and **what it is built with** (the visual boundary). Exploration
+[0418](./0418_[-]_XNET_CLOUD_TO_PRODUCTION_BACKUPS_BILLING_DUNNING_AND_ONE_UI.md)
+already settles the principle at line 231 — the same-origin cookie argument
+"is a good reason for the _server_ boundary. It is not a good reason for the
+_visual_ boundary."
 
-A3 deserves more than a line, because it is the industry default.
+| Option                                                          | Verdict         | Why                                                                                                                                |
+| --------------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **A1. React + Tailwind + `@xnetjs/ui`, served same-origin by `apps/cloud`** | ✅ **Recommend** | Keeps the cookie/CORS win, reuses 85 existing components and the token system, and is the stack 0418 Phase 3 moves the tenant dashboard to anyway |
+| A2. Hand-rolled server-rendered HTML (the `dashboard.ts` pattern) | ❌ Reject       | Zero new deps, but a third design system in the same repo and every table, dialog, and chart rebuilt by hand                        |
+| A3. React SPA in `apps/web`                                      | ❌ Reject       | Cross-origin to the control plane, and it puts operator credentials in the same app as tenant data                                  |
+| A4. Grafana + Prometheus                                         | 🛑 Reject       | Two services to run and secure; the SLI logic would be re-implemented in PromQL as a second source of truth, diverging from `sli.ts` |
+| A5. Datadog / Better Stack                                       | 🛑 Reject       | Fails the vanish test — operations knowledge leaves with the vendor — and mirrors tenant-shaped data into a third party (Charter §4) |
+
+> [!IMPORTANT]
+> **`@xnetjs/ui` has zero `@xnetjs/*` runtime dependencies.** Its `package.json`
+> lists only third-party libraries (`@base-ui/react`, `cmdk`, `lucide-react`,
+> `class-variance-authority`, `tailwind-merge`) and `react`/`react-dom` as peers.
+> The component library is already decoupled from the data layer — this is not a
+> refactor, it is an existing property. 85 components are available:
+> 28 primitives, 24 components, 33 composed.
+
+The reuse is broader than components. `@xnetjs/ui` also exports
+`./tailwind.config`, `./tokens.css`, `./motion.css`, `./accessibility.css`,
+`./responsive.css` and `./scroll-fade.css`, and the consumption pattern is
+already established — [`apps/web/tailwind.config.js`](../../apps/web/tailwind.config.js)
+is nine lines that spread the base config and add content globs. An ops console
+does exactly the same. `@xnetjs/charts` is likewise clean: `echarts` plus a React
+peer, no xNet primitives, so burn-down and latency charts come free.
+
+<details>
+<summary>Why not keep hand-rolling HTML (A2) — the cost that is easy to miss</summary>
+
+`dashboard.ts` is a genuinely good artifact for what it is: 972 lines, no bundle,
+progressive enhancement, works with JS off. Copying it for `/ops` looks cheap
+because the first screen is cheap.
+
+The ops console's screens are not that screen. A fleet view is a sortable,
+filterable table of every tenant. A support view is a timeline with expandable
+entries. Phase 3 is modal action dialogs with required-reason forms and a consent
+flow. Those are `DataTable`, `Dialog`, `Command`, `Popover`, `Tabs`, `Toast` —
+all of which exist, tested and themed, and none of which are pleasant to
+hand-roll in template strings.
+
+The deciding argument is not effort, though. It is that A2 creates a **third**
+design system (tenant dashboard, app, ops) in a repo that already considers two a
+problem worth an exploration, and it moves *away* from where 0418 Phase 3 is
+already headed.
+
+</details>
+
+<details>
+<summary>Why not Grafana (A4) — the second-source-of-truth problem</summary>
+
+Grafana is the right tool when metrics live in a time-series database and
+dashboards are queries over them. xNet's situation is different in one decisive
+way: the error budget is not a display artifact, it is a **control input** to
+`rollout/engine.ts`. If the console computes it in PromQL and the engine computes
+it in `sli.ts`, they will drift, and the drift will be discovered during an
+incident.
+
+Keeping one implementation means the console must call `tenantSli()` — which
+means it lives in the control plane. Grafana could still be added later as a
+*read-only second view* over exported metrics; it cannot be the primary.
+
+There is also a self-hosting cost. `xnet hub` is meant to be one binary. An
+operations story that requires standing up Prometheus and Grafana is not one a
+self-hoster inherits, which quietly makes the managed product better than the
+self-hosted one in a way the Charter's BATNA test disfavours.
+
+</details>
+
+### A′. Should the console run on xNet itself?
+
+The component library needs no provider — Storybook proves that, wrapping every
+story in exactly one:
+
+```tsx
+// .storybook/preview.tsx
+import { ThemeProvider, type Theme } from '../packages/ui/src/theme/ThemeProvider'
+```
+
+No `XNetProvider`, no store, no hub connection anywhere in the decorator stack,
+and the whole catalogue renders. So *whether to use xNet* is a genuine choice
+rather than a constraint — and there is a strong argument for yes.
+
+> [!IMPORTANT]
+> **Operator actions become signed xNet nodes; fleet readings stay REST.** Run
+> the console on xNet for the **record**, not for the **readings**. That split is
+> the whole design, and each half is chosen for a specific reason rather than for
+> consistency.
+
+**Why xNet for the record.** Finding 3 is that the control plane has no audit
+log, and open question #2 asked whether one should be signed. Both dissolve if
+operator actions are nodes authored by an operator DID: the change log *is* the
+audit trail, it is signed and hash-chained per author, and
+[`packages/hub/src/routes/audit.ts`](../../packages/hub/src/routes/audit.ts)
+already serves it — `GET /audit/authors/:did/changes?since=<lamport>` pages an
+author's signed history, self-reads always allowed, cross-author reads gated by
+the `audit/read` capability. That is a per-operator audit console for free, and a
+verifiable one rather than a merely append-only Firestore collection that an
+operator with write access could rewrite.
+
+The login story lands the same way. The WorkOS → xNet identity binding is not
+hypothetical — it is shipped, and it is exactly how tenants connect: WorkOS
+AuthKit proves the billing identity, the app presents a signed DID challenge, and
+`bindDataIdentity` binds the two. An operator signing in with WorkOS and
+connecting their xNet identity reuses that flow verbatim.
+
+And it is dogfooding on the surface where the stakes are highest. A team that
+will not keep its own operational record on its own product has said something.
+
+**Why not xNet for the readings.** The change log is the wrong shape for metrics,
+and the repo has the scar tissue to prove it. Exploration
+[0323](./0323_[_]_ENTITY_COMPONENT_SYSTEM_AND_HIGH_FREQUENCY_STATE.md) names the
+"318k-row / multi-second cold-open stall" as a change-log problem (line 38) and
+documents a **250-change burst cliff** above which every subscribed client
+re-renders (line 197). SLI buckets are hourly writes per tenant, forever —
+precisely the high-frequency stream 0323 concludes must stay off the log.
+
+```mermaid
+flowchart TB
+  subgraph OnXnet["On xNet — the record"]
+    A1["Operator actions<br/>signed by operator DID"]
+    A2["Incident notes · runbooks"]
+    A3["Consent grants (Tier 2)"]
+  end
+  subgraph OffXnet["Off xNet — the readings"]
+    B1["SLI buckets<br/>hourly, per tenant"]
+    B2["TenantRecord<br/>authoritative in Firestore"]
+    B3["Job health · rollout state"]
+  end
+  A1 --> H[("Ops hub<br/>signed change log")]
+  A2 --> H
+  A3 --> H
+  A3 -.->|"publish copy"| T[("Affected tenant's<br/>own hub")]
+  B1 --> F[("DocStore / Firestore")]
+  B2 --> F
+  B3 --> F
+  H --> C["/ops console"]
+  F --> C
+  style B1 fill:#1e3a5f,color:#fff
+  style B2 fill:#1e3a5f,color:#fff
+  style B3 fill:#1e3a5f,color:#fff
+```
+
+`TenantRecord` stays authoritative in Firestore for a second reason: it is read
+on the request path by billing and provisioning. Mirroring it into nodes would
+create two sources of truth for the record that decides whether someone's hub
+runs.
+
+> [!CAUTION]
+> **The circular dependency is the real risk, and it must be designed for
+> explicitly.** The control plane operates hubs. If operator tooling depends on a
+> hub, then a fleet-wide incident takes out the console you diagnose it with —
+> the classic failure of monitoring that shares fate with the monitored. Worse,
+> combined with the audit-write-before-act rule from Phase 0, an unreachable ops
+> hub would mean *no operator can act during an outage*.
+
+The resolution is **two-tier durability**, and it costs one extra write:
+
+| Tier                       | Where               | Purpose                          | Available during a fleet incident |
+| -------------------------- | ------------------- | -------------------------------- | --------------------------------- |
+| 1. Gate (fail-closed)      | control-plane `DocStore` | authorises the action to proceed | ✅ Yes                             |
+| 2. Verifiable copy         | ops hub, signed node | tamper-evident record            | ⚠️ Queued if unreachable          |
+
+Every action writes tier 1 first — that is the gate, and it is on the same
+substrate the console already needs, so it never blocks on the hub. Publication
+to the ops hub follows asynchronously. If the hub is unreachable the action still
+proceeds, the entry queues, and **the queue depth is itself an alertable
+metric** — a gap between the two tiers is visible rather than silent, which is
+the property `AGENTS.md` asks for when it says "absent" and "unreadable" must be
+different values.
+
+Fleet health rendering reads tier 1 and the SLI buckets directly, so the console
+degrades to *"you can see everything and act, but audit history is stale"* rather
+than going dark. That is the right failure mode.
+
+**What this means for the provider.** `XNetProvider` comes back in — scoped to
+the ops workspace. The replica an operator's browser holds is *their own
+operational record*, not tenant content, so the blast-radius objection does not
+apply. Fleet readings still use plain `fetch`, both because of the shape argument
+above and because `useNode` is documented to serve stale data while revalidating
+(0353) — wrong semantics for a console whose job is answering "what is happening
+*right now*".
+
+<details>
+<summary>Bootstrapping — the chicken-and-egg, and how it resolves</summary>
+
+The first operator needs a DID and an ops hub before there is a console to create
+either. Three ordered steps, none of which need the console:
+
+1. `xnet hub` runs the ops hub — self-hosted or a pinned managed tenant, deployed
+   independently of the fleet's provisioning path so it cannot be torn down by
+   the same failure.
+2. The `xnet` CLI mints the first operator DID and binds it via the existing
+   device-grant flow.
+3. That operator's DID seeds the allowlist; subsequent operators are added as
+   signed nodes — which means **adding an operator is itself an audited action**,
+   which is a nice property to get for free.
+
+The ops hub deliberately does *not* live behind the fleet's own provisioner. If
+it did, the circular dependency would be back in a worse form: the thing that
+records what operators did to the fleet would be provisioned by the fleet.
+
+</details>
+
+### A″. What this costs in the container
+
+Reusing React is not free, and the cost is in packaging rather than coupling.
+[`apps/cloud/Dockerfile`](../../apps/cloud/Dockerfile) already `COPY`s
+`packages/` and installs the closure with dev dependencies, builds with `tsup`,
+then re-installs `--prod` to prune. The recipe that fits it:
+
+```text
+┌────────────────────┐    ┌────────────────────┐    ┌────────────────────┐
+│ devDependency      │ ─▶ │ vite build         │ ─▶ │ pnpm install --prod│
+│ @xnetjs/ui, charts │    │ → dist/ops/*.js    │    │ prunes toolchain   │
+└────────────────────┘    └────────────────────┘    └────────────────────┘
+         build-time only            static assets            runtime image
+```
+
+> [!WARNING]
+> Add `@xnetjs/ui` and `@xnetjs/charts` as **`devDependencies`** of `xnet-cloud`,
+> not `dependencies`. As runtime deps they survive the `--prod` prune and drag
+> CodeMirror, `react-markdown`, `cmdk` and `echarts` into the shipped image for
+> nothing — the console is a *build-time* artifact, and only the emitted JS/CSS
+> needs to ship. The existing Dockerfile ordering (install-with-dev → build →
+> prune) already supports this; the prod install "leaves the built dist
+> untouched," so `dist/ops/` survives.
+
+Serving is a small addition, not a new dependency: `@hono/node-server` is already
+a dependency and ships `serve-static` as a subpath. The control plane currently
+has no static-asset route at all, so this is genuinely new code — roughly one
+route plus a cache header — but it is the whole of the server-side change.
 
 <details>
 <summary>Why not Grafana — the second-source-of-truth problem</summary>
@@ -491,14 +724,21 @@ hot path is unchanged and the durable write is one document per tenant per hour.
 
 | Option                                        | Verdict         | Why                                                                                          |
 | --------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------- |
-| **C1. WorkOS AuthKit + an operator allowlist** | ✅ **Recommend** | The auth funnel already exists (`/auth/start`, `/auth/callback`); adds a named principal only |
-| C2. Per-operator static tokens                | 🟡 Fallback     | Attribution without SSO; acceptable interim, but rotation is manual                           |
-| C3. Keep the shared secret, add a header       | 🛑 Reject       | Self-asserted identity is not identity; it audits the honest and misses the dishonest         |
-| C4. mTLS client certs                          | ❌ Reject       | Real security, disproportionate operational cost for a team of this size                      |
+| **C1. WorkOS AuthKit → bound `did:key` (device-grant)** | ✅ **Recommend** | Reuses the shipped tenant flow verbatim, and gives a *signing* identity — actions attributable by cryptography, not convention |
+| C2. WorkOS AuthKit + an allowlist, no DID     | 🟡 Fallback     | Simpler, but the audit log is then only as trustworthy as the database holding it             |
+| C3. Per-operator static tokens                | 🟡 Interim      | Attribution without SSO; rotation is manual                                                   |
+| C4. Keep the shared secret, add a header       | 🛑 Reject       | Self-asserted identity is not identity; it audits the honest and misses the dishonest         |
+| C5. mTLS client certs                          | ❌ Reject       | Real security, disproportionate operational cost for a team of this size                      |
 
-C1 is small because `server.ts:259-299` already runs the WorkOS round trip and
-`session.ts` already seals a cookie. An operator session is the same mechanism
-with an allowlist check and a distinct cookie name.
+C1 is smaller than it sounds because both halves are shipped. `server.ts:259-299`
+already runs the WorkOS round trip and `session.ts` already seals a cookie; the
+DID half is the same device-grant claim tenants use, ending in
+`bindDataIdentity`. An operator session is that pair plus an allowlist check and
+a distinct cookie name.
+
+The step from C2 to C1 is what makes the audit log *verifiable* rather than
+merely *append-only*: with a signing identity an operator cannot repudiate an
+action, and nobody with database access can forge one.
 
 > [!NOTE]
 > `/internal/*` should keep its shared secret for genuine machine-to-machine
@@ -543,15 +783,16 @@ flowchart LR
 
 **Phase 0 — make the numbers true and the actors named.** Durable bucketed SLI
 store; separate timeout from error in the probe; constant-time secret compare;
-operator identity via WorkOS with an allowlist; an append-only audit log that
-every privileged action writes to before it acts. Move `recover` / `plan` /
-`delete-data` behind operator identity.
+operator identity as WorkOS → bound `did:key`; the two-tier audit log (DocStore
+gate, signed node published to the ops hub) that every privileged action writes
+to before it acts. Move `recover` / `plan` / `delete-data` behind operator
+identity.
 
-**Phase 1 — a read-only `/ops` fleet console.** Server-rendered HTML in
-`apps/cloud`, the `dashboard.ts` pattern. Fleet budget and burn rate, per-tenant
-SLI table sorted by worst budget, job staleness, last restore-drill result,
-rollout state, dunning cohort counts. Read-only means it cannot make an incident
-worse.
+**Phase 1 — a read-only `/ops` fleet console.** React + Tailwind on `@xnetjs/ui`,
+built by Vite and served same-origin by the control plane. Fleet budget and burn
+rate, per-tenant SLI table sorted by worst budget, job staleness, last
+restore-drill result, rollout state, dunning cohort counts — all from REST.
+Read-only means it cannot make an incident worse.
 
 **Phase 2 — the support view.** Tenant lookup by email or `billingUserId` (the
 `findWhere` index from 0423 already exists for exactly this), plus a **timeline**:
@@ -576,9 +817,11 @@ local-first product can honestly offer.
   security, not layout, and Phase 1 reuses `dashboard.ts`'s existing visual
   language. A `--visual` companion would be overhead. Revisit at Phase 2, where
   the timeline is a genuinely new UI object.
-- **No new ADR yet.** Phase 0 and 1 are two-way doors. Phase 3's consent
-  model — what an operator may see, and on whose authority — *is* a one-way door
-  and earns an ADR in `decisions.mdx` when it is designed, with a tripwire on
+- **An ADR is now owed at Phase 0, not Phase 3.** Running the operational record
+  on xNet makes the ops hub a standing dependency of incident response — that is
+  a one-way door and earns an ADR in `decisions.mdx` before Phase 0 lands, with a
+  **`Tripwire:`** on the first incident where the ops hub is unreachable and the
+  audit queue backs up. Phase 3's consent model earns a second one, tripwired on
   the first ticket that cannot be resolved within Tier 1.
 - **No paging/on-call integration.** The alerting seam
   (`createWebhookAlerter`) exists; wiring PagerDuty before there is a rota is a
@@ -692,10 +935,13 @@ async function audited<T>(
 | Risk                                                          | Severity | Mitigation                                                                                       |
 | ------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
 | Console ships before durable SLIs → operators trust a lie      | 🔴 High  | Phase ordering; Phase 1 renders `—` and "unmeasured" rather than a number when buckets are absent |
+| **Ops hub shares fate with the fleet it records**              | 🔴 High  | Ops hub deployed outside the fleet provisioner; two-tier audit so tier 1 never blocks on it       |
+| Audit entries accumulate into a change-log scale cliff          | 🟠 Med   | Operator actions are low-volume by nature; keep metrics off the log entirely (0323, 250-change cliff) |
 | Firestore write amplification from bucket writes               | 🟡 Med   | One doc per tenant per hour; write-through cache for the current hour                             |
 | Tier 2 consent becomes a rubber stamp users always click       | 🟡 Med   | Hard expiry, no renewal without a fresh grant, mirror every grant into the user's own hub         |
 | Audit log itself becomes a tenant-data side channel            | 🟡 Med   | Log action + tenantId + reason; never parameters that could carry content                         |
 | Operator allowlist drifts stale as people leave                | 🟡 Med   | Allowlist from WorkOS directory, not a hardcoded array; quarterly review                          |
+| React bundle bloats the control-plane image                    | 🟡 Med   | devDependency + build-then-prune; assert image size in CI                                         |
 | `/status.json` inherits wrong numbers                          | 🟠 Med   | Same fix; public status should show "unmeasured", never a fabricated `operational`                |
 
 **Open questions:**
@@ -706,10 +952,12 @@ async function audited<T>(
    FTS index over content — a large change that collides with search. This
    exploration recommends correcting the copy now and treating end-to-end
    encryption for managed hubs as a separate decision, but the call is not mine.
-2. **Should the audit log be signed?** The user's hub signs changes. An operator
-   audit log that is merely append-only in Firestore is trusted, not verifiable.
-   Signing it with the control plane's key would let a user verify the record of
-   who touched their tenant. Attractive; not Phase 0.
+2. ~~**Should the audit log be signed?**~~ **Resolved — yes, by running the record
+   on xNet.** Operator actions authored by a bound `did:key` are signed and
+   hash-chained by the existing change log, so the audit trail is verifiable
+   rather than merely append-only, and `GET /audit/authors/:did/changes` serves
+   it without new code. The remaining sub-question is retention: operator DIDs
+   rotate, and the audit history must outlive the operator who wrote it.
 3. **What is the retention on SLI buckets beyond 30 days?** Enterprise contracts
    may want quarterly evidence. Bucket rollup-of-rollups (hour → day at 30 days)
    is cheap if decided before the first write.
@@ -722,7 +970,7 @@ async function audited<T>(
 
 ## Implementation Checklist
 
-**Status:** ░░░░░░░░░░ 0/28 items
+**Status:** ░░░░░░░░░░ 0/38 items
 
 ### Phase 0 — substrate (blocking)
 
@@ -735,15 +983,24 @@ async function audited<T>(
 - [ ] `/status.json`: emit `"unmeasured"` rather than `operational` when no buckets exist
 - [ ] Replace `===` with `timingSafeEqual` in `requireInternal`
 - [ ] Add operator session: WorkOS callback + allowlist + distinct sealed cookie in `session.ts`
-- [ ] Add `AuditLog` port + `DocStore` implementation, append-only, write-before-act
+- [ ] Bind the operator's WorkOS session to a `did:key` via the existing device-grant claim
+- [ ] Stand up the **ops hub** outside the fleet provisioner; seed the first operator DID via the `xnet` CLI
+- [ ] Add `AuditLog` port: tier-1 `DocStore` write (fail-closed gate) before the action runs
+- [ ] Publish each entry as a signed node authored by the operator DID to the ops hub (tier 2, async)
+- [ ] Expose publish-queue depth as an alertable metric so a tier-1/tier-2 gap is never silent
 - [ ] Move `POST /internal/account/recover` behind operator identity + required reason
 - [ ] Move `POST /internal/tenants/:id/plan` and `/account/delete-data` behind the same
 - [ ] Unit tests: bucket math, window boundaries, `null` propagation to the gate
+- [ ] Test: an unreachable ops hub still permits action, queues the entry, and surfaces the gap
 - [ ] **Negative control** — `--selftest` proving the gate goes red on an unmeasured window and on a real budget burn, with in-memory fixtures (0430)
 
 ### Phase 1 — fleet console
 
-- [ ] `GET /ops` — server-rendered, operator-session-gated, `dashboard.ts` pattern
+- [ ] Add `@xnetjs/ui` + `@xnetjs/charts` as **devDependencies** of `xnet-cloud` (not runtime deps)
+- [ ] `apps/cloud/tailwind.config.js` spreading `packages/ui/tailwind.config.js`, per the `apps/web` pattern
+- [ ] Vite build → `dist/ops/`; add the build step to the Dockerfile before the `--prod` prune
+- [ ] Serve `dist/ops/` via `@hono/node-server/serve-static`, operator-session-gated
+- [ ] `ThemeProvider` at the root; `XNetProvider` scoped to the ops workspace only
 - [ ] Fleet header: worst budget, burn rate, `byPolicy` counts, freeze banner
 - [ ] Per-tenant SLI table sorted by worst budget remaining; `—` when unmeasured
 - [ ] Job staleness panel from `/internal/fleet/jobs`
@@ -777,6 +1034,10 @@ async function audited<T>(
 - [ ] `POST /internal/account/recover` with only the shared secret returns 403
 - [ ] Every privileged action produces an audit entry naming a person, before the action runs
 - [ ] An action that throws still leaves a `started` audit entry
+- [ ] Each entry appears as a node signed by the operator's DID, readable via `GET /audit/authors/:did/changes`
+- [ ] Tamper check: altering a tier-1 DocStore row is detectable against the signed tier-2 copy
+- [ ] Kill the ops hub — the fleet console still renders, actions still work, the queue depth alerts
+- [ ] `docker images` shows no CodeMirror/echarts in the runtime layer; only `dist/ops/` assets ship
 - [ ] A Tier 2 grant expires without renewal and the session dies with it
 - [ ] The user can read the record of operator access on their own hub
 - [ ] `/ops` returns 403 for a valid *tenant* session (operator ≠ customer)
@@ -796,7 +1057,11 @@ async function audited<T>(
 - [`apps/cloud/src/dashboard.ts`](../../apps/cloud/src/dashboard.ts) — the server-rendered pattern to copy
 - [`apps/cloud/src/rollout/engine.ts`](../../apps/cloud/src/rollout/engine.ts) — the error-budget gate
 - [`apps/cloud/src/stores/durable.ts`](../../apps/cloud/src/stores/durable.ts) — the `DocStore` port
-- [`packages/hub/src/routes/audit.ts`](../../packages/hub/src/routes/audit.ts) — the audit pattern the control plane lacks
+- [`packages/hub/src/routes/audit.ts`](../../packages/hub/src/routes/audit.ts) — the signed audit trail the control plane can reuse
+- [`packages/ui/package.json`](../../packages/ui/package.json) — zero `@xnetjs/*` deps; the reuse argument in one file
+- [`.storybook/preview.tsx`](../../.storybook/preview.tsx) — `ThemeProvider` only; proof the library needs no data primitives
+- [`apps/web/tailwind.config.js`](../../apps/web/tailwind.config.js) — the nine-line preset-sharing pattern to copy
+- [`apps/cloud/Dockerfile`](../../apps/cloud/Dockerfile) — install-with-dev → build → `--prod` prune
 - [`docs/CHARTER.md`](../CHARTER.md) — §4 Consent, §6 No ground rent (five tests)
 
 **Prior explorations**
@@ -804,6 +1069,7 @@ async function audited<T>(
 - [0193 — Cloud operations, uptime, backups and telemetry](./0193_[_]_XNET_CLOUD_OPERATIONS_UPTIME_BACKUPS_AND_TELEMETRY.md) — where the SLI/SLO model came from
 - [0201 — Cloud staging, status page and live testing](./0201_[_]_CLOUD_STAGING_STATUS_PAGE_AND_LIVE_TESTING.md) — the public status surface
 - [0315 — First-party error telemetry and debug report console](./0315_[x]_FIRST_PARTY_ERROR_TELEMETRY_AND_DEBUG_REPORT_CONSOLE.md) — diagnostics quarantine
+- [0323 — Entity component system and high-frequency state](./0323_[_]_ENTITY_COMPONENT_SYSTEM_AND_HIGH_FREQUENCY_STATE.md) — the 318k-row cold-open stall and the 250-change burst cliff; why metrics stay off the change log
 - [0343 — xNet auth vs Keyhive](./0343_[x]_XNET_AUTH_VS_KEYHIVE_COMPARISON.md) — the trusted-tier confidentiality gap
 - [0418 — Cloud to production: backups, billing, dunning and one UI](./0418_[-]_XNET_CLOUD_TO_PRODUCTION_BACKUPS_BILLING_DUNNING_AND_ONE_UI.md) — the phase this follows
 - [0430 — Risk-adjusted engineering](./0430_[-]_RISK_ADJUSTED_ENGINEERING_READING_ASTERISK_14.md) — negative controls, tripwires, gates that can fail
