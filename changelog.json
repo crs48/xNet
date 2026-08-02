@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-01-kanban-cards-settle-into-place-instead-o",
+      "url": "https://xnet.fyi/changelog#2026-08-01-kanban-cards-settle-into-place-instead-o",
+      "title": "Kanban cards settle into place instead of jumping",
+      "content_text": "Dragging a card to another column now animates it into its new spot, and reordering tabs slides the neighbours aside rather than snapping. The animation code loads only when you first drag something, so start-up is unaffected.\n",
+      "date_published": "2026-08-02T01:42:37Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "Dragging a card to another column now animates it into its new spot, and reordering tabs slides the neighbours aside rather than snapping. The animation code loads only when you first drag something, so start-up is unaffected.",
+        "highlights": [],
+        "mergedAt": "2026-08-02T01:42:37Z",
+        "pr": 681,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-01-choose-how-the-ai-assistant-works-with-y",
       "url": "https://xnet.fyi/changelog#2026-08-01-choose-how-the-ai-assistant-works-with-y",
       "title": "Choose how the AI assistant works with you",

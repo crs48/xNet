@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Kanban cards settle into place instead of jumping</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-kanban-cards-settle-into-place-instead-o</link>
+      <guid isPermaLink="false">2026-08-01-kanban-cards-settle-into-place-instead-o</guid>
+      <pubDate>Sun, 02 Aug 2026 01:42:37 GMT</pubDate>
+      <description>Dragging a card to another column now animates it into its new spot, and reordering tabs slides the neighbours aside rather than snapping. The animation code loads only when you first drag something, so start-up is unaffected.</description>
+    </item>
+    <item>
       <title>Choose how the AI assistant works with you</title>
       <link>https://xnet.fyi/changelog#2026-08-01-choose-how-the-ai-assistant-works-with-y</link>
       <guid isPermaLink="false">2026-08-01-choose-how-the-ai-assistant-works-with-y</guid>
