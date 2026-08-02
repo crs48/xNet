@@ -287,7 +287,8 @@ describe('tenant membership', () => {
     await claimAs(app, cookie, owner)
 
     const tenant = (await controlPlane.getTenantForBilling('user_a'))!
-    const { members: _dropped, ...legacy } = tenant
+    const legacy = { ...tenant }
+    delete legacy.members
     await tenants.put(legacy)
 
     setEnv.mockClear()
