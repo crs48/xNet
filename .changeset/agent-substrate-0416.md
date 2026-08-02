@@ -18,7 +18,7 @@ denylist entry and `verifyAgentPassport()` consults one via the new
 **`@xnetjs/data`** — new `@xnetjs/data/agent-audit` sub-entry: build, serialize
 and **offline-verify** an `AgentAuditBundle`. `verifyAgentAudit()` checks the
 passport, every change's hash and signature, the unbroken per-author chain (which
-is what catches a *removed* action), and that every high/critical action carries
+is what catches a _removed_ action), and that every high/critical action carries
 an operator-signed approval.
 
 **`@xnetjs/plugins`** — a per-session egress budget (`EgressMeter`) meters agent

@@ -18,7 +18,10 @@ const passAuth: MiddlewareHandler = async (_c, next) => {
 
 const CONFIGURED = {
   XNET_CLOUD_URL: 'https://cloud.example/',
-  XNET_CLOUD_INTERNAL_SECRET: 'shh',
+  // A per-tenant, self-identifying gateway token (exploration 0436). The old
+  // shape was a fleet-wide `XNET_CLOUD_INTERNAL_SECRET` plus an `x-tenant-id`
+  // header — see the regression test at the bottom of this file.
+  XNET_CLOUD_GATEWAY_TOKEN: 't-123.deadbeef',
   XNET_TENANT_ID: 't-123'
 }
 
@@ -68,8 +71,11 @@ describe('aiForwarderFeature', () => {
     const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(url).toBe('https://cloud.example/ai/chat') // trailing slash trimmed
     const headers = (init as RequestInit).headers as Record<string, string>
-    expect(headers['x-internal-secret']).toBe('shh')
-    expect(headers['x-tenant-id']).toBe('t-123')
+    expect(headers.authorization).toBe('Bearer t-123.deadbeef')
+    // The tenant is IN the credential; sending it separately is what let a hub
+    // claim to be someone else once it held the fleet-wide secret (0436 G2).
+    expect(headers['x-tenant-id']).toBeUndefined()
+    expect(headers['x-internal-secret']).toBeUndefined()
     expect(JSON.parse((init as RequestInit).body as string).model).toBe(
       'anthropic/claude-sonnet-4-6'
     )
@@ -90,6 +96,22 @@ describe('aiForwarderFeature', () => {
     const res = await app.request('/ai/chat', { method: 'POST', body: '{}' })
     expect(res.status).toBe(502)
     expect((await res.json()).error).toBe('managed_ai_unreachable')
+  })
+
+  // A hub that was not re-keyed must go DARK, not fall back to the fleet-wide
+  // secret. `managed:false` hides the tier and is recoverable; a silent fallback
+  // would leave the blast radius open while looking fixed (exploration 0436).
+  it('reports managed:false for a hub still holding only the legacy fleet secret', async () => {
+    const app = mount(
+      {
+        XNET_CLOUD_URL: 'https://cloud.example/',
+        XNET_CLOUD_INTERNAL_SECRET: 'shh',
+        XNET_TENANT_ID: 't-123'
+      },
+      upstreamOk({})
+    )
+    expect(await (await app.request('/ai/health')).json()).toEqual({ ok: true, managed: false })
+    expect((await app.request('/ai/chat', { method: 'POST', body: '{}' })).status).toBe(404)
   })
 
   it('forwards /ai/models as a GET upstream', async () => {

@@ -75,5 +75,21 @@ export function entitlementsFromEnv(
   if (!secret) {
     throw new Error('HUB_PLAN is set but XNET_PLAN_SECRET is missing')
   }
-  return verifyEntitlements(token, secret)
+  try {
+    return verifyEntitlements(token, secret)
+  } catch (err) {
+    // Two-key window for a signing-key rollover (exploration 0436 Phase S). The
+    // managed fleet is moving from one fleet-wide signing secret to a secret
+    // derived per tenant; `HUB_PLAN` and `XNET_PLAN_SECRET` are pushed together
+    // in one revision, so this should never fire — but "should never" is not a
+    // guarantee, and a hub that boots with a token signed by the previous key is
+    // strictly better than a hub that crash-loops on a config race.
+    //
+    // Deliberately narrow: only an explicitly-configured previous key is tried,
+    // and a failure of BOTH rethrows the original error. Absent the variable
+    // this is exactly the old behaviour.
+    const previous = env.XNET_PLAN_SECRET_PREVIOUS
+    if (!previous) throw err
+    return verifyEntitlements(token, previous)
+  }
 }

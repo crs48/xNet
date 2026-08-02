@@ -86,6 +86,33 @@ const resolvePlanLimits = (): Partial<HubConfig> => {
 }
 
 /**
+ * The trusted-root policy: which DIDs may issue a UCAN this hub will honour.
+ *
+ * `checkTrustedRoots` applies a policy only when this is a non-empty list, and
+ * before exploration 0436 nothing ever set it — so a managed hub accepted a
+ * self-issued UCAN from any key on the internet. The managed control plane now
+ * projects a tenant's roster into `HUB_TRUSTED_DIDS`, and this is where the hub
+ * reads it.
+ *
+ * Three properties, each deliberate:
+ *
+ *  - **Absent stays absent.** A self-hosted hub sets nothing and keeps today's
+ *    behaviour exactly (the anti-lock-in invariant, exploration 0174).
+ *  - **Empty is treated as absent, not as "trust nobody".** An operator who sets
+ *    `HUB_TRUSTED_DIDS=` has misconfigured something; locking every user out of
+ *    their own hub is a far worse answer than the open default they already had.
+ *  - **Explicit `cliOptions` win**, so a self-hoster can set a policy by hand
+ *    without an environment variable.
+ */
+const resolveTrustedDids = (cliOptions: Partial<HubConfig>): string[] | undefined => {
+  if (cliOptions.trustedDids?.length) return cliOptions.trustedDids
+  const fromEnv = process.env.HUB_TRUSTED_DIDS?.split(',')
+    .map((did) => did.trim())
+    .filter(Boolean)
+  return fromEnv?.length ? fromEnv : cliOptions.trustedDids
+}
+
+/**
  * Does this hub accept writes? `false` only ever comes from an explicit
  * `writesEnabled: false` in a signed `HUB_PLAN` token — the non-payment
  * read-only step (exploration 0418).
@@ -304,6 +331,7 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
       process.env.HUB_ANDROID_CERT_SHA256?.split(',')
         .map((entry) => entry.trim())
         .filter(Boolean) ?? cliOptions.androidCertSha256,
+    trustedDids: resolveTrustedDids(cliOptions),
     runtime,
     shutdownGraceMs,
     role,

@@ -13,7 +13,8 @@
  */
 
 import { requiresWarmInstance } from '@xnetjs/entitlements'
-import { ShardAllocator } from '../sharding'
+import { ShardAllocator, placementFromSubstrateRef, type ShardPlacement } from '../sharding'
+import { tenantStoragePrefix } from '../storage-prefix'
 import { UnknownTenantError, type HubHandle, type ProvisionSpec, type Provisioner } from '../types'
 
 export interface CloudRunLitestreamConfig {
@@ -27,12 +28,43 @@ export interface CloudRunLitestreamConfig {
   r2Bucket: string
   /** R2 S3 endpoint, e.g. `https://<acct>.r2.cloudflarestorage.com`. */
   r2Endpoint: string
-  /** R2 access key id (injected into each hub's env for Litestream). */
+  /**
+   * Fleet-wide R2 access key id, used only when {@link r2Credentials} is absent.
+   *
+   * A bucket-wide credential in every tenant container means any hub can read
+   * every other tenant's replica under `t/<other>/db` — the prefix is a naming
+   * convention, not a boundary (exploration 0436 G1). Configure
+   * {@link r2Credentials} in production; these two stay as the dev/self-host
+   * fallback where there is exactly one tenant.
+   */
   r2AccessKeyId: string
-  /** R2 secret access key. */
+  /** Fleet-wide R2 secret access key; see {@link r2AccessKeyId}. */
   r2SecretAccessKey: string
+  /**
+   * Mints credentials scoped to ONE tenant's `t/<tenantId>/` prefix.
+   *
+   * Cloudflare R2 supports exactly this: `POST
+   * /accounts/{id}/r2/temp-access-credentials` returns S3 credentials bound to a
+   * bucket, a permission set and a list of prefixes. When supplied, the returned
+   * credentials are what land in the hub's env, so a leaked container yields one
+   * tenant's bytes rather than the fleet's.
+   *
+   * Called on every provision AND every `setEnv`, so short-lived credentials are
+   * refreshed on the path a plan change already takes.
+   */
+  r2Credentials?: (tenantId: string) => Promise<TenantR2Credentials>
+  /** Service account email each tenant's Cloud Run service runs as (least privilege). */
+  serviceAccountFor?: (tenantId: string) => string
   /** Override the sharding cap (default 800, headroom under the 1,000 hard cap). */
   servicesPerProject?: number
+}
+
+/** S3-shaped credentials scoped to a single tenant's R2 prefix. */
+export interface TenantR2Credentials {
+  accessKeyId: string
+  secretAccessKey: string
+  /** Present for temporary credentials; absent for a long-lived scoped token. */
+  sessionToken?: string
 }
 
 /** Location of one tenant's Cloud Run service. */
@@ -47,6 +79,14 @@ export interface CloudRunUpsert extends CloudRunRef {
   image: string
   env: Record<string, string>
   minInstances: number
+  /**
+   * Service account the revision runs as. Omitted → Cloud Run falls back to the
+   * project's DEFAULT COMPUTE service account, which carries broad project-wide
+   * permissions shared by every tenant service in that shard. Setting a
+   * per-tenant account is the difference between "one hub was compromised" and
+   * "one shard project was compromised" (exploration 0436).
+   */
+  serviceAccount?: string
 }
 
 /** Observed state of a service. */
@@ -55,6 +95,7 @@ export interface CloudRunService {
   image: string
   env: Record<string, string>
   minInstances: number
+  serviceAccount?: string
 }
 
 /**
@@ -92,6 +133,23 @@ function parseRef(substrateRef: string): CloudRunRef {
   return { project, region, service }
 }
 
+/**
+ * Recover a tenant id from a running service's env.
+ *
+ * `setEnv` is handed a `substrateRef`, and `serviceIdForTenant` is a lossy
+ * transform (lowercased, `_`→`-`), so the service name cannot be reversed. The
+ * Litestream path is written once at provision time and never changes, which
+ * makes it the one authoritative record of the tenant a running service belongs
+ * to. Returns null rather than a guess when the shape is unfamiliar — a wrong
+ * tenant id here would mint a credential for the wrong prefix.
+ */
+export function tenantIdFromEnv(env: Record<string, string>): string | null {
+  const explicit = env.XNET_TENANT_ID
+  if (explicit) return explicit
+  const match = /^t\/([^/]+)\/db$/.exec(env.LITESTREAM_PATH ?? '')
+  return match?.[1] ?? null
+}
+
 /** Extract the image tag (targetVersion) from `repo:tag`. */
 function tagOf(image: string): string {
   const i = image.lastIndexOf(':')
@@ -112,21 +170,56 @@ export class CloudRunLitestreamProvisioner implements Provisioner {
     })
   }
 
+  /**
+   * The R2 credentials one tenant's hub is given.
+   *
+   * With `r2Credentials` configured these are scoped to `t/<tenantId>/`, so the
+   * env of a compromised container reaches that tenant's bytes and no further.
+   * Without it we fall back to the fleet-wide pair — correct for self-host and
+   * dev (one tenant), a shared-blast-radius hazard in a managed fleet, which is
+   * why `cloudRunProvisionerFromEnv` warns when it takes the fallback.
+   */
+  private async r2Env(tenantId: string): Promise<Record<string, string>> {
+    const creds = this.config.r2Credentials
+      ? await this.config.r2Credentials(tenantId)
+      : {
+          accessKeyId: this.config.r2AccessKeyId,
+          secretAccessKey: this.config.r2SecretAccessKey
+        }
+    return {
+      R2_BUCKET: this.config.r2Bucket,
+      R2_ENDPOINT: this.config.r2Endpoint,
+      R2_ACCESS_KEY_ID: creds.accessKeyId,
+      R2_SECRET_ACCESS_KEY: creds.secretAccessKey,
+      ...(creds.sessionToken ? { R2_SESSION_TOKEN: creds.sessionToken } : {})
+    }
+  }
+
   /** Env every managed hub gets: the caller's plan env + Litestream/R2 wiring. */
-  private hubEnv(spec: ProvisionSpec): Record<string, string> {
+  private async hubEnv(spec: ProvisionSpec): Promise<Record<string, string>> {
     return {
       ...spec.env,
       LITESTREAM: '1',
       // Per-tenant replica path the hub entrypoint renders into its Litestream
       // config. Stable across (re)provisions so a reactivated hub restores from
       // the same R2 prefix. (exploration 0178/0205.)
-      LITESTREAM_PATH: `t/${spec.tenantId}/db`,
-      R2_BUCKET: this.config.r2Bucket,
-      R2_ENDPOINT: this.config.r2Endpoint,
-      R2_ACCESS_KEY_ID: this.config.r2AccessKeyId,
-      R2_SECRET_ACCESS_KEY: this.config.r2SecretAccessKey,
+      LITESTREAM_PATH: `${tenantStoragePrefix(spec.tenantId)}db`,
+      ...(await this.r2Env(spec.tenantId)),
       ...(spec.restoreFromR2 ? { LITESTREAM_RESTORE: spec.restoreFromR2 } : {})
     }
+  }
+
+  /**
+   * Where a tenant's Cloud Run service goes.
+   *
+   * `entitlements.residency` is the enterprise region-pin, and it MUST be
+   * consulted here: the dev `MemoryProvisioner` already honoured it while this
+   * adapter silently placed every tenant in `config.region`, so a residency
+   * guarantee looked identical to no guarantee at all (exploration 0436 G8).
+   * An explicit `spec.region` still wins — that is the operator override.
+   */
+  private regionFor(spec: ProvisionSpec): string {
+    return spec.region ?? spec.entitlements.residency ?? this.config.region
   }
 
   private minInstances(spec: ProvisionSpec): number {
@@ -160,14 +253,17 @@ export class CloudRunLitestreamProvisioner implements Provisioner {
       // wire them yet — refuse loudly instead of silently dropping a PDS.
       throw new Error('cloud-run-litestream: sidecars not yet supported (0383 W5)')
     }
-    const project = this.allocator.allocate()
-    const region = spec.region ?? this.config.region
+    const region = this.regionFor(spec)
+    const project = this.allocator.allocate(region)
     const ref: CloudRunRef = { project, region, service: serviceIdForTenant(spec.tenantId) }
     const svc = await this.client.create({
       ...ref,
       image: this.image(spec.targetVersion),
-      env: this.hubEnv(spec),
-      minInstances: this.minInstances(spec)
+      env: await this.hubEnv(spec),
+      minInstances: this.minInstances(spec),
+      ...(this.config.serviceAccountFor
+        ? { serviceAccount: this.config.serviceAccountFor(spec.tenantId) }
+        : {})
     })
     return { ...this.handle(ref, spec.targetVersion, svc), tenantId: spec.tenantId }
   }
@@ -180,7 +276,8 @@ export class CloudRunLitestreamProvisioner implements Provisioner {
       ...ref,
       image: this.image(targetVersion),
       env: cur.env,
-      minInstances: cur.minInstances
+      minInstances: cur.minInstances,
+      ...(cur.serviceAccount ? { serviceAccount: cur.serviceAccount } : {})
     })
     return this.handle(ref, targetVersion, svc)
   }
@@ -190,19 +287,21 @@ export class CloudRunLitestreamProvisioner implements Provisioner {
     const cur = await this.client.get(ref)
     if (!cur) throw new UnknownTenantError(substrateRef)
     // Re-apply the substrate env (R2/Litestream) around the caller's new plan env.
+    // This is also where short-lived scoped R2 credentials get REFRESHED: every
+    // plan change, seat change and dunning flip already travels this path, so
+    // rotation rides on traffic that exists rather than a new sweep.
+    const tenantId = tenantIdFromEnv(cur.env) ?? ref.service
     const merged = {
       ...env,
       LITESTREAM: '1',
-      R2_BUCKET: this.config.r2Bucket,
-      R2_ENDPOINT: this.config.r2Endpoint,
-      R2_ACCESS_KEY_ID: this.config.r2AccessKeyId,
-      R2_SECRET_ACCESS_KEY: this.config.r2SecretAccessKey
+      ...(await this.r2Env(tenantId))
     }
     const svc = await this.client.update({
       ...ref,
       image: cur.image,
       env: merged,
-      minInstances: cur.minInstances
+      minInstances: cur.minInstances,
+      ...(cur.serviceAccount ? { serviceAccount: cur.serviceAccount } : {})
     })
     return this.handle(ref, tagOf(cur.image), svc)
   }
@@ -215,7 +314,8 @@ export class CloudRunLitestreamProvisioner implements Provisioner {
       ...ref,
       image: cur.image,
       env: cur.env,
-      minInstances: 0
+      minInstances: 0,
+      ...(cur.serviceAccount ? { serviceAccount: cur.serviceAccount } : {})
     })
     return { ...this.handle(ref, tagOf(cur.image), svc), state: 'sleeping' }
   }
@@ -236,13 +336,28 @@ export class CloudRunLitestreamProvisioner implements Provisioner {
   async destroy(substrateRef: string): Promise<void> {
     const ref = parseRef(substrateRef)
     await this.client.delete(ref)
-    this.allocator.release(ref.project)
+    this.allocator.release(ref.project, ref.region)
   }
 
   async get(substrateRef: string): Promise<HubHandle | null> {
     const ref = parseRef(substrateRef)
     const svc = await this.client.get(ref)
     return svc ? this.handle(ref, tagOf(svc.image), svc) : null
+  }
+
+  /**
+   * Replay the fleet's placements into the shard allocator.
+   *
+   * Refs that are not this substrate's shape are skipped, not guessed at: a
+   * tenant on another substrate must not consume a Cloud Run shard slot.
+   */
+  rehydrate(substrateRefs: Iterable<string>): void {
+    const placements: ShardPlacement[] = []
+    for (const ref of substrateRefs) {
+      const placement = placementFromSubstrateRef(ref)
+      if (placement) placements.push(placement)
+    }
+    this.allocator.rehydrate(placements)
   }
 }
 

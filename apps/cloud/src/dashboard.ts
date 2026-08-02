@@ -8,7 +8,7 @@
  * lives in the app.
  */
 
-import type { TenantRecord } from './registry'
+import type { TenantMember, TenantRecord } from './registry'
 import type { PlanId } from '@xnetjs/entitlements'
 import { PLAN_CATALOG, isSeatMetered } from '@xnetjs/entitlements'
 import { sloForPlan } from './observability/slo'
@@ -33,6 +33,11 @@ export interface DashboardView {
   aiUsage?: { usedUsd: number; includedUsd: number; budgetUsd: number }
   /** When true, the user has dismissed the getting-started checklist (a cookie). */
   gettingStartedHidden?: boolean
+  /**
+   * Everyone entitled to this tenant's hub, with seat usage (exploration 0436).
+   * Absent → the members card is not rendered (e.g. no tenant yet).
+   */
+  members?: { members: TenantMember[]; seatsUsed: number; seats: number }
 }
 
 /** Help/FAQ/doc destinations derived from the marketing base URL. */
@@ -254,7 +259,17 @@ const fmtBytes = (n: number): string =>
 
 function planPicker(view: DashboardView): string {
   if (!view.billingEnabled) {
-    return `<p class="muted">Billing isn't configured on this control plane yet.</p>`
+    // The free tier does not need a payment gateway, so it stays available even
+    // when billing is unwired — that is the whole point of a free tier.
+    return `
+      <p class="muted">Paid plans aren't configured on this control plane yet.</p>
+      <div class="plans">
+        <form method="post" action="/account/start-free" class="plan plan-free">
+          <div class="plan-name">Free</div>
+          <div class="plan-price">$0</div>
+          <button type="submit">Start free</button>
+        </form>
+      </div>`
   }
   const cards = view.checkoutPlans
     .map(
@@ -267,7 +282,17 @@ function planPicker(view: DashboardView): string {
       </form>`
     )
     .join('')
-  return `<div class="plans">${cards}</div>`
+  // The free tier's door. Its own form because `demo` is not a checkout — no
+  // gateway, no card — and because the pricing page's primary CTA points here
+  // and used to arrive at a dashboard offering only paid plans (0436 G6).
+  const free = `
+    <form method="post" action="/account/start-free" class="plan plan-free">
+      <div class="plan-name">Free</div>
+      <div class="plan-price">$0</div>
+      <p class="muted" style="margin:4px 0 8px;font-size:12px">A shared hub to try things out. No card.</p>
+      <button type="submit">Start free</button>
+    </form>`
+  return `<div class="plans">${free}${cards}</div>`
 }
 
 function hubCard(tenant: TenantRecord): string {
@@ -839,6 +864,68 @@ function appUrlWithHub(appUrl: string, tenant: TenantRecord | null): string {
 }
 
 /** Render the full dashboard HTML document. */
+/**
+ * Who is on this tenant, and the seats they use.
+ *
+ * The card exists because "5 seats, one bill" and "add seats any time" were
+ * printed on the pricing page against a control plane that had no way to express
+ * a second person at all (exploration 0436 G4/G5). Invitation reuses the device
+ * grant: the collaborator's app shows a short code, the owner types it here, and
+ * the key never leaves their device.
+ */
+function membersCard(view: DashboardView): string {
+  const roster = view.members
+  if (!roster) return ''
+  const metered = roster.seats > 0
+  const full = metered && roster.seatsUsed >= roster.seats
+  const rows = roster.members
+    .map(
+      (m) => `
+      <tr>
+        <td><code>${esc(m.did)}</code></td>
+        <td>${esc(m.role)}${m.role === 'guest' ? ' <span class="muted">(free)</span>' : ''}</td>
+        <td>${
+          m.role === 'owner' && roster.members.filter((x) => x.role === 'owner').length === 1
+            ? '<span class="muted">—</span>'
+            : `<form method="post" action="/account/members/remove" style="display:inline">
+                 <input type="hidden" name="did" value="${esc(m.did)}" />
+                 <button type="submit" class="btn-quiet">Remove</button>
+               </form>`
+        }</td>
+      </tr>`
+    )
+    .join('')
+  return `
+    <div class="card">
+      <h2>People</h2>
+      <p class="muted">${
+        metered
+          ? `${roster.seatsUsed} of ${roster.seats} seats used. Guests don't use a seat.`
+          : 'Unlimited members — this plan is billed flat, never per person.'
+      }</p>
+      <table class="members">
+        <thead><tr><th>Data identity</th><th>Role</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${
+        full
+          ? `<p class="muted">You're at your seat limit. Everyone already here keeps working —
+             move to a bigger plan to add someone new.</p>`
+          : `<form method="post" action="/account/members/invite" class="invite">
+               <label for="invite-code">Invite someone</label>
+               <p class="muted" style="margin:2px 0 8px;font-size:12px">Ask them to open xNet and
+               start a connection; they'll see a short code. Type it here to let them in.</p>
+               <input id="invite-code" name="userCode" placeholder="ABCD-7K2P" required />
+               <select name="role" aria-label="Role">
+                 <option value="member">Member (uses a seat)</option>
+                 <option value="guest">Guest (free)</option>
+               </select>
+               <button type="submit">Invite</button>
+             </form>`
+      }
+    </div>`
+}
+
 export function renderDashboard(view: DashboardView): string {
   const who = view.email ?? view.billingUserId
   const appUrl = view.appUrl ?? 'https://xnet.fyi/app'
@@ -846,7 +933,7 @@ export function renderDashboard(view: DashboardView): string {
   const webAppUrl = appUrlWithHub(appUrl, view.tenant)
   const links = helpLinks(view.marketingUrl ?? 'https://xnet.fyi/cloud')
   const body = view.tenant
-    ? `${gettingStarted(view)}${hubCard(view.tenant)}${aiUsageCard(view, view.tenant)}${connectCard(view.tenant, webAppUrl, links)}${storagePackCard(view, view.tenant)}${planChangeCard(view, view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}${liveScript()}`
+    ? `${gettingStarted(view)}${hubCard(view.tenant)}${membersCard(view)}${aiUsageCard(view, view.tenant)}${connectCard(view.tenant, webAppUrl, links)}${storagePackCard(view, view.tenant)}${planChangeCard(view, view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}${liveScript()}`
     : `<div class="card">
          <h2>Welcome to xNet Cloud</h2>
          <p class="muted">Pick a plan to spin up your dedicated hub. You can change or cancel any time.</p>

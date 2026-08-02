@@ -20,6 +20,7 @@ export interface MemoryProvisionerOptions {
 interface Entry {
   handle: HubHandle
   project: string
+  region: string
 }
 
 export class MemoryProvisioner implements Provisioner {
@@ -36,8 +37,8 @@ export class MemoryProvisioner implements Provisioner {
   }
 
   async provision(spec: ProvisionSpec): Promise<HubHandle> {
-    const project = this.allocator.allocate()
     const region = spec.region ?? spec.entitlements.residency ?? 'local'
+    const project = this.allocator.allocate(region)
     const substrateRef = `memory://${project}/${spec.tenantId}`
     const handle: HubHandle = {
       tenantId: spec.tenantId,
@@ -47,7 +48,7 @@ export class MemoryProvisioner implements Provisioner {
       targetVersion: spec.targetVersion,
       state: 'running'
     }
-    this.entries.set(substrateRef, { handle, project })
+    this.entries.set(substrateRef, { handle, project, region })
     return { ...handle }
   }
 
@@ -73,7 +74,7 @@ export class MemoryProvisioner implements Provisioner {
   async destroy(substrateRef: string): Promise<void> {
     const entry = this.entries.get(substrateRef)
     if (!entry) return
-    this.allocator.release(entry.project)
+    this.allocator.release(entry.project, entry.region)
     this.entries.delete(substrateRef)
   }
 

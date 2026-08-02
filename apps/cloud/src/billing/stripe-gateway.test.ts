@@ -229,6 +229,109 @@ describe('StripeTenantBillingGateway', () => {
 })
 
 /**
+ * Seats and tax (exploration 0436 G5/G10).
+ *
+ * Checkout hard-coded `quantity: 1` against a pricing page advertising
+ * `$12/seat/mo` from three seats, and passed no tax parameters at all — so a
+ * three-seat Team subscription billed $12 with no VAT, in a business that owes
+ * VAT on B2C digital services from the first sale.
+ */
+describe('seats and tax on checkout', () => {
+  const args = {
+    customerRef: 'user_a',
+    successUrl: 'https://cloud/ok',
+    cancelUrl: 'https://cloud/no'
+  }
+
+  it('bills the seats asked for, not one', async () => {
+    const { stripe, calls } = makeStripe({ existingCustomer: 'cus_1' })
+    const gw = new StripeTenantBillingGateway(stripe, config)
+    await gw.createCheckout({ ...args, plan: 'team', seats: 3 })
+    const session = calls.session as { line_items: Array<{ price: string; quantity: number }> }
+    expect(session.line_items).toEqual([{ price: 'price_t', quantity: 3 }])
+  })
+
+  // A Team checkout with no explicit seats must not silently become one seat —
+  // `team` starts at three, and the margin model assumes three.
+  it('defaults a seat-metered plan to its catalog minimum', async () => {
+    const { stripe, calls } = makeStripe({ existingCustomer: 'cus_1' })
+    const gw = new StripeTenantBillingGateway(stripe, config)
+    await gw.createCheckout({ ...args, plan: 'team' })
+    expect(
+      (calls.session as { line_items: Array<{ quantity: number }> }).line_items[0].quantity
+    ).toBe(3)
+  })
+
+  it('floors a below-minimum request rather than accepting it', async () => {
+    const { stripe, calls } = makeStripe({ existingCustomer: 'cus_1' })
+    const gw = new StripeTenantBillingGateway(stripe, config)
+    await gw.createCheckout({ ...args, plan: 'team', seats: 1 })
+    expect(
+      (calls.session as { line_items: Array<{ quantity: number }> }).line_items[0].quantity
+    ).toBe(3)
+  })
+
+  // Charter §6: a flat plan's price must never be multiplied by headcount.
+  it('never multiplies a flat-billed plan', async () => {
+    const { stripe, calls } = makeStripe({ existingCustomer: 'cus_1' })
+    const gw = new StripeTenantBillingGateway(stripe, {
+      ...config,
+      priceByPlan: { ...config.priceByPlan, community: 'price_c' }
+    })
+    await gw.createCheckout({ ...args, plan: 'community', seats: 500 })
+    expect(
+      (calls.session as { line_items: Array<{ quantity: number }> }).line_items[0].quantity
+    ).toBe(1)
+  })
+
+  it('enables Stripe Tax, with the customer_update Stripe requires alongside it', async () => {
+    const { stripe, calls } = makeStripe({ existingCustomer: 'cus_1' })
+    const gw = new StripeTenantBillingGateway(stripe, config)
+    await gw.createCheckout({ ...args, plan: 'personal' })
+    const session = calls.session as Record<string, unknown>
+    expect(session.automatic_tax).toEqual({ enabled: true })
+    // Without this the Stripe call FAILS when a customer is passed — it is not
+    // an optional nicety that can be dropped.
+    expect(session.customer_update).toEqual({ address: 'auto', name: 'auto' })
+    expect(session.tax_id_collection).toEqual({ enabled: true })
+  })
+
+  it('only skips tax when a seller opts out explicitly', async () => {
+    const { stripe, calls } = makeStripe({ existingCustomer: 'cus_1' })
+    const gw = new StripeTenantBillingGateway(stripe, { ...config, automaticTax: false })
+    await gw.createCheckout({ ...args, plan: 'personal' })
+    expect((calls.session as Record<string, unknown>).automatic_tax).toBeUndefined()
+  })
+
+  // Seats bought later in the Customer Portal arrive on the subscription ITEM.
+  // Checkout metadata is a snapshot of the original purchase and never moves.
+  it('reads live seats off the subscription item, not the metadata', async () => {
+    const { stripe } = makeStripe({
+      event: {
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            metadata: { customerRef: 'user_a', plan: 'team', seats: '3' },
+            status: 'active',
+            // Two items, storage FIRST: reading `items.data[0]` would report the
+            // storage quantity as a seat count (exploration 0435 + 0436).
+            items: {
+              data: [
+                { price: { id: 'price_storage' }, quantity: 5 },
+                { price: { id: 'price_t' }, quantity: 7 }
+              ]
+            }
+          }
+        }
+      }
+    })
+    const gw = new StripeTenantBillingGateway(stripe, config)
+    const result = await gw.parseWebhook('{}', { 'stripe-signature': 'sig' })
+    expect(result).toMatchObject({ type: 'subscription_status', seats: 7 })
+  })
+})
+
+/**
  * Storage add-on line items (exploration 0435). The add-on is a SECOND
  * subscription item — the base plan's price, seats, AI budget and SLA are never
  * touched, which is the whole promise of a storage-only upgrade.

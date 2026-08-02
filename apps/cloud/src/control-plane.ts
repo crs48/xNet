@@ -29,18 +29,23 @@ import {
   type TenantBinding
 } from '@xnetjs/cloud/identity'
 import {
+  isSeatMetered,
   requiresMigration,
   resolveEntitlements,
   signEntitlements,
+  withSeats,
   withStoragePack,
   type PlanEntitlements,
-  type PlanId
+  type PlanId,
+  type TenantMemberRole
 } from '@xnetjs/entitlements'
 import { diagnosticsSecretFor } from './diagnostics'
 import { fetchHubHealth } from './hub-status'
 import { applyBillingEvent, type BillingEvent, type DunningState } from './reconcile/billing'
-import { type TenantPage, type TenantRecord, type TenantStore } from './registry'
+import { type TenantMember, type TenantPage, type TenantRecord, type TenantStore } from './registry'
 import { saga, sagaStep } from './saga'
+import { addMember, removeMember, rosterFor, seatsUsedBy, trustedDidsEnv } from './roster'
+import { gatewayTokenFor, planKeyIdFor, planSecretFor } from './tenant-secrets'
 
 /**
  * A dated promise about one tenant's encrypted R2 replica, placed before the
@@ -85,7 +90,11 @@ export interface ControlPlaneDeps {
   bindings: BindingStore
   provisioner: Provisioner
   verifyDid: DidChallengeVerifier
-  /** Secret used to sign the HUB_PLAN entitlement token the hub verifies. */
+  /**
+   * Fleet **master** for entitlement signing. Never injected into a hub: every
+   * tenant gets `planSecretFor(master, tenantId)` instead, so a leaked hub env
+   * cannot mint entitlements for anybody else (exploration 0436 G1).
+   */
   planSecret: string
   /** Immutable hub image tag new tenants are pinned to (never `latest`). */
   defaultTargetVersion: string
@@ -97,12 +106,16 @@ export interface ControlPlaneDeps {
   aiKeys?: VirtualKeyManager
   /**
    * When set, the control plane injects the managed-AI forwarder env into every
-   * AI-enabled hub — `XNET_CLOUD_URL`, `XNET_CLOUD_INTERNAL_SECRET`, and
-   * `XNET_TENANT_ID` — so the hub's `aiForwarderFeature` can proxy `/ai/chat` +
-   * `/ai/models` to the control plane with that tenant's credential, with no
-   * per-hub configuration (exploration 0208). Omit to leave hubs without managed AI.
+   * AI-enabled hub — `XNET_CLOUD_URL`, `XNET_TENANT_ID`, and a **per-tenant**
+   * `XNET_CLOUD_GATEWAY_TOKEN` derived from `gatewayMaster` — so the hub's
+   * `aiForwarderFeature` can proxy `/ai/chat` + `/ai/models` with that tenant's
+   * own credential and no per-hub configuration (explorations 0208, 0436).
+   *
+   * `gatewayMaster` is a fleet master and **never leaves the control plane**.
+   * It is deliberately a different field from the operator secret that gates
+   * `/internal/*`: collapsing the two is what let any hub enumerate the fleet.
    */
-  managedAi?: { cloudUrl: string; internalSecret: string }
+  managedAi?: { cloudUrl: string; gatewayMaster: string }
   /**
    * When set, every managed hub is provisioned with diagnostics escalation
    * pre-wired (exploration 0341): `XNET_DIAGNOSTICS_URL` pointing at this
@@ -207,22 +220,41 @@ export class ControlPlane {
     return this.deps.nowMs ? this.deps.nowMs() : Date.now()
   }
 
-  private hubEnv(tenantId: string, entitlements: PlanEntitlements): Record<string, string> {
+  /**
+   * Env for one tenant's hub.
+   *
+   * `roster` supplies the trusted-root policy. It is a `Pick` of the tenant
+   * record rather than the record itself so the two provision paths — where no
+   * record exists yet — can pass the DID they are about to bind.
+   */
+  private hubEnv(
+    tenantId: string,
+    entitlements: PlanEntitlements,
+    roster?: Pick<TenantRecord, 'members' | 'did'>
+  ): Record<string, string> {
     // The hub verifies this token locally and enforces the limits — no runtime
-    // call back to the control plane (anti-lock-in invariant). It needs the same
-    // signing secret to verify HUB_PLAN (the hub crashes on boot otherwise), so
-    // every hub shares the control plane's XNET_PLAN_SECRET.
+    // call back to the control plane (anti-lock-in invariant). It needs a signing
+    // secret to verify HUB_PLAN (the hub crashes on boot otherwise), and that
+    // secret is DERIVED per tenant: the fleet master never enters a container, so
+    // reading one hub's env does not yield the power to sign for another tenant
+    // (exploration 0436 G1). `HUB_PLAN_KID` stamps which generation this hub is
+    // on, so a partially-completed re-key is visible rather than assumed.
+    const planKey = planSecretFor(this.deps.planSecret, tenantId)
     const env: Record<string, string> = {
-      HUB_PLAN: signEntitlements(entitlements, this.deps.planSecret),
-      XNET_PLAN_SECRET: this.deps.planSecret
+      HUB_PLAN: signEntitlements(entitlements, planKey),
+      XNET_PLAN_SECRET: planKey,
+      HUB_PLAN_KID: planKeyIdFor(tenantId)
     }
     // Managed AI (0208): an AI-enabled hub forwards /ai/chat + /ai/models to the
     // control plane with this tenant's credential, so the client never holds a
     // key. Injected here = zero per-hub config. AI-off hubs get nothing extra, so
     // their `aiForwarderFeature` reports `managed:false` and the tier hides.
+    //
+    // The token is self-identifying, so the gateway reads the tenant OUT of it
+    // rather than off an `x-tenant-id` header the caller controls (0436 G2).
     if (this.deps.managedAi && entitlements.aiEnabled) {
       env.XNET_CLOUD_URL = this.deps.managedAi.cloudUrl
-      env.XNET_CLOUD_INTERNAL_SECRET = this.deps.managedAi.internalSecret
+      env.XNET_CLOUD_GATEWAY_TOKEN = gatewayTokenFor(this.deps.managedAi.gatewayMaster, tenantId)
       env.XNET_TENANT_ID = tenantId
     }
     // Diagnostics escalation wiring (0341): pre-configured, never pre-enabled —
@@ -234,6 +266,17 @@ export class ControlPlane {
         tenantId
       )
     }
+    // Admission control (exploration 0436 G3). Without this the hub applies no
+    // trusted-root policy at all, so a self-issued UCAN from a key minted
+    // seconds ago is accepted on a hub somebody else is paying for.
+    //
+    // Written only when there is a roster to write. `checkTrustedRoots` treats
+    // absent and empty identically ("no policy"), so an empty value would leave
+    // the hub wide open while looking configured — and a self-hosted hub, which
+    // never receives this env at all, keeps behaving exactly as it does today
+    // (the anti-lock-in invariant, 0174).
+    const trusted = roster ? trustedDidsEnv(roster) : undefined
+    if (trusted) env.HUB_TRUSTED_DIDS = trusted
     return env
   }
 
@@ -334,7 +377,7 @@ export class ControlPlane {
             entitlements,
             targetVersion: this.deps.defaultTargetVersion,
             region: args.region,
-            env: this.hubEnv(args.tenantId, entitlements)
+            env: this.hubEnv(args.tenantId, entitlements, { did: args.challenge.did })
           })
         },
         // Removes the Cloud Run service (the billable compute) and frees the
@@ -435,6 +478,9 @@ export class ControlPlane {
             entitlements,
             targetVersion: this.deps.defaultTargetVersion,
             region: args.region,
+            // No DID is bound yet on the billing path — the device grant binds
+            // one later and `completeBind` pushes the policy then. Writing a
+            // policy now would lock out the owner who has not arrived.
             env: this.hubEnv(tenantId, entitlements)
           })
         },
@@ -537,9 +583,176 @@ export class ControlPlane {
       challenge: args.challenge,
       nowMs: this.now()
     })
-    const updated: TenantRecord = { ...tenant, did: args.challenge.did }
+    // The owner joins (or rejoins) the roster here. `addMember` de-duplicates, so
+    // a rebind onto the same DID is a no-op rather than a second row.
+    const invite = addMember(tenant, tenant.entitlements, {
+      did: args.challenge.did,
+      role: 'owner',
+      addedAtMs: this.now(),
+      addedBy: args.billingUserId
+    })
+    const updated: TenantRecord = {
+      ...tenant,
+      did: args.challenge.did,
+      ...(invite.ok ? { members: invite.members } : {})
+    }
+    await this.deps.tenants.put(updated)
+    // Push the policy BEFORE the caller is told to connect. With a trusted-root
+    // policy in force, a device that claims a hub and then finds itself
+    // untrusted is indistinguishable from a broken hub (exploration 0436, the
+    // recovery-ordering open question).
+    await this.pushRoster(updated)
+    return updated
+  }
+
+  /**
+   * Point a tenant at a WorkOS Organization for enterprise SSO.
+   *
+   * The organization decides who is ENTITLED to join; it does not become the
+   * roster. Each human still binds their own `did:key` through the device grant,
+   * because a WorkOS user is an email an IdP vouches for and a member is a key
+   * on somebody's device — and collapsing the two would put the billing identity
+   * provider in charge of the data identity, which is the arrangement the whole
+   * non-custodial claim flow exists to avoid (exploration 0436, option A3).
+   *
+   * What this DOES buy is offboarding: when the IdP says someone has left, we
+   * know which roster entry to remove.
+   */
+  async setOrganization(
+    tenantId: string,
+    organizationId: string | null
+  ): Promise<TenantRecord | null> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return null
+    const updated: TenantRecord = organizationId
+      ? { ...record, organizationId }
+      : (({ organizationId: _dropped, ...rest }) => rest as TenantRecord)(record)
     await this.deps.tenants.put(updated)
     return updated
+  }
+
+  /**
+   * Set a tenant's billed seat count, in step with the Stripe subscription item.
+   *
+   * Refuses to shrink below the seats already occupied — the same shape as the
+   * over-quota guard on a storage downgrade (0216): never silently invalidate
+   * people who are already working. The caller is told what to free, and the
+   * existing members keep their admission until somebody is actually removed.
+   *
+   * A no-op on a flat-billed plan, where members are unlimited and uncounted.
+   */
+  async setSeats(
+    tenantId: string,
+    seats: number
+  ): Promise<
+    | { ok: true; tenant: TenantRecord }
+    | { ok: false; reason: 'unknown-tenant' | 'flat-plan' | 'seats-occupied'; used?: number }
+  > {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return { ok: false, reason: 'unknown-tenant' }
+    if (!isSeatMetered(record.entitlements)) return { ok: false, reason: 'flat-plan' }
+    if (record.entitlements.seats === seats) return { ok: true, tenant: record }
+    const used = seatsUsedBy(record)
+    if (seats < used) return { ok: false, reason: 'seats-occupied', used }
+    const next = withSeats(record.entitlements, seats)
+    const updated: TenantRecord = { ...record, entitlements: next }
+    await this.deps.tenants.put(updated)
+    if (updated.substrateRef && updated.dataTier === 'hot') {
+      await this.deps.provisioner.setEnv(
+        updated.substrateRef,
+        this.hubEnv(updated.tenantId, next, updated)
+      )
+    }
+    return { ok: true, tenant: updated }
+  }
+
+  /**
+   * Push a tenant's roster to its hub as `HUB_TRUSTED_DIDS`.
+   *
+   * Best-effort by design: a cold or unreachable hub gets the policy on its next
+   * natural revision, and the roster on the record stays authoritative either
+   * way. Deliberately NOT fatal — refusing to add a member because their hub is
+   * asleep would make the feature unusable on every scale-to-zero plan.
+   */
+  private async pushRoster(record: TenantRecord): Promise<void> {
+    if (!record.substrateRef || record.dataTier !== 'hot') return
+    await this.deps.provisioner.setEnv(
+      record.substrateRef,
+      this.hubEnv(record.tenantId, record.entitlements, record)
+    )
+  }
+
+  /**
+   * Everyone entitled to this tenant's hub, plus how many seats they consume.
+   *
+   * Reads through `rosterFor`, so a record written before `members` existed
+   * reports its owner rather than an empty list.
+   */
+  async listMembers(
+    tenantId: string
+  ): Promise<{ members: TenantMember[]; seatsUsed: number; seats: number } | null> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return null
+    return {
+      members: rosterFor(record),
+      seatsUsed: seatsUsedBy(record),
+      seats: record.entitlements.seats
+    }
+  }
+
+  /**
+   * Add a member to a tenant's roster and push the new trusted-root policy.
+   *
+   * Returns the refusal rather than throwing, because "you are out of seats" is
+   * a normal answer the dashboard renders — not an exception.
+   */
+  async addTenantMember(
+    tenantId: string,
+    member: { did: string; role?: TenantMemberRole; addedBy: string; label?: string }
+  ): Promise<
+    | { ok: true; tenant: TenantRecord }
+    | { ok: false; reason: string; used?: number; seats?: number }
+  > {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return { ok: false, reason: 'unknown-tenant' }
+    const result = addMember(record, record.entitlements, {
+      did: member.did,
+      role: member.role ?? 'member',
+      addedAtMs: this.now(),
+      addedBy: member.addedBy,
+      ...(member.label ? { label: member.label } : {})
+    })
+    if (!result.ok) {
+      return result.reason === 'seats-exhausted'
+        ? { ok: false, reason: result.reason, used: result.used, seats: result.seats }
+        : { ok: false, reason: result.reason }
+    }
+    const updated: TenantRecord = { ...record, members: result.members }
+    await this.deps.tenants.put(updated)
+    await this.pushRoster(updated)
+    return { ok: true, tenant: updated }
+  }
+
+  /**
+   * Remove a member and push the narrowed policy.
+   *
+   * The removed DID loses ADMISSION on the hub's next revision. It does not lose
+   * the data already on its own device — that copy is authoritative and always
+   * theirs, which is the whole point of local-first and why removal here is a
+   * safe, reversible operation rather than a destructive one.
+   */
+  async removeTenantMember(
+    tenantId: string,
+    did: string
+  ): Promise<{ ok: true; tenant: TenantRecord } | { ok: false; reason: string }> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return { ok: false, reason: 'unknown-tenant' }
+    const result = removeMember(record, did)
+    if (!result.ok) return { ok: false, reason: result.reason }
+    const updated: TenantRecord = { ...record, members: result.members }
+    await this.deps.tenants.put(updated)
+    await this.pushRoster(updated)
+    return { ok: true, tenant: updated }
   }
 
   /**
@@ -578,7 +791,7 @@ export class ControlPlane {
     }
     const handle = await this.deps.provisioner.setEnv(
       record.substrateRef,
-      this.hubEnv(record.tenantId, next)
+      this.hubEnv(record.tenantId, next, record)
     )
     const updated: TenantRecord = {
       ...record,
@@ -773,7 +986,7 @@ export class ControlPlane {
 
     const handle = await this.deps.provisioner.setEnv(
       record.substrateRef,
-      this.hubEnv(record.tenantId, next)
+      this.hubEnv(record.tenantId, next, record)
     )
     const aiPatch = await this.reconcileAiKey(record, next)
     const updated: TenantRecord = {
@@ -829,7 +1042,7 @@ export class ControlPlane {
       entitlements: next,
       targetVersion: record.targetVersion,
       region: record.region,
-      env: this.hubEnv(tenantId, next)
+      env: this.hubEnv(tenantId, next, record)
       // No `restoreFromR2` → the new hub boots EMPTY (this is the wipe).
     })
     const aiPatch = await this.reconcileAiKey(record, next)
@@ -1054,7 +1267,7 @@ export class ControlPlane {
       entitlements: record.entitlements,
       targetVersion: record.targetVersion,
       region: record.region,
-      env: this.hubEnv(tenantId, record.entitlements),
+      env: this.hubEnv(tenantId, record.entitlements, record),
       restoreFromR2: this.snapshotKey(tenantId)
     })
     const updated: TenantRecord = {

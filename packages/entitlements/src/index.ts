@@ -21,6 +21,8 @@ export {
   STORAGE_PACK_UNIT_BYTES,
   isSeatMetered,
   withSeats,
+  seatsUsed,
+  canAdmitMember,
   withConcurrency,
   withAiBudget,
   withAiModels,
@@ -34,7 +36,9 @@ export {
   type PlanId,
   type IsolationTier,
   type SlaLevel,
-  type PlanEntitlements
+  type PlanEntitlements,
+  type SeatBearing,
+  type TenantMemberRole
 } from './plans'
 
 export { signEntitlements, verifyEntitlements, entitlementsFromEnv } from './entitlements'

@@ -45,6 +45,7 @@ import {
 } from './diagnostics'
 import { composeDashboardLive, fetchHubDiagnosticsSummary, fetchHubHealth } from './hub-status'
 import { type JobHealth } from './jobs/leased'
+import { hashString, type SalesLead, type SalesLeadStore } from './leads'
 import { createLogger, type Logger } from './logger'
 import {
   collectUsage,
@@ -54,6 +55,8 @@ import {
 } from './metrics/usage'
 import { MemoryNonceStore, type NonceStore } from './nonce'
 import { fleetSummary, tenantSli, type HealthSampleStore } from './observability/health'
+import { creditFor } from './observability/sla-credit'
+import { sloForPlan } from './observability/slo'
 import { publicStatus } from './observability/status'
 import {
   AuditWriteError,
@@ -108,6 +111,16 @@ export interface ControlPlaneAppDeps {
   /** Shared secret for internal READ routes; if unset, internal routes are disabled. */
   internalSecret?: string
   /**
+   * Master for the per-tenant diagnostics secrets (`diagnosticsSecretFor`).
+   *
+   * Separate from {@link internalSecret} because a tenant hub is provisioned
+   * with a DERIVATION of this one, so the two must be free to differ — before
+   * exploration 0436 they were the same variable, which is what let a hub reach
+   * the operator surface. Falls back to `internalSecret` for single-secret
+   * deployments.
+   */
+  diagnosticsMasterSecret?: string
+  /**
    * Operator identity resolver (exploration 0433, decisions 4 and 11).
    *
    * Mutating `/internal/*` routes require this and reject the shared secret: a
@@ -118,6 +131,12 @@ export interface ControlPlaneAppDeps {
   resolveOperator?: (c: Context) => Promise<OperatorIdentity | null>
   /** Two-tier audit log. Mutating routes refuse to run without it (fail-closed). */
   audit?: AuditLog
+  /**
+   * Sales-lead store for the contact-sales lane (`company` / `enterprise`).
+   * Omit and `POST /contact` returns 503 — "we cannot take your details right
+   * now" is a truthful answer; silently dropping a lead is not.
+   */
+  leads?: SalesLeadStore
   /** Optional bulk-storage reader (R2) for the `/open` usage snapshot's GB-stored (Tier 1). */
   usageStorage?: StorageUsageReader
   /** Optional per-hub usage probe; defaults to GETting each hot hub's `/health`. */
@@ -178,12 +197,27 @@ const EMPTY_USAGE_LEDGER: UsageLedger = {
  */
 const STORAGE_PACK_CHOICES: readonly number[] = [0, 100, 500, 1000]
 
-/** Plans offered for self-serve checkout (free demo + contract enterprise excluded). */
+/**
+ * Plans offered for self-serve checkout.
+ *
+ * `community` is here because the Charter cites its existence as the receipt for
+ * "no per-member pricing on communities", and a receipt nobody can buy is not
+ * one (exploration 0436 G7). It is flat-billed, needs no residency and no
+ * contract, so nothing but a missing price was keeping it out.
+ *
+ * `demo` is free and has its own route (`/account/start-free`); `company` and
+ * `enterprise` go through the contact-sales lane, because selling a region pin
+ * or a custom SLA self-serve would sell guarantees we would then owe.
+ */
 const CHECKOUT_PLANS: { id: PlanId; label: string; price: string }[] = [
   { id: 'personal', label: 'Personal', price: '$5/mo' },
   { id: 'family', label: 'Family', price: '$15/mo' },
-  { id: 'team', label: 'Team', price: '$12/seat/mo' }
+  { id: 'team', label: 'Team', price: '$12/seat/mo' },
+  { id: 'community', label: 'Community', price: '$49/mo' }
 ]
+
+/** Plans a visitor can ask us about but not buy with a card. */
+const CONTACT_SALES_PLANS: PlanId[] = ['company', 'enterprise']
 
 export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   const app = new Hono()
@@ -281,7 +315,9 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     createDiagnosticsRoutes({
       store: deps.diagnostics ?? new MemoryDebugReportStore(),
       log,
-      internalSecret: deps.internalSecret,
+      // The hub lane authenticates with a per-tenant DERIVATION of this master,
+      // so it must be the diagnostics master, not the operator read secret.
+      internalSecret: deps.diagnosticsMasterSecret ?? deps.internalSecret,
       onFirstSeen:
         deps.onDiagnosticsFirstSeen ?? createWebhookAlerter(deps.diagnosticsAlertUrl, log),
       nowMs: deps.nowMs
@@ -294,9 +330,17 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   // round-trip through `state` so the callback can land the user on checkout.
   app.get('/auth/start', (c) => {
     const state = c.req.query('plan') ?? c.req.query('state')
+    // Enterprise SSO (0338 Phase 4, wired by 0436). `BillingIdentityProvider`
+    // has supported pinning a sign-in to a SAML/OIDC connection since 0338 and
+    // nothing ever passed it, so the Enterprise card's SSO promise had no code
+    // path at all. Absent → the hosted AuthKit UI, exactly as before.
+    const connection = c.req.query('connection')
+    const organization = c.req.query('org')
     const url = deps.billing.getAuthorizationUrl({
       screenHint: 'sign-in',
-      ...(state ? { state } : {})
+      ...(state ? { state } : {}),
+      ...(connection ? { connectionId: connection } : {}),
+      ...(!connection && organization ? { organizationId: organization } : {})
     })
     return c.redirect(url)
   })
@@ -356,6 +400,7 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
         budgetUsd: tenant.entitlements.aiMonthlyBudgetUsd
       }
     }
+    const members = tenant ? await deps.controlPlane.listMembers(tenant.tenantId) : null
     return c.html(
       renderDashboard({
         billingUserId: s.billingUserId,
@@ -368,6 +413,7 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
         appUrl: deps.appUrl ?? 'https://xnet.fyi/app',
         marketingUrl: deps.marketingUrl ?? 'https://xnet.fyi/cloud',
         gettingStartedHidden: getCookie(c, 'xnet_gs_hidden') === '1',
+        ...(members ? { members } : {}),
         ...(aiUsage ? { aiUsage } : {})
       })
     )
@@ -405,10 +451,13 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     // The tenant's own crash inbox (0341): read with the per-tenant secret the
     // provisioner hands the hub — a window onto their hub, never a copy here.
     const diagnostics =
-      health && deps.internalSecret
+      health && (deps.diagnosticsMasterSecret ?? deps.internalSecret)
         ? await fetchHubDiagnosticsSummary(
             tenant.hubUrl,
-            diagnosticsSecretFor(deps.internalSecret, tenant.tenantId),
+            diagnosticsSecretFor(
+              (deps.diagnosticsMasterSecret ?? deps.internalSecret) as string,
+              tenant.tenantId
+            ),
             { timeoutMs: 2000 }
           )
         : null
@@ -541,14 +590,69 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     const body = await c.req.parseBody()
     const plan = String(body.plan ?? '')
     if (!CHECKOUT_PLANS.some((p) => p.id === plan)) return c.json({ error: 'bad_plan' }, 400)
+    // Seats ride the checkout so a 5-seat Team purchase bills $60, not $12.
+    // `checkoutQuantity` floors it at the plan minimum and ignores it entirely
+    // on a flat plan (exploration 0436 G5).
+    const requested = Number(body.seats)
     const out = await deps.payments.createCheckout({
       customerRef: s.billingUserId,
       plan: plan as PlanId,
       successUrl: `${base}/dashboard?provisioning=1`,
       cancelUrl: `${base}/dashboard`,
-      ...(s.email ? { email: s.email } : {})
+      ...(s.email ? { email: s.email } : {}),
+      ...(Number.isInteger(requested) && requested > 0 ? { seats: requested } : {})
     })
     return c.redirect(out.url)
+  })
+
+  /**
+   * The free tier's actual door.
+   *
+   * `/cloud/pricing`'s first card said "Start free — no card required" and led
+   * to a dashboard offering three paid plans, because `demo` was not in
+   * `CHECKOUT_PLANS` and nothing else provisioned a tenant (exploration 0436
+   * G6). This is the missing route: a pooled `demo` hub, no payment gateway
+   * involved.
+   */
+  app.post('/account/start-free', async (c) => {
+    const s = session(c)
+    if (!s) return c.redirect('/auth/start')
+    const existing = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    // Idempotent: a double-submit or a back-button retry lands on the dashboard
+    // rather than erroring or provisioning twice.
+    if (existing) return c.redirect('/dashboard')
+    await deps.controlPlane.provisionForBilling({ plan: 'demo', billingUserId: s.billingUserId })
+    return c.redirect('/dashboard?provisioning=1')
+  })
+
+  /**
+   * Contact-sales lead capture for `company` and `enterprise`.
+   *
+   * Those plans promise a region pin, a custom SLA and SSO. Until each of those
+   * is real, selling them behind a card would be selling the gap; a lead we
+   * answer is honest. Leads land in a durable store an operator drains — never
+   * emailed onward from here.
+   */
+  app.post('/contact', async (c) => {
+    const body = await c.req.parseBody()
+    const email = String(body.email ?? '').trim()
+    const plan = String(body.plan ?? 'enterprise')
+    if (!email.includes('@')) return c.json({ error: 'bad_email' }, 400)
+    if (!CONTACT_SALES_PLANS.includes(plan as PlanId)) return c.json({ error: 'bad_plan' }, 400)
+    if (!deps.leads) return c.json({ error: 'contact_not_configured' }, 503)
+    const lead: SalesLead = {
+      id: `lead_${now()}_${Math.abs(hashString(email)).toString(36)}`,
+      email,
+      plan: plan as PlanId,
+      orgName: String(body.orgName ?? '').slice(0, 200),
+      seats: Number(body.seats) || 0,
+      notes: String(body.notes ?? '').slice(0, 2000),
+      createdAtMs: now(),
+      status: 'new'
+    }
+    await deps.leads.put(lead)
+    log.info('sales_lead', { plan: lead.plan, id: lead.id })
+    return c.json({ ok: true, id: lead.id })
   })
 
   app.post('/portal', async (c) => {
@@ -595,7 +699,10 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     if (event.type === 'checkout.completed') {
       await deps.controlPlane.provisionForBilling({
         plan: event.plan,
-        billingUserId: event.customerRef
+        billingUserId: event.customerRef,
+        // Provision the seats they PAID for, not the catalog default — a 5-seat
+        // Team purchase must not arrive as a 3-seat tenant (exploration 0436 G5).
+        ...(event.seats ? { overrides: { seats: event.seats } } : {})
       })
     } else if (event.type === 'subscription.canceled') {
       const tenant = await deps.controlPlane.getTenantForBilling(event.customerRef)
@@ -611,6 +718,13 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
         status: event.status
       })
       await applyStoragePack(event.customerRef, event.storagePackGb)
+      // Seats bought (or dropped) in the Customer Portal land here too. Keeping
+      // the entitlement in step with the invoice is what makes "add seats any
+      // time" a true statement rather than pricing-page copy (0436 G5).
+      if (event.seats) {
+        const tenant = await deps.controlPlane.getTenantForBilling(event.customerRef)
+        if (tenant) await deps.controlPlane.setSeats(tenant.tenantId, event.seats)
+      }
     } else if (event.type === 'storage_pack') {
       await applyStoragePack(event.customerRef, event.storagePackGb)
     }
@@ -698,15 +812,87 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
       return c.json({ error: 'invalid_nonce' }, 400)
     }
     try {
+      // An `owner` grant is the claim-your-hub flow and rebinds the tenant's
+      // data identity. A `member`/`guest` grant is an INVITATION — the DID was
+      // already added to the roster when the owner approved it, so binding here
+      // would hand the whole tenant to the invitee (exploration 0436 G4).
+      if (grant.role && grant.role !== 'owner') {
+        const tenant = await deps.controlPlane.getTenantForBilling(grant.approvedBy)
+        devices.markClaimed(grant.deviceCode)
+        return c.json({ status: 'complete', hubUrl: tenant?.hubUrl ?? '', role: grant.role })
+      }
       const tenant = await deps.controlPlane.bindDataIdentity({
         billingUserId: grant.approvedBy,
         challenge: body.challenge
       })
       devices.markClaimed(grant.deviceCode)
-      return c.json({ status: 'complete', hubUrl: tenant.hubUrl })
+      return c.json({ status: 'complete', hubUrl: tenant.hubUrl, role: 'owner' })
     } catch (err) {
       return c.json({ error: (err as Error).message }, 422)
     }
+  })
+
+  // ── Tenant membership (exploration 0436 G4) ──────────────────────────────────
+
+  // Who is on this tenant, and how many seats they use.
+  app.get('/account/members', async (c) => {
+    const s = session(c)
+    if (!s) return c.json({ error: 'unauthorized' }, 401)
+    const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    if (!tenant) return c.json({ error: 'no_tenant' }, 404)
+    const view = await deps.controlPlane.listMembers(tenant.tenantId)
+    return c.json(view ?? { members: [], seatsUsed: 0, seats: 0 })
+  })
+
+  /**
+   * Invite a member: the owner approves the short code their collaborator's app
+   * is showing, and that DID joins the roster.
+   *
+   * Reuses the device grant rather than inventing a second handshake — the
+   * invitee's key is minted on their own device and proven by the same signed
+   * challenge, so no key material ever passes through us.
+   */
+  app.post('/account/members/invite', async (c) => {
+    const s = session(c)
+    if (!s) return c.redirect('/auth/start')
+    const body = await c.req.parseBody()
+    const userCode = String(body.userCode ?? '')
+    const role = String(body.role ?? 'member') === 'guest' ? 'guest' : 'member'
+    const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    if (!tenant) return c.json({ error: 'no_tenant' }, 404)
+    const grant = devices.getByUserCode(userCode)
+    if (!grant) return c.json({ error: 'unknown_code' }, 404)
+    if (isExpired(grant, now())) return c.json({ error: 'expired_code' }, 400)
+    const added = await deps.controlPlane.addTenantMember(tenant.tenantId, {
+      did: grant.did,
+      role,
+      addedBy: s.billingUserId
+    })
+    if (!added.ok) {
+      // "Out of seats" is a normal answer, not an exception: the existing
+      // members keep working and the owner is told what to do about it.
+      const status = added.reason === 'seats-exhausted' ? 409 : 400
+      return c.json({ error: added.reason, used: added.used, seats: added.seats }, status)
+    }
+    // Only approve the grant once the seat check has passed, so a refused invite
+    // does not leave a code the invitee can redeem.
+    devices.approve(userCode, s.billingUserId, role)
+    return c.json({ ok: true, did: grant.did, role })
+  })
+
+  // Remove a member. The DID loses admission on the hub's next revision; the
+  // copy already on their own device is theirs and is never touched.
+  app.post('/account/members/remove', async (c) => {
+    const s = session(c)
+    if (!s) return c.redirect('/auth/start')
+    const body = await c.req.parseBody()
+    const did = String(body.did ?? '')
+    if (!did) return c.json({ error: 'bad_request' }, 400)
+    const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    if (!tenant) return c.json({ error: 'no_tenant' }, 404)
+    const removed = await deps.controlPlane.removeTenantMember(tenant.tenantId, did)
+    if (!removed.ok) return c.json({ error: removed.reason }, 400)
+    return c.json({ ok: true })
   })
 
   // The dashboard side: the signed-in user approves a device code (proves billing).
@@ -847,6 +1033,46 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   })
 
   // Fleet observability — per-tenant SLIs + an aggregate (exploration 0193).
+  // Convert a captured lead into a provisioned tenant with the terms that were
+  // actually agreed. Operator identity + typed reason, like every other mutating
+  // internal route (0433 decision 11) — a contract-sales tenant is exactly the
+  // kind of action that must name who did it.
+  app.post('/internal/leads/:id/convert', async (c) => {
+    const id = c.req.param('id')
+    if (!deps.leads) return c.json({ error: 'contact_not_configured' }, 503)
+    const lead = await deps.leads.get(id)
+    if (!lead) return c.json({ error: 'not_found' }, 404)
+    const body = (await c.req.json().catch(() => ({}))) as {
+      billingUserId?: string
+      overrides?: Record<string, unknown>
+      region?: string
+    }
+    if (!body.billingUserId) return c.json({ error: 'bad_request' }, 400)
+    const out = await asOperator(c, 'tenant.provision', lead.id, async () => {
+      const tenant = await deps.controlPlane.provisionForBilling({
+        plan: lead.plan,
+        billingUserId: body.billingUserId as string,
+        ...(body.overrides
+          ? {
+              overrides: body.overrides as Parameters<
+                typeof deps.controlPlane.provisionForBilling
+              >[0]['overrides']
+            }
+          : {}),
+        ...(body.region ? { region: body.region } : {})
+      })
+      await deps.leads!.put({ ...lead, status: 'converted', tenantId: tenant.tenantId })
+      return tenant
+    })
+    return out.ok ? c.json(out.value) : out.res
+  })
+
+  app.get('/internal/leads', async (c) => {
+    if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
+    if (!deps.leads) return c.json({ error: 'contact_not_configured' }, 503)
+    return c.json({ leads: await deps.leads.list() })
+  })
+
   app.get('/internal/fleet/health', async (c) => {
     if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
     if (!deps.health) return c.json({ error: 'observability_not_configured' }, 503)
@@ -858,7 +1084,13 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     return c.json({
       fleet: fleetSummary(slis),
       cold: tenants.length - live.length,
-      tenants: slis
+      // What we OWE, alongside what we measured (exploration 0436 G12). A
+      // published objective with no remedy is a marketing claim; surfacing the
+      // credit next to the SLI is what makes it one an operator can act on.
+      tenants: slis.map((sli) => {
+        const credit = creditFor(sloForPlan(sli.plan), sli.availability)
+        return { ...sli, ...(credit ? { slaCredit: credit } : {}) }
+      })
     })
   })
 

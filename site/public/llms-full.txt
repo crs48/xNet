@@ -10927,6 +10927,113 @@ decision — charging for cloud bytes is an improvement charge only for as long 
 at $0.010/GiB would make a lower published rate viable; a sustained gap between
 our price and blended COGS is a reason to cut the price, not to bank the margin.
 
+## ADR-34: A tenant is a roster of DIDs, and the hub enforces it
+
+**Status:** Accepted
+**Context:** xNet Cloud provisioned hubs but had no model of who was inside one.
+`TenantRecord` held a single `billingUserId` and a single `did`; there was no
+invite, roster, role or removal anywhere in the control plane. Meanwhile the hub
+applies a trusted-root policy only when `config.trustedDids` is set
+(`packages/hub/src/auth/ucan.ts`), and the control plane never set it — so a
+self-issued UCAN from a key generated seconds ago was accepted on a hub somebody
+else was paying for. `seats` had exactly two consumers in the whole repository,
+both render calls (exploration 0436).
+
+**Decision:** A tenant carries `members: TenantMember[]` — `{ did, role,
+addedAtMs, addedBy }` — and that roster is the trusted-root policy. It projects
+into `HUB_TRUSTED_DIDS` on every entitlement push, including inside
+`bindDataIdentity`, so a device that has just claimed a hub is trusted before it
+is told to connect.
+
+Three invariants make it safe:
+
+- **Absent means legacy, not empty.** A record written before `members` existed
+  reports `[{ did, role: 'owner' }]`. `rosterFor()` is the only place that
+  decides this.
+- **An empty policy is never written.** `checkTrustedRoots` treats absent and
+  empty identically, so an empty value produces a hub that is wide open while
+  looking configured. `trustedDidsEnv()` returns `undefined` rather than `''`.
+- **A self-hosted hub never receives the variable at all**, so its behaviour is
+  unchanged — the anti-lock-in invariant from ADR-4 / exploration 0174.
+
+Invitation reuses the device grant rather than inventing a second handshake: the
+collaborator's app shows a short code, the owner approves it, and the key is
+minted on their own device. An invited DID joins the roster **without** rebinding
+the tenant.
+
+**Rationale:**
+
+- The hub's authorization model is rich and correct — grants, spaces, roles, the
+  CRUD split. What was missing sat one layer above it: nothing decided which DIDs
+  *are* the tenant. Admission control and seat counting are the same missing
+  concept wearing a security hat and a product hat.
+- Putting the roster in the control plane rather than in the hub's own grants
+  keeps it readable during a support call and during a GDPR request, and lets a
+  member join while the owner is offline.
+- Modelling a tenant as a WorkOS Organization was rejected: a WorkOS user is an
+  email an IdP vouches for and a member is a key on someone's device, and
+  conflating them would put the billing identity provider in charge of the data
+  identity — the arrangement the non-custodial claim flow exists to avoid.
+  `organizationId` is a pointer that decides who is *entitled* to join; each
+  human still binds their own key.
+
+**Tradeoff:** membership changes push a new revision, which on Cloud Run restarts
+the hub — invisible on scale-to-zero plans, a brief rolling drop on warm ones.
+Accepted: the alternative is a hub anyone on the internet can write to.
+
+**Tripwire:** the first proposal to authorize on the roster *instead of* the hub's
+grant model — the roster decides admission, never permission — or the first hub
+shipped with `HUB_TRUSTED_DIDS` written as an empty string. Either re-opens this.
+
+## ADR-35: Seats bill collaborators, never audience
+
+**Status:** Accepted
+**Context:** `team` was advertised at `$12/seat/mo` from three seats while
+`checkout.sessions.create` passed `quantity: 1`, so a three-seat subscription
+billed $12 against a margin model assuming $36. With ADR-33 the roster makes a
+seat countable for the first time, which is exactly when somebody will want to
+bill it by length (exploration 0436).
+
+**Decision:** Seats are a real Stripe `SubscriptionItem.quantity`, floored at the
+plan's catalog minimum and kept in sync from `customer.subscription.updated` by
+reading the subscription **item** rather than the checkout metadata — metadata
+records what was bought and never moves when a customer adds a seat later.
+
+Two limits are part of the decision, not implementation detail:
+
+- **`guest` never consumes a seat.** `seatsUsed()` counts owners and members
+  only. A seat is capacity we provision for a collaborator; an audience member
+  the customer brought is not one.
+- **Flat plans are never multiplied.** `checkoutQuantity` returns `1` for any
+  plan with `seats === 0`, and `withSeats()` already refuses to attach a seat
+  count to `community`.
+
+Enforcement refuses **admission** and never evicts a live session: a tenant at
+its seat limit cannot invite a fourth person, and the three already there keep
+working.
+
+**Rationale (Charter §6):**
+
+- **Improvement** — a seat is a collaborator whose devices sync against a hub we
+  operate: real connections, real storage, real relay.
+- **BATNA** — self-host the MIT hub with unlimited members; `@xnetjs/entitlements`
+  is MIT and dependency-free, so a self-hosted hub never phones home.
+- **Vanish** — every member's authoritative copy is on their own device. Losing
+  the hub loses the relay, not the data.
+- Disconnecting someone mid-sync reads as data loss in a local-first product even
+  when it technically is not, which is why the guard is admission-time only.
+
+**Tradeoff:** a tenant can sit at its seat limit with people waiting, and the fix
+is a plan change rather than an automatic overage charge. Accepted: a surprise
+bill is the failure mode the AI budget work already went out of its way to
+prevent.
+
+**Tripwire:** _the moment a seat is charged for someone the customer brought
+rather than someone we provision capacity for, this decision is void._ The
+concrete signals are a proposal to seat-meter `community`, or to count
+read-only/guest DIDs as seats on any plan. The roster is where that would sneak
+in, because once you have a member list somebody will want to bill its length.
+
 ---
 
 ## Package Graph

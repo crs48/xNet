@@ -8,7 +8,35 @@
 
 import type { DunningState } from './reconcile/billing'
 import type { BudgetWindow } from '@xnetjs/cloud'
-import type { PlanEntitlements, PlanId } from '@xnetjs/entitlements'
+import type { PlanEntitlements, PlanId, TenantMemberRole } from '@xnetjs/entitlements'
+
+/**
+ * One person entitled to a tenant's hub (exploration 0436 G4).
+ *
+ * Before this existed the control plane's whole idea of a customer was a single
+ * `billingUserId` and a single `did`, so a `family` plan advertising "5 seats,
+ * one bill" had no way to express members two through five — and the hub, with
+ * no trusted-root policy, accepted any DID on the internet instead.
+ */
+export interface TenantMember {
+  /**
+   * The member's data identity. Bound through the device-grant flow, always
+   * minted on their own device — we never hold a member's key material.
+   */
+  did: string
+  /**
+   * `guest` deliberately does NOT consume a seat. A seat is capacity we
+   * provision for a collaborator; an audience member the customer brought is
+   * not one, and charging for them would be the per-member meter Charter §6
+   * refuses (see `seatsUsed` in `@xnetjs/entitlements`).
+   */
+  role: TenantMemberRole
+  addedAtMs: number
+  /** The billing user who approved this member's device grant. */
+  addedBy: string
+  /** Optional human label for the dashboard; never used for authorization. */
+  label?: string
+}
 
 export interface TenantRecord {
   tenantId: string
@@ -18,6 +46,27 @@ export interface TenantRecord {
   billingUserId: string
   /** Bound data identity (`did:key`); empty while a rebind is pending. */
   did: string
+  /**
+   * WorkOS Organization backing this tenant's enterprise SSO, when it has one.
+   *
+   * Deliberately a POINTER, not the roster (exploration 0436, option A3). A
+   * WorkOS user is an email the identity provider vouches for; a member is a
+   * `did:key` minted on their own device. Conflating them would re-custodialise
+   * identity — which is the whole reason the device-grant flow exists. So the
+   * organization decides who is ENTITLED to join, and each human still binds
+   * their own key through the same handshake everybody else uses.
+   */
+  organizationId?: string
+  /**
+   * Everyone entitled to this tenant's hub, projected into `HUB_TRUSTED_DIDS`.
+   *
+   * **Absent means legacy, not empty.** A record written before this field
+   * existed has an implicit roster of `[{ did, role: 'owner' }]`; treating it as
+   * an empty list would write an empty trusted-root policy and lock the owner
+   * out of their own hub. `rosterFor()` is the single place that decides this —
+   * do not read the field directly.
+   */
+  members?: TenantMember[]
   /** Reachable hub URL; empty while the tenant is cold (no live hub). */
   hubUrl: string
   /** Substrate handle; empty while cold (volume + machine released). */

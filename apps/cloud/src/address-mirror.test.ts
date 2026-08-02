@@ -211,7 +211,7 @@ describe('fleet drill across a project-shard boundary', () => {
     // servicesPerProject: 1 puts tenant 2 in the NEXT project shard, which is
     // where a per-project assumption would break.
     const allocator = new ShardAllocator({ projectPrefix: 'xnet-hub', servicesPerProject: 1 })
-    const placements = [allocator.allocate(), allocator.allocate()]
+    const placements = [allocator.allocate('us-central1'), allocator.allocate('us-central1')]
     expect(placements).toEqual(['xnet-hub-0', 'xnet-hub-1'])
 
     const store = new MemoryAddressMirrorStore()

@@ -5,7 +5,13 @@ import { aiChatDepsFromEnv, aiGatewayProvider, aiKeysFromEnv } from './ai/wiring
 import { cloudRunProvisionerFromEnv } from './provisioner/google-cloud-run-client'
 import { firestoreStoresFromEnv } from './stores/firestore'
 import { usageLedgerFromEnv } from './stores/usage-ledger'
-import { buildControlPlane, resolveBillingGateway, stripeGatewayFromEnv } from './index'
+import {
+  assertOperatorSecretIsolated,
+  buildControlPlane,
+  operatorReadSecretFromEnv,
+  resolveBillingGateway,
+  stripeGatewayFromEnv
+} from './index'
 
 const env = (o: Record<string, string>): NodeJS.ProcessEnv => o as NodeJS.ProcessEnv
 
@@ -109,5 +115,41 @@ describe('env-driven wiring', () => {
     expect(priceDefault('some-unknown-model').inputUsdPerMillion).toBe(3) // DEFAULT_RATE
     expect(pricingFromEnv(env({ AI_MARKUP: '1.4' }))('gpt-4o').markup).toBe(1.4)
     expect(pricingFromEnv(env({ AI_MARKUP: '0.5' }))('gpt-4o').markup).toBe(1.3) // clamped >= 1
+  })
+})
+
+/**
+ * Exploration 0436 G1: the operator secret must not be reachable from a hub.
+ *
+ * The overlap these guard is subtle — a deployment that sets a distinct
+ * `XNET_CLOUD_GATEWAY_MASTER` while leaving the operator secret equal to it
+ * *reads* as separated while being the original single secret.
+ */
+describe('operator secret isolation (0436 G1)', () => {
+  it('falls back to the legacy variable for a single-secret deployment', () => {
+    expect(operatorReadSecretFromEnv(env({ XNET_CLOUD_INTERNAL_SECRET: 'one' }))).toBe('one')
+    expect(
+      operatorReadSecretFromEnv(
+        env({ XNET_CLOUD_INTERNAL_SECRET: 'one', XNET_OPERATOR_READ_SECRET: 'two' })
+      )
+    ).toBe('two')
+    expect(operatorReadSecretFromEnv(env({}))).toBeUndefined()
+  })
+
+  it('refuses to boot when the operator secret equals the gateway master', () => {
+    expect(() =>
+      assertOperatorSecretIsolated(
+        env({ XNET_OPERATOR_READ_SECRET: 'same', XNET_CLOUD_GATEWAY_MASTER: 'same' })
+      )
+    ).toThrow(/must not equal/)
+    expect(() =>
+      assertOperatorSecretIsolated(
+        env({ XNET_OPERATOR_READ_SECRET: 'op', XNET_CLOUD_GATEWAY_MASTER: 'gw' })
+      )
+    ).not.toThrow()
+    // Legacy single-secret deployments still boot — the fix is opt-in, not a wall.
+    expect(() =>
+      assertOperatorSecretIsolated(env({ XNET_CLOUD_INTERNAL_SECRET: 'one' }))
+    ).not.toThrow()
   })
 })
