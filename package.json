@@ -15,7 +15,7 @@
     "check:cloud-boundary": "bash scripts/check-cloud-boundary.sh",
     "check:plugin-licenses": "node scripts/check-plugin-licenses.mjs",
     "check:motion-vocab": "node scripts/check-motion-vocab.mjs",
-    "check:gate-controls": "node scripts/check-motion-vocab.mjs --selftest && node scripts/check-humane-patterns.mjs --selftest && node scripts/check-syndication.mjs --selftest && node scripts/check-sli-gate.mjs --selftest",
+    "check:gate-controls": "node scripts/check-motion-vocab.mjs --selftest && node scripts/check-humane-patterns.mjs --selftest && node scripts/check-syndication.mjs --selftest && node scripts/check-sli-gate.mjs --selftest && tsx site/scripts/build-llms-full.ts --selftest",
     "check:sli-gate": "node scripts/check-sli-gate.mjs --selftest",
     "check:surface-tokens": "node scripts/check-surface-tokens.mjs",
     "check:ai-retrieval": "node scripts/guard-ai-surface-retrieval.mjs",
@@ -61,7 +61,8 @@
     "check:api-report": "node scripts/check-api-report.mjs",
     "check:packaging": "node scripts/check-packaging.mjs",
     "build:blog-preview": "tsx scripts/build-blog-preview.ts",
-    "check:blog-preview": "tsx scripts/build-blog-preview.ts --check"
+    "check:blog-preview": "tsx scripts/build-blog-preview.ts --check",
+    "check:llms-full": "tsx site/scripts/build-llms-full.ts --check"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",

@@ -127,6 +127,15 @@ jobs:
       - name: Publish closure (0220)
         run: pnpm check:publish-closure
 
+      # site/public/llms-full.txt is generated from the docs but committed, and
+      # CI does not build site/ on pull requests — so an MDX edit that skips the
+      # regeneration ships a stale artifact and nothing says so. Commit 4c00be2c7
+      # renumbered an exploration reference in decisions.mdx and left the file
+      # quoting the dead number until an unrelated commit happened to regenerate
+      # it. Byte equality against a fresh render; the fix is one command.
+      - name: llms-full.txt matches the docs
+        run: pnpm check:llms-full
+
       # The hub Dockerfile hand-lists the packages it COPYs. A dependency added
       # three packages away silently staled that list, and nothing failed until
       # a six-minute image build died on "Cannot find module" — the same build
