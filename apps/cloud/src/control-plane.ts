@@ -578,6 +578,32 @@ export class ControlPlane {
   }
 
   /**
+   * Point a tenant at a WorkOS Organization for enterprise SSO.
+   *
+   * The organization decides who is ENTITLED to join; it does not become the
+   * roster. Each human still binds their own `did:key` through the device grant,
+   * because a WorkOS user is an email an IdP vouches for and a member is a key
+   * on somebody's device — and collapsing the two would put the billing identity
+   * provider in charge of the data identity, which is the arrangement the whole
+   * non-custodial claim flow exists to avoid (exploration 0436, option A3).
+   *
+   * What this DOES buy is offboarding: when the IdP says someone has left, we
+   * know which roster entry to remove.
+   */
+  async setOrganization(
+    tenantId: string,
+    organizationId: string | null
+  ): Promise<TenantRecord | null> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return null
+    const updated: TenantRecord = organizationId
+      ? { ...record, organizationId }
+      : (({ organizationId: _dropped, ...rest }) => rest as TenantRecord)(record)
+    await this.deps.tenants.put(updated)
+    return updated
+  }
+
+  /**
    * Set a tenant's billed seat count, in step with the Stripe subscription item.
    *
    * Refuses to shrink below the seats already occupied — the same shape as the

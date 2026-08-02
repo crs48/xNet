@@ -213,6 +213,10 @@ export const FAQS: CloudFaq[] = [
     a: 'From operations and support — running your hub, backups, isolation, SLAs, and admin — never from access to your own data. Export everything for free, pay no egress fees, and self-host the same open-source hub whenever you like. Our Charter calls this the "no ground rent" rule and links every one of those promises to the code that backs it.'
   },
   {
+    q: 'What happens if you miss the uptime you promised?',
+    a: "On the plans that publish a number, you get money back. We measure availability over a rolling 30 days on our own status page, and if we come in under 99.9% we credit 10% of that month's fee — 25% below 99%, 50% below 95%. You don't have to catch it for it to count, but do tell us if you think we owe you and we'll check the same numbers you can see. Plans that say 'best-effort' don't carry a number, and we'd rather say that plainly than print one we haven't committed to."
+  },
+  {
     q: 'How do seats work?',
     a: "A seat is someone we run capacity for — a collaborator whose devices sync against your hub. You invite them from your dashboard: they open xNet, create their own passkey, and read you a short code. Their keys never touch us. Guests you invite for read access don't use a seat, and the Community plan doesn't count people at all — it's a flat price no matter how big your community gets. We won't charge you for the size of an audience you brought."
   },

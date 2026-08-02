@@ -55,6 +55,8 @@ import {
 } from './metrics/usage'
 import { MemoryNonceStore, type NonceStore } from './nonce'
 import { fleetSummary, tenantSli, type HealthSampleStore } from './observability/health'
+import { creditFor } from './observability/sla-credit'
+import { sloForPlan } from './observability/slo'
 import { publicStatus } from './observability/status'
 import {
   AuditWriteError,
@@ -322,9 +324,17 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   // round-trip through `state` so the callback can land the user on checkout.
   app.get('/auth/start', (c) => {
     const state = c.req.query('plan') ?? c.req.query('state')
+    // Enterprise SSO (0338 Phase 4, wired by 0436). `BillingIdentityProvider`
+    // has supported pinning a sign-in to a SAML/OIDC connection since 0338 and
+    // nothing ever passed it, so the Enterprise card's SSO promise had no code
+    // path at all. Absent → the hosted AuthKit UI, exactly as before.
+    const connection = c.req.query('connection')
+    const organization = c.req.query('org')
     const url = deps.billing.getAuthorizationUrl({
       screenHint: 'sign-in',
-      ...(state ? { state } : {})
+      ...(state ? { state } : {}),
+      ...(connection ? { connectionId: connection } : {}),
+      ...(!connection && organization ? { organizationId: organization } : {})
     })
     return c.redirect(url)
   })
@@ -1008,7 +1018,13 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     return c.json({
       fleet: fleetSummary(slis),
       cold: tenants.length - live.length,
-      tenants: slis
+      // What we OWE, alongside what we measured (exploration 0436 G12). A
+      // published objective with no remedy is a marketing claim; surfacing the
+      // credit next to the SLI is what makes it one an operator can act on.
+      tenants: slis.map((sli) => {
+        const credit = creditFor(sloForPlan(sli.plan), sli.availability)
+        return { ...sli, ...(credit ? { slaCredit: credit } : {}) }
+      })
     })
   })
 

@@ -47,6 +47,17 @@ export interface TenantRecord {
   /** Bound data identity (`did:key`); empty while a rebind is pending. */
   did: string
   /**
+   * WorkOS Organization backing this tenant's enterprise SSO, when it has one.
+   *
+   * Deliberately a POINTER, not the roster (exploration 0436, option A3). A
+   * WorkOS user is an email the identity provider vouches for; a member is a
+   * `did:key` minted on their own device. Conflating them would re-custodialise
+   * identity — which is the whole reason the device-grant flow exists. So the
+   * organization decides who is ENTITLED to join, and each human still binds
+   * their own key through the same handshake everybody else uses.
+   */
+  organizationId?: string
+  /**
    * Everyone entitled to this tenant's hub, projected into `HUB_TRUSTED_DIDS`.
    *
    * **Absent means legacy, not empty.** A record written before this field

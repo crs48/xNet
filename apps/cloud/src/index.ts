@@ -96,6 +96,14 @@ export {
   type HealthSample
 } from './observability/sli'
 export {
+  CREDIT_LADDER,
+  creditAmountUsd,
+  creditFor,
+  describeCredit,
+  type CreditTier,
+  type SlaCredit
+} from './observability/sla-credit'
+export {
   sloForSla,
   sloForPlan,
   errorBudgetMs,

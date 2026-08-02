@@ -1007,9 +1007,9 @@ const session = await this.stripe.checkout.sessions.create({
 
 - [x] `residency` honoured in `cloud-run-litestream.ts`, or removed from the Enterprise card
 - [x] `ShardAllocator` keyed by `(project, region)` and rehydrated from the tenant store on boot
-- [ ] WorkOS Organization → roster mapping; `organizationId` on `TenantRecord`; `/auth/start` passes it
-- [ ] An SLA credit policy that issues credits, or the numeric SLA comes off `community`/`company`
-- [ ] Two ADRs in `site/src/content/docs/docs/architecture/decisions.mdx`: the membership contract, and seat billing (with the tripwire above)
+- [x] WorkOS Organization → roster mapping; `organizationId` on `TenantRecord`; `/auth/start` passes it
+- [x] An SLA credit policy that issues credits, or the numeric SLA comes off `community`/`company`
+- [x] Two ADRs in `site/src/content/docs/docs/architecture/decisions.mdx`: the membership contract, and seat billing (with the tripwire above)
 
 ## Validation Checklist
 
