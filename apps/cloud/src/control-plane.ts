@@ -32,6 +32,7 @@ import {
   requiresMigration,
   resolveEntitlements,
   signEntitlements,
+  withStoragePack,
   type PlanEntitlements,
   type PlanId
 } from '@xnetjs/entitlements'
@@ -147,6 +148,8 @@ export interface ProvisionTenantArgs {
   challenge: DidChallenge
   /** Optional per-tenant entitlement overrides (add-on storage, seats, residency). */
   overrides?: Partial<Omit<PlanEntitlements, 'plan'>>
+  /** Purchased storage add-on in GiB, applied over the plan base (0435). */
+  storagePackGb?: number
   region?: string
 }
 
@@ -173,6 +176,19 @@ export type PlanChangeResult =
       /** Bytes that must be freed to fit (`usedBytes - targetQuotaBytes`); `null` when usage is unknown. */
       reclaimBytes: number | null
     }
+
+/**
+ * The storage number a tenant is actually held to: the aggregate ceiling when
+ * the plan publishes one, else the per-user quota (exploration 0435).
+ *
+ * Usage is probed from the hub's `/health`, which reports the whole data dir —
+ * a tenant-wide number. Comparing that against a per-user quota is the mismatch
+ * this resolves; on a flat plan with no aggregate ceiling the per-user quota is
+ * still the only number there is.
+ */
+export function effectiveCeilingBytes(entitlements: PlanEntitlements): number {
+  return entitlements.tenantQuotaBytes ?? entitlements.quotaBytes
+}
 
 /** Deterministic tenant id for a billing identity (so a replayed webhook is idempotent). */
 export function tenantIdForBilling(billingUserId: string): string {
@@ -288,7 +304,11 @@ export class ControlPlane {
     const existing = await this.deps.tenants.get(args.tenantId)
     if (existing) throw new Error(`Tenant already exists: ${args.tenantId}`)
 
-    const entitlements = resolveEntitlements(args.plan, args.overrides)
+    const entitlements = this.entitlementsWithPack(
+      args.plan,
+      args.overrides ?? {},
+      args.storagePackGb ?? 0
+    )
     let binding: TenantBinding | undefined
     let handle: HubHandle | undefined
     let aiVk: VirtualKey | undefined
@@ -350,6 +370,7 @@ export class ControlPlane {
             createdAt: this.now(),
             lastActiveMs: this.now(),
             dataTier: 'hot',
+            ...(args.storagePackGb ? { storagePackGb: args.storagePackGb } : {}),
             ...this.aiKeyFields(aiVk)
           }
           await this.deps.tenants.put(record)
@@ -376,6 +397,8 @@ export class ControlPlane {
     billingUserId: string
     region?: string
     overrides?: Partial<Omit<PlanEntitlements, 'plan'>>
+    /** Purchased storage add-on in GiB, applied over the plan base (0435). */
+    storagePackGb?: number
   }): Promise<TenantRecord> {
     const tenantId = tenantIdForBilling(args.billingUserId)
     const existing = await this.deps.tenants.get(tenantId)
@@ -390,7 +413,11 @@ export class ControlPlane {
       return existing
     }
 
-    const entitlements = resolveEntitlements(args.plan, args.overrides)
+    const entitlements = this.entitlementsWithPack(
+      args.plan,
+      args.overrides ?? {},
+      args.storagePackGb ?? 0
+    )
     let handle: HubHandle | undefined
     let aiVk: VirtualKey | undefined
     let record: TenantRecord | undefined
@@ -442,6 +469,7 @@ export class ControlPlane {
             lastActiveMs: this.now(),
             dataTier: 'hot',
             subscriptionStatus: 'active',
+            ...(args.storagePackGb ? { storagePackGb: args.storagePackGb } : {}),
             ...this.aiKeyFields(aiVk)
           }
           await this.deps.tenants.put(record)
@@ -649,6 +677,37 @@ export class ControlPlane {
   }
 
   /**
+   * Resolve entitlements for `plan` with any per-tenant overrides, then apply
+   * the purchased storage pack on top (exploration 0435).
+   *
+   * Single funnel on purpose: every provisioning and plan-change path goes
+   * through here, so there is no call site that can forget the pack.
+   */
+  private entitlementsWithPack(
+    plan: PlanId,
+    overrides: Partial<Omit<PlanEntitlements, 'plan'>>,
+    packGb: number
+  ): PlanEntitlements {
+    const resolved = resolveEntitlements(plan, overrides)
+    return packGb > 0 ? withStoragePack(resolved, packGb) : resolved
+  }
+
+  /**
+   * Set (or clear) a tenant's purchased storage add-on, keeping the plan and
+   * everything else untouched — the "more room, same plan" path (0435).
+   *
+   * Delegates to {@link changePlan} rather than reimplementing the flip, so a
+   * pack *reduction* inherits the over-quota guard verbatim: shrinking under
+   * live data returns `over-quota` and changes nothing, exactly as a plan
+   * downgrade does (0216). `packGb: 0` removes the pack.
+   */
+  async setStoragePack(tenantId: string, packGb: number): Promise<PlanChangeResult> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) throw new Error(`Unknown tenant: ${tenantId}`)
+    return this.changePlan(tenantId, record.plan, {}, { storagePackGb: packGb })
+  }
+
+  /**
    * Change a tenant's plan or capacity. A change that stays within the same
    * isolation tier (e.g. more storage/seats/concurrency) is a live entitlement
    * flip — `provisioner.setEnv` with a freshly-signed token, no data movement.
@@ -658,12 +717,18 @@ export class ControlPlane {
   async changePlan(
     tenantId: string,
     plan: PlanId,
-    overrides: Partial<Omit<PlanEntitlements, 'plan'>> = {}
+    overrides: Partial<Omit<PlanEntitlements, 'plan'>> = {},
+    opts: { storagePackGb?: number } = {}
   ): Promise<PlanChangeResult> {
     const record = await this.deps.tenants.get(tenantId)
     if (!record) throw new Error(`Unknown tenant: ${tenantId}`)
 
-    const next = resolveEntitlements(plan, overrides)
+    // The pack carries across a plan change unless this call is explicitly
+    // changing it. Reading it off the record HERE — rather than expecting every
+    // caller to pass it — is the fix for the self-serve route that used to drop
+    // a purchased pack on every plan change (exploration 0435, Gap 1).
+    const packGb = opts.storagePackGb ?? record.storagePackGb ?? 0
+    const next = this.entitlementsWithPack(plan, overrides, packGb)
     if (requiresMigration(record.entitlements, next)) {
       return { kind: 'migration-required', from: record.entitlements, to: next }
     }
@@ -673,16 +738,21 @@ export class ControlPlane {
     // quota under live data. Block when we can confirm they're over — or when we
     // can't measure at all (cold/asleep hub) — so the caller can free space and
     // retry, or wipe & start fresh (exploration 0216).
-    if (next.quotaBytes < record.entitlements.quotaBytes) {
+    //
+    // Measured against the TENANT ceiling where one exists (0435): the probe
+    // reads the hub's whole data dir, so comparing it to a per-user quota would
+    // block a multi-seat tenant that fits perfectly well.
+    const targetCeiling = effectiveCeilingBytes(next)
+    if (targetCeiling < effectiveCeilingBytes(record.entitlements)) {
       const usedBytes = await this.currentUsageBytes(record)
-      if (usedBytes === null || usedBytes > next.quotaBytes) {
+      if (usedBytes === null || usedBytes > targetCeiling) {
         return {
           kind: 'over-quota',
           from: record.entitlements,
           to: next,
           usedBytes,
-          targetQuotaBytes: next.quotaBytes,
-          reclaimBytes: usedBytes === null ? null : usedBytes - next.quotaBytes
+          targetQuotaBytes: targetCeiling,
+          reclaimBytes: usedBytes === null ? null : usedBytes - targetCeiling
         }
       }
     }
@@ -694,6 +764,7 @@ export class ControlPlane {
     const aiPatch = await this.reconcileAiKey(record, next)
     const updated: TenantRecord = {
       ...record,
+      ...(packGb > 0 ? { storagePackGb: packGb } : { storagePackGb: undefined }),
       plan,
       entitlements: next,
       hubUrl: handle.hubUrl,
@@ -734,7 +805,9 @@ export class ControlPlane {
   ): Promise<TenantRecord> {
     const record = await this.deps.tenants.get(tenantId)
     if (!record) throw new Error(`Unknown tenant: ${tenantId}`)
-    const next = resolveEntitlements(plan, overrides)
+    // The pack survives a wipe: they still paid for the space, they just have
+    // no data in it any more (0435).
+    const next = this.entitlementsWithPack(plan, overrides, record.storagePackGb ?? 0)
 
     if (record.substrateRef) await this.deps.provisioner.destroy(record.substrateRef)
     const handle = await this.deps.provisioner.provision({

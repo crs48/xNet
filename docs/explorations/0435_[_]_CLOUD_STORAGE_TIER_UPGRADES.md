@@ -769,10 +769,10 @@ export function storagePackMargin(packGb: number): PlanCostBreakdown {
 ### Phase 1 — entitlements + control plane
 
 - [x] `withStoragePack(entitlements, packGb)` in `packages/entitlements`, with a changeset
-- [ ] `storagePackGb?: number` on `TenantRecord`
-- [ ] Derive quota from the stored pack **inside** `changePlan` / `provisionForBilling`, so no call site can drop it
+- [x] `storagePackGb?: number` on `TenantRecord`
+- [x] Derive quota from the stored pack **inside** `changePlan` / `provisionForBilling`, so no call site can drop it
 - [x] Regression test: `personal` + 500 GB pack → upgrade to `family` → quota is 750 GiB, not 525 GiB
-- [ ] `ControlPlane.setStoragePack(tenantId, packGb)` routing a reduction through the existing over-quota guard
+- [x] `ControlPlane.setStoragePack(tenantId, packGb)` routing a reduction through the existing over-quota guard
 
 ### Phase 2 — billing
 
@@ -798,8 +798,8 @@ export function storagePackMargin(packGb: number): PlanCostBreakdown {
 - [ ] A tenant with a +500 GB pack can actually write 500 GB, verified end to end against R2 — not asserted from the quota field
 - [ ] Killing the hub instance mid-upload loses no committed blob (the Phase 0 durability fix, proven by test)
 - [x] A `family` tenant with 5 seats and a +100 GB pack is capped at plan-base + 100 GB **in aggregate**, not +500 GB
-- [ ] Plan change preserves the pack: `personal`+500 → `family` yields 750 GiB (the R4 regression test, green)
-- [ ] Removing a pack while over the target quota returns `over-quota` and **keeps billing the pack** — no silent shrink, no data loss
+- [x] Plan change preserves the pack: `personal`+500 → `family` yields 750 GiB (the R4 regression test, green)
+- [x] Removing a pack while over the target quota returns `over-quota` and **keeps billing the pack** — no silent shrink, no data loss
 - [x] A hub whose `HUB_PLAN` token predates `tenantQuotaBytes` boots and accepts writes (fail-open confirmed, not assumed)
 - [ ] A self-hosted hub with no `HUB_PLAN` and no object-store config still stores blobs locally and is unaffected by every change above
 - [ ] Floor-margin test green for +100/+500/+1000 at the published prices
