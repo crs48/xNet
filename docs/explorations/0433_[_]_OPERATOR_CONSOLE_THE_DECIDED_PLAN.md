@@ -98,13 +98,38 @@ Cross-referenced against `PLAN_CATALOG`:
 > 43.2 minutes; a single Cloud Run cold start with a Litestream restore can spend
 > a meaningful fraction of that, and the tier is sold on the guarantee.
 
-**Fix:** derive warmth from the SLO. Any plan whose `sloForPlan().objective` is
-non-null gets `minInstances ≥ 1`. Sleep tiers keep scaling to zero — they carry
-`objective: null`, so cold starts there cannot burn a budget and are harmless.
+**Fix:** warmth is a **floor built from two independent reasons**, not one rule
+replacing another. A plan stays warm if it publishes an availability objective
+**or** its isolation tier is explicitly `dedicated-warm`. Sleep tiers keep
+scaling to zero — they carry `objective: null`, so cold starts there cannot burn
+a budget and are harmless.
+
+> [!WARNING]
+> The obvious fix — "warm iff the objective is non-null" — is wrong, and
+> modelling the cost is what caught it. `team` is `dedicated-warm` but
+> `best-effort`, so an objective-only rule would have **dropped a paying tier to
+> scale-to-zero**. `PLAN_PRICING` models `team` with `warm: true`; the price
+> already covers that COGS. Saving it would have been a silent downgrade.
 
 This also corrects 0431's Finding 2, which aimed the cold-start problem at the
 wrong tenants: it is not a measurement bug on sleep tiers, it is a provisioning
 bug on SLO tiers.
+
+**Cost delta (modelled against `packages/cloud/src/cost/pricing.ts`):** none of
+consequence, because the price list already assumed the fixed behaviour.
+`UNIT_COSTS.warmComputePerMonth` is **$6/unit/month**, so `minInstances` 0 → 1
+adds ~$6/month per SLO tenant.
+
+| Plan | Modelled | Price | Warm delta | Effect on margin |
+| ---- | -------- | ----- | ---------- | ---------------- |
+| `community` | `warm: true, warmUnits: 2` | $99/mo | +$6 | None — already priced warm |
+| `enterprise` | `warm: true, warmUnits: 4` | $2000/mo | +$6 | None — already priced warm; 0.3% of revenue |
+| `company` | **no scenario in `PLAN_PRICING`** | — | +$6 | ⚠️ unmodelled — see open questions |
+| `team` | `warm: true` | $96/mo | 0 | Unchanged by the corrected rule |
+
+`floor-margin.test.ts` passes unchanged. The one gap is that **`company` has no
+`PricingScenario` at all**, so its margin floor is unasserted — that predates
+this work and is noted rather than fixed here.
 
 ### D2 — four surfaces claim we cannot read data the hub indexes
 
@@ -446,7 +471,7 @@ sale — either re-opens the consent model.
 - [x] `minInstances` returns 1 when `sloForPlan(plan).objective !== null`
 - [x] Test: `community`, `company`, `enterprise` provision warm; `personal`, `family`, `demo` do not
 - [x] Test: `region-pinned` no longer falls through to 0
-- [ ] Model the cost delta against `packages/cloud/src/cost/pricing.ts`
+- [x] Model the cost delta against `packages/cloud/src/cost/pricing.ts`
 - [ ] Correct `apps/cloud/src/dashboard.ts:650`
 - [ ] Correct `site/src/pages/cloud/index.astro:20`
 - [ ] Correct `site/src/data/compare.ts:1239`

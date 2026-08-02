@@ -407,14 +407,22 @@ export function availabilityObjective(sla: SlaLevel): number | null {
 /**
  * Whether a plan must be provisioned always-warm (no scale-to-zero).
  *
- * Derived from the published objective, NOT from the isolation tier. Keying this
- * off `isolation === 'dedicated-warm'` was exploration 0433's defect D1: it gave
- * the warm instance to `team` — which is `best-effort`, so it can never burn an
- * error budget — while `community`, `company` (99.9%) and `enterprise` (99.95%)
- * all scaled to zero. You cannot serve an availability objective from a service
- * that has to cold-start, and a cold start can spend a large fraction of a
- * 43-minute monthly budget in one go.
+ * Two independent reasons to stay warm, and the bug was treating the second as
+ * the only one (exploration 0433 D1):
+ *
+ *  1. **It publishes an availability objective.** You cannot serve 99.9% from a
+ *     service that has to cold-start — one cold start can spend a large fraction
+ *     of a 43-minute monthly budget. This is the clause that was missing, which
+ *     left `community`, `company` and `enterprise` scaling to zero.
+ *  2. **Its isolation tier is explicitly `dedicated-warm`.** `team` is
+ *     `best-effort`, so it can never burn an error budget — but it is sold as a
+ *     warm tier and `PLAN_PRICING` models it with `warm: true`. Dropping it to
+ *     scale-to-zero would quietly degrade a paying tier to save COGS the price
+ *     already covers.
+ *
+ * So warmth is a floor built from both, never one replacing the other.
  */
 export function requiresWarmInstance(entitlements: PlanEntitlements): boolean {
-  return availabilityObjective(entitlements.sla) !== null
+  if (availabilityObjective(entitlements.sla) !== null) return true
+  return entitlements.isolation === 'dedicated-warm'
 }

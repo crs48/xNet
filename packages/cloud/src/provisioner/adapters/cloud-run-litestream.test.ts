@@ -98,12 +98,19 @@ describe('CloudRunLitestreamProvisioner', () => {
     expect((await client.get({ ...REF, service }))?.minInstances).toBe(1)
   })
 
+  it('keeps team warm on its isolation tier, though it publishes no objective', async () => {
+    const { client, provisioner } = setup()
+    await provisioner.provision(
+      spec({ tenantId: 't_team', entitlements: resolveEntitlements('team') })
+    )
+    expect((await client.get({ ...REF, service: 't-team' }))?.minInstances).toBe(1)
+  })
+
   it.each([
     ['demo', 't_demo', 't-demo'],
     ['personal', 't_personal', 't-personal'],
-    ['family', 't_family', 't-family'],
-    ['team', 't_team', 't-team']
-  ] as const)('scales %s to zero — no published objective to serve', async (
+    ['family', 't_family', 't-family']
+  ] as const)('scales %s to zero — no objective and not a warm tier', async (
     plan,
     tenantId,
     service

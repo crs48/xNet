@@ -203,17 +203,22 @@ describe('requiresWarmInstance', () => {
     }
   )
 
-  it.each(['demo', 'personal', 'family', 'team'] as const)(
-    '%s publishes no objective, so it may scale to zero',
+  it.each(['demo', 'personal', 'family'] as const)(
+    '%s has neither an objective nor a warm tier, so it may scale to zero',
     (plan) => {
       expect(requiresWarmInstance(resolveEntitlements(plan))).toBe(false)
     }
   )
 
-  it('does not key off the isolation tier — team is dedicated-warm yet best-effort', () => {
+  // The objective clause is ADDITIVE, not a replacement. team is best-effort so
+  // it can never burn a budget, but it is sold warm and PLAN_PRICING models it
+  // with `warm: true` — dropping it to scale-to-zero would degrade a paying tier
+  // to save COGS the price already covers.
+  it('keeps team warm on its isolation tier despite having no objective', () => {
     const team = resolveEntitlements('team')
     expect(team.isolation).toBe('dedicated-warm')
-    expect(requiresWarmInstance(team)).toBe(false)
+    expect(availabilityObjective(team.sla)).toBeNull()
+    expect(requiresWarmInstance(team)).toBe(true)
   })
 
   it('covers region-pinned, which the old isolation check missed entirely', () => {
