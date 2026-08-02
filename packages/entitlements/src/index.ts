@@ -26,6 +26,8 @@ export {
   CHEAP_AI_MODELS,
   STANDARD_AI_MODELS,
   requiresMigration,
+  availabilityObjective,
+  requiresWarmInstance,
   asPlanId,
   type PlanId,
   type IsolationTier,

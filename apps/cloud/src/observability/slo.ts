@@ -7,7 +7,7 @@
  * (security/reliability fixes are always exempt — enforced at the call site).
  */
 
-import { PLAN_CATALOG, type PlanId, type SlaLevel } from '@xnetjs/entitlements'
+import { PLAN_CATALOG, availabilityObjective, type PlanId, type SlaLevel } from '@xnetjs/entitlements'
 
 export interface SloTarget {
   /** Availability objective as a fraction (e.g. 0.999). `null` = no published SLO. */
@@ -18,18 +18,26 @@ export interface SloTarget {
   label: string
 }
 
-/** Map a plan's declared SLA level to a measurable SLO. */
+const SLA_LABELS: Record<SlaLevel, string> = {
+  '99.9': '99.9% uptime',
+  custom: '99.95% uptime (enterprise)',
+  'best-effort': 'best-effort',
+  none: 'no SLA'
+}
+
+/**
+ * Map a plan's declared SLA level to a measurable SLO.
+ *
+ * The objective itself comes from `@xnetjs/entitlements` rather than a switch
+ * here: the provisioner reads the same mapping to decide always-warm placement,
+ * and two copies are how a tenant gets sold an objective its infrastructure
+ * cannot serve (exploration 0433 D1). Only the human label is local.
+ */
 export function sloForSla(sla: SlaLevel): SloTarget {
-  switch (sla) {
-    case '99.9':
-      return { objective: 0.999, windowDays: 30, label: '99.9% uptime' }
-    case 'custom':
-      return { objective: 0.9995, windowDays: 30, label: '99.95% uptime (enterprise)' }
-    case 'best-effort':
-      return { objective: null, windowDays: 30, label: 'best-effort' }
-    case 'none':
-    default:
-      return { objective: null, windowDays: 30, label: 'no SLA' }
+  return {
+    objective: availabilityObjective(sla),
+    windowDays: 30,
+    label: SLA_LABELS[sla] ?? SLA_LABELS.none
   }
 }
 

@@ -5,7 +5,9 @@ import {
   PLAN_ORDER,
   aiModelAllowed,
   asPlanId,
+  availabilityObjective,
   requiresMigration,
+  requiresWarmInstance,
   resolveEntitlements,
   withAiBudget,
   withAiModels,
@@ -178,5 +180,45 @@ describe('asPlanId', () => {
     expect(asPlanId('team')).toBe('team')
     expect(() => asPlanId('frobnicate')).toThrow(/Invalid plan id/)
     expect(() => asPlanId(42)).toThrow(/Invalid plan id/)
+  })
+})
+
+describe('availabilityObjective', () => {
+  it('maps each SLA level to its published objective', () => {
+    expect(availabilityObjective('99.9')).toBe(0.999)
+    expect(availabilityObjective('custom')).toBe(0.9995)
+    expect(availabilityObjective('best-effort')).toBeNull()
+    expect(availabilityObjective('none')).toBeNull()
+  })
+})
+
+describe('requiresWarmInstance', () => {
+  // Exploration 0433 D1: warmth follows the SLA, not the isolation tier. The
+  // three plans that publish an objective are exactly the three that must never
+  // cold-start; everything else may scale to zero.
+  it.each(['community', 'company', 'enterprise'] as const)(
+    '%s publishes an objective, so it must stay warm',
+    (plan) => {
+      expect(requiresWarmInstance(resolveEntitlements(plan))).toBe(true)
+    }
+  )
+
+  it.each(['demo', 'personal', 'family', 'team'] as const)(
+    '%s publishes no objective, so it may scale to zero',
+    (plan) => {
+      expect(requiresWarmInstance(resolveEntitlements(plan))).toBe(false)
+    }
+  )
+
+  it('does not key off the isolation tier — team is dedicated-warm yet best-effort', () => {
+    const team = resolveEntitlements('team')
+    expect(team.isolation).toBe('dedicated-warm')
+    expect(requiresWarmInstance(team)).toBe(false)
+  })
+
+  it('covers region-pinned, which the old isolation check missed entirely', () => {
+    const ent = resolveEntitlements('enterprise')
+    expect(ent.isolation).toBe('region-pinned')
+    expect(requiresWarmInstance(ent)).toBe(true)
   })
 })

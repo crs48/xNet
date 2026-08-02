@@ -380,3 +380,41 @@ export function asPlanId(value: unknown): PlanId {
   if (!isPlanId(value)) throw new Error(`Invalid plan id: ${String(value)}`)
   return value
 }
+
+/**
+ * The availability objective an SLA level commits to, as a fraction, or `null`
+ * when the plan publishes no measurable objective.
+ *
+ * This lives beside {@link PLAN_CATALOG} rather than in the control plane
+ * because BOTH planes need it and they must not disagree: the control plane
+ * measures error budgets against it, and the provisioner decides always-warm
+ * placement from it (exploration 0433 D1). A second copy of this mapping is how
+ * a tenant ends up sold an objective its own infrastructure cannot serve.
+ */
+export function availabilityObjective(sla: SlaLevel): number | null {
+  switch (sla) {
+    case '99.9':
+      return 0.999
+    case 'custom':
+      return 0.9995
+    case 'best-effort':
+    case 'none':
+    default:
+      return null
+  }
+}
+
+/**
+ * Whether a plan must be provisioned always-warm (no scale-to-zero).
+ *
+ * Derived from the published objective, NOT from the isolation tier. Keying this
+ * off `isolation === 'dedicated-warm'` was exploration 0433's defect D1: it gave
+ * the warm instance to `team` — which is `best-effort`, so it can never burn an
+ * error budget — while `community`, `company` (99.9%) and `enterprise` (99.95%)
+ * all scaled to zero. You cannot serve an availability objective from a service
+ * that has to cold-start, and a cold start can spend a large fraction of a
+ * 43-minute monthly budget in one go.
+ */
+export function requiresWarmInstance(entitlements: PlanEntitlements): boolean {
+  return availabilityObjective(entitlements.sla) !== null
+}

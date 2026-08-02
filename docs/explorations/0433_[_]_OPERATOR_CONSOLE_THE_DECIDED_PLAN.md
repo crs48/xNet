@@ -442,10 +442,10 @@ sale — either re-opens the consent model.
 
 ### 🔴 Ship first — independent of everything below
 
-- [ ] Move the SLA→warmth mapping into `@xnetjs/entitlements` beside `PLAN_CATALOG`
-- [ ] `minInstances` returns 1 when `sloForPlan(plan).objective !== null`
-- [ ] Test: `community`, `company`, `enterprise` provision warm; `personal`, `family`, `demo` do not
-- [ ] Test: `region-pinned` no longer falls through to 0
+- [x] Move the SLA→warmth mapping into `@xnetjs/entitlements` beside `PLAN_CATALOG`
+- [x] `minInstances` returns 1 when `sloForPlan(plan).objective !== null`
+- [x] Test: `community`, `company`, `enterprise` provision warm; `personal`, `family`, `demo` do not
+- [x] Test: `region-pinned` no longer falls through to 0
 - [ ] Model the cost delta against `packages/cloud/src/cost/pricing.ts`
 - [ ] Correct `apps/cloud/src/dashboard.ts:650`
 - [ ] Correct `site/src/pages/cloud/index.astro:20`
