@@ -9973,8 +9973,16 @@ These records follow the standard [ADR](https://adr.github.io/) discipline:
 - **Accepted ADRs are immutable.** We don't rewrite a decision when reality
   changes — we add a _new_ ADR that supersedes the old one and set the old
   entry's status to `Superseded by ADR-NN`. The truth of the architecture is the
-  whole chain, not the latest entry. (Typo and dead-link fixes are the only
-  in-place edits.)
+  whole chain, not the latest entry. (Typo fixes, dead-link fixes, and adding a
+  **Tripwire** are the only in-place edits.)
+- **A one-way decision carries a Tripwire**: the observation that re-opens it.
+  It is additive metadata, not part of the decision — it says nothing about what
+  was chosen, only what would make us write the superseding ADR. Without one, a
+  decision decays into a taboo: the rationale ages, the conditions that produced
+  it change, and because nobody wrote down what would count as evidence against,
+  the entry stops being re-openable and becomes a rule nobody remembers the
+  reason for. This is the same job `review:` does for `docs/explorations/`
+  (exploration 0421), and the reasoning is exploration 0430's.
 - **If an implemented change alters an architectural invariant, it adds or
   supersedes an ADR in the same PR.** Most decisions are worked out first in
   `docs/explorations/`; this page is the distilled outcome.
@@ -9996,6 +10004,9 @@ These records follow the standard [ADR](https://adr.github.io/) discipline:
 - <driver 2>
 
 **Tradeoff:** <what we gave up, and the mitigation>
+
+**Tripwire:** <the observation that re-opens this — required for a one-way
+decision, omitted for a convention nothing could falsify>
 ```
 
 </details>
@@ -10188,6 +10199,11 @@ profiles (see [ADR-1](#adr-1-yjs-over-automerge-for-rich-text) and
 [ADR-3](#adr-3-field-level-lww-for-structured-data)). This ADR clarifies ADR-1
 and elevates ADR-3 to normative status.
 
+**Tripwire:** a second implementation cannot fully participate in L0–L3 while
+treating the Yjs body as an opaque octet string — i.e. some normative behaviour
+turns out to require decoding the document bytes. That would mean the codec is
+not pluggable and the kernel boundary is drawn in the wrong place.
+
 ## ADR-12: SQLite everywhere — better-sqlite3 + Litestream, not Turso/libSQL
 
 **Status:** Accepted (2026-06)
@@ -10211,10 +10227,13 @@ Turso Database.
   today; migrating would cost five platform adapters and an FTS5 rewrite.
 - FTS5 and R-Tree/GIS (which we _do_ use) are battle-tested on SQLite.
 
-**Tradeoff:** Single-writer serialization and no built-in vector index. Documented
-re-evaluation triggers (a production-ready engine with both ANN and MVCC, or a
-vector workload SQLite can't serve) would reopen this. A bounded Turso pilot on
-the disposable `telemetry.db` is sanctioned as a probe.
+**Tradeoff:** Single-writer serialization and no built-in vector index. A bounded
+Turso pilot on the disposable `telemetry.db` is sanctioned as a probe.
+
+**Tripwire:** one engine ships production-ready embedded vector ANN **and** MVCC
+concurrent writes together (today they live in two different Turso products), or
+a shipped feature needs a vector workload SQLite + FTS5 demonstrably cannot
+serve.
 
 ## ADR-13: Local-first — the hub is an accelerant, never a dependency
 
@@ -10236,6 +10255,11 @@ signaling) is fire-and-forget and strictly additive.
 **Tradeoff:** Some cross-device features are eventually-consistent rather than
 instantly authoritative. Accepted: correctness comes from the convergent LWW log,
 so "eventually" is safe.
+
+**Tripwire:** a shipped feature cannot produce its first paint without a hub
+round-trip — not "is slower offline", but _cannot render_. One such feature makes
+the hub a dependency in fact regardless of what this entry says, and the honest
+move is to supersede rather than carry a promise the product no longer keeps.
 
 ## ADR-14: Framework-agnostic runtime — React is a thin binding
 
@@ -10284,6 +10308,10 @@ token without ever taking an FSL — or a Stripe/AWS — dependency.
 "all FSL." The `@xnetjs/hub` package deliberately has zero dependency on
 `@xnetjs/cloud`; that separation is by convention (and verified by the absence of
 the import), not yet a lint rule.
+
+**Tripwire:** the MIT hub acquires a dependency on FSL-licensed code (which
+`pnpm check:cloud-boundary` would catch first), or a hyperscaler ships a managed
+xNet anyway — proving FSL bought no protection and only cost adoption.
 
 ## ADR-16: Automated releases via Changesets + Conventional Commits
 
@@ -10354,6 +10382,11 @@ built-in "Nano" via an `availability()` probe (`packages/plugins/src/ai/`).
 **Tradeoff:** Two provider code paths to maintain, and local-model availability
 varies by browser/hardware. Detection is capability-probed, not assumed.
 
+**Tripwire:** a provider worth routing to requires a key on the client (the
+keyless property is the whole boundary), or local models reach parity such that
+the managed path exists only to meter — at which point it is a billing decision
+wearing an architecture costume.
+
 ## ADR-19: Plan-first AI mutations
 
 **Status:** Accepted (2026-06)
@@ -10400,6 +10433,11 @@ carrying a `ReplicaTrust` of `trusted` or `zero-knowledge`
 anti-entropy, trust gating, and UI are deferred. The planner exists ahead of full
 consumption.
 
+**Tripwire:** a real replication policy needs a unit finer than a namespace (per
+node, per schema) or coarser (per account), or the planner is still unconsumed by
+the time the manifest and trust gating ship — built-ahead machinery that never
+acquires a caller is the shape this repo already knows from 0377.
+
 ## ADR-21: Append-only change log with off-boot compaction
 
 **Status:** Accepted (2026-06)
@@ -10425,6 +10463,12 @@ work through one serial worker with a priority scheduler.
 best-effort (bails on backgrounded tabs). Accepted: a responsive cold open
 outranks prompt disk reclaim. Compaction stays default-on, opt-out via
 `xnet:compact:changes='off'`.
+
+**Tripwire:** compaction stops keeping up — the change log grows monotonically
+across a release cycle on an ordinary workload — or cold open breaches
+exploration 0266's stop rule (first rows under 100ms p95) with compaction already
+default-on. Either means deferred reclamation has stopped being free, which is
+the entire basis of this entry.
 
 ## ADR-22: Consent-gated observability
 
@@ -10529,7 +10573,7 @@ turn every subscribed hub into a policy-enforcement point it cannot honestly be.
 - Replicating grant rows would make revocation eventually-consistent across
   hubs an attacker can choose among — a deny must always win (0359).
 - Delegation chains keep the home hub authoritative: a downstream hub can
-  *prove* access was granted without being able to *mint* it.
+  _prove_ access was granted without being able to _mint_ it.
 
 **Tradeoff:** Members of a gated community cannot yet read it through a
 different hub. Accepted: correctness of revocation outranks read locality.
@@ -10544,10 +10588,10 @@ depend on `@xnetjs/hub` at all.
 
 **Decision:** **Scope out.** `@xnetjs/server` is not a hub role and will not
 be absorbed. It serves a different buyer: an app team embedding xNet's data
-model inside *their* backend (their auth, their storage, their trust mode) —
+model inside _their_ backend (their auth, their storage, their trust mode) —
 not an operator running xNet's server. The hub's role system covers every
-deployment of *our* server; `@xnetjs/server` remains the library for building
-*someone else's*.
+deployment of _our_ server; `@xnetjs/server` remains the library for building
+_someone else's_.
 
 **Rationale:**
 
@@ -10559,6 +10603,12 @@ deployment of *our* server; `@xnetjs/server` remains the library for building
 
 **Tradeoff:** Two server documentation surfaces. Accepted; they answer
 different questions.
+
+**Tripwire:** `@xnetjs/server`'s `TrustMode` and storage hooks converge with the
+hub's until a role _could_ share the core's invariants (the 0382 test for
+neighbour vs role), or the BYO-backend buyer fails to materialise — nobody
+embeds it in their own backend — at which point maintaining a second server is
+paying for an audience that does not exist.
 
 ## ADR-28: No durable-execution orchestrator; reconcilers instead
 
@@ -10578,8 +10628,8 @@ never enter `packages/hub`, `packages/server`, or any client package.
 
 **Rationale:**
 
-- Temporal and its peers provide durable *execution*; xNet's hard problem is
-  durable *state*, which CRDTs and the signed change log already solve. The
+- Temporal and its peers provide durable _execution_; xNet's hard problem is
+  durable _state_, which CRDTs and the signed change log already solve. The
   position was already recorded in exploration 0332's landscape survey.
 - It cannot run where most xNet work happens. The Temporal TypeScript SDK runs
   workflow code in a Node-only deterministic sandbox against a server cluster —
@@ -10595,9 +10645,12 @@ never enter `packages/hub`, `packages/server`, or any client package.
   answer is unavailable.
 
 **Tradeoff:** We maintain ~300 lines of scheduling and compensation logic
-ourselves. Accepted, and bounded: exploration 0411 records six decidable
-tripwires that re-open the question, and treats the primitives growing past
-~500 LOC as a tripwire in its own right.
+ourselves. Accepted, and bounded.
+
+**Tripwire:** any of the six decidable tripwires recorded in exploration 0411,
+or the hand-rolled primitives (`saga()`, the leased job runner, the `RolloutRun`
+checkpoint) growing past ~500 LOC — at which point we are maintaining the thing
+we declined to adopt, without its testing or its operator tooling.
 
 ## ADR-29: xNet is not an agent harness
 
@@ -10606,14 +10659,13 @@ tripwires that re-open the question, and treats the primitives growing past
 harnesses (OpenClaw, Hermes, Buzz) or build a competing one with its own
 privacy layer. "Agent harness" turned out to name three separate jobs, two of
 which xNet already occupies in shipped code: the **substrate** agents act
-against (`xnet mcp serve`, Agent Passports, the audit trail — exploration
-0337) and the **client** that drives an agent (the bridge daemon and
+against (`xnet mcp serve`, Agent Passports, the audit trail — exploration 0337) and the **client** that drives an agent (the bridge daemon and
 `AgentFrame` wire — exploration 0392). Only the third — owning the agent loop
 itself, with channels, scheduling, memory, and a skill marketplace — was
 genuinely undecided.
 
-**Decision:** **Do not build an agent harness.** xNet is the *accountability
-substrate* agents run against and a *client* for the good ones. The agent loop,
+**Decision:** **Do not build an agent harness.** xNet is the _accountability
+substrate_ agents run against and a _client_ for the good ones. The agent loop,
 its messaging channels, its cron and heartbeats, and its skill marketplace are
 permanent non-goals.
 
@@ -10644,15 +10696,21 @@ regardless of what that agent's own permission model claims.
 
 **Tradeoff:** xNet's relationship with the user is mediated by whichever agent
 they chose, so the accountability story has to be marketed as the reason the
-agent is *safe* rather than as a product of its own. Accepted: the alternative
+agent is _safe_ rather than as a product of its own. Accepted: the alternative
 spends the roadmap's other two pillars on a layer five funded competitors gave
 away in one week.
 
 **Scope note:** the provider-agnostic loop in
-`packages/cloud/src/ai/agent-runner.ts` stays — it is a *safety core* (tool
+`packages/cloud/src/ai/agent-runner.ts` stays — it is a _safety core_ (tool
 allow-list, injection deny point, token-cap breaker) for xNet's own server-side
-features, not the seed of a harness product. Growing it channels, scheduling,
-or a skill registry is the tripwire that re-opens this ADR.
+features, not the seed of a harness product.
+
+**Tripwire:** growing `agent-runner.ts` channels, scheduling, or a skill
+registry — the three things that would make it a harness. Separately, the
+commoditisation premise fails if the layer re-consolidates: two of the five June
+2026 meta-harnesses dead and one harness holding a dominant share of agent
+sessions for two consecutive quarters would mean "nothing stays differentiated
+for a quarter" was wrong, and the substrate-only position needs re-arguing.
 
 ## ADR-30: Hub addresses resolve; no data-path routing tier
 
@@ -10689,8 +10747,8 @@ last-known address when the resolver is unreachable.
   pointed at a hostname resolving to nothing, mid-session, with no local
   fallback. A resolution record degrades instead to "connect where you connected
   last time", and the address travels inside the `.xnetpack` export.
-- The Charter already refuses this by name: *"No global chokepoint tier. We do
-  not operate an indispensable middle to rent back later."* A tier carrying
+- The Charter already refuses this by name: _"No global chokepoint tier. We do
+  not operate an indispensable middle to rent back later."_ A tier carrying
   every byte of every tenant's sync traffic is that middle, described.
 - Signing matters because mirroring is allowed. A mirror that could rewrite
   `url` would be a redirect primitive for anyone who compromised it; re-serving
@@ -10699,7 +10757,7 @@ last-known address when the resolver is unreachable.
   unsigned liveness hint (**whether to wait**) is deliberate: a lying mirror can
   make a client pause, never redirect it.
 
-**Tradeoff:** Not *quite* one connection string — a migration costs one failed
+**Tradeoff:** Not _quite_ one connection string — a migration costs one failed
 dial and a re-resolve, and the client needs a cache-invalidation story. Accepted:
 a one-round-trip staleness window is far cheaper than an operated tier we have
 promised not to build.

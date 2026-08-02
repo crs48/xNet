@@ -64,6 +64,11 @@ export {
   type UseCanvasQueryFramesResult
 } from './query-frames.js'
 export {
+  applySocialCanvasProjectionPlan,
+  describeSocialCanvasProjection,
+  type ApplySocialCanvasProjectionResult
+} from './social-projection.js'
+export {
   useCanvasSourceReferences,
   useSelectedSourceReferences,
   type CanvasSourceReference

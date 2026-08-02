@@ -14,6 +14,9 @@
  *     ✗ confirmshaming       → don't shame the user out of a choice they made
  *     ✗ ratio scorekeeping   → reciprocity is legible, never scored; show
  *                              stewardship, not standing (exploration 0352)
+ *     ✗ metered connection   → introductions are never sold (exploration 0417)
+ *     ✗ manufactured urgency → scarcity and countdown prompts sell dread as a
+ *                              feature; "every bus is the last bus" (0429)
  *
  *   surplus       (scoped to all of packages/ + apps/)
  *     ✗ third-party ad/analytics SDKs (gtag, fbq, Segment, Mixpanel,
@@ -43,9 +46,16 @@ const root = resolve(process.cwd())
 // bar as the app. Only .ts/.tsx are scanned, so the essays' prose (.astro/.md)
 // is untouched — the gate guards code, not copy.
 const SURPLUS_ROOTS = [join(root, 'packages'), join(root, 'apps'), join(root, 'site')]
+// Dark-pattern rules only run on code that renders. The list must track where
+// the UI actually lives: `workbench` is the only desktop shell (0406) and
+// `dashboard` hosts the widgets, so a streak shipped in either for months
+// without the gate ever looking at it (exploration 0426).
 const DARK_DIR_MARKERS = [
   `${join('packages', 'ui', 'src')}`,
   `${join('packages', 'react', 'src')}`,
+  `${join('packages', 'workbench', 'src')}`,
+  `${join('packages', 'dashboard', 'src')}`,
+  `${join('packages', 'views', 'src')}`,
   `${join('apps', 'web', 'src')}`,
   `${join('site', 'src')}`
 ]
@@ -71,6 +81,27 @@ const RULES = [
     fix: 'streaks weaponize loss aversion; track progress without a punishable chain'
   },
   {
+    // The identifier rule above only catches a streak that admits its name. The
+    // one we shipped was a local called `streak` fed by computeStreak(), which
+    // sailed through for months (exploration 0426). Match the *math* reaching a
+    // render path instead of the spelling someone happened to choose.
+    // Note `habitStrength` is deliberately absent: it decays on a miss instead
+    // of resetting to zero, which is the humane alternative this rule pushes
+    // toward — banning it would ban the fix.
+    name: 'streak chain in a render path',
+    group: 'dark-pattern',
+    re: /\b(computeStreak|longestStreak)\s*\(/,
+    fix: 'a consecutive-day chain in UI punishes a miss; render completionRate or habitStrength over a window instead — same information, nothing to break'
+  },
+  {
+    // Flame/lightning/100 next to a count is streak iconography wearing a
+    // different hat: the icon exists to make the number feel losable.
+    name: 'loss-aversion iconography',
+    group: 'dark-pattern',
+    re: /[🔥⚡💯]\s*\{|<Flame\b/,
+    fix: 'flame/lightning beside a count is streak iconography — show the number plainly, or show a rate that cannot be broken'
+  },
+  {
     name: 'confirmshaming',
     group: 'dark-pattern',
     re: /\bconfirm[-_]?sham(?:e|ing)?\b/i,
@@ -94,6 +125,23 @@ const RULES = [
     group: 'dark-pattern',
     re: /\b(boostPrice|paidVisibility|featuredProfile|superLikePrice|matchPaywall|payToReveal)\b/,
     fix: 'introductions are never sold — selling rank or reveal turns the matchmaker into a meter (Charter §6 "no rent on introductions", exploration 0417)'
+  },
+  {
+    // The last-bus lesson (exploration 0429): after the 1990s xiagang layoffs,
+    // Chinese adoption of each new wave ran on dread rather than appetite —
+    // Xiang Biao's "every bus is the last bus". Measured from outside, that is
+    // indistinguishable from enthusiasm, which is exactly what makes it usable
+    // as a growth tactic. Scarcity and countdown prompts manufacture the same
+    // dread on purpose. Charter §Calm; the copy rule was already written down
+    // in apps/cloud/src/billing/notify.ts and enforced by nothing.
+    //
+    // Deliberately NOT matched: expiresIn / expiresAt / ttl / deadline / dueDate
+    // and a bare `countdown` — tokens expire and meetings start, and a gate that
+    // fires on legitimate time handling is a gate that can never go green.
+    name: 'manufactured urgency',
+    group: 'dark-pattern',
+    re: /\b(spotsLeft|seatsRemaining|offerEndsAt|limitedTimeOffer|countdownUrgency|urgencyBanner|viewersNow|actNow|hurryUp)\b/,
+    fix: 'urgency is not a feature — a last-bus prompt converts dread into a click; state the facts and let the user choose (Charter §Calm, exploration 0429)'
   },
   {
     // The primitives lesson (exploration 0422): making relationships legible
@@ -262,6 +310,31 @@ function runSelfTest() {
       expect: (v) => v.some((x) => x.rule === 'streak counter')
     },
     {
+      // The exact line that shipped in the habit widget for months.
+      label: 'flags a streak chain even when the local is just called `streak`',
+      dark: true,
+      text: 'const streak = computeStreak(completed, scheduledDays, today)',
+      expect: (v) => v.some((x) => x.rule === 'streak chain in a render path')
+    },
+    {
+      label: 'flags a flame emoji beside a count',
+      dark: true,
+      text: '<span className="text-orange-500">🔥 {streak}</span>',
+      expect: (v) => v.some((x) => x.rule === 'loss-aversion iconography')
+    },
+    {
+      label: 'flags a Flame icon component',
+      dark: true,
+      text: '<Flame size={10} strokeWidth={2} />',
+      expect: (v) => v.some((x) => x.rule === 'loss-aversion iconography')
+    },
+    {
+      label: 'completionRate is not a streak chain',
+      dark: true,
+      text: 'const rate = completionRate(completed, visibleScheduled)',
+      expect: (v) => v.length === 0
+    },
+    {
       label: 'flags ratio scorekeeping in a UI file',
       dark: true,
       text: 'const leaderboard = rankMembers(members)',
@@ -283,6 +356,24 @@ function runSelfTest() {
       label: 'unmetered connect code is not a metered connection',
       dark: true,
       text: 'const card = buildIntroCard({ intent, sharedInterests })',
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'flags manufactured urgency in a UI file',
+      dark: true,
+      text: 'const spotsLeft = plan.capacity - plan.taken',
+      expect: (v) => v.some((x) => x.rule === 'manufactured urgency')
+    },
+    {
+      label: 'a token expiry is not manufactured urgency',
+      dark: true,
+      text: 'const expiresIn = session.ttlSeconds',
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'a meeting countdown is not manufactured urgency',
+      dark: true,
+      text: 'const countdown = formatRemaining(meeting.startsAt)',
       expect: (v) => v.length === 0
     },
     {

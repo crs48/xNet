@@ -15,7 +15,8 @@ export function NavRow({
   active,
   onClick,
   trailing,
-  testId
+  testId,
+  coachAnchor
 }: {
   icon: LucideIcon
   label: string
@@ -24,6 +25,8 @@ export function NavRow({
   /** Badge, count, or affordance rendered at the row's end. */
   trailing?: ReactNode
   testId?: string
+  /** Coachmark anchor name, e.g. `rail.crm` (0206/0428). */
+  coachAnchor?: string
 }): React.JSX.Element {
   return (
     <button
@@ -31,6 +34,7 @@ export function NavRow({
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
       data-nav-row={testId}
+      data-coach={coachAnchor}
       className={`flex w-full cursor-pointer items-center gap-2.5 rounded-lg border-none px-2 py-1.5 text-left text-[13px] transition-colors ${
         active
           ? 'bg-accent font-medium text-ink-1'

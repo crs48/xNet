@@ -5022,6 +5022,9 @@ export const DEFAULT_EXTERNAL_REFERENCE_IFRAME_ALLOW = "accelerometer; autoplay;
 export const DEFAULT_OFFLINE_POLICY: OfflineAuthPolicy;
 
 // @public
+export const DEFAULT_PROMOTION_THRESHOLD = 8;
+
+// @public
 export const DEFAULT_ROW_HEIGHT: RowHeight;
 
 // @public (undocumented)
@@ -8745,6 +8748,14 @@ export type PortableChangeRecord = {
 };
 
 // @public
+export type PortableHubAddress = {
+    name: string;
+    url: string;
+    resolverUrl?: string;
+    observedAt: number;
+};
+
+// @public
 export type PortableYjsDocRecord = {
     nodeId: string;
     updateB64: string;
@@ -8955,6 +8966,16 @@ export const ProjectSchema: DefinedSchema<{
 // @public
 export function promoteOverlay(authority: string, field: string, coreProp: string): LensOperation;
 
+// @public (undocumented)
+export interface PromotionProposal {
+    authority: string;
+    count: number;
+    coverage: number;
+    field: string;
+    lens: SchemaLens;
+    overlayKey: string;
+}
+
 // @public
 export interface PropertyBuilder<T = unknown> {
     coerce(value: unknown): T | null;
@@ -8988,6 +9009,18 @@ export interface PropertyTimestamp {
 
 // @public
 export type PropertyType = 'text' | 'number' | 'checkbox' | 'json' | 'date' | 'dateRange' | 'geo' | 'select' | 'multiSelect' | 'person' | 'relation' | 'rollup' | 'formula' | 'url' | 'email' | 'phone' | 'file' | 'created' | 'updated' | 'createdBy';
+
+// @public
+export function proposePromotion(rows: ReadonlyArray<Record<string, unknown>>, overlayKey: string, from: SchemaIRI, to: SchemaIRI, options?: ProposePromotionOptions): PromotionProposal | null;
+
+// @public (undocumented)
+export interface ProposePromotionOptions {
+    dismissed?: Iterable<string>;
+    threshold?: number;
+}
+
+// @public
+export function proposePromotions(rows: ReadonlyArray<Record<string, unknown>>, from: SchemaIRI, to: SchemaIRI, options?: ProposePromotionOptions): PromotionProposal[];
 
 // @public
 export function pruneVersionHistory(history: SchemaVersionEntry[]): SchemaVersionEntry[];
@@ -11419,6 +11452,7 @@ export type WriteBundleOptions = {
     ownerDid: string;
     manifestSigner?: (bytes: Uint8Array) => Promise<Uint8Array> | Uint8Array;
     commitSigner?: (bytes: Uint8Array) => Promise<Uint8Array> | Uint8Array;
+    hubAddress?: PortableHubAddress;
     since?: BundleFrontier;
     blobPort?: BundleBlobPort;
     yjsPort?: BundleYjsPort;
@@ -11456,6 +11490,7 @@ export type XnetpackManifest = {
         commits?: number;
     };
     contentDigest: string;
+    hubAddress?: PortableHubAddress;
     signatureB64?: string;
 };
 

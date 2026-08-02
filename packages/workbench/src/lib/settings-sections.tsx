@@ -6,6 +6,7 @@
  */
 import {
   Activity,
+  Bot,
   Database,
   Eye,
   FlaskConical,
@@ -24,6 +25,7 @@ import {
 export type SettingsSection =
   | 'profile'
   | 'appearance'
+  | 'ai'
   | 'labs'
   | 'dictation'
   | 'safety'
@@ -45,6 +47,7 @@ export interface SettingsSectionConfig {
 export const SETTINGS_SECTIONS: SettingsSectionConfig[] = [
   { id: 'profile', label: 'Profile', icon: UserRound },
   { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'ai', label: 'AI', icon: Bot },
   { id: 'labs', label: 'Labs', icon: FlaskConical },
   { id: 'dictation', label: 'Dictation & Meetings', icon: Mic },
   { id: 'safety', label: 'Content & Safety', icon: ShieldCheck },
