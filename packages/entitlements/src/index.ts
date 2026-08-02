@@ -33,4 +33,25 @@ export {
   type PlanEntitlements
 } from './plans'
 
+export { sloForSla, sloForPlan, errorBudgetMs, type SloTarget } from './slo'
+
+export {
+  DURABILITY_POSTURE,
+  ALL_DURABILITY_SCOPES,
+  DURABILITY_SCOPE_LABELS,
+  durabilityForPlan,
+  publishedExceedsObjective,
+  isScopeCovered,
+  uncoveredScopes,
+  publishedAvailabilityLabel,
+  publishedAvailabilityFigures,
+  rpoLabel,
+  rtoLabel,
+  makeWholeLabel,
+  MAKE_WHOLE_MONTHS,
+  objectiveForPlan,
+  type DurabilityScope,
+  type DurabilityPosture
+} from './durability'
+
 export { signEntitlements, verifyEntitlements, entitlementsFromEnv } from './entitlements'

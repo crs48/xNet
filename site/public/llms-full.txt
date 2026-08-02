@@ -9982,7 +9982,7 @@ These records follow the standard [ADR](https://adr.github.io/) discipline:
   it change, and because nobody wrote down what would count as evidence against,
   the entry stops being re-openable and becomes a rule nobody remembers the
   reason for. This is the same job `review:` does for `docs/explorations/`
-  (exploration 0421), and the reasoning is exploration 0424's.
+  (exploration 0421), and the reasoning is exploration 0430's.
 - **If an implemented change alters an architectural invariant, it adds or
   supersedes an ADR in the same PR.** Most decisions are worked out first in
   `docs/explorations/`; this page is the distilled outcome.
@@ -10766,6 +10766,79 @@ promised not to build.
 xNet-operated infrastructure — including for fleet-wide rate limiting or
 observability, the usual framings — re-opens this ADR rather than shipping under
 it.
+
+## ADR-31: We refund loss, not downtime
+
+**Status:** Accepted
+**Context:** Exploration 0425 asked whether xNet Cloud could ship with limited
+or no liability — telling early adopters plainly "we might lose your data" and
+letting them self-select. Three findings pushed back. That posture is
+**legally ineffective** for a paid consumer service (UK CRA 2015 s.47 makes
+satisfactory-quality rights non-excludable, and the EU Digital Content
+Directive matches; "beta" is a description, not a shield, once money changes
+hands). It is **inaccurate** — Litestream replication, an adversarially-tested
+restore drill, a backup-freshness SLI and error budgets that gate our own
+deploys all already ship. And it is a **category error**: it describes a system
+of record, whereas xNet Cloud is a managed *replica* of data whose master copy
+sits on the customer's device.
+
+Meanwhile the pricing page was advertising "99.9% best-effort availability" on
+a tier whose `SlaLevel` resolved to no objective at all — a self-cancelling
+phrase, and a promise the code declined to hold.
+
+**Decision:** Publish a **two-number promise** per tier — a measured
+availability figure (only where an objective backs it) and a **Restore
+Commitment** (RPO/RTO over explicitly enumerated scopes) — and back it with a
+**Make-Whole Policy** rather than downtime service credits. If we lose a hub's
+database and cannot restore it, we refund **12 months** of fees *automatically* —
+no claim, no form — and publish a postmortem within 14 days, **additional to**
+the customer's legal rights and never their "sole and exclusive remedy".
+
+The trigger is deliberately binary. An earlier draft turned on "data covered by
+the Restore Commitment", which invites a scope argument at the worst possible
+moment; the money was never the exposure, the adjudication was.
+
+Liability is capped at fees paid in the trailing 24 months, with the
+non-excludable carve-outs stated explicitly.
+
+**Rationale:**
+
+- **Downtime is not the harm here.** A local-first client keeps working against
+  its own replica through a hub outage and drains its offline queue on
+  reconnect. Crediting downtime compensates the wrong event.
+- **Credits are theatre at our price points.** A 10% credit on a $5/mo plan is
+  50 cents, and the standard "sole and exclusive remedy" framing trades away
+  real claims to deliver it. Building a claims workflow for 50 cents is an
+  operational absurdity.
+- **Twelve months, not twenty-four.** It matches the annual billing cycle,
+  halves aggregate exposure, and still reads as extraordinary against an
+  industry standard of ~10% of one month's fee.
+- **Make-Whole is a bet on the drill.** It costs nothing if durability holds,
+  which converts `tests/reliability/restore/restore-drill.test.ts` from an
+  internal engineering artifact into a commercial instrument.
+- **A named gap reads as competence.** "We might lose your data" reads as a
+  company that does not know its own system; "attachments are not replicated
+  until 0288's sidecar ships" reads as one that does — and it is the same
+  information.
+
+**Charter §6:** the lane (charging more for a higher reliability tier) passes
+**improvement** (warm capacity, restore, on-call are operations we run),
+**vanish** (local master copy plus free `.xnetpack` export), and **sleep**
+(operating history does not clone with the source). **BATNA passes only
+conditionally**: if managed durability ships while self-host BYO-S3
+restore-on-boot stays unbuilt, durability becomes a paid privilege. That 0288
+item is therefore a Charter precondition on this lane, not polish.
+
+**Enforcement:** `pnpm check:durability-claims` regenerates
+`site/src/data/durability.ts` from `packages/entitlements/src/durability.ts` and
+fails on drift or on any product-copy availability figure the catalog does not
+back. Three claims-ledger entries pin the receipts, including the blob gap as
+disclosed honesty-debt.
+
+**Tradeoff:** we publish smaller numbers than competitors (99.5% on Team where
+the page previously said 99.9%, and no figure at all on Personal/Family).
+Accepted: a real 99.5% outranks a fictional 99.9%, and the figure we publish is
+one we can be held to.
 
 ---
 

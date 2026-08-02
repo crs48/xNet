@@ -59,7 +59,7 @@ const updated = 'June 24, 2026'
           </p>
           <ul>
             <li><strong>You own your data</strong> — We make no claim to anything you create</li>
-            <li><strong>You're responsible for backups</strong> — On the local-first path, if you lose your device, we can't recover your data. (xNet Cloud adds managed backups — see below.)</li>
+            <li><strong>You're responsible for backups</strong> — On the local-first path, if you lose your device, we can't recover your data. (xNet Cloud adds a continuously replicated backup of your hub's database — see <a href="/cloud/durability">Durability</a> for exactly what that covers, and what it does not.)</li>
             <li><strong>You control sharing</strong> — Data only syncs with devices and people you choose</li>
           </ul>
           <p>
@@ -90,9 +90,9 @@ const updated = 'June 24, 2026'
           <ul>
             <li>You authorize recurring charges for your plan until you cancel. Prices may change with notice; changes apply to the next billing period.</li>
             <li><strong>Usage-based charges:</strong> some features (such as managed AI beyond your included budget) are metered and shown on your dashboard. A hard budget stop helps prevent surprise bills.</li>
-            <li><strong>Cancellation:</strong> you can cancel any time. Your subscription ends at the close of the current period and your Hub is suspended, with your encrypted backup retained for a grace window so you can re-subscribe or export. Deleting your data is a separate, explicit, irreversible action.</li>
+            <li><strong>Cancellation:</strong> you can cancel any time, and you keep everything you paid for — your plan runs to the end of the period you have already paid for (the end of the month, or the end of the year on annual plans). Nothing is cut off early. After that your Hub is suspended, with your encrypted backup retained for a grace window so you can re-subscribe or export. Deleting your data is a separate, explicit, irreversible action.</li>
             <li><strong>Failed payments:</strong> if we cannot take payment, your Hub keeps running normally for a 14-day grace period while the charge is retried. After that it becomes read-only — all data stays readable and exportable, but new writes are refused. If the subscription is still unpaid, the Hub is paused and your encrypted data is retained in cold storage for 30 days, followed by a final dated notice at least 7 days before the cloud copy is deleted. <strong>We will email you at each of these steps</strong>, and paying at any point restores full service. Data held locally on your own devices is never affected by any of this.</li>
-            <li><strong>Refunds:</strong> except where required by law, fees are non-refundable. Annual plans are billed up front.</li>
+            <li><strong>Refunds:</strong> because cancelling leaves your plan running to the end of the paid period, we don't refund part-used periods, except where the law requires it or where our <a href="/make-whole">Make-Whole Policy</a> applies. Annual plans are billed up front.</li>
             <li><strong>Taxes:</strong> prices exclude taxes unless stated; you're responsible for applicable taxes.</li>
           </ul>
         </section>
@@ -155,9 +155,22 @@ const updated = 'June 24, 2026'
             <li>We reserve the right to block abusive connections</li>
           </ul>
           <p>
-            Paid xNet Cloud plans target higher availability as described on the pricing page; any service-level
-            commitments and credits, if offered, are stated in your plan or order. For mission-critical use you
-            can always <a href="/docs/guides/hub/">self-host your own Hub</a>.
+            Paid xNet Cloud plans carry two published commitments, both set out on the
+            <a href="/cloud/durability">Durability page</a>: a <strong>Restore Commitment</strong>
+            (how much recent work could be lost, and how long we have to restore a working Hub) and,
+            on some tiers, a <strong>published availability figure</strong>. Where a tier publishes no
+            availability figure, availability is still measured and shown live on our
+            <a href="/status">status page</a> — we simply make no promise about it. The Durability page
+            also names, precisely, what replication does <em>not</em> cover today.
+          </p>
+          <p>
+            <strong>We do not offer downtime service credits.</strong> xNet keeps working offline when a
+            Hub is unreachable, so downtime is a degraded convenience rather than the harm. Instead, if we
+            lose your Hub's database and cannot restore it, our <a href="/make-whole">Make-Whole Policy</a>
+            refunds 12 months of fees automatically — you do not have to claim it — and we publish a
+            postmortem within 14 days. That policy is in addition to your legal rights, not instead of them. Enterprise orders
+            may add contractual credits. For mission-critical use you can always
+            <a href="/docs/guides/hub/">self-host your own Hub</a> using the same open-source code we run.
           </p>
         </section>
 
@@ -224,7 +237,29 @@ const updated = 'June 24, 2026'
           </ul>
           <p>
             This applies whether the claim is based on warranty, contract, tort, or any other legal theory.
-            Some jurisdictions don't allow these limitations, so they may not apply to you.
+          </p>
+          <p>
+            <strong>Cap on direct damages.</strong> Our total aggregate liability to you for all claims
+            arising out of or relating to the Services is limited to the fees you have actually paid us in
+            the 24 months before the event giving rise to the claim. If you have paid us nothing — for
+            example on the free tier or the local-first app — that cap is zero, and the software is provided
+            to you at no charge on an "as is" basis.
+          </p>
+          <p>
+            <strong>What we don't limit.</strong> Nothing in these terms excludes or limits our liability
+            for death or personal injury caused by negligence, for fraud or fraudulent misrepresentation,
+            or for anything else that cannot lawfully be excluded or limited. If you are a consumer, your
+            statutory rights — including that digital content be of satisfactory quality, fit for purpose,
+            and as described — apply in full and are not affected by anything here, whatever else these
+            terms say. Some jurisdictions don't allow these limitations, so they may not apply to you.
+          </p>
+          <p>
+            Separately from these limits, we voluntarily offer the
+            <a href="/make-whole">Make-Whole Policy</a>: if we lose your Hub's database and cannot restore
+            it, we refund 12 months of fees without waiting to be asked. It is additional to your rights, not
+            a replacement for them, and it is not your "sole and exclusive remedy". The 24-month cap above
+            is a ceiling on what can be claimed; the Make-Whole refund is what we pay out on our own
+            initiative.
           </p>
         </section>
 

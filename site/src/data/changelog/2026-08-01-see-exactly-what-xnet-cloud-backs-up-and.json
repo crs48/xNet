@@ -1,0 +1,11 @@
+{
+  "id": "2026-08-01-see-exactly-what-xnet-cloud-backs-up-and",
+  "date": "August 1, 2026",
+  "title": "See exactly what xNet Cloud backs up \u2014 and what it doesn't",
+  "summary": "A new durability page shows where your data lives, what we verify on every change, and which parts aren't replicated yet. If we ever lose your hub's database and can't restore it, the Make-Whole Policy refunds a year of fees automatically \u2014 you don't have to claim it. We don't do downtime credits, because your app keeps working offline when a hub is down.",
+  "highlights": [],
+  "tags": [
+    "platform",
+    "sync"
+  ]
+}

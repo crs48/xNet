@@ -137,6 +137,15 @@ jobs:
       - name: Storybook plugins shim conformance (0283)
         run: pnpm check:storybook-shim
 
+      # Public durability copy may only state a figure the plan catalog backs.
+      # The pricing page shipped "99.9% best-effort availability" over a tier
+      # whose SlaLevel resolved to no objective at all — a promise the code
+      # declined to hold, invisible because `site/` cannot import @xnetjs/*.
+      # This regenerates the mirror and fails on drift or an unbacked claim.
+      # (Exploration 0425.)
+      - name: Durability claims match the plan catalog (0425)
+        run: pnpm check:durability-claims
+
       # Workflow files themselves: an unparseable workflow made GitHub emit a
       # phantom failed run on EVERY push for weeks (exploration 0283). Severity
       # floor `warning` keeps shellcheck's style/info pedantry out of the gate.
