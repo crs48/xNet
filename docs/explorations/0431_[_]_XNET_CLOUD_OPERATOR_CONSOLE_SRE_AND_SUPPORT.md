@@ -10,6 +10,16 @@ tags: [cloud, operations, sre, support, security, observability]
 
 # xNet Cloud operator console — administration, site reliability, and support
 
+> [!IMPORTANT]
+> **Superseded as a plan by [exploration 0433](./0433_[_]_OPERATOR_CONSOLE_THE_DECIDED_PLAN.md).**
+> This document stays as the **research** — its findings (the amnesiac SLI
+> window, the unattributed account-takeover primitive, the confidentiality gap)
+> are the evidence base and remain citable. Its *recommendations* were revised
+> twice and then decided in full: 0433 carries the sixteen settled decisions, the
+> phased plan, and the checklists. Two findings 0433 adds are not here at all —
+> the tiers selling a 99.9% SLO are provisioned scale-to-zero, and four
+> user-facing surfaces (not one) overclaim confidentiality. Read 0433 first.
+
 > [!TIP]
 > **TL;DR** — The SRE mathematics is already built, tested, and wired: SLIs,
 > SLOs, error budgets, burn rate, fleet rollup, a public status page, and an

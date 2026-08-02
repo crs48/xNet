@@ -14,7 +14,7 @@ review: 2027-02-01 # renew the claim
 status: withdrawn # release it; the document stays exactly where it is
 ```
 
-**41** stale of 283 undecided.
+**41** stale of 284 undecided.
 
 ## How this backlog retires
 
@@ -26,7 +26,7 @@ cannot drag the curve down.
 | --- | --- | --- |
 | 1 | 404 | 54% |
 | 7 | 389 | 52% |
-| 14 | 355 | 50% |
+| 14 | 359 | 51% |
 | 30 | 254 | 52% |
 | 60 | 140 | 59% |
 | 90 | 120 | 59% |
@@ -46,9 +46,9 @@ or withdraw it; both are one line and neither renames the file.
 | [0080_[_]_UCAN_HYBRID_AUTHORIZATION_INTEGRATION.md](0080_%5B_%5D_UCAN_HYBRID_AUTHORIZATION_INTEGRATION.md) | 2026-05-10 *(default)* | 84d | — |
 | [0081_[_]_NODE_PERMISSIONS_UCAN_EVALUATION.md](0081_%5B_%5D_NODE_PERMISSIONS_UCAN_EVALUATION.md) | 2026-05-10 *(default)* | 84d | — |
 | [0082_[_]_GLOBAL_NAMESPACE_AUTHORIZATION.md](0082_%5B_%5D_GLOBAL_NAMESPACE_AUTHORIZATION.md) | 2026-05-10 *(default)* | 84d | — |
-| [0083_[_]_UNIFIED_AUTHORIZATION_ARCHITECTURE.md](0083_%5B_%5D_UNIFIED_AUTHORIZATION_ARCHITECTURE.md) | 2026-05-10 *(default)* | 83d | — |
-| [0084_[_]_GROUPS_AS_RELATIONS.md](0084_%5B_%5D_GROUPS_AS_RELATIONS.md) | 2026-05-10 *(default)* | 83d | — |
-| [0086_[_]_NATIVE_REWRITE_ZIG_RUST.md](0086_%5B_%5D_NATIVE_REWRITE_ZIG_RUST.md) | 2026-05-12 *(default)* | 81d | — |
+| [0083_[_]_UNIFIED_AUTHORIZATION_ARCHITECTURE.md](0083_%5B_%5D_UNIFIED_AUTHORIZATION_ARCHITECTURE.md) | 2026-05-10 *(default)* | 84d | — |
+| [0084_[_]_GROUPS_AS_RELATIONS.md](0084_%5B_%5D_GROUPS_AS_RELATIONS.md) | 2026-05-10 *(default)* | 84d | — |
+| [0086_[_]_NATIVE_REWRITE_ZIG_RUST.md](0086_%5B_%5D_NATIVE_REWRITE_ZIG_RUST.md) | 2026-05-12 *(default)* | 82d | — |
 | [0088_[_]_DATABASE_UI_COMPETITIVE_ARCHITECTURE.md](0088_%5B_%5D_DATABASE_UI_COMPETITIVE_ARCHITECTURE.md) | 2026-05-13 *(default)* | 80d | — |
 | [0089_[_]_REST_GRAPHQL_INTEROPERABILITY_BOUNDARY.md](0089_%5B_%5D_REST_GRAPHQL_INTEROPERABILITY_BOUNDARY.md) | 2026-05-18 *(default)* | 75d | — |
 | [0090_[_]_ELECTRON_P2P_REMOTE_SHARE_OPTIONS.md](0090_%5B_%5D_ELECTRON_P2P_REMOTE_SHARE_OPTIONS.md) | 2026-05-21 *(default)* | 73d | — |
