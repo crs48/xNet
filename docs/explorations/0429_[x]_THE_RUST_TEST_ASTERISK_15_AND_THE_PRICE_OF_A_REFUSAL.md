@@ -70,7 +70,7 @@ corroboration of an existing ADR, and one methodological note.
 
 | Mechanism            | Path                                                                                   | What it proves                                                                                                                 |
 | -------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Charter §6 refusals  | [docs/CHARTER.md](docs/CHARTER.md)                                                     | Thirteen named refused rents, each labelled Enforced / Architectural / Aspirational                                                |
+| Charter §6 refusals  | [docs/CHARTER.md](docs/CHARTER.md)                                                     | Thirteen named refused rents, each labelled Enforced / Architectural / Aspirational                                            |
 | The four tests       | [docs/ECONOMICS.md](docs/ECONOMICS.md) §4                                              | Improvement, BATNA, Vanish, Sleep — scored per kept lane                                                                       |
 | Claims ledger        | [charter-claims-ledger.test.ts](packages/telemetry/test/charter-claims-ledger.test.ts) | 17 claims, each tied to an `assert`, an `enforcedBy` path, or a disclosed `pending`                                            |
 | Humane-patterns gate | [check-humane-patterns.mjs](scripts/check-humane-patterns.mjs)                         | 6 rules: infinite scroll, streak counter, confirmshaming, ratio scorekeeping, metered connection, third-party ad/analytics SDK |

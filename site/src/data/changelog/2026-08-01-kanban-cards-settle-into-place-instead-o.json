@@ -1,0 +1,10 @@
+{
+  "id": "2026-08-01-kanban-cards-settle-into-place-instead-o",
+  "date": "August 1, 2026",
+  "title": "Kanban cards settle into place instead of jumping",
+  "summary": "Dragging a card to another column now animates it into its new spot, and reordering tabs slides the neighbours aside rather than snapping. The animation code loads only when you first drag something, so start-up is unaffected.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ]
+}

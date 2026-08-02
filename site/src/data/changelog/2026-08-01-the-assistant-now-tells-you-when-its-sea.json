@@ -4,9 +4,7 @@
   "title": "The assistant now tells you when its search was incomplete",
   "summary": "When the full-text index is unavailable, the in-app assistant falls back to scanning a limited window of your workspace. It now says so alongside its answer instead of replying as if it had searched everything, and cites the path it followed to each item it used.",
   "highlights": [],
-  "tags": [
-    "ai"
-  ],
+  "tags": ["ai"],
   "pr": 687,
   "mergedAt": "2026-08-01T22:57:51Z",
   "authors": [
