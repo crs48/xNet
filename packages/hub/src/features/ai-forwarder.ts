@@ -27,19 +27,31 @@ export interface AiForwarderOptions {
 interface ForwarderConfig {
   /** Control-plane base URL, e.g. `https://cloud.xnet.app`. */
   upstream: string
-  /** Shared internal secret the control plane checks (`x-internal-secret`). */
-  secret: string
-  /** This hub's tenant id (`x-tenant-id`). */
-  tenantId: string
+  /**
+   * This hub's **per-tenant** gateway token (`XNET_CLOUD_GATEWAY_TOKEN`), sent
+   * as a bearer. Self-identifying, so the control plane reads the tenant out of
+   * the credential instead of trusting a header we send alongside it — the hole
+   * exploration 0436 closed. A hub holding this cannot act as another tenant.
+   */
+  token: string
 }
 
-/** Resolve the forwarder config from the broker-scoped env, or null when unconfigured. */
+/**
+ * Resolve the forwarder config from the broker-scoped env, or null when
+ * unconfigured.
+ *
+ * Only the per-tenant token is accepted. The previous shape — a fleet-wide
+ * `XNET_CLOUD_INTERNAL_SECRET` plus an `XNET_TENANT_ID` header — is deliberately
+ * NOT read as a fallback: leaving it in place would mean a hub that failed to
+ * re-key silently kept using the fleet master, which is exactly the state the
+ * `HUB_PLAN_KID` stamp exists to make visible. An un-re-keyed hub reports
+ * `managed:false` and the managed tier hides, which is loud and recoverable.
+ */
 function configFromEnv(env: Env): ForwarderConfig | null {
   const upstream = env.XNET_CLOUD_URL
-  const secret = env.XNET_CLOUD_INTERNAL_SECRET
-  const tenantId = env.XNET_TENANT_ID
-  if (!upstream || !secret || !tenantId) return null
-  return { upstream: upstream.replace(/\/+$/, ''), secret, tenantId }
+  const token = env.XNET_CLOUD_GATEWAY_TOKEN
+  if (!upstream || !token) return null
+  return { upstream: upstream.replace(/\/+$/, ''), token }
 }
 
 /**
@@ -53,7 +65,7 @@ export function aiForwarderFeature(options: AiForwarderOptions = {}): HubFeature
   const fetchImpl = options.fetchImpl ?? fetch
   return {
     id: 'fyi.xnet.ai',
-    secrets: ['XNET_CLOUD_URL', 'XNET_CLOUD_INTERNAL_SECRET', 'XNET_TENANT_ID'],
+    secrets: ['XNET_CLOUD_URL', 'XNET_CLOUD_GATEWAY_TOKEN', 'XNET_TENANT_ID'],
     mount({ app, env, requireAuth }) {
       const config = configFromEnv(env as Env)
       const ai = new Hono()
@@ -84,8 +96,7 @@ async function forward(
       method,
       headers: {
         'content-type': 'application/json',
-        'x-internal-secret': config.secret,
-        'x-tenant-id': config.tenantId
+        authorization: `Bearer ${config.token}`
       },
       ...(method === 'POST' ? { body: await c.req.text() } : {})
     })

@@ -36,6 +36,7 @@ import { stripeGatewayFromEnv } from './billing/stripe-gateway'
 import { FakeTenantBillingGateway, type TenantBillingGateway } from './billing-gateway'
 import { ControlPlane } from './control-plane'
 import { type JobRecord } from './jobs/leased'
+import { createLogger } from './logger'
 import { JobRegistry } from './jobs/runner'
 import { HealthSampleStore, httpHealthProbe, probeFleet } from './observability/health'
 import { cloudRunProvisionerFromEnv } from './provisioner/google-cloud-run-client'
@@ -48,7 +49,7 @@ import {
   type BillingNotifier,
   type BillingOutcome
 } from './reconcile/billing-driver'
-import { MemoryTenantStore, type TenantRecord, type TenantStore } from './registry'
+import { MemoryTenantStore, type TenantPage, type TenantRecord, type TenantStore } from './registry'
 import { createControlPlaneApp } from './server'
 import { InMemoryDocStore } from './stores/durable'
 import { firestoreStoresFromEnv } from './stores/firestore'
@@ -316,20 +317,26 @@ export function buildControlPlane(options: BuildControlPlaneOptions = {}): {
   const stores = firestoreStoresFromEnv(env)
   const aiKeys = options.aiKeys ?? aiKeysFromEnv(env)
   // Managed-AI forwarder wiring (0208): when AI keys are configured AND the control
-  // plane knows its own URL + internal secret, every AI-enabled hub is provisioned
+  // plane knows its own URL + a gateway master, every AI-enabled hub is provisioned
   // with the forwarder env so the app's `managed` tier works with zero per-hub setup.
+  //
+  // `XNET_CLOUD_GATEWAY_MASTER` is a DISTINCT secret from the operator secret that
+  // gates `/internal/*`. They used to be one variable, and because the AI value is
+  // injected into every tenant container, that meant every tenant hub held the
+  // credential that reads the whole fleet's health (exploration 0436 G1). The
+  // fallback below keeps a single-secret deployment working, and
+  // `assertOperatorSecretIsolated` refuses the dangerous case: an operator secret
+  // that is ALSO the gateway master, with hubs derived from it.
+  assertOperatorSecretIsolated(env)
   const cloudUrl = env.XNET_CLOUD_URL ?? env.XNET_CLOUD_BASE_URL
-  const managedAi =
-    aiKeys && cloudUrl && env.XNET_CLOUD_INTERNAL_SECRET
-      ? { cloudUrl, internalSecret: env.XNET_CLOUD_INTERNAL_SECRET }
-      : undefined
+  const gatewayMaster = env.XNET_CLOUD_GATEWAY_MASTER ?? env.XNET_CLOUD_INTERNAL_SECRET
+  const managedAi = aiKeys && cloudUrl && gatewayMaster ? { cloudUrl, gatewayMaster } : undefined
   // Diagnostics escalation wiring (0341): every managed hub gets the upstream
   // URL + its per-tenant secret so "Send to xNet" and the dashboard summary
   // work with zero per-hub config; every switch stays with the tenant.
+  const diagnosticsMaster = env.XNET_CLOUD_DIAGNOSTICS_MASTER ?? env.XNET_CLOUD_INTERNAL_SECRET
   const diagnostics =
-    cloudUrl && env.XNET_CLOUD_INTERNAL_SECRET
-      ? { cloudUrl, masterSecret: env.XNET_CLOUD_INTERNAL_SECRET }
-      : undefined
+    cloudUrl && diagnosticsMaster ? { cloudUrl, masterSecret: diagnosticsMaster } : undefined
   const controlPlane = new ControlPlane({
     tenants: options.tenants ?? stores?.tenants ?? new MemoryTenantStore(),
     bindings: options.bindings ?? stores?.bindings ?? new MemoryBindingStore(),
@@ -392,6 +399,69 @@ export function assertNotifierSafeForDeletion(env: NodeJS.ProcessEnv = process.e
 }
 
 /**
+ * The secret that gates the `/internal/*` operator READ routes.
+ *
+ * Deliberately its own variable. Before exploration 0436, one value did two
+ * jobs: it gated `/internal/*` **and** it was copied into every AI-enabled
+ * tenant container as `XNET_CLOUD_INTERNAL_SECRET`. Any code running in any
+ * hub could therefore read `/internal/fleet/health` and learn every tenant's
+ * id, plan and hub URL.
+ */
+export function operatorReadSecretFromEnv(
+  env: NodeJS.ProcessEnv = process.env
+): string | undefined {
+  return env.XNET_OPERATOR_READ_SECRET ?? env.XNET_CLOUD_INTERNAL_SECRET
+}
+
+/**
+ * Refuse to boot when the operator secret is also a credential a tenant hub
+ * holds.
+ *
+ * A hub is never given the gateway master itself — it gets
+ * `gatewayTokenFor(master, tenantId)` — so sharing one variable is not by
+ * itself an escalation. What IS an escalation is deploying a distinct
+ * `XNET_CLOUD_GATEWAY_MASTER` while leaving the operator secret equal to it:
+ * that reads as "we separated them" while being the original single secret.
+ * Fail loudly rather than let a config that looks fixed be the one that isn't.
+ */
+export function assertOperatorSecretIsolated(env: NodeJS.ProcessEnv = process.env): void {
+  const operator = env.XNET_OPERATOR_READ_SECRET
+  const gateway = env.XNET_CLOUD_GATEWAY_MASTER
+  if (operator && gateway && operator === gateway) {
+    throw new Error(
+      'XNET_OPERATOR_READ_SECRET must not equal XNET_CLOUD_GATEWAY_MASTER: the operator ' +
+        'secret gates /internal/* reads and must never be derivable from a tenant hub.'
+    )
+  }
+}
+
+/**
+ * Replay every tenant's `substrateRef` into the provisioner's shard allocator.
+ *
+ * Pages the fleet rather than listing it, so this stays a bounded amount of work
+ * as the tenant count grows (the 0423 paging rule). Returns the number of
+ * placements replayed, which is what makes "the allocator is warm" checkable
+ * instead of assumed.
+ */
+export async function rehydrateShards(
+  controlPlane: ControlPlane,
+  log: { info: (msg: string, fields?: Record<string, unknown>) => void }
+): Promise<number> {
+  const provisioner = controlPlane.provisioner
+  if (!provisioner.rehydrate) return 0
+  const refs: string[] = []
+  let cursor: string | null = null
+  do {
+    const page: TenantPage = await controlPlane.pageTenants(cursor, 500)
+    for (const tenant of page.items) if (tenant.substrateRef) refs.push(tenant.substrateRef)
+    cursor = page.next
+  } while (cursor)
+  provisioner.rehydrate(refs)
+  log.info('shard_rehydrate', { placements: refs.length })
+  return refs.length
+}
+
+/**
  * Pick the plan-subscription gateway: real Stripe when `STRIPE_SECRET_KEY` +
  * `STRIPE_WEBHOOK_SECRET` are set, otherwise the keyless fake that drives the
  * funnel locally and in tests.
@@ -402,6 +472,9 @@ export function resolveBillingGateway(env: NodeJS.ProcessEnv = process.env): Ten
 
 function start(): void {
   const env = process.env
+  assertOperatorSecretIsolated(env)
+  const operatorReadSecret = operatorReadSecretFromEnv(env)
+  const diagnosticsMaster = env.XNET_CLOUD_DIAGNOSTICS_MASTER ?? env.XNET_CLOUD_INTERNAL_SECRET
   const { controlPlane, billing } = buildControlPlane()
   const payments = resolveBillingGateway(env)
   // Durable device-claim nonces when Firestore is configured, else in-memory (default).
@@ -550,7 +623,12 @@ function start(): void {
     baseUrl: env.XNET_CLOUD_BASE_URL ?? '',
     marketingUrl: env.XNET_CLOUD_MARKETING_URL ?? 'https://xnet.fyi/cloud',
     appUrl: env.XNET_CLOUD_APP_URL ?? 'https://xnet.fyi/app',
-    ...(env.XNET_CLOUD_INTERNAL_SECRET ? { internalSecret: env.XNET_CLOUD_INTERNAL_SECRET } : {}),
+    // The operator READ secret for `/internal/*`. Prefer a dedicated variable so
+    // it is never the same value as the gateway master a hub container holds
+    // (exploration 0436 G1); the fallback keeps existing single-secret deploys
+    // working, and `assertOperatorSecretIsolated` below refuses the unsafe overlap.
+    ...(operatorReadSecret ? { internalSecret: operatorReadSecret } : {}),
+    ...(diagnosticsMaster ? { diagnosticsMasterSecret: diagnosticsMaster } : {}),
     ...(env.SENTRY_DSN ? { sentryDsn: env.SENTRY_DSN } : {}),
     // First-seen crash-fingerprint alert (0315 P4): SSRF-guarded, content-free.
     ...(env.XNET_CLOUD_DIAGNOSTICS_ALERT_URL
@@ -563,6 +641,17 @@ function start(): void {
     addressMirror: { store: new MemoryAddressMirrorStore() }
   })
   assertNotifierSafeForDeletion(env)
+  // Shard bookkeeping does not survive a process (exploration 0436 G9): replay
+  // the fleet's placements BEFORE serving, so the first provision after a deploy
+  // does not target a project shard that filled up weeks ago. Failure here is
+  // logged and not fatal — starting with a cold allocator is the status quo ante,
+  // and refusing to boot over it would turn a capacity bug into an outage.
+  const bootLog = createLogger({ base: { service: 'xnet-cloud' } })
+  void rehydrateShards(controlPlane, bootLog).catch((err: unknown) => {
+    bootLog.error('shard_rehydrate_failed', {
+      error: err instanceof Error ? err.message : String(err)
+    })
+  })
   const port = Number(env.PORT ?? 4455)
   serve({ fetch: app.fetch, port })
   const mode = {

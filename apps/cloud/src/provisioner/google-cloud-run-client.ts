@@ -12,12 +12,14 @@
 import { ServicesClient } from '@google-cloud/run'
 import {
   CloudRunLitestreamProvisioner,
+  serviceIdForTenant,
   type CloudRunClient,
   type CloudRunRef,
   type CloudRunService,
   type CloudRunUpsert,
   type Provisioner
 } from '@xnetjs/cloud/provisioner'
+import { r2CredentialMinterFromEnv } from './r2-credentials'
 
 /** The slice of `google.cloud.run.v2.IService` we read/write. */
 export interface RunService {
@@ -29,6 +31,8 @@ export interface RunService {
       env?: Array<{ name?: string | null; value?: string | null }> | null
     }> | null
     scaling?: { minInstanceCount?: number | null } | null
+    /** Per-service identity. Unset → the project's default compute account. */
+    serviceAccount?: string | null
   } | null
 }
 
@@ -73,7 +77,13 @@ export class GoogleCloudRunClient implements CloudRunClient {
             env: Object.entries(args.env).map(([name, value]) => ({ name, value }))
           }
         ],
-        scaling: { minInstanceCount: args.minInstances }
+        scaling: { minInstanceCount: args.minInstances },
+        // Omitted → Cloud Run runs the revision as the project's DEFAULT COMPUTE
+        // service account, which every tenant service in the shard shares and
+        // which carries broad project-wide permissions. A per-tenant account is
+        // what keeps one compromised hub from being a compromised shard
+        // (exploration 0436).
+        ...(args.serviceAccount ? { serviceAccount: args.serviceAccount } : {})
       }
     }
   }
@@ -86,7 +96,8 @@ export class GoogleCloudRunClient implements CloudRunClient {
       uri: svc.uri ?? '',
       image: container.image ?? '',
       env,
-      minInstances: svc.template?.scaling?.minInstanceCount ?? 0
+      minInstances: svc.template?.scaling?.minInstanceCount ?? 0,
+      ...(svc.template?.serviceAccount ? { serviceAccount: svc.template.serviceAccount } : {})
     }
   }
 
@@ -162,6 +173,16 @@ export function cloudRunProvisionerFromEnv(
   // `<repo>/control-plane`). Pushing to the bare repo root is rejected by AR
   // ("Missing image name"). Override the name with HUB_IMAGE_NAME if needed.
   const hubImageName = env.HUB_IMAGE_NAME || 'xnet-hub'
+  // Per-tenant service identity (exploration 0436). `GCP_HUB_SA_TEMPLATE` holds a
+  // `{tenant}` placeholder, e.g. `hub-{tenant}@xnet-hub-0.iam.gserviceaccount.com`.
+  // Unset → every tenant service runs as the shard project's default compute
+  // account, so leave it unset only in dev.
+  const saTemplate = env.GCP_HUB_SA_TEMPLATE
+  // Prefix-scoped R2 credentials (exploration 0436). Configured, every hub gets a
+  // credential that reaches `t/<tenantId>/` and nothing else; unconfigured, the
+  // fleet-wide pair is used, which is correct for a single-tenant dev deployment
+  // and a shared blast radius in a fleet.
+  const r2Credentials = r2CredentialMinterFromEnv(env)
   return new CloudRunLitestreamProvisioner(
     {
       projectPrefix: GCP_PROJECT_PREFIX,
@@ -170,8 +191,24 @@ export function cloudRunProvisionerFromEnv(
       r2Bucket: R2_BUCKET,
       r2Endpoint: R2_ENDPOINT,
       r2AccessKeyId: R2_ACCESS_KEY_ID,
-      r2SecretAccessKey: R2_SECRET_ACCESS_KEY
+      r2SecretAccessKey: R2_SECRET_ACCESS_KEY,
+      ...(r2Credentials ? { r2Credentials } : {}),
+      ...(saTemplate
+        ? { serviceAccountFor: (tenantId: string) => renderServiceAccount(saTemplate, tenantId) }
+        : {})
     },
     new GoogleCloudRunClient(client)
   )
+}
+
+/**
+ * Render a service-account email from a `{tenant}` template.
+ *
+ * The tenant id is passed through `serviceIdForTenant` first so the account name
+ * matches the Cloud Run service name character-for-character — an operator
+ * reading an audit log should not have to guess which identity belongs to which
+ * service.
+ */
+export function renderServiceAccount(template: string, tenantId: string): string {
+  return template.replace('{tenant}', serviceIdForTenant(tenantId))
 }

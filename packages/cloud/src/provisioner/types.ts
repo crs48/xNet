@@ -84,6 +84,17 @@ export interface Provisioner {
 
   /** Look up a handle, or null if it no longer exists. */
   get(substrateRef: string): Promise<HubHandle | null>
+
+  /**
+   * Restore any placement bookkeeping from the fleet's stored `substrateRef`s.
+   *
+   * Optional: only substrates with a finite per-shard capacity implement it.
+   * Cloud Run does — the 1,000-services-per-project-per-region cap — and its
+   * counters used to live only in memory, so every control-plane restart sent
+   * the next provision back into a shard that was already full (exploration
+   * 0436 G9). Call it once at boot, before the first `provision`.
+   */
+  rehydrate?(substrateRefs: Iterable<string>): void
 }
 
 /** Thrown by adapter skeletons whose substrate wiring is not built yet. */

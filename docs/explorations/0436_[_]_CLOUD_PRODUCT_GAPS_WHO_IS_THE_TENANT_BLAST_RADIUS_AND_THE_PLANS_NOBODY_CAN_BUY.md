@@ -974,14 +974,14 @@ const session = await this.stripe.checkout.sessions.create({
 
 ### Phase S — blast radius (ships alone, before everything)
 
-- [ ] Give `/internal/*` reads a distinct `XNET_OPERATOR_READ_SECRET` that is never injected into a hub
-- [ ] `gatewayTokenFor(master, tenantId)` derived per tenant; injected as `XNET_CLOUD_GATEWAY_TOKEN`
-- [ ] Resolve the AI tenant **from the token**; delete the `x-tenant-id` read entirely
-- [ ] Update `packages/hub/src/features/ai-forwarder.ts` to send the derived token
-- [ ] Per-tenant R2 credentials scoped to `t/<tenantId>/`, refreshed on `setEnv` and on reactivate
-- [ ] `serviceAccount` field on `CloudRunUpsert` + the proto mapping in `google-cloud-run-client.ts`
-- [ ] `planSecretFor(master, tenantId)` + `HUB_PLAN_KID` + two-key verify for one release
-- [ ] Negative-control test: a request bearing tenant A's gateway token and `x-tenant-id: B` must resolve to **A**
+- [x] Give `/internal/*` reads a distinct `XNET_OPERATOR_READ_SECRET` that is never injected into a hub
+- [x] `gatewayTokenFor(master, tenantId)` derived per tenant; injected as `XNET_CLOUD_GATEWAY_TOKEN`
+- [x] Resolve the AI tenant **from the token**; delete the `x-tenant-id` read entirely
+- [x] Update `packages/hub/src/features/ai-forwarder.ts` to send the derived token
+- [x] Per-tenant R2 credentials scoped to `t/<tenantId>/`, refreshed on `setEnv` and on reactivate
+- [x] `serviceAccount` field on `CloudRunUpsert` + the proto mapping in `google-cloud-run-client.ts`
+- [x] `planSecretFor(master, tenantId)` + `HUB_PLAN_KID` + two-key verify for one release
+- [x] Negative-control test: a request bearing tenant A's gateway token and `x-tenant-id: B` must resolve to **A**
 
 ### Phase T — the tenant roster
 

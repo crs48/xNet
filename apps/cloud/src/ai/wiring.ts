@@ -31,6 +31,7 @@ import {
 import Stripe from 'stripe'
 import { createModelCatalog } from './models'
 import { markupFromEnv, pricingFromEnv } from './pricing'
+import { bearerToken, tenantFromGatewayToken } from '../tenant-secrets'
 
 /**
  * Which gateway the managed-AI path talks to. Set `AI_GATEWAY_PROVIDER`
@@ -90,20 +91,26 @@ function billingFromEnv(env: NodeJS.ProcessEnv): StripeBilling {
 }
 
 /**
- * Resolve the calling tenant for `/ai/chat`. The tenant's hub forwards with the
- * shared internal secret + an `x-tenant-id` header; we look up the record and
- * project it into the budget context. (A per-tenant gateway token would tighten
- * the blast radius — a hardening follow-up.) Returns null = 401.
+ * Resolve the calling tenant for `/ai/chat`.
+ *
+ * The tenant's hub presents a **self-identifying per-tenant gateway token**
+ * (`Authorization: Bearer <tenantId>.<hmac>`), and the tenant id is read OUT of
+ * that token. There is deliberately no `x-tenant-id` read here: behind the old
+ * fleet-wide `x-internal-secret`, the header decided whose virtual key and whose
+ * Stripe customer got used, so any hub could spend any other tenant's AI budget
+ * (exploration 0436 G2). Returns null = 401.
  */
 function tenantResolver(
   env: NodeJS.ProcessEnv,
   controlPlane: ControlPlane,
   nowMs: () => number
 ): (c: Context) => Promise<AiTenantContext | null> {
-  const secret = env.XNET_CLOUD_INTERNAL_SECRET
+  const gatewayMaster = env.XNET_CLOUD_GATEWAY_MASTER ?? env.XNET_CLOUD_INTERNAL_SECRET
   return async (c) => {
-    if (!secret || c.req.header('x-internal-secret') !== secret) return null
-    const tenantId = c.req.header('x-tenant-id')
+    if (!gatewayMaster) return null
+    const presented =
+      bearerToken(c.req.header('authorization')) ?? c.req.header('x-gateway-token') ?? undefined
+    const tenantId = tenantFromGatewayToken(gatewayMaster, presented)
     if (!tenantId) return null
     const record = await controlPlane.getTenant(tenantId)
     if (!record || !record.aiKeyRef || !record.entitlements.aiEnabled) return null

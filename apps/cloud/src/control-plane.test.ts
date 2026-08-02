@@ -1,17 +1,19 @@
 import { FakeVirtualKeyManager } from '@xnetjs/cloud'
 import { MemoryBindingStore } from '@xnetjs/cloud/identity'
 import { MemoryProvisioner } from '@xnetjs/cloud/provisioner'
+import { verifyEntitlements } from '@xnetjs/entitlements'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ControlPlane, currentPeriodStartMs } from './control-plane'
 import { DUNNING_WINDOWS } from './reconcile/billing'
 import { MemoryTenantStore } from './registry'
+import { gatewayTokenFor, planSecretFor, tenantFromGatewayToken } from './tenant-secrets'
 
 const challenge = (did: string) => ({ did, nonce: 'n', signature: 'sig' })
 
 function build(
   opts: {
     aiKeys?: FakeVirtualKeyManager
-    managedAi?: { cloudUrl: string; internalSecret: string }
+    managedAi?: { cloudUrl: string; gatewayMaster: string }
     readUsageBytes?: (record: { tenantId: string }) => Promise<number | null>
   } = {}
 ) {
@@ -74,8 +76,17 @@ describe('ControlPlane.provisionTenant', () => {
     })
     await cp.provisionForBilling({ plan: 'personal', billingUserId: 'user_z' })
     const env = spy.mock.calls[0]?.[0]?.env ?? {}
-    expect(env.XNET_PLAN_SECRET).toBe('test-secret')
+    // The FLEET MASTER must never reach a container (exploration 0436 G1): a hub
+    // gets a key derived for its own tenant, so a leaked env cannot mint an
+    // entitlement for anybody else.
+    expect(env.XNET_PLAN_SECRET).not.toBe('test-secret')
+    expect(env.XNET_PLAN_SECRET).toBe(planSecretFor('test-secret', 't_user_z'))
+    expect(env.HUB_PLAN_KID).toBe('t/t_user_z')
     expect(env.HUB_PLAN).toBeTruthy()
+    // …and the derived key is the one that actually verifies the token.
+    expect(verifyEntitlements(env.HUB_PLAN as string, env.XNET_PLAN_SECRET as string).plan).toBe(
+      'personal'
+    )
   })
 
   it('rejects a duplicate tenant and a failed DID challenge', async () => {
@@ -277,7 +288,7 @@ describe('ControlPlane managed-AI key provisioning (0200)', () => {
   it('injects the managed-AI forwarder env into an AI-enabled hub (0208)', async () => {
     const { cp, provision } = build({
       aiKeys: new FakeVirtualKeyManager(),
-      managedAi: { cloudUrl: 'https://cloud.xnet.app', internalSecret: 'shh' }
+      managedAi: { cloudUrl: 'https://cloud.xnet.app', gatewayMaster: 'shh' }
     })
     await cp.provisionTenant({
       tenantId: 'acme',
@@ -287,14 +298,40 @@ describe('ControlPlane managed-AI key provisioning (0200)', () => {
     })
     const env = provision.mock.calls[0]?.[0]?.env ?? {}
     expect(env.XNET_CLOUD_URL).toBe('https://cloud.xnet.app')
-    expect(env.XNET_CLOUD_INTERNAL_SECRET).toBe('shh')
     expect(env.XNET_TENANT_ID).toBe('acme')
+    // A DERIVED, self-identifying token — never the gateway master itself. The
+    // gateway reads the tenant out of this value, which is what removes the
+    // spoofable `x-tenant-id` header (exploration 0436 G2).
+    expect(env.XNET_CLOUD_GATEWAY_TOKEN).toBe(gatewayTokenFor('shh', 'acme'))
+    expect(tenantFromGatewayToken('shh', env.XNET_CLOUD_GATEWAY_TOKEN)).toBe('acme')
+    expect(env.XNET_CLOUD_INTERNAL_SECRET).toBeUndefined()
+  })
+
+  // The whole point of Phase S, asserted as a property rather than field by
+  // field: no value in a hub's environment may equal a fleet master. A new
+  // secret added to `hubEnv` without a derivation fails here.
+  it('leaks no fleet master into a hub environment', async () => {
+    const { cp, provision } = build({
+      aiKeys: new FakeVirtualKeyManager(),
+      managedAi: { cloudUrl: 'https://cloud.xnet.app', gatewayMaster: 'gw-master' }
+    })
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    const env = provision.mock.calls[0]?.[0]?.env ?? {}
+    const masters = ['test-secret', 'gw-master']
+    for (const [name, value] of Object.entries(env)) {
+      expect(masters, `${name} carries a fleet master`).not.toContain(value)
+    }
   })
 
   it('does NOT inject forwarder env for an AI-off tenant (the tier stays hidden)', async () => {
     const { cp, provision } = build({
       aiKeys: new FakeVirtualKeyManager(),
-      managedAi: { cloudUrl: 'https://cloud.xnet.app', internalSecret: 'shh' }
+      managedAi: { cloudUrl: 'https://cloud.xnet.app', gatewayMaster: 'shh' }
     })
     await cp.provisionForBilling({ plan: 'demo', billingUserId: 'user_free' })
     const env = provision.mock.calls[0]?.[0]?.env ?? {}

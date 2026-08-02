@@ -15,7 +15,15 @@ export {
   type HubState
 } from './types'
 
-export { ShardAllocator, projectForServiceIndex, type ShardingConfig } from './sharding'
+export {
+  ShardAllocator,
+  placementFromSubstrateRef,
+  projectForServiceIndex,
+  type ShardingConfig,
+  type ShardPlacement
+} from './sharding'
+
+export { tenantReplicaKey, tenantStoragePrefix } from './storage-prefix'
 
 export { MemoryProvisioner, type MemoryProvisionerOptions } from './memory'
 
@@ -26,8 +34,10 @@ export {
   type CloudRunLitestreamConfig,
   type CloudRunClient,
   type CloudRunRef,
+  tenantIdFromEnv,
   type CloudRunUpsert,
-  type CloudRunService
+  type CloudRunService,
+  type TenantR2Credentials
 } from './adapters/cloud-run-litestream'
 
 export {

@@ -108,6 +108,16 @@ export interface ControlPlaneAppDeps {
   /** Shared secret for internal READ routes; if unset, internal routes are disabled. */
   internalSecret?: string
   /**
+   * Master for the per-tenant diagnostics secrets (`diagnosticsSecretFor`).
+   *
+   * Separate from {@link internalSecret} because a tenant hub is provisioned
+   * with a DERIVATION of this one, so the two must be free to differ — before
+   * exploration 0436 they were the same variable, which is what let a hub reach
+   * the operator surface. Falls back to `internalSecret` for single-secret
+   * deployments.
+   */
+  diagnosticsMasterSecret?: string
+  /**
    * Operator identity resolver (exploration 0433, decisions 4 and 11).
    *
    * Mutating `/internal/*` routes require this and reject the shared secret: a
@@ -275,7 +285,9 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     createDiagnosticsRoutes({
       store: deps.diagnostics ?? new MemoryDebugReportStore(),
       log,
-      internalSecret: deps.internalSecret,
+      // The hub lane authenticates with a per-tenant DERIVATION of this master,
+      // so it must be the diagnostics master, not the operator read secret.
+      internalSecret: deps.diagnosticsMasterSecret ?? deps.internalSecret,
       onFirstSeen:
         deps.onDiagnosticsFirstSeen ?? createWebhookAlerter(deps.diagnosticsAlertUrl, log),
       nowMs: deps.nowMs
@@ -397,10 +409,13 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     // The tenant's own crash inbox (0341): read with the per-tenant secret the
     // provisioner hands the hub — a window onto their hub, never a copy here.
     const diagnostics =
-      health && deps.internalSecret
+      health && (deps.diagnosticsMasterSecret ?? deps.internalSecret)
         ? await fetchHubDiagnosticsSummary(
             tenant.hubUrl,
-            diagnosticsSecretFor(deps.internalSecret, tenant.tenantId),
+            diagnosticsSecretFor(
+              (deps.diagnosticsMasterSecret ?? deps.internalSecret) as string,
+              tenant.tenantId
+            ),
             { timeoutMs: 2000 }
           )
         : null

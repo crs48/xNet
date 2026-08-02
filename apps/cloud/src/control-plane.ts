@@ -40,6 +40,7 @@ import { fetchHubHealth } from './hub-status'
 import { applyBillingEvent, type BillingEvent, type DunningState } from './reconcile/billing'
 import { type TenantPage, type TenantRecord, type TenantStore } from './registry'
 import { saga, sagaStep } from './saga'
+import { gatewayTokenFor, planKeyIdFor, planSecretFor } from './tenant-secrets'
 
 /**
  * A dated promise about one tenant's encrypted R2 replica, placed before the
@@ -84,7 +85,11 @@ export interface ControlPlaneDeps {
   bindings: BindingStore
   provisioner: Provisioner
   verifyDid: DidChallengeVerifier
-  /** Secret used to sign the HUB_PLAN entitlement token the hub verifies. */
+  /**
+   * Fleet **master** for entitlement signing. Never injected into a hub: every
+   * tenant gets `planSecretFor(master, tenantId)` instead, so a leaked hub env
+   * cannot mint entitlements for anybody else (exploration 0436 G1).
+   */
   planSecret: string
   /** Immutable hub image tag new tenants are pinned to (never `latest`). */
   defaultTargetVersion: string
@@ -96,12 +101,16 @@ export interface ControlPlaneDeps {
   aiKeys?: VirtualKeyManager
   /**
    * When set, the control plane injects the managed-AI forwarder env into every
-   * AI-enabled hub — `XNET_CLOUD_URL`, `XNET_CLOUD_INTERNAL_SECRET`, and
-   * `XNET_TENANT_ID` — so the hub's `aiForwarderFeature` can proxy `/ai/chat` +
-   * `/ai/models` to the control plane with that tenant's credential, with no
-   * per-hub configuration (exploration 0208). Omit to leave hubs without managed AI.
+   * AI-enabled hub — `XNET_CLOUD_URL`, `XNET_TENANT_ID`, and a **per-tenant**
+   * `XNET_CLOUD_GATEWAY_TOKEN` derived from `gatewayMaster` — so the hub's
+   * `aiForwarderFeature` can proxy `/ai/chat` + `/ai/models` with that tenant's
+   * own credential and no per-hub configuration (explorations 0208, 0436).
+   *
+   * `gatewayMaster` is a fleet master and **never leaves the control plane**.
+   * It is deliberately a different field from the operator secret that gates
+   * `/internal/*`: collapsing the two is what let any hub enumerate the fleet.
    */
-  managedAi?: { cloudUrl: string; internalSecret: string }
+  managedAi?: { cloudUrl: string; gatewayMaster: string }
   /**
    * When set, every managed hub is provisioned with diagnostics escalation
    * pre-wired (exploration 0341): `XNET_DIAGNOSTICS_URL` pointing at this
@@ -193,20 +202,28 @@ export class ControlPlane {
 
   private hubEnv(tenantId: string, entitlements: PlanEntitlements): Record<string, string> {
     // The hub verifies this token locally and enforces the limits — no runtime
-    // call back to the control plane (anti-lock-in invariant). It needs the same
-    // signing secret to verify HUB_PLAN (the hub crashes on boot otherwise), so
-    // every hub shares the control plane's XNET_PLAN_SECRET.
+    // call back to the control plane (anti-lock-in invariant). It needs a signing
+    // secret to verify HUB_PLAN (the hub crashes on boot otherwise), and that
+    // secret is DERIVED per tenant: the fleet master never enters a container, so
+    // reading one hub's env does not yield the power to sign for another tenant
+    // (exploration 0436 G1). `HUB_PLAN_KID` stamps which generation this hub is
+    // on, so a partially-completed re-key is visible rather than assumed.
+    const planKey = planSecretFor(this.deps.planSecret, tenantId)
     const env: Record<string, string> = {
-      HUB_PLAN: signEntitlements(entitlements, this.deps.planSecret),
-      XNET_PLAN_SECRET: this.deps.planSecret
+      HUB_PLAN: signEntitlements(entitlements, planKey),
+      XNET_PLAN_SECRET: planKey,
+      HUB_PLAN_KID: planKeyIdFor(tenantId)
     }
     // Managed AI (0208): an AI-enabled hub forwards /ai/chat + /ai/models to the
     // control plane with this tenant's credential, so the client never holds a
     // key. Injected here = zero per-hub config. AI-off hubs get nothing extra, so
     // their `aiForwarderFeature` reports `managed:false` and the tier hides.
+    //
+    // The token is self-identifying, so the gateway reads the tenant OUT of it
+    // rather than off an `x-tenant-id` header the caller controls (0436 G2).
     if (this.deps.managedAi && entitlements.aiEnabled) {
       env.XNET_CLOUD_URL = this.deps.managedAi.cloudUrl
-      env.XNET_CLOUD_INTERNAL_SECRET = this.deps.managedAi.internalSecret
+      env.XNET_CLOUD_GATEWAY_TOKEN = gatewayTokenFor(this.deps.managedAi.gatewayMaster, tenantId)
       env.XNET_TENANT_ID = tenantId
     }
     // Diagnostics escalation wiring (0341): pre-configured, never pre-enabled —
