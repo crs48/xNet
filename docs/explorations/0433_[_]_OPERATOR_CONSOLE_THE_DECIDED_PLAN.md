@@ -544,25 +544,25 @@ sale — either re-opens the consent model.
 ## Validation Checklist
 
 - [ ] `community` / `company` / `enterprise` services show `minInstanceCount: 1` in GCP
-- [ ] No user-facing surface claims we cannot read tenant data
-- [ ] Restart the control plane mid-window; the budget reflects pre-restart history
-- [ ] A brand-new tenant does **not** freeze the fleet
-- [ ] Stopping the probe job **does** freeze the fleet within 2× the interval
-- [ ] `/status.json` reads `unmeasured`, never a fabricated `operational`
-- [ ] `POST /internal/account/recover` with only the shared secret returns 403
-- [ ] `cloud-company-metrics.mjs` still succeeds with only the shared secret
-- [ ] Every privileged action writes a tier-1 entry naming a person before it runs
-- [ ] An action that throws still leaves a `started` entry
+- [x] No user-facing surface claims we cannot read tenant data
+- [x] Restart the control plane mid-window; the budget reflects pre-restart history
+- [x] A brand-new tenant does **not** freeze the fleet
+- [x] Stopping the probe job **does** freeze the fleet within 2× the interval
+- [x] `/status.json` reads `unmeasured`, never a fabricated `operational`
+- [x] `POST /internal/account/recover` with only the shared secret returns 403
+- [x] `cloud-company-metrics.mjs` still succeeds with only the shared secret
+- [x] Every privileged action writes a tier-1 entry naming a person before it runs
+- [x] An action that throws still leaves a `started` entry
 - [ ] Each entry appears on the ops hub signed by the operator DID, via `GET /audit/authors/:did/changes`
 - [ ] Altering a tier-1 row is detectable against the signed tier-2 copy
-- [ ] Kill the ops hub: console renders, actions work, queue depth alerts
+- [ ] Kill the ops hub: console renders, actions work, queue depth alerts — **partially verified.** `audit.test.ts` proves actions still succeed and the queue depth rises when the publisher throws; "console renders" cannot be verified until Phase 1 exists
 - [ ] A Tier 2 grant expires without renewal and the session dies with it
 - [ ] The tenant can read the record of operator access on their own hub
-- [ ] Deleting a tenant leaves their audit entries intact
+- [x] Deleting a tenant leaves their audit entries intact
 - [ ] `/ops` returns 403 for a valid tenant session
 - [ ] Runtime image contains no CodeMirror or echarts; only `dist/ops/` assets
-- [ ] `--selftest` runs in CI beside the real scan and both controls go red
-- [ ] `pnpm typecheck && pnpm lint && pnpm test`, `pnpm build`, and the `check:*` guards
+- [x] `--selftest` runs in CI beside the real scan and both controls go red
+- [x] `pnpm typecheck && pnpm lint && pnpm test`, `pnpm build`, and the `check:*` guards
 
 ---
 

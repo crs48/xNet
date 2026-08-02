@@ -224,3 +224,56 @@ describe('audited', () => {
     expect(history.every((e) => e.operatorDid === 'did:key:zOps')).toBe(true)
   })
 })
+
+describe('retention (decision 15)', () => {
+  // Audit survives tenant deletion ON PURPOSE, and it is pro-user: if the record
+  // vanished with the account, an operator could read someone's data and then
+  // erase the evidence by deleting them. The data goes; the log of who touched it
+  // stays. Nothing in the audit path is keyed to tenant lifecycle, and this test
+  // exists so that stays true.
+  it('keeps a tenant history after every trace of that tenant is deleted', async () => {
+    const docs = new InMemoryDocStore<AuditEntry>()
+    const tenants = new InMemoryDocStore<{ tenantId: string }>()
+    const log = new AuditLog({ docs, nowMs: () => T0 })
+
+    await tenants.put('t_gone', { tenantId: 't_gone' })
+    await audited(
+      log,
+      { operator: 'u', action: 'tenant.read', tenantId: 't_gone' },
+      async () => undefined
+    )
+    await audited(
+      log,
+      {
+        operator: 'u',
+        action: 'tenant.delete-data',
+        tenantId: 't_gone',
+        reason: 'user requested erasure'
+      },
+      async () => tenants.delete('t_gone')
+    )
+
+    expect(await tenants.get('t_gone')).toBeNull()
+    const history = await log.forTenant('t_gone')
+    expect(history).toHaveLength(4) // read started/ok + delete started/ok
+    expect(history.map((e) => e.action)).toContain('tenant.delete-data')
+  })
+
+  it('entries carry no field that could hold tenant content', async () => {
+    const { log } = setup()
+    const e = await log.append({
+      operator: 'u',
+      action: 'tenant.read',
+      tenantId: 't_a',
+      outcome: 'ok'
+    })
+    expect(Object.keys(e).sort()).toEqual([
+      'action',
+      'atMs',
+      'entryId',
+      'operator',
+      'outcome',
+      'tenantId'
+    ])
+  })
+})
