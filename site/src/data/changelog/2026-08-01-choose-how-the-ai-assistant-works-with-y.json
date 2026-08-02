@@ -4,10 +4,7 @@
   "title": "Choose how the AI assistant works with you",
   "summary": "Settings now has an AI section where you pick whether the assistant scaffolds your thinking or drafts finished prose. Scaffold stays the default. First-run tips also start appearing again — every one of them had been silently rendering nothing.",
   "highlights": [],
-  "tags": [
-    "ai",
-    "app"
-  ],
+  "tags": ["ai", "app"],
   "pr": 685,
   "mergedAt": "2026-08-01T23:23:24Z",
   "authors": [

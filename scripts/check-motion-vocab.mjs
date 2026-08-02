@@ -4,11 +4,21 @@
  *
  * Motion in xNet is a small, named vocabulary defined in
  * packages/ui/src/theme/motion.css and documented in docs/MOTION.md. This
- * guard keeps authors — human or AI — inside it by failing CI on the four
- * footguns, scoped to the surfaces that carry the tokens: `packages/ui/src`
- * and `apps/web/src` (both build with the token-bearing Tailwind config).
- * Other packages have their own design systems (e.g. the editor's --editor-*
- * theme) and are intentionally out of scope.
+ * guard keeps authors — human or AI — inside it by failing CI on the footguns.
+ *
+ * Rules come in two scopes, because they protect two different things (0427):
+ *
+ *   'vocab'  — the design-token rules. Only meaningful where the token-bearing
+ *              Tailwind config is in play: `packages/ui/src` and `apps/web/src`.
+ *              Other packages have their own design systems (e.g. the editor's
+ *              --editor-* theme) and are intentionally out of scope.
+ *
+ *   'global' — the bundle-weight rules. These scan ALL of `packages/` and
+ *              `apps/`, because a 34KB static import costs the same in
+ *              packages/views as in apps/web, and the two call sites that
+ *              legitimately use Motion (workbench TabBar, views BoardView) live
+ *              outside the 'vocab' scope entirely. A guard that could not see
+ *              them would not be a guard.
  *
  *   ✗ transition-all          → animates layout props off the compositor; name
  *                               the property: transition-base / -colors-fast /
@@ -17,6 +27,10 @@
  *   ✗ ease-bounce             → retired; use ease-out, or ease-spring for
  *                               direct-manipulation feedback
  *   ✗ animate-[…] arbitrary   → add a named primitive to motion.css instead
+ *   ✗ import … 'motion/react' → ~34KB on the default path; go through
+ *                               <MotionStage> and import `m` from
+ *                               'motion/react-m' (the ~4.6KB shell, allowed)
+ *   ✗ 'framer-motion'         → renamed to `motion`; same route as above
  *
  * Run: `node scripts/check-motion-vocab.mjs` (or `pnpm check:motion-vocab`).
  *      `node scripts/check-motion-vocab.mjs --selftest`  (the negative control —
@@ -35,30 +49,63 @@ import { join, resolve, relative } from 'node:path'
 
 const root = resolve(process.cwd())
 const SCOPED_DIRS = [join(root, 'packages/ui/src'), join(root, 'apps/web/src')]
+/** Where the bundle-weight rules apply: every library and every surface. */
+const WIDE_DIRS = [join(root, 'packages'), join(root, 'apps')]
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.turbo', 'coverage'])
 const EXT = new Set(['.ts', '.tsx'])
 
-/** The banned patterns. Each entry: a name, a regex, and the fix to suggest. */
+/** Both rule scopes — the default for scanText and the self-test. */
+const ALL_SCOPES = ['vocab', 'global']
+
+/**
+ * The banned patterns. Each entry: a name, a regex, the fix to suggest, and the
+ * scope that decides which files it is applied to (see the header).
+ */
 const RULES = [
   {
+    scope: 'vocab',
     name: 'transition-all',
     re: /\btransition-all\b/,
     fix: 'name the property: transition-base, transition-colors-fast, or transition-[opacity,transform] / transition-[width]'
   },
   {
+    scope: 'vocab',
     name: 'raw duration literal',
     re: /\bduration-(?:75|100|150|200|300|500|700|1000)\b/,
     fix: 'use a token: duration-fast (100), duration-normal (150), or duration-slow (200)'
   },
   {
+    scope: 'vocab',
     name: 'ease-bounce',
     re: /\bease-bounce\b/,
     fix: 'retired — use ease-out, or ease-spring for direct-manipulation feedback'
   },
   {
+    scope: 'vocab',
     name: 'arbitrary animate-[…]',
     re: /\banimate-\[/,
     fix: 'add a named primitive to packages/ui/src/theme/motion.css instead'
+  },
+  {
+    // The full motion/react barrel is ~34KB and pulls the eager `motion`
+    // component. It may only be reached through the dynamic import() inside
+    // MotionStage, which keeps it in its own chunk. `motion/react-m` (~4.6KB
+    // shell) and `motion/react-mini` (2.3KB) are deliberately NOT matched —
+    // the pattern's closing quote stops at `react`, and those shells are the
+    // whole reason the LazyMotion split exists.
+    //
+    // Matches import STATEMENTS only; `await import('motion/react')` is an
+    // expression and does not start a line with `import <specifier>`.
+    scope: 'global',
+    name: 'static motion/react import',
+    re: /^\s*(?:import|export)\s[^\n]*?['"]motion\/react['"]/,
+    fix: "reach it via <MotionStage> (packages/ui/src/motion/MotionStage.tsx), and import `m` from 'motion/react-m' — see docs/MOTION.md"
+  },
+  {
+    scope: 'global',
+    name: 'framer-motion (superseded)',
+    re: /['"]framer-motion['"]/,
+    fix: "framer-motion was renamed to `motion`; use <MotionStage> + 'motion/react-m' (docs/MOTION.md)"
   }
 ]
 
@@ -83,12 +130,15 @@ function collect(dir, out) {
 
 /**
  * Scan one file's text. Pure (no I/O) so --selftest can exercise it directly.
+ * `scopes` selects which rules apply; it defaults to all of them so a caller
+ * that does not care about scoping still gets the full gate.
  * @returns {{ line: number, rule: string, fix: string, text: string }[]}
  */
-export function scanText(content) {
+export function scanText(content, scopes = ALL_SCOPES) {
   const violations = []
   content.split('\n').forEach((line, i) => {
     for (const rule of RULES) {
+      if (!scopes.includes(rule.scope)) continue
       if (rule.re.test(line)) {
         violations.push({ line: i + 1, rule: rule.name, fix: rule.fix, text: line.trim() })
       }
@@ -100,20 +150,34 @@ export function scanText(content) {
 function runScan(extraPaths) {
   const files = []
   for (const dir of SCOPED_DIRS) collect(dir, files)
+
+  // Bundle-weight rules scan every package and app, not just the token-bearing
+  // surfaces — importing 34KB is expensive wherever it happens.
+  const wideFiles = []
+  for (const dir of WIDE_DIRS) collect(dir, wideFiles)
+
   for (const arg of extraPaths) {
     const p = resolve(arg)
-    if (existsSync(p) && statSync(p).isFile() && !files.includes(p)) files.push(p)
+    if (existsSync(p) && statSync(p).isFile()) {
+      if (!files.includes(p)) files.push(p)
+      if (!wideFiles.includes(p)) wideFiles.push(p)
+    }
   }
 
+  /** Every file we must read, mapped to the scopes that apply to it. */
+  const scanned = new Map()
+  for (const f of wideFiles) scanned.set(f, ['global'])
+  for (const f of files) scanned.set(f, scanned.has(f) ? ALL_SCOPES : ['vocab'])
+
   let violations = 0
-  for (const file of files) {
+  for (const [file, scopes] of scanned) {
     let content
     try {
       content = readFileSync(file, 'utf8')
     } catch {
       continue
     }
-    for (const v of scanText(content)) {
+    for (const v of scanText(content, scopes)) {
       violations++
       console.error(`✗ ${relative(root, file)}:${v.line}  ${v.rule}`)
       console.error(`    ${v.text}`)
@@ -127,7 +191,10 @@ function runScan(extraPaths) {
     )
     return 1
   }
-  console.log(`✓ motion vocabulary OK (${files.length} file(s) scanned in packages/ui + apps/web)`)
+  console.log(
+    `✓ motion vocabulary OK (${files.length} file(s) for token rules in packages/ui + apps/web; ` +
+      `${scanned.size} for import rules across packages + apps)`
+  )
   return 0
 }
 
@@ -188,6 +255,44 @@ function runSelfTest() {
       label: 'an unrelated duration-like number passes',
       text: 'const timeoutMs = 300',
       expect: (v) => v.length === 0
+    },
+    // Bundle-weight rules (0427). The near-misses matter more than the hits
+    // here: a regex that also swallowed motion/react-m would ban the very
+    // import the escape hatch tells authors to use.
+    {
+      label: 'flags a static motion/react import',
+      text: "import { motion } from 'motion/react'",
+      expect: (v) => v.some((x) => x.rule === 'static motion/react import')
+    },
+    {
+      label: 'flags a re-export of motion/react',
+      text: "export { motion } from 'motion/react'",
+      expect: (v) => v.some((x) => x.rule === 'static motion/react import')
+    },
+    {
+      label: 'flags the superseded framer-motion name',
+      text: "import { motion } from 'framer-motion'",
+      expect: (v) => v.some((x) => x.rule === 'framer-motion (superseded)')
+    },
+    {
+      label: 'the motion/react-m shell is allowed',
+      text: "import * as m from 'motion/react-m'",
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'the motion/react-mini shell is allowed',
+      text: "import { animate } from 'motion/react-mini'",
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'a dynamic import of motion/react is allowed (that IS the hatch)',
+      text: "const { domMax } = await import('motion/react')",
+      expect: (v) => v.length === 0
+    },
+    {
+      label: 'token rules do not fire on a global-only file',
+      text: '<div className="transition-all" />',
+      expect: (v) => scanText('<div className="transition-all" />', ['global']).length === 0
     }
   ]
 

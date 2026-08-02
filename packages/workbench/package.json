@@ -39,6 +39,7 @@
     "@xnetjs/vectors": "workspace:*",
     "@xnetjs/views": "workspace:*",
     "lucide-react": "^0.453.0",
+    "motion": "^12.43.0",
     "react-resizable-panels": "^4.4.1",
     "yjs": "^13.6.24",
     "zustand": "^5.0.14"

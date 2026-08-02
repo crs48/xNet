@@ -12,9 +12,9 @@
  * worth asking is "does this selector exist anywhere in the product", which is
  * exactly what a scan can answer and a jsdom mount cannot.
  */
-import { DEFAULT_SECTIONS, SURFACES } from '@xnetjs/workbench'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { DEFAULT_SECTIONS, SURFACES } from '@xnetjs/workbench'
 import { describe, expect, it } from 'vitest'
 import { tipsForView, type CoachTip } from './registry'
 import './tips'
