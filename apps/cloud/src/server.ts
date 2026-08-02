@@ -172,6 +172,12 @@ const EMPTY_USAGE_LEDGER: UsageLedger = {
   }
 }
 
+/**
+ * Storage add-on sizes offered in the dashboard, in GiB (exploration 0435).
+ * `0` removes the pack. Priced flat at $0.03/GiB-month: $3 / $15 / $30.
+ */
+const STORAGE_PACK_CHOICES: readonly number[] = [0, 100, 500, 1000]
+
 /** Plans offered for self-serve checkout (free demo + contract enterprise excluded). */
 const CHECKOUT_PLANS: { id: PlanId; label: string; price: string }[] = [
   { id: 'personal', label: 'Personal', price: '$5/mo' },
@@ -357,6 +363,8 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
         tenant,
         checkoutPlans: CHECKOUT_PLANS,
         billingEnabled: Boolean(deps.payments),
+        storagePacksEnabled: Boolean(deps.payments?.setStoragePack),
+        storagePackChoices: STORAGE_PACK_CHOICES,
         appUrl: deps.appUrl ?? 'https://xnet.fyi/app',
         marketingUrl: deps.marketingUrl ?? 'https://xnet.fyi/cloud',
         gettingStartedHidden: getCookie(c, 'xnet_gs_hidden') === '1',
@@ -451,6 +459,49 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     return c.redirect('/dashboard')
   })
 
+  // Self-serve storage add-on (exploration 0435): more room, same plan. Nothing
+  // else about the subscription moves — isolation, seats, AI budget and SLA are
+  // all untouched.
+  //
+  // Stripe is charged here, but the entitlement is NOT flipped here: the
+  // `customer.subscription.updated` webhook is what applies it, so the space a
+  // tenant holds is always the space they are actually billed for. Flipping
+  // locally as well would let a failed charge leave a tenant with free storage.
+  app.post('/account/storage', async (c) => {
+    const s = session(c)
+    if (!s) return c.json({ error: 'unauthorized' }, 401)
+    const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    if (!tenant) return c.redirect('/dashboard')
+    if (!deps.payments?.setStoragePack) return c.json({ error: 'storage_addon_unavailable' }, 503)
+
+    const packGb = Number(String((await c.req.parseBody()).packGb ?? ''))
+    if (!STORAGE_PACK_CHOICES.includes(packGb)) return c.json({ error: 'bad_pack' }, 400)
+
+    // A reduction must clear the over-quota guard BEFORE we change the bill —
+    // otherwise we would charge less for space the tenant is still using and
+    // then refuse to shrink it (0216 + 0435).
+    if (packGb < (tenant.storagePackGb ?? 0)) {
+      const preview = await deps.controlPlane.setStoragePack(tenant.tenantId, packGb, {
+        dryRun: true
+      })
+      if (preview.kind === 'over-quota') {
+        return c.html(
+          renderOverQuotaNotice({
+            who: s.email ?? s.billingUserId,
+            from: preview.from.plan,
+            to: preview.to.plan,
+            usedBytes: preview.usedBytes,
+            targetQuotaBytes: preview.targetQuotaBytes,
+            reclaimBytes: preview.reclaimBytes,
+            ...(deps.appUrl ? { appUrl: deps.appUrl } : {})
+          })
+        )
+      }
+    }
+    await deps.payments.setStoragePack({ customerRef: s.billingUserId, packGb })
+    return c.redirect('/dashboard')
+  })
+
   // Self-serve managed-AI spend cap: the user sets how much they're willing to
   // spend per week / month / rolling-N-days; the metered gateway stops calls at
   // that limit (exploration 0244). Clamped server-side to ≤ the plan cap.
@@ -522,6 +573,18 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     const raw = await c.req.text()
     const headers: Record<string, string> = {}
     c.req.raw.headers.forEach((v, k) => (headers[k] = v))
+    // Stripe is the source of truth for what was BILLED, so a pack change lands
+    // here rather than at the route that requested it (0435). Idempotent: a
+    // redelivered webhook resolves to the same quota. `undefined` means the
+    // event could not tell us — which is NOT the same as "removed", and must
+    // never be written as a removal.
+    const applyStoragePack = async (customerRef: string, packGb?: number): Promise<void> => {
+      if (packGb === undefined) return
+      const tenant = await deps.controlPlane.getTenantForBilling(customerRef)
+      if (!tenant || (tenant.storagePackGb ?? 0) === packGb) return
+      await deps.controlPlane.setStoragePack(tenant.tenantId, packGb)
+    }
+
     let event
     try {
       event = await deps.payments.parseWebhook(raw, headers)
@@ -547,6 +610,9 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
         kind: 'subscription_status',
         status: event.status
       })
+      await applyStoragePack(event.customerRef, event.storagePackGb)
+    } else if (event.type === 'storage_pack') {
+      await applyStoragePack(event.customerRef, event.storagePackGb)
     }
     return c.json({ received: true })
   }

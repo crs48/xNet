@@ -701,10 +701,14 @@ export class ControlPlane {
    * live data returns `over-quota` and changes nothing, exactly as a plan
    * downgrade does (0216). `packGb: 0` removes the pack.
    */
-  async setStoragePack(tenantId: string, packGb: number): Promise<PlanChangeResult> {
+  async setStoragePack(
+    tenantId: string,
+    packGb: number,
+    opts: { dryRun?: boolean } = {}
+  ): Promise<PlanChangeResult> {
     const record = await this.deps.tenants.get(tenantId)
     if (!record) throw new Error(`Unknown tenant: ${tenantId}`)
-    return this.changePlan(tenantId, record.plan, {}, { storagePackGb: packGb })
+    return this.changePlan(tenantId, record.plan, {}, { storagePackGb: packGb, ...opts })
   }
 
   /**
@@ -713,12 +717,15 @@ export class ControlPlane {
    * flip — `provisioner.setEnv` with a freshly-signed token, no data movement.
    * Crossing an isolation boundary returns `migration-required` for the migration
    * engine to handle (exploration 0175).
+   *
+   * `opts.dryRun` evaluates the guards and returns the result WITHOUT flipping
+   * anything — no `setEnv`, no AI-key reconcile, no record write.
    */
   async changePlan(
     tenantId: string,
     plan: PlanId,
     overrides: Partial<Omit<PlanEntitlements, 'plan'>> = {},
-    opts: { storagePackGb?: number } = {}
+    opts: { storagePackGb?: number; dryRun?: boolean } = {}
   ): Promise<PlanChangeResult> {
     const record = await this.deps.tenants.get(tenantId)
     if (!record) throw new Error(`Unknown tenant: ${tenantId}`)
@@ -755,6 +762,13 @@ export class ControlPlane {
           reclaimBytes: usedBytes === null ? null : usedBytes - targetCeiling
         }
       }
+    }
+
+    // A dry run has now answered the only question a caller can ask ahead of
+    // time — "would this be refused?" — without touching the hub or the record.
+    // The storage route uses it to check a shrink BEFORE changing the bill.
+    if (opts.dryRun) {
+      return { kind: 'flipped', tenant: { ...record, plan, entitlements: next } }
     }
 
     const handle = await this.deps.provisioner.setEnv(

@@ -776,14 +776,14 @@ export function storagePackMargin(packGb: number): PlanCostBreakdown {
 
 ### Phase 2 — billing
 
-- [ ] `price_storage_100gb` at $3/mo; `STRIPE_PRICE_STORAGE_100GB` in `stripeGatewayFromEnv`
-- [ ] Add a `SubscriptionItem` (quantity = packGb/100) rather than swapping the base price; `proration_behavior: always_invoice` on increase, `none` + period-end on decrease
-- [ ] Parse the storage quantity from `customer.subscription.updated` items — **not** from checkout session metadata, which does not carry it
-- [ ] `storagePackMargin()` in the cost model + a floor-margin test asserting every published pack clears 35%
+- [x] `price_storage_100gb` at $3/mo; `STRIPE_PRICE_STORAGE_100GB` in `stripeGatewayFromEnv`
+- [x] Add a `SubscriptionItem` (quantity = packGb/100) rather than swapping the base price; `proration_behavior: always_invoice` on increase, `none` + period-end on decrease
+- [x] Parse the storage quantity from `customer.subscription.updated` items — **not** from checkout session metadata, which does not carry it
+- [x] `storagePackMargin()` in the cost model + a floor-margin test asserting every published pack clears 35%
 
 ### Phase 3 — surfaces
 
-- [ ] Dashboard: a storage card with used/quota, a pack picker, and prorated-price preview
+- [x] Dashboard: a storage card with used/quota, a pack picker, and prorated-price preview
 - [ ] `site/src/data/pricing.ts`: an add-on row on `/cloud/pricing`, plus an FAQ entry on how storage is priced and why BYOB exists
 - [ ] Changelog fragment: "Add storage to any plan without changing anything else"
 - [ ] ADR in `site/src/content/docs/docs/architecture/decisions.mdx` — new revenue lane, with the **Tripwire** from the Recommendation section
@@ -802,7 +802,7 @@ export function storagePackMargin(packGb: number): PlanCostBreakdown {
 - [x] Removing a pack while over the target quota returns `over-quota` and **keeps billing the pack** — no silent shrink, no data loss
 - [x] A hub whose `HUB_PLAN` token predates `tenantQuotaBytes` boots and accepts writes (fail-open confirmed, not assumed)
 - [ ] A self-hosted hub with no `HUB_PLAN` and no object-store config still stores blobs locally and is unaffected by every change above
-- [ ] Floor-margin test green for +100/+500/+1000 at the published prices
+- [x] Floor-margin test green for +100/+500/+1000 at the published prices
 - [ ] Stripe test-mode: buy → prorate → webhook → quota flip observed on the hub's `/health`
 - [ ] Nightly restore drill still passes for a tenant holding a 1 TB pack
 - [ ] Charter claims-ledger test updated so "no ground rent" still has a receipt with a storage line item in the catalogue
