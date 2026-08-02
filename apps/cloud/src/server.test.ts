@@ -1,5 +1,6 @@
 import { MemoryBillingIdentityProvider } from '@xnetjs/cloud/identity'
 import { describe, expect, it } from 'vitest'
+import { FakeTenantBillingGateway, type TenantBillingGateway } from './billing-gateway'
 import { AuditLog, type AuditEntry } from './ops/audit'
 import { createControlPlaneApp } from './server'
 import { SESSION_COOKIE, sealSession } from './session'
@@ -393,5 +394,134 @@ describe('control-plane HTTP API', () => {
       body: JSON.stringify({ model: 'm', messages: [{ role: 'user', content: 'hi' }] })
     })
     expect(res.status).toBe(401)
+  })
+})
+
+/**
+ * Self-serve storage add-on (exploration 0435). The route charges Stripe; the
+ * webhook is what flips the entitlement, so the space a tenant holds is always
+ * the space they are actually billed for.
+ */
+describe('POST /account/storage (0435)', () => {
+  /** A payments gateway that records add-on calls and can flip a pack. */
+  function fakePayments(): TenantBillingGateway & { calls: number[] } {
+    const gw = new FakeTenantBillingGateway() as TenantBillingGateway & { calls: number[] }
+    gw.calls = []
+    gw.setStoragePack = async ({ packGb }) => {
+      gw.calls.push(packGb)
+      return { storagePackGb: packGb }
+    }
+    return gw
+  }
+
+  async function setup(readUsageBytes?: () => Promise<number | null>) {
+    const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
+    const { controlPlane } = buildControlPlane({
+      billing,
+      verifyDid: async () => true,
+      ...(readUsageBytes ? { readUsageBytes } : {})
+    })
+    const tenant = await controlPlane.provisionForBilling({
+      plan: 'personal',
+      billingUserId: 'user_a'
+    })
+    const payments = fakePayments()
+    const a = createControlPlaneApp({
+      controlPlane,
+      billing,
+      payments,
+      sessionSecret: SESSION_SECRET
+    })
+    const cookie = `${SESSION_COOKIE}=${sealSession(SESSION_SECRET, { billingUserId: 'user_a', issuedAtMs: Date.now() })}`
+    const post = (packGb: string) =>
+      a.request('/account/storage', {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded', cookie },
+        body: `packGb=${packGb}`
+      })
+    return { a, controlPlane, tenant, payments, post }
+  }
+
+  it('charges Stripe for a pack and leaves the plan alone', async () => {
+    const { controlPlane, tenant, payments, post } = await setup()
+
+    const res = await post('500')
+
+    expect(res.status).toBe(302)
+    expect(payments.calls).toEqual([500])
+    // The plan itself is untouched — this is a storage-only upgrade.
+    expect((await controlPlane.getTenant(tenant.tenantId))?.plan).toBe('personal')
+  })
+
+  it('refuses a size that is not on offer', async () => {
+    const { payments, post } = await setup()
+    const res = await post('250')
+    expect(res.status).toBe(400)
+    expect(payments.calls).toEqual([]) // nothing charged
+  })
+
+  it('rejects an unauthenticated request', async () => {
+    const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
+    const { controlPlane } = buildControlPlane({ billing, verifyDid: async () => true })
+    const a = createControlPlaneApp({
+      controlPlane,
+      billing,
+      payments: fakePayments(),
+      sessionSecret: SESSION_SECRET
+    })
+    const res = await a.request('/account/storage', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: 'packGb=100'
+    })
+    expect(res.status).toBe(401)
+  })
+
+  it('is 503 — not a silent grant — when no storage price is configured', async () => {
+    const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
+    const { controlPlane } = buildControlPlane({ billing, verifyDid: async () => true })
+    await controlPlane.provisionForBilling({ plan: 'personal', billingUserId: 'user_a' })
+    // A gateway with no setStoragePack at all — the unconfigured production case.
+    const a = createControlPlaneApp({
+      controlPlane,
+      billing,
+      payments: new FakeTenantBillingGateway(),
+      sessionSecret: SESSION_SECRET
+    })
+    const cookie = `${SESSION_COOKIE}=${sealSession(SESSION_SECRET, { billingUserId: 'user_a', issuedAtMs: Date.now() })}`
+    const res = await a.request('/account/storage', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', cookie },
+      body: 'packGb=100'
+    })
+    expect(res.status).toBe(503)
+  })
+
+  // The bill must never drop below the space still in use: we check the shrink
+  // BEFORE charging, so a refused downgrade leaves both quota and price intact.
+  it('shows the over-quota notice and does NOT change the bill on a bad shrink', async () => {
+    const GiB = 1024 * 1024 * 1024
+    const { controlPlane, tenant, payments, post } = await setup(async () => 400 * GiB)
+    await controlPlane.setStoragePack(tenant.tenantId, 500)
+    payments.calls.length = 0
+
+    const res = await post('100') // 525 GiB → 125 GiB, but 400 GiB is stored
+
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain("doesn't fit")
+    expect(payments.calls).toEqual([]) // nothing charged
+    expect((await controlPlane.getTenant(tenant.tenantId))?.storagePackGb).toBe(500)
+  })
+
+  it('allows a shrink that fits, and charges the lower amount', async () => {
+    const GiB = 1024 * 1024 * 1024
+    const { controlPlane, tenant, payments, post } = await setup(async () => 10 * GiB)
+    await controlPlane.setStoragePack(tenant.tenantId, 500)
+    payments.calls.length = 0
+
+    const res = await post('100')
+
+    expect(res.status).toBe(302)
+    expect(payments.calls).toEqual([100])
   })
 })

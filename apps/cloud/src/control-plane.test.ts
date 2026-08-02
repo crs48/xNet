@@ -146,6 +146,129 @@ describe('ControlPlane.changePlan', () => {
   })
 })
 
+/**
+ * Storage add-on packs (exploration 0435). The pack is stored as a PACK and the
+ * quota derived from whichever plan is current — the property every one of
+ * these tests is really checking.
+ */
+describe('ControlPlane storage packs (0435)', () => {
+  async function packedTenant(
+    plan: 'personal' | 'family' = 'personal',
+    readUsageBytes?: (r: { tenantId: string }) => Promise<number | null>
+  ) {
+    const h = build(readUsageBytes ? { readUsageBytes } : {})
+    await h.cp.provisionTenant({
+      tenantId: 'acme',
+      plan,
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    return h
+  }
+
+  it('adds a pack without touching anything else about the plan', async () => {
+    const { cp } = await packedTenant()
+    const before = await cp.getTenant('acme')
+
+    const result = await cp.setStoragePack('acme', 500)
+
+    expect(result.kind).toBe('flipped')
+    const after = await cp.getTenant('acme')
+    expect(after?.plan).toBe('personal')
+    expect(after?.storagePackGb).toBe(500)
+    expect(after?.entitlements.quotaBytes).toBe(25 * GiB + 500 * GiB)
+    // Everything else is untouched — the whole point of a storage-only upgrade.
+    expect(after?.entitlements.seats).toBe(before?.entitlements.seats)
+    expect(after?.entitlements.isolation).toBe(before?.entitlements.isolation)
+    expect(after?.entitlements.aiMonthlyBudgetUsd).toBe(before?.entitlements.aiMonthlyBudgetUsd)
+    expect(after?.entitlements.sla).toBe(before?.entitlements.sla)
+  })
+
+  // R4: the bug the whole "store the pack, derive the quota" design exists to
+  // prevent. A resolved absolute override would make this upgrade SHRINK the
+  // tenant from 750 GiB to 525 GiB.
+  it('carries the pack across a plan change and re-derives from the new base', async () => {
+    const { cp } = await packedTenant()
+    await cp.setStoragePack('acme', 500)
+
+    const result = await cp.changePlan('acme', 'family')
+
+    expect(result.kind).toBe('flipped')
+    const after = await cp.getTenant('acme')
+    expect(after?.plan).toBe('family')
+    expect(after?.storagePackGb).toBe(500)
+    expect(after?.entitlements.quotaBytes).toBe(750 * GiB)
+  })
+
+  it('does not drop the pack on a plan change that passes no overrides', async () => {
+    // The exact call shape the self-serve /account/plan route makes.
+    const { cp } = await packedTenant()
+    await cp.setStoragePack('acme', 100)
+
+    await cp.changePlan('acme', 'family')
+
+    expect((await cp.getTenant('acme'))?.storagePackGb).toBe(100)
+  })
+
+  it('routes a pack REDUCTION through the over-quota guard', async () => {
+    const { cp } = await packedTenant('personal', async () => 400 * GiB)
+    await cp.setStoragePack('acme', 500) // 525 GiB ceiling, 400 GiB stored
+
+    const result = await cp.setStoragePack('acme', 100) // would drop to 125 GiB
+
+    expect(result.kind).toBe('over-quota')
+    if (result.kind === 'over-quota') {
+      expect(result.usedBytes).toBe(400 * GiB)
+      expect(result.targetQuotaBytes).toBe(125 * GiB)
+    }
+    // Nothing shrank, and the tenant still has (and is still billed for) 500.
+    expect((await cp.getTenant('acme'))?.storagePackGb).toBe(500)
+    expect((await cp.getTenant('acme'))?.entitlements.quotaBytes).toBe(525 * GiB)
+  })
+
+  it('allows a pack reduction that the stored data still fits inside', async () => {
+    const { cp } = await packedTenant('personal', async () => 50 * GiB)
+    await cp.setStoragePack('acme', 500)
+
+    const result = await cp.setStoragePack('acme', 100)
+
+    expect(result.kind).toBe('flipped')
+    expect((await cp.getTenant('acme'))?.entitlements.quotaBytes).toBe(125 * GiB)
+  })
+
+  it('removes the pack entirely at 0, restoring the plan default', async () => {
+    const { cp } = await packedTenant('personal', async () => 1 * GiB)
+    await cp.setStoragePack('acme', 500)
+
+    const result = await cp.setStoragePack('acme', 0)
+
+    expect(result.kind).toBe('flipped')
+    const after = await cp.getTenant('acme')
+    expect(after?.storagePackGb).toBeUndefined()
+    expect(after?.entitlements.quotaBytes).toBe(25 * GiB)
+  })
+
+  it('raises the AGGREGATE ceiling too, so the hub is told what was bought', async () => {
+    const { cp } = await packedTenant('family')
+    await cp.setStoragePack('acme', 100)
+
+    const after = await cp.getTenant('acme')
+    // family base aggregate is 5 x 250 GiB; the pack is added ONCE, not per seat.
+    expect(after?.entitlements.tenantQuotaBytes).toBe(5 * 250 * GiB + 100 * GiB)
+  })
+
+  it('provisions a brand-new tenant with a pack already attached', async () => {
+    const { cp } = build()
+    const record = await cp.provisionForBilling({
+      plan: 'personal',
+      billingUserId: 'user_b',
+      storagePackGb: 1000
+    })
+    expect(record.storagePackGb).toBe(1000)
+    expect(record.entitlements.quotaBytes).toBe(25 * GiB + 1000 * GiB)
+  })
+})
+
 describe('ControlPlane.changePlan over-quota downgrade guard (0216)', () => {
   // family (250 GiB) → personal (25 GiB): in-tier (both dedicated-sleep), so the
   // only thing standing between a tenant and a silent 10× quota cut is this guard.

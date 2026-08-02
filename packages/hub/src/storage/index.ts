@@ -2,6 +2,7 @@
  * @xnetjs/hub - Storage factory.
  */
 
+import type { BlobObjectStore } from './blob-store'
 import type { HubStorage } from './interface'
 import { createMemoryStorage } from './memory'
 
@@ -34,7 +35,7 @@ export type StorageType = 'sqlite' | 'memory'
 export const createStorage = async (
   type: StorageType,
   dataDir: string,
-  options: { resetOnCorruption?: boolean } = {}
+  options: { resetOnCorruption?: boolean; blobs?: BlobObjectStore } = {}
 ): Promise<HubStorage> => {
   switch (type) {
     case 'sqlite': {
@@ -50,3 +51,9 @@ export const createStorage = async (
 }
 
 export { createMemoryStorage } from './memory'
+export {
+  createMemoryBlobStore,
+  filesystemBlobStore,
+  objectStoreFromAdapter,
+  type BlobObjectStore
+} from './blob-store'

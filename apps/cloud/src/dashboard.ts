@@ -10,7 +10,7 @@
 
 import type { TenantRecord } from './registry'
 import type { PlanId } from '@xnetjs/entitlements'
-import { isSeatMetered } from '@xnetjs/entitlements'
+import { PLAN_CATALOG, isSeatMetered } from '@xnetjs/entitlements'
 import { sloForPlan } from './observability/slo'
 
 export interface DashboardView {
@@ -21,6 +21,10 @@ export interface DashboardView {
   checkoutPlans: { id: PlanId; label: string; price: string }[]
   /** Whether checkout/portal are wired (a billing gateway is configured). */
   billingEnabled: boolean
+  /** Whether a storage add-on price is configured (0435). Off ⇒ the card is hidden. */
+  storagePacksEnabled?: boolean
+  /** Add-on sizes offered, in GiB (includes 0 = remove). */
+  storagePackChoices?: readonly number[]
   /** Base URL of the hosted web app ("Open the app"). */
   appUrl?: string
   /** Marketing/docs base ("https://xnet.fyi/cloud") — drives the help + FAQ links. */
@@ -192,6 +196,49 @@ function planChangeCard(view: DashboardView, tenant: TenantRecord): string {
       <h2>Change plan</h2>
       <p class="muted">You're on <strong>${esc(tenant.plan)}</strong>. Upgrading applies instantly — your data just gets more room. Switching to a smaller plan needs your data to fit; if it doesn't, we'll show you how to free space or start fresh.</p>
       <div class="plans">${options}</div>
+    </div>`
+}
+
+/**
+ * Storage add-on picker (exploration 0435): more room, same plan.
+ *
+ * Kept separate from the plan-change card on purpose — the whole point of a
+ * storage upgrade is that isolation, seats, AI budget and SLA do not move, and
+ * putting it inside "Change plan" would imply otherwise.
+ */
+function storagePackCard(view: DashboardView, tenant: TenantRecord): string {
+  if (!view.billingEnabled || !view.storagePacksEnabled) return ''
+  const current = tenant.storagePackGb ?? 0
+  const included = PLAN_CATALOG[tenant.plan]?.quotaBytes ?? tenant.entitlements.quotaBytes
+  const options = (view.storagePackChoices ?? [])
+    .map((gb) => {
+      const label = gb === 0 ? 'No add-on' : `+${gb} GB`
+      const price = gb === 0 ? 'included only' : `$${(gb * 0.03).toFixed(0)}/mo`
+      const selected = gb === current
+      return `
+      <form method="post" action="/account/storage" class="plan">
+        <input type="hidden" name="packGb" value="${gb}" />
+        <div class="plan-name">${esc(label)}</div>
+        <div class="plan-price">${esc(price)}</div>
+        <button type="submit" class="ghost"${selected ? ' disabled' : ''}>${
+          selected ? 'Current' : 'Choose'
+        }</button>
+      </form>`
+    })
+    .join('')
+  return `
+    <div class="card">
+      <h2>Storage</h2>
+      <p class="muted">Your <strong>${esc(tenant.plan)}</strong> plan includes
+      <strong>${fmtBytes(included)}</strong>${
+        current > 0 ? `, plus a <strong>+${current} GB</strong> add-on you've bought` : ''
+      }, for a total of <strong>${fmtBytes(tenant.entitlements.quotaBytes)}</strong>.
+      Add-ons are billed at three cents per GB per month and change nothing else about
+      your plan — same hub, same seats, same AI budget, same price for all of it.</p>
+      <div class="plans">${options}</div>
+      <p class="muted">Adding space takes effect right away and is prorated for the rest of
+      the month. Removing space applies at the end of your billing period, and only once
+      your data fits — we never shrink a quota out from under stored data.</p>
     </div>`
 }
 
@@ -799,7 +846,7 @@ export function renderDashboard(view: DashboardView): string {
   const webAppUrl = appUrlWithHub(appUrl, view.tenant)
   const links = helpLinks(view.marketingUrl ?? 'https://xnet.fyi/cloud')
   const body = view.tenant
-    ? `${gettingStarted(view)}${hubCard(view.tenant)}${aiUsageCard(view, view.tenant)}${connectCard(view.tenant, webAppUrl, links)}${planChangeCard(view, view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}${liveScript()}`
+    ? `${gettingStarted(view)}${hubCard(view.tenant)}${aiUsageCard(view, view.tenant)}${connectCard(view.tenant, webAppUrl, links)}${storagePackCard(view, view.tenant)}${planChangeCard(view, view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}${liveScript()}`
     : `<div class="card">
          <h2>Welcome to xNet Cloud</h2>
          <p class="muted">Pick a plan to spin up your dedicated hub. You can change or cancel any time.</p>
