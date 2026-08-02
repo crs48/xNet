@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-01-cloud-plans-with-an-uptime-guarantee-no-",
+      "url": "https://xnet.fyi/changelog#2026-08-01-cloud-plans-with-an-uptime-guarantee-no-",
+      "title": "Cloud plans with an uptime guarantee no longer sleep",
+      "content_text": "Plans that publish an uptime target now keep a warm instance, so they are not woken from cold on first use. We also corrected wording across the site and dashboard that said we cannot read your data — on a managed hub we can, and now say so plainly, along with what our operators may see and the signed log that records it.\n",
+      "date_published": "2026-08-02T06:10:22Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "August 1, 2026",
+        "summary": "Plans that publish an uptime target now keep a warm instance, so they are not woken from cold on first use. We also corrected wording across the site and dashboard that said we cannot read your data — on a managed hub we can, and now say so plainly, along with what our operators may see and the signed log that records it.",
+        "highlights": [],
+        "mergedAt": "2026-08-02T06:10:22Z",
+        "pr": 692,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-01-new-posts-on-bluesky-are-announced-autom",
       "url": "https://xnet.fyi/changelog#2026-08-01-new-posts-on-bluesky-are-announced-autom",
       "title": "New posts on Bluesky are announced automatically",

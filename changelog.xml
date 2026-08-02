@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Cloud plans with an uptime guarantee no longer sleep</title>
+      <link>https://xnet.fyi/changelog#2026-08-01-cloud-plans-with-an-uptime-guarantee-no-</link>
+      <guid isPermaLink="false">2026-08-01-cloud-plans-with-an-uptime-guarantee-no-</guid>
+      <pubDate>Sun, 02 Aug 2026 06:10:22 GMT</pubDate>
+      <description>Plans that publish an uptime target now keep a warm instance, so they are not woken from cold on first use. We also corrected wording across the site and dashboard that said we cannot read your data — on a managed hub we can, and now say so plainly, along with what our operators may see and the signed log that records it.</description>
+    </item>
+    <item>
       <title>New posts on Bluesky are announced automatically</title>
       <link>https://xnet.fyi/changelog#2026-08-01-new-posts-on-bluesky-are-announced-autom</link>
       <guid isPermaLink="false">2026-08-01-new-posts-on-bluesky-are-announced-autom</guid>

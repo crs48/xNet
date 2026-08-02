@@ -10767,6 +10767,102 @@ xNet-operated infrastructure — including for fleet-wide rate limiting or
 observability, the usual framings — re-opens this ADR rather than shipping under
 it.
 
+## ADR-31: The operational record runs on xNet; readings do not
+
+**Status:** Accepted
+**Context:** Exploration 0431 found the control plane has no audit log at all —
+`/internal/*` sits behind one flat shared secret, and `POST
+/internal/account/recover` clears a tenant's bound DID so the next device to
+present a passkey claims their hub. Anyone holding the secret could take over any
+tenant and leave no attributable trace. The hub, meanwhile, already has what the
+control plane lacks: `packages/hub/src/routes/audit.ts` pages an author's signed,
+hash-chained change history.
+
+**Decision:** Operator actions, incident notes and consent grants are **signed
+xNet nodes** authored by an operator's bound `did:key`, so the change log _is_
+the audit trail. They live on a dedicated ops hub, run through the managed GCP
+path in **its own project**, and **never** provisioned by the fleet provisioner.
+
+Metrics and tenant state stay in Firestore. SLI buckets are hourly writes per
+tenant forever — exploration 0323 measured a 318k-row change log producing a
+multi-second cold-open stall, and a 250-change burst cliff above which every
+subscribed client re-renders. `TenantRecord` stays authoritative in Firestore
+because billing and provisioning read it on the request path.
+
+Audit is **two-tier**: a fail-closed Firestore write authorises the action, and
+the signed node publishes asynchronously.
+
+**Rationale:**
+
+- A signed change log is _verifiable_; an append-only database collection is
+  merely _trusted_. With a signing identity an operator cannot repudiate an
+  action and nobody with database access can forge one.
+- The ops hub must not share fate with the fleet it records. Its own project,
+  outside the provisioner, means a fleet-provisioner bug — the realistic failure
+  for a small team — cannot destroy the record of what operators did.
+- Two tiers resolve the contradiction between "audit before acting" and "the hub
+  may be unreachable during an incident". Tier 1 never blocks on the hub, so
+  operators can always act; the publish queue's depth is an alertable metric, so
+  a gap between the tiers is visible rather than silent.
+- The record is low-volume by construction. Keeping the readings off it is what
+  makes the ops hub something that never needs to scale.
+
+**Tradeoff:** The ops hub becomes a standing dependency of incident response, and
+the audit trail is eventually-consistent rather than synchronous. Accepted: the
+local replica and the tier-1 gate mean the degraded mode is "audit history is
+stale", not "you cannot see or do anything".
+
+**Tripwire:** the ops hub's change log crosses ~100k changes, or any proposal to
+put a per-tenant time series on it — either re-opens the record/readings split
+rather than shipping under this ADR.
+
+## ADR-32: Support sees shape; content requires per-incident consent
+
+**Status:** Accepted
+**Context:** A managed hub is not opaque to its operator. The trusted tier
+provides integrity and revocation-denial but **not** confidentiality
+(exploration 0343), and `packages/hub/src/services/search-indexer.ts` extracts
+plaintext from rich text to build the FTS index. Any support console therefore
+draws its boundary in policy and audit, not in cryptography — and four
+user-facing surfaces were claiming otherwise.
+
+**Decision:** Operators see **Tier 1 — shape** without consent: counts, bytes,
+latencies, plan, region, version, sync backlog, job history, error class and
+stack. No document titles, no field values.
+
+**Tier 2 — content** requires a typed reason, the tenant's explicit grant, and a
+hard expiry with no renewal. Every request, grant, denial and expiry is mirrored
+to the tenant's own hub. **Standing consent is refused at every tier, including
+enterprise contracts.**
+
+Audit is graduated: aggregate fleet views are not audited, per-tenant reads are
+audited silently without a prompt, mutations require a typed reason. Audit
+entries are retained 12 months and are **not** purged when a tenant is deleted.
+
+**Rationale:**
+
+- Most real tickets — "is my sync broken", "why is my hub slow", "where did my
+  storage go" — are answerable from shape alone. Making content expensive and
+  visible rather than impossible is what keeps the boundary honest instead of
+  routinely circumvented.
+- Titles are not a soft middle ground. A document called "Q3 layoffs" leaks
+  exactly the thing the boundary protects.
+- A reason prompt on every read trains operators to type "investigating", which
+  produces a log that looks rigorous and means nothing. Reserving the prompt for
+  mutations keeps it meaningful.
+- Standing access is the mechanism by which consented access erodes into routine
+  unlogged looking. Refusing it at contract level is the only durable form.
+- Audit surviving tenant deletion protects the _user_: it is the only thing
+  preventing look-then-delete from erasing its own evidence.
+
+**Tradeoff:** Some tickets will be slower, and some enterprise negotiations will
+be harder. Accepted: a sovereignty promise with a standing-access carve-out is
+not a promise.
+
+**Tripwire:** the first support ticket that cannot be resolved at Tier 1, or the
+first enterprise negotiation that makes standing access a condition of sale —
+either re-opens the consent model rather than shipping an exception under it.
+
 ---
 
 ## Package Graph
