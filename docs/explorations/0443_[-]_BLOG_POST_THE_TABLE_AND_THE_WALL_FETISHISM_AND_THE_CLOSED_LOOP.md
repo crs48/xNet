@@ -373,15 +373,15 @@ Registry entry (`site/src/data/blog.ts`, prepended to `posts[]`):
       *Weights You Can Hold* (dead labour owned), *The Matchmaker and the
       Meter* (prices as honest signals), *Rig the Game or Play* (enclosure,
       one link in passing).
-- [ ] Read-through against the tone guards: symmetry executed, no electoral
+- [x] Read-through against the tone guards: symmetry executed, no electoral
       excerpt, no surplus-value claim, no advocacy register.
 - [x] `/humanize` pass: `tellscan.mjs`, elevated tells + three standing
       rules only.
-- [ ] `pnpm build` the site (not `astro dev`); check page, index card (hero
+- [x] `pnpm build` the site (not `astro dev`); check page, index card (hero
       art renders), prev/next threading.
-- [ ] Set `pubDate` from the merge commit, drop `draft`, set
+- [x] Set `pubDate` from the merge commit, drop `draft`, set
       `readingMinutes` from final word count.
-- [ ] PR with `skip-changelog` label, DCO sign-off on every commit,
+- [x] PR with `skip-changelog` label, DCO sign-off on every commit,
       merge-commit, CI green before merge.
 - [ ] After the sibling branch merges: confirm the Wall 0441 is marked
       withdrawn by its owner and the 0441/0442 numbering collision resolved
@@ -389,19 +389,19 @@ Registry entry (`site/src/data/blog.ts`, prepended to `posts[]`):
 
 ## Validation Checklist
 
-- [ ] Post renders in the production build; appears in `/blog` index and
+- [x] Post renders in the production build; appears in `/blog` index and
       RSS; index card shows hero art.
-- [ ] `seriesNeighbors()` threads it as #22 (prev: *The Matchmaker and the
+- [x] `seriesNeighbors()` threads it as #22 (prev: *The Matchmaker and the
       Meter*).
-- [ ] Final word count ≤3,400 (`readingMinutes` ≤15); no essay-body lists.
-- [ ] Every Marx quote <15 words, quoted, chapter-attributed, findable on
+- [x] Final word count ≤3,400 (`readingMinutes` ≤15); no essay-body lists.
+- [x] Every Marx quote <15 words, quoted, chapter-attributed, findable on
       marxists.org from Sources; every Berlin figure carries the corrected
       number or the video attribution.
-- [ ] Every `Sources` link returns non-404 (403 bot-blocks acceptable).
-- [ ] No third-party network requests on the page.
-- [ ] `tellscan.mjs` shows no elevated tells vs corpus baseline; en-GB
+- [x] Every `Sources` link returns non-404 (403 bot-blocks acceptable).
+- [x] No third-party network requests on the page.
+- [x] `tellscan.mjs` shows no elevated tells vs corpus baseline; en-GB
       throughout.
-- [ ] Read-aloud pass: no paragraph excerpt reads as electoral commentary,
+- [x] Read-aloud pass: no paragraph excerpt reads as electoral commentary,
       in either direction.
 
 ## References

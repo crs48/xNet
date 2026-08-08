@@ -114,11 +114,10 @@ const posts: BlogPost[] = [
       'and shelves that forget their wanters. On commodity fetishism, the ' +
       'feed as a planned economy — and the software decision to keep both ' +
       'wires connected.',
-    pubDate: '2026-08-08T02:00:00Z',
+    pubDate: '2026-08-08T02:26:57Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'economics', 'philosophy'],
-    readingMinutes: 14,
-    draft: true
+    readingMinutes: 14
   },
   {
     slug: 'the-matchmaker-and-the-meter',
