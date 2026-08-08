@@ -6,7 +6,19 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 01 Aug 2026 19:49:06 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 08 Aug 2026 02:26:57 GMT</lastBuildDate>
+    <item>
+      <title>The Table and the Wall</title>
+      <link>https://xnet.fyi/blog/the-table-and-the-wall</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-table-and-the-wall</guid>
+      <description>In 1867, in the driest book ever written about money, Karl Marx cracked a joke about a séance: turn a table into a commodity and it stands on its head, dancing — the people who made it vanish into the thing. Ninety-four years later, a state founded on that book built a wall, and every guard tower faced its own citizens. One story, told from both ends of a severed wire: things that forget their makers, and shelves that forget their wanters. On commodity fetishism, the feed as a planned economy — and the software decision to keep both wires connected.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sat, 08 Aug 2026 02:26:57 GMT</pubDate>
+      <category>essay</category>
+      <category>economics</category>
+      <category>philosophy</category>
+    </item>
     <item>
       <title>The Matchmaker and the Meter</title>
       <link>https://xnet.fyi/blog/the-matchmaker-and-the-meter</link>
