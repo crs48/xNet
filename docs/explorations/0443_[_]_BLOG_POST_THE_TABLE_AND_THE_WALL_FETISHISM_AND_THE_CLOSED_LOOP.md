@@ -353,29 +353,29 @@ Registry entry (`site/src/data/blog.ts`, prepended to `posts[]`):
 
 ## Implementation Checklist
 
-- [ ] Invoke the `humanize` skill, then draft
+- [x] Invoke the `humanize` skill, then draft
       `site/src/pages/blog/the-table-and-the-wall.astro` per the eight
       beats — en-GB, no lists, ≤3,400 words, one video quote max, `Sources`
       section in series format.
-- [ ] Verify every Marx quote against the marxists.org chapter files
+- [x] Verify every Marx quote against the marxists.org chapter files
       (`ch01.htm` §4 dancing table + fetishism sentence, `ch10.htm` §1
       vampire, `ch15.htm` confirm-or-cut, `grundrisse/ch14.htm` general
       intellect); name Moore/Aveling 1887 once.
-- [ ] Verify the Berlin facts against the primary links (MPIDR pages,
+- [x] Verify the Berlin facts against the primary links (MPIDR pages,
       Ulbricht quote source, 2.7M exits) and keep the life-expectancy
       correction in the text; keep planning-chain specifics attributed to
       the video.
-- [ ] Verify the xNet receipts against code as cited in the receipts table
+- [x] Verify the xNet receipts against code as cited in the receipts table
       (change signatures, portability, humane-patterns gate, Charter §3/§6).
-- [ ] Add the registry entry to `site/src/data/blog.ts` with `draft: true`.
-- [ ] Add the `heroArt` entry in `site/src/pages/blog/index.astro`.
-- [ ] Cross-link *People in Disguise* (fetishism's modern statement),
+- [x] Add the registry entry to `site/src/data/blog.ts` with `draft: true`.
+- [x] Add the `heroArt` entry in `site/src/pages/blog/index.astro`.
+- [x] Cross-link *People in Disguise* (fetishism's modern statement),
       *Weights You Can Hold* (dead labour owned), *The Matchmaker and the
       Meter* (prices as honest signals), *Rig the Game or Play* (enclosure,
       one link in passing).
 - [ ] Read-through against the tone guards: symmetry executed, no electoral
       excerpt, no surplus-value claim, no advocacy register.
-- [ ] `/humanize` pass: `tellscan.mjs`, elevated tells + three standing
+- [x] `/humanize` pass: `tellscan.mjs`, elevated tells + three standing
       rules only.
 - [ ] `pnpm build` the site (not `astro dev`); check page, index card (hero
       art renders), prev/next threading.

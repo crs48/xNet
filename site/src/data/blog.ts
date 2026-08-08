@@ -102,6 +102,25 @@ export interface BlogPost {
 
 const posts: BlogPost[] = [
   {
+    slug: 'the-table-and-the-wall',
+    title: 'The Table and the Wall',
+    description:
+      'In 1867, in the driest book ever written about money, Karl Marx ' +
+      'cracked a joke about a séance: turn a table into a commodity and it ' +
+      'stands on its head, dancing — the people who made it vanish into the ' +
+      'thing. Ninety-four years later, a state founded on that book built a ' +
+      'wall, and every guard tower faced its own citizens. One story, told ' +
+      'from both ends of a severed wire: things that forget their makers, ' +
+      'and shelves that forget their wanters. On commodity fetishism, the ' +
+      'feed as a planned economy — and the software decision to keep both ' +
+      'wires connected.',
+    pubDate: '2026-08-08T02:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'economics', 'philosophy'],
+    readingMinutes: 14,
+    draft: true
+  },
+  {
     slug: 'the-matchmaker-and-the-meter',
     title: 'The Matchmaker and the Meter',
     description:
