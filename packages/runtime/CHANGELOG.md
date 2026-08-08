@@ -1,5 +1,43 @@
 # @xnetjs/runtime
 
+## 0.7.0
+
+### Minor Changes
+
+- [#678](https://github.com/crs48/xNet/pull/678) [`5c9112f`](https://github.com/crs48/xNet/commit/5c9112fb56a524106d3081f042ef7ea658cdbb84) Thanks [@crs48](https://github.com/crs48)! - Resolve a hub's address from a stable name instead of hard-coding its URL.
+
+  A managed hub's URL belongs to whoever hosts it today, so moving it between
+  regions or substrates silently misconfigured every device that had stored it.
+  `XNetConfig.hubAddress` now takes a name and a resolver: the client resolves
+  once, caches the answer, and connects to the hub **directly** — nothing proxies
+  your traffic. `hubUrl` still works unchanged and is used as the fallback until
+  resolution succeeds, so a resolver outage costs freshness, never reachability.
+  - `@xnetjs/runtime` adds `resolveHubUrl`, `httpResolver`, and the
+    `HubAddressRecord` types. Records are signed by the hub itself, so a resolver
+    can cache one but cannot change where you connect.
+  - `@xnetjs/react` adds `useResolvedHubUrl` and the `hubAddress` config option.
+    A hub that is waking from cold now reports as waking, with a retry hint,
+    instead of looking like an outage.
+  - `@xnetjs/data` records the last-known hub address inside `.xnetpack`
+    manifests, under the signature, so an export on its own is enough to
+    reconnect.
+
+  All three additions are additive; existing configuration and bundles are
+  unaffected.
+
+### Patch Changes
+
+- Updated dependencies [[`e8843ef`](https://github.com/crs48/xNet/commit/e8843ef392fbc649cea796917ceb0ee0b57f06cf), [`2c148e8`](https://github.com/crs48/xNet/commit/2c148e8f134b0062ea9bca7af888710834f1ad91), [`380385c`](https://github.com/crs48/xNet/commit/380385cfdf006e91a8d6ca04424ddd2d2eedd504), [`8a5fff7`](https://github.com/crs48/xNet/commit/8a5fff73e9a2dc44362193013ba6a84224894867), [`705e9b7`](https://github.com/crs48/xNet/commit/705e9b7610b97b5f84c6329db5acf9bb04d11b61), [`8f46d59`](https://github.com/crs48/xNet/commit/8f46d59e4bf00629803a56a86407c977a7a7162d), [`06fb240`](https://github.com/crs48/xNet/commit/06fb240fc7ecf55b6364395602c1d906d4e2255c), [`c021369`](https://github.com/crs48/xNet/commit/c0213690a1342b8b5fc1605c9b4f3b7c1057b614), [`cd22c25`](https://github.com/crs48/xNet/commit/cd22c2530fb75cf7c16387e3e56abc9d2a8b5c39), [`ff622ad`](https://github.com/crs48/xNet/commit/ff622adf3cc8abe844850d39dbe77ef7f111cb62), [`44a4ce0`](https://github.com/crs48/xNet/commit/44a4ce0f4423a74e230e17e01eb00232afccdcd7), [`921d2c8`](https://github.com/crs48/xNet/commit/921d2c81f96a983bf8f26445a235e63024498c2d), [`4d85c64`](https://github.com/crs48/xNet/commit/4d85c6435e55f6729f51621612e467be37eb70aa), [`730d30a`](https://github.com/crs48/xNet/commit/730d30a117ff20192a6e1a257ba544a8945cfe36), [`e5a940c`](https://github.com/crs48/xNet/commit/e5a940c5acaf94c98492e48d2a142f47a754b8a8), [`561e8e5`](https://github.com/crs48/xNet/commit/561e8e55dbbf44040b817d65a316a8dd39ee76cf), [`5c9112f`](https://github.com/crs48/xNet/commit/5c9112fb56a524106d3081f042ef7ea658cdbb84), [`184709a`](https://github.com/crs48/xNet/commit/184709af1ddb235b32130f45ab6d859aa4a882e4), [`2bf556b`](https://github.com/crs48/xNet/commit/2bf556b48264f129230b5b7bd99969c03c37141d), [`63a417b`](https://github.com/crs48/xNet/commit/63a417b21a94224eb33e0c3cbac45aa74004d310)]:
+  - @xnetjs/plugins@4.0.0
+  - @xnetjs/data@4.0.0
+  - @xnetjs/identity@4.0.0
+  - @xnetjs/sync@4.0.0
+  - @xnetjs/storage@4.0.0
+  - @xnetjs/data-bridge@4.0.0
+  - @xnetjs/history@4.0.0
+  - @xnetjs/crypto@4.0.0
+  - @xnetjs/core@4.0.0
+
 ## 0.6.0
 
 ### Minor Changes

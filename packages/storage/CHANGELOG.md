@@ -1,5 +1,18 @@
 # @xnetjs/storage
 
+## 4.0.0
+
+### Minor Changes
+
+- [#614](https://github.com/crs48/xNet/pull/614) [`44a4ce0`](https://github.com/crs48/xNet/commit/44a4ce0f4423a74e230e17e01eb00232afccdcd7) Thanks [@crs48](https://github.com/crs48)! - Fix attachments over 1 MB failing to sync. Large files are stored as chunks behind a manifest, and the manifest's identifier is what the file reference carries — so uploading the reassembled file was rejected by the hub's content check, and every attachment above 1 MB silently failed to reach other devices. Transfers now send each stored blob under its own content hash, chunks before the manifest, and verify each one on the way back down.
+
+### Patch Changes
+
+- Updated dependencies [[`8f46d59`](https://github.com/crs48/xNet/commit/8f46d59e4bf00629803a56a86407c977a7a7162d), [`7111047`](https://github.com/crs48/xNet/commit/71110478d908ffdbdadad0ecf1f4090acc231171)]:
+  - @xnetjs/sqlite@4.0.0
+  - @xnetjs/crypto@4.0.0
+  - @xnetjs/core@4.0.0
+
 ## 3.0.0
 
 ### Patch Changes

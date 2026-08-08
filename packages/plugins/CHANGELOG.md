@@ -1,5 +1,199 @@
 # @xnetjs/plugins
 
+## 4.0.0
+
+### Major Changes
+
+- [#667](https://github.com/crs48/xNet/pull/667) [`e8843ef`](https://github.com/crs48/xNet/commit/e8843ef392fbc649cea796917ceb0ee0b57f06cf) Thanks [@crs48](https://github.com/crs48)! - Coding agents now get xNet's real retrieval, and a search that admits when it
+  couldn't do its job.
+
+  Every agent lane — the `xnet` CLI, `xnet mcp serve`, and the bridged agent
+  inside the desktop app — previously built its AI surface with no retriever and
+  fell back to a substring scan over the first 500 nodes, then rendered that
+  result identically to an exhaustive search. All three now go through one
+  `createAgentRetrieval()` construction path (enforced by a build guard), and
+  `xnet search` leads with the tier it actually ran at, warning on stderr when it
+  degraded.
+
+  New: `xnet recall` and the `xnet_recall` MCP tool return a budgeted context pack
+  where each hit carries the graph path it was reached by; `xnet serve` keeps the
+  read path warm behind a unix socket; `xnet remember` / `forget` / `memories` /
+  `distill` give the agent memory across sessions; and `api.recall` / `api.graph`
+  let a sandboxed `xnet run` script reach past its loaded slice.
+
+  **Breaking (`@xnetjs/plugins`)**: `AgentApi` gains required `recall` and `graph`
+  methods and `AgentScriptSession` gains `getRequestedContext()` — implementors of
+  those interfaces must update. `MCP_CORE_TOOL_NAMES` gains `xnet_recall`, and
+  `XNET_AGENT_SKILL_MD` has been rewritten.
+
+  **Breaking (`@xnetjs/cli`)**: `AgentCliServices` gains a required `retrieval`
+  field, and `runSearch` output now begins with a `tier` provenance line — anything
+  parsing its first line as the column header must skip it.
+
+### Minor Changes
+
+- [#668](https://github.com/crs48/xNet/pull/668) [`2c148e8`](https://github.com/crs48/xNet/commit/2c148e8f134b0062ea9bca7af888710834f1ad91) Thanks [@crs48](https://github.com/crs48)! - Agent accountability substrate and JSON-RPC agent adapters (exploration 0416).
+
+  **`@xnetjs/identity`** — `enrollForeignAgent()` mints a scoped Agent Passport
+  from a verified foreign credential (a Buzz `npub`, an A2A agent card), with the
+  proof verifier injected so no ecosystem-specific dependency enters the package.
+  Passport revocation is no longer expiry-only: `revokeAgentPassport()` signs a
+  denylist entry and `verifyAgentPassport()` consults one via the new
+  `revocations` option.
+
+  **`@xnetjs/data`** — new `@xnetjs/data/agent-audit` sub-entry: build, serialize
+  and **offline-verify** an `AgentAuditBundle`. `verifyAgentAudit()` checks the
+  passport, every change's hash and signature, the unbroken per-author chain (which
+  is what catches a _removed_ action), and that every high/critical action carries
+  an operator-signed approval.
+
+  **`@xnetjs/plugins`** — a per-session egress budget (`EgressMeter`) meters agent
+  reads and raises a typed `EgressBudgetError` rather than returning a silently
+  truncated result. The model lane now emits the same `AiAgentFrame` vocabulary the
+  bridge lane speaks, via the new `onFrame` runtime option.
+
+  **`@xnetjs/devkit`** — `codexAppServerChatAgent()` and `acpChatAgent()` drive
+  Codex `app-server` and any ACP agent over a new JSON-RPC-over-stdio transport
+  (`JsonRpcSession`, `NodeDuplexRunner`), so conversations resume on a thread
+  instead of replaying history. `createPermissionBroker()` plus
+  `POST /v1/agent/permission` give the bridge a real answer channel, so a
+  permission request can be approved in-app instead of only displayed.
+
+  **`@xnetjs/cli`** — `xnet audit verify <bundle>` verifies an exported audit
+  bundle offline and exits non-zero on any problem.
+
+  All additions are additive; no existing export changed shape.
+
+- [#623](https://github.com/crs48/xNet/pull/623) [`380385c`](https://github.com/crs48/xNet/commit/380385cfdf006e91a8d6ca04424ddd2d2eedd504) Thanks [@crs48](https://github.com/crs48)! - Structured agent frames for the bridge (exploration 0392). The agent bridge can
+  now stream a turn as structured `AgentFrame`s — tool calls, tool results,
+  permission requests, cost, and session id — over a new framed endpoint
+  (`POST /v1/agent/stream`) instead of only text. `@xnetjs/devkit` exports the
+  `AgentFrame` vocabulary, `foldStreamJsonFrames`, and `streamTurnFrames` on the
+  Claude streaming agent; the existing OpenAI-compatible `/v1/chat/completions`
+  endpoint is unchanged. The bridge session map can now be made durable
+  (`fileSessionPersistence`) so `--resume` sessions survive a daemon restart, and
+  `xnet bridge serve --agent claude` wires this automatically.
+
+  `@xnetjs/plugins` adds a models.dev catalog consumer (`fetchModelsDevCatalog`,
+  with a vendored snapshot fallback for offline/outage) for cloud-key and local
+  model pickers, and now sends OpenRouter app-attribution headers
+  (`HTTP-Referer` / `X-Title`) on OpenRouter-bound requests.
+
+- [#629](https://github.com/crs48/xNet/pull/629) [`8a5fff7`](https://github.com/crs48/xNet/commit/8a5fff73e9a2dc44362193013ba6a84224894867) Thanks [@crs48](https://github.com/crs48)! - The in-app AI runtime can execute tools. `AiAgentRuntime` gains `tools`,
+  `executeTool`, `allowedTools` and `maxToolSteps`: when a model asks for a tool
+  the runtime runs it, feeds the result back as a `role: 'tool'` message, and
+  asks again, bounded by `maxToolSteps`. The allow-list is enforced in code — a
+  call outside it is refused before execution and reported back to the model —
+  and a throwing tool becomes an error message the model can recover from rather
+  than a failed turn. A new `tool.result` event carries each outcome.
+
+  Without an `executeTool` the runtime behaves exactly as before: tool calls are
+  recorded and never run.
+
+- [#620](https://github.com/crs48/xNet/pull/620) [`705e9b7`](https://github.com/crs48/xNet/commit/705e9b7610b97b5f84c6329db5acf9bb04d11b61) Thanks [@crs48](https://github.com/crs48)! - AI retrieval now uses the FTS5 index instead of scanning. `NodeStore` (and
+  the storage adapter contract) gain an optional `searchText(query, limit)`
+  that runs a cross-schema BM25 search over `nodes_fts`; the AI surface's
+  `search` tool prefers it and falls back to the substring scan only when the
+  storage has no FTS support.
+
+- [#629](https://github.com/crs48/xNet/pull/629) [`8f46d59`](https://github.com/crs48/xNet/commit/8f46d59e4bf00629803a56a86407c977a7a7162d) Thanks [@crs48](https://github.com/crs48)! - Schema-scoped AI search now returns a full page of results. `searchNodes` and
+  `NodeStore.searchText` accept an optional `schemaId` that is pushed into the
+  FTS5 query (joining `nodes`, excluding soft-deleted rows) instead of being
+  applied to a cross-schema BM25 window afterwards — previously a scoped search
+  could come back nearly empty whenever that schema's matches ranked below the
+  window.
+
+  The AI `search` tool also reports how it matched: results carry `index`
+  (`'fts5'` or `'scan'`), `degraded`, and a `notice` when the full-text index was
+  unavailable, so an agent can tell a substring scan over a truncated window from
+  an exhaustive search rather than concluding a node does not exist.
+
+- [#637](https://github.com/crs48/xNet/pull/637) [`4d85c64`](https://github.com/crs48/xNet/commit/4d85c6435e55f6729f51621612e467be37eb70aa) Thanks [@crs48](https://github.com/crs48)! - `xnet_query` and `xnet_create` now honour the `schemaId` argument. Both tools
+  read `schemaId` first and keep `schema` as a deprecated alias — previously they
+  read only `schema`, so an MCP client that passed `schemaId` (the field name
+  every node carries) had its filter dropped: `xnet_query` fell through to an
+  unfiltered `store.list` and answered "my pages" with nodes of every schema,
+  while `xnet_create` could mint a node with no schema at all.
+
+  A call that supplies neither spelling now fails with a clear error instead of
+  widening to every node.
+
+- [#665](https://github.com/crs48/xNet/pull/665) [`730d30a`](https://github.com/crs48/xNet/commit/730d30a117ff20192a6e1a257ba544a8945cfe36) Thanks [@crs48](https://github.com/crs48)! - Parked agent approvals are now reachable by the host.
+
+  `AgentAuditRecorder` decides whether a call needs a human but does not hold the
+  call open while one is found, and `approveFromApp` had no caller outside the
+  in-app AI panel. A high or critical action from any other surface — a bridged
+  coding agent, an MCP client — therefore parked where nothing could release it
+  and expired silently.
+  - New `createApprovalBroker(recorder, options)` (exported from the root barrel):
+    headless park/settle over a recorder, with a change subscription. `maxWaitMs`
+    bounds how long a caller waits without un-parking the action, so a transport
+    timeout never looks like a decision.
+  - `MCPServer` configured with `agentAudit` now **parks** medium+ risk tool
+    calls instead of returning a pending payload, so an approval resumes the
+    agent's turn with the real result. New `listParkedApprovals()`,
+    `onParkedApprovalsChanged()`, `approveParkedApproval(actionId, approverDID)`
+    and `denyParkedApproval(actionId)` give the host the release path that
+    high/critical actions require by design.
+  - `agentAudit` accepts `approvalWaitMs` (default 55s) alongside `approvalTtlMs`.
+  - `createAgentCeremonyTools(recorder, broker?)` takes the broker so a relayed
+    `APPROVE <code>` settles the parked call rather than applying the action
+    beside a caller still waiting.
+
+  Behaviour change for embedders: with `agentAudit` configured, a medium+ risk
+  `tools/call` no longer resolves immediately with `{ pending: true }`. It
+  resolves when the operator decides, or — after `approvalWaitMs` — with a
+  still-pending payload that leaves the action parked.
+
+- [#687](https://github.com/crs48/xNet/pull/687) [`2bf556b`](https://github.com/crs48/xNet/commit/2bf556b48264f129230b5b7bd99969c03c37141d) Thanks [@crs48](https://github.com/crs48)! - Retrieval now reports how it searched, not just what it found.
+
+  `WorkspaceRetrieval.retrieveContext` returns `{ nodes, provenance }` instead of
+  a bare node array — a **breaking** change for direct callers, who previously
+  got the nodes and no way to learn that the search had fallen back to a bounded
+  substring scan. Use `result.nodes` where you used the array, and
+  `result.provenance` for the tier, the `degraded` flag and a printable notice.
+
+  On the `@xnetjs/plugins` side everything is additive: `AiContextRetriever`
+  accepts either shape, `AiContextPack` gained an optional `retrieval` field, and
+  a resource's `citation` gained the optional `path` the retriever had always
+  computed and the pack had always dropped.
+
+  `SCAN_NOTICE` is now exported from `@xnetjs/brain` so every lane warns in the
+  same words.
+
+### Patch Changes
+
+- [#621](https://github.com/crs48/xNet/pull/621) [`ff622ad`](https://github.com/crs48/xNet/commit/ff622adf3cc8abe844850d39dbe77ef7f111cb62) Thanks [@crs48](https://github.com/crs48)! - Correct the deployed web app's origin in the agent-bridge origin examples: the
+  PWA lives at `https://xnet.fyi/app`, so the origin to allow is
+  `https://xnet.fyi` — not the nonexistent `app.xnet.fyi`. Updates `xnet bridge
+serve|install --allow-origin` help text and the `appOrigin` doc example.
+
+- [#627](https://github.com/crs48/xNet/pull/627) [`63a417b`](https://github.com/crs48/xNet/commit/63a417b21a94224eb33e0c3cbac45aa74004d310) Thanks [@crs48](https://github.com/crs48)! - Use xNet from inside a coding agent (exploration 0393). A new
+  `xnet connect claude-code|codex` command wires a coding agent to the workspace
+  in one idempotent step: it installs the agent skill, registers the `xnet` MCP
+  server (read-only by default, `--writes` to enable), writes a `CLAUDE.md`/
+  `AGENTS.md` contract, and can bootstrap a scoped vault checkout. It ships a
+  first-party Claude Code plugin (`packages/cli/plugin/`) whose bundled skill is
+  kept byte-identical to `xnet skill` by a CI guard.
+
+  The agent verbs (`checkout`/`status`/`commit`/`search`/`query`/`db`/`daemon`)
+  now resolve a backend automatically instead of hard-requiring the running app:
+  they probe the local API and otherwise fall back to a standalone SQLite store
+  via `--db`/`$XNET_DB` or a discovered data directory. New `--db`/`--agent`/
+  `--key` flags select the store and signing identity; local writes refuse a
+  silent ephemeral identity. `xnet doctor --agent-access` reports backend,
+  full-text search, and identity reachability, and `xnet mcp serve` gains a
+  `--read-only` mode (also `$XNET_READONLY=1`).
+
+  `@xnetjs/plugins` refreshes the agent `SKILL.md` with an explicit CLI-first lane
+  hierarchy, scoped-checkout guidance, and write-consent rules.
+
+- Updated dependencies [[`e8843ef`](https://github.com/crs48/xNet/commit/e8843ef392fbc649cea796917ceb0ee0b57f06cf), [`2c148e8`](https://github.com/crs48/xNet/commit/2c148e8f134b0062ea9bca7af888710834f1ad91), [`705e9b7`](https://github.com/crs48/xNet/commit/705e9b7610b97b5f84c6329db5acf9bb04d11b61), [`8f46d59`](https://github.com/crs48/xNet/commit/8f46d59e4bf00629803a56a86407c977a7a7162d), [`06fb240`](https://github.com/crs48/xNet/commit/06fb240fc7ecf55b6364395602c1d906d4e2255c), [`c021369`](https://github.com/crs48/xNet/commit/c0213690a1342b8b5fc1605c9b4f3b7c1057b614), [`cd22c25`](https://github.com/crs48/xNet/commit/cd22c2530fb75cf7c16387e3e56abc9d2a8b5c39), [`f357971`](https://github.com/crs48/xNet/commit/f357971de9d325aeb31520631cec8339dfc94e7c), [`44a4ce0`](https://github.com/crs48/xNet/commit/44a4ce0f4423a74e230e17e01eb00232afccdcd7), [`921d2c8`](https://github.com/crs48/xNet/commit/921d2c81f96a983bf8f26445a235e63024498c2d), [`e5a940c`](https://github.com/crs48/xNet/commit/e5a940c5acaf94c98492e48d2a142f47a754b8a8), [`561e8e5`](https://github.com/crs48/xNet/commit/561e8e55dbbf44040b817d65a316a8dd39ee76cf), [`5c9112f`](https://github.com/crs48/xNet/commit/5c9112fb56a524106d3081f042ef7ea658cdbb84), [`184709a`](https://github.com/crs48/xNet/commit/184709af1ddb235b32130f45ab6d859aa4a882e4), [`2bf556b`](https://github.com/crs48/xNet/commit/2bf556b48264f129230b5b7bd99969c03c37141d)]:
+  - @xnetjs/data@4.0.0
+  - @xnetjs/brain@1.0.0
+  - @xnetjs/abuse@4.0.0
+  - @xnetjs/core@4.0.0
+
 ## 3.0.0
 
 ### Minor Changes

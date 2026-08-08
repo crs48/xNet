@@ -1,5 +1,40 @@
 # @xnetjs/brain
 
+## 1.0.0
+
+### Major Changes
+
+- [#687](https://github.com/crs48/xNet/pull/687) [`2bf556b`](https://github.com/crs48/xNet/commit/2bf556b48264f129230b5b7bd99969c03c37141d) Thanks [@crs48](https://github.com/crs48)! - Retrieval now reports how it searched, not just what it found.
+
+  `WorkspaceRetrieval.retrieveContext` returns `{ nodes, provenance }` instead of
+  a bare node array — a **breaking** change for direct callers, who previously
+  got the nodes and no way to learn that the search had fallen back to a bounded
+  substring scan. Use `result.nodes` where you used the array, and
+  `result.provenance` for the tier, the `degraded` flag and a printable notice.
+
+  On the `@xnetjs/plugins` side everything is additive: `AiContextRetriever`
+  accepts either shape, `AiContextPack` gained an optional `retrieval` field, and
+  a resource's `citation` gained the optional `path` the retriever had always
+  computed and the pack had always dropped.
+
+  `SCAN_NOTICE` is now exported from `@xnetjs/brain` so every lane warns in the
+  same words.
+
+### Minor Changes
+
+- [#667](https://github.com/crs48/xNet/pull/667) [`f357971`](https://github.com/crs48/xNet/commit/f357971de9d325aeb31520631cec8339dfc94e7c) Thanks [@crs48](https://github.com/crs48)! - `@xnetjs/brain` is now published.
+
+  It was private because nothing outside the monorepo used it. `@xnetjs/plugins`
+  and `@xnetjs/cli` now do, and a published package cannot depend on an
+  unpublished one.
+
+  The package is unchanged by this: it has **zero runtime dependencies** and is
+  structural over whatever store, index and schema registry you hand it — which is
+  what makes it safe to publish rather than a new transitive burden. Its two
+  previous `dependencies` (`@xnetjs/data`, `@xnetjs/vectors`) were vestigial; the
+  source imports neither, and `@xnetjs/vectors` is now a devDependency used only
+  by a test.
+
 ## 0.0.25
 
 ### Patch Changes
