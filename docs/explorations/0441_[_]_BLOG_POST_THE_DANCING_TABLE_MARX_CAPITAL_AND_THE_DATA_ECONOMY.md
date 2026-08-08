@@ -1,6 +1,6 @@
 ---
 title: "A Blog Post On Marx's Capital: The Dancing Table, Data Fetishism, And xNet"
-status: draft
+status: withdrawn # superseded same day by 0443 "The Table and the Wall", which merges this essay with the calculation-problem essay ("The Wall Faces Inward") into one post. The research digest and References below remain the Marx source of record.
 last_updated: 2026-08-07
 review: 2026-11-05 # blog candidates either ship within a season or lose the moment; if unwritten by then, either write it or hand the lane to the backlog's "Landlord's Game" essay, which overlaps at the edges.
 decider: chris
