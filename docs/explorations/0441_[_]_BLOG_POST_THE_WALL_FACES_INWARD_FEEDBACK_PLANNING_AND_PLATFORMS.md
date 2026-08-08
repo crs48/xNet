@@ -23,6 +23,15 @@ tags: [blog, economics, philosophy]
 > **"The Wall Faces Inward"**, slug `the-wall-faces-inward`, tags
 > `['essay', 'economics', 'philosophy']`, ~13 minutes.
 
+> [!NOTE]
+> **Numbering + succession.** A sibling worktree independently claimed 0441
+> for a Marx *Capital* essay plan ("The Dancing Table") in the same hour;
+> this doc was committed first and keeps the number (collision rule:
+> earliest commit wins). That session then authored **0443 "The Table and
+> the Wall"** (unmerged at the time of writing), which merges both parents
+> into one essay plan — when 0443 lands, the essay is written from 0443 and
+> this doc stands as its calculation-problem parent.
+
 ## Problem Statement
 
 The prompt: write a blog post based on the Maxinomics video. The video is a
