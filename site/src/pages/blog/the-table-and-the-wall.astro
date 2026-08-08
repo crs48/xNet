@@ -1,0 +1,432 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import SeriesNav from '../../components/blog/SeriesNav.astro'
+import TableWallHero from '../../components/blog/TableWallHero.astro'
+import Byline from '../../components/blog/Byline.astro'
+import { postBySlug, formatPostDate } from '../../data/blog'
+
+const post = postBySlug('the-table-and-the-wall')!
+---
+
+<Base title={`${post.title} — xNet`} description={post.description}>
+  <Nav />
+
+  <main>
+    <TableWallHero
+      title={post.title}
+      deck={post.description}
+      date={formatPostDate(post.pubDate)}
+      readingMinutes={post.readingMinutes}
+      tags={post.tags}
+    />
+
+    <article
+      class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400"
+    >
+      <Byline post={post} />
+
+      <p>
+        In September 1867 a Hamburg publisher named Otto Meissner printed a
+        thousand copies of an eight-hundred-page book about political economy.
+        Nobody has ever called <em>Capital</em> a light read. Yet a few dozen
+        pages in, between the linen and the coats, there is a séance. Marx
+        wants to show what happens to an ordinary thing the moment it goes to
+        market, and the thing he picks is a table. As wood, he says, the table
+        is perfectly sensible; it stands on the floor and holds your dinner.
+        But turn it into a commodity and it “stands on its head” and “evolves
+        out of its wooden brain grotesque ideas”. His readers would have
+        laughed, because table-turning was the parlour craze of the age:
+        respectable Europeans sat in circles with their palms flat, waiting
+        for the furniture to move. Marx is saying the economy had beaten them
+        to it. Every table in every shop window was already dancing.
+      </p>
+      <p>
+        The joke has a job to do, and the job is a disappearing act. Somebody
+        felled that timber, seasoned it, cut the joints, fitted the legs. A
+        table is a relationship between people who make things and people who
+        need them. In his words, it is “a definite social relation between men”
+        which takes on “the fantastic form of a relation between things”. The
+        thing steps forward and the people step back, until the price looks
+        like a property of the table itself, the way weight is, and the maker
+        has vanished from the story entirely. He called the trick the
+        fetishism of commodities: made things, forgetting their makers.
+      </p>
+      <p>
+        This essay is about that trick, and about a wall. The two belong to
+        one story, though it takes a detour through a grocery shop to see it,
+        and the ending lands closer to your phone than to the nineteenth
+        century.
+      </p>
+
+      <h2>The modern séance</h2>
+      <p>
+        Consider what your social graph actually is. It is who you know and
+        who you wrote to, who owes you a call, who you would help move house:
+        relations between people, nothing else. And yet on a platform it
+        shows up as a <em>thing</em> — an asset with a market value, a graph
+        that can be owned, queried, sold against. Your profile is a commodity
+        assembled from your friendships. The follower count sits on the screen
+        the way a price sits on a table, looking like a property of the
+        object. Meanwhile the people who produced it, you and everyone who
+        ever answered you, recede politely out of frame.
+      </p>
+      <p>
+        We have written about this before, from the other end of the tunnel.
+        Jaron Lanier’s line that digital information is really just “people in
+        disguise” gave <a href="/blog/people-in-disguise">an earlier essay in
+        this series</a> its title and its engine. It is a wonderful sentence,
+        and it is commodity fetishism restated, one hundred and forty-six
+        years downstream. The disguise <em>is</em> the fetish. Marx reached
+        the same door from the other side, holding a joke about furniture.
+      </p>
+      <p>
+        There is a newer séance still: the model trained on a billion
+        people’s words, the most literal case yet of a made thing that has
+        forgotten its makers. Hold that thought; it needs the middle of this
+        essay first.
+      </p>
+
+      <h2>The book with no second half</h2>
+      <p>
+        Here is the strange shape of <em>Capital</em>: it is a diagnosis with
+        no prescription in it. Marx spends eight hundred pages on how the
+        factory system eats the people inside it, and almost none on what the
+        other side should build instead. How would a society without markets
+        know what to make — how many shoes, which bread, whose mustard? The
+        book never says. That silence turned out to be one of the most
+        expensive blank pages in history, because whole states spent the
+        twentieth century filling it in on his behalf.
+      </p>
+      <p>
+        One of those attempts ran under laboratory conditions. A recent video
+        essay by Maxinomics calls divided Berlin “the finest grand natural
+        experiment the world has ever run”. That video prompted this piece,
+        and its telling of the Berlin story is the spine of the next section. One city, one
+        culture, one climate, one cuisine, split down the middle for forty
+        years between two answers to the question Marx left open.
+      </p>
+
+      <h2>Two grocery stores</h2>
+      <p>
+        Picture two grocery shops, twenty minutes apart by metro. In the
+        western one, every basket is a ballot. Buy the croissant and somewhere
+        a baker learns to make more croissants; leave the loaf and the signal
+        travels, wallet by wallet, all the way back up the supply chain to the
+        wheat. Nobody planned any of it, which is the point: the shelf is a
+        running vote the shoppers don’t know they’re casting.
+      </p>
+      <p>
+        Across town, the shelf was decided months earlier and a long way
+        away. As the video reconstructs it from the planning documents, the chain ran
+        from the Politburo’s five-year priorities down through a state
+        commission that tracked the economy as a ledger of physical units:
+        thousands of commodities, counted in tonnes and metres. An Office of
+        Prices worked backwards from decreed ratios, bread pegged to a fixed
+        slice of the lowest wage. Quotas went out by district. The system was not stupid and its planners were not lazy.
+        It was a machine of formidable earnestness — and it had no ears.
+      </p>
+      <p>
+        You can hear the deafness in the details. A factory’s customer was
+        the quota, not the shopper, so bakers learned that a dense loaf fills
+        a tonnage target faster than a croissant ever will. The state shop
+        carried one mustard, not because nobody wanted a second mustard but
+        because there was no channel through which wanting one could matter.
+        The Trabant went essentially unchanged for three decades while the
+        waiting list for one stretched past ten years. None of this is a
+        story about wicked people. It is a story about signals with nowhere
+        to go.
+      </p>
+      <p>
+        People found the one signal that was left. In the years between the
+        war and 1961, close to three million of them walked out: a metro
+        ticket, a suitcase, gone west. On 15 June 1961, answering a
+        journalist’s question about the border, Walter Ulbricht produced one
+        of the century’s great unprompted denials: “Nobody has the intention
+        of building a wall”. He was the first person to say the word out
+        loud. Fifty-nine days later the wall went up.
+      </p>
+      <p>
+        And here is the detail the whole essay turns on. Every fixture on
+        that wall — the guard towers, the lamps, the raked sand, the wire —
+        faced <em>inward</em>. A wall that faces outward is a defence; one
+        that faces inward is a confession. The state had built, in concrete,
+        an admission of which way its own people would walk if a channel ever
+        opened, and had aimed the searchlights accordingly.
+      </p>
+
+      <h2>One wire, cut twice</h2>
+      <p>
+        The economist Albert Hirschman gave us the cleanest tools for this.
+        A system, he said, can hear its people two ways. <em>Voice</em> is
+        complaint, argument, the vote; <em>exit</em> is the quiet act of
+        leaving. East Germany closed both. Complaint was career-limiting at
+        best, and exit got a wall. A system that has closed both channels
+        does not stop making mistakes; it stops <em>hearing</em> them, which
+        is far worse, because every mistake it makes is now permanent.
+      </p>
+      <p>
+        Now put the two halves of this essay side by side, because they are
+        the same wire cut at opposite ends. The commodity hides the makers
+        from the wanters, so you cannot see the people inside the thing; the
+        plan does the reverse, hiding the wanters from the makers, so the
+        thing cannot hear the people outside it. A century of ideology fought
+        over which of the two failures to prefer, and all the while they were
+        one severed channel viewed from its two frayed ends.
+      </p>
+      <p>
+        Which means the interesting variable was never socialism versus
+        capitalism. Ludwig von Mises argued the plan could not calculate.
+        Friedrich Hayek sharpened the point: a price is a telegraph line,
+        carrying knowledge no central office could ever gather, from
+        millions of people who don’t know they’re sending it. Both were describing the
+        wire. <a href="/blog/the-matchmaker-and-the-meter">We have argued in
+        this series</a> that a price can be an honest signal or a rigged one;
+        before either, it has to be <em>allowed to travel</em>. The question
+        to ask of any system (a state, a market, an app) is not what it
+        believes but whether the wire is connected, and who can cut it.
+      </p>
+
+      <h2>The plan in a growth deck</h2>
+      <p>
+        Because here is the uncomfortable part: the most-used allocation
+        systems on Earth right now are not markets. Ronald Coase pointed out
+        long ago that every firm is a little planned economy inside: no
+        prices in the corridor, just management. That is fine, because the
+        firm floats in a market that disciplines it from outside. A platform
+        at scale breaks the arrangement. It swallows the
+        market it was supposed to answer to and runs the whole thing as
+        internal planning: what you see, what spreads, what dies, decided by
+        an objective function in a room you will never visit.
+      </p>
+      <p>
+        The feed is a shelf. You didn’t stock it, and neither did anything
+        you’d recognise as a vote; a ranking system stocked it, optimising
+        for a target someone chose. That target, engagement, is a quota,
+        and it behaves exactly the way quotas behave. Goodhart’s law is
+        usually quoted as “when a measure becomes a target, it ceases to be
+        a good measure”. It did to the timeline what tonnage targets did to
+        bread: the metric gets hit while the thing it was meant to stand for
+        quietly dies. A creator learns to serve the ranking the way the
+        baker learned the dense loaf. The thumbnail is the quota bread of
+        our decade.
+      </p>
+      <p>
+        And so to the model, the thought you were holding. Marx had a
+        horror-film image for accumulated past work: “Capital is dead labour,
+        that, vampire-like, only lives by sucking living labour”. In his
+        unpublished notebooks he went further and imagined machines as
+        knowledge itself made solid: “the power of knowledge, objectified”.
+        Beside that solidified knowledge the worker is left standing as a
+        “watchman and regulator” of a process that used to be his. Read that back slowly
+        while thinking about a foundation model. It is the accumulated
+        writing, code, and conversation of millions of people, congealed
+        into an artefact, owned by someone else, and set above you: a made
+        thing that has forgotten its makers, promoted to stocking your
+        shelf. Dead labour, deployed as the planner. Which is one reason
+        <a href="/blog/weights-you-can-hold">this series has argued</a> that
+        weights you can hold and run yourself change the relationship
+        entirely: dead labour you own is just a tool.
+      </p>
+      <p>
+        Be precise about your own role in this arrangement, though, because
+        the obvious analogy is wrong. You are not the worker in this factory:
+        nobody pays you a wage, nobody signed you to a contract, and your
+        scrolling is not labour in any sense Marx would recognise. As Nick
+        Srnicek put it, user activity is the <em>raw material</em>; the
+        labour belongs to the engineers who built the extraction apparatus.
+        You are not the exploited baker here but the field, and that is not
+        an upgrade.
+      </p>
+
+      <h2>What this argument is not</h2>
+      <p>
+        It is not “socialism bad”. The platforms just described are the most
+        relentlessly capitalist institutions ever assembled, and they rebuilt
+        the closed loop anyway. The mechanism doesn’t check ideology at the
+        door; it only checks whether the feedback can close.
+        Taxes and safety nets, for what it’s worth, are entirely beside the
+        point; the Nordic countries run open loops with generous welfare
+        states on top, and nothing in this essay touches that choice.
+      </p>
+      <p>
+        Nor is the mapping exact, and pretending otherwise would make this
+        the mirror-image propaganda of the thing it criticises. Engagement
+        is a real signal with real feedback in it, corrupted by quota-chasing
+        rather than absent, and East Berlin is the limit case rather than the
+        description. You can also still leave a platform, because
+        this wall is built of switching costs rather than concrete. What
+        deserves your suspicion is the direction of effort. A business that
+        spends its engineering on making leaving expensive — egress fees,
+        sealed formats, a decade of context that won’t come with you — is
+        pouring concrete in a familiar direction. <a
+          href="/blog/rig-the-game-or-play">We have written about what it
+        means when the operator rigs the board</a>; raising the cost of
+        exit is the oldest rig there is, and it is the planner’s move, not
+        the merchant’s.
+      </p>
+      <p>
+        And one correction to the story as the video tells it, because
+        honesty is house style. The video says the East–West life-expectancy
+        gap was erased within a decade of reunification. The Max Planck
+        demographers’ data is a little less tidy: for women the gap had
+        effectively closed by 2010 (a few months), while men in the east
+        still trailed by about a year and a half. Convergence on that scale,
+        in one generation, is still an astonishing result. It just isn’t
+        quite the clean one, and the difference between a story and a
+        dataset is worth preserving on principle.
+      </p>
+      <p>
+        The deepest disanalogy, though, turns out to be the most hopeful
+        fact in the whole affair. Land is rivalrous: if I farm the field,
+        you can’t. Data isn’t. A copy costs nothing and takes nothing from
+        anyone, which is why economists studying it keep concluding that
+        hoarding, not sharing, is the inefficiency. So when your own records
+        end up scarce, reachable only through one company’s door and priced
+        on the way out, that scarcity was <em>manufactured</em>. McKenzie Wark
+        describes a class whose power rests on exactly this: protocols for
+        “making otherwise abundant information scarce”. A manufactured
+        famine is a decision. Decisions can be made differently.
+      </p>
+
+      <h2>The seam</h2>
+      <p>
+        Which brings this home. xNet is, among other things, a long bet that
+        you can build software on the opposite decision: that both ends of
+        the severed wire can be kept connected by architecture rather than
+        by promise.
+      </p>
+      <p>
+        The maker’s end first. Every change in an xNet workspace, every edit
+        by a person or an agent, carries its author’s identity and a
+        cryptographic signature, at the wire level
+        (<code>packages/sync/src/change.ts</code>, if you want to check).
+        The record of who made what is not a courtesy that a product team
+        can later withdraw; it is the format itself. A thing built that way
+        cannot forget its makers, because the forgetting is the one move
+        the protocol refuses. That is fetishism answered in code: the table,
+        permanently labelled with the carpenter’s name.
+      </p>
+      <p>
+        Now the wanter’s end. There is no engagement quota here to
+        Goodhart: no ranked feed, no streaks, no machinery whose job is to
+        maximise a number you never chose. A CI gate
+        (<code>scripts/check-humane-patterns.mjs</code>) fails the build if
+        such machinery tries to creep in. Where there is no quota,
+        there is nothing for your shelf to be optimised against, and
+        nothing for a dense loaf to game.
+      </p>
+      <p>
+        And the signal a planner can neither fake nor survey away: exit.
+        Everything you make in xNet exports, verified and free, in an open
+        bundle format. Your identity is a key you mint yourself and can
+        carry to any server. And the master copy of your data lives on your
+        own device, so there is no inside for a wall to face.
+        <a href="/commitments">Our charter</a> writes this down as a rule:
+        no rent, ever, on access to things you would own anyway. The rule is
+        also a tripwire, in public, aimed at us. The day this company charges you at the door of your own
+        data, every argument in this essay becomes the indictment, and you
+        should read it back to us and go. That is what it costs to keep the
+        wire honest, and we pay it on purpose.
+      </p>
+      <p>
+        The video that started all this ends on a question: who owns what,
+        and who gets to decide? Pointed at data, the question answers
+        itself the moment you notice what the two failures had in common.
+        Put the table back on its feet — wood, joinery, and the name of
+        whoever made it, visible to whoever holds it. Then look at the
+        wall, and check, fixture by fixture, which way everything points.
+        Anything aimed inward tells you exactly what the builder already
+        knows about which way you would walk.
+      </p>
+
+      <hr />
+
+      <h3 id="sources">Sources</h3>
+      <ul class="text-base">
+        <li>
+          This essay was prompted by the video essay
+          <a href="https://www.youtube.com/watch?v=mMHyhneAxXY" rel="noopener noreferrer">
+            “The Simple Question Socialism Couldn’t Answer”</a
+          > by Maxinomics; the East Berlin planning-chain reconstruction (the
+          ledger of physical units, the Office of Prices, the district
+          quotas, the mustard and the loaves) is theirs, and the “finest
+          grand natural experiment” line is quoted from it.
+        </li>
+        <li>
+          Karl Marx, <em>Capital</em>, Volume 1 (1867), in the Moore/Aveling
+          translation of 1887 — all quotations here are from that text as
+          hosted at
+          <a href="https://www.marxists.org/archive/marx/works/1867-c1/" rel="noopener noreferrer">
+            marxists.org</a
+          >: the dancing table and the fetishism of commodities in
+          <a href="https://www.marxists.org/archive/marx/works/1867-c1/ch01.htm" rel="noopener noreferrer">
+            Chapter 1, Section 4</a
+          >; “dead labour … vampire-like” in
+          <a href="https://www.marxists.org/archive/marx/works/1867-c1/ch10.htm" rel="noopener noreferrer">
+            Chapter 10</a
+          >. The “power of knowledge, objectified” and “watchman and
+          regulator” passages are from the
+          <a href="https://www.marxists.org/archive/marx/works/1857/grundrisse/ch14.htm" rel="noopener noreferrer">
+            Grundrisse notebooks (1857–58)</a
+          >, unpublished in Marx’s lifetime. A
+          <a href="https://press.princeton.edu/books/hardcover/9780691190075/capital" rel="noopener noreferrer">
+            new English translation by Paul Reitter</a
+          > (Princeton, 2024) is the first in fifty years.
+        </li>
+        <li>
+          Albert Hirschman, <em>Exit, Voice, and Loyalty</em> (1970);
+          Ronald Coase, “The Nature of the Firm” (1937);
+          <a href="https://mises.org/library/economic-calculation-socialist-commonwealth" rel="noopener noreferrer">
+            Ludwig von Mises, “Economic Calculation in the Socialist
+            Commonwealth” (1920)</a
+          >; and
+          <a href="https://www.econlib.org/library/Essays/hykKnw.html" rel="noopener noreferrer">
+            Friedrich Hayek, “The Use of Knowledge in Society” (1945)</a
+          >. Francis Spufford’s <em>Red Plenty</em> (2010) and
+          <a href="https://crookedtimber.org/2012/05/30/in-soviet-union-optimization-problem-solves-you/" rel="noopener noreferrer">
+            Cosma Shalizi’s “In Soviet Union, Optimization Problem Solves
+            You” (2012)</a
+          > shaped the reading of the planners as earnest rather than
+          wicked; Leigh Phillips &amp; Michal Rozworski’s <em>The People’s
+          Republic of Walmart</em> (2019) is the fullest prior statement of
+          the firms-as-planned-economies point.
+        </li>
+        <li>
+          Nick Srnicek, <em>Platform Capitalism</em> (2016), for the
+          raw-material correction; McKenzie Wark, <em>Capital Is Dead</em>
+          (Verso, 2019), for manufactured scarcity; and
+          <a href="https://www.aeaweb.org/articles?id=10.1257%2Faer.20191330" rel="noopener noreferrer">
+            Charles Jones &amp; Christopher Tonetti, “Nonrivalry and the
+            Economics of Data” (AER, 2020)</a
+          > on why data hoarding is the inefficiency.
+        </li>
+        <li>
+          Berlin figures:
+          <a href="https://www.mpg.de/9655128/germany-regional-life-expectancy" rel="noopener noreferrer">
+            Max Planck Society on regional life expectancy</a
+          > (women’s East–West gap effectively closed by 2010; men’s still
+          about 1.4 years);
+          <a href="https://en.wikipedia.org/wiki/Republikflucht" rel="noopener noreferrer">
+            emigration from East Germany before 1961</a
+          > (around three million from the war’s end to the Wall); Ulbricht’s
+          “Nobody has the intention of building a wall”, 15 June 1961, in
+          answer to Annamarie Doherr of the Frankfurter Rundschau
+          (<a href="https://en.wikipedia.org/wiki/Walter_Ulbricht" rel="noopener noreferrer"
+            >documented here</a
+          >), fifty-nine days before construction began on 13 August 1961;
+          general chronology at
+          <a href="https://www.chronik-der-mauer.de/en/" rel="noopener noreferrer">
+            Chronik der Mauer</a
+          >.
+        </li>
+      </ul>
+
+    </article>
+
+    <SeriesNav slug={post.slug} />
+  </main>
+
+  <Footer />
+</Base>
