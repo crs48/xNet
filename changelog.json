@@ -7691,6 +7691,28 @@
           }
         ]
       }
+    },
+    {
+      "id": "2026-08-13-new-essay-the-door-inside-the-house",
+      "url": "https://xnet.fyi/changelog#2026-08-13-new-essay-the-door-inside-the-house",
+      "title": "New essay: The Door Inside the House",
+      "content_text": "Blog essay #23, on why productivity platforms have to be able to read your pages — and why a ban and an export were ever welded into one act. Eleven documented account suspensions across nine companies, and the promise it commits us to: a host can refuse to serve you, but refusing can never take your work. Read it at /blog/the-door-inside-the-house.\n",
+      "date_published": "2026-06-01T02:40:11Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "August 13, 2026",
+        "summary": "Blog essay #23, on why productivity platforms have to be able to read your pages — and why a ban and an export were ever welded into one act. Eleven documented account suspensions across nine companies, and the promise it commits us to: a host can refuse to serve you, but refusing can never take your work. Read it at /blog/the-door-inside-the-house.",
+        "highlights": [],
+        "mergedAt": "2026-06-01T02:40:11Z",
+        "pr": 23,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
     }
   ]
 }

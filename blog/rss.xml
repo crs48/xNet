@@ -6,7 +6,18 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 08 Aug 2026 02:26:57 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 13 Aug 2026 15:12:00 GMT</lastBuildDate>
+    <item>
+      <title>The Door Inside the House</title>
+      <link>https://xnet.fyi/blog/the-door-inside-the-house</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-door-inside-the-house</guid>
+      <description>A file containing the single digit 1 was locked for copyright infringement, and the notice said no review could be requested. That is the whole shape of it: something reads everything you keep, it can act on what it reads, and when it acts you lose the work as well as the service. On why productivity platforms have to be able to read your pages, and why the ban and the export were ever welded into one motion.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Thu, 13 Aug 2026 15:12:00 GMT</pubDate>
+      <category>essay</category>
+      <category>privacy</category>
+    </item>
     <item>
       <title>The Table and the Wall</title>
       <link>https://xnet.fyi/blog/the-table-and-the-wall</link>
