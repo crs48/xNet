@@ -102,6 +102,22 @@ export interface BlogPost {
 
 const posts: BlogPost[] = [
   {
+    slug: 'the-door-inside-the-house',
+    title: 'The Door Inside the House',
+    description:
+      'A file containing the single digit 1 was locked for copyright ' +
+      'infringement, and the notice said no review could be requested. ' +
+      'That is the whole shape of it: something reads everything you ' +
+      'keep, it can act on what it reads, and when it acts you lose the ' +
+      'work as well as the service. On why productivity platforms have to ' +
+      'be able to read your pages, and why the ban and the export were ' +
+      'ever welded into one motion.',
+    pubDate: '2026-08-13T15:12:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'privacy'],
+    readingMinutes: 11
+  },
+  {
     slug: 'the-table-and-the-wall',
     title: 'The Table and the Wall',
     description:

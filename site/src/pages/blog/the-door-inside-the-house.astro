@@ -1,0 +1,443 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import SeriesNav from '../../components/blog/SeriesNav.astro'
+import DoorHouseHero from '../../components/blog/DoorHouseHero.astro'
+import Byline from '../../components/blog/Byline.astro'
+import { postBySlug, formatPostDate } from '../../data/blog'
+
+const post = postBySlug('the-door-inside-the-house')!
+---
+
+<Base title={`${post.title} — xNet`} description={post.description}>
+  <Nav />
+
+  <main>
+    <DoorHouseHero
+      title={post.title}
+      deck={post.description}
+      date={formatPostDate(post.pubDate)}
+      readingMinutes={post.readingMinutes}
+      tags={post.tags}
+    />
+
+    <article
+      class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400"
+    >
+      <Byline post={post} />
+
+      <p>
+        In January 2022 a computer scientist at Michigan State University
+        opened her Google Drive and found that one of her files had been
+        put in irons. The file was called <code>output04.txt</code>. Its
+        entire contents were the digit <code>1</code>.
+      </p>
+      <p>
+        The notice said the file broke Google's copyright rules. Then, in
+        the flat voice these messages always use, it added that a review
+        could not be requested.
+      </p>
+      <p>
+        Other people went and checked. A file holding a single
+        <code>0</code> was blocked as well. Someone worked through every
+        whole number from minus a thousand to a thousand and turned up a
+        scattering of others that tripped the same wire, among them 500,
+        174 and 833. Google put its hand up, called it a fault, and said it
+        would let the files go.
+      </p>
+      <p>
+        I want to be fair about what that was. It was a bug, it lasted
+        days, and the company fixed it. But a bug is a machine doing what it
+        was built to do at the wrong moment, and that is the interesting
+        part. Something was reading every file she kept, and it had the
+        standing to act on what it read. The door marked appeal had been
+        nailed shut before anybody knocked. The digit <code>1</code> is
+        funny. The three facts underneath it are not, and they hold on every
+        ordinary day when nothing goes wrong at all.
+      </p>
+
+      <h2 id="five-doors">Five ways to lose the room</h2>
+
+      <p>
+        Once you start looking, the same shape turns up everywhere, and it
+        gets in through five different doors.
+      </p>
+      <p>
+        The first is the one that caught the file full of nothing. A machine
+        reads what you keep and forms a view. In 2021 a father in San
+        Francisco photographed his son's groin at a nurse's request, for a
+        video appointment during the pandemic. Google's scanning flagged the
+        pictures, referred him to the police, and shut his account. The
+        police looked at the images, saw immediately that they were medical,
+        and closed the case without charges. Google kept the account closed
+        anyway. That is the detail worth sitting with. He was cleared by the
+        state and stayed convicted by the company, because the two
+        proceedings were never connected in the first place.
+      </p>
+      <p>
+        The second door is your line of work. Notion's help pages say the
+        company may give extra scrutiny to, suspend, or cut off people whose
+        use touches certain industries, and it names gambling and
+        multi-level marketing. The reasoning is reasonable enough on its
+        face: those areas draw more abuse, and abuse costs everybody else
+        their service.
+      </p>
+      <p>
+        Which brings me to the story that started me writing, and I should
+        be honest that it is not a clean one. Last October someone posted in
+        the Notion forum on Reddit to say the company had banned them for no
+        reason and kept their data. It went half-viral, the way these
+        always do. Then the details came out. The workspace was running a
+        marketplace for selling airline miles, which airlines generally
+        forbid, and which involves holding a lot of strangers' account
+        details. Notion had grounds. If you came here for a martyr, that
+        isn't one.
+      </p>
+      <p>
+        I still think the case matters, and for a reason that survives
+        losing the argument about whether the ban was fair. To know what
+        that workspace held, Notion had to look inside it. Having looked and
+        decided, it kept everything else in there too. Both halves of that
+        would have happened just the same if the person had been innocent,
+        and the second half has nothing to do with the first.
+      </p>
+      <p>
+        The third door is a border. In December 2018 Slack switched off
+        accounts belonging to people it associated with Iran, including a
+        doctoral student in Vancouver and a researcher in Munich, neither of
+        whom was in Iran. Nobody got a warning, so nobody got a chance to
+        pack. Slack later admitted to a run of mistakes, restored the
+        accounts, and narrowed the rule. Notion left Russia in September
+        2024, closing workspaces whose billing had been Russian, with a
+        month's notice and a window to download first. Figma froze the drone
+        maker DJI in March 2022 after US sanctions, though it said the files
+        would not be deleted and access could return if the listing did. In
+        June 2020 Zoom closed the account of a group of American activists
+        who had held a meeting to mark the anniversary of Tiananmen Square,
+        and later confirmed it had done so because Beijing asked.
+      </p>
+      <p>
+        The fourth door opened this year, and it is the one I would watch.
+        In February, Google began permanently banning people who had
+        connected their paid Gemini subscriptions to a third-party
+        automation tool called OpenClaw. Some of them were paying $249 a
+        month, and some lost Gmail and Workspace along with the thing they
+        had actually plugged in. There was no warning at the point where the
+        connection was made, no appeal afterwards, and for people who had
+        paid a year upfront, no refund. Google's line was that using their
+        credentials inside the other tool broke its terms. What makes it
+        worth noting is that two rivals hit the same problem and chose
+        differently: Anthropic blocked the tool and left the accounts alone,
+        and OpenAI simply allowed it.
+      </p>
+      <p>
+        The fifth door has nobody behind it. Notion deletes accounts after
+        five years of silence, which it defines as never logging in and
+        never touching a page. It emails you a month before and gives you
+        another month to undo it afterwards, and none of it applies if you
+        pay or belong to an organisation. As policies go this is a kind one,
+        and that is exactly why it belongs here. Take away the villain, the
+        border, the algorithm and the argument, and the mechanism still
+        runs.
+      </p>
+
+      <h2 id="the-keys">Why they have to hold the keys</h2>
+
+      <p>
+        It would be easy to read all that as a story about careless
+        companies, and easy is why I distrust it. The better question is why
+        any of it is possible, and the answer is not carelessness. It is a
+        feature, and it is one you asked for.
+      </p>
+      <p>
+        Notion does not encrypt your pages end to end. Your data is
+        scrambled on their disks and scrambled on the way there, but the
+        keys are theirs, and the company has been straight about why. End to
+        end encryption would break search across your workspace, along with
+        sharing a page with somebody, every integration you have wired up,
+        and the AI. Those are not accessories. For most people they are the
+        reason to use the thing at all.
+      </p>
+      <p>
+        So a plain trade sits under the whole product category, and almost
+        nobody is told they are making it. You get search that reaches every
+        corner of everything you have ever written, and in exchange the
+        search engine can reach it too. You get a machine that reads your
+        notes and answers questions about them, which means you have a
+        machine that reads your notes. Every one of those five doors is
+        downstream of a capability somebody wanted. The reading is not the
+        betrayal; it is the product.
+      </p>
+
+      <h2 id="the-welded-act">Two things in one motion</h2>
+
+      <p>
+        Here is the part I actually want to argue, and it is short.
+      </p>
+      <p>
+        When a platform decides against you, two quite separate things
+        happen at the same instant. One is a judgement about your conduct,
+        which the company is entitled to make; it is their service, and they
+        can decline to run it for you. The other is a transfer of custody
+        over everything you made, which nobody ever justified, because
+        nobody was ever asked to.
+      </p>
+      <p>
+        Nothing forces those two into the same motion. No law requires it,
+        and no technical constraint does either. They arrive together because
+        the account is the only handle anyone built, so pulling the handle
+        drags everything hanging off it. A ban could just as easily leave the
+        door open behind you: service withdrawn, work still yours, here is
+        your archive on the way out. That is a product decision, made once,
+        long ago, by everybody, and left unexamined ever since.
+      </p>
+
+      <h2 id="the-lossy-exit">The door is inside the house</h2>
+
+      <p>
+        By now you have thought of the obvious answer, because it is the
+        one in every comment thread under every one of these stories. Export
+        your stuff. Keep a backup. Don't be the person who kept ten years of
+        work in one company's box.
+      </p>
+      <p>
+        It is good advice and it fails twice.
+      </p>
+      <p>
+        The first failure is in what comes out. Notion's export hands you your page
+        text and your rows, and quietly leaves behind the parts you built.
+        Relations come out as internal identifiers. Rollups and formulas
+        come out as whatever number they happened to be showing at the
+        moment you pressed the button, frozen, with the logic gone. Filters,
+        sorts and views do not come out at all. What you get is a
+        photograph of a workspace rather than the workspace, and if you have
+        ever spent a weekend wiring a database together, the photograph is
+        not the part you spent the weekend on.
+      </p>
+      <p>
+        The second failure is about timing. Export lives behind the login. It works
+        every day of your life except the one day you need it, because the
+        event that makes you need it is the same event that takes it away.
+        The fire exit is real, it is well lit, and it is on an interior wall.
+        From outside the building there is no door there at all.
+      </p>
+
+      <h2 id="our-own-no">Our own no</h2>
+
+      <p>
+        We host things too, so let me not pretend otherwise. xNet Cloud runs
+        servers for people who would rather not run their own. Anyone who
+        does that eventually gets an abuse report, a legal demand, or a
+        sanctions list with a customer's name on it, and sometimes the
+        honest answer to a request is no. I am not going to promise we will
+        never refuse anyone, because that promise would be worth nothing and
+        we would break it within the year.
+      </p>
+      <p>
+        The promise worth making is the other one. Our no cannot take
+        anything from you.
+      </p>
+      <p>
+        It cannot because of how the thing is built rather than how nice we
+        intend to be. Your master copy is the one on your own disk, and the
+        app works with no server at all. Who you are is a key you hold,
+        which any host will recognise, so we do not issue your identity and
+        cannot revoke it. What syncs is an open, signed, hash-chained log of
+        changes rather than a format only we can read, which means another
+        hub can pick it up and carry on. And there is a small detail I like
+        more than any of the big ones. In the code that decides what our
+        moderation is allowed to do, every action names something about
+        reach: refuse this write, hide that, quarantine it, stop talking to
+        that peer. Not one of them names possession. There is no verb in
+        there for keeping your things, and an appeal that succeeds simply
+        reverses, which is only a meaningful word because nothing was
+        destroyed.
+      </p>
+      <p>
+        The law is starting to arrive at roughly the same place, slowly and
+        from a different direction. In Europe the Digital Services Act now
+        says a platform must tell you why it suspended you, say whether a
+        machine made the call, and give you somewhere to complain. The Data
+        Act, in force since last September, says you can move your things
+        between cloud providers, and bans the fees for doing it outright from
+        January 2027. Both are worth having. Neither one changes who holds
+        the keys, and a retrieval window is a strange sort of comfort to
+        somebody already standing outside.
+      </p>
+      <p>
+        Which is the whole thing, really. Every one of these stories gets
+        told as an argument about whether a particular ban was fair, and the
+        arguments are mostly unwinnable, because usually the company had a
+        point and the person had a life. The question underneath never gets
+        asked, so I will ask it plainly. Why is the judgement and the
+        confiscation the same act? Sort that out and the fairness of any
+        given ban stops being the thing your work depends on. A host that
+        cannot take what you made does not need to be trusted not to, and
+        that is a much easier thing to build than good behaviour forever.
+      </p>
+
+      <hr />
+
+      <h3 id="sources">Sources</h3>
+      <ul class="text-base">
+        <li>
+          The file containing <code>1</code>: reported by
+          <a href="https://torrentfreak.com/google-drive-flags-text-files-with-1-or-0-as-copyright-infringements-220125/" rel="noopener noreferrer">
+            TorrentFreak</a
+          >,
+          <a href="https://www.bleepingcomputer.com/news/security/google-drive-flags-nearly-empty-files-for-copyright-infringement/" rel="noopener noreferrer">
+            BleepingComputer</a
+          > and
+          <a href="https://www.techdirt.com/2022/01/26/google-drives-autodetector-copyright-infringement-is-locking-up-nearly-empty-files/" rel="noopener noreferrer">
+            Techdirt</a
+          > in January 2022. The researcher is Dr Emily Dolson of Michigan
+          State University. Google acknowledged the fault publicly and said
+          new files would not be affected.
+        </li>
+        <li>
+          The medical photographs: first reported by the
+          <em>New York Times</em> in August 2022, summarised with the
+          relevant correspondence at
+          <a href="https://mjtsai.com/blog/2022/08/22/google-account-deleted-due-to-csam-false-positive/" rel="noopener noreferrer">
+            Michael Tsai's blog</a
+          >; that Google declined to reinstate the account after police
+          cleared him is covered by
+          <a href="https://www.phonearena.com/news/google-wont-reinstate-man-cleared-by-law-enforcement_id142065" rel="noopener noreferrer">
+            PhoneArena</a
+          >. A separate mass lock-out of Google Docs on 31 October 2017,
+          caused by a bad code push,
+          <a href="https://www.fastcompany.com/40489458/google-docs-are-inexplicably-locking-people-out-for-tos-violations" rel="noopener noreferrer">
+            froze journalists' drafts mid-sentence</a
+          >; the
+          <a href="https://www.washingtonpost.com/news/the-switch/wp/2017/10/31/a-mysterious-message-is-locking-google-docs-users-out-of-their-files/" rel="noopener noreferrer">
+            <em>Washington Post</em> covered it the same day</a
+          >.
+        </li>
+        <li>
+          Notion's industry rule is quoted from its own help centre page on
+          <a href="https://www.notion.com/help/report-inappropriate-content" rel="noopener noreferrer">
+            reporting inappropriate content</a
+          >, which names gambling and multi-level marketing. Some secondary
+          write-ups quote a longer list of industries; that longer list
+          could not be verified against a primary Notion document, since the
+          terms of use render client-side and return no text, so only the
+          help-centre wording is used here. The
+          <a href="https://www.notion.com/help/dormant-account-policy" rel="noopener noreferrer">
+            dormant account policy</a
+          > (five years, thirty days' notice, thirty days to recover) and
+          <a href="https://www.notion.com/help/security-and-privacy" rel="noopener noreferrer">
+            security practices</a
+          > pages are Notion's own.
+        </li>
+        <li>
+          The Reddit post that prompted this essay is
+          <a href="https://www.reddit.com/r/Notion/s/0ZrksrLLUG" rel="noopener noreferrer">
+            here</a
+          >, from late October 2025. It is described in this essay at second
+          hand and quoted nowhere, because Reddit blocks automated readers
+          and the thread could not be opened directly to check it. The
+          airline-miles detail and the surrounding context come from
+          <a href="https://lowendbox.com/blog/notion-user-discovers-that-notion-will-ban-your-account-for-no-reason-and-keep-your-data-hes-not-wrong/" rel="noopener noreferrer">
+            LowEndBox</a
+          > and
+          <a href="https://hamy.xyz/blog/2025-11_notion-data-privacy-loss" rel="noopener noreferrer">
+            hamy.xyz</a
+          >, both of which read it while it was reachable.
+        </li>
+        <li>
+          Borders:
+          <a href="https://techcrunch.com/2018/12/20/slack-iran" rel="noopener noreferrer">
+            Slack's Iran deactivations</a
+          > of December 2018 and
+          <a href="https://9to5mac.com/2018/12/22/slack-iran-deactivating-accounts/" rel="noopener noreferrer">
+            its apology and reversal</a
+          >;
+          <a href="https://www.bleepingcomputer.com/news/software/notion-exits-russia-and-will-terminate-accounts-in-september/" rel="noopener noreferrer">
+            Notion's exit from Russia</a
+          >, effective 9 September 2024;
+          <a href="https://technode.com/2022/03/14/us-design-company-figma-bans-dji-after-us-sanctions/" rel="noopener noreferrer">
+            Figma's freeze on DJI</a
+          > of 12 March 2022, where files were preserved rather than
+          deleted; and
+          <a href="https://www.cnbc.com/2020/06/11/zoom-suspends-us-based-activists-account-after-tiananmen-square-commemoration-event.html" rel="noopener noreferrer">
+            Zoom's closure of the activists' account</a
+          > in June 2020, which
+          <a href="https://www.axios.com/2020/06/10/zoom-closes-chinese-user-account-tiananmen-square" rel="noopener noreferrer">
+            the company confirmed</a
+          > followed a request from the Chinese government.
+        </li>
+        <li>
+          The Gemini bans began around 12 February 2026 and are reported by
+          <a href="https://winbuzzer.com/2026/02/23/google-bans-ai-subscribers-openclaw-no-refunds-xcxwbn/" rel="noopener noreferrer">
+            WinBuzzer</a
+          >,
+          <a href="https://www.implicator.ai/google-restricts-ai-ultra-subscribers-over-openclaw-oauth-days-after-anthropic-ban/" rel="noopener noreferrer">
+            Implicator</a
+          > and
+          <a href="https://dig.watch/updates/google-antigravity-openclaw-suspension" rel="noopener noreferrer">
+            Digital Watch</a
+          >, which are also the source for the contrasting responses from
+          Anthropic and OpenAI. Figures for what people were paying, and the
+          absence of refunds, come from that reporting rather than from
+          Google.
+        </li>
+        <li>
+          What Notion's export leaves behind is described in its own
+          <a href="https://www.notion.com/help/export-your-content" rel="noopener noreferrer">
+            export documentation</a
+          > and catalogued in more detail by third parties who have measured
+          it. Two related cases are worth naming for the record because
+          their popular versions are wrong: Dropbox's 2014 copyright system
+          <a href="https://techcrunch.com/2014/03/30/how-dropbox-knows-when-youre-sharing-copyrighted-stuff-without-actually-looking-at-your-stuff/" rel="noopener noreferrer">
+            checks a hash at the moment you share a file</a
+          > and does not inspect private folders or remove anything from
+          your account; and the 2024 alarm over Adobe's terms was about
+          <a href="https://petapixel.com/2024/06/07/adobe-responds-to-terms-of-use-controversy-says-it-isnt-spying-on-users/" rel="noopener noreferrer">
+            what the contract allowed</a
+          >, not about anything Adobe was shown to have done, and the
+          company
+          <a href="https://www.cgchannel.com/2024/06/adobe-updates-its-terms-of-use-following-artist-backlash/" rel="noopener noreferrer">
+            rewrote the wording</a
+          > that June. Apple's proposed on-device photo scanning was
+          <a href="https://www.macrumors.com/2022/12/07/apple-abandons-icloud-csam-detection/" rel="noopener noreferrer">
+            abandoned in December 2022</a
+          >, and Evernote's 2016 plan to let staff read notes was
+          <a href="https://techcrunch.com/2016/12/16/evernote-u-turn" rel="noopener noreferrer">
+            withdrawn after protest</a
+          >. Pressure does work, which is the only cheerful thing here.
+        </li>
+        <li>
+          The law:
+          <a href="https://www.eu-digital-services-act.com/Digital_Services_Act_Article_17.html" rel="noopener noreferrer">
+            Article 17</a
+          > of the Digital Services Act (a statement of reasons, including
+          whether the decision was automated) and
+          <a href="https://www.eu-digital-services-act.com/Digital_Services_Act_Article_20.html" rel="noopener noreferrer">
+            Article 20</a
+          > (internal complaints); the
+          <a href="https://www.morganlewis.com/blogs/sourcingatmorganlewis/2025/09/eu-data-act-begins-september-12-impacting-cloud-services-connected-products-and-other-data-industries" rel="noopener noreferrer">
+            EU Data Act</a
+          >, which applied from 12 September 2025, and its
+          <a href="https://www.garrigues.com/en_GB/garrigues-digital/data-act-and-cloud-switching-keys-new-rules-changing-cloud-service-providers" rel="noopener noreferrer">
+            switching and egress rules</a
+          >, under which switching fees are banned outright from 12 January
+          2027.
+        </li>
+        <li>
+          Our side of it is in the open:
+          <a href="https://github.com/crs48/xNet/blob/main/docs/CHARTER.md" rel="noopener noreferrer">
+            the Charter</a
+          > sets out what owning and leaving are supposed to mean, and the
+          moderation vocabulary described above is the
+          <code>PolicyBlockAction</code> and <code>AppealResolutionAction</code>
+          types in <code>packages/abuse</code>.
+        </li>
+      </ul>
+
+      <SeriesNav slug={post.slug} />
+    </article>
+  </main>
+
+  <Footer />
+</Base>

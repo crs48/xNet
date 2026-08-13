@@ -47,6 +47,19 @@ You can take everything and go. Identity is a portable `did:key` that works on a
 hub; the wire format is an open, signed, hash‑chained change log, not a vendor
 blob; the client works fully offline with no hub at all.
 
+**Refusal is not confiscation.** A host may decline to serve you — abuse reports,
+legal demands and sanctions lists are real, and a host that claims it will never
+say no is lying. What a host may never do is turn that no into a claim on your
+work. The two are separate acts everywhere else in this industry only because the
+account is the single handle anyone built; here they stay separate by
+construction, because the master copy is yours, your identity is a key we do not
+issue and cannot revoke, and every action moderation can take names _reach_ —
+`reject`, `hide`, `quarantine`, `block-peer` — and never possession
+([`packages/abuse/src/policy-blocks.ts`](../packages/abuse/src/policy-blocks.ts)).
+An appeal that succeeds `reverse`s
+([`packages/abuse/src/appeals.ts`](../packages/abuse/src/appeals.ts)), which is
+only a meaningful word because nothing was destroyed.
+
 - **Architectural:** portable protocol
   ([`packages/sync/src/change.ts`](../packages/sync/src/change.ts)), portable
   identity ([`packages/identity/src/keys.ts`](../packages/identity/src/keys.ts)),

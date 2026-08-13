@@ -1,0 +1,142 @@
+---
+// Decorative art for "The Door Inside the House" (exploration 0444), single-sourced
+// so the same inline SVG backs the post hero and the blog-index preview card
+// (no external assets — Self-Audit parity).
+//
+// The picture is the essay's thesis, read left to right. On the left, a house in
+// cross-section, warm and full: shelves of stacked boxes, the work someone put
+// there. A lens on the ceiling sweeps a cone of light across all of it, because
+// the room has to be readable for the room to be useful. Set into an interior
+// wall, lit and open, is the door marked EXIT — it works, and it only works from
+// in here. On the right, the outside face of the same building: a blank slab with
+// no door in it at all, and one small figure standing at the wall in the cold.
+// The lock sits on the outside, where the person can't reach it.
+interface Props {
+  /** Override the wrapper classes; defaults to full-bleed for hero use. */
+  class?: string
+}
+const { class: className = 'pointer-events-none absolute inset-0 h-full w-full' } = Astro.props
+
+// The stored work: [x, y, w, h] boxes stacked on the interior shelves.
+const BOXES: Array<[number, number, number, number]> = [
+  [84, 214, 40, 30],
+  [130, 220, 32, 24],
+  [168, 210, 44, 34],
+  [92, 176, 34, 32],
+  [132, 182, 46, 26],
+  [186, 176, 30, 32],
+  [104, 140, 42, 30],
+  [152, 146, 38, 24]
+]
+
+// Dust/among the light: motes the scanning cone catches.
+const MOTES: Array<[number, number, number]> = [
+  [232, 132, 2.2],
+  [268, 176, 1.6],
+  [214, 196, 1.8],
+  [286, 148, 1.4],
+  [250, 226, 2]
+]
+---
+
+<svg
+  class={className}
+  viewBox="0 0 1040 340"
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+>
+  <defs>
+    <linearGradient id="doorHouseDusk" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1c1408" />
+      <stop offset="52%" stop-color="#141416" />
+      <stop offset="100%" stop-color="#0a0d13" />
+    </linearGradient>
+    <radialGradient id="roomGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="scanCone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.32" />
+      <stop offset="100%" stop-color="#7dd3fc" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="exitLight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4ade80" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#16a34a" stop-opacity="0.75" />
+    </linearGradient>
+    <linearGradient id="outerSlab" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#333947" />
+      <stop offset="100%" stop-color="#1e232d" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1040" height="340" fill="url(#doorHouseDusk)"></rect>
+
+  <!-- the lit interior -->
+  <ellipse cx="230" cy="180" rx="300" ry="210" fill="url(#roomGlow)" opacity="0.7"></ellipse>
+
+  <!-- roof and floor of the cutaway -->
+  <path d="M 40 96 L 300 40 L 560 96 Z" fill="#2a2016" opacity="0.9"></path>
+  <rect x="40" y="96" width="520" height="8" fill="#3b2c1c"></rect>
+
+  <!-- shelves holding the stored work -->
+  <rect x="74" y="244" width="160" height="6" rx="2" fill="#553c22"></rect>
+  <rect x="82" y="208" width="146" height="6" rx="2" fill="#553c22"></rect>
+  <rect x="94" y="172" width="122" height="6" rx="2" fill="#553c22"></rect>
+  {
+    BOXES.map(([x, y, w, h]) => (
+      <g>
+        <rect x={x} y={y} width={w} height={h} rx="2" fill="#a16207" opacity="0.85" />
+        <line x1={x} y1={y + h / 2} x2={x + w} y2={y + h / 2} stroke="#78350f" stroke-width="1.2" />
+      </g>
+    ))
+  }
+
+  <!-- the lens on the ceiling, and the cone it sweeps over everything -->
+  <g>
+    <rect x="292" y="104" width="12" height="14" fill="#2c313c"></rect>
+    <circle cx="298" cy="122" r="8" fill="#7dd3fc" opacity="0.9"></circle>
+    <circle cx="298" cy="122" r="3" fill="#0c4a6e"></circle>
+    <polygon points="290,128 132,286 330,286 306,128" fill="url(#scanCone)"></polygon>
+  </g>
+  {MOTES.map(([cx, cy, r]) => <circle cx={cx} cy={cy} r={r} fill="#bae6fd" opacity="0.55" />)}
+
+  <!-- the interior wall, and the exit set into it -->
+  <rect x="392" y="104" width="26" height="182" fill="#2f2519"></rect>
+  <rect x="386" y="150" width="38" height="136" rx="3" fill="url(#exitLight)"></rect>
+  <rect x="392" y="158" width="26" height="120" rx="2" fill="#052e16" opacity="0.55"></rect>
+  <circle cx="414" cy="220" r="3" fill="#bbf7d0"></circle>
+  <text
+    x="405"
+    y="138"
+    text-anchor="middle"
+    font-family="ui-monospace, monospace"
+    font-size="13"
+    letter-spacing="1.5"
+    fill="#86efac">EXIT</text
+  >
+  <!-- the light it throws back into the room it serves -->
+  <polygon points="386,150 300,196 300,262 386,286" fill="#4ade80" opacity="0.07"></polygon>
+
+  <!-- the outer wall: the same building, no door in it -->
+  <g>
+    <rect x="700" y="60" width="78" height="226" fill="url(#outerSlab)"></rect>
+    <rect x="700" y="60" width="78" height="10" fill="#414958"></rect>
+    <line x1="700" y1="128" x2="778" y2="128" stroke="#252a34" stroke-width="1.6"></line>
+    <line x1="700" y1="196" x2="778" y2="196" stroke="#252a34" stroke-width="1.6"></line>
+    <!-- the lock, mounted on the far side, out of reach -->
+    <rect x="784" y="164" width="20" height="16" rx="3" fill="#94a3b8" opacity="0.85"></rect>
+    <path d="M 788 164 v -6 a 6 6 0 0 1 12 0 v 6" fill="none" stroke="#94a3b8" stroke-width="2.4"></path>
+  </g>
+
+  <!-- the person outside, at a wall with nothing in it -->
+  <g opacity="0.8">
+    <circle cx="866" cy="238" r="12" fill="#64748b"></circle>
+    <rect x="856" y="252" width="20" height="34" rx="8" fill="#64748b"></rect>
+    <!-- a hand up against the slab -->
+    <line x1="856" y1="258" x2="800" y2="250" stroke="#64748b" stroke-width="5" stroke-linecap="round"></line>
+  </g>
+
+  <!-- ground -->
+  <rect x="0" y="286" width="1040" height="54" fill="#090b10"></rect>
+  <line x1="0" y1="286" x2="1040" y2="286" stroke="#2f2b26" stroke-width="1.5"></line>
+</svg>

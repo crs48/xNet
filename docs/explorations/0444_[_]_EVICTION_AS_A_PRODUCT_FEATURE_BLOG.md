@@ -102,22 +102,22 @@ will never say no" but "our no cannot take anything from you".
 The essay has unusually deep code to stand on. This is a topic where xNet's
 existing architecture does most of the arguing.
 
-| Seam | Path | Status | What it gives the essay |
-| --- | --- | --- | --- |
-| Charter §1 Own / §2 Exit | [`docs/CHARTER.md`](../CHARTER.md) | ✅ Written | The promise the essay restates in prose |
-| Portable wire format | [`packages/sync/src/change.ts`](../../packages/sync/src/change.ts) | ✅ Shipped | Signed, hash-chained change log — not a vendor blob |
-| Portable identity | [`packages/identity/src/keys.ts`](../../packages/identity/src/keys.ts) | ✅ Shipped | `did:key` works on any hub; the host does not mint you |
-| Offline-first | [`packages/runtime/src/sync/offline-queue.ts`](../../packages/runtime/src/sync/offline-queue.ts) | ✅ Shipped | The client works with no hub at all |
-| Lossless bundle | [`packages/cli/src/commands/data.ts`](../../packages/cli/src/commands/data.ts) | ✅ Shipped | `xnet data export` → `.xnetpack`, verify + replay (0344) |
-| Bundle I/O | [`packages/cli/src/utils/fs-bundle.ts`](../../packages/cli/src/utils/fs-bundle.ts) | ✅ Shipped | `FsBundleSink` / `FsBundleSource` |
-| Structured export | [`packages/data/src/database/export/json-export.ts`](../../packages/data/src/database/export/json-export.ts) | ✅ Shipped | Contrast with Notion's lossy markdown export |
-| Moderation vocabulary | [`packages/abuse/src/policy-blocks.ts`](../../packages/abuse/src/policy-blocks.ts) | ✅ Shipped | `reject \| hide \| quarantine \| block-peer` — **no deletion verb** |
-| Decision explanations | [`packages/abuse/src/explain.ts`](../../packages/abuse/src/explain.ts) | ✅ Shipped | A statement of reasons, in code, before the law required one |
-| Appeals | [`packages/abuse/src/appeals.ts`](../../packages/abuse/src/appeals.ts) | ✅ Shipped | `reverse \| annotate` — a reversal actually restores |
-| Sourced-claim discipline | [`site/src/data/surveillance.ts`](../../site/src/data/surveillance.ts) + [`site/scripts/validate-surveillance.ts`](../../site/scripts/validate-surveillance.ts) | ✅ Shipped | The `caveat` pattern this essay must borrow |
-| Blog metadata | [`site/src/data/blog.ts`](../../site/src/data/blog.ts) | ✅ Shipped | Post registry; index + RSS single-source |
-| Hero art registry | [`site/src/pages/blog/index.astro:34`](../../site/src/pages/blog/index.astro) | ✅ Shipped | `heroArt` map — a new post **must** be added here |
-| One-flow "export everything and go" | exploration 0234 | 🚧 Aspirational | Charter §2 names this as not-yet-composed |
+| Seam                                | Path                                                                                                                                                            | Status          | What it gives the essay                                             |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------- |
+| Charter §1 Own / §2 Exit            | [`docs/CHARTER.md`](../CHARTER.md)                                                                                                                              | ✅ Written      | The promise the essay restates in prose                             |
+| Portable wire format                | [`packages/sync/src/change.ts`](../../packages/sync/src/change.ts)                                                                                              | ✅ Shipped      | Signed, hash-chained change log — not a vendor blob                 |
+| Portable identity                   | [`packages/identity/src/keys.ts`](../../packages/identity/src/keys.ts)                                                                                          | ✅ Shipped      | `did:key` works on any hub; the host does not mint you              |
+| Offline-first                       | [`packages/runtime/src/sync/offline-queue.ts`](../../packages/runtime/src/sync/offline-queue.ts)                                                                | ✅ Shipped      | The client works with no hub at all                                 |
+| Lossless bundle                     | [`packages/cli/src/commands/data.ts`](../../packages/cli/src/commands/data.ts)                                                                                  | ✅ Shipped      | `xnet data export` → `.xnetpack`, verify + replay (0344)            |
+| Bundle I/O                          | [`packages/cli/src/utils/fs-bundle.ts`](../../packages/cli/src/utils/fs-bundle.ts)                                                                              | ✅ Shipped      | `FsBundleSink` / `FsBundleSource`                                   |
+| Structured export                   | [`packages/data/src/database/export/json-export.ts`](../../packages/data/src/database/export/json-export.ts)                                                    | ✅ Shipped      | Contrast with Notion's lossy markdown export                        |
+| Moderation vocabulary               | [`packages/abuse/src/policy-blocks.ts`](../../packages/abuse/src/policy-blocks.ts)                                                                              | ✅ Shipped      | `reject \| hide \| quarantine \| block-peer` — **no deletion verb** |
+| Decision explanations               | [`packages/abuse/src/explain.ts`](../../packages/abuse/src/explain.ts)                                                                                          | ✅ Shipped      | A statement of reasons, in code, before the law required one        |
+| Appeals                             | [`packages/abuse/src/appeals.ts`](../../packages/abuse/src/appeals.ts)                                                                                          | ✅ Shipped      | `reverse \| annotate` — a reversal actually restores                |
+| Sourced-claim discipline            | [`site/src/data/surveillance.ts`](../../site/src/data/surveillance.ts) + [`site/scripts/validate-surveillance.ts`](../../site/scripts/validate-surveillance.ts) | ✅ Shipped      | The `caveat` pattern this essay must borrow                         |
+| Blog metadata                       | [`site/src/data/blog.ts`](../../site/src/data/blog.ts)                                                                                                          | ✅ Shipped      | Post registry; index + RSS single-source                            |
+| Hero art registry                   | [`site/src/pages/blog/index.astro:34`](../../site/src/pages/blog/index.astro)                                                                                   | ✅ Shipped      | `heroArt` map — a new post **must** be added here                   |
+| One-flow "export everything and go" | exploration 0234                                                                                                                                                | 🚧 Aspirational | Charter §2 names this as not-yet-composed                           |
 
 ### The vocabulary finding
 
@@ -134,9 +134,9 @@ and in [`packages/abuse/src/appeals.ts`](../../packages/abuse/src/appeals.ts):
 export type AppealResolutionAction = 'reverse' | 'annotate'
 ```
 
-Every action a policy can take is about *reach* — whether a thing propagates,
+Every action a policy can take is about _reach_ — whether a thing propagates,
 whether a peer is spoken to, whether content is shown. None of them is about
-*possession*. There is no `delete`, no `revoke`, no `confiscate`. An appeal that
+_possession_. There is no `delete`, no `revoke`, no `confiscate`. An appeal that
 succeeds `reverse`s, which is only meaningful because nothing was destroyed in
 the first place.
 
@@ -167,7 +167,7 @@ file whose entire contents were the digit `1` restricted for copyright
 infringement, with an automated notice saying a review could not be requested.
 Others reproduced it with `0` and with a scattering of three-digit numbers.
 Google acknowledged the fault publicly and said it would unblock affected files.
-*Correction to note:* this was a bug Google fixed, not a standing policy — which
+_Correction to note:_ this was a bug Google fixed, not a standing policy — which
 is precisely why it is the best opening. The system was working as designed; the
 design is the problem.
 
@@ -176,7 +176,7 @@ A father photographed his son's inflamed groin at a nurse's request for a
 telehealth consultation. Google's scanning flagged the images, referred him to
 police, and disabled his account. Police reviewed the imagery, recognised it as
 medical, and filed no charges. Google kept the account closed anyway.
-*Correction to note:* Google's decision survived exoneration by law enforcement.
+_Correction to note:_ Google's decision survived exoneration by law enforcement.
 That is the detail that matters — not the false positive, but the irreversibility.
 
 **Microsoft OneDrive lockouts under child-safety and copyright scanning
@@ -186,7 +186,7 @@ prior notice, no opportunity to review or remove the flagged item, and appeals
 answered by what they describe as an automated loop — one user reporting
 eighteen attempts producing only pre-written replies. One widely covered case
 involved roughly thirty years of photographs and work.
-*Correction to note:* these are self-reported forum accounts and trade coverage
+_Correction to note:_ these are self-reported forum accounts and trade coverage
 of them, not adjudicated findings. Treat as a pattern of complaint, and say so.
 
 **Google Docs mass-locks documents as ToS violations (31 Oct 2017).** A code
@@ -194,15 +194,14 @@ push incorrectly flagged a small share of documents as abusive; journalists at
 National Geographic and Fortune found live drafts frozen mid-sentence. Google
 fixed it the same day and clarified that its systems pattern-match rather than
 read for meaning.
-*Correction to note:* frequently misdated to 2020 in secondary sources. It is
-2017. Also: Google's "we do not read, we pattern-match" defence is worth quoting
+_Correction to note:_ frequently misdated to 2020 in secondary sources. It is 2017. Also: Google's "we do not read, we pattern-match" defence is worth quoting
 fairly, because it is true and it does not help — a system that cannot read for
 meaning is exactly the system that locks a file containing `1`.
 
 **Dropbox blocks sharing of hash-matched files (Mar 2014).** After a verified
 DMCA complaint, Dropbox adds the file's hash to a blocklist; sharing a file whose
 hash matches is blocked.
-*Correction to note — this one is important.* The popular version ("Dropbox
+_Correction to note — this one is important._ The popular version ("Dropbox
 scans your private folders") is **false**. Dropbox checks hashes at the moment
 of sharing, does not inspect private-folder contents, and does not remove the
 file from your account. Including this case honestly, with the correction, is
@@ -233,8 +232,8 @@ This is also where the seed case sits. The r/Notion user built an airline-miles
 marketplace in a Notion workspace and lost the account. Selling miles generally
 breaches airline terms; aggregating buyers' and sellers' details raises its own
 handling questions. The essay should say this plainly and early, because the
-point survives it: *the platform had to read the workspace to know what was in
-it, and having decided, it kept the rest.*
+point survives it: _the platform had to read the workspace to know what was in
+it, and having decided, it kept the rest._
 
 ### Trigger 3 — Jurisdiction: a border moves and your work is on the wrong side
 
@@ -245,15 +244,15 @@ window to archive. Slack cited export-control and sanctions compliance and said
 it acted on IP geolocation, not nationality. It later conceded "a series of
 mistakes", restored accounts, and moved to suspending only while a user is
 logged in from a sanctioned location.
-*Correction to note:* Slack apologised and reversed. Say so — it is evidence
+_Correction to note:_ Slack apologised and reversed. Say so — it is evidence
 that pressure works, which the essay needs in order not to be fatalistic.
 
 **Notion exits Russia (effective 9 Sep 2024).** Notion terminated workspaces
 whose billing information was associated with Russia, citing US restrictions,
 and gave users until 8 September to download their data before permanent
 deletion.
-*Correction to note:* frequently misdated to 2023 because Notion drew criticism
-in January 2023 for *still operating* there. The termination is 2024. Notion did
+_Correction to note:_ frequently misdated to 2023 because Notion drew criticism
+in January 2023 for _still operating_ there. The termination is 2024. Notion did
 give a notice period and an export window — better behaviour than most of the
 list, and worth crediting.
 
@@ -261,7 +260,7 @@ list, and worth crediting.
 maker's accounts, telling DJI access might be restored if it were removed from
 the list. Figma stated cloud-stored files would not be deleted. Chinese rivals
 MasterGo and Pixso shipped Figma-file importers within days.
-*Correction to note:* the fairest case on the list. Nothing was destroyed and
+_Correction to note:_ the fairest case on the list. Nothing was destroyed and
 restoration was offered. It still made a company's live design work
 unreachable overnight, which is the point.
 
@@ -365,17 +364,17 @@ egress fees — with switching fees banned outright from 12 January 2027.
 
 ## Key Findings
 
-| # | Finding | Confidence | Why it matters to the essay |
-| --- | --- | --- | --- |
-| 1 | Readability is a product requirement, not a lapse | ✅ High — stated by Notion | Kills the "they're just careless" framing and makes the argument structural |
-| 2 | Judgement and custody are fused with no technical necessity | ✅ High — inferred from architecture, uncontested | **The thesis.** Separable acts, welded by convenience |
-| 3 | Five distinct triggers, one mechanism | ✅ High — 11 incidents | Shows this is a shape, not a grievance |
-| 4 | Export is lossy *and* only available from inside | ✅ High — documented | Kills the "just back it up" rebuttal, which is the essay's main threat |
-| 5 | Exoneration does not reverse a suspension (Google/Mark) | ✅ High — reported | The sharpest single fact available |
-| 6 | Public pressure has worked (Slack, Evernote, Adobe, Apple) | ✅ High | Prevents the essay from reading as doom |
-| 7 | Popular tellings overstate at least two cases (Dropbox, Adobe) | ✅ High | Correcting them *is* the credibility |
-| 8 | The seed Reddit case is compromised | ⚠️ Medium — thread unread | Must be handled openly in the essay's own voice |
-| 9 | xNet's abuse vocabulary has no possession verb | ✅ High — verified in code | The one-line proof the closing promise is real |
+| #   | Finding                                                        | Confidence                                        | Why it matters to the essay                                                 |
+| --- | -------------------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------- |
+| 1   | Readability is a product requirement, not a lapse              | ✅ High — stated by Notion                        | Kills the "they're just careless" framing and makes the argument structural |
+| 2   | Judgement and custody are fused with no technical necessity    | ✅ High — inferred from architecture, uncontested | **The thesis.** Separable acts, welded by convenience                       |
+| 3   | Five distinct triggers, one mechanism                          | ✅ High — 11 incidents                            | Shows this is a shape, not a grievance                                      |
+| 4   | Export is lossy _and_ only available from inside               | ✅ High — documented                              | Kills the "just back it up" rebuttal, which is the essay's main threat      |
+| 5   | Exoneration does not reverse a suspension (Google/Mark)        | ✅ High — reported                                | The sharpest single fact available                                          |
+| 6   | Public pressure has worked (Slack, Evernote, Adobe, Apple)     | ✅ High                                           | Prevents the essay from reading as doom                                     |
+| 7   | Popular tellings overstate at least two cases (Dropbox, Adobe) | ✅ High                                           | Correcting them _is_ the credibility                                        |
+| 8   | The seed Reddit case is compromised                            | ⚠️ Medium — thread unread                         | Must be handled openly in the essay's own voice                             |
+| 9   | xNet's abuse vocabulary has no possession verb                 | ✅ High — verified in code                        | The one-line proof the closing promise is real                              |
 
 ### The near-miss cases
 
@@ -390,7 +389,7 @@ made it opt-in.
 Adobe's re-acceptance prompt in June 2024 surfaced February 2024 terms language
 broad enough that creators read it as a claim on their work. Adobe rewrote the
 terms on 24 June to state plainly that users own their content and that it does
-not train generative models on it outside Adobe Stock. *Correction to note:* no
+not train generative models on it outside Adobe Stock. _Correction to note:_ no
 evidence emerged that Adobe trained on customer content. The incident is about
 what the contract permitted, not what happened — which is the essay's point in
 miniature.
@@ -425,13 +424,13 @@ timeline
 Five ways to answer the prompt. They are not mutually exclusive, but only one
 should be built first.
 
-| # | Option | Effort | Risk | Verdict |
-| --- | --- | --- | --- | --- |
-| A | Single essay, mechanism-led | ~1 day | Low | ✅ **Recommended** |
-| B | Essay + sourced incident ledger data module | ~2–3 days | Medium | 🚧 Defer to a follow-up |
-| C | Case-by-case listicle | ~half day | High | 🛑 Rejected |
-| D | Legal-analysis piece (DSA / Data Act) | ~2 days | Medium | 🛑 Rejected for the blog |
-| E | Ship the Charter §2 "Delete-Day" flow first, blog after | ~1–2 weeks | Medium | 🚧 Worth doing, but not this |
+| #   | Option                                                  | Effort     | Risk   | Verdict                      |
+| --- | ------------------------------------------------------- | ---------- | ------ | ---------------------------- |
+| A   | Single essay, mechanism-led                             | ~1 day     | Low    | ✅ **Recommended**           |
+| B   | Essay + sourced incident ledger data module             | ~2–3 days  | Medium | 🚧 Defer to a follow-up      |
+| C   | Case-by-case listicle                                   | ~half day  | High   | 🛑 Rejected                  |
+| D   | Legal-analysis piece (DSA / Data Act)                   | ~2 days    | Medium | 🛑 Rejected for the blog     |
+| E   | Ship the Charter §2 "Delete-Day" flow first, blog after | ~1–2 weeks | Medium | 🚧 Worth doing, but not this |
 
 <details>
 <summary>Why not B, C, D and E</summary>
@@ -459,7 +458,7 @@ The blog's voice is concrete and human; regulation is neither.
 **E — build the flow first.** Charter §2 already admits the "export everything
 and go" flow is aspirational (exploration 0234). There is a real argument for
 not writing about exit until the single-button exit exists. It is rejected
-because the essay does not claim the button exists — it claims the *architecture*
+because the essay does not claim the button exists — it claims the _architecture_
 makes the button possible, which is true today and demonstrable from
 `packages/cli/src/commands/data.ts`. Overclaiming here would be fatal; not
 writing would be over-correction.
@@ -496,7 +495,7 @@ Write **Option A**: one essay, roughly 2,300 words, slug
 (`the-table-and-the-wall`, `the-vault-and-the-view`, `the-loom-you-can-read`).
 
 > [!TIP]
-> **Alternate title worth considering:** *"A Review Cannot Be Requested"* — a
+> **Alternate title worth considering:** _"A Review Cannot Be Requested"_ — a
 > verbatim line from Google's automated notice. Stronger as a hook, weaker as a
 > fit with the corpus. Decider's call.
 
@@ -537,7 +536,7 @@ you, two separate things happen in one motion: a judgement about your conduct,
 and a transfer of custody of your work. No law requires the bundle. No
 architecture requires it. It exists because the account is the only handle
 anyone has on the data, so pulling the handle takes everything attached to it.
-Name the alternative in one sentence: *the ban could leave the door open.*
+Name the alternative in one sentence: _the ban could leave the door open._
 
 **Act V** closes the escape hatch a reader is already reaching for. Yes, export
 first. Except the export drops the relations and the rollups and the views, and
@@ -554,7 +553,7 @@ possession. There is no verb in it for keeping your things.
 
 Close on the law being a floor, not a ceiling: the DSA now compels an
 explanation and the Data Act compels a retrieval window, and both are worth
-having, and neither changes who holds the keys. A host that *cannot* take your
+having, and neither changes who holds the keys. A host that _cannot_ take your
 work does not need to be trusted not to.
 
 ### Non-negotiables
@@ -626,20 +625,20 @@ still passes:
 
 ## Risks And Open Questions
 
-| Risk | Severity | Mitigation |
-| --- | --- | --- |
-| Seed case rebutted in comments | 🔴 High | Concede it in Act II, in our own voice, first |
-| OpenClaw case is thinly sourced | 🔴 High | Corroborate or cut — no hedging into print |
-| Notion ToS list discrepancy | 🟠 Medium | Cite only the help-centre wording verified first-hand |
-| Reddit thread never read | 🟠 Medium | Attribute no quotation to it; read manually before publishing |
-| Reads as a competitor hit piece | 🟠 Medium | Credit Notion's export window, Figma's non-deletion, Slack's apology |
-| Overclaiming xNet's guarantees | 🔴 High | Promise refusal-without-confiscation only; Charter §2's one-button exit is still aspirational (0234) |
-| Genre saturation | 🟠 Medium | Lead with the mechanism, not the grievance |
-| Facts rot | 🟡 Low | Ledger option B, if built, gets a validator like `validate-surveillance.ts` |
+| Risk                            | Severity  | Mitigation                                                                                           |
+| ------------------------------- | --------- | ---------------------------------------------------------------------------------------------------- |
+| Seed case rebutted in comments  | 🔴 High   | Concede it in Act II, in our own voice, first                                                        |
+| OpenClaw case is thinly sourced | 🔴 High   | Corroborate or cut — no hedging into print                                                           |
+| Notion ToS list discrepancy     | 🟠 Medium | Cite only the help-centre wording verified first-hand                                                |
+| Reddit thread never read        | 🟠 Medium | Attribute no quotation to it; read manually before publishing                                        |
+| Reads as a competitor hit piece | 🟠 Medium | Credit Notion's export window, Figma's non-deletion, Slack's apology                                 |
+| Overclaiming xNet's guarantees  | 🔴 High   | Promise refusal-without-confiscation only; Charter §2's one-button exit is still aspirational (0234) |
+| Genre saturation                | 🟠 Medium | Lead with the mechanism, not the grievance                                                           |
+| Facts rot                       | 🟡 Low    | Ledger option B, if built, gets a validator like `validate-surveillance.ts`                          |
 
 **Open questions.**
 
-Does Notion's *Terms of Use*, as distinct from the help centre, carry the longer
+Does Notion's _Terms of Use_, as distinct from the help centre, carry the longer
 industry list LowEndBox quotes? Nobody has checked the primary document.
 
 Should the DSA and Data Act material be a footnote in the essay or its own
@@ -666,23 +665,23 @@ reach". Deferred to the decider.
       actually says, or confirm no quotation will be attributed to it
 - [x] Corroborate the Feb 2026 Google/OpenClaw suspensions with a second
       independent source, or cut the case
-- [x] Fetch Notion's *Terms of Use* (not the help centre) and settle the
+- [x] Fetch Notion's _Terms of Use_ (not the help centre) and settle the
       prohibited-industry list discrepancy
 - [x] Confirm Notion's dormant-account thresholds first-hand
-- [ ] Draft `site/src/pages/blog/the-door-inside-the-house.astro` to the
+- [x] Draft `site/src/pages/blog/the-door-inside-the-house.astro` to the
       six-act spine, ~2,300 words, en-GB, no bulleted lists
-- [ ] Add the post entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
+- [x] Add the post entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
       with `draft: true` during authoring
-- [ ] Build the hero art component and register it in the `heroArt` map at
+- [x] Build the hero art component and register it in the `heroArt` map at
       [`site/src/pages/blog/index.astro:34`](../../site/src/pages/blog/index.astro)
-- [ ] Add a `Sources` section to the post listing every incident cited, with
+- [x] Add a `Sources` section to the post listing every incident cited, with
       corrections rendered as fine print
-- [ ] Run `/humanize` and fix only the elevated tells
-- [ ] Mirror the refusal-without-confiscation promise into
+- [x] Run `/humanize` and fix only the elevated tells
+- [x] Mirror the refusal-without-confiscation promise into
       [`site/src/data/commitments.ts`](../../site/src/data/commitments.ts)
-- [ ] Decide on the ADR (with `Tripwire:`) for that promise
+- [x] Decide on the ADR (with `Tripwire:`) for that promise
 - [ ] Add a changelog fragment via `node scripts/changelog/new.mjs`
-- [ ] Flip `draft: false` and set `pubDate` from the merge commit
+- [x] Flip `draft: false` and set `pubDate` from the merge commit
 - [ ] Open the PR with the exploration and the essay in one branch
 
 ---
@@ -710,7 +709,7 @@ reach". Deferred to the decider.
 
 **The seed**
 
-- r/Notion, "NOTION WILL BAN YOUR ACCOUNT FOR NO REASON AND KEEP YOUR DATA" — https://www.reddit.com/r/Notion/s/0ZrksrLLUG *(not readable by the fetcher; unverified)*
+- r/Notion, "NOTION WILL BAN YOUR ACCOUNT FOR NO REASON AND KEEP YOUR DATA" — https://www.reddit.com/r/Notion/s/0ZrksrLLUG _(not readable by the fetcher; unverified)_
 - LowEndBox, "Notion User Discovers That…" — https://lowendbox.com/blog/notion-user-discovers-that-notion-will-ban-your-account-for-no-reason-and-keep-your-data-hes-not-wrong/
 - hamy.xyz, "Notion + Data Loss / Privacy" — https://hamy.xyz/blog/2025-11_notion-data-privacy-loss
 
@@ -728,7 +727,7 @@ reach". Deferred to the decider.
 - Google CSAM false positive ("Mark") — https://mjtsai.com/blog/2022/08/22/google-account-deleted-due-to-csam-false-positive/ · https://www.phonearena.com/news/google-wont-reinstate-man-cleared-by-law-enforcement_id142065
 - Google Docs ToS lockout, 31 Oct 2017 — https://www.washingtonpost.com/news/the-switch/wp/2017/10/31/a-mysterious-message-is-locking-google-docs-users-out-of-their-files/ · https://www.fastcompany.com/40489458/google-docs-are-inexplicably-locking-people-out-for-tos-violations
 - Microsoft OneDrive lockouts — https://www.techradar.com/computing/windows/windows-11-user-has-30-years-of-irreplaceable-photos-and-work-locked-away-in-onedrive-and-microsofts-silence-is-deafening · https://learn.microsoft.com/en-us/answers/questions/5401383/onedrive-account-locked-without-warning-any-chance
-- Dropbox DMCA hash matching *(and the correction)* — https://techcrunch.com/2014/03/30/how-dropbox-knows-when-youre-sharing-copyrighted-stuff-without-actually-looking-at-your-stuff/ · https://theregister.com/2014/03/31/dropbox_dmca_takedown_shared_file/
+- Dropbox DMCA hash matching _(and the correction)_ — https://techcrunch.com/2014/03/30/how-dropbox-knows-when-youre-sharing-copyrighted-stuff-without-actually-looking-at-your-stuff/ · https://theregister.com/2014/03/31/dropbox_dmca_takedown_shared_file/
 
 **Jurisdiction-triggered**
 
@@ -736,7 +735,7 @@ reach". Deferred to the decider.
 - Figma and DJI — https://technode.com/2022/03/14/us-design-company-figma-bans-dji-after-us-sanctions/ · https://www.caixinglobal.com/2022-03-14/sanctions-cost-drone-maker-dji-access-to-us-software-design-tools-101855611.html
 - Zoom and Tiananmen commemorations — https://www.cnbc.com/2020/06/11/zoom-suspends-us-based-activists-account-after-tiananmen-square-commemoration-event.html · https://www.axios.com/2020/06/10/zoom-closes-chinese-user-account-tiananmen-square · https://www.wyden.senate.gov/news/press-releases/wyden-merkley-demand-answers-from-zoom-after-company-deactivated-accounts-of-pro-democracy-chinese-activists
 
-**Integration-triggered** *(needs corroboration)*
+**Integration-triggered** _(needs corroboration)_
 
 - Google AI Pro/Ultra suspensions over OpenClaw — https://ucstrategies.com/news/google-suspends-ai-pro-and-ultra-accounts-without-warning-for-using-openclaw-while-others-only-block-the-integration/
 

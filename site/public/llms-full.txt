@@ -11034,6 +11034,58 @@ concrete signals are a proposal to seat-meter `community`, or to count
 read-only/guest DIDs as seats on any plan. The roster is where that would sneak
 in, because once you have a member list somebody will want to bill its length.
 
+## ADR-36: A host may refuse service; refusal never takes the work
+
+**Status:** Accepted · 2026-08-13 · exploration 0444
+
+**Context:** Every account-suspension story in the industry follows one shape. A
+platform reads what a customer stored, decides against them, and in the same
+motion stops serving them and keeps their work. The two are separable acts —
+Google left a father's account closed after police cleared him; Notion terminated
+a workspace it had to read in order to judge; Slack cut off researchers with no
+window to pack; Google banned Gemini subscribers in February 2026 over a
+third-party OAuth integration with no appeal and no refund. Nothing technical
+fuses judgement to custody. They arrive together because the account is the only
+handle anyone built, so pulling it drags everything attached.
+
+xNet Cloud is a host. It will receive abuse reports, legal demands and sanctions
+lists, and sometimes the honest answer is no. A promise never to refuse anyone
+would be worth nothing and would be broken inside a year, so the promise has to
+be the other one.
+
+**Decision:** A host may refuse service. A host may never turn refusal into a
+claim on the customer's work.
+
+Concretely, and already true in code: every action moderation can take names
+**reach** — `reject`, `hide`, `quarantine`, `block-peer`
+(`packages/abuse/src/policy-blocks.ts`) — and none names possession. There is no
+`delete`, no `revoke`, no `confiscate`. An appeal resolves to `reverse` or
+`annotate` (`packages/abuse/src/appeals.ts`), and `reverse` is only a meaningful
+word because nothing was destroyed. Identity is a `did:key` the host neither
+issues nor can revoke (`packages/identity/src/keys.ts`); the wire format is an
+open signed hash-chained log another hub can pick up (`packages/sync/src/change.ts`);
+the client runs with no hub at all (`packages/runtime/src/sync/offline-queue.ts`).
+
+**Rationale (Charter §1, §2):** the master copy is the customer's, so a refusal
+withdraws a relay rather than a possession. This is what makes Exit true at the
+one moment it matters — the moment you are no longer welcome. An export flow that
+only works while you can still log in is not an exit; it is a door on an interior
+wall.
+
+**Tradeoff:** a hub cannot make a bad actor's data disappear from their own
+device, because it never had it to begin with. Refusal stops propagation and
+stops us relaying, and that is the whole of what a host can honestly offer.
+Accepted: the alternative is a capability that, once it exists, is available to
+every future operator, subpoena and acquirer of this company.
+
+**Tripwire:** _the moment any hub role gains an action that removes a user's data
+rather than restricting its reach, this decision is void._ The concrete signals
+are a `delete`, `purge`, `revoke` or `confiscate` member on `PolicyBlockAction`, a
+moderation path that writes to storage rather than to a policy list, or a
+retention job that treats suspension as a deletion trigger. Quota and dormancy
+reclamation are the honest place this sneaks in, because there the deletion has
+an operator's reason and no villain attached.
+
 ---
 
 ## Package Graph
