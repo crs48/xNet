@@ -680,7 +680,7 @@ reach". Deferred to the decider.
 - [x] Mirror the refusal-without-confiscation promise into
       [`site/src/data/commitments.ts`](../../site/src/data/commitments.ts)
 - [x] Decide on the ADR (with `Tripwire:`) for that promise
-- [ ] Add a changelog fragment via `node scripts/changelog/new.mjs`
+- [x] Add a changelog fragment via `node scripts/changelog/new.mjs`
 - [x] Flip `draft: false` and set `pubDate` from the merge commit
 - [ ] Open the PR with the exploration and the essay in one branch
 
@@ -688,20 +688,20 @@ reach". Deferred to the decider.
 
 ## Validation Checklist
 
-- [ ] Every factual claim in the essay traces to a URL in its `Sources` section
-- [ ] Every source returns 200 on a manual fetch (403 is a bot-block and is
+- [x] Every factual claim in the essay traces to a URL in its `Sources` section
+- [x] Every source returns 200 on a manual fetch (403 is a bot-block and is
       acceptable with a note; **404 means the citation is fabricated**)
-- [ ] The Dropbox correction and the Adobe correction both appear in the text
-- [ ] No quotation is attributed to the r/Notion thread unless it was read
+- [x] The Dropbox correction and the Adobe correction both appear in the text
+- [x] No quotation is attributed to the r/Notion thread unless it was read
       directly
-- [ ] The essay concedes the seed case before a reader can raise it
-- [ ] `pnpm --filter site build` passes with the new post registered
-- [ ] The post appears on `/blog`, in `rss.xml`, and renders its hero art
-- [ ] `pnpm check:exploration-links` passes
-- [ ] `/humanize` tell scan shows no elevated tells and no bulleted lists
-- [ ] The `packages/abuse` vocabulary claim is re-verified against
+- [x] The essay concedes the seed case before a reader can raise it
+- [x] `pnpm --filter site build` passes with the new post registered
+- [x] The post appears on `/blog`, in `rss.xml`, and renders its hero art
+- [x] `pnpm check:exploration-links` passes
+- [x] `/humanize` tell scan shows no elevated tells and no bulleted lists
+- [x] The `packages/abuse` vocabulary claim is re-verified against
       `policy-blocks.ts` at publication time, not at drafting time
-- [ ] Read at 320px — the corpus is read on phones
+- [x] Read at 320px — the corpus is read on phones
 
 ---
 
