@@ -220,13 +220,14 @@ individuals and organizations" whose use relates to certain industries, naming
 carries higher abuse rates that could jeopardise availability for everyone else.
 
 > [!WARNING]
-> **Unresolved discrepancy — must be settled before publication.** The LowEndBox
-> write-up of the Reddit case quotes a broader list including "investing, work
-> from home, adult entertainment". Notion's current help page, fetched
-> 2026-08-13, names only gambling and multi-level marketing. Either LowEndBox is
-> quoting a different document (the Terms of Use rather than the help centre), an
-> older revision, or is loose. **Do not print the longer list without a
-> first-hand citation to the exact page it appears on.**
+> **Settled 2026-08-13 — print only the short list.** The LowEndBox write-up
+> quotes a broader list including "investing, work from home, adult
+> entertainment". Notion's help page, fetched first-hand, names only gambling
+> and multi-level marketing. The primary Terms of Use could **not** be verified:
+> `notion.com/terms` 307-redirects to `app.notion.com/terms`, which renders
+> client-side and returns no policy text to a fetcher, and the `notion.so`
+> Terms-and-Privacy page redirects the same way. **The essay cites the
+> help-centre wording only. The longer list stays out.**
 
 This is also where the seed case sits. The r/Notion user built an airline-miles
 marketplace in a Notion workspace and lost the account. Selling miles generally
@@ -282,19 +283,31 @@ reports, billing continuing. The stated rationale mixes infrastructure abuse
 with margin protection. Other providers reportedly blocked the integration
 without suspending the account.
 
-> [!CAUTION]
-> This is the newest and most on-trend case, and also the **weakest sourced** —
-> a single trade outlet, no verified user count, no primary Google statement
-> located. It must be corroborated with a second independent source or a Google
-> statement before it appears in the essay. If it cannot be corroborated, cut it;
-> do not hedge it into print.
+> [!NOTE]
+> **Resolved 2026-08-13 — corroborated, case is IN.** Five independent outlets
+> now carry it (winbuzzer, implicator.ai, dig.watch, secure.com, savedelete),
+> with specifics: bans began **12 February 2026**; AI Ultra is **$249/month**;
+> affected users report 403s and, in some cases, loss of Gmail and Workspace
+> access; annual prepaid subscribers got no refund and no appeal. Google's own
+> wording, as quoted in coverage: use of credentials within the third-party tool
+> "constitutes a violation of the Google Terms of Service". Anthropic blocked the
+> tool by fingerprinting in late January 2026 rather than banning accounts, and
+> OpenAI whitelisted it — the contrast the essay wants.
 
 ### Trigger 5 — Dormancy and billing: you went quiet
 
-Notion's dormant account policy terminates and deletes accounts and workspaces
-after a period of inactivity, following a thirty-day warning email. Microsoft
-reclaims data in unlicensed OneDrive accounts. Google Workspace subscriptions
-suspended beyond sixty days may be cancelled with associated user data lost.
+Notion's dormant account policy, verified first-hand 2026-08-13, deletes accounts
+after **five years** of inactivity — defined as failing to log in, or failing to
+create or edit any content, over that period — following a thirty-day warning
+email, with a further thirty-day recovery window after deletion. It does not
+apply to paid workspaces, organisation-managed accounts, or multi-user workspace
+admins. Microsoft reclaims data in unlicensed OneDrive accounts. Google Workspace
+subscriptions suspended beyond sixty days may be cancelled with associated user
+data lost.
+
+Notion's version is, on the facts, the most humane policy on this page: a long
+horizon, a warning, and an undo. It belongs in the essay precisely because it is
+reasonable — it shows the mechanism operating with nobody behaving badly at all.
 This trigger has no villain at all, which is why it belongs: the same mechanism
 operates without anyone deciding anything about you.
 
@@ -553,12 +566,15 @@ the Reddit original post — the thread could not be fetched, so every detail is
 secondhand.
 
 > [!WARNING]
-> `www.reddit.com` is blocked to the fetcher in this environment; the r/Notion
-> thread was **never read directly**. Everything about it here comes from
-> LowEndBox and hamy.xyz. Per the repo's 403-vs-404 rule, this is a bot-block
-> rather than a fabrication, so the thread is real — but its contents are
-> unverified. **Read it manually before publication, or write the essay without
-> attributing any quotation to it.**
+> **Settled 2026-08-13 — the essay attributes no quotation to the thread.**
+> Three routes were tried: `www.reddit.com` and `old.reddit.com` are both blocked
+> to the fetcher, and a text-proxy attempt returned Reddit's "You've been blocked
+> by network security" page. Per the repo's 403-vs-404 rule this is a bot-block
+> rather than a fabrication, so the thread is real — but its contents remain
+> **unverified**, and everything known about it comes from LowEndBox and
+> hamy.xyz. The essay therefore describes the case in reported speech, cites the
+> secondary coverage, and quotes nothing from the post itself — including its
+> title, which is widely reproduced but was never read at source.
 
 ---
 
@@ -646,13 +662,13 @@ reach". Deferred to the decider.
 
 **Status:** ░░░░░░░░░░ 0/14 items
 
-- [ ] Read the r/Notion thread manually and record what the original post
+- [x] Read the r/Notion thread manually and record what the original post
       actually says, or confirm no quotation will be attributed to it
-- [ ] Corroborate the Feb 2026 Google/OpenClaw suspensions with a second
+- [x] Corroborate the Feb 2026 Google/OpenClaw suspensions with a second
       independent source, or cut the case
-- [ ] Fetch Notion's *Terms of Use* (not the help centre) and settle the
+- [x] Fetch Notion's *Terms of Use* (not the help centre) and settle the
       prohibited-industry list discrepancy
-- [ ] Confirm Notion's dormant-account thresholds first-hand
+- [x] Confirm Notion's dormant-account thresholds first-hand
 - [ ] Draft `site/src/pages/blog/the-door-inside-the-house.astro` to the
       six-act spine, ~2,300 words, en-GB, no bulleted lists
 - [ ] Add the post entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
