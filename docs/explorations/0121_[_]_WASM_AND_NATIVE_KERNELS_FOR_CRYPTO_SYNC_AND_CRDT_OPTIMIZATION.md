@@ -1,3 +1,16 @@
+---
+review: 2027-02-01
+decider: Chris Smothers
+---
+
+> [!NOTE]
+> **Renewed 2026-08-13, not restarted.** This crossed the 90-day default while
+> unrelated work was in flight. The question is still open and still not
+> urgent: signing already measures 357µs/change (exploration 0350) and bulk
+> ingest went 250s → 570ms by fixing the wire rather than the kernel
+> (exploration 0357), so no current profile points here. Re-decide once a
+> measured hot path actually lands in crypto, sync or CRDT merge.
+
 # Exploration: WASM And Native Kernels For Crypto, Sync, And CRDT Optimization
 
 > Should xNet add AssemblyScript, WebAssembly, or native kernels for the hot crypto, sync, and CRDT codepaths? This exploration evaluates what to accelerate, what to leave in TypeScript, and how to introduce native execution without turning the codebase into a portability and supply-chain problem.

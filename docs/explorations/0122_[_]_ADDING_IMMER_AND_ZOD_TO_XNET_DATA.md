@@ -1,3 +1,16 @@
+---
+review: 2027-02-01
+decider: Chris Smothers
+---
+
+> [!NOTE]
+> **Renewed 2026-08-13, not restarted.** This crossed the 90-day default while
+> unrelated work was in flight. It stays open because it is a dependency
+> decision rather than a feature: `@xnetjs/data` is published, so adding
+> `immer` or `zod` is a consumer-facing weight change, and AGENTS.md's
+> "no heavyweight frameworks" line means the default answer is no until a
+> concrete correctness bug argues otherwise. Re-decide then.
+
 # Exploration: Adding Immer And Zod To xNet Data
 
 > Should `@xnetjs/data` add `immer` and `zod`? This exploration evaluates where they improve correctness, schema federation, developer experience, and immutable update ergonomics, and where they would fight xNet's event-sourced, signed, local-first data model.

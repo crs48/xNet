@@ -43,7 +43,7 @@ export const commitments: Commitment[] = [
     name: 'Exit',
     promise: 'Leaving is your right, and it loses nothing.',
     detail:
-      'You can take everything and go. Identity is a portable did:key that works on any hub; the wire format is an open, signed, hash-chained change log, not a vendor blob; the client works fully offline.',
+      'You can take everything and go. Identity is a portable did:key that works on any hub; the wire format is an open, signed, hash-chained change log, not a vendor blob; the client works fully offline. A host can refuse to serve you — for abuse, for law, for sanctions — but refusing service can never take your work: every action our moderation can take restricts reach, never possession.',
     backing: 'architectural',
     backingLabel: 'Architectural — portable protocol + portable identity'
   },
