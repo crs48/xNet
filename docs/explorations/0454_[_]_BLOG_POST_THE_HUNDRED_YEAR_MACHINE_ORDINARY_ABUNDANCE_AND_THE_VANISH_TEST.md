@@ -469,6 +469,24 @@ deliberately timeless? If no connected object appears in the tour, Act IV's
 essay refers to may be the reader's own rather than exhibits. Settle on the
 manual walkthrough.
 
+> [!NOTE]
+> **Settled 2026-08-19 — walkthrough done.** The tour has no IoT exhibits;
+> the apartment's own narrative supplies the connected objects: the sitting
+> room opens on "a playlist your friend made for you years ago" playing over
+> the speaker, "you send them a text", and the outro says "silence your
+> phone". Act IV uses those, not invented exhibits. Two corrections from the
+> walkthrough: the washing exhibit quotes **Anna Laetitia Barbauld's
+> 'Washing-Day' (1797)** (Godey's 1860 belongs to the sewing machine), and
+> the fruit-bowl exhibit notes that eighteenth-century hostesses **rented
+> pineapples** rather than eat them — independently sourced
+> ([Mental Floss](https://www.mentalfloss.com/article/65506/super-luxe-history-pineapples-and-why-they-used-cost-8000)),
+> and a far better rented-object opening rhyme than expected. The iceman arc
+> is sourced via the
+> [Smithsonian](https://americanhistory.si.edu/explore/stories/keeping-your-food-cool-ice-harvesting-electric-refrigeration)
+> and [Wikipedia's iceman entry](https://en.wikipedia.org/wiki/Iceman_(occupation));
+> the steam-laundry claim is **dropped** — the tour's own washing exhibit is
+> about household hand-washing, and the essay does not need it.
+
 Should the essay name Adobe's 2013 licence-to-seat turn, or is one dated
 example enough alongside music? Current lean: one clause, no section.
 
@@ -483,12 +501,12 @@ checkable specifics.
 
 **Status:** ░░░░░░░░░░ 0/13 items
 
-- [ ] Take the Ordinary Abundance tour manually end-to-end; inventory the
+- [x] Take the Ordinary Abundance tour manually end-to-end; inventory the
       rooms and objects the essay may name
-- [ ] Verify the Bellamy quotation in _Looking Backward_ (1888) at source
-- [ ] Source the household arcs (ice delivery → refrigerator; steam laundry →
+- [x] Verify the Bellamy quotation in _Looking Backward_ (1888) at source
+- [x] Source the household arcs (ice delivery → refrigerator; steam laundry →
       washing machine; Bell handset lease rules pre-Carterfone)
-- [ ] Confirm the Strogen figures against NBC and note any outlet variance
+- [x] Confirm the Strogen figures against NBC and note any outlet variance
 - [ ] Draft `site/src/pages/blog/the-hundred-year-machine.astro` to the
       six-act spine, ~2,300 words, en-GB, no bulleted lists
 - [ ] Add the post entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
