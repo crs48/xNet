@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # 0127 - xNet Filesystem Integration and Global File Namespace
 
 > **Status:** Exploration  

@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Graceful Network Updates And Interoperability
 
 ## Purpose
