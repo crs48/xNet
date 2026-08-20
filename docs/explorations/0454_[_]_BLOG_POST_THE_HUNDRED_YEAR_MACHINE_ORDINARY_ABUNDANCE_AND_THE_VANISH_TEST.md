@@ -109,19 +109,19 @@ pinned in CI, not promised in prose.
 The essay's instrument is written down in the Charter, and unusually for a
 blog seed, both halves of it are enforced by named receipts.
 
-| Seam                          | Path                                                                                                                                                 | Status         | What it gives the essay                                                                    |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- | ------------------------------------------------------------------------------------------- |
-| The vanish test               | [`docs/CHARTER.md`](../CHARTER.md) §6                                                                                                                | ✅ Written     | "If xNet-the-company disappeared tomorrow, what the customer paid for survives" — verbatim  |
-| No ground rent (five refusals) | [`docs/CHARTER.md`](../CHARTER.md) §6                                                                                                                | ✅ Written     | Each refused rent carries a receipt: export, identity, protocol, storage, per-member        |
-| Charter §7 Floor              | [`docs/CHARTER.md`](../CHARTER.md) §7                                                                                                                | ✅ Written     | "Your old hardware keeps working" — the hundred-year-machine promise, with its own honesty  |
-| Footprint ratchet             | [`scripts/check-footprint-budget.mjs`](../../scripts/check-footprint-budget.mjs) + [`footprint-baseline.json`](../../footprint-baseline.json)        | ✅ Shipped     | A CI gate that fails a change which raises the floor — the promise is falsifiable           |
-| Claims ledger                 | [`packages/telemetry/test/charter-claims-ledger.test.ts`](../../packages/telemetry/test/charter-claims-ledger.test.ts)                               | ✅ Shipped     | `floor-old-hardware-keeps-working`, `commons-no-ground-rent-export` — receipts by name      |
-| Offline-first client          | [`packages/runtime/src/sync/offline-queue.ts`](../../packages/runtime/src/sync/offline-queue.ts)                                                     | ✅ Shipped     | The client works with no hub at all — the vanish test's architectural half                  |
-| Hub death survivable          | [`packages/runtime/src/sync/MultiHubSyncManager.ts`](../../packages/runtime/src/sync/MultiHubSyncManager.ts)                                         | ✅ Shipped     | One hub dying is routine, not an outage                                                     |
-| Old protocols keep working    | [`packages/sync/src/negotiation.ts`](../../packages/sync/src/negotiation.ts) · [`packages/sync/src/deprecation.ts`](../../packages/sync/src/deprecation.ts) | ✅ Shipped | Versions deprecate; they are not cut off — the anti-Revolv property                         |
-| Portable bundles              | [`packages/data/src/portability/`](../../packages/data/src/portability/)                                                                             | ✅ Shipped     | `.xnetpack` export, verified, free (exploration 0344)                                       |
-| Blog metadata                 | [`site/src/data/blog.ts`](../../site/src/data/blog.ts)                                                                                               | ✅ Shipped     | Post registry; index + RSS single-source                                                    |
-| Hero art registry             | [`site/src/pages/blog/index.astro`](../../site/src/pages/blog/index.astro)                                                                           | ✅ Shipped     | `heroArt` map — a new post **must** be added here; the build passes silently if missed      |
+| Seam                           | Path                                                                                                                                                        | Status     | What it gives the essay                                                                    |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------ |
+| The vanish test                | [`docs/CHARTER.md`](../CHARTER.md) §6                                                                                                                       | ✅ Written | "If xNet-the-company disappeared tomorrow, what the customer paid for survives" — verbatim |
+| No ground rent (five refusals) | [`docs/CHARTER.md`](../CHARTER.md) §6                                                                                                                       | ✅ Written | Each refused rent carries a receipt: export, identity, protocol, storage, per-member       |
+| Charter §7 Floor               | [`docs/CHARTER.md`](../CHARTER.md) §7                                                                                                                       | ✅ Written | "Your old hardware keeps working" — the hundred-year-machine promise, with its own honesty |
+| Footprint ratchet              | [`scripts/check-footprint-budget.mjs`](../../scripts/check-footprint-budget.mjs) + [`footprint-baseline.json`](../../footprint-baseline.json)               | ✅ Shipped | A CI gate that fails a change which raises the floor — the promise is falsifiable          |
+| Claims ledger                  | [`packages/telemetry/test/charter-claims-ledger.test.ts`](../../packages/telemetry/test/charter-claims-ledger.test.ts)                                      | ✅ Shipped | `floor-old-hardware-keeps-working`, `commons-no-ground-rent-export` — receipts by name     |
+| Offline-first client           | [`packages/runtime/src/sync/offline-queue.ts`](../../packages/runtime/src/sync/offline-queue.ts)                                                            | ✅ Shipped | The client works with no hub at all — the vanish test's architectural half                 |
+| Hub death survivable           | [`packages/runtime/src/sync/MultiHubSyncManager.ts`](../../packages/runtime/src/sync/MultiHubSyncManager.ts)                                                | ✅ Shipped | One hub dying is routine, not an outage                                                    |
+| Old protocols keep working     | [`packages/sync/src/negotiation.ts`](../../packages/sync/src/negotiation.ts) · [`packages/sync/src/deprecation.ts`](../../packages/sync/src/deprecation.ts) | ✅ Shipped | Versions deprecate; they are not cut off — the anti-Revolv property                        |
+| Portable bundles               | [`packages/data/src/portability/`](../../packages/data/src/portability/)                                                                                    | ✅ Shipped | `.xnetpack` export, verified, free (exploration 0344)                                      |
+| Blog metadata                  | [`site/src/data/blog.ts`](../../site/src/data/blog.ts)                                                                                                      | ✅ Shipped | Post registry; index + RSS single-source                                                   |
+| Hero art registry              | [`site/src/pages/blog/index.astro`](../../site/src/pages/blog/index.astro)                                                                                  | ✅ Shipped | `heroArt` map — a new post **must** be added here; the build passes silently if missed     |
 
 ### The two Charter passages the essay quotes
 
@@ -252,24 +252,24 @@ traces to a URL in its Sources section.
 
 ## Key Findings
 
-| #   | Finding                                                                                     | Confidence                               | Why it matters to the essay                                       |
-| --- | -------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------ |
-| 1   | Dworkin's apartment is a catalogue of miracles that became invisible                         | ✅ High — site + press                   | The seed; the essay agrees and walks it a second time              |
-| 2   | Household technologies matured miracle → service → owned object                              | ✅ High — needs per-arc citations        | **The thesis's first half**                                        |
-| 3   | The Bell telephone is the exception that reads as scandal ($14k rotary lease)                | ✅ High — NBC, Computerworld, QLT        | The fulcrum; proves the arc by violating it                        |
-| 4   | Software runs the arc backwards (records→streaming; licences→seats)                          | ✅ High — observable                     | **The thesis's second half**                                       |
-| 5   | Cloud-tethered devices fail the vanish test (Revolv, Insteon, Car Thing)                     | ✅ High — multiple outlets               | The modern rented-telephone cases                                  |
-| 6   | The vanish test is written in the Charter verbatim, with CI-pinned receipts                  | ✅ High — verified in `CHARTER.md`       | The instrument; makes the essay checkable rather than rhetorical   |
-| 7   | Charter §7 refuses the green claim and promises only "your old laptop keeps working"         | ✅ High — verified                       | Guards the essay against its own overclaim                         |
-| 8   | Bellamy's music-by-wire was a service that matured into ownership and back                   | ⚠️ Medium — verify at source             | The hinge object; music ran the arc both ways                      |
-| 9   | xNet Cloud is itself a subscription                                                          | ✅ High                                  | The honest turn — the essay must draw the improvement/rent line    |
+| #   | Finding                                                                              | Confidence                         | Why it matters to the essay                                      |
+| --- | ------------------------------------------------------------------------------------ | ---------------------------------- | ---------------------------------------------------------------- |
+| 1   | Dworkin's apartment is a catalogue of miracles that became invisible                 | ✅ High — site + press             | The seed; the essay agrees and walks it a second time            |
+| 2   | Household technologies matured miracle → service → owned object                      | ✅ High — needs per-arc citations  | **The thesis's first half**                                      |
+| 3   | The Bell telephone is the exception that reads as scandal ($14k rotary lease)        | ✅ High — NBC, Computerworld, QLT  | The fulcrum; proves the arc by violating it                      |
+| 4   | Software runs the arc backwards (records→streaming; licences→seats)                  | ✅ High — observable               | **The thesis's second half**                                     |
+| 5   | Cloud-tethered devices fail the vanish test (Revolv, Insteon, Car Thing)             | ✅ High — multiple outlets         | The modern rented-telephone cases                                |
+| 6   | The vanish test is written in the Charter verbatim, with CI-pinned receipts          | ✅ High — verified in `CHARTER.md` | The instrument; makes the essay checkable rather than rhetorical |
+| 7   | Charter §7 refuses the green claim and promises only "your old laptop keeps working" | ✅ High — verified                 | Guards the essay against its own overclaim                       |
+| 8   | Bellamy's music-by-wire was a service that matured into ownership and back           | ⚠️ Medium — verify at source       | The hinge object; music ran the arc both ways                    |
+| 9   | xNet Cloud is itself a subscription                                                  | ✅ High                            | The honest turn — the essay must draw the improvement/rent line  |
 
 ---
 
 ## Options And Tradeoffs
 
 | #   | Option                                                     | Effort    | Risk   | Verdict                |
-| --- | ------------------------------------------------------------ | --------- | ------ | ---------------------- |
+| --- | ---------------------------------------------------------- | --------- | ------ | ---------------------- |
 | A   | Single essay, arc-led (the hundred-year machine)           | ~1 day    | Low    | ✅ **Recommended**     |
 | B   | Gratitude-led appreciation of the site                     | ~half day | High   | 🛑 Rejected            |
 | C   | Essay + a public "vanish test" checklist page for software | ~2 days   | Medium | 🚧 Defer the checklist |
@@ -291,7 +291,7 @@ discipline (`caveat` fields, build-time validation) from exploration 0234.
 **D — the polemic** ("everything is a subscription now") is the saturated
 version. It has no apartment, no widow, no arc — and it would be dishonest
 here anyway, because xNet Cloud charges monthly. The essay's strength is that
-it defends a *distinction* (improvement versus rent), not a *side*
+it defends a _distinction_ (improvement versus rent), not a _side_
 (ownership versus subscription).
 
 </details>
@@ -300,7 +300,7 @@ it defends a *distinction* (improvement versus rent), not a *side*
 
 This exploration proposes **no new revenue lane**, so the three "No ground
 rent" tests (improvement / BATNA / vanish) do not gate it — but the essay is
-*about* the third test, and restating them in print constrains the existing
+_about_ the third test, and restating them in print constrains the existing
 lanes further. Improvement: xNet Cloud's fee pays for operations we run.
 BATNA: self-hosting stays real and undegraded. Vanish: the local master copy,
 the `.xnetpack` bundle, and the MIT protocol survive the company. The essay
@@ -340,7 +340,7 @@ flowchart LR
 
 **Act I** opens on Ester Strogen: two black rotary telephones, leased since
 the 1960s, $29.10 a month in 2006. Not a swindle by the standards of its
-time — for most of a century, renting was simply what a telephone *was*. Four
+time — for most of a century, renting was simply what a telephone _was_. Four
 sentences, then the question: why does this story read as absurd now?
 
 **Act II** answers with Dworkin's apartment, presented generously and in its
@@ -450,16 +450,16 @@ build still passes:
 
 ## Risks And Open Questions
 
-| Risk                                                          | Severity  | Mitigation                                                                                  |
-| -------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------- |
-| Objects named that are not in the tour                        | 🔴 High   | Take the tour manually; name only what is there                                               |
-| Reads as anti-subscription while charging a subscription      | 🔴 High   | Act V turns the mirror on xNet first; defend the distinction, not a side                      |
-| Overlap with _Weights You Can Hold_ / _The Vault and the View_ | 🟠 Medium | Claim only the arc + vanish-test ground; one glancing link each                               |
-| Household arcs stated without citation (iceman, steam laundry) | 🟠 Medium | Source each arc or soften to "grew from" phrasing without dates                               |
-| Bellamy quote wrong at source                                 | 🟠 Medium | Verify in _Looking Backward_ directly; the site's rendering is not the source                 |
-| Implied green claim                                           | 🔴 High   | Quote §7's refusal verbatim; the humane-patterns gate bans unbacked green claims anyway       |
-| Strogen case details drift (amounts, years vary by outlet)    | 🟡 Low    | Use NBC's figures; note the range if outlets disagree                                         |
-| Reads as a takedown of a gratitude site                       | 🟡 Low    | The essay agrees with Dworkin throughout and extends; Act II is generous and unironic         |
+| Risk                                                           | Severity  | Mitigation                                                                              |
+| -------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------- |
+| Objects named that are not in the tour                         | 🔴 High   | Take the tour manually; name only what is there                                         |
+| Reads as anti-subscription while charging a subscription       | 🔴 High   | Act V turns the mirror on xNet first; defend the distinction, not a side                |
+| Overlap with _Weights You Can Hold_ / _The Vault and the View_ | 🟠 Medium | Claim only the arc + vanish-test ground; one glancing link each                         |
+| Household arcs stated without citation (iceman, steam laundry) | 🟠 Medium | Source each arc or soften to "grew from" phrasing without dates                         |
+| Bellamy quote wrong at source                                  | 🟠 Medium | Verify in _Looking Backward_ directly; the site's rendering is not the source           |
+| Implied green claim                                            | 🔴 High   | Quote §7's refusal verbatim; the humane-patterns gate bans unbacked green claims anyway |
+| Strogen case details drift (amounts, years vary by outlet)     | 🟡 Low    | Use NBC's figures; note the range if outlets disagree                                   |
+| Reads as a takedown of a gratitude site                        | 🟡 Low    | The essay agrees with Dworkin throughout and extends; Act II is generous and unironic   |
 
 **Open questions.**
 
@@ -483,7 +483,7 @@ manual walkthrough.
 > and a far better rented-object opening rhyme than expected. The iceman arc
 > is sourced via the
 > [Smithsonian](https://americanhistory.si.edu/explore/stories/keeping-your-food-cool-ice-harvesting-electric-refrigeration)
-> and [Wikipedia's iceman entry](https://en.wikipedia.org/wiki/Iceman_(occupation));
+> and [Wikipedia's iceman entry](<https://en.wikipedia.org/wiki/Iceman_(occupation)>);
 > the steam-laundry claim is **dropped** — the tour's own washing exhibit is
 > about household hand-washing, and the essay does not need it.
 
@@ -507,15 +507,15 @@ checkable specifics.
 - [x] Source the household arcs (ice delivery → refrigerator; steam laundry →
       washing machine; Bell handset lease rules pre-Carterfone)
 - [x] Confirm the Strogen figures against NBC and note any outlet variance
-- [ ] Draft `site/src/pages/blog/the-hundred-year-machine.astro` to the
+- [x] Draft `site/src/pages/blog/the-hundred-year-machine.astro` to the
       six-act spine, ~2,300 words, en-GB, no bulleted lists
-- [ ] Add the post entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
+- [x] Add the post entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
       with `draft: true` during authoring
-- [ ] Build the hero art component and register it in the `heroArt` map in
+- [x] Build the hero art component and register it in the `heroArt` map in
       [`site/src/pages/blog/index.astro`](../../site/src/pages/blog/index.astro)
-- [ ] Add a `Sources` section listing the site, every incident, every arc
+- [x] Add a `Sources` section listing the site, every incident, every arc
       claim, and the repo artefacts quoted
-- [ ] Run `/humanize` and fix only the elevated tells
+- [x] Run `/humanize` and fix only the elevated tells
 - [ ] Add a changelog fragment via `node scripts/changelog/new.mjs`
 - [ ] Flip `draft: false` and set `pubDate` from the merge commit
 - [ ] `pnpm --filter site build` passes with the new post registered
