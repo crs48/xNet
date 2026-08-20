@@ -4,5 +4,14 @@
   "title": "New essay: The Hundred-Year Machine",
   "summary": "A new blog essay asks one question of every machine in the house: if its maker vanished tonight, what still works in the morning? On rented rotary phones, bricked smart-home hubs, and the vanish test xNet pins in CI.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 708,
+  "mergedAt": "2026-08-20T00:27:39Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
