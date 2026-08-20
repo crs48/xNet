@@ -113,11 +113,10 @@ const posts: BlogPost[] = [
       'first technology marching back the other way. On rented pineapples, ' +
       'bricked hubs, and the one question worth asking of anything you buy: ' +
       'if its maker vanished tonight, what still works in the morning?',
-    pubDate: '2026-08-19T00:00:00Z',
+    pubDate: '2026-08-20T00:02:00Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'decentralization'],
-    readingMinutes: 11,
-    draft: true
+    readingMinutes: 11
   },
   {
     slug: 'the-door-inside-the-house',
