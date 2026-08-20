@@ -519,7 +519,7 @@ checkable specifics.
 - [x] Add a changelog fragment via `node scripts/changelog/new.mjs`
 - [x] Flip `draft: false` and set `pubDate` from the merge commit
 - [x] `pnpm --filter site build` passes with the new post registered
-- [ ] Open the PR with the exploration and the essay in one branch
+- [x] Open the PR with the exploration and the essay in one branch
 
 ## Validation Checklist
 
