@@ -6,7 +6,18 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 13 Aug 2026 15:12:00 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 20 Aug 2026 00:02:00 GMT</lastBuildDate>
+    <item>
+      <title>The Hundred-Year Machine</title>
+      <link>https://xnet.fyi/blog/the-hundred-year-machine</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-hundred-year-machine</guid>
+      <description>An Ohio widow rented two rotary telephones for forty-two years, at $14,000, because for most of a century you could not own your phone. Every other machine in the house finished the walk from miracle to luxury service to a thing you own outright — the fridge retired the iceman, the record retired the concert wire — and software is the first technology marching back the other way. On rented pineapples, bricked hubs, and the one question worth asking of anything you buy: if its maker vanished tonight, what still works in the morning?</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Thu, 20 Aug 2026 00:02:00 GMT</pubDate>
+      <category>essay</category>
+      <category>decentralization</category>
+    </item>
     <item>
       <title>The Door Inside the House</title>
       <link>https://xnet.fyi/blog/the-door-inside-the-house</link>
