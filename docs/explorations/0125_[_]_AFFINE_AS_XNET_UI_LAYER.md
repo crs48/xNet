@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # 0125 - AFFiNE as the xNet UI Layer
 
 > **Status:** Exploration  

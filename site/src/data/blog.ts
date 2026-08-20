@@ -102,6 +102,23 @@ export interface BlogPost {
 
 const posts: BlogPost[] = [
   {
+    slug: 'the-hundred-year-machine',
+    title: 'The Hundred-Year Machine',
+    description:
+      'An Ohio widow rented two rotary telephones for forty-two years, at ' +
+      '$14,000, because for most of a century you could not own your phone. ' +
+      'Every other machine in the house finished the walk from miracle to ' +
+      'luxury service to a thing you own outright — the fridge retired the ' +
+      'iceman, the record retired the concert wire — and software is the ' +
+      'first technology marching back the other way. On rented pineapples, ' +
+      'bricked hubs, and the one question worth asking of anything you buy: ' +
+      'if its maker vanished tonight, what still works in the morning?',
+    pubDate: '2026-08-20T00:02:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'decentralization'],
+    readingMinutes: 11
+  },
+  {
     slug: 'the-door-inside-the-house',
     title: 'The Door Inside the House',
     description:

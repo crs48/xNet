@@ -1,0 +1,397 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import SeriesNav from '../../components/blog/SeriesNav.astro'
+import HundredYearHero from '../../components/blog/HundredYearHero.astro'
+import Byline from '../../components/blog/Byline.astro'
+import { postBySlug, formatPostDate } from '../../data/blog'
+
+const post = postBySlug('the-hundred-year-machine')!
+---
+
+<Base title={`${post.title} — xNet`} description={post.description}>
+  <Nav />
+
+  <main>
+    <HundredYearHero
+      title={post.title}
+      deck={post.description}
+      date={formatPostDate(post.pubDate)}
+      readingMinutes={post.readingMinutes}
+      tags={post.tags}
+    />
+
+    <article
+      class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400"
+    >
+      <Byline post={post} />
+
+      <p>
+        Ester Strogen was eighty-two when her family worked out that she was
+        renting her telephones. Two black rotary phones, the kind you dial
+        with a finger, leased since the 1960s and still costing her $29.10 a
+        month in 2006. Over about forty-two years her family reckons she paid
+        more than $14,000 for equipment worth perhaps a hundred dollars.
+      </p>
+      <p>
+        Here is the part that stops the story being a joke at one company's
+        expense. By the standards of her century, this was normal. For most
+        of the twentieth century an American could not own a telephone. The
+        handset was the phone company's property, leased with the line, and
+        plugging in your own was forbidden. A regulator finally opened the
+        network to customer-owned equipment in 1968, but the leases outlived
+        the reasoning by decades. She was far from alone, either: in 2007 a
+        successor company still had around 580,000 people paying monthly rent
+        on telephones.
+      </p>
+      <p>
+        Sit with why this reads as absurd. Nobody rents a kettle. The story
+        only works as a scandal because somewhere along the way we all
+        agreed, without ever saying it aloud, that a household machine is a
+        thing you own. I want to trace where that agreement came from.
+        We are quietly tearing it up.
+      </p>
+
+      <h2 id="the-apartment">Eight o'clock in the apartment</h2>
+
+      <p>
+        There is a website I keep going back to called
+        <a href="https://ordinaryabundance.com" rel="noopener noreferrer"
+          >Ordinary Abundance</a
+        >, built by a researcher named Jordan Dworkin. It walks you through a
+        modern apartment over the course of an evening. At eight o'clock the
+        music is playing softly over the speaker; you pick up a book, flick
+        on the lamp, settle into the chair. At nine you wander into the
+        kitchen, rifle through the fruit bowl, open and close the fridge,
+        put the kettle on. At ten you wash down a pill, brush your teeth,
+        and at eleven you switch off the lights and go to bed.
+      </p>
+      <p>
+        Each ordinary object opens a voice from history, someone for whom
+        that object was the edge of the imaginable. In 1888, Edward Bellamy's
+        narrator calls music at home "the limit of human felicity": "perfect
+        in quality, unlimited in quantity, suited to every mood, and
+        beginning and ceasing at will". A witness in Wabash, Indiana, one of the
+        first towns lit by electric light, describes a crowd standing
+        "overwhelmed with awe, as if in the presence of the supernatural".
+        When piped water reached New York in 1842, a diarist recorded the
+        whole city shouting one word: "Water! Water!" The arrival of New
+        England pond-ice in Calcutta moved a newspaper to rank the shippers
+        with "other benefactors of mankind".
+      </p>
+      <p>
+        Its argument is about gratitude. These things were miracles;
+        familiarity has made them invisible; it serves us, and honours the
+        people who built them, to feel the awe again on purpose. I think
+        that argument is right. And I want to add a second one to it,
+        because the tour shows something else that Dworkin never quite
+        names. Nearly every object in that apartment has the same
+        biography.
+      </p>
+
+      <h2 id="the-second-walk">The second walk</h2>
+
+      <p>
+        Start at the fruit bowl. The tour's kitchen pauses on the pineapple,
+        with Charles Lamb in 1822 working himself into a fever about its
+        taste. What it mentions gently, and what floors me, is how the fruit
+        was handled a century earlier. An English-grown pineapple cost so
+        much that people did not eat them. Hostesses <em>rented</em> a
+        pineapple for the evening, displayed it as the centrepiece, and
+        handed it back. That same fruit toured from party to party until it
+        began to rot, and only then did somebody finally buy and eat it. A
+        rented pineapple sounds like satire. It was simply what the miracle
+        cost when it was new.
+      </p>
+      <p>
+        Then hothouses and steamships did their work, and the miracle
+        finished its journey: from spectacle, to service, to a thing in a
+        bowl you own outright and eat without thinking.
+      </p>
+      <p>
+        So did the cold in the fridge. Within two generations, that pond-ice
+        crossing the ocean to Calcutta became the iceman on his route, and
+        the ice arrived as a subscription. A card in the window told him how
+        many pounds to carry up; the service came daily because the cold ran
+        out daily. Then the electric refrigerator ended all of it — the
+        route, the window cards, the whole daily relationship collapsed into
+        a white box, bought once, that made its own cold. Music too: Bellamy
+        could only imagine his endless music as a service, piped down wires
+        from central halls, because that was what luxury looked like from
+        1888. What actually arrived was the record, and the shelf of them in
+        the sitting room became the standard way a family owned its music
+        for a hundred years.
+      </p>
+      <p>
+        That is the shape. Once you see it, you see it on every wall of
+        the apartment. A miracle arrives as a service for the rich, with
+        attendants: the concert, the iceman, the water-carrier, the rented
+        pineapple. Then it matures into an object that ordinary people own
+        outright, and the attendants disappear. It happened so reliably that
+        only a monopoly could stop it: the telephone stayed leased for a
+        century because Bell stood in the doorway. Ester Strogen's $14,000
+        rotary phone is what a blocked arc looks like, and we recognise her
+        story as a scandal precisely because everything else in the room
+        made it through.
+      </p>
+
+      <h2 id="the-film-backwards">The film runs backwards</h2>
+
+      <p>
+        Now look at the newest objects in the apartment. The film is
+        running the other way.
+      </p>
+      <p>
+        Music got there first, which is fitting, since it led the march in
+        both directions. Records became downloads, downloads became the
+        stream, and the stream is Bellamy's wire service again, right down
+        to the monthly bill. Dworkin's sitting room has a detail I find quietly
+        devastating: the music playing at eight o'clock is "a playlist your
+        friend made for you years ago". That playlist is a real thing your
+        friend made, with care, and it exists only for as long as one
+        company keeps one database answering. Stop paying, or let the
+        company stumble, and the miracle switches off in a way no record
+        shelf ever could. Software followed. Photoshop was a box you bought
+        and owned for a decade; in 2013 it became a seat you rent by the
+        month, and the industry took notes.
+      </p>
+      <p>
+        Devices came last, and they are the widow's telephones with better
+        industrial design. Revolv sold a smart-home hub with a "lifetime
+        subscription"; after Google acquired the company it published a
+        date, and past that date, in its own words, "your Revolv hub and app
+        will no longer work". The lifetime turned out to be the product's.
+        Insteon is the cleaner case. There is no villain in it at all.
+        That smart-home firm simply ran out of money in the spring of
+        2022, and its servers went quiet. Hubs in tens of thousands of
+        houses went dark the same week, because nobody had designed them to
+        work without a company attached. Spotify sold a little dashboard
+        music player called Car Thing, discontinued it, and switched the
+        existing ones off by remote, offering refunds only after complaints
+        and a lawsuit.
+      </p>
+      <p>
+        So walk the apartment one last time, asking each object the question
+        the widow's family never got to ask. If every company that made you
+        vanished tonight, what still works in the morning? The answers sort
+        the room with embarrassing speed. The bulb burns, indifferent to who
+        is still trading; the tap runs, the fridge hums, the bicycle rolls,
+        the spectacles focus, and a book stays a book. A treadle Singer
+        sewing machine from before the First World War will still sew you a
+        shirt today, which is where this essay gets its title. And the
+        speaker falls silent, the playlist evaporates, the hub bricks, and
+        whatever lived only as an account dies with its landlord.
+      </p>
+      <p>
+        Notice where the line falls, because it matters more than anything
+        else in this essay: not between physical things and digital ones. A
+        file on your own disk survives its maker as surely as the Singer
+        does. Lawyers have a name for what actually changed; two of them,
+        Aaron Perzanowski and Jason Schultz, wrote a book called
+        <em>The End of Ownership</em> about the moment buying quietly became
+        licensing. The split is architectural. A machine that carries its
+        works inside itself belongs to you, and a machine that leaves its
+        works at the vendor's house is a terminal, whatever the receipt
+        says. A terminal is rented even when you are told you bought it.
+      </p>
+
+      <h2 id="the-receipt">The receipt</h2>
+
+      <p>
+        I should turn the mirror around before I say anything else, because
+        we charge a monthly fee too. xNet Cloud runs servers for people who
+        would rather not run their own, and it bills for that every month.
+        So you will get no sermon from me about subscriptions being wicked.
+        The iceman charged monthly as well, and he was charging honestly:
+        the money bought his labour, his horse, his route, an operation that
+        genuinely ran every day. What matters was never whether money
+        changes hands on a schedule; it is what the money buys. A fee for
+        work someone actually does is a service, while a fee for continued
+        access to what you would otherwise simply own is rent, and the whole
+        history above is the history of rent losing.
+      </p>
+      <p>
+        Our <a
+          href="https://github.com/crs48/xNet/blob/main/docs/CHARTER.md"
+          rel="noopener noreferrer">Charter</a
+        > tries to hold that line with a set of written tests, and the one
+        that belongs to this essay is called the vanish test: "if
+        xNet‑the‑company disappeared tomorrow, what the customer paid for
+        (their data, their audience, their workflows) survives." Insteon is
+        the vanish test failed; the Singer is the same test passed and held
+        for a century.
+      </p>
+      <p>
+        Passing it is not a mood; it is a set of build decisions, each one
+        checkable. Your master copy lives on your own disk, and the app
+        works with no server at all. Export is free, complete and verified,
+        so leaving costs nothing but the decision. The protocol and the hub
+        are MIT-licensed, which means the company dying does not take the
+        software's legal right to exist with it. Old protocol versions are
+        deprecated rather than cut off, so a client that worked yesterday is
+        not made a brick by an update it never asked for. And there is a
+        promise in the Charter I have grown fonder of than any of the grand
+        ones: the floor. We name the oldest machine the app must run well
+        on, a 2017-class laptop with 8 GB of memory, and a gate in our
+        build system fails any change that quietly raises it. On why that
+        is the only claim of its kind we make, the Charter is blunt:
+        "'Greener' would be marketing. 'Your old laptop keeps working' is
+        measurable, so that is the only claim we make."
+      </p>
+      <p>
+        The widow never got a receipt like that. Nobody offering her the
+        lease ever had to write down what would happen to her telephones if
+        the company lost interest, because the answer was understood: they
+        were never hers. Modern software mostly runs on the same
+        understanding, wrapped in a nicer onboarding flow. It seems little
+        enough to ask that the promise be written where a build system can
+        enforce it, rather than where a marketing team can.
+      </p>
+
+      <h2 id="ordinary">Ordinary</h2>
+
+      <p>
+        Dworkin ends his tour at eleven o'clock, with the lights off and a
+        head on a pillow, and closes with the thought that carries the whole
+        site: our lives are "a gallery of past generations' heroic efforts",
+        and it serves us, and honours them, to feel the old awe on purpose.
+      </p>
+      <p>
+        I would only add the condition that makes his title work. A miracle
+        becomes <em>ordinary</em> abundance at a precise moment: when you no
+        longer have to think about it. And you only ever stop thinking about
+        a thing that cannot be taken back. Nobody checks the tap's terms of
+        service before filling the kettle, or wonders, lifting the fridge
+        door handle, whether the account is in good standing. That
+        unthinking trust is not complacency. It is the finish line. The
+        pineapple crossed it, and the ice, and the record — every machine in
+        that apartment except the newest ones, which have been marched back
+        to the start and handed a monthly invoice.
+      </p>
+      <p>
+        The awe Dworkin wants us to recover is deserved. So is the
+        arrangement our great-grandparents fought their way to, one machine
+        at a time, and gave to us so completely that we forgot it was ever
+        won. The treadle Singer in the corner has been holding the standard
+        for over a hundred years without a server, a licence check, or a
+        renewal email. That is not nostalgia; it is a spec, and software
+        written by people who mean it can still be built to meet it — on
+        your own disk, on your old laptop, for as long as you care to keep
+        it, whatever becomes of us.
+      </p>
+
+      <hr />
+
+      <h3 id="sources">Sources</h3>
+      <ul class="text-base">
+        <li>
+          <a href="https://ordinaryabundance.com" rel="noopener noreferrer"
+            >Ordinary Abundance</a
+          >, by Jordan Dworkin, walked end to end for this essay; his
+          companion post on the project's motivation is on
+          <a
+            href="https://www.abundanceandgrowth.org/p/ordinary-abundance"
+            rel="noopener noreferrer">the Abundance and Growth blog</a
+          >. The Bellamy passage is dialogue from chapter 11 of
+          <a
+            href="https://www.marxists.org/reference/archive/bellamy-ed/works/backward/ch11.htm"
+            rel="noopener noreferrer"><em>Looking Backward</em> (1888)</a
+          >, where the endless music is delivered, fittingly, by wire from
+          central halls. The Wabash, Croton water and Calcutta ice
+          quotations are as the site presents them.
+        </li>
+        <li>
+          Ester Strogen's lease was reported by
+          <a
+            href="https://www.nbcnews.com/id/wbna14838642"
+            rel="noopener noreferrer">NBC News / AP in 2006</a
+          > and revisited by
+          <a
+            href="https://www.computerworld.com/article/1522250/at-t-charges-elderly-widow-14-000-in-rent-for-rotary-phone.html"
+            rel="noopener noreferrer">Computerworld</a
+          >; the figures are her family's estimates. The
+          <a
+            href="https://en.wikipedia.org/wiki/Carterfone"
+            rel="noopener noreferrer">Carterfone decision</a
+          > opened the Bell network to customer-owned equipment in 1968, and
+          <a
+            href="https://en.wikipedia.org/wiki/QLT_Consumer_Lease_Services"
+            rel="noopener noreferrer">QLT Consumer Lease Services</a
+          > still had roughly 580,000 telephone-leasing customers in 2007.
+        </li>
+        <li>
+          The rented pineapple of eighteenth-century Britain is covered by
+          <a
+            href="https://www.mentalfloss.com/article/65506/super-luxe-history-pineapples-and-why-they-used-cost-8000"
+            rel="noopener noreferrer">Mental Floss</a
+          >. The iceman's rounds and their end at the hands of the electric
+          refrigerator are described by the
+          <a
+            href="https://americanhistory.si.edu/explore/stories/keeping-your-food-cool-ice-harvesting-electric-refrigeration"
+            rel="noopener noreferrer"
+            >Smithsonian's National Museum of American History</a
+          > and in
+          <a
+            href="https://en.wikipedia.org/wiki/Iceman_(occupation)"
+            rel="noopener noreferrer">Wikipedia's entry on the occupation</a
+          >.
+        </li>
+        <li>
+          Adobe's move from owned licences to monthly seats was announced in
+          May 2013, covered by
+          <a
+            href="https://techcrunch.com/2013/05/06/adobe-goes-all-in-with-subscription-based-creative-cloud-will-stop-selling-regular-cs-licenses-shrink-wrapped-boxes/"
+            rel="noopener noreferrer">TechCrunch</a
+          >. Aaron Perzanowski and Jason Schultz's
+          <a
+            href="https://mitpress.mit.edu/9780262535243/the-end-of-ownership/"
+            rel="noopener noreferrer"><em>The End of Ownership</em></a
+          > (MIT Press, 2016) is the legal history of buying becoming
+          licensing.
+        </li>
+        <li>
+          Revolv's shutdown notice and the "lifetime subscription" it ended
+          are covered by
+          <a
+            href="https://www.techdirt.com/2016/04/05/you-dont-actually-own-what-you-buy-volume-2203-google-bricking-revolv-smart-home-hardware/"
+            rel="noopener noreferrer">Techdirt</a
+          > and
+          <a
+            href="https://www.cbc.ca/news/science/revolv-bricked-1.3521927"
+            rel="noopener noreferrer">CBC News</a
+          >. Insteon's abrupt 2022 shutdown is covered by
+          <a
+            href="https://hackaday.com/2022/04/25/insteon-abruptly-shuts-down-users-left-smart-home-less/"
+            rel="noopener noreferrer">Hackaday</a
+          > and
+          <a
+            href="https://www.forrester.com/blogs/insteon-and-the-internet-of-bricks/"
+            rel="noopener noreferrer">Forrester</a
+          >. Spotify's deactivation of Car Thing and the refunds that
+          followed complaints are covered by
+          <a
+            href="https://www.phonearena.com/news/spotify-to-refund-users-for-discontinued-car-thing-device_id158900"
+            rel="noopener noreferrer">PhoneArena</a
+          >.
+        </li>
+        <li>
+          Our side of it is in the open. The vanish test and the floor are
+          quoted verbatim from
+          <a
+            href="https://github.com/crs48/xNet/blob/main/docs/CHARTER.md"
+            rel="noopener noreferrer">the xNet Charter</a
+          > (§6 and §7); the floor's enforcement is the footprint gate in
+          <code>scripts/check-footprint-budget.mjs</code>, ratcheting
+          against <code>footprint-baseline.json</code>, with the promises
+          pinned by name in
+          <code>packages/telemetry/test/charter-claims-ledger.test.ts</code>.
+        </li>
+      </ul>
+
+      <SeriesNav slug={post.slug} />
+    </article>
+  </main>
+
+  <Footer />
+</Base>

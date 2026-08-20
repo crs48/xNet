@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Economic Models For Hosting Federated Hubs
 
 ## Problem Statement

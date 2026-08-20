@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # How Will xNet Handle Spam?
 
 > Status: Exploration  

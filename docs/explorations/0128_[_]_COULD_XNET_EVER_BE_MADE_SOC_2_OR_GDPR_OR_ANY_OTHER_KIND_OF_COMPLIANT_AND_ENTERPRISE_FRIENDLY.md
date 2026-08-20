@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Could xNet Ever Be Made SOC 2, GDPR, Or Otherwise Enterprise Friendly?
 
 Status: [_] Exploration  
