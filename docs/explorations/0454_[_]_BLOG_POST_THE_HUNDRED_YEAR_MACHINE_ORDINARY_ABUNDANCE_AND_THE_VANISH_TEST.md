@@ -516,28 +516,28 @@ checkable specifics.
 - [x] Add a `Sources` section listing the site, every incident, every arc
       claim, and the repo artefacts quoted
 - [x] Run `/humanize` and fix only the elevated tells
-- [ ] Add a changelog fragment via `node scripts/changelog/new.mjs`
-- [ ] Flip `draft: false` and set `pubDate` from the merge commit
-- [ ] `pnpm --filter site build` passes with the new post registered
+- [x] Add a changelog fragment via `node scripts/changelog/new.mjs`
+- [x] Flip `draft: false` and set `pubDate` from the merge commit
+- [x] `pnpm --filter site build` passes with the new post registered
 - [ ] Open the PR with the exploration and the essay in one branch
 
 ## Validation Checklist
 
-- [ ] Every factual claim in the essay traces to a URL or repo path in its
+- [x] Every factual claim in the essay traces to a URL or repo path in its
       `Sources` section
-- [ ] Every external source returns 200 on a manual fetch (403 is a bot-block
+- [x] Every external source returns 200 on a manual fetch (403 is a bot-block
       and acceptable with a note; **404 means the citation is fabricated**)
-- [ ] Every object attributed to the tour was seen in the tour
-- [ ] The essay states xNet Cloud is a subscription before defending the
+- [x] Every object attributed to the tour was seen in the tour
+- [x] The essay states xNet Cloud is a subscription before defending the
       improvement/rent distinction
-- [ ] No green or sustainability claim appears (the `unbacked green claim`
+- [x] No green or sustainability claim appears (the `unbacked green claim`
       rule in `check-humane-patterns.mjs` would also catch one in UI copy)
-- [ ] The vanish-test quotation matches `docs/CHARTER.md` §6 verbatim at
+- [x] The vanish-test quotation matches `docs/CHARTER.md` §6 verbatim at
       publication time
-- [ ] The post appears on `/blog`, in `rss.xml`, and renders its hero art
-- [ ] `pnpm check:exploration-links` passes
-- [ ] `/humanize` tell scan shows no elevated tells and no bulleted lists
-- [ ] Read at 320px — the corpus is read on phones
+- [x] The post appears on `/blog`, in `rss.xml`, and renders its hero art
+- [x] `pnpm check:exploration-links` passes
+- [x] `/humanize` tell scan shows no elevated tells and no bulleted lists
+- [x] Read at 320px — the corpus is read on phones
 
 ---
 
