@@ -1,5 +1,184 @@
 # @xnetjs/data
 
+## 4.0.0
+
+### Minor Changes
+
+- [#667](https://github.com/crs48/xNet/pull/667) [`e8843ef`](https://github.com/crs48/xNet/commit/e8843ef392fbc649cea796917ceb0ee0b57f06cf) Thanks [@crs48](https://github.com/crs48)! - Coding agents now get xNet's real retrieval, and a search that admits when it
+  couldn't do its job.
+
+  Every agent lane — the `xnet` CLI, `xnet mcp serve`, and the bridged agent
+  inside the desktop app — previously built its AI surface with no retriever and
+  fell back to a substring scan over the first 500 nodes, then rendered that
+  result identically to an exhaustive search. All three now go through one
+  `createAgentRetrieval()` construction path (enforced by a build guard), and
+  `xnet search` leads with the tier it actually ran at, warning on stderr when it
+  degraded.
+
+  New: `xnet recall` and the `xnet_recall` MCP tool return a budgeted context pack
+  where each hit carries the graph path it was reached by; `xnet serve` keeps the
+  read path warm behind a unix socket; `xnet remember` / `forget` / `memories` /
+  `distill` give the agent memory across sessions; and `api.recall` / `api.graph`
+  let a sandboxed `xnet run` script reach past its loaded slice.
+
+  **Breaking (`@xnetjs/plugins`)**: `AgentApi` gains required `recall` and `graph`
+  methods and `AgentScriptSession` gains `getRequestedContext()` — implementors of
+  those interfaces must update. `MCP_CORE_TOOL_NAMES` gains `xnet_recall`, and
+  `XNET_AGENT_SKILL_MD` has been rewritten.
+
+  **Breaking (`@xnetjs/cli`)**: `AgentCliServices` gains a required `retrieval`
+  field, and `runSearch` output now begins with a `tier` provenance line — anything
+  parsing its first line as the column header must skip it.
+
+- [#668](https://github.com/crs48/xNet/pull/668) [`2c148e8`](https://github.com/crs48/xNet/commit/2c148e8f134b0062ea9bca7af888710834f1ad91) Thanks [@crs48](https://github.com/crs48)! - Agent accountability substrate and JSON-RPC agent adapters (exploration 0416).
+
+  **`@xnetjs/identity`** — `enrollForeignAgent()` mints a scoped Agent Passport
+  from a verified foreign credential (a Buzz `npub`, an A2A agent card), with the
+  proof verifier injected so no ecosystem-specific dependency enters the package.
+  Passport revocation is no longer expiry-only: `revokeAgentPassport()` signs a
+  denylist entry and `verifyAgentPassport()` consults one via the new
+  `revocations` option.
+
+  **`@xnetjs/data`** — new `@xnetjs/data/agent-audit` sub-entry: build, serialize
+  and **offline-verify** an `AgentAuditBundle`. `verifyAgentAudit()` checks the
+  passport, every change's hash and signature, the unbroken per-author chain (which
+  is what catches a _removed_ action), and that every high/critical action carries
+  an operator-signed approval.
+
+  **`@xnetjs/plugins`** — a per-session egress budget (`EgressMeter`) meters agent
+  reads and raises a typed `EgressBudgetError` rather than returning a silently
+  truncated result. The model lane now emits the same `AiAgentFrame` vocabulary the
+  bridge lane speaks, via the new `onFrame` runtime option.
+
+  **`@xnetjs/devkit`** — `codexAppServerChatAgent()` and `acpChatAgent()` drive
+  Codex `app-server` and any ACP agent over a new JSON-RPC-over-stdio transport
+  (`JsonRpcSession`, `NodeDuplexRunner`), so conversations resume on a thread
+  instead of replaying history. `createPermissionBroker()` plus
+  `POST /v1/agent/permission` give the bridge a real answer channel, so a
+  permission request can be approved in-app instead of only displayed.
+
+  **`@xnetjs/cli`** — `xnet audit verify <bundle>` verifies an exported audit
+  bundle offline and exits non-zero on any problem.
+
+  All additions are additive; no existing export changed shape.
+
+- [#620](https://github.com/crs48/xNet/pull/620) [`705e9b7`](https://github.com/crs48/xNet/commit/705e9b7610b97b5f84c6329db5acf9bb04d11b61) Thanks [@crs48](https://github.com/crs48)! - AI retrieval now uses the FTS5 index instead of scanning. `NodeStore` (and
+  the storage adapter contract) gain an optional `searchText(query, limit)`
+  that runs a cross-schema BM25 search over `nodes_fts`; the AI surface's
+  `search` tool prefers it and falls back to the substring scan only when the
+  storage has no FTS support.
+
+- [#629](https://github.com/crs48/xNet/pull/629) [`8f46d59`](https://github.com/crs48/xNet/commit/8f46d59e4bf00629803a56a86407c977a7a7162d) Thanks [@crs48](https://github.com/crs48)! - Schema-scoped AI search now returns a full page of results. `searchNodes` and
+  `NodeStore.searchText` accept an optional `schemaId` that is pushed into the
+  FTS5 query (joining `nodes`, excluding soft-deleted rows) instead of being
+  applied to a cross-schema BM25 window afterwards — previously a scoped search
+  could come back nearly empty whenever that schema's matches ranked below the
+  window.
+
+  The AI `search` tool also reports how it matched: results carry `index`
+  (`'fts5'` or `'scan'`), `degraded`, and a `notice` when the full-text index was
+  unavailable, so an agent can tell a substring scan over a truncated window from
+  an exhaustive search rather than concluding a node does not exist.
+
+- [#619](https://github.com/crs48/xNet/pull/619) [`06fb240`](https://github.com/crs48/xNet/commit/06fb240fc7ecf55b6364395602c1d906d4e2255c) Thanks [@crs48](https://github.com/crs48)! - Play well with the ATmosphere (exploration 0389). `@xnetjs/data` gains
+  `RecordLens` — a node↔lexicon mapping that preserves foreign fields another app
+  wrote (unlike `SchemaLens`, whose one-way `backward` would eat them under
+  `putRecord`'s whole-object replace) — a concrete `pageToDocumentLens` projecting
+  a Page onto the adopted `site.standard.document` lexicon with one minted
+  `fyi.xnet.richBody` block, an authoring-time `publish` guard that flags
+  unprojectable properties (floats, formulas) at `defineSchema` time, and an
+  `AtmospherePublishState` machine encoding the publish one-way door (Withdraw,
+  never make-private; gated content never crosses to the public rail).
+  `@xnetjs/sync` gains signed `SpaceSnapshot` — an order-independent, verifiable
+  checkpoint over a Space frontier — the shared primitive that bounded replay,
+  anti-entropy, and encrypted atmosphere backup all needed.
+
+- [#614](https://github.com/crs48/xNet/pull/614) [`c021369`](https://github.com/crs48/xNet/commit/c0213690a1342b8b5fc1605c9b4f3b7c1057b614) Thanks [@crs48](https://github.com/crs48)! - Richer attachment previews. Images and video get a small preview generated when they are attached, stored alongside the file and synced ahead of it, so cells show a thumbnail before the full file arrives. The lightbox now plays video and audio inline and displays PDFs in the browser's viewer. `FileRef` gained optional `width`, `height`, and `thumbCid` fields, and the SQLite devtools panel reports how much space attachments are using.
+
+- [#614](https://github.com/crs48/xNet/pull/614) [`cd22c25`](https://github.com/crs48/xNet/commit/cd22c2530fb75cf7c16387e3e56abc9d2a8b5c39) Thanks [@crs48](https://github.com/crs48)! - Database attachments now sync between devices. Previously a file cell synced its reference but not the bytes, so teammates saw an attachment that could never open. Uploads are now sent to the hub in the background after attaching, and peers fetch the bytes on first view — verified against the content hash before being stored. Files that cannot be fetched say "on another device" instead of rendering blank. Workspaces without a hub keep working exactly as before.
+
+- [#614](https://github.com/crs48/xNet/pull/614) [`44a4ce0`](https://github.com/crs48/xNet/commit/44a4ce0f4423a74e230e17e01eb00232afccdcd7) Thanks [@crs48](https://github.com/crs48)! - Fix attachments over 1 MB failing to sync. Large files are stored as chunks behind a manifest, and the manifest's identifier is what the file reference carries — so uploading the reassembled file was rejected by the hub's content check, and every attachment above 1 MB silently failed to reach other devices. Transfers now send each stored blob under its own content hash, chunks before the manifest, and verify each one on the way back down.
+
+- [#680](https://github.com/crs48/xNet/pull/680) [`921d2c8`](https://github.com/crs48/xNet/commit/921d2c81f96a983bf8f26445a235e63024498c2d) Thanks [@crs48](https://github.com/crs48)! - Add `proposePromotion`/`proposePromotions` — propose graduating an accumulated
+  `ext:` overlay key into a core schema property once enough rows carry it. Both
+  return a proposal carrying a reversible `SchemaLens`, so accepting a promotion
+  can be undone; nothing mutates and nothing is inferred silently.
+
+- [#679](https://github.com/crs48/xNet/pull/679) [`e5a940c`](https://github.com/crs48/xNet/commit/e5a940c5acaf94c98492e48d2a142f47a754b8a8) Thanks [@crs48](https://github.com/crs48)! - Relationships can now record what two people actually do together, instead of
+  just what you call them.
+
+  Words like "spouse", "friend" and "coworker" are shorthand for a bundle of
+  typical activities, and `Relationship.kind` only ever stored the shorthand. Two
+  new schemas capture the part it was dropping: `RelationshipPrimitive` is one
+  term in an open, user-extensible vocabulary of shared activities ("make things",
+  "have hard conversations", "cohabitate"), and `Practice` records one such
+  activity between a pair.
+
+  The label is now derived rather than stored. `deriveBundle()` in `@xnetjs/crm`
+  reads which bundle a pair resembles from the activities they share, and returns
+  the **set difference** — activities common to that kind of relationship they
+  don't share — as possibilities to consider. It never grades the relationship
+  itself; a new `scored intimacy` CI rule and Charter §6 clause keep it that way.
+
+  `Practice` defaults to `private` visibility rather than `inherit`, because a
+  practice is a claim about a pair authored by one side. Erasing a contact deletes
+  their practices outright (`practiceErasureIds()`) rather than anonymizing them —
+  for this record the claim is the payload, so a blanked practice would still
+  disclose through the other end of the edge.
+
+- [#666](https://github.com/crs48/xNet/pull/666) [`561e8e5`](https://github.com/crs48/xNet/commit/561e8e55dbbf44040b817d65a316a8dd39ee76cf) Thanks [@crs48](https://github.com/crs48)! - Add the `Recording` and `RecordingTranscript` schemas for local-first screen
+  recording (exploration 0414).
+
+  A `Recording` holds immutable screen and camera track references plus the
+  _edit_ — a `cuts` list, `chapters`, and a `cameraLayout` — so trimming a
+  recording is a field write rather than a re-encode, and every cut stays
+  reversible. `RecordingTranscript` carries timed segments with optional
+  word-level timings, and a `verbatim` flag that gates filler-word editing on
+  engines which actually preserve disfluencies.
+
+  New exports: `RecordingSchema`, `RecordingTranscriptSchema`,
+  `RECORDING_SCHEMA_IRI`, `RECORDING_TRANSCRIPT_SCHEMA_IRI`, `CUT_REASONS`,
+  `CAMERA_CORNERS`, `CAMERA_SHAPES`, `CAPTURE_PATHS`, `DEFAULT_CAMERA_LAYOUT`,
+  and the `Recording`, `RecordingTranscript`, `RecordingSegment`, `Cut`,
+  `CutReason`, `Chapter`, `CameraLayout`, `CameraCorner`, `CameraShape` and
+  `CapturePathId` types. Purely additive — no existing export changed.
+
+- [#678](https://github.com/crs48/xNet/pull/678) [`5c9112f`](https://github.com/crs48/xNet/commit/5c9112fb56a524106d3081f042ef7ea658cdbb84) Thanks [@crs48](https://github.com/crs48)! - Resolve a hub's address from a stable name instead of hard-coding its URL.
+
+  A managed hub's URL belongs to whoever hosts it today, so moving it between
+  regions or substrates silently misconfigured every device that had stored it.
+  `XNetConfig.hubAddress` now takes a name and a resolver: the client resolves
+  once, caches the answer, and connects to the hub **directly** — nothing proxies
+  your traffic. `hubUrl` still works unchanged and is used as the fallback until
+  resolution succeeds, so a resolver outage costs freshness, never reachability.
+  - `@xnetjs/runtime` adds `resolveHubUrl`, `httpResolver`, and the
+    `HubAddressRecord` types. Records are signed by the hub itself, so a resolver
+    can cache one but cannot change where you connect.
+  - `@xnetjs/react` adds `useResolvedHubUrl` and the `hubAddress` config option.
+    A hub that is waking from cold now reports as waking, with a retry hint,
+    instead of looking like an outage.
+  - `@xnetjs/data` records the last-known hub address inside `.xnetpack`
+    manifests, under the signature, so an export on its own is enough to
+    reconnect.
+
+  All three additions are additive; existing configuration and bundles are
+  unaffected.
+
+- [#676](https://github.com/crs48/xNet/pull/676) [`184709a`](https://github.com/crs48/xNet/commit/184709af1ddb235b32130f45ab6d859aa4a882e4) Thanks [@crs48](https://github.com/crs48)! - Export the `NodeProperties` type from the root barrel. It was already exported
+  from `@xnetjs/data/schema` and is the parameter type of every `RecordLens`
+  `forward`/`backward`, so anyone writing a lens against the root entry point had
+  no way to name it.
+
+### Patch Changes
+
+- Updated dependencies [[`2c148e8`](https://github.com/crs48/xNet/commit/2c148e8f134b0062ea9bca7af888710834f1ad91), [`8f46d59`](https://github.com/crs48/xNet/commit/8f46d59e4bf00629803a56a86407c977a7a7162d), [`06fb240`](https://github.com/crs48/xNet/commit/06fb240fc7ecf55b6364395602c1d906d4e2255c), [`44a4ce0`](https://github.com/crs48/xNet/commit/44a4ce0f4423a74e230e17e01eb00232afccdcd7), [`7111047`](https://github.com/crs48/xNet/commit/71110478d908ffdbdadad0ecf1f4090acc231171)]:
+  - @xnetjs/identity@4.0.0
+  - @xnetjs/sqlite@4.0.0
+  - @xnetjs/sync@4.0.0
+  - @xnetjs/storage@4.0.0
+  - @xnetjs/crypto@4.0.0
+  - @xnetjs/core@4.0.0
+
 ## 3.0.0
 
 ### Minor Changes
