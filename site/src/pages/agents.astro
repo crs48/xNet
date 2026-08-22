@@ -1,0 +1,214 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Footer from '../components/sections/Footer.astro'
+import SectionHeader from '../components/ui/SectionHeader.astro'
+import CodeBlock from '../components/ui/CodeBlock.astro'
+import CodeTabs from '../components/ui/CodeTabs.astro'
+import { AGENT_CLIENTS } from '../data/agents'
+import { entries } from '../data/changelog'
+
+// The conversion hub for the agent door (exploration 0457): per-client
+// install, what the agent gets, the safety model, and dated receipts. Depth
+// stays in the docs — this page routes, it never re-argues (0384).
+
+const cm = (s: string) => `<span class="tok-comment">${s}</span>`
+const escapeHtml = (s: string) =>
+  s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+
+/** Render a client's command lines as a highlighted terminal block. */
+const commandHtml = (lines: string[]) =>
+  lines
+    .map((line) =>
+      line.startsWith('{') ? escapeHtml(line) : `${cm('$')} ${escapeHtml(line)}`
+    )
+    .join('\n')
+
+const installTabs = AGENT_CLIENTS.map((client) => ({
+  label: client.label,
+  filename: client.configJson ? 'mcp config' : 'terminal',
+  code: commandHtml(client.command)
+}))
+
+const lanes = [
+  {
+    step: '1',
+    title: 'CLI — the default lane',
+    description:
+      'xnet search, query, and db get print plain stdout an agent greps and pipes. No tool schemas standing in context.'
+  },
+  {
+    step: '2',
+    title: 'Vault — files the agent already understands',
+    description:
+      'xnet checkout materializes a scoped slice as Markdown and JSONL. Edits become schema-validated mutation plans on xnet commit — a malformed write can’t corrupt anything.'
+  },
+  {
+    step: '3',
+    title: 'MCP — the no-shell fallback',
+    description:
+      'A slim server (five core tools standing, everything else deferred) for clients that can’t run a CLI. Read-only unless connected with --writes.'
+  }
+]
+
+const safety = [
+  {
+    title: 'Read-only by default',
+    description:
+      'xnet connect registers the server read-only. Writes are an explicit opt-in (--writes), and the CLI refuses to persist a write under a throwaway identity.'
+  },
+  {
+    title: 'Its own key, its own passport',
+    description:
+      'An agent signs with an enrolled agent passport or a key you provide — never silently as you. Scope its grant as narrowly as you like.'
+  },
+  {
+    title: 'Every change in a signed log',
+    description:
+      'Each write lands in the workspace’s signed, hash-chained change log. Verify what your agent did — without trusting us, or it.'
+  }
+]
+
+// Dated receipts: real shipped changelog entries from the agent lane, newest
+// first — instead of invented testimonials.
+const receipts = entries.filter((entry) => entry.tags.includes('ai')).slice(0, 4)
+---
+
+<Base
+  title="xNet for Agents — give your coding agent a workspace you own"
+  description="Connect Claude Code, Codex, Cursor, or any MCP client to a local-first workspace: read, query, and edit docs, databases, and canvases — every change signed."
+>
+  <Nav />
+
+  <main>
+    <!-- Install -->
+    <section class="relative overflow-hidden">
+      <div class="absolute left-1/2 top-0 -translate-x-1/2 h-[400px] w-[700px] rounded-full bg-indigo-500/[0.07] blur-[120px]"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-20 lg:py-28">
+        <div class="text-center">
+          <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl">
+            <span class="bg-gradient-to-br from-gray-900 via-gray-700 to-indigo-600 dark:from-white dark:via-gray-100 dark:to-indigo-400 bg-clip-text text-transparent">
+              Give your coding agent<br />a workspace you own.
+            </span>
+          </h1>
+          <p class="mx-auto mt-5 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
+            Documents, databases, and canvases your agent can read, query, and
+            edit — local-first, synced, every change signed. One command
+            connects the harness you already use.
+          </p>
+        </div>
+
+        <div class="mx-auto mt-10 max-w-2xl">
+          <CodeTabs tabs={installTabs} group="agent-client" />
+          <div class="mt-4 space-y-2">
+            {AGENT_CLIENTS.filter((c) => c.deeplink).map((client) => (
+              <p class="text-center text-sm text-gray-500">
+                {client.label}:
+                <a href={client.deeplink!.href} class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                  {client.deeplink!.label}
+                </a>
+                <span class="text-gray-400"> · one-click; the pasteable config above always works</span>
+              </p>
+            ))}
+          </div>
+          <p class="mt-4 text-center text-sm text-gray-500">
+            Read-only until you say otherwise · works offline · MIT ·
+            <a href="/docs/guides/coding-agents/" class="text-indigo-600 dark:text-indigo-400 hover:underline">full connect guide</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- What your agent gets -->
+    <section class="border-t border-border/50 bg-surface/10 dark:bg-surface/20 py-20">
+      <div class="mx-auto max-w-6xl px-6">
+        <SectionHeader
+          title="What your agent gets"
+          subtitle="Three lanes into the workspace, cheapest first — files and a CLI before tool definitions."
+          align="center"
+        />
+        <div class="mt-12 grid gap-6 lg:grid-cols-3">
+          {lanes.map((lane) => (
+            <div class="animate-on-scroll rounded-xl border border-border bg-surface p-6">
+              <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 font-mono text-sm font-bold text-indigo-500">
+                {lane.step}
+              </div>
+              <h3 class="mb-2 font-semibold text-gray-800 dark:text-gray-100">{lane.title}</h3>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{lane.description}</p>
+            </div>
+          ))}
+        </div>
+        <p class="mx-auto mt-10 max-w-2xl text-center text-sm text-gray-500 dark:text-gray-400">
+          On a 15-task benchmark, the files+CLI surface completes the same work
+          at <strong class="text-gray-700 dark:text-gray-200">~0.11x the tokens</strong>
+          of a traditional MCP toolset, with equal success —
+          <a href="/docs/guides/agent-interfaces/#benchmark-methodology" class="text-indigo-600 dark:text-indigo-400 hover:underline">
+            methodology and how to reproduce it</a>.
+        </p>
+      </div>
+    </section>
+
+    <!-- Safety model -->
+    <section class="border-t border-border/50 py-20">
+      <div class="mx-auto max-w-6xl px-6">
+        <SectionHeader
+          title="Verify what your agent did"
+          subtitle="Agency without blind trust: the safety contract is structural, not a policy promise."
+          align="center"
+        />
+        <div class="mt-12 grid gap-6 lg:grid-cols-3">
+          {safety.map((item) => (
+            <div class="animate-on-scroll rounded-xl border border-border bg-surface p-6">
+              <h3 class="mb-2 font-semibold text-gray-800 dark:text-gray-100">{item.title}</h3>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{item.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Receipts: dated changelog entries from the agent lane -->
+    {receipts.length > 0 && (
+      <section class="border-t border-border/50 bg-surface/10 dark:bg-surface/20 py-20">
+        <div class="mx-auto max-w-6xl px-6">
+          <SectionHeader
+            title="Shipped, with dates"
+            subtitle="No testimonials — receipts. Recent agent-lane entries from the changelog."
+            align="center"
+          />
+          <div class="mt-12 grid gap-6 sm:grid-cols-2">
+            {receipts.map((entry) => (
+              <a
+                href={`/changelog#${entry.id}`}
+                class="animate-on-scroll rounded-xl border border-border bg-surface p-5 transition-all hover:border-indigo-500/50"
+              >
+                <p class="mb-1 font-mono text-xs text-gray-500">{entry.id.slice(0, 10)}</p>
+                <h3 class="mb-1.5 font-semibold text-gray-800 dark:text-gray-100">{entry.title}</h3>
+                <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{entry.summary}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- The rest of xNet, demoted but one click away -->
+    <section class="border-t border-border/50 py-16">
+      <div class="mx-auto max-w-3xl px-6 text-center">
+        <p class="text-gray-500 dark:text-gray-400">
+          Prefer a UI? <a href="/app?demo=1" class="text-indigo-600 dark:text-indigo-400 hover:underline">Try the app</a> — the
+          full workspace behind the agent door.
+          Building your own? <a href="/react" class="text-indigo-600 dark:text-indigo-400 hover:underline">The React SDK</a>.
+          Want managed sync? <a href="/cloud" class="text-indigo-600 dark:text-indigo-400 hover:underline">Cloud</a> — free to start.
+        </p>
+        <p class="mt-4 text-sm text-gray-500">
+          Are you an agent reading this? Start at
+          <a href="/agents.md" class="font-mono text-indigo-600 dark:text-indigo-400 hover:underline">/agents.md</a> or
+          <a href="/llms.txt" class="font-mono text-indigo-600 dark:text-indigo-400 hover:underline">/llms.txt</a>.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</Base>

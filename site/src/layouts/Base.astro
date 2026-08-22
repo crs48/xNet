@@ -15,6 +15,11 @@ const { title, description } = Astro.props
 // No cookies, no personal data → no consent banner required.
 const analyticsDomain = import.meta.env.PUBLIC_ANALYTICS_DOMAIN
 const analyticsSrc = import.meta.env.PUBLIC_ANALYTICS_SRC || 'https://plausible.io/js/script.js'
+
+// Canonical + social-card metadata (exploration 0457). The screenshot doubles
+// as the card image until a dedicated OG image exists.
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://xnet.fyi')
+const ogImage = new URL('/images/workbench-light.png', Astro.site ?? 'https://xnet.fyi')
 ---
 
 <!doctype html>
@@ -24,6 +29,17 @@ const analyticsSrc = import.meta.env.PUBLIC_ANALYTICS_SRC || 'https://plausible.
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="xNet" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
     <title>{title}</title>
     <style>
       /* Landing page theme variables */

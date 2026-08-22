@@ -23,7 +23,8 @@ workspace with a malformed write.
 
 Measured on a 15-task benchmark, the files+CLI surface completes the same work
 at **~0.11x the tokens** of a traditional MCP toolset (0.05x on synthesis
-tasks), with equal task success.
+tasks), with equal task success. The
+[methodology and how to reproduce it](#benchmark-methodology) are below.
 
 ## The checkout
 
@@ -95,6 +96,40 @@ tokens). Responses are compact JSON by default with
 
 The doctrine, in order: **files for reading and editing, the CLI for what
 files can't express, MCP only when there's no shell.**
+
+## Benchmark methodology
+
+The "~0.11x the tokens" claim comes from an in-repo, reproducible benchmark —
+not a one-off measurement. What it is, precisely:
+
+- **The suite**: 15 tasks (read a page, edit a page, query a database, bulk
+  update, cross-node synthesis) run against a seeded workspace fixture. Every
+  task really executes against the same plan → validate → apply core the
+  product uses; **success is measured, not assumed**.
+- **Three surfaces**: `files-cli` (vault checkout + file tools + `xnet` CLI),
+  `mcp-legacy` (all tool definitions standing, pretty-printed JSON), and
+  `mcp-slim` (core tools standing, compact JSON — today's MCP fallback).
+- **What's counted**: a token cost model (~4 chars/token) over the *actual
+  bytes* each surface moves through model context — standing tool/skill
+  definitions, request arguments, tool responses, file contents read, edit
+  diffs, CLI commands and their outputs.
+- **What's not counted**: model reasoning tokens. This is an **interface cost
+  model** — it measures what each surface forces into context, not how a
+  specific model thinks. Live harness runs with pinned versions are tracked
+  separately (exploration 0161).
+- **Result**: files+CLI at 0.111x the total tokens of the legacy MCP surface
+  overall, 0.050x on synthesis tasks, 15/15 task success on every surface.
+
+Reproduce it from a repo checkout:
+
+```bash
+pnpm bench:agent-surfaces
+```
+
+Source: `packages/plugins/src/benchmarks/agent-surface-benchmark.ts`. The
+ratios are **regression-guarded in CI** by
+`agent-surface-benchmark.test.ts`, so the numbers quoted here fail the build
+if the surfaces drift.
 
 ## Further reading
 

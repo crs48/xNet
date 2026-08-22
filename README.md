@@ -17,6 +17,16 @@ peer-to-peer or through a hub you control, and signed with your own keys.
 
 ## Try it
 
+- **[Connect your coding agent](https://xnet.fyi/agents)** — one command,
+  no install:
+
+  ```bash
+  npx @xnetjs/cli connect claude-code   # or: connect codex
+  ```
+
+  Claude Code or Codex can then read, search, query, and edit your
+  workspace — read-only until you say otherwise.
+
 - **[Open the demo](https://xnet.fyi/app)** — no signup; sign in with your
   device's passkey (Touch ID, Face ID, Windows Hello). Demo data lives in your
   browser, with encrypted backups on our demo hub (10MB, expires after 24
@@ -33,6 +43,23 @@ peer-to-peer or through a hub you control, and signed with your own keys.
 > you control (`.xnetpack` export is built in). Package version numbers are
 > not a maturity signal; what is and isn't stable is written down in
 > [STABILITY.md](./STABILITY.md).
+
+## Your agent, your workspace
+
+Coding agents are first-class users of an xNet workspace — through the
+filesystem they already know, not a wall of tool definitions. `xnet connect`
+installs a ~500-token skill and gives the agent three lanes, cheapest first:
+the `xnet` CLI (plain stdout), a scoped **vault checkout** (Markdown/JSONL
+files whose edits become schema-validated mutation plans), and a slim MCP
+server as the no-shell fallback. On a 15-task benchmark the files+CLI surface
+uses [~0.11x the tokens of a traditional MCP
+toolset](https://xnet.fyi/docs/guides/agent-interfaces/#benchmark-methodology)
+at equal success.
+
+Safety is structural: the server registers **read-only by default**, writes
+require an enrolled agent passport or an explicit key, and every change an
+agent makes lands in the workspace's signed, hash-chained change log — so you
+can verify what your agent did without trusting it.
 
 ## Build with it
 

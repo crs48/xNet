@@ -15,8 +15,11 @@ Before reading this documentation, understand that xNet works differently:
 ## Table of Contents
 
 - What is xNet?
+  - Connect Your Agent
 - Quick Start
 - Core Concepts
+  - Agent Interfaces
+- Understanding xNet (For AI Assistants)
   - Hooks Overview
   - useQuery
   - useMutate
@@ -55,8 +58,6 @@ Before reading this documentation, understand that xNet works differently:
   - Identity & Keys
   - Real-time Collaboration
   - Plugin Development
-  - Agent Interfaces
-  - Use xNet from Claude Code / Codex
   - Hub Setup
   - Your Own Server
   - Use xNet From Any Framework
@@ -76,7 +77,6 @@ Before reading this documentation, understand that xNet works differently:
   - Getting Started
   - Code Style
   - Testing Guide
-- Understanding xNet (For AI Assistants)
 
 ---
 
@@ -165,6 +165,107 @@ xNet is a monorepo of focused packages:
 For most apps, you only install `@xnetjs/react` and `@xnetjs/data`. Everything else is pulled in as needed.
 
 ## Next steps
+
+---
+
+## Connect Your Agent
+
+**You will learn**
+
+- How to connect a coding agent to your workspace with one command
+- The three lanes an agent uses, cheapest first
+- How writes stay safe when the app and the agent touch the same data
+  
+
+The same way people point Claude Code at an Obsidian vault, you can point it at
+your **xNet workspace** — and read, search, query, and edit your pages,
+databases, and canvases without leaving the terminal. The
+[Agent Interfaces](/docs/guides/agent-interfaces/) guide covers the surfaces in
+depth; this one is the quick on-ramp.
+
+## One-step connect
+
+No install needed — `npx` runs the published CLI directly:
+
+```bash
+npx @xnetjs/cli connect claude-code   # zero-install, project scope, read-only
+```
+
+Or, with the CLI installed (`npm install -g @xnetjs/cli`):
+
+```bash
+xnet connect claude-code            # project scope, read-only
+xnet connect claude-code --user     # also install the skill for all projects
+xnet connect claude-code --writes   # register the MCP server with write access
+xnet connect codex                  # Codex: AGENTS.md + .codex/config.toml
+```
+
+`xnet connect` is **idempotent** — it installs the `SKILL.md`, registers the
+xNet MCP server, writes a `CLAUDE.md`/`AGENTS.md` contract, and (with
+`--vault <dir>`) bootstraps a scoped checkout with an index. Re-running it
+reports what is already in place and changes nothing. It finishes by running
+`xnet doctor --agent-access`, which confirms the backend, full-text search, and
+signing identity are all reachable.
+
+The registered server launches however the CLI is actually available: as
+`xnet` when the bin is on your PATH, or as `npx -y @xnetjs/cli` after a
+zero-install connect — so the registration keeps working either way.
+
+## Works whether or not the app is running
+
+The agent verbs resolve a backend automatically:
+
+1. the desktop app's local API (`:31415`) when it is running, otherwise
+2. a standalone SQLite store — discovered from the app's data directory, or
+   pointed at explicitly with `--db <path>` (or `$XNET_DB`).
+
+So an agent can work against your data even with the app closed, and web-only
+users can point at any local store. Writes made this way are signed by a key you
+provide (`--key`, `$XNET_SIGNING_KEY`) or by an
+[enrolled agent passport](/docs/guides/identity/) (`--agent <name>`); the CLI
+refuses to persist a write under a silent throwaway identity.
+
+## Three lanes, cheapest first
+
+```mermaid
+flowchart LR
+  A[Agent in Claude Code / Codex] -->|Bash| CLI[1 · xnet CLI]
+  A -->|Read / Edit / Grep| V[2 · Vault checkout]
+  A -->|MCP client| M[3 · xnet mcp serve]
+  CLI --> Core[(xNet store · signed change log)]
+  V <-->|checkout / commit| CLI
+  M --> Core
+```
+
+1. **CLI** — `xnet search`/`query`/`db get` print plain stdout. Reach here
+   first: it costs far fewer tokens than loading a wall of MCP tool schemas.
+2. **Vault** — `xnet checkout --query "…"` materializes a **scoped** slice as
+   Markdown you edit, then `xnet commit` lifts the edits back through validated
+   mutation plans. Never check out the whole workspace.
+3. **MCP** — the registered `xnet` server is the fallback for shell-less
+   clients (Claude Desktop, browser). It is **read-only** unless you connected
+   with `--writes`.
+
+## Safe when the app and the agent collide
+
+The store stays the source of truth, and every edit becomes a validated plan —
+never a blind file-to-database sync. If the app writes a node after you checked
+it out, committing your now-stale vault edit surfaces a **conflict** instead of
+overwriting the newer value:
+
+```bash
+$ xnet status
+conflict  Pages/shared-page.md  stale-export  based on updatedAt:10, live is updatedAt:11
+```
+
+Fix the file against the current value and commit again. Stale edits never
+silently win.
+
+## Further reading
+
+- [Agent Interfaces](/docs/guides/agent-interfaces/) — the checkout layout, the
+  full CLI, `SKILL.md`, and the slim MCP surface
+- [Identity](/docs/guides/identity/) — agent passports and signing
 
 ---
 
@@ -561,6 +662,344 @@ Grants are stored as ordinary nodes — they sync, replicate, and inherit the sa
 See the [Authorization Guide](/docs/guides/authorization/) for the full model including delegation, key recovery, and offline policy.
 
 ## Next steps
+
+---
+
+## Agent Interfaces
+
+**You will learn**
+
+- Why the filesystem is the primary agent surface
+- The checkout layout and how edits flow back safely
+- The `xnet` CLI verbs and the ~500-token SKILL.md
+- When to fall back to MCP
+  
+
+## Files first
+
+Coding agents are already excellent at reading, grepping, and editing files —
+so xNet's primary agent interface is a **filesystem projection of the
+workspace**, not a wall of tool definitions. The store stays the source of
+truth; the checkout is a working tree. Every surface (files, CLI, MCP) funnels
+into the same plan → validate → apply core, so an agent can never corrupt the
+workspace with a malformed write.
+
+Measured on a 15-task benchmark, the files+CLI surface completes the same work
+at **~0.11x the tokens** of a traditional MCP toolset (0.05x on synthesis
+tasks), with equal task success. The
+[methodology and how to reproduce it](#benchmark-methodology) are below.
+
+## The checkout
+
+`xnet checkout` materializes a scoped slice of the workspace into a folder:
+
+```
+Pages/q3-planning.md            # Markdown + YAML frontmatter (xnet.id, revision)
+Databases/tasks.schema.json     # the schema
+Databases/tasks.rows.jsonl      # one JSON object per line — edit/append/delete
+Databases/tasks.tsv             # read-only fast-read sidecar (large tables)
+Canvases/roadmap.canvas         # JSON Canvas projection
+SKILL.md                        # the agent contract (~500 tokens)
+.xnet/                          # manifest, conflict notes
+```
+
+Filenames are semantic slugs; identity lives in frontmatter and the manifest,
+never in filenames. Wikilinks (`[[Title]]`), `xnet-database` blocks, and
+`{{xnet-ref}}` directives are live references and survive round-trips.
+
+Checkouts are **scoped and incremental** — by query, schema, kind, or node
+(`xnet checkout --query "roadmap"`); repeated checkouts merge. Agents never
+need (and are told not to) export the whole workspace.
+
+### Edits become validated plans
+
+File edits are diffed into **mutation plans**, validated against schemas, and
+applied to the store — automatically with `xnet daemon` running, or on
+`xnet commit`. Anything that doesn't validate, or collides with a newer
+revision, is **quarantined as a conflict**: a Markdown note in
+`.xnet/conflicts/` explains what happened and how to resolve it. Stale edits
+never silently overwrite newer data.
+
+## The xnet CLI
+
+| Command | Purpose |
+| --- | --- |
+| `xnet checkout` | Materialize / extend a scoped checkout |
+| `xnet status` | Pending plans and conflicts |
+| `xnet commit [--apply]` | Turn file edits into applied mutations |
+| `xnet search "<text>"` | Ranked full-text search (TSV: id, slug, title, snippet) |
+| `xnet query <db> --where field=value` | Query tables (TSV default; `jsonl`/`json`/`md`) |
+| `xnet db get/set` | Single-cell reads and writes |
+| `xnet run <script.js>` | Sandboxed bulk work over a bounded `api` object |
+| `xnet daemon` | Watch the checkout and auto-apply valid edits |
+| `xnet skill` | Print SKILL.md |
+
+Output is TSV-first and concise by default (`--detailed` to opt out) — built
+for being read by a model, not a human.
+
+`xnet run` executes scripts in a sandbox with bounded reads and **write
+proposals** (`api.proposeUpdate`, `api.proposeCreate`) that flow through the
+same validated plan pipeline as file edits.
+
+## SKILL.md
+
+Every checkout ships a cross-harness `SKILL.md` (~500 tokens) that teaches any
+agent — Claude Code, Codex, Gemini CLI, Cursor — the layout and workflow above.
+That's the entire standing context cost, versus ~5k tokens of always-loaded
+tool definitions for a typical MCP server. Print it any time with
+`xnet skill`.
+
+## Slim MCP
+
+MCP remains as the **no-shell fallback** for harnesses that can't run a CLI.
+It's deliberately slim: five stable core tools are loaded eagerly and
+everything else defers (the non-deferred payload is test-guarded at ≤1.5k
+tokens). Responses are compact JSON by default with
+`response_format: concise | detailed` on every tool.
+
+The doctrine, in order: **files for reading and editing, the CLI for what
+files can't express, MCP only when there's no shell.**
+
+## Benchmark methodology
+
+The "~0.11x the tokens" claim comes from an in-repo, reproducible benchmark —
+not a one-off measurement. What it is, precisely:
+
+- **The suite**: 15 tasks (read a page, edit a page, query a database, bulk
+  update, cross-node synthesis) run against a seeded workspace fixture. Every
+  task really executes against the same plan → validate → apply core the
+  product uses; **success is measured, not assumed**.
+- **Three surfaces**: `files-cli` (vault checkout + file tools + `xnet` CLI),
+  `mcp-legacy` (all tool definitions standing, pretty-printed JSON), and
+  `mcp-slim` (core tools standing, compact JSON — today's MCP fallback).
+- **What's counted**: a token cost model (~4 chars/token) over the *actual
+  bytes* each surface moves through model context — standing tool/skill
+  definitions, request arguments, tool responses, file contents read, edit
+  diffs, CLI commands and their outputs.
+- **What's not counted**: model reasoning tokens. This is an **interface cost
+  model** — it measures what each surface forces into context, not how a
+  specific model thinks. Live harness runs with pinned versions are tracked
+  separately (exploration 0161).
+- **Result**: files+CLI at 0.111x the total tokens of the legacy MCP surface
+  overall, 0.050x on synthesis tasks, 15/15 task success on every surface.
+
+Reproduce it from a repo checkout:
+
+```bash
+pnpm bench:agent-surfaces
+```
+
+Source: `packages/plugins/src/benchmarks/agent-surface-benchmark.ts`. The
+ratios are **regression-guarded in CI** by
+`agent-surface-benchmark.test.ts`, so the numbers quoted here fail the build
+if the surfaces drift.
+
+## Further reading
+
+- [For AI Assistants](/docs/ai/understanding-xnet/) — the mental model for
+  agents writing *app code* against xNet
+- [Plugins](/docs/guides/plugins/) — the integration layer MCP belongs to
+
+---
+
+## Understanding xNet (For AI Assistants)
+
+# Understanding xNet: A Guide for AI Assistants
+
+If you're an AI assistant helping a developer build with xNet, this guide will help you understand the fundamental paradigm differences.
+
+**Working inside a user's workspace?**
+This page is about writing *application code* against xNet. If you are an
+agent operating on a user's actual data — reading pages, editing databases,
+searching their workspace — use the **files-first agent surface** instead: a
+scoped checkout of the workspace plus the `xnet` CLI, taught by a ~500-token
+`SKILL.md` (printable with `xnet skill`). It completes the same work at
+roughly a tenth of the tokens of an MCP toolset. See
+[Agent Interfaces](/docs/guides/agent-interfaces/).
+
+## The Key Insight
+
+**xNet has no backend.**
+
+This is not a simplification or a limitation — it's the core design principle. Data lives on the user's device and syncs peer-to-peer.
+
+## Mental Model Comparison
+
+### Traditional Architecture
+
+```
+User → Frontend → API → Backend → Database
+                   ↑
+              Auth Service
+```
+
+### xNet Architecture
+
+```
+User → React Hooks → Local Storage ←→ P2P Sync ←→ Other Devices
+                           ↑
+              Cryptographic Identity (built-in)
+```
+
+## What This Means Practically
+
+### There Are No API Endpoints
+
+When a user asks "create an API to save tasks", the correct response is:
+
+```typescript
+// Don't create this:
+// app.post('/api/tasks', handler)
+
+// Do this instead:
+const { create } = useMutate()
+await create(TaskSchema, { title: 'New task' })
+```
+
+The `create` function writes to local storage. Sync happens automatically.
+
+### There Is No Auth System to Implement
+
+When a user asks "add authentication", the correct response is:
+
+```typescript
+// Don't create OAuth/JWT flows
+
+// Identity is already built-in:
+const { did, displayName } = useIdentity()
+
+// DID is a cryptographic identifier like:
+// did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK
+```
+
+### Offline Just Works
+
+When a user asks "handle offline mode", the correct response is:
+
+```typescript
+// Don't add service workers or cache layers
+
+// It already works:
+const { data } = useQuery(TaskSchema)
+// This reads from local storage
+// Works whether online or offline
+// Syncs when connectivity returns
+```
+
+### Real-time Is Built-in
+
+When a user asks "add real-time updates", the correct response is:
+
+```typescript
+// Don't create WebSocket connections
+
+// Hooks are already reactive:
+const { data: tasks } = useQuery(TaskSchema)
+// When another device syncs changes,
+// this component re-renders automatically
+```
+
+## Common Mistakes to Avoid
+
+| User Request     | Wrong Approach     | Correct Approach           |
+| ---------------- | ------------------ | -------------------------- |
+| "Save data"      | Create REST API    | Use `useMutate().create()` |
+| "Fetch data"     | Use fetch/axios    | Use `useQuery()`           |
+| "Add auth"       | Implement OAuth    | Use `useIdentity()`        |
+| "Handle offline" | Add service worker | Already works              |
+| "Real-time sync" | Add WebSockets     | Already built-in           |
+| "Manage state"   | Add Redux/Zustand  | Hooks handle this          |
+| "Optimistic UI"  | Manual rollback    | Built into mutations       |
+
+## The Schema System
+
+Schemas are central to xNet. They define data shapes AND provide type inference:
+
+```typescript
+
+const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://myapp/',
+  properties: {
+    title: text({ required: true }),
+    status: select({ options: ['todo', 'done'] as const }),
+    assignee: relation({ schema: 'xnet://myapp/Person' })
+  }
+})
+
+// Now hooks are fully typed:
+const { data } = useQuery(TaskSchema)
+data[0].title // string
+data[0].status // 'todo' | 'done'
+```
+
+## When to Suggest Server Code
+
+The only times server code is appropriate:
+
+1. **Hub setup** — If deploying an always-on relay (optional)
+2. **External integrations** — Webhooks, third-party APIs
+3. **Heavy computation** — AI/ML that can't run on device
+
+Even then, the Hub is just a relay — it doesn't process or store application logic.
+
+## Quick Reference
+
+### Reading Data
+
+```typescript
+// Single item
+const { data: task } = useQuery(TaskSchema, taskId)
+
+// All items
+const { data: tasks } = useQuery(TaskSchema)
+
+// Filtered
+const { data: todos } = useQuery(TaskSchema, {
+  where: { status: 'todo' }
+})
+```
+
+### Writing Data
+
+```typescript
+const { create, update, remove } = useMutate()
+
+// Create
+const id = await create(TaskSchema, { title: 'New task' })
+
+// Update
+await update(TaskSchema, id, { status: 'done' })
+
+// Delete
+await remove(id)
+```
+
+### Collaborative Editing
+
+```typescript
+const { data: page, doc } = useNode(PageSchema, pageId)
+// doc is a Y.Doc for Yjs collaborative editing
+```
+
+### User Identity
+
+```typescript
+const { did, displayName, avatarUrl } = useIdentity()
+// did:key:z6Mk... is the user's cryptographic identity
+```
+
+## Summary
+
+When helping with xNet:
+
+1. **Never suggest API endpoints** — Use hooks
+2. **Never implement auth** — It's cryptographic and built-in
+3. **Never manage state** — Hooks are reactive
+4. **Never handle offline** — It just works
+5. **Always use schemas** — They're the source of truth
+
+The paradigm shift: **data is local, sync is automatic, identity is cryptographic**.
 
 ---
 
@@ -7460,197 +7899,6 @@ for the full flow.
 
 ---
 
-## Agent Interfaces
-
-**You will learn**
-
-- Why the filesystem is the primary agent surface
-- The checkout layout and how edits flow back safely
-- The `xnet` CLI verbs and the ~500-token SKILL.md
-- When to fall back to MCP
-  
-
-## Files first
-
-Coding agents are already excellent at reading, grepping, and editing files —
-so xNet's primary agent interface is a **filesystem projection of the
-workspace**, not a wall of tool definitions. The store stays the source of
-truth; the checkout is a working tree. Every surface (files, CLI, MCP) funnels
-into the same plan → validate → apply core, so an agent can never corrupt the
-workspace with a malformed write.
-
-Measured on a 15-task benchmark, the files+CLI surface completes the same work
-at **~0.11x the tokens** of a traditional MCP toolset (0.05x on synthesis
-tasks), with equal task success.
-
-## The checkout
-
-`xnet checkout` materializes a scoped slice of the workspace into a folder:
-
-```
-Pages/q3-planning.md            # Markdown + YAML frontmatter (xnet.id, revision)
-Databases/tasks.schema.json     # the schema
-Databases/tasks.rows.jsonl      # one JSON object per line — edit/append/delete
-Databases/tasks.tsv             # read-only fast-read sidecar (large tables)
-Canvases/roadmap.canvas         # JSON Canvas projection
-SKILL.md                        # the agent contract (~500 tokens)
-.xnet/                          # manifest, conflict notes
-```
-
-Filenames are semantic slugs; identity lives in frontmatter and the manifest,
-never in filenames. Wikilinks (`[[Title]]`), `xnet-database` blocks, and
-`{{xnet-ref}}` directives are live references and survive round-trips.
-
-Checkouts are **scoped and incremental** — by query, schema, kind, or node
-(`xnet checkout --query "roadmap"`); repeated checkouts merge. Agents never
-need (and are told not to) export the whole workspace.
-
-### Edits become validated plans
-
-File edits are diffed into **mutation plans**, validated against schemas, and
-applied to the store — automatically with `xnet daemon` running, or on
-`xnet commit`. Anything that doesn't validate, or collides with a newer
-revision, is **quarantined as a conflict**: a Markdown note in
-`.xnet/conflicts/` explains what happened and how to resolve it. Stale edits
-never silently overwrite newer data.
-
-## The xnet CLI
-
-| Command | Purpose |
-| --- | --- |
-| `xnet checkout` | Materialize / extend a scoped checkout |
-| `xnet status` | Pending plans and conflicts |
-| `xnet commit [--apply]` | Turn file edits into applied mutations |
-| `xnet search "<text>"` | Ranked full-text search (TSV: id, slug, title, snippet) |
-| `xnet query <db> --where field=value` | Query tables (TSV default; `jsonl`/`json`/`md`) |
-| `xnet db get/set` | Single-cell reads and writes |
-| `xnet run <script.js>` | Sandboxed bulk work over a bounded `api` object |
-| `xnet daemon` | Watch the checkout and auto-apply valid edits |
-| `xnet skill` | Print SKILL.md |
-
-Output is TSV-first and concise by default (`--detailed` to opt out) — built
-for being read by a model, not a human.
-
-`xnet run` executes scripts in a sandbox with bounded reads and **write
-proposals** (`api.proposeUpdate`, `api.proposeCreate`) that flow through the
-same validated plan pipeline as file edits.
-
-## SKILL.md
-
-Every checkout ships a cross-harness `SKILL.md` (~500 tokens) that teaches any
-agent — Claude Code, Codex, Gemini CLI, Cursor — the layout and workflow above.
-That's the entire standing context cost, versus ~5k tokens of always-loaded
-tool definitions for a typical MCP server. Print it any time with
-`xnet skill`.
-
-## Slim MCP
-
-MCP remains as the **no-shell fallback** for harnesses that can't run a CLI.
-It's deliberately slim: five stable core tools are loaded eagerly and
-everything else defers (the non-deferred payload is test-guarded at ≤1.5k
-tokens). Responses are compact JSON by default with
-`response_format: concise | detailed` on every tool.
-
-The doctrine, in order: **files for reading and editing, the CLI for what
-files can't express, MCP only when there's no shell.**
-
-## Further reading
-
-- [For AI Assistants](/docs/ai/understanding-xnet/) — the mental model for
-  agents writing *app code* against xNet
-- [Plugins](/docs/guides/plugins/) — the integration layer MCP belongs to
-
----
-
-## Use xNet from Claude Code / Codex
-
-**You will learn**
-
-- How to connect a coding agent to your workspace with one command
-- The three lanes an agent uses, cheapest first
-- How writes stay safe when the app and the agent touch the same data
-  
-
-The same way people point Claude Code at an Obsidian vault, you can point it at
-your **xNet workspace** — and read, search, query, and edit your pages,
-databases, and canvases without leaving the terminal. The
-[Agent Interfaces](/docs/guides/agent-interfaces/) guide covers the surfaces in
-depth; this one is the quick on-ramp.
-
-## One-step connect
-
-```bash
-xnet connect claude-code            # project scope, read-only
-xnet connect claude-code --user     # also install the skill for all projects
-xnet connect claude-code --writes   # register the MCP server with write access
-xnet connect codex                  # Codex: AGENTS.md + .codex/config.toml
-```
-
-`xnet connect` is **idempotent** — it installs the `SKILL.md`, registers the
-`xnet` MCP server, writes a `CLAUDE.md`/`AGENTS.md` contract, and (with
-`--vault <dir>`) bootstraps a scoped checkout with an index. Re-running it
-reports what is already in place and changes nothing. It finishes by running
-`xnet doctor --agent-access`, which confirms the backend, full-text search, and
-signing identity are all reachable.
-
-## Works whether or not the app is running
-
-The agent verbs resolve a backend automatically:
-
-1. the desktop app's local API (`:31415`) when it is running, otherwise
-2. a standalone SQLite store — discovered from the app's data directory, or
-   pointed at explicitly with `--db <path>` (or `$XNET_DB`).
-
-So an agent can work against your data even with the app closed, and web-only
-users can point at any local store. Writes made this way are signed by a key you
-provide (`--key`, `$XNET_SIGNING_KEY`) or by an
-[enrolled agent passport](/docs/guides/identity/) (`--agent <name>`); the CLI
-refuses to persist a write under a silent throwaway identity.
-
-## Three lanes, cheapest first
-
-```mermaid
-flowchart LR
-  A[Agent in Claude Code / Codex] -->|Bash| CLI[1 · xnet CLI]
-  A -->|Read / Edit / Grep| V[2 · Vault checkout]
-  A -->|MCP client| M[3 · xnet mcp serve]
-  CLI --> Core[(xNet store · signed change log)]
-  V <-->|checkout / commit| CLI
-  M --> Core
-```
-
-1. **CLI** — `xnet search`/`query`/`db get` print plain stdout. Reach here
-   first: it costs far fewer tokens than loading a wall of MCP tool schemas.
-2. **Vault** — `xnet checkout --query "…"` materializes a **scoped** slice as
-   Markdown you edit, then `xnet commit` lifts the edits back through validated
-   mutation plans. Never check out the whole workspace.
-3. **MCP** — the registered `xnet` server is the fallback for shell-less
-   clients (Claude Desktop, browser). It is **read-only** unless you connected
-   with `--writes`.
-
-## Safe when the app and the agent collide
-
-The store stays the source of truth, and every edit becomes a validated plan —
-never a blind file-to-database sync. If the app writes a node after you checked
-it out, committing your now-stale vault edit surfaces a **conflict** instead of
-overwriting the newer value:
-
-```bash
-$ xnet status
-conflict  Pages/shared-page.md  stale-export  based on updatedAt:10, live is updatedAt:11
-```
-
-Fix the file against the current value and commit again. Stale edits never
-silently win.
-
-## Further reading
-
-- [Agent Interfaces](/docs/guides/agent-interfaces/) — the checkout layout, the
-  full CLI, `SKILL.md`, and the slim MCP surface
-- [Identity](/docs/guides/identity/) — agent passports and signing
-
----
-
 ## Hub Setup
 
 **You will learn**
@@ -11639,207 +11887,6 @@ packages/plugins/src/
 ## Coverage
 
 Tests cover core algorithms and security-critical paths. Each core package has tests for its primary exports. When adding new functionality to a core package, include tests that verify the expected behavior and edge cases.
-
----
-
-## Understanding xNet (For AI Assistants)
-
-# Understanding xNet: A Guide for AI Assistants
-
-If you're an AI assistant helping a developer build with xNet, this guide will help you understand the fundamental paradigm differences.
-
-**Working inside a user's workspace?**
-This page is about writing *application code* against xNet. If you are an
-agent operating on a user's actual data — reading pages, editing databases,
-searching their workspace — use the **files-first agent surface** instead: a
-scoped checkout of the workspace plus the `xnet` CLI, taught by a ~500-token
-`SKILL.md` (printable with `xnet skill`). It completes the same work at
-roughly a tenth of the tokens of an MCP toolset. See
-[Agent Interfaces](/docs/guides/agent-interfaces/).
-
-## The Key Insight
-
-**xNet has no backend.**
-
-This is not a simplification or a limitation — it's the core design principle. Data lives on the user's device and syncs peer-to-peer.
-
-## Mental Model Comparison
-
-### Traditional Architecture
-
-```
-User → Frontend → API → Backend → Database
-                   ↑
-              Auth Service
-```
-
-### xNet Architecture
-
-```
-User → React Hooks → Local Storage ←→ P2P Sync ←→ Other Devices
-                           ↑
-              Cryptographic Identity (built-in)
-```
-
-## What This Means Practically
-
-### There Are No API Endpoints
-
-When a user asks "create an API to save tasks", the correct response is:
-
-```typescript
-// Don't create this:
-// app.post('/api/tasks', handler)
-
-// Do this instead:
-const { create } = useMutate()
-await create(TaskSchema, { title: 'New task' })
-```
-
-The `create` function writes to local storage. Sync happens automatically.
-
-### There Is No Auth System to Implement
-
-When a user asks "add authentication", the correct response is:
-
-```typescript
-// Don't create OAuth/JWT flows
-
-// Identity is already built-in:
-const { did, displayName } = useIdentity()
-
-// DID is a cryptographic identifier like:
-// did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK
-```
-
-### Offline Just Works
-
-When a user asks "handle offline mode", the correct response is:
-
-```typescript
-// Don't add service workers or cache layers
-
-// It already works:
-const { data } = useQuery(TaskSchema)
-// This reads from local storage
-// Works whether online or offline
-// Syncs when connectivity returns
-```
-
-### Real-time Is Built-in
-
-When a user asks "add real-time updates", the correct response is:
-
-```typescript
-// Don't create WebSocket connections
-
-// Hooks are already reactive:
-const { data: tasks } = useQuery(TaskSchema)
-// When another device syncs changes,
-// this component re-renders automatically
-```
-
-## Common Mistakes to Avoid
-
-| User Request     | Wrong Approach     | Correct Approach           |
-| ---------------- | ------------------ | -------------------------- |
-| "Save data"      | Create REST API    | Use `useMutate().create()` |
-| "Fetch data"     | Use fetch/axios    | Use `useQuery()`           |
-| "Add auth"       | Implement OAuth    | Use `useIdentity()`        |
-| "Handle offline" | Add service worker | Already works              |
-| "Real-time sync" | Add WebSockets     | Already built-in           |
-| "Manage state"   | Add Redux/Zustand  | Hooks handle this          |
-| "Optimistic UI"  | Manual rollback    | Built into mutations       |
-
-## The Schema System
-
-Schemas are central to xNet. They define data shapes AND provide type inference:
-
-```typescript
-
-const TaskSchema = defineSchema({
-  name: 'Task',
-  namespace: 'xnet://myapp/',
-  properties: {
-    title: text({ required: true }),
-    status: select({ options: ['todo', 'done'] as const }),
-    assignee: relation({ schema: 'xnet://myapp/Person' })
-  }
-})
-
-// Now hooks are fully typed:
-const { data } = useQuery(TaskSchema)
-data[0].title // string
-data[0].status // 'todo' | 'done'
-```
-
-## When to Suggest Server Code
-
-The only times server code is appropriate:
-
-1. **Hub setup** — If deploying an always-on relay (optional)
-2. **External integrations** — Webhooks, third-party APIs
-3. **Heavy computation** — AI/ML that can't run on device
-
-Even then, the Hub is just a relay — it doesn't process or store application logic.
-
-## Quick Reference
-
-### Reading Data
-
-```typescript
-// Single item
-const { data: task } = useQuery(TaskSchema, taskId)
-
-// All items
-const { data: tasks } = useQuery(TaskSchema)
-
-// Filtered
-const { data: todos } = useQuery(TaskSchema, {
-  where: { status: 'todo' }
-})
-```
-
-### Writing Data
-
-```typescript
-const { create, update, remove } = useMutate()
-
-// Create
-const id = await create(TaskSchema, { title: 'New task' })
-
-// Update
-await update(TaskSchema, id, { status: 'done' })
-
-// Delete
-await remove(id)
-```
-
-### Collaborative Editing
-
-```typescript
-const { data: page, doc } = useNode(PageSchema, pageId)
-// doc is a Y.Doc for Yjs collaborative editing
-```
-
-### User Identity
-
-```typescript
-const { did, displayName, avatarUrl } = useIdentity()
-// did:key:z6Mk... is the user's cryptographic identity
-```
-
-## Summary
-
-When helping with xNet:
-
-1. **Never suggest API endpoints** — Use hooks
-2. **Never implement auth** — It's cryptographic and built-in
-3. **Never manage state** — Hooks are reactive
-4. **Never handle offline** — It just works
-5. **Always use schemas** — They're the source of truth
-
-The paradigm shift: **data is local, sync is automatic, identity is cryptographic**.
 
 ---
 

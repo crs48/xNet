@@ -1,4 +1,12 @@
 ---
+const agentLinks = [
+  { label: 'Connect your agent', href: '/agents' },
+  { label: 'Use from Claude Code', href: '/docs/guides/coding-agents/' },
+  { label: 'Agent Interfaces', href: '/docs/guides/agent-interfaces/' },
+  { label: 'agents.md', href: '/agents.md' },
+  { label: 'llms.txt', href: '/llms.txt' },
+]
+
 const productLinks = [
   { label: 'Try the App', href: '/app' },
   { label: 'Run on Mobile', href: '/mobile' },
@@ -58,7 +66,7 @@ const legalLinks = [
 <footer class="border-t border-border/50 bg-surface/10 dark:bg-surface/20">
   <div class="mx-auto max-w-6xl px-6 py-12 lg:py-16">
     <!-- Main footer content -->
-    <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-7">
+    <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-8">
       <!-- Brand -->
       <div class="lg:col-span-2">
         <a href="/" class="inline-flex items-center gap-2">
@@ -92,6 +100,20 @@ const legalLinks = [
             </svg>
           </a>
         </div>
+      </div>
+
+      <!-- Agents -->
+      <div>
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Agents</h4>
+        <ul class="space-y-3">
+          {agentLinks.map(link => (
+            <li>
+              <a href={link.href} class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <!-- Product -->

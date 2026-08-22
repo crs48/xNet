@@ -18,9 +18,10 @@
  * shell-less clients.
  */
 
+import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { delimiter, dirname, join, resolve } from 'node:path'
 import { XNET_AGENT_SKILL_MD } from '@xnetjs/plugins/node'
 import { Command } from 'commander'
 import { parse as parseToml, stringify as stringifyToml } from 'smol-toml'
@@ -52,14 +53,44 @@ export type McpServerEntry = { command: string; args: string[]; env?: Record<str
 
 // ─── MCP server entry ─────────────────────────────────────────────────────────
 
+/** How the registered MCP server should launch the CLI. */
+export type ServerLauncher = { command: string; prefixArgs: string[] }
+
+export const XNET_PATH_LAUNCHER: ServerLauncher = { command: 'xnet', prefixArgs: [] }
+export const NPX_LAUNCHER: ServerLauncher = { command: 'npx', prefixArgs: ['-y', '@xnetjs/cli'] }
+
+/**
+ * Pick the launcher the registered server entry should use. When `xnet` is a
+ * real executable on PATH, register it directly. When connect itself was run
+ * via `npx @xnetjs/cli connect …` (the zero-install on-ramp), there is no
+ * global `xnet` — an entry saying `command: "xnet"` would register a server
+ * that dies the moment the harness tries to launch it. Fall back to an
+ * `npx -y @xnetjs/cli` entry, which resolves the published package every time.
+ */
+export function resolveServerLauncher(env: NodeJS.ProcessEnv = process.env): ServerLauncher {
+  const pathValue = env.PATH ?? env.Path ?? ''
+  // Windows resolves bins through PATHEXT; cover npm's shim names everywhere.
+  const candidates = ['xnet', 'xnet.cmd', 'xnet.exe', 'xnet.ps1']
+  for (const entryDir of pathValue.split(delimiter)) {
+    if (!entryDir) continue
+    for (const name of candidates) {
+      if (existsSync(join(entryDir, name))) return XNET_PATH_LAUNCHER
+    }
+  }
+  return NPX_LAUNCHER
+}
+
 /** Build the MCP server registration for the requested backend and mode. */
-export function buildServerEntry(options: ConnectOptions): McpServerEntry {
-  const args = ['mcp', 'serve']
+export function buildServerEntry(
+  options: ConnectOptions,
+  launcher: ServerLauncher = XNET_PATH_LAUNCHER
+): McpServerEntry {
+  const args = [...launcher.prefixArgs, 'mcp', 'serve']
   if (options.agent) args.push('--agent', options.agent)
   if (options.db) args.push('--db', options.db)
   if (options.apiUrl) args.push('--api-url', options.apiUrl)
   const env = options.writes ? undefined : { XNET_READONLY: '1' }
-  return { command: 'xnet', args, ...(env ? { env } : {}) }
+  return { command: launcher.command, args, ...(env ? { env } : {}) }
 }
 
 // ─── File writers (idempotent; report created/updated/unchanged) ──────────────
@@ -226,11 +257,12 @@ ${lines.join('\n')}
 
 export async function runConnect(
   harness: ConnectHarness,
-  options: ConnectOptions
+  options: ConnectOptions,
+  launcher: ServerLauncher = resolveServerLauncher()
 ): Promise<ConnectChange[]> {
   const dir = resolve(options.dir)
   const changes: ConnectChange[] = []
-  const entry = buildServerEntry(options)
+  const entry = buildServerEntry(options, launcher)
 
   if (harness === 'claude-code') {
     changes.push(

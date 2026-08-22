@@ -1,9 +1,13 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
 import CodeBlock from '../ui/CodeBlock.astro'
+import { CANONICAL_CONNECT } from '../../data/agents'
 
 const dim = (s: string) => `<span class="tok-comment">${s}</span>`
 
+// Path order mirrors the site's conversion spine (exploration 0457): the
+// agent door first, the app second, the SDK third.
+const connectCode = `${dim('$')} ${CANONICAL_CONNECT}`
 const installCode = `${dim('$')} pnpm add @xnetjs/react @xnetjs/data`
 ---
 
@@ -20,6 +24,37 @@ const installCode = `${dim('$')} pnpm add @xnetjs/react @xnetjs/data`
 
     <!-- Three paths -->
     <div class="mt-12 grid gap-6 sm:grid-cols-3 max-w-4xl mx-auto">
+      <!-- Connect your agent -->
+      <div class="animate-on-scroll rounded-xl border border-indigo-500/20 bg-indigo-500/[0.03] p-6 text-center">
+        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400">
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Connect Your Agent</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          Give Claude Code or Codex a workspace you own
+        </p>
+        <div class="mb-4">
+          <CodeBlock filename="terminal" code={connectCode} />
+        </div>
+        <div class="space-y-3">
+          <a
+            href="/agents"
+            class="block w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+          >
+            What your agent gets
+          </a>
+          <a
+            href="/docs/guides/coding-agents/"
+            class="block w-full rounded-lg border border-indigo-500/30 px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+          >
+            Read the connect guide
+          </a>
+        </div>
+        <p class="mt-4 text-xs text-gray-500">Read-only by default. One command.</p>
+      </div>
+
       <!-- Use the App -->
       <div class="animate-on-scroll rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-6 text-center">
         <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
@@ -29,7 +64,7 @@ const installCode = `${dim('$')} pnpm add @xnetjs/react @xnetjs/data`
         </div>
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Use the App</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Try xNet as a productivity tool
+          The full workspace behind the agent door
         </p>
         <div class="space-y-3">
           <a
@@ -49,8 +84,8 @@ const installCode = `${dim('$')} pnpm add @xnetjs/react @xnetjs/data`
       </div>
 
       <!-- Build with xNet -->
-      <div class="animate-on-scroll rounded-xl border border-indigo-500/20 bg-indigo-500/[0.03] p-6 text-center">
-        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400">
+      <div class="animate-on-scroll rounded-xl border border-purple-500/20 bg-purple-500/[0.03] p-6 text-center">
+        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
           </svg>
@@ -65,46 +100,17 @@ const installCode = `${dim('$')} pnpm add @xnetjs/react @xnetjs/data`
         <div class="space-y-3">
           <a
             href="/docs/quickstart/"
-            class="block w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+            class="block w-full rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-500 transition-colors"
           >
             Read the Docs
           </a>
           <a
             href="https://github.com/crs48/xNet"
-            class="block w-full rounded-lg border border-indigo-500/30 px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+            class="block w-full rounded-lg border border-purple-500/30 px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 transition-colors"
           >
             View on GitHub
           </a>
         </div>
-      </div>
-
-      <!-- Join the Movement -->
-      <div class="animate-on-scroll rounded-xl border border-purple-500/20 bg-purple-500/[0.03] p-6 text-center">
-        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </div>
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Join the Movement</h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Contribute to the open protocol
-        </p>
-        <div class="space-y-3">
-          <a
-            href="https://github.com/crs48/xNet/stargazers"
-            class="flex items-center justify-center gap-2 w-full rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-500 transition-colors"
-          >
-            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.771l-7.416 3.642 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
-            Star on GitHub
-          </a>
-          <a
-            href="https://github.com/crs48/xNet/discussions"
-            class="block w-full rounded-lg border border-purple-500/30 px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 transition-colors"
-          >
-            Join GitHub Discussions
-          </a>
-        </div>
-        <p class="mt-4 text-xs text-gray-500">Good first issues waiting for you.</p>
       </div>
     </div>
 
