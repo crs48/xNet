@@ -451,7 +451,7 @@ sequenceDiagram
       change-log view shown
 - [ ] **Dogfood ledger** created _as an xNet page_; weekly entries; every
       fallback-to-other-tools logged with a cause
-- [ ] **`packages/cli/README.md` rewritten** around
+- [x] **`packages/cli/README.md` rewritten** around
       `connect`/`checkout`/`commit`/`mcp` (npm-facing)
 - [x] **Hero repositioned**: one primary CTA (agent quickstart);
       App/SDK demoted to secondary (`site/src/components/sections/Hero.astro`,
