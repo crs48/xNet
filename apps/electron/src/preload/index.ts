@@ -15,6 +15,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
   getProfile: () => ipcRenderer.invoke('xnet:getProfile'),
+  getIdentitySeed: () => ipcRenderer.invoke('xnet:identity:getSeed'),
   setSeedPhrase: (mnemonic: string) => ipcRenderer.invoke('xnet:seed:set', { mnemonic }),
   getSeedPhrase: () => ipcRenderer.invoke('xnet:seed:get'),
   clearSeedPhrase: () => ipcRenderer.invoke('xnet:seed:clear'),
@@ -508,6 +509,7 @@ contextBridge.exposeInMainWorld('xnetNodes', {
 // Type declaration for renderer
 export interface XNetAPI {
   getProfile(): Promise<string>
+  getIdentitySeed(): Promise<{ seedB64: string; mode: 'secure' | 'plaintext' | 'test' }>
   setSeedPhrase(mnemonic: string): Promise<{ ok: true }>
   getSeedPhrase(): Promise<{ mnemonic: string | null }>
   clearSeedPhrase(): Promise<{ ok: true }>

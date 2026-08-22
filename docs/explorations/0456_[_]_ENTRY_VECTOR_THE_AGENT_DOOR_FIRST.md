@@ -16,7 +16,7 @@ tags: [strategy, focus, agents, plugins, go-to-market, roadmap]
 > you own" — because it is the only surface in the repo that is already a
 > single command, already on npm, already differentiated (0.11x MCP token
 > benchmark), and sits in the one quadrant of the agent-workspace lane
-> (local-first + agents extend the workspace *from within*) that Notion,
+> (local-first + agents extend the workspace _from within_) that Notion,
 > Cowork, Buzz, and DeepSeek Harness have not taken. "Self-improving xNet"
 > is not pie in the sky — 0331 already built the runtime and 0455 showed the
 > loop is roughly three wiring PRs from closed. The open-source-Notion lane
@@ -28,13 +28,13 @@ tags: [strategy, focus, agents, plugins, go-to-market, roadmap]
 
 ## Problem Statement
 
-The founder's own words, condensed: *I want xNet to be self-improving —
+The founder's own words, condensed: _I want xNet to be self-improving —
 agents integrate seamlessly and extend it from within — but that feels far
 away. I want to ship something people actually use, but I don't know if
 that's an open-source Notion, the framework/React hooks, xNet Cloud and easy
 self-hosting, or the plugin substrate. I want Lego bricks: build once, every
 developer and user after that is more productive. What's the first entry
-vector?*
+vector?_
 
 This is not a new question for the repo. `docs/ROADMAP.md` (July 2026)
 already bet on three pillars in dependency order — AI daily driver, then
@@ -44,7 +44,7 @@ The overwhelm is real anyway, for three reasons this doc addresses head-on:
 1. **The site still offers every door at once.** The hero renders App / SDK /
    Protocol as three equal doors (`site/src/components/sections/Hero.astro`);
    `GetStarted.astro` lists three unranked paths. A stranger cannot tell what
-   xNet is *first*.
+   xNet is _first_.
 2. **The "self-improving" goal feels distant** — but the feeling is
    miscalibrated. The audit in
    [0455](./0455_[_]_CORDIS_LESSONS_FOR_XNET_PLUGIN_COMPOSITION.md) found the
@@ -59,16 +59,16 @@ The overwhelm is real anyway, for three reasons this doc addresses head-on:
 
 ## Executive Summary
 
-| Question | Answer |
-| --- | --- |
-| What is the entry vector? | **The agent door**: `xnet connect claude-code` — one command that gives a coding agent a workspace the user owns. Everything else (SDK, cloud, app) becomes a *second* step people take after that door works for them. |
-| Is "self-improving xNet" pie in the sky? | No — it's mislabeled near-done work. The 0331 iframe plugin runtime + hot reloader exist with 7 test files and zero callers; 0455's checklist closes the loop in ~3 PRs (service registry → `extraTools` wired → `plugin_*` tools live → host mounted). |
-| Why not open-source Notion? | The lane converts stars to daily users at roughly 1% (AppFlowy ~70k★ / ~46k MAU), its most famous member (Logseq) stalled fatally mid-rewrite, and winners there won by *narrowing* (Outline = team wiki). Head-on Notion marketing is the weakest use of a solo founder's quarter. |
-| Why not the SDK/framework? | No local-first framework has broken out (Electric pivoted to Postgres reads, Liveblocks open-sourced defensively, Jazz still pre-traction); even sympathetic engineers warn "local-first… is not a default." Keep the SDK shipped and honest; don't lead with it. |
-| Why not cloud first? | Supabase/n8n prove self-host wedges work — but each rode a one-sentence job people already wanted. Cloud amplifies demand; it doesn't create it. xNet Cloud's deploy workflow is literally inert today (`deploy-cloud.yml`: "INERT BY DEFAULT"). Turn it on when the agent door creates pull. |
-| Is the agent lane still open? | The lane is crowding (Notion agent hub May 2026, Anthropic Cowork Feb 2026, Block's Buzz July 2026, DeepSeek Harness Aug 2026) — but the specific quadrant **local-first, user-owned substrate where agents extend the workspace from within** is unclaimed. Buzz is the nearest neighbor (0416's thesis competitor, confirmed) and it is Nostr-relay-centric, not local-first, with a harness-out rather than workspace-in plugin story. |
-| What about the Lego bricks? | The bricks the founder wants to build ARE pillar 1 — but the cold-start evidence (VS Code, Obsidian, Raycast vs ChatGPT plugins) says ecosystems thrive only on an existing devoted user base. At n≈1, that user base is **the founder plus their agents**. Build the bricks your own agents snap together this quarter; the community comes after the demo is undeniable. |
-| What closes this doc? | The focus stack shipped (checklist below) and the roadmap's own gate: consecutive weeks of the founder's real work done inside xNet. |
+| Question                                 | Answer                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What is the entry vector?                | **The agent door**: `xnet connect claude-code` — one command that gives a coding agent a workspace the user owns. Everything else (SDK, cloud, app) becomes a _second_ step people take after that door works for them.                                                                                                                                                                                                                   |
+| Is "self-improving xNet" pie in the sky? | No — it's mislabeled near-done work. The 0331 iframe plugin runtime + hot reloader exist with 7 test files and zero callers; 0455's checklist closes the loop in ~3 PRs (service registry → `extraTools` wired → `plugin_*` tools live → host mounted).                                                                                                                                                                                   |
+| Why not open-source Notion?              | The lane converts stars to daily users at roughly 1% (AppFlowy ~70k★ / ~46k MAU), its most famous member (Logseq) stalled fatally mid-rewrite, and winners there won by _narrowing_ (Outline = team wiki). Head-on Notion marketing is the weakest use of a solo founder's quarter.                                                                                                                                                       |
+| Why not the SDK/framework?               | No local-first framework has broken out (Electric pivoted to Postgres reads, Liveblocks open-sourced defensively, Jazz still pre-traction); even sympathetic engineers warn "local-first… is not a default." Keep the SDK shipped and honest; don't lead with it.                                                                                                                                                                         |
+| Why not cloud first?                     | Supabase/n8n prove self-host wedges work — but each rode a one-sentence job people already wanted. Cloud amplifies demand; it doesn't create it. xNet Cloud's deploy workflow is literally inert today (`deploy-cloud.yml`: "INERT BY DEFAULT"). Turn it on when the agent door creates pull.                                                                                                                                             |
+| Is the agent lane still open?            | The lane is crowding (Notion agent hub May 2026, Anthropic Cowork Feb 2026, Block's Buzz July 2026, DeepSeek Harness Aug 2026) — but the specific quadrant **local-first, user-owned substrate where agents extend the workspace from within** is unclaimed. Buzz is the nearest neighbor (0416's thesis competitor, confirmed) and it is Nostr-relay-centric, not local-first, with a harness-out rather than workspace-in plugin story. |
+| What about the Lego bricks?              | The bricks the founder wants to build ARE pillar 1 — but the cold-start evidence (VS Code, Obsidian, Raycast vs ChatGPT plugins) says ecosystems thrive only on an existing devoted user base. At n≈1, that user base is **the founder plus their agents**. Build the bricks your own agents snap together this quarter; the community comes after the demo is undeniable.                                                                |
+| What closes this doc?                    | The focus stack shipped (checklist below) and the roadmap's own gate: consecutive weeks of the founder's real work done inside xNet.                                                                                                                                                                                                                                                                                                      |
 
 ---
 
@@ -79,25 +79,25 @@ carry a path.
 
 ### What is genuinely shippable today
 
-| Surface | Evidence | Verdict |
-| --- | --- | --- |
+| Surface                           | Evidence                                                                                                                                                                                                    | Verdict                                                        |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | `xnet connect claude-code\|codex` | `packages/cli/src/commands/connect.ts` — idempotent, fenced CLAUDE.md edits, MCP registration, `xnet doctor --agent-access` self-check; read-only by default, `--writes` opt-in; `@xnetjs/cli@0.4.0` on npm | ✅ **The one single-command entry vector that already exists** |
-| Agent lanes | `site/src/content/docs/docs/guides/agent-interfaces.mdx` — CLI verbs → vault checkout → MCP fallback; benchmark: **0.11x the tokens of an MCP toolset at equal success on 15 tasks** | ✅ Differentiated and measured |
-| Web demo | `apps/web/src/boot/` + `/app?demo=1` — 2 steps, ~10–20 s cold start (SQLite WASM + OPFS), auto-seeded, never overwrites user content (`demo-seed.ts`) | ✅ Good |
-| npm data layer | 18 public packages at 3.0.0 (`core, data, react, sync, sqlite, …`), OIDC + provenance releases (`.github/workflows/npm-release.yml`) | ✅ Real |
-| React SDK standalone | `examples/minimal-app/` — outside the workspace, works against published npm, syncs via `wss://hub.xnet.fyi` | ✅ Under-marketed |
-| Self-host hub | `packages/hub/Dockerfile`, `docker-compose.hub.yml`, root `railway.toml`, multi-arch ghcr image | ✅ Strongest distribution story |
+| Agent lanes                       | `site/src/content/docs/docs/guides/agent-interfaces.mdx` — CLI verbs → vault checkout → MCP fallback; benchmark: **0.11x the tokens of an MCP toolset at equal success on 15 tasks**                        | ✅ Differentiated and measured                                 |
+| Web demo                          | `apps/web/src/boot/` + `/app?demo=1` — 2 steps, ~10–20 s cold start (SQLite WASM + OPFS), auto-seeded, never overwrites user content (`demo-seed.ts`)                                                       | ✅ Good                                                        |
+| npm data layer                    | 18 public packages at 3.0.0 (`core, data, react, sync, sqlite, …`), OIDC + provenance releases (`.github/workflows/npm-release.yml`)                                                                        | ✅ Real                                                        |
+| React SDK standalone              | `examples/minimal-app/` — outside the workspace, works against published npm, syncs via `wss://hub.xnet.fyi`                                                                                                | ✅ Under-marketed                                              |
+| Self-host hub                     | `packages/hub/Dockerfile`, `docker-compose.hub.yml`, root `railway.toml`, multi-arch ghcr image                                                                                                             | ✅ Strongest distribution story                                |
 
 ### What is not, despite appearances
 
-| Surface | Evidence | Verdict |
-| --- | --- | --- |
-| xNet Cloud | `apps/cloud/src/server.ts` is a real Hono control plane with ~30 test files — but `.github/workflows/deploy-cloud.yml` is **"INERT BY DEFAULT"**, defaults are in-memory providers, billing gateway 503s unset, and `site/src/data/status.json` is a two-month-stale snapshot while `site/src/data/pricing.ts` deep-links every CTA to `cloud.xnet.fyi/auth/start` | ❌ Largest claim/state gap in the repo |
-| UI layer on npm | `ui, editor, views, canvas, workbench, dashboard, charts` all private/changeset-ignored | ❌ Devs can't install the components in the screenshots |
-| Mobile | Expo Go demo only; `site/src/pages/mobile.astro` says so honestly | ❌ Deliberately deferred (roadmap) |
-| Traction signal | `site/src/data/metrics.json` has `"sample": true`; `cloud-metrics.yml` inert; no waitlist, no testimonials, no user count anywhere; telemetry charter-banned | — Zero external signal exists, by design and by stage |
-| Agent tools loop | `AiSurfaceService.extraTools` never passed by any of the three hosts; `plugin_*` (9 tools), `lab_*`, `WorkspaceAgentModule` tools all stranded (0455) | 🚧 Built, unwired |
-| npm-facing story | `packages/cli/README.md` still describes schema-migration tooling; **does not mention `connect`, `checkout`, `commit`, or `mcp`** | 🚧 The best feature is unmarketed |
+| Surface          | Evidence                                                                                                                                                                                                                                                                                                                                                           | Verdict                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| xNet Cloud       | `apps/cloud/src/server.ts` is a real Hono control plane with ~30 test files — but `.github/workflows/deploy-cloud.yml` is **"INERT BY DEFAULT"**, defaults are in-memory providers, billing gateway 503s unset, and `site/src/data/status.json` is a two-month-stale snapshot while `site/src/data/pricing.ts` deep-links every CTA to `cloud.xnet.fyi/auth/start` | ❌ Largest claim/state gap in the repo                  |
+| UI layer on npm  | `ui, editor, views, canvas, workbench, dashboard, charts` all private/changeset-ignored                                                                                                                                                                                                                                                                            | ❌ Devs can't install the components in the screenshots |
+| Mobile           | Expo Go demo only; `site/src/pages/mobile.astro` says so honestly                                                                                                                                                                                                                                                                                                  | ❌ Deliberately deferred (roadmap)                      |
+| Traction signal  | `site/src/data/metrics.json` has `"sample": true`; `cloud-metrics.yml` inert; no waitlist, no testimonials, no user count anywhere; telemetry charter-banned                                                                                                                                                                                                       | — Zero external signal exists, by design and by stage   |
+| Agent tools loop | `AiSurfaceService.extraTools` never passed by any of the three hosts; `plugin_*` (9 tools), `lab_*`, `WorkspaceAgentModule` tools all stranded (0455)                                                                                                                                                                                                              | 🚧 Built, unwired                                       |
+| npm-facing story | `packages/cli/README.md` still describes schema-migration tooling; **does not mention `connect`, `checkout`, `commit`, or `mcp`**                                                                                                                                                                                                                                  | 🚧 The best feature is unmarketed                       |
 
 > [!WARNING]
 > One real hazard rides the current download page:
@@ -107,14 +107,14 @@ carry a path.
 > release-blocker #1 from the
 > [0335 audit](./0335_[_]_RELEASE_READINESS_AUDIT_WHAT_STANDS_BETWEEN_XNET_AND_A_WELL_RECEIVED_LAUNCH.md),
 > unfixed, on a binary `site/src/pages/download.astro` distributes today. A
-> product whose pitch is *you own your keys* cannot lead with a key any
+> product whose pitch is _you own your keys_ cannot lead with a key any
 > reader of the repo can reconstruct. It is first in the focus stack for
 > that reason.
 
 ### What the roadmap already decided
 
-`docs/ROADMAP.md` (July 2026): the bet is *"deep AI integration with total
-visibility, on top of a malleable, sandboxed workspace"* — three assets
+`docs/ROADMAP.md` (July 2026): the bet is _"deep AI integration with total
+visibility, on top of a malleable, sandboxed workspace"_ — three assets
 nobody else has (signed change log per node, workspace-as-Lego, plugins as
 sandboxed xNet artifacts). Pillar order: AI daily driver → effortless cloud
 → commons. Principle 5: **"Dogfood is the metric"** — the gate is
@@ -146,12 +146,12 @@ Full sourcing in the research notes; the decision-relevant findings:
 ### Lane 2 — Local-first frameworks: no breakout, ever
 
 - npm reality (2026): Convex ~100k weekly downloads (and it sells a
-  *backend*, not local-first), InstantDB ~20k, ElectricSQL ~15k after
+  _backend_, not local-first), InstantDB ~20k, ElectricSQL ~15k after
   pivoting to narrow Postgres read-path sync. Liveblocks open-sourced its
   engine in Feb 2026 — a defensive move. Jazz remains pre-traction.
 - The movement's own engineers say it: local-first "is not a default"
   (Supabase engineer critique of teams adopting sync engines for 50-user
-  apps). Linear sold the *pattern*, not any framework — and built in-house.
+  apps). Linear sold the _pattern_, not any framework — and built in-house.
 
 ### Lane 3 — Self-host wedges: naming is the multiplier
 
@@ -174,7 +174,7 @@ Full sourcing in the research notes; the decision-relevant findings:
   xNet's quadrant neighbor and 0416's predicted thesis competitor, **but**
   Nostr-relay-centric (not local-first CRDT) and harness-out (ACP drives
   Goose/Codex/Claude Code at the workspace) rather than workspace-in
-  (agents building sandboxed plugins *inside* it). **DeepSeek Harness**
+  (agents building sandboxed plugins _inside_ it). **DeepSeek Harness**
   (Aug 2026): "everything is a plugin," commoditizing plugin architecture
   for harnesses — a harness, not a workspace (and per ADR-29 / 0416, xNet
   is deliberately not a harness).
@@ -184,13 +184,13 @@ Full sourcing in the research notes; the decision-relevant findings:
 
 ### The plugin cold-start table
 
-| Platform | Users first? | Plugin launch gap | Outcome |
-| --- | --- | --- | --- |
-| VS Code | Preview Apr 2015 | +7 mo | 500k MAU + 1,000 extensions at 1.0 |
-| Obsidian | May 2020, small rabid base | +~6 mo | 6.8k plugins, 120M downloads, ~1.5M MAU |
-| Raycast | Oct 2020 | +13 mo | 100+ community extensions in a month |
-| Figma | 2016, $25M revenue first | +3 yr | Plugins became the PLG flywheel |
-| ChatGPT plugins | **Plugins were the launch** | 0 | **Killed Apr 2024** — "most users never enabled plugins" |
+| Platform        | Users first?                | Plugin launch gap | Outcome                                                  |
+| --------------- | --------------------------- | ----------------- | -------------------------------------------------------- |
+| VS Code         | Preview Apr 2015            | +7 mo             | 500k MAU + 1,000 extensions at 1.0                       |
+| Obsidian        | May 2020, small rabid base  | +~6 mo            | 6.8k plugins, 120M downloads, ~1.5M MAU                  |
+| Raycast         | Oct 2020                    | +13 mo            | 100+ community extensions in a month                     |
+| Figma           | 2016, $25M revenue first    | +3 yr             | Plugins became the PLG flywheel                          |
+| ChatGPT plugins | **Plugins were the launch** | 0                 | **Killed Apr 2024** — "most users never enabled plugins" |
 
 > [!IMPORTANT]
 > The ecosystem the founder wants ("once I build it, every developer after
@@ -199,15 +199,15 @@ Full sourcing in the research notes; the decision-relevant findings:
 > plugin model"; it is **build the plugin loop for the user base you already
 > have: yourself and your agents.** That is also exactly what the roadmap's
 > dogfood gate demands. DeepSeek Harness is the apparent counterexample
-> (plugins-first, exploding) — but its users *are* developers and the plugin
-> *is* the product, which is precisely the agent-door framing, not the
+> (plugins-first, exploding) — but its users _are_ developers and the plugin
+> _is_ the product, which is precisely the agent-door framing, not the
 > marketplace framing.
 
 ### Solo-founder focus wisdom, the two load-bearing points
 
-- Paul Graham, *Do Things That Don't Scale*: recruit users manually; build
+- Paul Graham, _Do Things That Don't Scale_: recruit users manually; build
   for one user at a time; growth rate on a tiny base beats a launch.
-- Nadia Eghbal, *Working in Public*: for a solo maintainer, a big undirected
+- Nadia Eghbal, _Working in Public_: for a solo maintainer, a big undirected
   community is a **cost**; the failure mode is attention-consuming
   low-value participation, not obscurity. Optimize for users, not
   contributors — which cuts against investing in marketplace/community
@@ -224,10 +224,10 @@ Full sourcing in the research notes; the decision-relevant findings:
    a positioning and sequencing problem, not a strategy vacuum.
 
 2. **The entry vector already exists and is unmarketed.** `xnet connect
-   claude-code` is one command, on npm, benchmarked, differentiated, safe by
+claude-code` is one command, on npm, benchmarked, differentiated, safe by
    default (read-only until `--writes`), and aligned with every current
    trend (agents everywhere, MCP fatigue, token cost pressure). Its own
-   README doesn't mention it. The Supabase lesson says fixing *that* — the
+   README doesn't mention it. The Supabase lesson says fixing _that_ — the
    sentence and the door — is the highest-leverage cheap work in the repo.
 
 3. **"Self-improving xNet" is three PRs away, not a moonshot.** The
@@ -240,9 +240,9 @@ Full sourcing in the research notes; the decision-relevant findings:
 
 4. **The Lego-brick instinct is right; the audience is wrong-sized.** Bricks
    compound only when someone is building. This quarter the builders are the
-   founder and their agents. Every brick should be judged by one test: *does
+   founder and their agents. Every brick should be judged by one test: _does
    it make my own agent measurably better at doing my real work inside xNet
-   this week?* That test kills marketplace mechanics, community
+   this week?_ That test kills marketplace mechanics, community
    infrastructure, and SDK marketing for now — and green-lights exactly the
    0455/0447 wiring.
 
@@ -285,7 +285,7 @@ Polish the web/desktop app, launch on HN/Product Hunt as the local-first
 Notion alternative.
 
 - ✅ The demo is genuinely good (2 steps, auto-seeded); the lane has proven
-  *star* demand.
+  _star_ demand.
 - ❌ ~1% star→daily-user conversion; crowded (AppFlowy, AFFiNE, Anytype all
   better-funded); a solo founder competing on end-user polish against teams
   loses on breadth; and stars would flood a solo maintainer with exactly the
@@ -311,7 +311,7 @@ Turn on `deploy-cloud.yml`, swap in real providers, launch pricing.
 - ❌ Wrong order: every self-host winner rode existing demand for a named
   job. Standing up billing/provisioning/support for zero pulled users is
   pure operational drag on a solo founder. Cloud is pillar 2 for a reason —
-  *"cloud = amplifier not landlord"* and amplifiers need a signal.
+  _"cloud = amplifier not landlord"_ and amplifiers need a signal.
 
 ### Option D — The agent door ⭐
 
@@ -338,7 +338,7 @@ fix the key blocker, then say one sentence loudly.
 ### Option E — Status quo: keep all three doors open
 
 - ✅ No decision required.
-- ❌ This *is* the overwhelm. Three unranked doors on the hero, a stale CLI
+- ❌ This _is_ the overwhelm. Three unranked doors on the hero, a stale CLI
   README, an inert cloud, and +85 unstarted docs/month is what "no entry
   vector" looks like from the inside.
 
@@ -353,8 +353,8 @@ fix the key blocker, then say one sentence loudly.
 ## Recommendation
 
 **Option D — the agent door, as a strict sequence.** The quarter's rule:
-every week's work must serve the sentence *"point your coding agent at a
-workspace you own, and watch it build you tools inside it."*
+every week's work must serve the sentence _"point your coding agent at a
+workspace you own, and watch it build you tools inside it."_
 
 **The focus stack** (order matters; each unblocks the next):
 
@@ -365,11 +365,11 @@ workspace you own, and watch it build you tools inside it."*
    registry → `extraTools` wired in all three hosts → `plugin_*` +
    `WorkspaceAgentModule` tools live → workspace-plugin host and hot
    reloader mounted behind a dev surface). This is 0447's "wire the loop,"
-   now with a mechanism-level plan. Exit criterion: *from a Claude Code
+   now with a mechanism-level plan. Exit criterion: _from a Claude Code
    session, an agent scaffolds, previews, and installs a sandboxed plugin
-   into the founder's real workspace, and the change log shows every step.*
+   into the founder's real workspace, and the change log shows every step._
 3. **Dogfood ruthlessly** — the roadmap gate, made legible: a running
-   dogfood ledger (a page *in xNet*) logging each week the founder's real
+   dogfood ledger (a page _in xNet_) logging each week the founder's real
    work happened inside it, and what forced a fallback to other tools. Each
    fallback is the next week's highest-priority fix. This is the
    self-improvement flywheel at n=1 — the system improving because its user
@@ -423,7 +423,7 @@ sequenceDiagram
   the loop.
 - **The agent door might onboard users into a thin room.** Someone arrives
   via `xnet connect` with no existing xNet content — what does their agent
-  act *on*? The demo-seed path (`demo-seed.ts`) and vault checkout of
+  act _on_? The demo-seed path (`demo-seed.ts`) and vault checkout of
   existing files partially answer this; the manual-onboarding step (5) is
   where the real answer gets discovered. Open question to resolve during
   the quarter.
@@ -439,7 +439,7 @@ sequenceDiagram
 
 **Status:** ░░░░░░░░░░ 0/9 items
 
-- [ ] **0335 #1**: Electron uses `secure-seed.ts`; `makeTestKey` removed
+- [x] **0335 #1**: Electron uses `secure-seed.ts`; `makeTestKey` removed
       from the production boot path (`apps/electron/src/renderer/main.tsx:887`)
 - [ ] **0455 items 1–7**: effect scopes + service registry landed;
       `extraTools` resolved (not hand-threaded) in all three hosts
@@ -449,7 +449,7 @@ sequenceDiagram
 - [ ] **Loop demo recorded**: one take, unedited — agent scaffolds → builds
       → previews → installs a plugin in the founder's real workspace;
       change-log view shown
-- [ ] **Dogfood ledger** created *as an xNet page*; weekly entries; every
+- [ ] **Dogfood ledger** created _as an xNet page_; weekly entries; every
       fallback-to-other-tools logged with a cause
 - [ ] **`packages/cli/README.md` rewritten** around
       `connect`/`checkout`/`commit`/`mcp` (npm-facing)
@@ -497,5 +497,5 @@ sequenceDiagram
   Notion agent hub (TechCrunch, 2026-05-13); Anthropic Cowork (Forbes,
   2026-02-25); Block's Buzz (opensourceforu.com, digitalapplied.com,
   2026-07); DeepSeek Harness (The Register, 2026-08-14); ChatGPT plugins
-  shutdown retrospectives; Paul Graham, *Do Things That Don't Scale*;
-  Nadia Eghbal, *Working in Public*
+  shutdown retrospectives; Paul Graham, _Do Things That Don't Scale_;
+  Nadia Eghbal, _Working in Public_
