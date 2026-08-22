@@ -441,9 +441,9 @@ sequenceDiagram
 
 - [x] **0335 #1**: Electron uses `secure-seed.ts`; `makeTestKey` removed
       from the production boot path (`apps/electron/src/renderer/main.tsx:887`)
-- [ ] **0455 items 1–7**: effect scopes + service registry landed;
+- [x] **0455 items 1–7**: effect scopes + service registry landed;
       `extraTools` resolved (not hand-threaded) in all three hosts
-- [ ] **0455 items 8–9 / 0447**: `plugin_*` tools + `WorkspaceAgentModule`
+- [x] **0455 items 8–9 / 0447**: `plugin_*` tools + `WorkspaceAgentModule`
       tools reach live sessions; workspace-plugin host + hot reloader
       mounted behind a dev surface
 - [ ] **Loop demo recorded**: one take, unedited — agent scaffolds → builds
