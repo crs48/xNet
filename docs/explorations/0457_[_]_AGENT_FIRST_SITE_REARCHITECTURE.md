@@ -451,14 +451,14 @@ URLs, content, and validators untouched.
 **Status:** ░░░░░░░░░░ 0/12 items (Phase A: 1–10; Phase B: 11–12)
 
 - [x] Verify + document the canonical zero-install command (`npx
-  @xnetjs/cli connect claude-code` or equivalent) against
+@xnetjs/cli connect claude-code` or equivalent) against
       `packages/cli` as published; fix `packages/cli` if npx flow has
       gaps
 - [x] Publish the 0.11x benchmark methodology in-repo (0456 item, now a
       Phase A prerequisite) and link target for the hero footnote
 - [x] `site/src/data/agents.ts` — per-client commands, deeplinks, labels
       (single source for hero tabs, `/agents`, README, docs)
-- [ ] `Hero.astro` rewrite: new headline/sub, `CodeTabs` + `CodeBlock`
+- [x] `Hero.astro` rewrite: new headline/sub, `CodeTabs` + `CodeBlock`
       command block, two CTAs, doors → small links
 - [x] New `site/src/pages/agents.astro` per the section spec; update
       `scripts/validate-dist.ts` expectations if route-asserting

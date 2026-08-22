@@ -1,38 +1,24 @@
 ---
 import Badge from '../ui/Badge.astro'
+import CodeTabs from '../ui/CodeTabs.astro'
+import { AGENT_CLIENTS } from '../../data/agents'
 
-// The hero carries the whole "what is xNet" story: one claim, the product
-// itself, and three doors (app / SDK / vision). Each door routes to depth —
-// the page below only teases, it never re-argues (exploration 0384).
-const doors = [
-  {
-    href: '/app',
-    label: 'Use the app',
-    tag: 'App',
-    description: 'Documents, databases, canvas, tasks. Like Notion, but your data stays on your device.',
-    color: 'emerald',
-  },
-  {
-    href: '#developers',
-    label: 'Build with the SDK',
-    tag: 'SDK',
-    description: 'Three React hooks, TypeScript schemas, real-time sync. No backend to deploy.',
-    color: 'indigo',
-  },
-  {
-    href: '/why',
-    label: 'Join the movement',
-    tag: 'Protocol',
-    description: 'An open protocol for apps that share data — across devices, users, and apps.',
-    color: 'purple',
-  },
-]
+// The hero converts one door (exploration 0457): the agent connection. One
+// claim, one copyable command, two CTAs. The app, the SDK, and the protocol
+// stay one rank down — each still routes to depth, and the page below only
+// teases, it never re-argues (exploration 0384).
 
-const colorMap: Record<string, { border: string; bg: string; text: string; iconBg: string }> = {
-  emerald: { border: 'border-emerald-500/30', bg: 'bg-emerald-500/[0.05]', text: 'text-emerald-400', iconBg: 'bg-emerald-500/10' },
-  indigo: { border: 'border-indigo-500/30', bg: 'bg-indigo-500/[0.05]', text: 'text-indigo-400', iconBg: 'bg-indigo-500/10' },
-  purple: { border: 'border-purple-500/30', bg: 'bg-purple-500/[0.05]', text: 'text-purple-400', iconBg: 'bg-purple-500/10' },
-}
+const cm = (s: string) => `<span class="tok-comment">${s}</span>`
+const escapeHtml = (s: string) =>
+  s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+
+const connectTabs = AGENT_CLIENTS.map((client) => ({
+  label: client.label,
+  filename: client.configJson ? 'mcp config' : 'terminal',
+  code: client.command
+    .map((line) => (line.startsWith('{') ? escapeHtml(line) : `${cm('$')} ${escapeHtml(line)}`))
+    .join('\n')
+}))
 ---
 
 <section class="relative overflow-hidden">
@@ -57,12 +43,12 @@ const colorMap: Record<string, { border: string; bg: string; text: string; iconB
 
       <h1 class="text-5xl font-extrabold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
         <span class="bg-gradient-to-br from-gray-900 via-gray-700 to-indigo-600 dark:from-white dark:via-gray-100 dark:to-indigo-400 bg-clip-text text-transparent">
-          Your data. Your devices.<br />Your rules.
+          Give your coding agent<br />a workspace you own.
         </span>
       </h1>
       <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-500 dark:text-gray-400 sm:text-xl">
-        xNet is a local-first platform for apps that work offline,
-        sync peer-to-peer, and keep your data under your control.
+        Documents, databases, and canvases your agent can read, query, and
+        edit &mdash; local-first, synced everywhere, every change signed.
         <!-- Nominative fair use: a comparative simile, word-only (no logo or
              trade dress); the linked essay carries the trademark disclaimer. -->
         <a
@@ -72,23 +58,37 @@ const colorMap: Record<string, { border: string; bg: string; text: string; iconB
         >
       </p>
 
-      <!-- One primary goal, one secondary (exploration 0384) -->
+      <!-- The one action, per client -->
+      <div class="mx-auto mt-8 max-w-xl text-left">
+        <CodeTabs tabs={connectTabs} group="agent-client" />
+      </div>
+
+      <!-- One primary goal, one secondary (explorations 0384, 0457) -->
       <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
         <a
-          href="/app?demo=1"
+          href="/agents"
           class="rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white shadow-lg shadow-indigo-500/25 hover:bg-indigo-500 transition-all"
+        >
+          What your agent gets &rarr;
+        </a>
+        <a
+          href="/app?demo=1"
+          class="rounded-lg border border-border px-6 py-3 font-medium text-gray-700 dark:text-gray-200 hover:border-indigo-500/50 hover:bg-surface transition-all"
         >
           Try the app &mdash; free, no account
         </a>
-        <a
-          href="/docs/introduction/"
-          class="rounded-lg border border-border px-6 py-3 font-medium text-gray-700 dark:text-gray-200 hover:border-indigo-500/50 hover:bg-surface transition-all"
-        >
-          Read the docs
-        </a>
       </div>
 
-      <!-- The product, above the fold -->
+      <p class="mt-6 text-sm text-gray-500 dark:text-gray-400">
+        <a href="/docs/guides/agent-interfaces/#benchmark-methodology" class="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+          ~9x cheaper than MCP toolsets<span class="align-super text-[0.65em]">*</span>
+        </a>
+        &nbsp;&middot;&nbsp; read-only until you say so
+        &nbsp;&middot;&nbsp; works offline
+        &nbsp;&middot;&nbsp; MIT
+      </p>
+
+      <!-- The workspace behind the door, above the fold -->
       <div class="mx-auto mt-12 max-w-4xl">
         <div class="rounded-xl border border-border overflow-hidden bg-gradient-to-b from-surface/50 to-surface/30 dark:from-surface/80 dark:to-surface/50 shadow-2xl shadow-indigo-500/5">
           <div class="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-surface/50">
@@ -122,44 +122,11 @@ const colorMap: Record<string, { border: string; bg: string; text: string; iconB
         </div>
       </div>
 
-      <!-- Three doors: app, SDK, protocol — each routes to depth -->
-      <div class="mt-12 grid gap-4 sm:grid-cols-3 max-w-3xl mx-auto">
-        {doors.map((door) => {
-          const c = colorMap[door.color]
-          return (
-            <a
-              href={door.href}
-              class={`group rounded-xl border ${c.border} ${c.bg} p-5 text-left transition-all hover:border-opacity-80 hover:bg-opacity-10`}
-            >
-              <div class="flex items-center gap-2 mb-2">
-                <div class={`flex h-8 w-8 items-center justify-center rounded-lg ${c.iconBg} ${c.text}`}>
-                  {door.tag === 'App' && (
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z" />
-                    </svg>
-                  )}
-                  {door.tag === 'SDK' && (
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                    </svg>
-                  )}
-                  {door.tag === 'Protocol' && (
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
-                    </svg>
-                  )}
-                </div>
-                <span class={`text-sm font-semibold ${c.text}`}>{door.label}</span>
-              </div>
-              <p class="text-xs text-gray-500 dark:text-gray-400">
-                {door.description}
-              </p>
-            </a>
-          )
-        })}
-      </div>
       <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-        The app is built on the SDK. The SDK implements the protocol. Start anywhere.
+        There&rsquo;s a full workspace behind this &mdash; and an SDK under both.
+        <a href="/app" class="text-emerald-600 dark:text-emerald-400 hover:underline">The app</a> &middot;
+        <a href="#developers" class="text-indigo-600 dark:text-indigo-400 hover:underline">The SDK</a> &middot;
+        <a href="/why" class="text-purple-600 dark:text-purple-400 hover:underline">The protocol</a>
       </p>
     </div>
   </div>
