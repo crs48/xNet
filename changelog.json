@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-21-your-agent-s-tools-now-reach-every-surfa",
+      "url": "https://xnet.fyi/changelog#2026-08-21-your-agent-s-tools-now-reach-every-surfa",
+      "title": "Your agent's tools now reach every surface — and it can build plugins",
+      "content_text": "Plugin- and connector-contributed agent tools now appear in Claude Code sessions, xnet mcp serve, and the in-app assistant automatically — including live, when a plugin activates mid-conversation. The plugin_* tools ship in both terminal lanes, so a connected agent can scaffold, build, and preview sandboxed workspace plugins, and a new Workspace Plugins panel runs them with hot reload. The desktop app also stops using a source-derivable signing key: seeds are now random, per profile, and stored in your platform keystore.\n",
+      "date_published": "2026-08-22T03:18:09Z",
+      "tags": [
+        "ai"
+      ],
+      "_xnet": {
+        "date": "August 21, 2026",
+        "summary": "Plugin- and connector-contributed agent tools now appear in Claude Code sessions, xnet mcp serve, and the in-app assistant automatically — including live, when a plugin activates mid-conversation. The plugin_* tools ship in both terminal lanes, so a connected agent can scaffold, build, and preview sandboxed workspace plugins, and a new Workspace Plugins panel runs them with hot reload. The desktop app also stops using a source-derivable signing key: seeds are now random, per profile, and stored in your platform keystore.",
+        "highlights": [],
+        "mergedAt": "2026-08-22T03:18:09Z",
+        "pr": 712,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-21-connect-your-coding-agent-from-the-front",
       "url": "https://xnet.fyi/changelog#2026-08-21-connect-your-coding-agent-from-the-front",
       "title": "Connect your coding agent from the front door",
