@@ -19,6 +19,14 @@ depth; this one is the quick on-ramp.
 
 ## One-step connect
 
+No install needed — `npx` runs the published CLI directly:
+
+```bash
+npx @xnetjs/cli connect claude-code   # zero-install, project scope, read-only
+```
+
+Or, with the CLI installed (`npm install -g @xnetjs/cli`):
+
 ```bash
 xnet connect claude-code            # project scope, read-only
 xnet connect claude-code --user     # also install the skill for all projects
@@ -27,11 +35,15 @@ xnet connect codex                  # Codex: AGENTS.md + .codex/config.toml
 ```
 
 `xnet connect` is **idempotent** — it installs the `SKILL.md`, registers the
-`xnet` MCP server, writes a `CLAUDE.md`/`AGENTS.md` contract, and (with
+xNet MCP server, writes a `CLAUDE.md`/`AGENTS.md` contract, and (with
 `--vault <dir>`) bootstraps a scoped checkout with an index. Re-running it
 reports what is already in place and changes nothing. It finishes by running
 `xnet doctor --agent-access`, which confirms the backend, full-text search, and
 signing identity are all reachable.
+
+The registered server launches however the CLI is actually available: as
+`xnet` when the bin is on your PATH, or as `npx -y @xnetjs/cli` after a
+zero-install connect — so the registration keeps working either way.
 
 ## Works whether or not the app is running
 

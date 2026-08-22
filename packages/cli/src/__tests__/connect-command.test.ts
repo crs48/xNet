@@ -13,9 +13,12 @@ import {
   MANAGED_BEGIN,
   MANAGED_END,
   mergeManagedBlock,
+  NPX_LAUNCHER,
+  resolveServerLauncher,
   runConnect,
   writeCodexConfig,
   writeMcpJson,
+  XNET_PATH_LAUNCHER,
   type ConnectOptions
 } from '../commands/connect.js'
 
@@ -36,8 +39,22 @@ describe('xnet connect', () => {
     expect(buildServerEntry({ dir, db: '/d.db' }).args).toEqual(['mcp', 'serve', '--db', '/d.db'])
   })
 
+  it('registers an npx launcher when xnet is not on PATH (zero-install connect)', async () => {
+    // A PATH with no xnet bin anywhere → the npx fallback, so the registered
+    // server survives after the `npx @xnetjs/cli connect …` cache is gone.
+    expect(resolveServerLauncher({ PATH: dir })).toEqual(NPX_LAUNCHER)
+
+    // A PATH dir that does hold an xnet bin → register the real thing.
+    await writeFile(join(dir, 'xnet'), '#!/bin/sh\n')
+    expect(resolveServerLauncher({ PATH: `${dir}` })).toEqual(XNET_PATH_LAUNCHER)
+
+    const entry = buildServerEntry({ dir, db: '/d.db' }, NPX_LAUNCHER)
+    expect(entry.command).toBe('npx')
+    expect(entry.args).toEqual(['-y', '@xnetjs/cli', 'mcp', 'serve', '--db', '/d.db'])
+  })
+
   it('claude-code writes skill, .mcp.json, and CLAUDE.md; is idempotent', async () => {
-    const changes = await runConnect('claude-code', { ...base, dir })
+    const changes = await runConnect('claude-code', { ...base, dir }, XNET_PATH_LAUNCHER)
     const byPath = Object.fromEntries(changes.map((c) => [c.path.replace(dir, ''), c.status]))
     expect(byPath['/.claude/skills/xnet/SKILL.md']).toBe('created')
     expect(byPath['/.mcp.json']).toBe('created')
@@ -48,12 +65,12 @@ describe('xnet connect', () => {
     expect(mcp.mcpServers.xnet.env).toEqual({ XNET_READONLY: '1' })
 
     // Re-run: everything unchanged.
-    const again = await runConnect('claude-code', { ...base, dir })
+    const again = await runConnect('claude-code', { ...base, dir }, XNET_PATH_LAUNCHER)
     expect(again.every((c) => c.status === 'unchanged')).toBe(true)
   })
 
   it('codex writes AGENTS.md and .codex/config.toml with a valid server block', async () => {
-    const changes = await runConnect('codex', { ...base, dir, writes: true })
+    const changes = await runConnect('codex', { ...base, dir, writes: true }, XNET_PATH_LAUNCHER)
     const byPath = Object.fromEntries(changes.map((c) => [c.path.replace(dir, ''), c.status]))
     expect(byPath['/AGENTS.md']).toBe('created')
     expect(byPath['/.codex/config.toml']).toBe('created')
@@ -84,7 +101,7 @@ describe('xnet connect', () => {
     const original = '# My project\n\n@AGENTS.md\n\nHouse rules that took months.\n'
     await writeFile(join(dir, 'CLAUDE.md'), original)
 
-    await runConnect('claude-code', { ...base, dir })
+    await runConnect('claude-code', { ...base, dir }, XNET_PATH_LAUNCHER)
     const merged = await readFile(join(dir, 'CLAUDE.md'), 'utf8')
     expect(merged).toContain('# My project')
     expect(merged).toContain('House rules that took months.')
@@ -94,11 +111,11 @@ describe('xnet connect', () => {
   })
 
   it('rewrites only the managed block on a re-run, leaving edits outside it', async () => {
-    await runConnect('claude-code', { ...base, dir })
+    await runConnect('claude-code', { ...base, dir }, XNET_PATH_LAUNCHER)
     const first = await readFile(join(dir, 'CLAUDE.md'), 'utf8')
     await writeFile(join(dir, 'CLAUDE.md'), `${first}\n## My own section\n\nKeep me.\n`)
 
-    const again = await runConnect('claude-code', { ...base, dir })
+    const again = await runConnect('claude-code', { ...base, dir }, XNET_PATH_LAUNCHER)
     const merged = await readFile(join(dir, 'CLAUDE.md'), 'utf8')
     expect(merged).toContain('## My own section')
     expect(merged).toContain('Keep me.')
@@ -109,7 +126,7 @@ describe('xnet connect', () => {
 
   it('preserves an existing AGENTS.md on the codex path', async () => {
     await writeFile(join(dir, 'AGENTS.md'), '# Existing agent rules\n')
-    await runConnect('codex', { ...base, dir })
+    await runConnect('codex', { ...base, dir }, XNET_PATH_LAUNCHER)
     const merged = await readFile(join(dir, 'AGENTS.md'), 'utf8')
     expect(merged).toContain('# Existing agent rules')
     expect(merged).toContain(MANAGED_BEGIN)

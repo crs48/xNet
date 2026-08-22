@@ -16,7 +16,7 @@ tags: [site, marketing, agents, positioning, conversion, docs-ia]
 > with per-agent tabs (the Bun / Claude Code pattern), a new `/agents` page
 > becomes the conversion hub (per-client installs, safety model, the 0.11x
 > benchmark), "Connect your agent" becomes the header button, the
-> coding-agents guide moves from *item 9 of a collapsed accordion* into
+> coding-agents guide moves from _item 9 of a collapsed accordion_ into
 > **Start Here**, and llms.txt finally mentions `xnet connect` — today the
 > string appears in exactly **one** file on the whole site
 > (`coding-agents.mdx`) and in none of: nav, footer, hero, GetStarted,
@@ -25,7 +25,7 @@ tags: [site, marketing, agents, positioning, conversion, docs-ia]
 > **Phase A now** (repositioning what already works: connect, checkout,
 > MCP, the benchmark), **Phase B when 0456's loop demo exists** (the
 > agent-builds-plugins section). Everything a human reads gets a twin the
-> *agent* reads, because for this product the agent is present at the
+> _agent_ reads, because for this product the agent is present at the
 > moment of conversion.
 
 ## Problem Statement
@@ -60,15 +60,15 @@ The site is not wrong — it is even-handed. Even-handed is the problem
 
 ## Executive Summary
 
-| Question | Answer |
-| --- | --- |
-| The one sentence | **"Give your coding agent a workspace you own."** Sub-sentence: docs, databases, and canvases your agent can read, query, and build in — every change signed, synced, and yours. |
-| The one action | A copy-button command in the hero, per-agent tabs: Claude Code · Codex · Cursor · VS Code · anything (MCP). Primary everywhere: header button, hero, GetStarted path 1, README section 1, docs Start Here. |
+| Question                           | Answer                                                                                                                                                                                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The one sentence                   | **"Give your coding agent a workspace you own."** Sub-sentence: docs, databases, and canvases your agent can read, query, and build in — every change signed, synced, and yours.                                                           |
+| The one action                     | A copy-button command in the hero, per-agent tabs: Claude Code · Codex · Cursor · VS Code · anything (MCP). Primary everywhere: header button, hero, GetStarted path 1, README section 1, docs Start Here.                                 |
 | What happens to the app/SDK/cloud? | Kept, demoted one rank. App = "the workspace behind the agent" (section + `/app` untouched); SDK = the developer depth pages (`/react`, `/build-with`); Cloud = a whisper ("Free to start · Pricing") per the Ollama pattern. No URL dies. |
-| What's new? | One route: **`/agents`** (conversion hub + `src/data/agents.ts`); an agent-readable layer (llms.txt fix, `/agents.md`, install snippets/deeplinks); OG meta while we're in `Base.astro`. |
-| What's honest to ship *today*? | Phase A: connect, three lanes, read-only default, agent passports, the 0.11x benchmark (with methodology published — a 0456 item). All shipped and true now. |
-| What waits? | Phase B: the "agent builds tools inside your workspace" section and demo — gated on 0456's loop wiring (0455 checklist). The site must not market the loop before it's recordable. |
-| Biggest execution risk | Build gates: `build-llms-full.ts` fails if a docs page isn't in `sidebar.mjs`; `validate-dist.ts` asserts route outputs (read before renaming anything); `pricing-claims.test.ts` regex-reads `pricing.ts` as text — don't reformat it. |
+| What's new?                        | One route: **`/agents`** (conversion hub + `src/data/agents.ts`); an agent-readable layer (llms.txt fix, `/agents.md`, install snippets/deeplinks); OG meta while we're in `Base.astro`.                                                   |
+| What's honest to ship _today_?     | Phase A: connect, three lanes, read-only default, agent passports, the 0.11x benchmark (with methodology published — a 0456 item). All shipped and true now.                                                                               |
+| What waits?                        | Phase B: the "agent builds tools inside your workspace" section and demo — gated on 0456's loop wiring (0455 checklist). The site must not market the loop before it's recordable.                                                         |
+| Biggest execution risk             | Build gates: `build-llms-full.ts` fails if a docs page isn't in `sidebar.mjs`; `validate-dist.ts` asserts route outputs (read before renaming anything); `pricing-claims.test.ts` regex-reads `pricing.ts` as text — don't reformat it.    |
 
 ---
 
@@ -96,14 +96,14 @@ and its docs are behind a collapsed accordion: `coding-agents` is item 9 of
 
 ### Assets the restructure can reuse (no new machinery needed)
 
-| Asset | Path | Why it matters |
-| --- | --- | --- |
-| Terminal chrome component | `site/src/components/ui/CodeBlock.astro` — macOS traffic lights, `filename="terminal"`, hover copy button | The hero command block already exists as a component |
-| Tab strip component | `site/src/components/ui/CodeTabs.astro` — dependency-free, group-synced, localStorage-persisted, no-JS fallback | Per-agent tabs (Claude Code/Codex/Cursor/VS Code) for free |
-| The content itself | `docs/guides/coding-agents.mdx` (the `xnet connect` guide), `docs/guides/agent-interfaces.mdx` (three lanes + 0.11x benchmark), `docs/ai/understanding-xnet.mdx` | The `/agents` page is 80% assembly of existing prose |
-| Changelog receipts | 12+ agent fragments in `site/src/data/changelog/` (e.g. `2026-07-24-use-xnet-from-claude-code-and-codex.json`, `2026-08-01-verify-what-your-agent-did.json`) | Social-proof strip: real dated receipts, no invented testimonials |
-| llms-full pipeline | `site/scripts/build-llms-full.ts` + `site/src/sidebar.mjs` (single source of truth for docs order **and** llms-full order) | Reordering the sidebar reorders the agent-readable corpus too |
-| Data-file pattern | `site/src/data/*.ts` driving every page | `agents.ts` slots in beside `pricing.ts`/`compare.ts` |
+| Asset                     | Path                                                                                                                                                             | Why it matters                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Terminal chrome component | `site/src/components/ui/CodeBlock.astro` — macOS traffic lights, `filename="terminal"`, hover copy button                                                        | The hero command block already exists as a component              |
+| Tab strip component       | `site/src/components/ui/CodeTabs.astro` — dependency-free, group-synced, localStorage-persisted, no-JS fallback                                                  | Per-agent tabs (Claude Code/Codex/Cursor/VS Code) for free        |
+| The content itself        | `docs/guides/coding-agents.mdx` (the `xnet connect` guide), `docs/guides/agent-interfaces.mdx` (three lanes + 0.11x benchmark), `docs/ai/understanding-xnet.mdx` | The `/agents` page is 80% assembly of existing prose              |
+| Changelog receipts        | 12+ agent fragments in `site/src/data/changelog/` (e.g. `2026-07-24-use-xnet-from-claude-code-and-codex.json`, `2026-08-01-verify-what-your-agent-did.json`)     | Social-proof strip: real dated receipts, no invented testimonials |
+| llms-full pipeline        | `site/scripts/build-llms-full.ts` + `site/src/sidebar.mjs` (single source of truth for docs order **and** llms-full order)                                       | Reordering the sidebar reorders the agent-readable corpus too     |
+| Data-file pattern         | `site/src/data/*.ts` driving every page                                                                                                                          | `agents.ts` slots in beside `pricing.ts`/`compare.ts`             |
 
 ### Constraints that will bite (from the survey)
 
@@ -137,11 +137,11 @@ verify empirically before quoting it in launch-day plans).
 From the 2026 survey of dev-tool landers:
 
 - **Bun**: headline + copyable `curl … | bash` with OS tabs + versioned
-  install button + a *replayable* benchmark race above the fold. Its trophy
+  install button + a _replayable_ benchmark race above the fold. Its trophy
   logos are agent products (Claude Code, Cursor, Midjourney, Railway).
 - **Claude Code itself**: name + "Work with Claude directly in your
   codebase…" + download button **and** install one-liner. MCP integrations
-  are a late section — the mirror image of xNet, which *is* the
+  are a late section — the mirror image of xNet, which _is_ the
   integration and should lead with the connect command.
 - **Homebrew**: the page essentially is the command. **Ollama**: one
   action; cloud reduced to "Free to start. See pricing."
@@ -150,7 +150,7 @@ From the 2026 survey of dev-tool landers:
   ledger can eventually feed.
 - **Evil Martians' 100-lander study**: exactly **two** CTAs (one dominant,
   one subordinate); specific verb copy over "Get started"; for
-  libraries/infra a code snippet *is* the right hero visual; pricing on
+  libraries/infra a code snippet _is_ the right hero visual; pricing on
   its own page.
 
 ### The "add to your agent" affordance stack (mid-2026 table stakes)
@@ -162,7 +162,7 @@ From the 2026 survey of dev-tool landers:
   reported flaky), **VS Code badge** (`vscode:mcp/install?<json>`).
 - Directory distribution (Smithery ~16.8k MCPs listed; mcp.so ~20k
   secondhand) is marketing reach, not a substitute for the page.
-- Docs sites are now expected to *be* agent-consumable: Mintlify ships
+- Docs sites are now expected to _be_ agent-consumable: Mintlify ships
   `/llms.txt`, `/llms-full.txt`, per-page "copy as Markdown"; GitBook
   auto-exposes an MCP endpoint per docs site.
 
@@ -172,9 +172,9 @@ Netlify named the category — "Agent Experience (AX)" — and in April 2026
 launched **netlify.ai, a site built for agents rather than humans**
 (onboarding and build context for the agent itself). The nuance from the
 llms.txt adoption data: no major AI vendor commits to llms.txt for
-*search/training*, but **coding agents do fetch `/llms.txt` when pointed
+_search/training_, but **coding agents do fetch `/llms.txt` when pointed
 at a docs site** — which is precisely xNet's conversion moment: an agent
-is *running* `xnet connect` while its human watches. xNet's llms.txt
+is _running_ `xnet connect` while its human watches. xNet's llms.txt
 currently forgets to mention the connect flow at all.
 
 One more external fact that shapes copy: **Continue.dev's lander is now an
@@ -202,7 +202,7 @@ clients as tabs — never as the headline.
 3. **Honesty gates the section order.** The three lanes, read-only
    default, passports, signed log, and the benchmark are shipped and true
    — Phase A can say them loudly today. The loop ("your agent builds tools
-   *inside* the workspace") is 0455/0456 wiring away; the site must not
+   _inside_ the workspace") is 0455/0456 wiring away; the site must not
    promise it before the demo records. The Charter's own rule (every
    promise ships with a receipt or is labeled not-yet) applies to
    marketing exactly as to docs.
@@ -210,7 +210,7 @@ clients as tabs — never as the headline.
 4. **The benchmark is the single most quotable asset and the most
    fragile.** "~9x cheaper than MCP tools" already appears on the landing
    page; the hero will amplify it. 0456 already requires the methodology
-   to be published and reproducible — that item becomes a *prerequisite*
+   to be published and reproducible — that item becomes a _prerequisite_
    of Phase A launch, not a follow-up.
 
 5. **Demotion must be visible-but-cheap.** The lesson from Ollama ("Free
@@ -272,7 +272,7 @@ dogfood-metric proof strip.
 - ❌ Splits authority and maintenance for a solo founder; the survey shows
   the main site's traffic surfaces (README, llms.txt, docs) are exactly
   where the fix is needed; a microsite duplicates the Starlight/llms
-  pipeline. The agent-twin *pages* (Option B) capture the netlify.ai idea
+  pipeline. The agent-twin _pages_ (Option B) capture the netlify.ai idea
   without a second property.
 
 ### Option D — Docs-as-landing (Tailwind posture)
@@ -326,7 +326,7 @@ Make `/docs` the homepage; kill the marketing site's hero.
   becomes "There's a full workspace app behind this — and an SDK under
   both. [App] · [SDK] · [Protocol]" as small links.
 - Verify the exact zero-install one-liner before shipping (`npx
-  @xnetjs/cli …` vs `npm i -g` — whichever `packages/cli` actually
+@xnetjs/cli …` vs `npm i -g` — whichever `packages/cli` actually
   supports; the checklist carries this).
 - Static command block first; a typed-replay animation is a Phase B
   nicety, not a blocker (Deno converts with no animation at all).
@@ -380,7 +380,7 @@ source (same pattern as `pricing.ts`).
   after connect you get these tools/lanes…"), plus the missing
   coding-agents entry.
 - New `public/agents.md` (the netlify.ai move, one page not a microsite):
-  what xNet is *to an agent*, the three lanes, tool list, safety
+  what xNet is _to an agent_, the three lanes, tool list, safety
   contract, where the SKILL.md comes from. Linked from llms.txt and
   `/agents`.
 - Optional same-PR cheap wins while in `Base.astro`: `og:title`/
@@ -390,7 +390,7 @@ source (same pattern as `pricing.ts`).
 ### 6. README (root)
 
 Mirror the site's new order: after the one-liner and screenshot, **Try it**
-gains "Connect your coding agent" as the *first* bullet (`npx @xnetjs/cli
+gains "Connect your coding agent" as the _first_ bullet (`npx @xnetjs/cli
 connect claude-code`), before demo/download/hub; a short "Your agent,
 your workspace" section (three lanes + benchmark + safety line) lands
 above "Build with it". Zero agent mentions today → the second landing
@@ -422,7 +422,7 @@ URLs, content, and validators untouched.
   the mitigation; sequence at least one outside run before the hero
   flips. Also confirm `npx @xnetjs/cli connect` works without global
   install (and without a pre-existing workspace — the "thin room" question
-  from 0456: what does a fresh agent connect *to*? The `/agents` page
+  from 0456: what does a fresh agent connect _to_? The `/agents` page
   should answer with the demo-seed or `xnet vault init` story).
 - **Cursor/VS Code deeplinks are flaky** (documented forum failures) —
   always render the copyable JSON beside the button; treat the deeplink as
@@ -450,8 +450,8 @@ URLs, content, and validators untouched.
 
 **Status:** ░░░░░░░░░░ 0/12 items (Phase A: 1–10; Phase B: 11–12)
 
-- [ ] Verify + document the canonical zero-install command (`npx
-      @xnetjs/cli connect claude-code` or equivalent) against
+- [x] Verify + document the canonical zero-install command (`npx
+    @xnetjs/cli connect claude-code` or equivalent) against
       `packages/cli` as published; fix `packages/cli` if npx flow has
       gaps
 - [ ] Publish the 0.11x benchmark methodology in-repo (0456 item, now a
