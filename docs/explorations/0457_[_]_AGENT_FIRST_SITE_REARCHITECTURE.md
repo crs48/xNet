@@ -462,7 +462,7 @@ URLs, content, and validators untouched.
       command block, two CTAs, doors → small links
 - [x] New `site/src/pages/agents.astro` per the section spec; update
       `scripts/validate-dist.ts` expectations if route-asserting
-- [ ] `Nav.astro` (+Agents link; button → "Connect your agent") and
+- [x] `Nav.astro` (+Agents link; button → "Connect your agent") and
       `Footer.astro` (+Agents column)
 - [ ] `GetStarted.astro`: path 1 becomes "Connect your agent" (command
       block), App and SDK follow
