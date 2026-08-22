@@ -5,11 +5,11 @@
 import type { PropertyType, PropertyDefinition } from '@xnetjs/data'
 
 /**
- * Disposable interface for cleanup
+ * Disposable interface for cleanup — re-exported from `@xnetjs/plugins`, the
+ * one Disposable type in the repo (exploration 0455). Kept as an export here
+ * so existing `import type { Disposable } from '@xnetjs/views'` sites hold.
  */
-export interface Disposable {
-  dispose(): void
-}
+export type { Disposable } from '@xnetjs/plugins'
 
 /**
  * Sort configuration

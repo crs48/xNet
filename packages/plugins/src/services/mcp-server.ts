@@ -8,6 +8,7 @@
  */
 
 import type { NodeStoreAPI, SchemaRegistryAPI } from './local-api'
+import type { WorkspaceRetrieval } from '../ai-surface/retrieval'
 import type { AISignalProvenanceInput } from '@xnetjs/abuse'
 import { agentToolsAsExtraTools, type AgentToolContribution } from '../agent-tools'
 import {
@@ -29,7 +30,7 @@ import {
   type ApprovalBroker,
   type ParkedApproval
 } from '../ai-surface/approval-broker'
-import type { WorkspaceRetrieval } from '../ai-surface/retrieval'
+import { AGENT_TOOLS_SERVICE, type ServiceRegistry } from '../service-registry'
 import { McpWriteGuardrail, type McpWriteRequest } from './mcp-guardrail'
 
 /** Schema IRIs for the first-class write tools (exploration 0174/0175). */
@@ -152,6 +153,14 @@ export interface MCPServerConfig {
    */
   extraTools?: AiExtraTool[]
   /**
+   * Service registry to resolve `agent-tools` providers from (exploration
+   * 0455) — the preferred wiring: register the `plugin_*` / `lab_*` /
+   * connector tool families once as providers and every host that passes the
+   * registry exposes them, live. Ignored when a pre-built `aiSurface` is
+   * supplied (pass `services` there instead).
+   */
+  services?: ServiceRegistry
+  /**
    * Write guardrail for the generic + first-class write tools. A default
    * guardrail (delete/outward writes need confirmation, cost budget, audit) is
    * created when omitted. Pass a configured instance to tune it.
@@ -252,6 +261,10 @@ export class MCPServer {
         schemas: config.schemas,
         limits: config.aiLimits,
         ...(config.retrieval ? { retrieveContext: config.retrieval.retrieveContext } : {}),
+        // Resolved providers (0455) ride beside statically passed tools: a
+        // host that hands us a ServiceRegistry no longer has to remember any
+        // per-family argument, and tools registered mid-session appear live.
+        ...(config.services ? { services: config.services } : {}),
         extraTools: [
           ...agentToolsAsExtraTools(config.agentTools ?? []),
           ...(config.extraTools ?? [])
@@ -292,6 +305,29 @@ export class MCPServer {
     }
 
     this.registerTools()
+
+    // Live tool resolution (0455): when a ServiceRegistry is wired, a plugin
+    // activating mid-session re-registers the surface-derived tools, so
+    // `tools/list` reflects the change without a server restart.
+    if (config.services) {
+      config.services.watch(AGENT_TOOLS_SERVICE, () => this.refreshAiSurfaceTools())
+    }
+  }
+
+  /** Re-derive the AI-surface tool entries after a provider change (0455). */
+  private refreshAiSurfaceTools(): void {
+    for (const name of this.aiToolNames) this.tools.delete(name)
+    this.aiToolNames.clear()
+    for (const tool of this.config.aiSurface.getTools()) {
+      this.aiToolNames.add(tool.name)
+      const mcpTool = toMCPTool(tool)
+      mcpTool.defer_loading = !MCP_CORE_TOOL_NAMES.includes(tool.name)
+      mcpTool.inputSchema.properties.response_format = RESPONSE_FORMAT_SCHEMA
+      if (this.recorder) {
+        mcpTool.inputSchema.properties._instruction = INSTRUCTION_SCHEMA
+      }
+      this.tools.set(tool.name, mcpTool)
+    }
   }
 
   /**

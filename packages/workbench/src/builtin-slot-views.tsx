@@ -79,6 +79,9 @@ const SyncTray = lazySlotView(() => import('./views/tray').then((m) => ({ defaul
 const QueryConsoleTray = lazySlotView(() =>
   import('./views/tray').then((m) => ({ default: m.QueryConsoleTray }))
 )
+const WorkspacePluginsDevView = lazySlotView(() =>
+  import('./views/WorkspacePluginsDevView').then((m) => ({ default: m.WorkspacePluginsDevView }))
+)
 
 /**
  * Host components resolve at render, not registration — registration runs at
@@ -263,6 +266,18 @@ export function registerBuiltinSlotViews(): void {
       priority: 24,
       keywords: ['query', 'sql'],
       component: asComponent(QueryConsoleTray),
+      defaultRegion: 'dock.corner'
+    },
+    {
+      id: 'workspace-plugins',
+      icon: Layers,
+      label: 'Workspace Plugins',
+      tier: 'secondary',
+      group: 'tools',
+      priority: 25,
+      keywords: ['plugin', 'sandbox', 'agent', 'hot reload'],
+      description: 'Run and hot-reload sandboxed plugins built from PluginSource nodes (0331/0455)',
+      component: asComponent(WorkspacePluginsDevView),
       defaultRegion: 'dock.corner'
     }
   ]

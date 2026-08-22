@@ -6,6 +6,7 @@ import type { ModuleCapabilities } from './feature-module'
 import type { XNetExtension } from './manifest'
 import type { Platform, Disposable } from './types'
 import type { NodeStore } from '@xnetjs/data'
+import { agentToolsAsExtraTools } from './agent-tools'
 import { createExtensionContext, type ExtensionContext } from './context'
 import { ContributionRegistry } from './contributions'
 import { isHostCompatible } from './ecosystem/compatibility'
@@ -24,6 +25,7 @@ import { warnOnEditorSchemaRisks } from './editor-schema-safety'
 import { validateManifest, PluginValidationError, isPaidPricing } from './manifest'
 import { MiddlewareChain } from './middleware'
 import { PluginSchema } from './schemas/plugin'
+import { AGENT_TOOLS_SERVICE, ServiceRegistry } from './service-registry'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -99,11 +101,32 @@ export class PluginRegistry {
   private contributions = new ContributionRegistry()
   private middleware = new MiddlewareChain()
   private listeners = new Set<() => void>()
+  private services = new ServiceRegistry()
+  private agentToolsProvider: Disposable | null = null
 
   constructor(
     private store: NodeStore,
     private platform: Platform
-  ) {}
+  ) {
+    // Publish plugin-contributed agent tools as the `agent-tools` service
+    // (exploration 0455): the registry is the first actual READER of the
+    // `agentTools` contribution point — consumers (AiSurfaceService) watch
+    // the service instead of being hand-threaded an `extraTools` argument.
+    this.contributions.agentTools.onChange(() => this.republishAgentTools())
+    this.republishAgentTools()
+  }
+
+  private republishAgentTools(): void {
+    this.agentToolsProvider?.dispose()
+    const tools = agentToolsAsExtraTools(this.contributions.agentTools.getAll())
+    this.agentToolsProvider =
+      tools.length > 0 ? this.services.provide(AGENT_TOOLS_SERVICE, tools) : null
+  }
+
+  /** The service registry consumers resolve from (exploration 0455). */
+  getServices(): ServiceRegistry {
+    return this.services
+  }
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────
 
@@ -217,6 +240,22 @@ export class PluginRegistry {
   /**
    * Activate an installed plugin
    */
+  /**
+   * Bounce a plugin's whole scope — deactivate then activate (exploration
+   * 0455). This is what a config save calls: correct-if-slower first;
+   * partial-accept semantics can come later if a plugin ever needs them.
+   */
+  async update(pluginId: string): Promise<void> {
+    const plugin = this.plugins.get(pluginId)
+    if (!plugin) {
+      throw new PluginError(`Plugin '${pluginId}' not found`)
+    }
+    if (plugin.status === 'active') {
+      await this.deactivate(pluginId)
+    }
+    await this.activate(pluginId)
+  }
+
   async activate(pluginId: string): Promise<void> {
     const plugin = this.plugins.get(pluginId)
     if (!plugin) {
@@ -276,15 +315,11 @@ export class PluginRegistry {
       }
     }
 
-    // Always dispose subscriptions
+    // Always dispose the plugin's effect scope — reverse order, awaited, so
+    // an async disposer cannot race a subsequent activation (0455). The scope
+    // drains `subscriptions` and contains per-effect failures itself.
     if (plugin.context) {
-      for (const d of plugin.context.subscriptions) {
-        try {
-          d.dispose()
-        } catch (err) {
-          console.error(`Error disposing subscription for plugin '${pluginId}':`, err)
-        }
-      }
+      await plugin.context.scope.dispose()
     }
     plugin.context = undefined
     plugin.status = 'disabled'
@@ -389,7 +424,9 @@ export class PluginRegistry {
   onChange(listener: () => void): Disposable {
     this.listeners.add(listener)
     return {
-      dispose: () => this.listeners.delete(listener)
+      dispose: () => {
+        this.listeners.delete(listener)
+      }
     }
   }
 

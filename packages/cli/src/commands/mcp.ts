@@ -21,6 +21,9 @@ import {
   createAgentRetrieval,
   createMCPServer,
   createMcpHttpServer,
+  createNodeStoreWorkspacePluginBackend,
+  registerWorkspacePluginAgentTools,
+  ServiceRegistry,
   type MCPServer,
   type McpHttpServerHandle
 } from '@xnetjs/plugins/node'
@@ -51,10 +54,17 @@ export function buildMcpServer(backend: AgentBackend, agent?: McpAgentSession): 
   // linear keyword scan, and a multi-hop question ("how is Acme tied to Q2?")
   // is unanswerable because the graph stage never runs.
   const retrieval = createAgentRetrieval({ store: backend.store, schemas: backend.schemas })
+  // Resolve agent tools from a service registry (0455). The plugin_* family
+  // (0331) registers here, so `xnet mcp serve` exposes the spec→plugin loop.
+  const services = new ServiceRegistry()
+  registerWorkspacePluginAgentTools(services, {
+    backend: createNodeStoreWorkspacePluginBackend(backend.store)
+  })
   return createMCPServer({
     store: backend.store,
     schemas: backend.schemas,
     retrieval,
+    services,
     ...(agent
       ? {
           agentAudit: {

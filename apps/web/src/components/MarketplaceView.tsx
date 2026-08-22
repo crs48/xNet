@@ -101,7 +101,9 @@ export function MarketplaceView() {
     const refresh = () => setInstalledIds(registry.getAll().map((p) => p.manifest.id))
     refresh()
     const disposable = registry.onChange(refresh)
-    return () => disposable.dispose()
+    return () => {
+      void disposable.dispose()
+    }
   }, [registry])
 
   // Search whenever the query/sort/category changes.

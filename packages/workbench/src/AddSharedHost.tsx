@@ -19,7 +19,9 @@ export function AddSharedHost() {
       title: 'Add shared…',
       run: () => setOpen(true)
     })
-    return () => disposable.dispose()
+    return () => {
+      void disposable.dispose()
+    }
   }, [])
 
   return <AddSharedDialog isOpen={open} onClose={() => setOpen(false)} />

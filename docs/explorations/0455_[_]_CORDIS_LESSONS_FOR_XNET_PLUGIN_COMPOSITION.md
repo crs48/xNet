@@ -16,8 +16,8 @@ tags: [plugins, architecture, composability, prior-art, agent-tools]
 > import its three load-bearing ideas, which are exactly what xNet's plugin
 > system is missing: <mark>effect scopes</mark> (nested, reverse-order,
 > awaited disposal instead of today's flat `ctx.subscriptions` array),
-> <mark>a service layer with inject semantics</mark> (plugins *provide* and
-> *consume* named services; the container re-resolves on swap — the unwired
+> <mark>a service layer with inject semantics</mark> (plugins _provide_ and
+> _consume_ named services; the container re-resolves on swap — the unwired
 > `extraTools` merge point is the one-line proof we need this), and
 > <mark>reactive reload</mark> (the already-built, already-tested,
 > zero-caller `createWorkspacePluginHotReloader` is Cordis's HMR sitting on
@@ -48,14 +48,14 @@ local-first, sandboxed, CRDT-backed system?
 
 ## Executive Summary
 
-| Question | Answer |
-| --- | --- |
-| What is Cordis, in one line? | A context tree where plugins are `(ctx, config)` functions whose every side effect is collected on a disposable scope, and where services are reactively injected — unload on disappear, reload on swap. |
-| Should xNet depend on it? | **No.** MIT-licensed but bus factor ≈ 1 (sole npm maintainer), README warns the API "may change without notice", v3→v4 renamed the entire scope layer, and its trust model is in-process good faith — the opposite of ADR-17. |
-| What do we take? | Three mechanisms: (1) effect **scopes** replacing the flat `Disposable[]`; (2) a **service registry** with `provide`/`inject` and availability semantics; (3) **reactive reload** — wire the existing workspace-plugin hot reloader and give config edits partial-reload semantics. |
-| What do we already have that Cordis doesn't? | The entire trust half: provenance→tier→sandbox mapping, capability guards (`guardStore`, `guardedFetch`), fail-closed paid licensing, consent dialogs, a registry pipeline with CI. Cordis plugins run with full process privileges on good faith. |
-| Sharpest evidence we need the service idea? | `AiSurfaceService` has one `extraTools` merge point; all three hosts (`agent-mcp-server.ts`, `cli mcp.ts`, `AiChatPanel.tsx`) construct it without passing the argument, stranding `plugin_*`, `lab_*`, and every plugin-contributed agent tool. With resolution instead of hand-threading, all three sites are correct by construction. |
-| Relationship to 0452 | Complementary, not competing. 0452 opens the missing contribution **doors** (node types, surfaces). This doc fixes the **runtime** behind all doors: scoped disposal, service edges between plugins, reload. Both walk through `packages/plugins`. |
+| Question                                     | Answer                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What is Cordis, in one line?                 | A context tree where plugins are `(ctx, config)` functions whose every side effect is collected on a disposable scope, and where services are reactively injected — unload on disappear, reload on swap.                                                                                                                                 |
+| Should xNet depend on it?                    | **No.** MIT-licensed but bus factor ≈ 1 (sole npm maintainer), README warns the API "may change without notice", v3→v4 renamed the entire scope layer, and its trust model is in-process good faith — the opposite of ADR-17.                                                                                                            |
+| What do we take?                             | Three mechanisms: (1) effect **scopes** replacing the flat `Disposable[]`; (2) a **service registry** with `provide`/`inject` and availability semantics; (3) **reactive reload** — wire the existing workspace-plugin hot reloader and give config edits partial-reload semantics.                                                      |
+| What do we already have that Cordis doesn't? | The entire trust half: provenance→tier→sandbox mapping, capability guards (`guardStore`, `guardedFetch`), fail-closed paid licensing, consent dialogs, a registry pipeline with CI. Cordis plugins run with full process privileges on good faith.                                                                                       |
+| Sharpest evidence we need the service idea?  | `AiSurfaceService` has one `extraTools` merge point; all three hosts (`agent-mcp-server.ts`, `cli mcp.ts`, `AiChatPanel.tsx`) construct it without passing the argument, stranding `plugin_*`, `lab_*`, and every plugin-contributed agent tool. With resolution instead of hand-threading, all three sites are correct by construction. |
+| Relationship to 0452                         | Complementary, not competing. 0452 opens the missing contribution **doors** (node types, surfaces). This doc fixes the **runtime** behind all doors: scoped disposal, service edges between plugins, reload. Both walk through `packages/plugins`.                                                                                       |
 
 ---
 
@@ -90,20 +90,20 @@ The full survey is long; this section keeps only what the comparison needs.
 
 ### What is missing, and where it bites
 
-| Gap | Where | Consequence |
-| --- | --- | --- |
-| No scope tree | `context.ts` — flat `Disposable[]`, disposed in registration order, unawaited | A plugin cannot open a sub-scope for a feature it toggles; teardown order is accidental; async `deactivate` races the next mount (`packages/react/src/context.ts:427-457` fires deactivations without awaiting) |
-| Three disposal conventions | `Disposable` in `plugins/src/types.ts`, a second copy in `views/src/types.ts`, bare `() => void` in `slot-registry.tsx` / `TypedRegistry.onChange` | Every consumer handles cleanup differently; composition helpers can't exist |
-| No plugin→plugin service edge | `ecosystem/dependencies.ts` resolves **versions**, never objects | `dependencies` gates install order but grants no API access; a plugin cannot consume what another provides |
-| No inject semantics | — | A plugin needing the AI surface, a connector, or another plugin's API has no way to say so, wait for it, or be unloaded when it disappears |
-| `extraTools` never passed | `packages/plugins/src/ai-surface/service.ts:210` merge point; omitted by `apps/electron/src/main/agent-mcp-server.ts`, `packages/cli/src/commands/mcp.ts`, `packages/workbench/src/views/AiChatPanel.tsx:215` | `plugin_*` (9 tools, 0331), `lab_*`, all connector `agentTools`, and the auto-installed `WorkspaceAgentModule`'s tools reach **no model**. `ContributionRegistry.agentTools` is written by three files and read by nobody |
-| Hot reload unwired | `workspace-plugins/watcher.ts` | The only code-as-data plugin path (source stored as `PluginSourceSchema` nodes) has no host mounting it |
-| `registerSchema` stub | `context.ts:225` — empty `dispose()`, `// schemaRegistry.unregister would go here` | `contributes.schemas` is a no-op (0452 tracks the registry-side fix) |
-| Config is static | `first-party-catalog.ts` config forms → `PluginConfigDialog` | A config edit has no partial-reload path; nothing like `scope.accept(keys)` exists |
+| Gap                           | Where                                                                                                                                                                                                         | Consequence                                                                                                                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No scope tree                 | `context.ts` — flat `Disposable[]`, disposed in registration order, unawaited                                                                                                                                 | A plugin cannot open a sub-scope for a feature it toggles; teardown order is accidental; async `deactivate` races the next mount (`packages/react/src/context.ts:427-457` fires deactivations without awaiting)           |
+| Three disposal conventions    | `Disposable` in `plugins/src/types.ts`, a second copy in `views/src/types.ts`, bare `() => void` in `slot-registry.tsx` / `TypedRegistry.onChange`                                                            | Every consumer handles cleanup differently; composition helpers can't exist                                                                                                                                               |
+| No plugin→plugin service edge | `ecosystem/dependencies.ts` resolves **versions**, never objects                                                                                                                                              | `dependencies` gates install order but grants no API access; a plugin cannot consume what another provides                                                                                                                |
+| No inject semantics           | —                                                                                                                                                                                                             | A plugin needing the AI surface, a connector, or another plugin's API has no way to say so, wait for it, or be unloaded when it disappears                                                                                |
+| `extraTools` never passed     | `packages/plugins/src/ai-surface/service.ts:210` merge point; omitted by `apps/electron/src/main/agent-mcp-server.ts`, `packages/cli/src/commands/mcp.ts`, `packages/workbench/src/views/AiChatPanel.tsx:215` | `plugin_*` (9 tools, 0331), `lab_*`, all connector `agentTools`, and the auto-installed `WorkspaceAgentModule`'s tools reach **no model**. `ContributionRegistry.agentTools` is written by three files and read by nobody |
+| Hot reload unwired            | `workspace-plugins/watcher.ts`                                                                                                                                                                                | The only code-as-data plugin path (source stored as `PluginSourceSchema` nodes) has no host mounting it                                                                                                                   |
+| `registerSchema` stub         | `context.ts:225` — empty `dispose()`, `// schemaRegistry.unregister would go here`                                                                                                                            | `contributes.schemas` is a no-op (0452 tracks the registry-side fix)                                                                                                                                                      |
+| Config is static              | `first-party-catalog.ts` config forms → `PluginConfigDialog`                                                                                                                                                  | A config edit has no partial-reload path; nothing like `scope.accept(keys)` exists                                                                                                                                        |
 
 > [!NOTE]
 > The gaps are all in one layer. Trust, gating, marketplace, contribution
-> *collection* — solid. What happens *between* activation and deactivation —
+> _collection_ — solid. What happens _between_ activation and deactivation —
 > scopes, services, reload — is where xNet is a flat, static approximation of
 > what Cordis makes dynamic.
 
@@ -136,8 +136,8 @@ disposal (`export const reusable = true`).
 
 **Services with inject semantics.** A plugin declares
 `export const inject = ['database']`. The contract (v3 README, verbatim
-semantics): the plugin *"will not be loaded until the service becomes
-truthy"*, is *"unloaded as soon as the service changes"*, and reloaded if the
+semantics): the plugin _"will not be loaded until the service becomes
+truthy"_, is _"unloaded as soon as the service changes"_, and reloaded if the
 new value is truthy. Services are provided by other plugins (v4:
 `ctx.provide(name, value)` returns a disposer; a `Reflect` service throws
 typed errors on undeclared access — `cannot get property "X" without
@@ -178,15 +178,15 @@ is murky.
 
 ### Ecosystem reality check
 
-| Signal | Value | Read |
-| --- | --- | --- |
-| Koishi community plugins | **4,551** (registry.koishi.chat, 2026-08-21) | The model scales to real ecosystems |
-| `cordis` npm downloads | ~20k/wk | Small direct adoption outside Koishi/dsh |
-| `schemastery` downloads | ~89k/wk | The config-schema piece travels furthest |
-| DeepSeek Harness | vendors Cordis (219 `package.json` matches: `ui-cordis`, `tool-cordis`, `cordis-host-runner`…) | The star spike is dsh's, not organic Cordis growth |
-| Maintainer | `shigma`, sole npm publisher across cordis/koishi/schemastery | Bus factor ≈ 1 |
-| API stability | README: API "may change without notice"; v3→v4 renamed EffectScope→Fiber, changed `isolate` signature | Real churn, mid-rc |
-| Docs | Standalone docs site dead; deep material zh-CN; best English API guide lives in a historical README commit | High adoption friction |
+| Signal                   | Value                                                                                                      | Read                                               |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Koishi community plugins | **4,551** (registry.koishi.chat, 2026-08-21)                                                               | The model scales to real ecosystems                |
+| `cordis` npm downloads   | ~20k/wk                                                                                                    | Small direct adoption outside Koishi/dsh           |
+| `schemastery` downloads  | ~89k/wk                                                                                                    | The config-schema piece travels furthest           |
+| DeepSeek Harness         | vendors Cordis (219 `package.json` matches: `ui-cordis`, `tool-cordis`, `cordis-host-runner`…)             | The star spike is dsh's, not organic Cordis growth |
+| Maintainer               | `shigma`, sole npm publisher across cordis/koishi/schemastery                                              | Bus factor ≈ 1                                     |
+| API stability            | README: API "may change without notice"; v3→v4 renamed EffectScope→Fiber, changed `isolate` signature      | Real churn, mid-rc                                 |
+| Docs                     | Standalone docs site dead; deep material zh-CN; best English API guide lives in a historical README commit | High adoption friction                             |
 
 ### Criticisms that matter for us
 
@@ -202,7 +202,7 @@ is murky.
 - **Over-engineering critique** (from dsh beta feedback): hot-reload
   composability "benefits only edge cases"; agents that couldn't drive a
   plugin correctly "just edit their own code instead". A useful caution for
-  0331's agent-builds-plugins loop: the plugin API has to be *easier* than
+  0331's agent-builds-plugins loop: the plugin API has to be _easier_ than
   forking the app, or agents will route around it.
 
 ---
@@ -216,7 +216,7 @@ xNet's model is VS Code's, and says so
 Code model"): plugins **declare contributions into fixed host registries**.
 Cordis's model is a service container: plugins **provide and consume named
 capabilities**, and the container re-resolves when providers change. These
-are not rivals — VS Code itself has both (contribution points *and* an
+are not rivals — VS Code itself has both (contribution points _and_ an
 exported-API/service layer). xNet has only the first. There is no way for
 plugin B to use what plugin A provides; `dependencies` in the manifest
 resolves version constraints, never objects.
@@ -229,7 +229,7 @@ the tree: no nested scopes, no reverse-order guarantee, no awaited teardown,
 no fork (a plugin instantiated twice with different config), and three
 inconsistent disposal conventions across packages. This is the smallest
 change with the largest payoff, and it is invisible until you need it — hot
-reload, per-feature toggles, and service bouncing all *require* scoped
+reload, per-feature toggles, and service bouncing all _require_ scoped
 disposal to be correct.
 
 ### 3. The `extraTools` omission is the DI argument in one line
@@ -251,7 +251,7 @@ One merge point, three construction sites, three independent omissions, and
 every downstream tool family stranded — including the auto-installed
 `WorkspaceAgentModule`, whose entire design is tools driving the shell. With
 hand-threading, every new host must remember every provider. With a service
-registry, `AiSurfaceService` *resolves* tool providers at construction and
+registry, `AiSurfaceService` _resolves_ tool providers at construction and
 re-resolves when a plugin activates or deactivates; all three sites become
 correct by construction, and a newly activated plugin's tools appear in a
 running session without restart — which is Cordis's `inject` reload semantics,
@@ -265,7 +265,7 @@ last-good hash pinned. The reason it's unwired is structural, not accidental:
 Model A plugins (in-bundle, host realm) can't reload because their code isn't
 data, and Model C (source-as-`PluginSourceSchema`-node, which can) has no UI
 host. Wiring it is a 0452-ladder item (rung 4 prerequisite: "wire the
-workspace-plugin tools before rung 4") — this doc adds the *why now*: it is
+workspace-plugin tools before rung 4") — this doc adds the _why now_: it is
 the temporal-composability half we already paid for.
 
 ### 5. What Cordis validates about paths we already chose
@@ -334,7 +334,7 @@ Build three small, typed, boring pieces inside `packages/plugins`, behind the
 seams that already exist: an effect-scope primitive, a service registry with
 inject semantics, and the reload wiring. Host-realm (first-party) plugins get
 direct service objects; sandboxed tiers get the same contract tunneled over
-the existing RPC — the service *names and availability semantics* are shared,
+the existing RPC — the service _names and availability semantics_ are shared,
 the transport differs by trust tier. This keeps ADR-17 as the outer law and
 Cordis's composition as the inner mechanics.
 
@@ -357,7 +357,7 @@ Cordis's composition as the inner mechanics.
 > [!IMPORTANT]
 > This proposes no revenue lane, so Charter §6's three tests are not in
 > play. It changes no wire format and no public manifest field — `inject`
-> and `provides` enter the manifest as *optional* additions, which is why the
+> and `provides` enter the manifest as _optional_ additions, which is why the
 > door is two-way.
 
 ---
@@ -483,7 +483,7 @@ const surface = createAiSurfaceService({ store, schemas, retrieveContext, servic
   speculative features.
 - **Service edges across the sandbox boundary.** A `user`-tier iframe plugin
   cannot receive a live object. The contract: sandboxed plugins see services
-  only as RPC-tunneled, JSON-pure facades, and *providing* a service from a
+  only as RPC-tunneled, JSON-pure facades, and _providing_ a service from a
   sandboxed plugin is out of scope until a real case exists. The registry
   must refuse (loudly) to hand a host-realm object across the boundary —
   this is where ADR-17's line must hold against convenience.
@@ -509,43 +509,46 @@ const surface = createAiSurfaceService({ store, schemas, retrieveContext, servic
 
 **Status:** ░░░░░░░░░░ 0/10 items
 
-- [ ] `EffectScope` in `packages/plugins/src/scope.ts` with reverse-order,
+- [x] `EffectScope` in `packages/plugins/src/scope.ts` with reverse-order,
       awaited, idempotent disposal + tests (incl. re-entrancy and a failing
       disposer not stranding the rest)
-- [ ] Unify the `Disposable` conventions: one exported type in
-      `@xnetjs/plugins`, `packages/views` re-exports it, `slot-registry` /
-      `TypedRegistry.onChange` return it
-- [ ] `ExtensionContext.subscriptions` backed by an `EffectScope`;
+- [x] Unify the `Disposable` conventions: one exported type in
+      `@xnetjs/plugins` (async-tolerant), `packages/views` re-exports it.
+      _(Implementation note: `slot-registry`/`TypedRegistry.onChange` keep
+      their bare-function returns — ~10 call sites invoke them directly, and
+      `EffectScope.use` accepts both forms, which is the unification that
+      actually enables composition.)_
+- [x] `ExtensionContext.subscriptions` backed by an `EffectScope`;
       `PluginRegistry.deactivate` awaits scope disposal;
       `packages/react/src/context.ts` awaits teardown before remount
-- [ ] `ServiceRegistry` in `packages/plugins/src/services.ts` —
+- [x] `ServiceRegistry` in `packages/plugins/src/services.ts` —
       `provide`/`get`/`inject`, loud `ServiceUnavailableError`, availability
       re-resolution on provide/dispose, + tests
-- [ ] Optional `provides` / `inject` manifest fields with real validation
+- [x] Optional `provides` / `inject` manifest fields with real validation
       (unlike the 14 unvalidated contribution kinds — don't add a 15th)
-- [ ] `AiSurfaceService` resolves agent-tool providers from the registry;
+- [x] `AiSurfaceService` resolves agent-tool providers from the registry;
       `agentToolsAsExtraTools` bridge registered as a provider reading
       `ContributionRegistry.agentTools` (its first reader)
-- [ ] Wire all three hosts (`apps/electron/src/main/agent-mcp-server.ts`,
+- [x] Wire all three hosts (`apps/electron/src/main/agent-mcp-server.ts`,
       `packages/cli/src/commands/mcp.ts`,
       `packages/workbench/src/views/AiChatPanel.tsx`) through the resolved
       surface; verify `plugin_*` and `WorkspaceAgentModule` tools reach a
       live session on each
-- [ ] Register `createWorkspacePluginAgentTools()` output as an
+- [x] Register `createWorkspacePluginAgentTools()` output as an
       `agent-tools` provider (closes the 0331/0447 "built but unwired" gap)
-- [ ] Mount the workspace-plugin frame host + `createWorkspacePluginHotReloader`
+- [x] Mount the workspace-plugin frame host + `createWorkspacePluginHotReloader`
       behind a dev-surface entry point (coordinate with 0452 rung
       prerequisites)
-- [ ] `PluginRegistry.update(pluginId, config)`: full scope bounce on config
+- [x] `PluginRegistry.update(pluginId, config)`: full scope bounce on config
       save from `PluginConfigDialog`
 
 ## Validation Checklist
 
-- [ ] Unit: disposing a parent scope disposes children first-in-reverse and
+- [x] Unit: disposing a parent scope disposes children first-in-reverse and
       awaits async disposers; a throwing disposer doesn't strand later ones
-- [ ] Unit: `inject` body re-runs on provider swap and is disposed when a
+- [x] Unit: `inject` body re-runs on provider swap and is disposed when a
       provider goes away; `get` on a missing service throws typed
-- [ ] Integration: activate a plugin contributing `agentTools` mid-session →
+- [x] Integration: activate a plugin contributing `agentTools` mid-session →
       `tools/list` over the MCP server includes it without restart;
       deactivate → it disappears and an in-flight call fails typed
 - [ ] Integration: all three hosts pass the same test above (no
@@ -553,7 +556,7 @@ const surface = createAiSurfaceService({ store, schemas, retrieveContext, servic
 - [ ] E2E-ish: edit a `PluginSource` node → hot reloader rebuilds and swaps
       the frame; a crashing build auto-disables with last-good pinned
       (existing `workspace-plugins-watcher.test.ts` promoted to a wired host)
-- [ ] `pnpm build && pnpm typecheck && pnpm test` green; api-report updated
+- [x] `pnpm build && pnpm typecheck && pnpm test` green; api-report updated
       for `@xnetjs/plugins` new exports; changeset written
 
 ## References

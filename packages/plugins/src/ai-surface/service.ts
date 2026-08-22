@@ -19,6 +19,7 @@ import type {
   AiToolDefinition
 } from './types'
 import type { NodeData, NodeStoreAPI, SchemaData, SchemaRegistryAPI } from '../services/local-api'
+import type { Disposable } from '../types'
 import type {
   NodeQueryDescriptor,
   NodeQueryMaterializedViewOptions,
@@ -27,6 +28,7 @@ import type {
   NodeQuerySearchFilter,
   SortDirection
 } from '@xnetjs/data'
+import { AGENT_TOOLS_SERVICE, type ServiceRegistry } from '../service-registry'
 import {
   isRecord,
   readOptionalBoolean,
@@ -209,6 +211,15 @@ export type AiSurfaceServiceConfig = {
    */
   extraTools?: AiExtraTool[]
   /**
+   * Service registry to RESOLVE tool providers from (exploration 0455). When
+   * set, the surface watches the `agent-tools` service: every provider's
+   * `AiExtraTool[]` is merged live — a plugin activating mid-session adds its
+   * tools without a restart, and a deactivation removes them. This is the
+   * structural fix for the three-hosts-each-forgot-`extraTools` bug; static
+   * `extraTools` still work and win name collisions against resolved tools.
+   */
+  services?: ServiceRegistry
+  /**
    * Optional graph-aware context retriever (exploration 0211). Drives the
    * `query` path of `createContextPack` when present; falls back to the built-in
    * keyword `search()` otherwise.
@@ -240,6 +251,9 @@ export class AiSurfaceService {
   private readonly rollbackSnapshots = new Map<string, AiPageMarkdownRollbackSnapshot>()
   /** Contributed tools by name (exploration 0196), de-duped at construction. */
   private readonly extraTools = new Map<string, AiExtraTool>()
+  /** Tools resolved live from the `agent-tools` service (exploration 0455). */
+  private readonly resolvedExtraTools = new Map<string, AiExtraTool>()
+  private servicesWatch: Disposable | null = null
 
   /**
    * The narrow surface handed to built-in tool handlers and resource routes
@@ -296,12 +310,39 @@ export class AiSurfaceService {
       // is dropped by `getTools()`/`callTool()` favouring the built-in).
       if (!this.extraTools.has(tool.name)) this.extraTools.set(tool.name, tool)
     }
+    if (config.services) {
+      this.servicesWatch = config.services.watch<AiExtraTool[]>(
+        AGENT_TOOLS_SERVICE,
+        (providers) => {
+          this.resolvedExtraTools.clear()
+          for (const tool of providers.flat()) {
+            if (!this.resolvedExtraTools.has(tool.name))
+              this.resolvedExtraTools.set(tool.name, tool)
+          }
+        }
+      )
+    }
+  }
+
+  /** Stop observing the service registry. Idempotent. */
+  dispose(): void {
+    this.servicesWatch?.dispose()
+    this.servicesWatch = null
+  }
+
+  /** Static + resolved extra tools; static wins a name collision. */
+  private extraToolByName(name: string): AiExtraTool | undefined {
+    return this.extraTools.get(name) ?? this.resolvedExtraTools.get(name)
   }
 
   /** The contributed (non-built-in) tools, with built-in name collisions removed. */
   private getExtraTools(): AiExtraTool[] {
     const builtIn = new Set(this.builtInTools().map((t) => t.name))
-    return [...this.extraTools.values()].filter((t) => !builtIn.has(t.name))
+    const merged = new Map<string, AiExtraTool>()
+    for (const tool of [...this.extraTools.values(), ...this.resolvedExtraTools.values()]) {
+      if (!builtIn.has(tool.name) && !merged.has(tool.name)) merged.set(tool.name, tool)
+    }
+    return [...merged.values()]
   }
 
   getResources(): AiResource[] {
@@ -443,7 +484,7 @@ export class AiSurfaceService {
     const builtIn = BUILT_IN_TOOLS_BY_NAME.get(name)
     if (builtIn) return await builtIn.execute(this.host, args)
 
-    const extra = this.extraTools.get(name)
+    const extra = this.extraToolByName(name)
     if (extra) return await extra.invoke(args)
     throw new Error(`Unknown AI surface tool: ${name}`)
   }

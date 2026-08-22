@@ -20,7 +20,7 @@ import {
 } from '@xnetjs/data-bridge'
 import { UndoManager } from '@xnetjs/history'
 import { PluginRegistry, type Platform } from '@xnetjs/plugins'
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { SecurityProvider } from './context/security-context'
 import { TelemetryContext, type TelemetryReporter } from './context/telemetry-context'
 import { TracingContext, type TracingReporter } from './context/tracing-context'
@@ -424,7 +424,13 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   const hubStatus = useHubStatus(syncManager)
   useHubSearchIndex({ nodeStore, syncManager, hubUrl, enableSearchIndex })
 
-  // Create PluginRegistry when NodeStore is ready
+  // Create PluginRegistry when NodeStore is ready.
+  //
+  // Teardown is SEQUENCED (exploration 0455): React effect cleanup cannot
+  // await, so the next mount chains on the previous teardown promise instead
+  // — an async `deactivate` (scoped disposal is awaited since 0455) can no
+  // longer race the registry that replaces it.
+  const pluginTeardownRef = useRef<Promise<void>>(Promise.resolve())
   useEffect(() => {
     if (!nodeStore || !nodeStoreReady || config.disablePlugins) {
       log('PluginRegistry disabled or NodeStore not ready')
@@ -434,24 +440,35 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
 
     log('Creating PluginRegistry with platform:', platform)
 
-    const registry = new PluginRegistry(nodeStore, platform)
-    setPluginRegistry(registry)
+    let cancelled = false
+    let registry: PluginRegistry | null = null
+    const ready = pluginTeardownRef.current.then(() => {
+      if (cancelled) return
+      registry = new PluginRegistry(nodeStore, platform)
+      setPluginRegistry(registry)
 
-    // Load any previously installed plugins from storage
-    registry.loadFromStore().catch((err: unknown) => {
-      console.warn('[XNetProvider] Failed to load plugins from store:', err)
+      // Load any previously installed plugins from storage
+      registry.loadFromStore().catch((err: unknown) => {
+        console.warn('[XNetProvider] Failed to load plugins from store:', err)
+      })
     })
 
     return () => {
-      // Deactivate all plugins on cleanup
-      const plugins = registry.getAll()
-      for (const plugin of plugins) {
-        if (plugin.status === 'active') {
-          registry.deactivate(plugin.manifest.id).catch((err: unknown) => {
-            console.warn(`[XNetProvider] Failed to deactivate plugin ${plugin.manifest.id}:`, err)
-          })
+      cancelled = true
+      // Deactivate all plugins; the NEXT mount awaits this chain before
+      // constructing its registry.
+      pluginTeardownRef.current = ready.then(async () => {
+        if (!registry) return
+        for (const plugin of registry.getAll()) {
+          if (plugin.status === 'active') {
+            try {
+              await registry.deactivate(plugin.manifest.id)
+            } catch (err: unknown) {
+              console.warn(`[XNetProvider] Failed to deactivate plugin ${plugin.manifest.id}:`, err)
+            }
+          }
         }
-      }
+      })
       setPluginRegistry(null)
     }
   }, [nodeStore, nodeStoreReady, config.disablePlugins, config.platform])
