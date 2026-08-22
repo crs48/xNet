@@ -472,7 +472,7 @@ URLs, content, and validators untouched.
 - [x] Agent-readable layer: `public/llms.txt` top section + coding-agents
       entry; new `public/agents.md`; (optional, same PR: OG meta in
       `Base.astro`, `@astrojs/sitemap`, `robots.txt`)
-- [ ] Root `README.md`: connect-first Try-it bullet + "Your agent, your
+- [x] Root `README.md`: connect-first Try-it bullet + "Your agent, your
       workspace" section above Build-with
 - [ ] **Phase B**: loop demo section on `/` and `/agents` once 0456's
       "loop demo recorded" item is checked; typed-replay animation of the
