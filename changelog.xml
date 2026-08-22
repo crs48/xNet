@@ -6,6 +6,20 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Connect your coding agent from the front door</title>
+      <link>https://xnet.fyi/changelog#2026-08-21-connect-your-coding-agent-from-the-front</link>
+      <guid isPermaLink="false">2026-08-21-connect-your-coding-agent-from-the-front</guid>
+      <pubDate>Sat, 22 Aug 2026 02:04:01 GMT</pubDate>
+      <description>The site now leads with the agent connection: a copyable npx @xnetjs/cli connect command with per-client tabs in the hero, a new /agents page covering installs, the three access lanes, and the safety model, and agent-readable entry points at /llms.txt and /agents.md. Zero-install connects now register an MCP server that keeps working after the npx cache is gone.</description>
+    </item>
+    <item>
+      <title>New essay: The Hundred-Year Machine</title>
+      <link>https://xnet.fyi/changelog#2026-08-19-new-essay-the-hundred-year-machine</link>
+      <guid isPermaLink="false">2026-08-19-new-essay-the-hundred-year-machine</guid>
+      <pubDate>Thu, 20 Aug 2026 00:27:39 GMT</pubDate>
+      <description>A new blog essay asks one question of every machine in the house: if its maker vanished tonight, what still works in the morning? On rented rotary phones, bricked smart-home hubs, and the vanish test xNet pins in CI.</description>
+    </item>
+    <item>
       <title>New essay: The Door Inside the House</title>
       <link>https://xnet.fyi/changelog#2026-08-13-new-essay-the-door-inside-the-house</link>
       <guid isPermaLink="false">2026-08-13-new-essay-the-door-inside-the-house</guid>
@@ -2575,13 +2589,6 @@
 - Metrics, observations and experiments as first-class data
 - Streak heatmaps and correlation widgets
 - A &quot;Today&quot; panel for quick logging</description>
-    </item>
-    <item>
-      <title>New essay: The Hundred-Year Machine</title>
-      <link>https://xnet.fyi/changelog#2026-08-19-new-essay-the-hundred-year-machine</link>
-      <guid isPermaLink="false">2026-08-19-new-essay-the-hundred-year-machine</guid>
-      <pubDate>Tue, 02 Jun 2026 22:27:28 GMT</pubDate>
-      <description>A new blog essay asks one question of every machine in the house: if its maker vanished tonight, what still works in the morning? On rented rotary phones, bricked smart-home hubs, and the vanish test xNet pins in CI.</description>
     </item>
   </channel>
 </rss>

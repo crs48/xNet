@@ -6,6 +6,50 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-21-connect-your-coding-agent-from-the-front",
+      "url": "https://xnet.fyi/changelog#2026-08-21-connect-your-coding-agent-from-the-front",
+      "title": "Connect your coding agent from the front door",
+      "content_text": "The site now leads with the agent connection: a copyable npx @xnetjs/cli connect command with per-client tabs in the hero, a new /agents page covering installs, the three access lanes, and the safety model, and agent-readable entry points at /llms.txt and /agents.md. Zero-install connects now register an MCP server that keeps working after the npx cache is gone.\n",
+      "date_published": "2026-08-22T02:04:01Z",
+      "tags": [
+        "ai"
+      ],
+      "_xnet": {
+        "date": "August 21, 2026",
+        "summary": "The site now leads with the agent connection: a copyable npx @xnetjs/cli connect command with per-client tabs in the hero, a new /agents page covering installs, the three access lanes, and the safety model, and agent-readable entry points at /llms.txt and /agents.md. Zero-install connects now register an MCP server that keeps working after the npx cache is gone.",
+        "highlights": [],
+        "mergedAt": "2026-08-22T02:04:01Z",
+        "pr": 711,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-08-19-new-essay-the-hundred-year-machine",
+      "url": "https://xnet.fyi/changelog#2026-08-19-new-essay-the-hundred-year-machine",
+      "title": "New essay: The Hundred-Year Machine",
+      "content_text": "A new blog essay asks one question of every machine in the house: if its maker vanished tonight, what still works in the morning? On rented rotary phones, bricked smart-home hubs, and the vanish test xNet pins in CI.\n",
+      "date_published": "2026-08-20T00:27:39Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "August 19, 2026",
+        "summary": "A new blog essay asks one question of every machine in the house: if its maker vanished tonight, what still works in the morning? On rented rotary phones, bricked smart-home hubs, and the vanish test xNet pins in CI.",
+        "highlights": [],
+        "mergedAt": "2026-08-20T00:27:39Z",
+        "pr": 708,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-13-new-essay-the-door-inside-the-house",
       "url": "https://xnet.fyi/changelog#2026-08-13-new-essay-the-door-inside-the-house",
       "title": "New essay: The Door Inside the House",
@@ -7707,28 +7751,6 @@
         ],
         "mergedAt": "2026-06-14T23:43:49Z",
         "pr": 89,
-        "authors": [
-          {
-            "login": "crs48"
-          }
-        ]
-      }
-    },
-    {
-      "id": "2026-08-19-new-essay-the-hundred-year-machine",
-      "url": "https://xnet.fyi/changelog#2026-08-19-new-essay-the-hundred-year-machine",
-      "title": "New essay: The Hundred-Year Machine",
-      "content_text": "A new blog essay asks one question of every machine in the house: if its maker vanished tonight, what still works in the morning? On rented rotary phones, bricked smart-home hubs, and the vanish test xNet pins in CI.\n",
-      "date_published": "2026-06-02T22:27:28Z",
-      "tags": [
-        "platform"
-      ],
-      "_xnet": {
-        "date": "August 19, 2026",
-        "summary": "A new blog essay asks one question of every machine in the house: if its maker vanished tonight, what still works in the morning? On rented rotary phones, bricked smart-home hubs, and the vanish test xNet pins in CI.",
-        "highlights": [],
-        "mergedAt": "2026-06-02T22:27:28Z",
-        "pr": 25,
         "authors": [
           {
             "login": "crs48"
