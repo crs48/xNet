@@ -466,7 +466,7 @@ URLs, content, and validators untouched.
       `Footer.astro` (+Agents column)
 - [x] `GetStarted.astro`: path 1 becomes "Connect your agent" (command
       block), App and SDK follow
-- [ ] Docs IA: `sidebar.mjs` — coding-agents into Start Here (retitled
+- [x] Docs IA: `sidebar.mjs` — coding-agents into Start Here (retitled
       "Connect your agent"), agent-interfaces promoted; `docs/index.mdx`
       two-card lede; regenerate `llms-full.txt` (`pnpm check:llms-full`)
 - [ ] Agent-readable layer: `public/llms.txt` top section + coding-agents

@@ -12,8 +12,16 @@ export const sidebar = [
     label: 'Start Here',
     items: [
       { slug: 'docs/introduction' },
+      { slug: 'docs/guides/coding-agents' },
       { slug: 'docs/quickstart' },
       { slug: 'docs/core-concepts' }
+    ]
+  },
+  {
+    label: 'Agents',
+    items: [
+      { slug: 'docs/guides/agent-interfaces' },
+      { slug: 'docs/ai/understanding-xnet', label: 'For AI Assistants' }
     ]
   },
   {
@@ -86,8 +94,6 @@ export const sidebar = [
       { slug: 'docs/guides/identity' },
       { slug: 'docs/guides/collaboration' },
       { slug: 'docs/guides/plugins' },
-      { slug: 'docs/guides/agent-interfaces' },
-      { slug: 'docs/guides/coding-agents' },
       { slug: 'docs/guides/hub' },
       { slug: 'docs/guides/server' },
       { slug: 'docs/guides/frameworks' },
@@ -131,7 +137,6 @@ export const sidebar = [
     label: 'Resources',
     collapsed: true,
     items: [
-      { slug: 'docs/ai/understanding-xnet', label: 'For AI Assistants' },
       { label: 'Changelog', link: '/changelog' },
       { label: 'Compare to Alternatives', link: '/compare' },
       { label: 'Roadmap', link: '/#roadmap' }
