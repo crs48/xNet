@@ -4,5 +4,14 @@
   "title": "Connect your coding agent from the front door",
   "summary": "The site now leads with the agent connection: a copyable npx @xnetjs/cli connect command with per-client tabs in the hero, a new /agents page covering installs, the three access lanes, and the safety model, and agent-readable entry points at /llms.txt and /agents.md. Zero-install connects now register an MCP server that keeps working after the npx cache is gone.",
   "highlights": [],
-  "tags": ["ai"]
+  "tags": [
+    "ai"
+  ],
+  "pr": 711,
+  "mergedAt": "2026-08-22T02:04:01Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
