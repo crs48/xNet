@@ -482,7 +482,7 @@ URLs, content, and validators untouched.
 
 ## Validation Checklist
 
-- [ ] `cd site && pnpm build` green (all validators incl. llms-full check
+- [x] `cd site && pnpm build` green (all validators incl. llms-full check
       and validate-dist) with the new route and reordered sidebar
 - [ ] A fresh machine + `npx` run of the hero command succeeds verbatim
       as printed, against the published npm package (not the repo)
@@ -491,7 +491,7 @@ URLs, content, and validators untouched.
       tested by actually asking Claude Code with a clean context
 - [ ] Cursor deeplink and VS Code badge each install the MCP server on a
       clean profile; JSON fallback verified when the deeplink fails
-- [ ] Every demoted page still reachable within two clicks of `/`
+- [x] Every demoted page still reachable within two clicks of `/`
       (nav or footer); no URL removed (`check:exploration-links`-style
       manual sweep of site nav)
 - [ ] At least one 0456 manual onboarding completed **through the new
