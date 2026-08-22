@@ -469,7 +469,7 @@ URLs, content, and validators untouched.
 - [x] Docs IA: `sidebar.mjs` — coding-agents into Start Here (retitled
       "Connect your agent"), agent-interfaces promoted; `docs/index.mdx`
       two-card lede; regenerate `llms-full.txt` (`pnpm check:llms-full`)
-- [ ] Agent-readable layer: `public/llms.txt` top section + coding-agents
+- [x] Agent-readable layer: `public/llms.txt` top section + coding-agents
       entry; new `public/agents.md`; (optional, same PR: OG meta in
       `Base.astro`, `@astrojs/sitemap`, `robots.txt`)
 - [ ] Root `README.md`: connect-first Try-it bullet + "Your agent, your

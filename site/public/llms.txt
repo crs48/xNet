@@ -1,6 +1,16 @@
 # xNet
 
-> xNet is a local-first framework for building multiplayer applications with React. Data lives on the device, syncs peer-to-peer via CRDTs, and works offline. No backend required.
+> xNet is a local-first workspace and framework. Data lives on the device, syncs peer-to-peer via CRDTs, and works offline. Coding agents are first-class users: one command connects Claude Code or Codex to a user's workspace. No backend required.
+
+## If you are a coding agent
+
+Your human can connect you to their xNet workspace in one step — no prior install:
+
+- `npx @xnetjs/cli connect claude-code` (or `connect codex`) — installs a ~500-token SKILL.md, registers the xNet MCP server (read-only by default), and self-checks.
+- After connect, prefer lanes in this order: the `xnet` CLI (plain stdout, token-cheap), a scoped vault checkout (Markdown/JSONL files you can Read/Edit; `xnet commit` lifts edits into validated mutation plans), and MCP only when there is no shell.
+- [What am I connecting to?](https://xnet.fyi/agents.md): the agent-facing summary — lanes, CLI verbs, safety contract
+- [Connect Your Agent](https://xnet.fyi/docs/guides/coding-agents/): the one-step connect guide
+- [Agent Interfaces](https://xnet.fyi/docs/guides/agent-interfaces/): checkout layout, CLI verbs, SKILL.md, slim MCP, benchmark methodology
 
 ## Key Concepts
 
@@ -67,6 +77,7 @@ xNet is different from traditional client-server architectures:
 - [Identity](https://xnet.fyi/docs/guides/identity/): Cryptographic identity
 - [Collaboration](https://xnet.fyi/docs/guides/collaboration/): Real-time multiplayer
 - [Plugins](https://xnet.fyi/docs/guides/plugins/): Extend the platform
+- [Connect Your Agent](https://xnet.fyi/docs/guides/coding-agents/): One-step xnet connect for Claude Code / Codex
 - [Agent Interfaces](https://xnet.fyi/docs/guides/agent-interfaces/): Files-first surface, xnet CLI, SKILL.md
 - [Hub Setup](https://xnet.fyi/docs/guides/hub/): Optional always-on relay
 - [Testing](https://xnet.fyi/docs/guides/testing/): Test your app
