@@ -464,7 +464,7 @@ URLs, content, and validators untouched.
       `scripts/validate-dist.ts` expectations if route-asserting
 - [x] `Nav.astro` (+Agents link; button → "Connect your agent") and
       `Footer.astro` (+Agents column)
-- [ ] `GetStarted.astro`: path 1 becomes "Connect your agent" (command
+- [x] `GetStarted.astro`: path 1 becomes "Connect your agent" (command
       block), App and SDK follow
 - [ ] Docs IA: `sidebar.mjs` — coding-agents into Start Here (retitled
       "Connect your agent"), agent-interfaces promoted; `docs/index.mdx`
