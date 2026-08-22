@@ -36,6 +36,7 @@ import type {
   NodeChangeEvent as StoreChangeEvent
 } from '@xnetjs/data'
 import { guardStore } from './ecosystem/capability-guard'
+import { EffectScope } from './scope'
 import { getPlatformCapabilities, createExtensionStorage } from './types'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -139,6 +140,14 @@ export interface ExtensionContext {
 
   /** Auto-cleanup list - disposed when plugin deactivates */
   readonly subscriptions: Disposable[]
+
+  /**
+   * The plugin's effect scope (exploration 0455). Everything in
+   * `subscriptions` is drained through it at deactivation — reverse order,
+   * awaited — and `scope.child()` lets a plugin group the effects of a
+   * feature it can turn on and off independently of its other registrations.
+   */
+  readonly scope: EffectScope
 }
 
 // ─── Factory ───────────────────────────────────────────────────────────────
@@ -169,6 +178,21 @@ export function createExtensionContext(options: CreateContextOptions): Extension
   const store = guardStore(options.store, capabilities, pluginId)
   const disposables: Disposable[] = []
   const storage = createExtensionStorage()
+
+  // The scope drains `subscriptions` at dispose time — reverse order, awaited
+  // — so late pushes are covered and child scopes (registered later) tear
+  // down first (exploration 0455).
+  const scope = new EffectScope()
+  scope.use(async () => {
+    for (let i = disposables.length - 1; i >= 0; i--) {
+      try {
+        await disposables[i].dispose()
+      } catch (err) {
+        console.error(`Error disposing subscription for plugin '${pluginId}':`, err)
+      }
+    }
+    disposables.length = 0
+  })
 
   const ctx: ExtensionContext = {
     pluginId,
@@ -381,7 +405,8 @@ export function createExtensionContext(options: CreateContextOptions): Extension
 
     storage,
     capabilities: getPlatformCapabilities(platform),
-    subscriptions: disposables
+    subscriptions: disposables,
+    scope
   }
 
   return ctx

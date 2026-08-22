@@ -1,7 +1,6 @@
 /**
  * Plugin system hooks for accessing the PluginRegistry and contributions
  */
-import { warnOnEditorSchemaRisks } from '@xnetjs/plugins'
 import type {
   PluginRegistry,
   RegisteredPlugin,
@@ -16,6 +15,7 @@ import type {
   SettingContribution,
   ImporterContribution
 } from '@xnetjs/plugins'
+import { warnOnEditorSchemaRisks } from '@xnetjs/plugins'
 import { createContext, useContext, useState, useEffect, useMemo } from 'react'
 
 // ─── Context ────────────────────────────────────────────────────────────────
@@ -82,7 +82,9 @@ export function usePlugins(): RegisteredPlugin[] {
       setPlugins(registry.getAll())
     })
 
-    return () => disposable.dispose()
+    return () => {
+      void disposable.dispose()
+    }
   }, [registry])
 
   return plugins

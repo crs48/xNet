@@ -171,24 +171,11 @@ type SyncTestHarness = {
   goOnline: () => Promise<void>
 }
 
-// TODO: In production, load identity from secure storage via IPC
-// For dev/testing, use a deterministic test identity derived from a fixed seed
-// This ensures the DID and signing key are cryptographically matched
-
-// Fixed 32-byte seed for deterministic test identity (DO NOT use in production!)
-// Each profile gets a unique identity by hashing the profile name into the seed.
-// This ensures multi-instance dev/test runs have distinct DIDs.
-const makeTestKey = (profileName: string): Uint8Array => {
-  const seed = new Uint8Array([
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-    27, 28, 29, 30, 31, 32
-  ])
-  // Mix profile name into the seed so each profile has a different identity
-  for (let i = 0; i < profileName.length; i++) {
-    seed[i % 32] ^= profileName.charCodeAt(i)
-  }
-  return seed
-}
+// The signing seed comes from the MAIN process (0335 blocker #1 / 0456):
+// random, persisted per profile, platform-encrypted when available. The
+// renderer holds no key-derivation logic — the old fixed-seed `makeTestKey`
+// made every default-profile private key reconstructable from public source.
+// Deterministic identities survive only in main, behind XNET_TEST_BYPASS.
 
 // Defer AUTHOR_DID / SIGNING_KEY resolution until we know the profile (see init())
 let AUTHOR_DID: `did:key:${string}`
@@ -879,15 +866,13 @@ function LocalAPIStoreHandler() {
 async function init() {
   const startTime = performance.now()
 
-  // Get profile name from main process for identity isolation
-  // This allows running multiple Electron instances with separate identities
-  const profile = await window.xnet.getProfile()
-
-  // Resolve identity per profile so each instance has a unique DID
-  const testKey = makeTestKey(profile)
-  const testIdentity = identityFromPrivateKey(testKey)
-  AUTHOR_DID = testIdentity.did as `did:key:${string}`
-  SIGNING_KEY = testKey
+  // Resolve identity per profile so each instance has a unique DID. The main
+  // process knows the profile and owns the seed; see main/identity-seed.ts.
+  const { seedB64 } = await window.xnet.getIdentitySeed()
+  const signingSeed = Uint8Array.from(atob(seedB64), (c) => c.charCodeAt(0))
+  const identity = identityFromPrivateKey(signingSeed)
+  AUTHOR_DID = identity.did as `did:key:${string}`
+  SIGNING_KEY = signingSeed
 
   // IPC-based node storage that routes to data process SQLite
   // This ensures nodes persist locally and are available for sync

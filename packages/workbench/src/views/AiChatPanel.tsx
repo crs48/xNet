@@ -35,7 +35,7 @@ import {
   type ManagedBudgetSnapshot,
   type PromptApiAvailability
 } from '@xnetjs/plugins'
-import { useIdentity } from '@xnetjs/react'
+import { useIdentity, usePluginRegistryOptional } from '@xnetjs/react'
 import { useDataBridge, useNodeStore } from '@xnetjs/react/internal'
 import { Bot, Loader2, Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -189,6 +189,11 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     semanticRef.current = semanticSearch
   }, [semanticSearch])
 
+  // Resolve plugin/connector agent tools from the registry's service registry
+  // (exploration 0455) instead of hand-threading extraTools — a plugin
+  // activating mid-session adds its tools to this surface live.
+  const pluginRegistry = usePluginRegistryOptional()
+
   const surface = useMemo<AiSurfaceService | null>(() => {
     if (!store) return null
     // Graph-aware, budgeted context retrieval (exploration 0211): the context
@@ -212,8 +217,13 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
       entrySearch,
       tierOf: () => (semanticRef.current ? 'hybrid-graph' : keywordFellBack ? 'scan' : 'bm25-graph')
     })
-    return createAiSurfaceService({ store, schemas: schemaRegistryApi(), retrieveContext })
-  }, [store])
+    return createAiSurfaceService({
+      store,
+      schemas: schemaRegistryApi(),
+      retrieveContext,
+      ...(pluginRegistry ? { services: pluginRegistry.getServices() } : {})
+    })
+  }, [store, pluginRegistry])
 
   const toggleSemanticSearch = useCallback((next: boolean) => {
     setSemanticSearch(next)

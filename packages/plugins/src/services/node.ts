@@ -30,6 +30,14 @@ export type {
 } from './mcp-server'
 export { MCPServer, createMCPServer } from './mcp-server'
 
+// Service registry + workspace-plugin tool provider (exploration 0455): the
+// pieces a headless host needs to expose `plugin_*` through its MCP server.
+export { AGENT_TOOLS_SERVICE, ServiceRegistry } from '../service-registry'
+export {
+  createNodeStoreWorkspacePluginBackend,
+  registerWorkspacePluginAgentTools
+} from '../workspace-plugins/node-backend'
+
 // MCP HTTP transport (uses Node.js http module; exploration 0175)
 export type { McpHttpServerConfig, McpHttpServerHandle } from './mcp-http'
 export { createMcpHttpServer } from './mcp-http'

@@ -79,7 +79,9 @@ export function PluginManager() {
       setPlugins(registry.getAll())
     })
 
-    return () => disposable.dispose()
+    return () => {
+      void disposable.dispose()
+    }
   }, [registry])
 
   const handleActivate = useCallback(

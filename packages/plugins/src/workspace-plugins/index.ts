@@ -119,6 +119,12 @@ export type {
   WorkspacePluginSourceBackend
 } from './agent-tools'
 
+// NodeStore backend + service-registry provider (0455)
+export {
+  createNodeStoreWorkspacePluginBackend,
+  registerWorkspacePluginAgentTools
+} from './node-backend'
+
 // Publish (5a)
 export {
   buildCommunityRegistryEntry,

@@ -174,3 +174,19 @@ export type {
   WebLLMProviderOptions,
   WriteMode
 } from '../../packages/plugins/src/ai'
+
+// Workspace-plugin runtime pieces the workbench dev surface imports (0455).
+export {
+  createPluginSourceWatcher,
+  createWorkspacePluginHotReloader,
+  readPluginSourceNode
+} from '../../packages/plugins/src/workspace-plugins'
+export { PLUGIN_FRAME_SANDBOX } from '../../packages/plugins/src/workspace-plugins/frame'
+export type {
+  HotReloadEvent,
+  PluginFrameToHostMessage,
+  PluginFrameTransport,
+  PluginSourceNode,
+  WorkspacePluginHostDeps,
+  WorkspacePluginHotReloader
+} from '../../packages/plugins/src/workspace-plugins'

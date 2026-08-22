@@ -19,6 +19,9 @@ import {
   createAgentRetrieval,
   createMCPServer,
   createMcpHttpServer,
+  createNodeStoreWorkspacePluginBackend,
+  registerWorkspacePluginAgentTools,
+  ServiceRegistry,
   type McpHttpServerHandle,
   type MCPServer
 } from '@xnetjs/plugins/node'
@@ -79,10 +82,19 @@ export async function startAgentMcpServer(): Promise<AgentMcpServerHandle> {
   // search into 500 nodes over IPC. Both halves are fixed here and in the proxy.
   const retrieval = createAgentRetrieval({ store, schemas })
 
+  // Resolve agent tools from a service registry (0455): the bridged agent
+  // gets the plugin_* family (0331) — scaffold → build → preview a workspace
+  // plugin from inside Claude Code — instead of only the xnet_* built-ins.
+  const services = new ServiceRegistry()
+  registerWorkspacePluginAgentTools(services, {
+    backend: createNodeStoreWorkspacePluginBackend(store)
+  })
+
   const server = createMCPServer({
     store,
     schemas,
     retrieval,
+    services,
     // The 0337 ceremony (0394 Phase 2): every AI-surface tool call lands as an
     // AgentAction node, and medium+ risk writes park behind the risk-tiered
     // approval — medium releases on the APPROVE code the agent relays into

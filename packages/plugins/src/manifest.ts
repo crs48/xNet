@@ -84,6 +84,21 @@ export interface XNetExtension {
   dependencies?: Record<string, string>
 
   /**
+   * Service names this plugin registers on the host `ServiceRegistry` during
+   * `activate` (exploration 0455) — e.g. `agent-tools`. Declarative: the
+   * actual `provide()` happens in code; the manifest names it so installers
+   * and other plugins can see the edge.
+   */
+  provides?: string[]
+
+  /**
+   * Service names this plugin consumes (exploration 0455). Declarative
+   * counterpart to `ServiceRegistry.inject` — names what must be available
+   * for the plugin to be fully functional.
+   */
+  inject?: string[]
+
+  /**
    * SPDX license id (exploration 0196). Paid plugins must declare a license the
    * marketplace pre-approves — `FSL-1.1-MIT` / `FSL-1.1-Apache-2.0` (source-
    * available, auto-opens after 2 years) or an OSI id (`MIT`, `Apache-2.0`, …).
@@ -245,6 +260,8 @@ export function validateManifest(manifest: unknown): XNetExtension {
   }
 
   validateDependencies(m.dependencies, issues)
+  validateServiceNames(m.provides, 'provides', issues)
+  validateServiceNames(m.inject, 'inject', issues)
   validateContributions(m.contributes, issues)
 
   if (issues.length > 0) {
@@ -296,6 +313,30 @@ function validatePricing(pricing: unknown, issues: string[]): void {
   }
   if (p.trialDays !== undefined && (typeof p.trialDays !== 'number' || p.trialDays < 0)) {
     issues.push('pricing.trialDays must be a non-negative number')
+  }
+}
+
+/**
+ * Validate the optional `provides` / `inject` service-name lists (exploration
+ * 0455). Validated for real — unlike most contribution kinds — because these
+ * become visible dependency edges between plugins.
+ */
+function validateServiceNames(
+  value: unknown,
+  field: 'provides' | 'inject',
+  issues: string[]
+): void {
+  if (value === undefined) return
+  if (!Array.isArray(value)) {
+    issues.push(`${field} must be an array of service names`)
+    return
+  }
+  for (const entry of value) {
+    if (typeof entry !== 'string' || !/^[a-z][a-z0-9-]*(:[a-z0-9-]+)*$/.test(entry)) {
+      issues.push(
+        `${field} entries must be kebab-case service names (got ${JSON.stringify(entry)})`
+      )
+    }
   }
 }
 

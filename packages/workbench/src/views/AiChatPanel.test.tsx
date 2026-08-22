@@ -48,7 +48,9 @@ vi.mock('./ai-webllm-engine', () => ({
 
 // The approval ceremony stamps app-tier approvals with the operator identity.
 vi.mock('@xnetjs/react', () => ({
-  useIdentity: () => ({ identity: null, isAuthenticated: true, did: 'did:key:test-operator' })
+  useIdentity: () => ({ identity: null, isAuthenticated: true, did: 'did:key:test-operator' }),
+  // No plugin registry in the panel tests — the surface skips service resolution.
+  usePluginRegistryOptional: () => null
 }))
 
 // The panel reads the workspace store + schema registry to ground replies.

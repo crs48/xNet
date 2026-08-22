@@ -7,10 +7,13 @@ import type { SchemaIRI } from '@xnetjs/data'
 // ─── Disposable ────────────────────────────────────────────────────────────
 
 /**
- * A resource that can be disposed/cleaned up
+ * A resource that can be disposed/cleaned up. Async disposers are awaited by
+ * `EffectScope` (exploration 0455); callers that fire-and-forget still work.
+ * This is the ONE Disposable type — `@xnetjs/views` re-exports it, and new
+ * registries return it rather than a bare `() => void`.
  */
 export interface Disposable {
-  dispose(): void
+  dispose(): void | Promise<void>
 }
 
 // ─── Platform ──────────────────────────────────────────────────────────────

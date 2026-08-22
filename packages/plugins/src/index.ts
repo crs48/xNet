@@ -800,6 +800,8 @@ export {
   createWorkspacePluginPreviewManager,
   createWorkspacePluginAgentTools,
   scaffoldWorkspacePluginFiles,
+  createNodeStoreWorkspacePluginBackend,
+  registerWorkspacePluginAgentTools,
   requestWorkspacePluginPublish,
   buildCommunityRegistryEntry,
   exportPluginSourceAsRepoFiles
@@ -841,3 +843,12 @@ export type {
 
 // Workspace-plugin authoring skill (0331)
 export { WRITING_XNET_PLUGINS_SKILL_MD } from './ai-surface/plugin-skill'
+
+// Effect scopes + service registry (exploration 0455)
+export { EffectScope, ScopeDisposedError, type Effect } from './scope'
+export {
+  AGENT_TOOLS_SERVICE,
+  ServiceRegistry,
+  ServiceUnavailableError,
+  type InjectBody
+} from './service-registry'

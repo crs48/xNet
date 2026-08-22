@@ -9,10 +9,10 @@
  * `onChange` lets pickers re-enumerate.
  */
 
-import type { SchemaIRI } from '@xnetjs/data'
-import type { ComponentType } from 'react'
 import type { Disposable } from '../types.js'
 import type { FrameDef } from './types.js'
+import type { SchemaIRI } from '@xnetjs/data'
+import type { ComponentType } from 'react'
 
 export interface NodeFrameProps {
   frame: FrameDef
@@ -75,7 +75,11 @@ export class FrameSourceRegistry {
 
   onChange(listener: () => void): Disposable {
     this.listeners.add(listener)
-    return { dispose: () => this.listeners.delete(listener) }
+    return {
+      dispose: () => {
+        this.listeners.delete(listener)
+      }
+    }
   }
 
   private notify(): void {

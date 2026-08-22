@@ -7,6 +7,7 @@
  */
 
 import type { FirstPartyPlugin } from '../plugins/first-party-catalog'
+import { usePluginRegistryOptional } from '@xnetjs/react'
 import { CheckCircle, KeyRound, Settings2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import {
@@ -35,6 +36,7 @@ export function PluginConfigDialog({
   const fields = record.config ?? []
   const [values, setValues] = useState<PluginConfigValues>(() => readPluginConfig(pluginId))
   const [saved, setSaved] = useState(false)
+  const registry = usePluginRegistryOptional()
 
   const configured = useMemo(() => isPluginConfigured(fields, values), [fields, values])
 
@@ -45,6 +47,14 @@ export function PluginConfigDialog({
 
   const handleSave = () => {
     writePluginConfig(pluginId, values)
+    // Bounce the plugin's whole scope (exploration 0455) so an active plugin
+    // re-reads its config now — not on the next app boot. Full deactivate →
+    // activate is correct-if-slower; partial accept can come later.
+    if (registry?.has(pluginId)) {
+      registry.update(pluginId).catch((err: unknown) => {
+        console.warn(`[PluginConfigDialog] Failed to bounce ${pluginId} after config save:`, err)
+      })
+    }
     setSaved(true)
   }
 
