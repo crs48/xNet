@@ -1,0 +1,460 @@
+{
+  "stories": [
+    {
+      "id": "ui-components-catalog--docs",
+      "title": "UI/Components/Catalog",
+      "name": "Docs",
+      "file": "stories/ui-components-catalog--docs.png"
+    },
+    {
+      "id": "ui-components-catalog--overview",
+      "title": "UI/Components/Catalog",
+      "name": "Overview",
+      "file": "stories/ui-components-catalog--overview.png"
+    },
+    {
+      "id": "ui-composed-devtools-catalog--docs",
+      "title": "UI/Composed/Devtools Catalog",
+      "name": "Docs",
+      "file": "stories/ui-composed-devtools-catalog--docs.png"
+    },
+    {
+      "id": "ui-composed-devtools-catalog--overview",
+      "title": "UI/Composed/Devtools Catalog",
+      "name": "Overview",
+      "file": "stories/ui-composed-devtools-catalog--overview.png"
+    },
+    {
+      "id": "ui-composed-devtools-catalog--performance-lab",
+      "title": "UI/Composed/Devtools Catalog",
+      "name": "Performance Lab",
+      "file": "stories/ui-composed-devtools-catalog--performance-lab.png"
+    },
+    {
+      "id": "ui-composed-settingsview--docs",
+      "title": "UI/Composed/SettingsView",
+      "name": "Docs",
+      "file": "stories/ui-composed-settingsview--docs.png"
+    },
+    {
+      "id": "ui-composed-settingsview--default",
+      "title": "UI/Composed/SettingsView",
+      "name": "Default",
+      "file": "stories/ui-composed-settingsview--default.png"
+    },
+    {
+      "id": "ui-composed-settingsview--plugins-section",
+      "title": "UI/Composed/SettingsView",
+      "name": "Plugins Section",
+      "file": "stories/ui-composed-settingsview--plugins-section.png"
+    },
+    {
+      "id": "ui-comments-catalog--docs",
+      "title": "UI/Comments/Catalog",
+      "name": "Docs",
+      "file": "stories/ui-comments-catalog--docs.png"
+    },
+    {
+      "id": "ui-comments-catalog--overview",
+      "title": "UI/Comments/Catalog",
+      "name": "Overview",
+      "file": "stories/ui-comments-catalog--overview.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-single-comment",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / single comment",
+      "file": "stories/ui-comments-catalog--island-single-comment.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-long-thread",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / long thread (20 replies)",
+      "file": "stories/ui-comments-catalog--island-long-thread.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-resolved",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / resolved",
+      "file": "stories/ui-comments-catalog--island-resolved.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-preview",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / hover preview",
+      "file": "stories/ui-comments-catalog--island-preview.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-composing",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / composing (new comment)",
+      "file": "stories/ui-comments-catalog--island-composing.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-overlapping-threads",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / overlapping threads",
+      "file": "stories/ui-comments-catalog--island-overlapping-threads.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-viewport-edge",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / near the viewport edge",
+      "file": "stories/ui-comments-catalog--island-viewport-edge.png"
+    },
+    {
+      "id": "ui-primitives-button--docs",
+      "title": "UI/Primitives/Button",
+      "name": "Docs",
+      "file": "stories/ui-primitives-button--docs.png"
+    },
+    {
+      "id": "ui-primitives-button--default",
+      "title": "UI/Primitives/Button",
+      "name": "Default",
+      "file": "stories/ui-primitives-button--default.png"
+    },
+    {
+      "id": "ui-primitives-button--variants",
+      "title": "UI/Primitives/Button",
+      "name": "Variants",
+      "file": "stories/ui-primitives-button--variants.png"
+    },
+    {
+      "id": "ui-primitives-button--with-icons",
+      "title": "UI/Primitives/Button",
+      "name": "With Icons",
+      "file": "stories/ui-primitives-button--with-icons.png"
+    },
+    {
+      "id": "ui-primitives-button--loading",
+      "title": "UI/Primitives/Button",
+      "name": "Loading",
+      "file": "stories/ui-primitives-button--loading.png"
+    },
+    {
+      "id": "ui-primitives-contextmenu--docs",
+      "title": "UI/Primitives/ContextMenu",
+      "name": "Docs",
+      "file": "stories/ui-primitives-contextmenu--docs.png"
+    },
+    {
+      "id": "ui-primitives-contextmenu--primitive",
+      "title": "UI/Primitives/ContextMenu",
+      "name": "Primitive",
+      "file": "stories/ui-primitives-contextmenu--primitive.png"
+    },
+    {
+      "id": "ui-primitives-contextmenu--from-descriptors",
+      "title": "UI/Primitives/ContextMenu",
+      "name": "From Descriptors",
+      "file": "stories/ui-primitives-contextmenu--from-descriptors.png"
+    },
+    {
+      "id": "ui-primitives-catalog--docs",
+      "title": "UI/Primitives/Catalog",
+      "name": "Docs",
+      "file": "stories/ui-primitives-catalog--docs.png"
+    },
+    {
+      "id": "ui-primitives-catalog--overview",
+      "title": "UI/Primitives/Catalog",
+      "name": "Overview",
+      "file": "stories/ui-primitives-catalog--overview.png"
+    },
+    {
+      "id": "ui-wireframe-screen--docs",
+      "title": "UI/Wireframe/Screen",
+      "name": "Docs",
+      "file": "stories/ui-wireframe-screen--docs.png"
+    },
+    {
+      "id": "ui-wireframe-screen--vocabulary",
+      "title": "UI/Wireframe/Screen",
+      "name": "Vocabulary",
+      "file": "stories/ui-wireframe-screen--vocabulary.png"
+    },
+    {
+      "id": "ui-wireframe-screen--icon-markers",
+      "title": "UI/Wireframe/Screen",
+      "name": "Icon Markers",
+      "file": "stories/ui-wireframe-screen--icon-markers.png"
+    },
+    {
+      "id": "ui-wireframe-screen--surfaces",
+      "title": "UI/Wireframe/Screen",
+      "name": "Surfaces",
+      "file": "stories/ui-wireframe-screen--surfaces.png"
+    },
+    {
+      "id": "editor-xneteditor--docs",
+      "title": "Editor/XNetEditor",
+      "name": "Docs",
+      "file": "stories/editor-xneteditor--docs.png"
+    },
+    {
+      "id": "editor-xneteditor--empty",
+      "title": "Editor/XNetEditor",
+      "name": "Empty",
+      "file": "stories/editor-xneteditor--empty.png"
+    },
+    {
+      "id": "editor-xneteditor--read-only",
+      "title": "Editor/XNetEditor",
+      "name": "Read Only",
+      "file": "stories/editor-xneteditor--read-only.png"
+    },
+    {
+      "id": "editor-xneteditor--legacy-import",
+      "title": "Editor/XNetEditor",
+      "name": "Legacy Import",
+      "file": "stories/editor-xneteditor--legacy-import.png"
+    },
+    {
+      "id": "core-database-grid-v2--docs",
+      "title": "Core/Database/Grid V2",
+      "name": "Docs",
+      "file": "stories/core-database-grid-v2--docs.png"
+    },
+    {
+      "id": "core-database-grid-v2--playground",
+      "title": "Core/Database/Grid V2",
+      "name": "Playground",
+      "file": "stories/core-database-grid-v2--playground.png"
+    },
+    {
+      "id": "core-database-grid-v2--spreadsheet-ghost-cells",
+      "title": "Core/Database/Grid V2",
+      "name": "Spreadsheet Ghost Cells",
+      "file": "stories/core-database-grid-v2--spreadsheet-ghost-cells.png"
+    },
+    {
+      "id": "core-database-grid-v2--typeahead-tags",
+      "title": "Core/Database/Grid V2",
+      "name": "Typeahead Tags",
+      "file": "stories/core-database-grid-v2--typeahead-tags.png"
+    },
+    {
+      "id": "core-database-grid-v2--presence",
+      "title": "Core/Database/Grid V2",
+      "name": "Presence",
+      "file": "stories/core-database-grid-v2--presence.png"
+    },
+    {
+      "id": "core-database-grid-v2--comment-badges",
+      "title": "Core/Database/Grid V2",
+      "name": "Comment Badges",
+      "file": "stories/core-database-grid-v2--comment-badges.png"
+    },
+    {
+      "id": "core-database-grid-v2--files-and-images",
+      "title": "Core/Database/Grid V2",
+      "name": "Files And Images",
+      "file": "stories/core-database-grid-v2--files-and-images.png"
+    },
+    {
+      "id": "core-database-grid-v2--read-only",
+      "title": "Core/Database/Grid V2",
+      "name": "Read Only",
+      "file": "stories/core-database-grid-v2--read-only.png"
+    },
+    {
+      "id": "core-database-grid-v2--loading-skeleton",
+      "title": "Core/Database/Grid V2",
+      "name": "Loading Skeleton",
+      "file": "stories/core-database-grid-v2--loading-skeleton.png"
+    },
+    {
+      "id": "core-dashboard-surface--docs",
+      "title": "Core/Dashboard/Surface",
+      "name": "Docs",
+      "file": "stories/core-dashboard-surface--docs.png"
+    },
+    {
+      "id": "core-dashboard-surface--surface",
+      "title": "Core/Dashboard/Surface",
+      "name": "Surface",
+      "file": "stories/core-dashboard-surface--surface.png"
+    },
+    {
+      "id": "core-dashboard-surface--twenty-widgets",
+      "title": "Core/Dashboard/Surface",
+      "name": "Twenty Widgets",
+      "file": "stories/core-dashboard-surface--twenty-widgets.png"
+    },
+    {
+      "id": "core-dashboard-surface--canvas-card",
+      "title": "Core/Dashboard/Surface",
+      "name": "Canvas Card",
+      "file": "stories/core-dashboard-surface--canvas-card.png"
+    },
+    {
+      "id": "web-coachmark--docs",
+      "title": "Web/Coachmark",
+      "name": "Docs",
+      "file": "stories/web-coachmark--docs.png"
+    },
+    {
+      "id": "web-coachmark--command-palette",
+      "title": "Web/Coachmark",
+      "name": "Command Palette",
+      "file": "stories/web-coachmark--command-palette.png"
+    },
+    {
+      "id": "web-coachmark--below-anchor",
+      "title": "Web/Coachmark",
+      "name": "Below Anchor",
+      "file": "stories/web-coachmark--below-anchor.png"
+    },
+    {
+      "id": "web-comms-presencedot--docs",
+      "title": "Web/Comms/PresenceDot",
+      "name": "Docs",
+      "file": "stories/web-comms-presencedot--docs.png"
+    },
+    {
+      "id": "web-comms-presencedot--active",
+      "title": "Web/Comms/PresenceDot",
+      "name": "Active",
+      "file": "stories/web-comms-presencedot--active.png"
+    },
+    {
+      "id": "web-comms-presencedot--all-statuses",
+      "title": "Web/Comms/PresenceDot",
+      "name": "All Statuses",
+      "file": "stories/web-comms-presencedot--all-statuses.png"
+    },
+    {
+      "id": "web-comms-reactionbar--docs",
+      "title": "Web/Comms/ReactionBar",
+      "name": "Docs",
+      "file": "stories/web-comms-reactionbar--docs.png"
+    },
+    {
+      "id": "web-comms-reactionbar--default",
+      "title": "Web/Comms/ReactionBar",
+      "name": "Default",
+      "file": "stories/web-comms-reactionbar--default.png"
+    },
+    {
+      "id": "web-comms-reactionbar--single-reaction",
+      "title": "Web/Comms/ReactionBar",
+      "name": "Single Reaction",
+      "file": "stories/web-comms-reactionbar--single-reaction.png"
+    },
+    {
+      "id": "web-presenceavatars--docs",
+      "title": "Web/PresenceAvatars",
+      "name": "Docs",
+      "file": "stories/web-presenceavatars--docs.png"
+    },
+    {
+      "id": "web-storagewarningbanner--docs",
+      "title": "Web/StorageWarningBanner",
+      "name": "Docs",
+      "file": "stories/web-storagewarningbanner--docs.png"
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png"
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png"
+    },
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png"
+    },
+    {
+      "id": "explorations-0390-tasks-second-nav--docs",
+      "title": "Explorations/0390 Tasks second nav",
+      "name": "Docs",
+      "file": "stories/explorations-0390-tasks-second-nav--docs.png"
+    },
+    {
+      "id": "explorations-0403-mdx-visual-explorations--docs",
+      "title": "Explorations/0403 MDX visual explorations",
+      "name": "Docs",
+      "file": "stories/explorations-0403-mdx-visual-explorations--docs.png"
+    }
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png"
+    },
+    {
+      "id": "discover",
+      "label": "Discover",
+      "file": "routes/discover.png"
+    },
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png"
+    },
+    {
+      "id": "tasks",
+      "label": "Tasks",
+      "file": "routes/tasks.png"
+    },
+    {
+      "id": "experiments",
+      "label": "Experiments",
+      "file": "routes/experiments.png"
+    },
+    {
+      "id": "crm",
+      "label": "CRM",
+      "file": "routes/crm.png"
+    },
+    {
+      "id": "finance",
+      "label": "Finance",
+      "file": "routes/finance.png"
+    },
+    {
+      "id": "analytics",
+      "label": "Analytics",
+      "file": "routes/analytics.png"
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "file": "routes/settings.png"
+    },
+    {
+      "id": "requests",
+      "label": "Requests",
+      "file": "routes/requests.png"
+    },
+    {
+      "id": "social-import",
+      "label": "Social import",
+      "file": "routes/social-import.png"
+    }
+  ],
+  "flows": [],
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "file": "electron/electron-canvas-home.png"
+    },
+    {
+      "id": "electron-canvas-objects",
+      "label": "Desktop · Canvas with objects",
+      "file": "electron/electron-canvas-objects.png"
+    }
+  ],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}
