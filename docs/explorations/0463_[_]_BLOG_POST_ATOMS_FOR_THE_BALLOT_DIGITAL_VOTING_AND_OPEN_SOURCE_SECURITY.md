@@ -112,14 +112,14 @@ this worktree, so findings are grep-and-read derived.
 
 ### Scorecard: the five election requirements, translated to xNet
 
-| Requirement (Park et al.) | What it means for xNet                                           | Status              | Evidence                                                                                                                                              |
-| ------------------------- | ---------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Secret ballot          | Do we need anonymity _and_ verifiability on the same record?     | ✅ Not required     | Every `Change<T>` carries `authorDID` + `signature` — [`packages/sync/src/change.ts`](../../packages/sync/src/change.ts)                              |
-| 2. Software independence  | Can a bad **hub** change your data undetectably?                 | ✅ No               | Hub ingest gate verifies hash then signature — [`packages/hub/src/services/node-relay.ts`](../../packages/hub/src/services/node-relay.ts) (L267–300) |
-| 2′. Software independence | Can a bad **client build** change your data undetectably?        | ❌ Yes              | The client holds the key; nothing outside it attests what it signed                                                                                   |
-| 3. Verifiable record      | Can you check your own record without trusting us?               | 🚧 Partial          | `xnet audit verify <bundle>` runs offline — [`packages/cli/src/commands/audit.ts`](../../packages/cli/src/commands/audit.ts); needs a CLI, not eyes  |
-| 4. Contestability         | Can you prove tampering to a third party?                        | 🚧 One direction    | A forged change fails verification for anyone. "My device was compromised" is unprovable — the signature is valid                                     |
-| 5. Auditing               | Is the evidence actually checked, not just checkable?            | 🚧 Data yes, deps no | [`packages/sync/src/integrity-monitor.ts`](../../packages/sync/src/integrity-monitor.ts) re-verifies; no `pnpm audit`, CodeQL or update bot in CI    |
+| Requirement (Park et al.) | What it means for xNet                                       | Status               | Evidence                                                                                                                                             |
+| ------------------------- | ------------------------------------------------------------ | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Secret ballot          | Do we need anonymity _and_ verifiability on the same record? | ✅ Not required      | Every `Change<T>` carries `authorDID` + `signature` — [`packages/sync/src/change.ts`](../../packages/sync/src/change.ts)                             |
+| 2. Software independence  | Can a bad **hub** change your data undetectably?             | ✅ No                | Hub ingest gate verifies hash then signature — [`packages/hub/src/services/node-relay.ts`](../../packages/hub/src/services/node-relay.ts) (L267–300) |
+| 2′. Software independence | Can a bad **client build** change your data undetectably?    | ❌ Yes               | The client holds the key; nothing outside it attests what it signed                                                                                  |
+| 3. Verifiable record      | Can you check your own record without trusting us?           | 🚧 Partial           | `xnet audit verify <bundle>` runs offline — [`packages/cli/src/commands/audit.ts`](../../packages/cli/src/commands/audit.ts); needs a CLI, not eyes  |
+| 4. Contestability         | Can you prove tampering to a third party?                    | 🚧 One direction     | A forged change fails verification for anyone. "My device was compromised" is unprovable — the signature is valid                                    |
+| 5. Auditing               | Is the evidence actually checked, not just checkable?        | 🚧 Data yes, deps no | [`packages/sync/src/integrity-monitor.ts`](../../packages/sync/src/integrity-monitor.ts) re-verifies; no `pnpm audit`, CodeQL or update bot in CI    |
 
 ### What is strong
 
@@ -165,20 +165,20 @@ this worktree, so findings are grep-and-read derived.
 > 2026-09-18. None is exotic. An essay about security that ships from a repo
 > missing them invites the obvious reply.
 
-| Gap                                                     | Status                 | Note                                                                                                                                    |
-| ------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `SECURITY.md` / disclosure policy                       | ❌ Missing             | Only `security@xnet.fyi`, one line in [`site/src/pages/acceptable-use.astro`](../../site/src/pages/acceptable-use.astro) (L98)          |
-| Dependency update bot (`.github/dependabot.yml`)        | ❌ Missing             | 194 unique direct dependencies across the workspace                                                                                     |
-| `pnpm audit` in CI                                      | ❌ Missing             | An unchecked item in exploration 0120                                                                                                   |
-| CodeQL / static security analysis                       | ❌ Missing             | Prose only, in explorations 0134 and 0141                                                                                               |
-| Threat model                                            | ❌ Unfinished          | Exploration 0134 is `[_]`; 0307 (change-flow security) is `[_]`                                                                         |
-| Reproducible builds                                     | ❌ No claim anywhere   | So nobody can check that a shipped binary matches the public source                                                                     |
-| SBOM                                                    | 🚧 Hub container only  | A workflow artifact, not published or attested                                                                                          |
-| macOS signing                                           | 🚧 Conditional         | Falls back to self-signed, un-notarised when Apple secrets are absent — `.github/workflows/electron-release.yml`                        |
-| Post-quantum signatures on changes                      | 🚧 Built, unwired      | `change.ts` L18–24 says so plainly                                                                                                      |
-| Prompt-injection defence                                | 🚧 Scattered           | No dedicated module                                                                                                                     |
-| Seed at rest                                            | 🚧 Plaintext fallback  | [`apps/electron/src/main/identity-seed.ts`](../../apps/electron/src/main/identity-seed.ts) when `safeStorage` is unavailable            |
-| Metadata                                                | 🚧 Cleartext by design | `publicProps` + `recipients` in [`packages/crypto/src/envelope.ts`](../../packages/crypto/src/envelope.ts) stay readable for hub filtering |
+| Gap                                              | Status                 | Note                                                                                                                                       |
+| ------------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SECURITY.md` / disclosure policy                | ❌ Missing             | Only `security@xnet.fyi`, one line in [`site/src/pages/acceptable-use.astro`](../../site/src/pages/acceptable-use.astro) (L98)             |
+| Dependency update bot (`.github/dependabot.yml`) | ❌ Missing             | 194 unique direct dependencies across the workspace                                                                                        |
+| `pnpm audit` in CI                               | ❌ Missing             | An unchecked item in exploration 0120                                                                                                      |
+| CodeQL / static security analysis                | ❌ Missing             | Prose only, in explorations 0134 and 0141                                                                                                  |
+| Threat model                                     | ❌ Unfinished          | Exploration 0134 is `[_]`; 0307 (change-flow security) is `[_]`                                                                            |
+| Reproducible builds                              | ❌ No claim anywhere   | So nobody can check that a shipped binary matches the public source                                                                        |
+| SBOM                                             | 🚧 Hub container only  | A workflow artifact, not published or attested                                                                                             |
+| macOS signing                                    | 🚧 Conditional         | Falls back to self-signed, un-notarised when Apple secrets are absent — `.github/workflows/electron-release.yml`                           |
+| Post-quantum signatures on changes               | 🚧 Built, unwired      | `change.ts` L18–24 says so plainly                                                                                                         |
+| Prompt-injection defence                         | 🚧 Scattered           | No dedicated module                                                                                                                        |
+| Seed at rest                                     | 🚧 Plaintext fallback  | [`apps/electron/src/main/identity-seed.ts`](../../apps/electron/src/main/identity-seed.ts) when `safeStorage` is unavailable               |
+| Metadata                                         | 🚧 Cleartext by design | `publicProps` + `recipients` in [`packages/crypto/src/envelope.ts`](../../packages/crypto/src/envelope.ts) stay readable for hub filtering |
 
 One pattern is worth a sentence in the essay. CI runs roughly 25 custom
 gates on _architecture_ — licence boundaries, capability surfaces, humane
@@ -240,10 +240,10 @@ cleanest frame. Read at source for this exploration (pp. 1–6).
 
 Their four-way table is the essay's first picture:
 
-| &nbsp;                           | In person          | Remote                          |
-| -------------------------------- | ------------------ | ------------------------------- |
-| **Voter-verifiable paper**       | ✅ Precinct voting | ✅ Mail-in ballots              |
-| **Electronic-only record**       | ❌ DRE machines    | 🛑 Internet / mobile / blockchain |
+| &nbsp;                     | In person          | Remote                            |
+| -------------------------- | ------------------ | --------------------------------- |
+| **Voter-verifiable paper** | ✅ Precinct voting | ✅ Mail-in ballots                |
+| **Electronic-only record** | ❌ DRE machines    | 🛑 Internet / mobile / blockchain |
 
 ### Why the requirements collide
 
@@ -298,31 +298,31 @@ moves trust from the count to the specialist.
 
 ### Banking is the wrong analogy
 
-| Property                | Online banking                   | Online voting                     |
-| ----------------------- | -------------------------------- | --------------------------------- |
-| Identity on the record  | Required                         | Forbidden                         |
-| Reversible              | Yes — chargebacks, corrections   | No                                |
-| Loss absorbed by        | Bank, merchant, insurer          | Nobody; "no means to make voters whole" |
-| Tolerated failure rate  | Non-zero, priced in              | Must be below the margin          |
-| Customer can audit      | Yes — read your statement        | Not without breaking secrecy      |
-| Typical adversary       | Criminals seeking money          | Nation states seeking doubt       |
+| Property               | Online banking                 | Online voting                           |
+| ---------------------- | ------------------------------ | --------------------------------------- |
+| Identity on the record | Required                       | Forbidden                               |
+| Reversible             | Yes — chargebacks, corrections | No                                      |
+| Loss absorbed by       | Bank, merchant, insurer        | Nobody; "no means to make voters whole" |
+| Tolerated failure rate | Non-zero, priced in            | Must be below the margin                |
+| Customer can audit     | Yes — read your statement      | Not without breaking secrecy            |
+| Typical adversary      | Criminals seeking money        | Nation states seeking doubt             |
 
 Sources: Verified Voting, _If I Can Shop and Bank Online, Why Can't I Vote
 Online?_; Park et al. §1; Schneier, _On Blockchain Voting_ (2020).
 
 ### The record
 
-| Year    | System                        | Open source?              | What happened                                                                                                                                             |
-| ------- | ----------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2010    | Washington DC pilot           | Yes, public test          | Halderman's Michigan team took full control within ~36 hours, changed every ballot, made the site play the Michigan fight song; saw probes from China and Iran |
-| 2014    | Estonia i-voting              | Partly                    | Springall et al.: serious architectural limits; the system "blindly trusts the election servers and the voters' computers"                                |
-| 2019    | Swiss Post / Scytl sVote      | Source published for test | Lewis, Pereira and Teague found a flaw allowing undetectable vote manipulation in the "universally verifiable" mixnet; the same code ran in New South Wales |
-| 2019    | Moscow blockchain voting      | Partly                    | Gaudry recovered private keys in minutes (key sizes too small); broken again after the fix                                                                |
-| 2020    | Voatz (West Virginia, others) | **Closed**                | Specter, Koppel and Weitzner reverse-engineered the Android app; attackers could alter, stop or expose a vote. The title: _The Ballot is Busted Before the Blockchain_ |
-| 2021    | NSW iVote                     | Closed                    | Overload left voters without credentials; the Supreme Court voided three council elections. No attacker required                                          |
-| 2023    | Estonia                       | —                         | 51% of votes cast online, a first; no proven compromise; in 2024 the Academy of Sciences commission found no significant risks                            |
-| 2023    | Swiss Post relaunch           | Public source, bug bounty | Approved for limited trials with full verifiability and independent examination                                                                           |
-| 2025–26 | VoteSecure (Tusk / Free & Fair) | **Open**, on GitHub     | 21 scientists respond: it cannot protect against endpoint malware, concedes no receipt-freeness, and leaves dispute resolution unspecified                 |
+| Year    | System                          | Open source?              | What happened                                                                                                                                                          |
+| ------- | ------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2010    | Washington DC pilot             | Yes, public test          | Halderman's Michigan team took full control within ~36 hours, changed every ballot, made the site play the Michigan fight song; saw probes from China and Iran         |
+| 2014    | Estonia i-voting                | Partly                    | Springall et al.: serious architectural limits; the system "blindly trusts the election servers and the voters' computers"                                             |
+| 2019    | Swiss Post / Scytl sVote        | Source published for test | Lewis, Pereira and Teague found a flaw allowing undetectable vote manipulation in the "universally verifiable" mixnet; the same code ran in New South Wales            |
+| 2019    | Moscow blockchain voting        | Partly                    | Gaudry recovered private keys in minutes (key sizes too small); broken again after the fix                                                                             |
+| 2020    | Voatz (West Virginia, others)   | **Closed**                | Specter, Koppel and Weitzner reverse-engineered the Android app; attackers could alter, stop or expose a vote. The title: _The Ballot is Busted Before the Blockchain_ |
+| 2021    | NSW iVote                       | Closed                    | Overload left voters without credentials; the Supreme Court voided three council elections. No attacker required                                                       |
+| 2023    | Estonia                         | —                         | 51% of votes cast online, a first; no proven compromise; in 2024 the Academy of Sciences commission found no significant risks                                         |
+| 2023    | Swiss Post relaunch             | Public source, bug bounty | Approved for limited trials with full verifiability and independent examination                                                                                        |
+| 2025–26 | VoteSecure (Tusk / Free & Fair) | **Open**, on GitHub       | 21 scientists respond: it cannot protect against endpoint malware, concedes no receipt-freeness, and leaves dispute resolution unspecified                             |
 
 Two lessons the essay needs from this table.
 
@@ -347,14 +347,14 @@ and it still was not enough to make the system safe to deploy.
 
 Not because it is old. Because of what atoms do for free.
 
-| Property                 | Paper ballot                           | Electronic record                                  |
-| ------------------------ | -------------------------------------- | -------------------------------------------------- |
-| Read by                  | Eyes                                   | Software, which is the thing in doubt              |
-| Copy cost                | High, and copies are distinguishable   | Zero, and copies are identical                     |
-| Edit at a distance       | Impossible                             | The default                                        |
-| Cost to alter _n_ records | Grows with _n_ — people, time, access  | Roughly constant in _n_                            |
-| Who can observe handling | Anyone in the room                     | Whoever has root                                   |
-| Failure mode             | Local, visible, slow                   | Global, silent, instant                            |
+| Property                  | Paper ballot                          | Electronic record                     |
+| ------------------------- | ------------------------------------- | ------------------------------------- |
+| Read by                   | Eyes                                  | Software, which is the thing in doubt |
+| Copy cost                 | High, and copies are distinguishable  | Zero, and copies are identical        |
+| Edit at a distance        | Impossible                            | The default                           |
+| Cost to alter _n_ records | Grows with _n_ — people, time, access | Roughly constant in _n_               |
+| Who can observe handling  | Anyone in the room                    | Whoever has root                      |
+| Failure mode              | Local, visible, slow                  | Global, silent, instant               |
 
 Stated as cost, where $n$ is the number of votes changed:
 
@@ -407,8 +407,7 @@ repository — and it was caught by one engineer who noticed SSH logins had
 got half a second slower. Open source made that catch _possible_. Luck made
 it _happen_.
 
-**AI is collapsing the obscurity discount.** DARPA's AIxCC finals (August
-2025) showed autonomous find-and-patch on real infrastructure code. Google's
+**AI is collapsing the obscurity discount.** DARPA's AIxCC finals (August 2025) showed autonomous find-and-patch on real infrastructure code. Google's
 Big Sleep caught a SQLite zero-day before it was used. One firm's system
 reportedly found all twelve vulnerabilities in OpenSSL's January 2026
 release, some more than 25 years old. The same tools read decompiled
@@ -466,11 +465,11 @@ flowchart LR
 A rule of thumb the essay can offer: how much you can digitise depends on
 three dials.
 
-| Dial                | Low → digital is fine                 | High → keep atoms in the loop     |
-| ------------------- | ------------------------------------- | --------------------------------- |
-| Stakes              | Club committee, feature poll          | Control of a state                |
-| Need for secrecy    | Open show of hands is acceptable      | Coercion and vote-buying are real |
-| Adversary           | A bored member                        | A foreign intelligence service    |
+| Dial             | Low → digital is fine            | High → keep atoms in the loop     |
+| ---------------- | -------------------------------- | --------------------------------- |
+| Stakes           | Club committee, feature poll     | Control of a state                |
+| Need for secrecy | Open show of hands is acceptable | Coercion and vote-buying are real |
+| Adversary        | A bored member                   | A foreign intelligence service    |
 
 Most collective decisions people actually make — co-ops, unions, open-source
 projects, housing associations, a hub's membership — sit at the low end on
@@ -537,20 +536,20 @@ where paper lives.
 
 ### The essay
 
-| Option | Shape                                                                                   | For                                                        | Against                                               | Verdict        |
-| ------ | --------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------- | -------------- |
-| **A**  | One essay: voting as the hard case, then the mirror on xNet, then atoms and electrons   | Matches the prompt; the mirror is what makes it credible   | Long; three subjects to hold in one arc               | ✅ Recommended |
-| B      | Two essays: _why paper_ (civic) and _open source under fire_ (xNet)                     | Each is tighter; the civic one travels beyond our audience | Splits the insight — the mirror only lands after the case | 🟡 Fallback if A passes 3,000 words |
-| C      | A docs page ("Security model") instead of an essay                                      | Durable, linkable, scannable                               | Not what was asked; no room for the voting argument    | 🟡 Do as well, later |
-| D      | A defence piece: "why open, federated software is _more_ secure"                        | Easy to write                                              | Untrue as stated, and the repo gaps would sink it      | 🛑 Rejected    |
+| Option | Shape                                                                                 | For                                                        | Against                                                   | Verdict                             |
+| ------ | ------------------------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------- |
+| **A**  | One essay: voting as the hard case, then the mirror on xNet, then atoms and electrons | Matches the prompt; the mirror is what makes it credible   | Long; three subjects to hold in one arc                   | ✅ Recommended                      |
+| B      | Two essays: _why paper_ (civic) and _open source under fire_ (xNet)                   | Each is tighter; the civic one travels beyond our audience | Splits the insight — the mirror only lands after the case | 🟡 Fallback if A passes 3,000 words |
+| C      | A docs page ("Security model") instead of an essay                                    | Durable, linkable, scannable                               | Not what was asked; no room for the voting argument       | 🟡 Do as well, later                |
+| D      | A defence piece: "why open, federated software is _more_ secure"                      | Easy to write                                              | Untrue as stated, and the repo gaps would sink it         | 🛑 Rejected                         |
 
 ### The repo honesty pass
 
-| Option | What                                                                                  | Cost      | Verdict                                                     |
-| ------ | ------------------------------------------------------------------------------------- | --------- | ----------------------------------------------------------- |
-| **1**  | Close the three cheap gaps first (`SECURITY.md`, update bot, audit ratchet), admit the rest in the essay | ~1 day    | ✅ Recommended                                              |
-| 2      | Publish now, admit everything                                                         | 0         | 🟡 Honest, but "we know and have not spent a day on it" reads badly |
-| 3      | Fix everything (reproducible builds, threat model, SBOMs) before publishing           | Weeks     | 🛑 The essay never ships; open follow-up explorations instead |
+| Option | What                                                                                                     | Cost   | Verdict                                                             |
+| ------ | -------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------- |
+| **1**  | Close the three cheap gaps first (`SECURITY.md`, update bot, audit ratchet), admit the rest in the essay | ~1 day | ✅ Recommended                                                      |
+| 2      | Publish now, admit everything                                                                            | 0      | 🟡 Honest, but "we know and have not spent a day on it" reads badly |
+| 3      | Fix everything (reproducible builds, threat model, SBOMs) before publishing                              | Weeks  | 🛑 The essay never ships; open follow-up explorations instead       |
 
 The audit gate must follow the repo's own rule: **ratchet against a
 committed baseline, with a negative control**. An absolute "zero advisories"
@@ -742,9 +741,7 @@ import { readFileSync } from 'node:fs'
 const baseline = new Set(JSON.parse(readFileSync('scripts/audit-baseline.json', 'utf8')))
 
 export function newFindings(advisories) {
-  return advisories.filter(
-    (a) => ['high', 'critical'].includes(a.severity) && !baseline.has(a.id)
-  )
+  return advisories.filter((a) => ['high', 'critical'].includes(a.severity) && !baseline.has(a.id))
 }
 
 // --selftest: fixtures live in memory, never on disk, so a planted
@@ -787,16 +784,16 @@ bits. `BallotArt.astro` + `BallotHero.astro` under
 
 ## Risks And Open Questions
 
-| Risk                                                                    | Severity  | Mitigation                                                                                        |
-| ----------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------- |
-| Reads as "xNet is secure" marketing                                     | 🔴 High   | Act V's failing test is stated in the body; open gaps are listed with links on publication day    |
-| Publishing the gap list hands attackers a map                           | 🟠 Medium | Every listed gap is an _absence of process_ visible in the public repo already; no unpatched bug is described. Anything exploitable goes through `security@` first |
-| Drifts into US election politics                                        | 🔴 High   | Cite computer scientists and national academies only; no parties, no named contests, no fraud claims about real elections. Paper is the consensus of the field, not of a side |
-| Estonia handled unfairly in either direction                            | 🟠 Medium | One fair paragraph: what it achieved, what it cannot prove, why a small high-trust state may reasonably choose it |
-| Overclaiming from vendor AI figures                                     | 🟠 Medium | Attribute or cut; AIxCC and Big Sleep are the primary-sourced examples                            |
-| "Software independence against the hub" overstated — does every client verify on receipt? | 🟠 Medium | Confirm in `packages/sync/src/integrity.ts` and the receive path before drafting; exploration 0307 is still open |
-| Overlap with _Weights You Can Hold_ and _The Vault and the View_        | 🟡 Low    | One glancing link each; this essay owns the evidence-and-audit ground                             |
-| Length                                                                  | 🟡 Low    | If the draft passes 3,000 words, split per Option B at the Act IV/V seam                          |
+| Risk                                                                                      | Severity  | Mitigation                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reads as "xNet is secure" marketing                                                       | 🔴 High   | Act V's failing test is stated in the body; open gaps are listed with links on publication day                                                                                |
+| Publishing the gap list hands attackers a map                                             | 🟠 Medium | Every listed gap is an _absence of process_ visible in the public repo already; no unpatched bug is described. Anything exploitable goes through `security@` first            |
+| Drifts into US election politics                                                          | 🔴 High   | Cite computer scientists and national academies only; no parties, no named contests, no fraud claims about real elections. Paper is the consensus of the field, not of a side |
+| Estonia handled unfairly in either direction                                              | 🟠 Medium | One fair paragraph: what it achieved, what it cannot prove, why a small high-trust state may reasonably choose it                                                             |
+| Overclaiming from vendor AI figures                                                       | 🟠 Medium | Attribute or cut; AIxCC and Big Sleep are the primary-sourced examples                                                                                                        |
+| "Software independence against the hub" overstated — does every client verify on receipt? | 🟠 Medium | Confirm in `packages/sync/src/integrity.ts` and the receive path before drafting; exploration 0307 is still open                                                              |
+| Overlap with _Weights You Can Hold_ and _The Vault and the View_                          | 🟡 Low    | One glancing link each; this essay owns the evidence-and-audit ground                                                                                                         |
+| Length                                                                                    | 🟡 Low    | If the draft passes 3,000 words, split per Option B at the Act IV/V seam                                                                                                      |
 
 **Open questions.**
 
@@ -825,15 +822,15 @@ claim on attention should lapse.
 
 _Honesty pass — before the essay publishes_
 
-- [ ] Add a root `SECURITY.md` (reporting address, response-time promise,
+- [x] Add a root `SECURITY.md` (reporting address, response-time promise,
       safe harbour, supported versions) and link it from the site footer
       and [`acceptable-use.astro`](../../site/src/pages/acceptable-use.astro)
-- [ ] Add `.github/dependabot.yml` (or Renovate) for npm and GitHub
+- [x] Add `.github/dependabot.yml` (or Renovate) for npm and GitHub
       Actions, grouped weekly
-- [ ] Add `scripts/check-dependency-audit.mjs` as a ratchet against a
+- [x] Add `scripts/check-dependency-audit.mjs` as a ratchet against a
       committed baseline, with an in-memory `--selftest`, wired into
       `.github/workflows/ci.yml` beside the real scan
-- [ ] Add the no-binding-secret-ballots sentence to `GOVERNANCE.md`
+- [x] Add the no-binding-secret-ballots sentence to `GOVERNANCE.md`
 - [ ] Confirm whether clients verify signatures on receipt, not only hubs on
       ingest; record the answer here and in exploration 0307
 

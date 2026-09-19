@@ -28,7 +28,7 @@ Three things keep BDFL legitimate here:
 3. **This document commits to growing past BDFL** on the triggers below.
 
 **Exit alone is not a governance model.** A project whose only answer to
-disagreement is "you can leave" loses the disagreement *and* the signal — the
+disagreement is "you can leave" loses the disagreement _and_ the signal — the
 members most sensitive to quality exit first and quietly. Where voice is
 missing, disputes skip straight to the expensive moves: forks, litigation,
 unilateral operator action. Voice is the cheap move, so it should come first.
@@ -40,12 +40,12 @@ The reasoning is in
 These tiers exist so the path is legible. Most are aspirational at xNet's current
 size — they describe how you climb the ladder as the project grows.
 
-| Role | Can | Becomes this by |
-| ---- | --- | --------------- |
-| **User** | File issues, ask questions, propose ideas | Using xNet |
-| **Contributor** | Open PRs, review, discuss | Landing a PR |
-| **Maintainer** | Merge PRs in their area, triage, release | Sustained, high-quality contribution + invitation by existing maintainers (2 maintainers, or the BDFL while there is one) |
-| **Steering** *(future)* | Set cross-cutting direction | Created on Trigger 2 below |
+| Role                    | Can                                       | Becomes this by                                                                                                           |
+| ----------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **User**                | File issues, ask questions, propose ideas | Using xNet                                                                                                                |
+| **Contributor**         | Open PRs, review, discuss                 | Landing a PR                                                                                                              |
+| **Maintainer**          | Merge PRs in their area, triage, release  | Sustained, high-quality contribution + invitation by existing maintainers (2 maintainers, or the BDFL while there is one) |
+| **Steering** _(future)_ | Set cross-cutting direction               | Created on Trigger 2 below                                                                                                |
 
 Maintainers are listed in [`MAINTAINERS.md`](./MAINTAINERS.md). A maintainer who is
 inactive for **12 months** moves to **Emeritus** (a fast path back on return).
@@ -88,6 +88,15 @@ BDFL still decides. What it removes is the ability to change a rule that binds
 other people without saying why, in public, on the record. Protocol changes stay
 in [XPP](./docs/specs/protocol/xpp/README.md).
 
+### No binding secret ballots
+
+xNet does not host, and will not build, a **binding secret ballot**. When a
+group here needs to count heads — a poll, a Steering decision, a hub's members —
+the vote is open, signed and attributable, or it goes through the Rule Change
+Proposal path above. A ballot that must be both anonymous and checkable, cast
+from a device nobody has inspected, is an unsolved problem in computer science,
+not a feature we are behind on (exploration 0463).
+
 ## Contributing & provenance
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md). Contributions are accepted under the
@@ -113,20 +122,20 @@ If the founder becomes unavailable, maintainership and control of the `@xnetjs`
 npm scope, the `xnet.fyi` domain, and the trademark pass to the active maintainers
 listed in [`MAINTAINERS.md`](./MAINTAINERS.md), who may continue the project and/or
 accelerate the foundation transfer below. Access credentials are documented for at
-least one trusted second party. *(Until there is a second maintainer, this is the
+least one trusted second party. _(Until there is a second maintainer, this is the
 founder's explicit intent on record; it becomes operational as soon as
-`MAINTAINERS.md` has a second name.)*
+`MAINTAINERS.md` has a second name.)_
 
 ## How governance grows (triggers)
 
 Lifted from [exploration 0241](./docs/explorations/0241_[_]_OPEN_COLLECTIVE_FOUNDATION_OR_COMPANY_LEGAL_AND_FUNDING_STRUCTURE.md).
-We commit to *acting* on these, not just listing them:
+We commit to _acting_ on these, not just listing them:
 
-| Trigger | Change |
-| ------- | ------ |
-| **3+ recurring non-founder maintainers** | Add maintainers to `MAINTAINERS.md` with areas; adopt the two-maintainer-approval rule; BDFL steps back from routine merges |
-| **External hub operators / org adoption** | Stand up a **Steering** group; formalize the protocol-RFC process |
-| **Ecosystem maturity** (0241 Phase 4) | Transfer trademark + protocol spec + conformance suite to an independent **xNet Foundation**; this document's "BDFL" becomes "Steering Committee" and "maintainers hold the mark" becomes "the Foundation holds the mark" |
+| Trigger                                   | Change                                                                                                                                                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **3+ recurring non-founder maintainers**  | Add maintainers to `MAINTAINERS.md` with areas; adopt the two-maintainer-approval rule; BDFL steps back from routine merges                                                                                               |
+| **External hub operators / org adoption** | Stand up a **Steering** group; formalize the protocol-RFC process                                                                                                                                                         |
+| **Ecosystem maturity** (0241 Phase 4)     | Transfer trademark + protocol spec + conformance suite to an independent **xNet Foundation**; this document's "BDFL" becomes "Steering Committee" and "maintainers hold the mark" becomes "the Foundation holds the mark" |
 
 ## Changing this document
 

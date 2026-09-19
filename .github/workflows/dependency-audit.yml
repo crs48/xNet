@@ -1,0 +1,47 @@
+name: Dependency audit
+
+# Ratchet on high/critical PRODUCTION advisories (exploration 0463).
+#
+# Named consumer: the repo owner, via the failed-run notification of the weekly
+# schedule. Pass condition: no high/critical advisory outside
+# scripts/dependency-audit-baseline.json, AND a readable audit report — an
+# unreachable registry exits 2, because no report is not a clean report.
+#
+# Deliberately NOT a required PR check. Advisories are published on someone
+# else's calendar, so a required gate would redden unrelated PRs overnight. It
+# runs on a schedule, and on PRs that touch the lockfile — where a new finding
+# is that PR's own doing. The negative control runs in ci.yml with the other
+# gate controls (`pnpm check:gate-controls`), so every PR still proves the gate
+# can go red.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 14 * * 1'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'pnpm-lock.yaml'
+      - 'scripts/check-dependency-audit.mjs'
+      - 'scripts/dependency-audit-baseline.json'
+      - '.github/workflows/dependency-audit.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Negative control
+        run: node scripts/check-dependency-audit.mjs --selftest
+
+      - name: No new high/critical production advisories
+        run: pnpm check:dependency-audit
