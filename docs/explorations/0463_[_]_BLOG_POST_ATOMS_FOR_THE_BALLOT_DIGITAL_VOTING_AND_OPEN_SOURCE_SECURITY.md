@@ -64,7 +64,7 @@ independence, voter-verifiable ballots, contestability and auditing. Each is
 achievable alone. Together, over the internet, from a phone nobody controls,
 no known technology delivers them — a position restated in January 2026 by
 21 computer scientists including Rivest, Schneier, Halderman, Appel, Stark
-and Teague. The record agrees: Washington DC's 2010 pilot fell in about 36
+and Teague. The record agrees: Washington DC's 2010 pilot fell within 48
 hours; Voatz, sVote, Moscow's blockchain system and NSW's iVote each failed
 in a different way.
 
@@ -314,7 +314,7 @@ Online?_; Park et al. §1; Schneier, _On Blockchain Voting_ (2020).
 
 | Year    | System                          | Open source?              | What happened                                                                                                                                                          |
 | ------- | ------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2010    | Washington DC pilot             | Yes, public test          | Halderman's Michigan team took full control within ~36 hours, changed every ballot, made the site play the Michigan fight song; saw probes from China and Iran         |
+| 2010    | Washington DC pilot             | Yes, public test          | Halderman's Michigan team took near-complete control within 48 hours, changed every vote, made the site play the Michigan fight song; officials took ~36 hours to notice. Logs showed unrelated SSH guessing from Iran, India, China and New Jersey         |
 | 2014    | Estonia i-voting                | Partly                    | Springall et al.: serious architectural limits; the system "blindly trusts the election servers and the voters' computers"                                             |
 | 2019    | Swiss Post / Scytl sVote        | Source published for test | Lewis, Pereira and Teague found a flaw allowing undetectable vote manipulation in the "universally verifiable" mixnet; the same code ran in New South Wales            |
 | 2019    | Moscow blockchain voting        | Partly                    | Gaudry recovered private keys in minutes (key sizes too small); broken again after the fix                                                                             |
@@ -399,18 +399,17 @@ open code shortens the time from _known_ to _exploited_, and also from
 _known_ to _fixed_.
 
 **Many eyes is a condition, not a guarantee.** Heartbleed sat in OpenSSL for
-two years while the project ran on roughly one full-time developer. The xz
+two years and three months while two full-time people maintained half a
+million lines of critical code on about $2,000 a year in donations. The xz
 backdoor (CVE-2024-3094) was a multi-year social-engineering campaign
 against a single exhausted maintainer, hidden in test files and the build
-system so that it appeared in release tarballs but not in the plain source
-repository — and it was caught by one engineer who noticed SSH logins had
-got half a second slower. Open source made that catch _possible_. Luck made
+system so that the script which armed it existed only in release tarballs, never in
+the git repository — and it was caught by one engineer who noticed SSH
+logins burning more CPU than they should. Open source made that catch _possible_. Luck made
 it _happen_.
 
 **AI is collapsing the obscurity discount.** DARPA's AIxCC finals (August 2025) showed autonomous find-and-patch on real infrastructure code. Google's
-Big Sleep caught a SQLite zero-day before it was used. One firm's system
-reportedly found all twelve vulnerabilities in OpenSSL's January 2026
-release, some more than 25 years old. The same tools read decompiled
+Big Sleep caught a SQLite zero-day before it was used. The same tools read decompiled
 binaries. Hiding source used to buy months; it now buys less each year,
 while still costing every benefit of outside review. What remains decisive
 is how fast a fix reaches users.
@@ -445,7 +444,7 @@ speed of light.
 flowchart LR
     subgraph fast["Electrons — fast, open, reversible"]
         R["Registration &<br/>eligibility lookup"]
-        D["Deliberation<br/>(Pol.is, Decidim,<br/>participatory budgets)"]
+        D["Deliberation<br/>(Decidim,<br/>participatory budgets)"]
         M["Ballot marking aids<br/>& accessibility"]
         T["Ballot tracking<br/>'your envelope arrived'"]
         P["Results as signed,<br/>public data"]
@@ -479,21 +478,35 @@ where paper lives.
 
 ### Details needing verification before print
 
-- The DC pilot timing: sources say "within 36 hours" and "48 hours"; use the
-  paper (Wolchok, Wustrow, Isabel, Halderman, FC 2012).
-- Voatz author list and venue (USENIX Security 2020): Specter, Koppel,
-  Weitzner.
-- Swiss trial caps on the share of the electorate allowed to vote online —
-  recalled as 30% cantonal / 10% national; **unverified**, confirm at the
-  Federal Chancellery or drop.
-- "All twelve OpenSSL vulnerabilities" is a vendor claim (AISLE) relayed by
-  a secondary source; attribute it or cut it.
-- The "500 zero-days" figure is likewise a vendor claim; attribute.
-- Heartbleed staffing ("one full-time developer") — cite the OpenSSL
-  Software Foundation's own 2014 statement.
-- Pol.is / vTaiwan and Decidim are named from general knowledge, not fetched
-  in this pass. Source them or soften.
-- Kerckhoffs 1883 and Shannon's maxim: cite primary or a reliable history.
+> [!NOTE]
+> **Settled 2026-09-18 — every item resolved at source.**
+>
+> - **DC pilot.** Wolchok, Wustrow, Isabel, Halderman (FC 2012), read in
+>   full: "within 48 hours" to near-complete control; "approximately 36
+>   hours" is the _detection_ delay, not the break-in. The song is "The
+>   Victors". The authors say the SSH guessing from Iran, New Jersey, India
+>   and China was **not** aimed at the voting system — the essay must not
+>   imply foreign election interference.
+> - **Voatz.** Specter, Koppel, Weitzner, 29th USENIX Security (2020) —
+>   confirmed from the paper's title page.
+> - **Swiss electorate caps.** The Federal Chancellery page confirms licences
+>   cover "a limited section of the electorate" and names six trial cantons,
+>   but gives no percentages. The 30%/10% figures are **dropped**.
+> - **AI bug-finding.** The OpenSSL and "500 zero-days" figures are vendor
+>   claims via secondary sources: **cut**. The essay keeps AIxCC and Big
+>   Sleep, stated without numbers.
+> - **Heartbleed.** Corrected: two full-time people, ~$2,000 a year in
+>   donations (New York Times via Wikipedia); in the code from 31 Dec 2011 to
+>   7 Apr 2014.
+> - **xz.** Corrected: "Jia Tan" contributed from 2021; the arming
+>   `build-to-host.m4` was only in release tarballs; Freund was chasing high
+>   CPU use in SSH logins. The "half a second" detail is **cut**.
+> - **vTaiwan.** The citation 404'd, which by house rule means it goes:
+>   **dropped**. Decidim stays (Barcelona, 2016, AGPL, roughly 400
+>   institutions by 2023).
+> - **Kerckhoffs.** 1883, _Journal of Military Science_; Shannon's "the enemy
+>   knows the system".
+> - **Banking.** The Verified Voting piece is David Jefferson's.
 
 ---
 
@@ -582,7 +595,7 @@ concrete-object grain.
 
 ```mermaid
 flowchart LR
-    A["<b>I. The fight song</b><br/>DC 2010: 36 hours,<br/>every ballot, a marching band"]
+    A["<b>I. The fight song</b><br/>DC 2010: 48 hours,<br/>every vote, a marching band"]
     B["<b>II. Five things at once</b><br/>secret, checkable, provable,<br/>final, on a stranger's phone"]
     C["<b>III. Why the bank is fine</b><br/>named, reversible, insured —<br/>a ballot is none of these"]
     D["<b>IV. What atoms do for free</b><br/>a reader with no moving parts;<br/>fraud that costs per ballot"]
@@ -593,12 +606,14 @@ flowchart LR
     style F fill:#14532d,color:#fff
 ```
 
-**Act I** opens in October 2010. Washington DC invites the public to test
+**Act I** opens in autumn 2010. Washington DC invites the public to test
 its new internet voting system. A professor and three colleagues from
-Michigan own the server inside two days, rewrite every ballot, and leave a
+Michigan own the server inside 48 hours, rewrite every vote, and leave a
 calling card: after you vote, your browser plays the Michigan fight song.
-Officials take two days to notice, and only because of the music. In the
-logs, the team finds they were not alone. Five sentences, then the question:
+Officials take about 36 hours to notice, and only because someone on a
+mailing list asks what the tune is. In the logs the team finds the ordinary
+background noise of the internet — password-guessing from four countries —
+already rattling the door. Five sentences, then the question:
 sixteen years and a great deal of cryptography later, why is the expert
 consensus _unchanged_?
 
@@ -850,10 +865,10 @@ _Honesty pass — before the essay publishes_
 
 _The essay_
 
-- [ ] Read at source: Wolchok et al. (DC, FC 2012); Specter, Koppel,
+- [x] Read at source: Wolchok et al. (DC, FC 2012); Specter, Koppel,
       Weitzner (Voatz, USENIX Security 2020); Springall et al. (Estonia,
       CCS 2014); Park et al. (2021); the January 2026 CITP letter
-- [ ] Resolve every item under "Details needing verification before print"
+- [x] Resolve every item under "Details needing verification before print"
       — source it, soften it, or cut it
 - [ ] Draft `site/src/pages/blog/atoms-for-the-ballot.astro` to the six-act
       spine, ~2,600 words, en-GB, no bulleted lists
