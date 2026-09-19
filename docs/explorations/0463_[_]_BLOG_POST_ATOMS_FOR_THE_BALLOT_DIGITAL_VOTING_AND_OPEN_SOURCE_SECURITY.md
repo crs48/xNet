@@ -275,8 +275,8 @@ The tensions in plain words:
 - **Verifiability against contestability.** Suppose your verifier says your
   vote was changed. You cannot show anyone without revealing your vote, and
   officials cannot cancel an election on unproven claims. The 2026 letter's
-  line: verification becomes theatre if a voter cannot prove the cheating
-  they detect.
+  point: with no dispute-resolution protocol, the verification step "doesn't
+  add any useful security".
 - **The endpoint.** The voter's device is the polling booth, and nobody
   inspects it. Malware can display your choice and transmit another, and can
   lie to the verification app too.
@@ -312,17 +312,17 @@ Online?_; Park et al. §1; Schneier, _On Blockchain Voting_ (2020).
 
 ### The record
 
-| Year    | System                          | Open source?              | What happened                                                                                                                                                          |
-| ------- | ------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2010    | Washington DC pilot             | Yes, public test          | Halderman's Michigan team took near-complete control within 48 hours, changed every vote, made the site play the Michigan fight song; officials took ~36 hours to notice. Logs showed unrelated SSH guessing from Iran, India, China and New Jersey         |
-| 2014    | Estonia i-voting                | Partly                    | Springall et al.: serious architectural limits; the system "blindly trusts the election servers and the voters' computers"                                             |
-| 2019    | Swiss Post / Scytl sVote        | Source published for test | Lewis, Pereira and Teague found a flaw allowing undetectable vote manipulation in the "universally verifiable" mixnet; the same code ran in New South Wales            |
-| 2019    | Moscow blockchain voting        | Partly                    | Gaudry recovered private keys in minutes (key sizes too small); broken again after the fix                                                                             |
-| 2020    | Voatz (West Virginia, others)   | **Closed**                | Specter, Koppel and Weitzner reverse-engineered the Android app; attackers could alter, stop or expose a vote. The title: _The Ballot is Busted Before the Blockchain_ |
-| 2021    | NSW iVote                       | Closed                    | Overload left voters without credentials; the Supreme Court voided three council elections. No attacker required                                                       |
-| 2023    | Estonia                         | —                         | 51% of votes cast online, a first; no proven compromise; in 2024 the Academy of Sciences commission found no significant risks                                         |
-| 2023    | Swiss Post relaunch             | Public source, bug bounty | Approved for limited trials with full verifiability and independent examination                                                                                        |
-| 2025–26 | VoteSecure (Tusk / Free & Fair) | **Open**, on GitHub       | 21 scientists respond: it cannot protect against endpoint malware, concedes no receipt-freeness, and leaves dispute resolution unspecified                             |
+| Year    | System                          | Open source?              | What happened                                                                                                                                                                                                                                       |
+| ------- | ------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2010    | Washington DC pilot             | Yes, public test          | Halderman's Michigan team took near-complete control within 48 hours, changed every vote, made the site play the Michigan fight song; officials took ~36 hours to notice. Logs showed unrelated SSH guessing from Iran, India, China and New Jersey |
+| 2014    | Estonia i-voting                | Partly                    | Springall et al.: serious architectural limits; the system "blindly trusts the election servers and the voters' computers"                                                                                                                          |
+| 2019    | Swiss Post / Scytl sVote        | Source published for test | Lewis, Pereira and Teague found a flaw allowing undetectable vote manipulation in the "universally verifiable" mixnet; the same code ran in New South Wales                                                                                         |
+| 2019    | Moscow blockchain voting        | Partly                    | Gaudry recovered private keys in minutes (key sizes too small); broken again after the fix                                                                                                                                                          |
+| 2020    | Voatz (West Virginia, others)   | **Closed**                | Specter, Koppel and Weitzner reverse-engineered the Android app; attackers could alter, stop or expose a vote. The title: _The Ballot is Busted Before the Blockchain_                                                                              |
+| 2021    | NSW iVote                       | Closed                    | Overload left voters without credentials; the Supreme Court voided three council elections. No attacker required                                                                                                                                    |
+| 2023    | Estonia                         | —                         | 51% of votes cast online, a first; no proven compromise; in 2024 the Academy of Sciences commission found no significant risks                                                                                                                      |
+| 2023    | Swiss Post relaunch             | Public source, bug bounty | Approved for limited trials with full verifiability and independent examination                                                                                                                                                                     |
+| 2025–26 | VoteSecure (Tusk / Free & Fair) | **Open**, on GitHub       | 21 scientists respond: it cannot protect against endpoint malware, concedes no receipt-freeness, and leaves dispute resolution unspecified                                                                                                          |
 
 Two lessons the essay needs from this table.
 
@@ -847,7 +847,7 @@ claim on attention should lapse.
 
 ## Implementation Checklist
 
-**Status:** ░░░░░░░░░░ 0/17 items
+**Status:** █████████░ 16/17 items
 
 _Honesty pass — before the essay publishes_
 
@@ -870,47 +870,47 @@ _The essay_
       CCS 2014); Park et al. (2021); the January 2026 CITP letter
 - [x] Resolve every item under "Details needing verification before print"
       — source it, soften it, or cut it
-- [ ] Draft `site/src/pages/blog/atoms-for-the-ballot.astro` to the six-act
+- [x] Draft `site/src/pages/blog/atoms-for-the-ballot.astro` to the six-act
       spine, ~2,600 words, en-GB, no bulleted lists
-- [ ] Add the post entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
+- [x] Add the post entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
       with `draft: true` during authoring
-- [ ] Build `BallotArt.astro` + `BallotHero.astro` and register the art in
+- [x] Build `BallotArt.astro` + `BallotHero.astro` and register the art in
       the `heroArt` map in [`site/src/pages/blog/index.astro`](../../site/src/pages/blog/index.astro)
-- [ ] Add a `Sources` section in the house style: one prose `<li>` per topic
+- [x] Add a `Sources` section in the house style: one prose `<li>` per topic
       cluster, saying what was taken and how reliable it is
-- [ ] List the repo gaps still open on publication day, each linked to its
+- [x] List the repo gaps still open on publication day, each linked to its
       tracking exploration or issue
-- [ ] Run `/humanize`; fix only elevated tells, leave facts, quotes and
+- [x] Run `/humanize`; fix only elevated tells, leave facts, quotes and
       casing alone
-- [ ] Add a changelog fragment via `node scripts/changelog/new.mjs`
-- [ ] Flip `draft: false` and set `pubDate` from the merge commit
-- [ ] `pnpm --filter site build` passes with the post registered
+- [x] Add a changelog fragment via `node scripts/changelog/new.mjs`
+- [x] Flip `draft: false` and set `pubDate` from the merge commit
+- [x] `pnpm --filter site build` passes with the post registered
 - [ ] Open follow-up explorations (do not block on them): reproducible
       Electron builds and binary transparency; web-app code integrity;
       finishing threat model 0134
 
 ## Validation Checklist
 
-- [ ] Every factual claim in the essay traces to a URL or repo path in its
+- [x] Every factual claim in the essay traces to a URL or repo path in its
       `Sources` section
-- [ ] Every external source returns 200 on a manual fetch (403 is a
+- [x] Every external source returns 200 on a manual fetch (403 is a
       bot-block and acceptable with a note; **404 means the citation is
       fabricated**)
-- [ ] No quotation exceeds a sentence; Park et al.'s frame is credited in
+- [x] No quotation exceeds a sentence; Park et al.'s frame is credited in
       the body
-- [ ] The essay states, in its own voice, that a compromised client can
+- [x] The essay states, in its own voice, that a compromised client can
       sign anything and nothing downstream can tell
-- [ ] The essay makes no claim that xNet is fit for elections or any other
+- [x] The essay makes no claim that xNet is fit for elections or any other
       high-stakes regulated use
-- [ ] No political party, candidate or disputed real-world contest is named
-- [ ] Every AI bug-finding figure carries its source's name
-- [ ] The audit gate's `--selftest` fails when its planted advisory is
+- [x] No political party, candidate or disputed real-world contest is named
+- [x] Every AI bug-finding figure carries its source's name
+- [x] The audit gate's `--selftest` fails when its planted advisory is
       removed from the check (proof it can go red), and an unreachable
       registry exits non-zero
 - [ ] `SECURITY.md` is reachable in two clicks from the site home page
-- [ ] The post appears on `/blog`, in `rss.xml`, and renders its hero art
-- [ ] `pnpm check:exploration-links` passes
-- [ ] Read at 320px
+- [x] The post appears on `/blog`, in `rss.xml`, and renders its hero art
+- [x] `pnpm check:exploration-links` passes
+- [x] Read at 320px
 
 ---
 

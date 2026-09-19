@@ -1,0 +1,507 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import SeriesNav from '../../components/blog/SeriesNav.astro'
+import BallotHero from '../../components/blog/BallotHero.astro'
+import Byline from '../../components/blog/Byline.astro'
+import { postBySlug, formatPostDate } from '../../data/blog'
+
+const post = postBySlug('atoms-for-the-ballot')!
+---
+
+<Base title={`${post.title} — xNet`} description={post.description}>
+  <Nav />
+
+  <main>
+    <BallotHero
+      title={post.title}
+      deck={post.description}
+      date={formatPostDate(post.pubDate)}
+      readingMinutes={post.readingMinutes}
+      tags={post.tags}
+    />
+
+    <article
+      class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400"
+    >
+      <Byline post={post} />
+
+      <p>
+        In the autumn of 2010, Washington DC was about to let overseas voters
+        cast real ballots through a website. Before it did, the city tried
+        something brave. It put the system online for a mock election and
+        invited anyone who liked to break in.
+      </p>
+      <p>
+        A professor and three colleagues at the University of Michigan took
+        up the offer. Within forty-eight hours they had near-complete control
+        of the election server. They changed every vote and could read
+        almost every secret ballot. They even found the building's security
+        cameras on the same network and watched the server room from Ann
+        Arbor. Then they left a calling card: after you voted, your browser
+        played "The Victors", the Michigan fight song.
+      </p>
+      <p>
+        Nobody running the election noticed for about a day and a half. What
+        gave it away was a message on a mailing list, asking if anyone knew
+        what tune the site played for successful voters. The city shelved the
+        plan.
+      </p>
+      <p>
+        That was sixteen years ago, and a great deal of clever cryptography
+        has been written since. Yet in January this year, twenty-one computer
+        scientists signed a letter saying what the field has said all along:
+        internet voting is insecure, and nothing we know how to build can
+        make it secure. The names on it include Ron Rivest, who is the R in
+        RSA, and Bruce Schneier. These aren't people who are afraid of
+        computers. So I went looking for why they're so sure, and came back
+        with an awkward question about the software we make here.
+      </p>
+
+      <h2 id="five-things">Five things at once</h2>
+
+      <p>
+        The clearest account I found is a paper from MIT by Sunoo Park,
+        Michael Specter, Neha Narula and Rivest. They list five things an
+        election needs, and the list is worth walking slowly, because the
+        whole problem is in how they rub against each other.
+      </p>
+      <p>
+        First, the ballot is secret. That isn't a courtesy. If nobody can
+        find out how you voted, nobody can pay you to vote their way, or
+        threaten you if you don't. Before the secret ballot, buying votes was
+        the main way elections were stolen.
+      </p>
+      <p>
+        Second is a property with an ugly name, software independence. It
+        means a hidden bug or a hidden change in the software must not be
+        able to cause a hidden change in the result. You're allowed to use
+        computers. You just can't be forced to take their word.
+      </p>
+      <p>
+        Third, you can see that your ballot says what you meant before you
+        cast it. Fourth, if someone finds an error, they can prove it to
+        everyone else. And fifth, somebody actually checks. The authors have
+        a nice line for a system that could be audited and never is: it's
+        like keeping every receipt and never looking at the bill.
+      </p>
+      <p>
+        Any one of these is easy. Now try them together, from a phone. To
+        check that your vote counted, you need some kind of receipt. But a
+        receipt that proves how you voted is a receipt you can sell, or be
+        made to show to your boss. Cryptographers have clever ways round
+        this, and they work on a whiteboard. The January letter's complaint
+        is that in a real voter's hands they are confusing, and few voters
+        bother.
+      </p>
+      <p>
+        Suppose you do check, and your checker says your vote was changed.
+        Now what? You can't show anyone without giving up your secret. The
+        officials can't cancel an election because some people say their
+        phones told them something. A check that can't end in proof, the
+        letter says, adds no useful security at all.
+      </p>
+      <p>
+        Then there's the phone itself. At a polling place the booth belongs
+        to the election. At home the booth is your own device, which nobody
+        has inspected, running whatever it picked up last month. Malware can
+        show you one choice and send another. It can lie to the checking app
+        as well.
+      </p>
+      <p>
+        Two more things make it worse. An election happens once, so catching
+        a fraud doesn't undo it; all you can do is run a different election
+        later. And the attacker isn't a thief. It may be a state, and a state
+        doesn't even need to change the result, only to leave enough doubt
+        that the losing side won't accept it. What an election really
+        makes isn't a winner. It's a loser who goes home.
+      </p>
+
+      <h2 id="the-bank">But I bank on my phone</h2>
+
+      <p>
+        Everyone says this, and it deserves a straight answer. Online banking
+        isn't safe either. It's insured.
+      </p>
+      <p>
+        Your bank knows exactly who you are, and every payment has your name
+        on it. When a payment turns out to be fraud, the bank reverses it.
+        When it can't, the bank or the shop or an insurer eats the loss, and
+        the cost comes back to all of us as slightly higher prices. Fraud is
+        a line in the budget. You can also audit the bank yourself, simply by
+        reading your statement.
+      </p>
+      <p>
+        A ballot allows none of that. Your name can't be on it. It can't be
+        reversed. Nobody can make a country whole after a stolen election.
+        And you can't read your own line in the count without breaking the
+        secrecy that protects you.
+      </p>
+      <p>
+        Hold on to this, because it matters later. Most of what we do with
+        computers is shaped like the bank: named, fixable, and checkable by
+        the person it belongs to. Voting is the strange one.
+      </p>
+
+      <h2 id="atoms">What atoms do for free</h2>
+
+      <p>
+        So why paper? Not because it's old, and not because election
+        officials are sentimental. Look at what a marked paper ballot
+        actually gives you.
+      </p>
+      <p>
+        You can read it with your eyes. That sounds trivial until you notice
+        that every electronic record needs a program to show it to you, and
+        the program is the very thing in doubt. Paper is the only data format
+        whose reader has no moving parts.
+      </p>
+      <p>
+        You also can't edit paper from another continent. To change a paper
+        ballot you have to be in the room with it. To change a million, you
+        need a million acts, in thousands of rooms, in front of people who
+        are there to watch. That takes a conspiracy, and big conspiracies
+        leak. The MIT paper puts the other side plainly: one remote
+        programmer, changing one line, could alter millions of electronic
+        ballots in milliseconds. On paper, cheating costs something for every
+        vote. In software the millionth vote is as cheap as the first.
+      </p>
+      <p>
+        This is the sense in which electrons are less robust than atoms.
+        Electrons copy for nothing, change without a trace, and can be
+        reached from anywhere. Those are the same features that make them
+        wonderful. The slowness that makes paper annoying is exactly what
+        makes it hard to cheat with.
+      </p>
+      <p>
+        None of this means counting by hand. Scanners count the paper, fast.
+        Afterwards, officials pull a random sample of ballots and compare
+        them with what the machines said. If the margin is healthy, a few
+        hundred ballots can confirm a contest of tens of millions, with a
+        known, small chance of being wrong. If the sample disagrees, you pull
+        more, all the way to a full hand count if you must. It's called a
+        risk-limiting audit, and America's National Academies asked for it
+        in every state back in 2018, alongside paper for everyone and no
+        marked ballots sent home over the internet. The machines give you
+        speed, the paper keeps the machines honest, and a bit of statistics
+        makes the honesty cheap.
+      </p>
+      <p>
+        I owe Estonia a fair paragraph. It has voted online since 2005. In
+        2023, for the first time, more than half its votes came in that way.
+        Every citizen carries an identity card with a cryptographic key
+        inside, and you can vote again to overwrite a vote someone pressured
+        you into. Nobody has shown a stolen Estonian election. But when a
+        team that included Alex Halderman, the professor from the DC story,
+        studied the system in 2014, their finding wasn't that it had been
+        hacked. It was that the design leans on trusting the voters'
+        computers, the servers and the staff, and couldn't prove it
+        <em>hadn't</em> been hacked. A small country with high trust has
+        looked at that and decided to live with it. That's a real choice. It
+        isn't a proof.
+      </p>
+
+      <h2 id="the-mirror">Now do us</h2>
+
+      <p>
+        Here's the awkward question. We build xNet, which hopes to move a lot
+        of everyday software out of a few companies' data centres and into
+        something closer to a commons: your data on your own machines,
+        synced through servers that anyone can run. If the world's best
+        security people can't make one vote safe online, what business do we
+        have?
+      </p>
+      <p>
+        There are three sharp versions of the doubt, and I've heard all of
+        them. Isn't some software safer because attackers can't read it? Ours
+        is open source; nobody even needs a decompiler. Isn't small safer?
+        Ours isn't small. And if good people can read the code to find the
+        holes, can't bad people read it too?
+      </p>
+      <p>
+        Take secrecy first. Voatz was the phone voting app West Virginia used
+        for real in 2018, and its code was closed. Three researchers at MIT
+        pulled the app apart anyway, rebuilt enough of the server to study
+        it, and found that an attacker could change, block or expose a
+        person's vote. Hiding the code had delayed the bad news. It hadn't
+        prevented it. Swiss Post went the other way in 2019 and published the
+        code for its new voting system. Three outsiders found a flaw that
+        allowed votes to be changed without detection, in the very part that
+        was meant to prove nothing had been changed. They found it before an
+        election rather than after, because they could read it.
+      </p>
+      <p>
+        So the old rule holds. A Dutch linguist named Kerckhoffs wrote it
+        down in 1883: a system should stay safe even when everything about it
+        is public except the key. Keep your keys secret, and your passwords,
+        and the details of a bug until it's fixed. Don't rest anything on the
+        hope that nobody reads how the lock works. That hope is shrinking
+        anyway. Software that reads software has got very good, very quickly,
+        and it reads a compiled program nearly as happily as the source.
+      </p>
+      <p>
+        But I won't pretend open code checks itself. Heartbleed sat in
+        OpenSSL, the library guarding much of the web, for more than two
+        years, while two full-time people looked after half a million lines
+        on about two thousand dollars a year in donations. In 2024 somebody
+        spent over two years befriending the one tired volunteer who
+        maintained a small compression tool called xz, then slipped a back
+        door into it. The piece that armed it never appeared in the public
+        code at all, only in the packaged releases. One engineer caught it,
+        because his logins were using more processor than they should.
+        Openness made that catch possible. Luck made it happen. As for who
+        wins the race between good readers and bad ones, the studies I could
+        find say open and closed software come out about even on how bad
+        their holes are. What differs is whether you're allowed to look.
+      </p>
+      <p>
+        Now size. I counted. xNet is about seven hundred thousand lines of
+        TypeScript across fifty-two packages, resting on nearly two hundred
+        libraries we didn't write. When I ran a security audit on those
+        libraries for this essay, it found eighty-five known serious
+        problems, and until this month nothing in our pipeline was looking.
+        Most will be unreachable from our code. I don't yet know which, and
+        that's the point.
+      </p>
+      <p>
+        The honest defence isn't that we're small. It's that the part which
+        must be right is small. Every change you make in xNet is signed with
+        your key and chained to the change before it. The server checks that
+        signature on the way in, and every other device checks it again when
+        the change arrives. So a server can lose your data, or refuse it, but under
+        our standard settings it can't forge it. That's software independence
+        in the MIT paper's sense, and it's why running your own server, or
+        trusting a stranger's, isn't reckless. It also turns one big target
+        into many small ones. Break into a company that holds everyone's
+        data and you have everyone's. Break into one xNet server and you have
+        one community's files, and still no way to forge a word in anyone's
+        name.
+        That's the difference between the line of code and the thousand
+        rooms.
+      </p>
+      <p>
+        And we're shaped like the bank, not the ballot. Your changes carry
+        your name and can be undone. We never have to keep a record both
+        secret and provable, so the impossible knot never gets tied.
+      </p>
+      <p>
+        Here is where it stops being comfortable. All of that protects you
+        from our servers. None of it protects you from our app. The app holds
+        your key. If someone poisoned an update, the app could sign anything
+        in your name, every check on every other device would pass, and
+        nothing could tell the difference afterwards. That's the voter's
+        phone again, and we haven't solved it any more than the election
+        people have.
+      </p>
+      <p>
+        We have four doors like that: the packages we publish, the desktop
+        app's updates, the plugin marketplace, and the web app. The web app
+        is the widest, because a website can hand out new code every time
+        you load the page. If what you keep in xNet matters to you, use the
+        desktop app, which asks before it updates. What we do have is a
+        public, signed record of where each published package was built, and
+        a second copy of the core rules, written in another language, that
+        must agree with the first. What we don't have yet is a way for you to
+        prove that the app you downloaded was built from the code you can
+        read. Until this month we didn't even have a page telling researchers
+        where to send a bug. We do now, along with a robot that proposes
+        dependency updates and a check that fails when a new serious hole
+        appears. The longer list of what's still open is in the sources
+        below.
+      </p>
+
+      <h2 id="fast-where-its-safe">Fast where it's safe</h2>
+
+      <p>
+        So how does a democracy move forward, when everything else moves at
+        the speed of light? I think the impatience is fair and the target is
+        wrong.
+      </p>
+      <p>
+        Almost everything around a vote is bank-shaped. Registering. Finding
+        your polling place. Arguing about the question in public: cities from
+        Barcelona outward run budgets and proposals on Decidim, which is open
+        source. Tracking your postal ballot like a parcel. Publishing the
+        results as signed data anyone can add up. Releasing the audit's
+        evidence so a teenager with a laptop can redo the sums. All of that
+        carries names, can be corrected, and gets better with more eyes. Send
+        all of it down the fibre.
+      </p>
+      <p>
+        Then keep atoms for the single step that has to be both secret and
+        final. It's one moment, a few times a decade. It can afford a pencil.
+      </p>
+      <p>
+        Most of the deciding people do together isn't even that hard. A
+        housing co-op, a union branch, a software project, the members of one
+        xNet server: they rarely need a secret ballot, and they're not facing
+        a foreign spy agency. An open show of hands, signed so nobody can
+        fake a hand, does the job, and that part is a solved problem. We've
+        written the other half into our governance: xNet won't host a binding
+        secret ballot. It isn't a feature we're behind on. It's a problem
+        nobody has solved, and I'd rather say so than sell it.
+      </p>
+      <p>
+        Light is for everything you can take back. For the one thing you
+        can't, a piece of paper, a pencil, and a room with other people in
+        it.
+      </p>
+
+      <hr />
+
+      <h3 id="sources">Sources</h3>
+      <ul class="text-base">
+        <li>
+          The Washington DC break-in is told by the people who did it:
+          Wolchok, Wustrow, Isabel and Halderman,
+          <a href="https://jhalderm.com/pub/papers/dcvoting-fc12.pdf" rel="noopener noreferrer"
+            ><em>Attacking the Washington, D.C. Internet Voting System</em></a
+          >
+          (Financial Cryptography, 2012), read in full for this essay. The
+          forty-eight hours, the thirty-six-hour delay, the cameras and the
+          mailing-list message are all theirs. They also saw password-guessing
+          from Iran, India, China and New Jersey in the logs, and say plainly
+          that it was the internet's ordinary background noise, not an attack
+          on the election, so I have left it out of the story.
+        </li>
+        <li>
+          The five requirements, the line about one programmer and millions
+          of ballots, and the banking comparison come from Park, Specter,
+          Narula and Rivest,
+          <a href="https://people.csail.mit.edu/rivest/pubs/PSNR20.pdf" rel="noopener noreferrer"
+            ><em>Going from Bad to Worse: From Internet Voting to Blockchain Voting</em></a
+          >
+          (2020 draft, later in the <em>Journal of Cybersecurity</em>). The
+          January 2026 letter is
+          <a
+            href="https://blog.citp.princeton.edu/2026/01/16/internet-voting-is-insecure-and-should-not-be-used-in-public-elections/"
+            rel="noopener noreferrer"
+            ><em>Internet voting is insecure and should not be used in public elections</em></a
+          >, on Princeton's CITP blog, with all twenty-one names. The banking
+          argument is made at more length by David Jefferson for
+          <a
+            href="https://verifiedvoting.org/publication/if-i-can-shop-and-bank-online-why-cant-i-vote-online/"
+            rel="noopener noreferrer">Verified Voting</a
+          >. "Software independence" is Rivest and Wack's term, from
+          <a
+            href="https://royalsocietypublishing.org/doi/abs/10.1098/rsta.2008.0149"
+            rel="noopener noreferrer">a 2008 Royal Society paper</a
+          >.
+        </li>
+        <li>
+          Paper and risk-limiting audits are the recommendation of the US
+          National Academies'
+          <a href="https://www.nationalacademies.org/read/25120/chapter/7" rel="noopener noreferrer"
+            ><em>Securing the Vote</em></a
+          >
+          (2018). "A few hundred ballots" is their own example and depends on
+          a comfortable margin; close contests need far more.
+        </li>
+        <li>
+          Estonia's system was examined by Springall and colleagues in
+          <a href="https://jhalderm.com/pub/papers/ivoting-ccs14.pdf" rel="noopener noreferrer"
+            ><em>Security Analysis of the Estonian Internet Voting System</em></a
+          >
+          (2014). The online majority in 2023 is reported by
+          <a
+            href="https://investinestonia.com/estonia-makes-history-with-i-voting-majority-and-record-female-presence-in-new-parliament/"
+            rel="noopener noreferrer">Invest in Estonia</a
+          >, a government promotion site, so treat the framing as friendly and
+          the number as sound.
+        </li>
+        <li>
+          Voatz: Specter, Koppel and Weitzner,
+          <a
+            href="https://www.usenix.org/conference/usenixsecurity20/presentation/specter"
+            rel="noopener noreferrer"><em>The Ballot is Busted Before the Blockchain</em></a
+          >
+          (USENIX Security, 2020). The Swiss Post flaw was found by Sarah
+          Jamie Lewis, Olivier Pereira and Vanessa Teague; the disclosure is
+          at
+          <a href="https://openprivacy.ca/work/swisspost-scytl-evoting/" rel="noopener noreferrer"
+            >Open Privacy</a
+          >. Swiss Post has since relaunched a rebuilt system for limited
+          trials, with public code and a bug bounty, under the
+          <a
+            href="https://www.bk.admin.ch/bk/en/home/politische-rechte/e-voting.html"
+            rel="noopener noreferrer">Federal Chancellery</a
+          >.
+        </li>
+        <li>
+          Kerckhoffs's rule and Shannon's shorter version, "the enemy knows
+          the system", are summarised on
+          <a href="https://en.wikipedia.org/wiki/Kerckhoffs%27s_principle" rel="noopener noreferrer"
+            >Wikipedia</a
+          >. Heartbleed's dates and OpenSSL's staffing are from
+          <a href="https://en.wikipedia.org/wiki/Heartbleed" rel="noopener noreferrer"
+            >its Wikipedia entry</a
+          >, which cites the <em>New York Times</em>. The xz story is from the
+          <a
+            href="https://openssf.org/blog/2024/03/30/xz-backdoor-cve-2024-3094/"
+            rel="noopener noreferrer">Open Source Security Foundation</a
+          >
+          and
+          <a href="https://en.wikipedia.org/wiki/XZ_Utils_backdoor" rel="noopener noreferrer"
+            >Wikipedia</a
+          >. "About even" is my reading of Guido Schryen's
+          <a
+            href="https://www.researchgate.net/publication/220891308_Security_of_Open_Source_and_Closed_Source_Software_An_Empirical_Comparison_of_Published_Vulnerabilities"
+            rel="noopener noreferrer">comparison of published vulnerabilities</a
+          >, which is careful and more than a decade old. Machines that find
+          bugs: Google's
+          <a
+            href="https://projectzero.google/2024/10/from-naptime-to-big-sleep.html"
+            rel="noopener noreferrer">Big Sleep</a
+          >
+          is the example I trust; I have left vendors' headline numbers out.
+        </li>
+        <li>
+          <a href="https://en.wikipedia.org/wiki/Decidim" rel="noopener noreferrer">Decidim</a>
+          began in Barcelona in 2016 and is free software.
+        </li>
+        <li>
+          Our side is in the open. Signing and checking live in
+          <code>packages/sync/src/change.ts</code>, the server's check in
+          <code>packages/hub/src/services/node-relay.ts</code>, and each
+          device's own check in <code>packages/data/src/store/store.ts</code>.
+          "Standard settings" matters: there is a compatibility switch,
+          <code>allowUnsignedReplication</code>, that turns the guarantee off,
+          and it is off by default. The line counts are from
+          <code>git ls-files</code> on the day of writing. The eighty-five
+          advisories are high or critical findings from
+          <code>pnpm audit --prod</code>, now held by
+          <code>scripts/check-dependency-audit.mjs</code> against a committed
+          baseline so the number can only fall. The new
+          <a href="https://github.com/crs48/xNet/blob/main/SECURITY.md" rel="noopener noreferrer"
+            >security policy</a
+          >
+          says where to send a bug. The secret-ballot rule is in
+          <a href="https://github.com/crs48/xNet/blob/main/GOVERNANCE.md" rel="noopener noreferrer"
+            >GOVERNANCE.md</a
+          >.
+        </li>
+        <li>
+          Still open on the day this was published, and findable in
+          <a
+            href="https://github.com/crs48/xNet/tree/main/docs/explorations"
+            rel="noopener noreferrer">our explorations</a
+          >: no reproducible builds, so nobody outside can yet confirm that a
+          release matches the source; no answer for the web app beyond "prefer
+          the desktop"; a threat model begun in
+          <a href="https://github.com/crs48/xNet/blob/main/docs/explorations/0134_%5B_%5D_BAD_ACTOR_ATTACKS_AND_SECURITY_THREAT_MODEL.md" rel="noopener noreferrer">0134</a>
+          and never finished; the end-to-end review of how a change travels,
+          <a href="https://github.com/crs48/xNet/blob/main/docs/explorations/0307_%5B_%5D_SECURITY_OF_NODE_AND_CHANGE_FLOW.md" rel="noopener noreferrer">0307</a>, likewise; desktop
+          releases that fall back to an unsigned-by-Apple build when our
+          signing secrets are absent; and a newer, quantum-resistant
+          signature scheme that is written but not yet wired into the change
+          log. The plan for closing them is exploration 0463.
+        </li>
+      </ul>
+
+      <SeriesNav slug={post.slug} />
+    </article>
+  </main>
+
+  <Footer />
+</Base>

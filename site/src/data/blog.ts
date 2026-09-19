@@ -102,6 +102,22 @@ export interface BlogPost {
 
 const posts: BlogPost[] = [
   {
+    slug: 'atoms-for-the-ballot',
+    title: 'Atoms for the Ballot',
+    description:
+      "In 2010 four people from Michigan took over Washington DC's internet " +
+      'voting trial in two days and left the site playing their fight song. ' +
+      "Sixteen years on, the experts still say it can't be done safely. On " +
+      'why a vote is the one thing that must be secret, checkable and final ' +
+      'all at once, why paper is the only record you can read without ' +
+      'trusting a program, and what the same five tests say about open, ' +
+      'federated software like ours — including the one we fail.',
+    pubDate: '2026-09-19T01:08:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'protocol', 'decentralization'],
+    readingMinutes: 13
+  },
+  {
     slug: 'the-hundred-year-machine',
     title: 'The Hundred-Year Machine',
     description:

@@ -26,6 +26,7 @@ import MeterArt from '../../components/blog/MeterArt.astro'
 import TableWallArt from '../../components/blog/TableWallArt.astro'
 import DoorHouseArt from '../../components/blog/DoorHouseArt.astro'
 import HundredYearArt from '../../components/blog/HundredYearArt.astro'
+import BallotArt from '../../components/blog/BallotArt.astro'
 import Byline from '../../components/blog/Byline.astro'
 import { publishedPosts, formatPostDate } from '../../data/blog'
 
@@ -34,6 +35,7 @@ const posts = publishedPosts()
 // Each post's art-directed hero art doubles as its preview-card header image, so
 // the same inline SVG is single-sourced from the hero's *Art.astro component.
 const heroArt: Record<string, typeof PirateArt> = {
+  'atoms-for-the-ballot': BallotArt,
   'the-hundred-year-machine': HundredYearArt,
   'the-door-inside-the-house': DoorHouseArt,
   'the-table-and-the-wall': TableWallArt,
