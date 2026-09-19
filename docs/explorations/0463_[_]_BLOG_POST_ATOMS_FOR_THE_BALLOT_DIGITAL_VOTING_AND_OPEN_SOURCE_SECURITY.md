@@ -795,6 +795,20 @@ bits. `BallotArt.astro` + `BallotHero.astro` under
 | Overlap with _Weights You Can Hold_ and _The Vault and the View_                          | 🟡 Low    | One glancing link each; this essay owns the evidence-and-audit ground                                                                                                         |
 | Length                                                                                    | 🟡 Low    | If the draft passes 3,000 words, split per Option B at the Act IV/V seam                                                                                                      |
 
+> [!NOTE]
+> **Settled 2026-09-18 — clients verify on receipt, not only hubs on ingest.**
+> Structured changes: `NodeStore.applyRemoteChange` and the batched
+> `verifyRemoteChanges` in
+> [`packages/data/src/store/store.ts`](../../packages/data/src/store/store.ts)
+> run `verifyChangeHash` then a signature check against the key parsed from
+> `authorDID`, and report a high-severity security event on failure. Rich
+> text: [`packages/runtime/src/sync/WebSocketSyncProvider.ts`](../../packages/runtime/src/sync/WebSocketSyncProvider.ts)
+> signs outgoing Yjs updates and runs `verifyYjsEnvelopeV1` on incoming
+> ones. One caveat the essay must keep: the replication policy has an
+> `allowUnsignedReplication` switch, so "a hub cannot forge" holds under the
+> signed policy, not unconditionally. Exploration 0307 remains the place for
+> the full end-to-end walk.
+
 **Open questions.**
 
 Should the essay name the hosted web app as the weakest channel and
@@ -831,7 +845,7 @@ _Honesty pass — before the essay publishes_
       committed baseline, with an in-memory `--selftest`, wired into
       `.github/workflows/ci.yml` beside the real scan
 - [x] Add the no-binding-secret-ballots sentence to `GOVERNANCE.md`
-- [ ] Confirm whether clients verify signatures on receipt, not only hubs on
+- [x] Confirm whether clients verify signatures on receipt, not only hubs on
       ingest; record the answer here and in exploration 0307
 
 _The essay_
