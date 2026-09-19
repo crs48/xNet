@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Database V2 Overhaul: Notion-Grade Tables on xNet Primitives
 
 > A ground-up rework of xNet databases: a unified "everything is a node" data model, a purpose-built collaborative grid UI with spreadsheet-grade keyboard and drag-drop interactions, deep comments/presence integration, and a clean path to formulas. Greenfield — no backwards compatibility with the current schema.

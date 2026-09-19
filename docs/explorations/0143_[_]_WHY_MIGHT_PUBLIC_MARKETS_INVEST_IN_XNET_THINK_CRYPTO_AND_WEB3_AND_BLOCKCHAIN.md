@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # 0143 - Why Might Public Markets Invest In xNet? Crypto, Web3, And Blockchain
 
 > **Status:** Exploration  

@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Changelog PR Numbers as Source of Truth: Stamp at Merge, Verify in CI, Stop *Looking* Broken
 
 ## Problem Statement

@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # 0145 - Foundation Models And Legal Organizing Structures For xNet Mission-Aligned Governance
 
 > **Status:** Exploration  

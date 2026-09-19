@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Deploy the xNet Cloud Staging Control Plane (cloud-staging.xnet.fyi)
 
 ## Problem Statement

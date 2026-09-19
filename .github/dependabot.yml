@@ -1,0 +1,47 @@
+# Dependency update PRs (exploration 0463). Grouped and weekly so the queue
+# stays readable: one PR per ecosystem for minor+patch, majors on their own.
+#
+# Security updates are separate from this file — enable "Dependabot security
+# updates" in the repository settings; they open immediately, ungrouped.
+#
+# site/ installs with --ignore-workspace, so it is its own npm root.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore(deps)'
+    labels: [skip-changelog]
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /site
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: 'chore(deps)'
+    labels: [skip-changelog]
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: 'ci(deps)'
+    labels: [skip-changelog]
+    groups:
+      actions:
+        patterns: ['*']

@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # 0144 - Potential Monetization Routes Aligned With Open Federation
 
 > **Status:** Exploration  

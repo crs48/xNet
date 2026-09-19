@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Bring-Your-Own-Model AI Chat Panel (Local-First, No Hosted Model)
 
 ## Problem Statement

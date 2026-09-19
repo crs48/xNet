@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # SQLite OPFS Durable Storage Browser Consistency
 
 ## Problem Statement

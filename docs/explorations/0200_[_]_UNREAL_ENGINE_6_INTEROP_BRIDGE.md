@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # xNet × Unreal Engine 6: A Sovereign Cross-Game Data & Identity Bridge
 
 ## Problem Statement

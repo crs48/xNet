@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Why So Few First-Party Plugins?
 
 ## Problem Statement

@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # xNet Cloud — Operating the Fleet: Upgrades, Backups, Telemetry, and SLAs
 
 ## Problem Statement

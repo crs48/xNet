@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # xNet As An AI Operating System
 
 ## Problem Statement

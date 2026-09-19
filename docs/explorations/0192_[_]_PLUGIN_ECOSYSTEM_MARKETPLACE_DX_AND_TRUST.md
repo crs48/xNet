@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # A Thriving Plugin Ecosystem: Marketplace, Authoring DX, Trust, And Monetization
 
 ## Problem Statement

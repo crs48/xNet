@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # 0141 - Global Businesses And Markets Under Wide xNet Adoption
 
 > **Status:** Exploration  

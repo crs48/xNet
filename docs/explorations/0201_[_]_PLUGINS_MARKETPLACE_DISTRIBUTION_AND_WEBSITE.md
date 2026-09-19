@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Exploration 0201: Plugins Marketplace — Distribution Backbone and Marketplace Website
 
 > How to ship a real, live plugins marketplace for xNet: where plugin code

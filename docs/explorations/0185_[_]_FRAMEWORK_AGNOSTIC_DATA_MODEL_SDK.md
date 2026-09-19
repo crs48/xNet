@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # xNet Data Model As A Framework-Agnostic SDK
 
 ## Problem Statement

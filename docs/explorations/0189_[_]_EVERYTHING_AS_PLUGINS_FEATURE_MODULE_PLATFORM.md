@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Everything Is A Plugin: A Unified Feature-Module Platform (Client + Hub)
 
 ## Problem Statement

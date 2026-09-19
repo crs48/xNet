@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Schema Authorization, Permissions, and Roles: Coverage and Enforcement Audit
 
 ## Problem Statement

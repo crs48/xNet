@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Managed Hosting As Open Core In The Public Monorepo
 
 > **Status:** Exploration

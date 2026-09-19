@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # The Extensibility Fabric: Unifying Plugins, Labs, AI, And The Editor
 
 ## Problem Statement

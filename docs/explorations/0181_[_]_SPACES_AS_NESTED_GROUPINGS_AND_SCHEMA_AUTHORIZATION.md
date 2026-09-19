@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Spaces as Nested Groupings: People-Containers, Work-Groupings, and Schema-Native Authorization
 
 ## Problem Statement

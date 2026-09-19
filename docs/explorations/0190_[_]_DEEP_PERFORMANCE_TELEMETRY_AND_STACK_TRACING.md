@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Deep Performance Telemetry & Full-Stack Tracing
 
 > Make every `useQuery` and `useMutate` self-measuring: capture the time spent in

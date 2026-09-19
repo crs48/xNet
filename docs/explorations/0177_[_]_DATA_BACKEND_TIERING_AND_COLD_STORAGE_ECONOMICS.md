@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Data Backend Tiering And Cold-Storage Economics (libSQL / Turso vs The Field)
 
 > **Status:** Exploration

@@ -1,0 +1,137 @@
+---
+// Decorative art for "Atoms for the Ballot" (exploration 0463), single-sourced
+// so the same inline SVG backs the post hero and the blog-index preview card
+// (no external assets — Self-Audit parity).
+//
+// The picture is the essay's closing line. On the left, lamplight: a paper
+// ballot lying on a table, one pencilled cross in one box, the pencil beside
+// it. It is whole, warm and slightly crooked, the way paper is. Moving right the
+// light cools, and the ballot's far edge comes apart into a grid of bits that
+// thin out and drift toward a fibre line running off the frame. Atoms where it
+// must be final; electrons for everything that can be taken back.
+interface Props {
+  /** Override the wrapper classes; defaults to full-bleed for hero use. */
+  class?: string
+}
+const { class: className = 'pointer-events-none absolute inset-0 h-full w-full' } = Astro.props
+
+// Ballot rows: y offset of each candidate line, and which box carries the cross.
+const ROWS = [0, 34, 68, 102]
+const MARKED = 1
+
+// The dissolving edge: a deterministic scatter of bits (no Math.random, so the
+// hero and the index card render the same picture on every build).
+const BITS: Array<{ x: number; y: number; s: number; o: number; lit: boolean }> = []
+for (let col = 0; col < 26; col++) {
+  for (let row = 0; row < 9; row++) {
+    const h = (col * 73 + row * 151 + col * row * 17) % 100
+    const keep = 96 - col * 3.4
+    if (h > keep) continue
+    BITS.push({
+      x: 560 + col * 17 + ((h * 7) % 9),
+      y: 96 + row * 19 + ((h * 3) % 7) + col * 0.8,
+      s: Math.max(2, 7 - col * 0.2),
+      o: Math.max(0.12, 0.85 - col * 0.03),
+      lit: h % 5 === 0
+    })
+  }
+}
+---
+
+<svg class={className} viewBox="0 0 1040 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <defs>
+    <linearGradient id="bltGround" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1d160b"></stop>
+      <stop offset="50%" stop-color="#14131a"></stop>
+      <stop offset="100%" stop-color="#070b16"></stop>
+    </linearGradient>
+    <radialGradient id="bltLamp" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.34"></stop>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"></stop>
+    </radialGradient>
+    <linearGradient id="bltPaper" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f5ecd7"></stop>
+      <stop offset="72%" stop-color="#e9dfc6"></stop>
+      <stop offset="100%" stop-color="#e9dfc6" stop-opacity="0"></stop>
+    </linearGradient>
+    <linearGradient id="bltFibre" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0"></stop>
+      <stop offset="60%" stop-color="#38bdf8" stop-opacity="0.55"></stop>
+      <stop offset="100%" stop-color="#7dd3fc" stop-opacity="0.9"></stop>
+    </linearGradient>
+  </defs>
+
+  <rect width="1040" height="340" fill="url(#bltGround)"></rect>
+  <ellipse cx="330" cy="150" rx="330" ry="210" fill="url(#bltLamp)"></ellipse>
+
+  {/* Table edge */}
+  <line x1="0" y1="292" x2="1040" y2="292" stroke="#3a2f1c" stroke-width="1.5" opacity="0.7"></line>
+
+  {/* The ballot, a touch crooked */}
+  <g transform="rotate(-3 380 170)">
+    <rect x="200" y="70" width="420" height="200" rx="3" fill="url(#bltPaper)"></rect>
+    <rect x="228" y="92" width="150" height="7" rx="2" fill="#3b3426" opacity="0.75"></rect>
+    {
+      ROWS.map((dy, i) => (
+        <g>
+          <rect
+            x="230"
+            y={122 + dy}
+            width="20"
+            height="20"
+            fill="none"
+            stroke="#3b3426"
+            stroke-width="2"
+          />
+          <rect x="264" y={128 + dy} width={210 - i * 22} height="6" rx="2" fill="#6b6250" opacity="0.6" />
+          {i === MARKED && (
+            <path
+              d={`M226 ${119 + dy} L255 ${146 + dy} M255 ${118 + dy} L227 ${147 + dy}`}
+              stroke="#1f2430"
+              stroke-width="3.4"
+              stroke-linecap="round"
+              fill="none"
+            />
+          )}
+        </g>
+      ))
+    }
+  </g>
+
+  {/* The pencil */}
+  <g transform="rotate(18 250 300)">
+    <rect x="130" y="276" width="170" height="11" rx="2" fill="#d97706"></rect>
+    <rect x="130" y="276" width="18" height="11" rx="2" fill="#f4a9a0"></rect>
+    <path d="M300 276 L322 281.5 L300 287 Z" fill="#e7d3a8"></path>
+    <path d="M314 279.5 L322 281.5 L314 283.5 Z" fill="#1f2430"></path>
+  </g>
+
+  {/* The far edge, coming apart into bits */}
+  {
+    BITS.map((b) => (
+      <rect
+        x={b.x}
+        y={b.y}
+        width={b.s}
+        height={b.s}
+        fill={b.lit ? '#7dd3fc' : '#e9dfc6'}
+        opacity={b.o}
+      />
+    ))
+  }
+
+  {/* Fibre running off the frame */}
+  <path
+    d="M700 232 C 800 250, 900 205, 1040 222"
+    stroke="url(#bltFibre)"
+    stroke-width="2"
+    fill="none"
+  ></path>
+  <path
+    d="M720 258 C 830 270, 920 240, 1040 252"
+    stroke="url(#bltFibre)"
+    stroke-width="1.2"
+    fill="none"
+    opacity="0.6"
+  ></path>
+</svg>

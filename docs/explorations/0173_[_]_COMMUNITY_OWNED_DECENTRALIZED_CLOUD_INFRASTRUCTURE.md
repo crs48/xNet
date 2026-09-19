@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Community-Owned Decentralized Cloud Infrastructure
 
 > **Status:** Exploration

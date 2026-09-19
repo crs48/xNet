@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # xNet Cloud — Architecture Map and Completion Status
 
 ## Problem Statement

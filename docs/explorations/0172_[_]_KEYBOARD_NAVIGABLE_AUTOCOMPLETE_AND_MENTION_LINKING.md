@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Keyboard-Navigable Autocomplete And Mention Linking
 
 **Date:** 2026-06-12

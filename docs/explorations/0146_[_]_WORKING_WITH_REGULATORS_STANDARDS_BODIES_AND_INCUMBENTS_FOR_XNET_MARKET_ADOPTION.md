@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # 0146 - Working With Regulators Standards Bodies And Incumbents For xNet Market Adoption
 
 > **Status:** Exploration  
