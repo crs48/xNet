@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # OpenRouter / LiteLLM Metered AI: Gateway Choice, Exact Cost, and the Credits-vs-Pass-Through Billing Decision
 
 ## Problem Statement

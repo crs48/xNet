@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Decomposing The App Into Plugins: How Far Should "Everything Is A Plugin" Go?
 
 ## Problem Statement

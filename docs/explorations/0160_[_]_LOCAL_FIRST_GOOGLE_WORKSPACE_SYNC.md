@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Local-First Google Workspace Sync (Calendar → Gmail → Drive/Docs/Sheets)
 
 ## Problem Statement

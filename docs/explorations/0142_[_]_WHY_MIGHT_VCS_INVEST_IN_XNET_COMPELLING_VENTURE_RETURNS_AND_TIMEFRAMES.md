@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # 0142 - Why Might VCs Invest In xNet?
 
 > **Status:** Exploration  

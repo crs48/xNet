@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Future Paid Hub Hosting
 
 > **Status:** Exploration

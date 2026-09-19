@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Double-Entry Accounting, Personal Finance, and the Road to an xNet ERP
 
 ## Problem Statement

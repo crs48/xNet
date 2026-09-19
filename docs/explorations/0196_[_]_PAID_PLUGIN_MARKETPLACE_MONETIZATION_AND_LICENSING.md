@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Paying Plugin Authors: A Monetized Marketplace, Stripe, And Delayed-Open Licensing
 
 ## Problem Statement

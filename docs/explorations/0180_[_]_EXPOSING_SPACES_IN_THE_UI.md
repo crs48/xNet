@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Exposing Spaces in the UI: Switcher, Space Homes, Projects, and Membership
 
 ## Problem Statement

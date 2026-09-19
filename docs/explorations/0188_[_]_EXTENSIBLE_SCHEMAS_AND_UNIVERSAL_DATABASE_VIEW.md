@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Extensible Schemas And A Universal Database View
 
 > Status: unimplemented (`[_]`). Sequence `0188`. Builds on the schema

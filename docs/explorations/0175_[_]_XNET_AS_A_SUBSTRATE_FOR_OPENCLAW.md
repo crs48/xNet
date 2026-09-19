@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # xNet As A Substrate For OpenClaw (And The Agent Ecosystem)
 
 ## Problem Statement

@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # 0151 - Self-Organizing Social Graph Immersive Recommendation Space
 
 **Status:** Exploration

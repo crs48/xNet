@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Changelog PR-Number Resolution: Why Entries *Look* Linkless, and Making Deploy-Time Resolution Robust Without a Second Commit
 
 ## Problem Statement

@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Getting xNet AI Working — Diagnosing And Fixing The Chat Panel
 
 ## Problem Statement

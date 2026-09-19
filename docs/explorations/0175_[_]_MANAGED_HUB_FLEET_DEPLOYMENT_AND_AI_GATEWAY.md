@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Where And How To Deploy The Managed Hub Fleet (And The AI Gateway)
 
 > **Status:** Exploration

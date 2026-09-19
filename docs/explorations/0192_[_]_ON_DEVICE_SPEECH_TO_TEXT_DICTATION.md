@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # On-Device Speech-to-Text Dictation (Push-to-Talk + Transcription History)
 
 ## Problem Statement

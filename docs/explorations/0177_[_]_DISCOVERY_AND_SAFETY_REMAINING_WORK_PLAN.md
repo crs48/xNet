@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Discovery And Safety Remaining Work Plan
 
 > **Status:** Exploration (planning)

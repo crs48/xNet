@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # In-App Agentic Vibe Coding: Modding Plugins And The Repo Itself
 
 > [!IMPORTANT]

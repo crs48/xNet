@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # useQuery / useMutate — The Next Performance Frontier
 
 ## Problem Statement

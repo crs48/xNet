@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Cost-Efficient SQLite Hosting (No libSQL Migration)
 
 > **Status:** Exploration

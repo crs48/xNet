@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Native Swift SDK And A Portable Multi‑Language Core
 
 ## Problem Statement
