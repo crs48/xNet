@@ -907,7 +907,7 @@ _The essay_
 - [x] The audit gate's `--selftest` fails when its planted advisory is
       removed from the check (proof it can go red), and an unreachable
       registry exits non-zero
-- [ ] `SECURITY.md` is reachable in two clicks from the site home page
+- [x] `SECURITY.md` is reachable in two clicks from the site home page
 - [x] The post appears on `/blog`, in `rss.xml`, and renders its hero art
 - [x] `pnpm check:exploration-links` passes
 - [x] Read at 320px
