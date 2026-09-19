@@ -48,12 +48,12 @@ jobs:
         id: app-token
         if: ${{ vars.CHANGELOG_APP_ID != '' }}
         continue-on-error: true
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ vars.CHANGELOG_APP_ID }}
           private-key: ${{ secrets.CHANGELOG_APP_PRIVATE_KEY }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
@@ -64,7 +64,7 @@ jobs:
           token: ${{ steps.app-token.outputs.token || secrets.CHANGELOG_BOT_TOKEN || github.token }}
 
       - name: Stamp PR number + contributors into this PR's changelog fragment(s)
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('node:fs')
