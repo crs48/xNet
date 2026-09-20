@@ -1,0 +1,381 @@
+<!DOCTYPE html><html lang="en" class="dark scroll-smooth astro-5hce7sga"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="In 2010 four people from Michigan took over Washington DC's internet voting trial in two days and left the site playing their fight song. Sixteen years on, the experts still say it can't be done safely. On why a vote is the one thing that must be secret, checkable and final all at once, why paper is the only record you can read without trusting a program, and what the same five tests say about open, federated software like ours — including the one we fail."><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="canonical" href="https://xnet.fyi/blog/atoms-for-the-ballot/"><meta property="og:type" content="website"><meta property="og:site_name" content="xNet"><meta property="og:title" content="Atoms for the Ballot — xNet"><meta property="og:description" content="In 2010 four people from Michigan took over Washington DC's internet voting trial in two days and left the site playing their fight song. Sixteen years on, the experts still say it can't be done safely. On why a vote is the one thing that must be secret, checkable and final all at once, why paper is the only record you can read without trusting a program, and what the same five tests say about open, federated software like ours — including the one we fail."><meta property="og:url" content="https://xnet.fyi/blog/atoms-for-the-ballot/"><meta property="og:image" content="https://xnet.fyi/images/workbench-light.png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Atoms for the Ballot — xNet"><meta name="twitter:description" content="In 2010 four people from Michigan took over Washington DC's internet voting trial in two days and left the site playing their fight song. Sixteen years on, the experts still say it can't be done safely. On why a vote is the one thing that must be secret, checkable and final all at once, why paper is the only record you can read without trusting a program, and what the same five tests say about open, federated software like ours — including the one we fail."><meta name="twitter:image" content="https://xnet.fyi/images/workbench-light.png"><title>Atoms for the Ballot — xNet</title><!-- Inline script to prevent flash: read localStorage, fallback to system preference --><script>
+      (function() {
+        var storedTheme = localStorage.getItem('xnet-lp-theme')
+        var theme = storedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        if (theme === 'light') {
+          document.documentElement.classList.remove('dark')
+        }
+      })()
+    </script><link rel="stylesheet" href="/_astro/acceptable-use.BSklYeJS.css"><script type="module" src="/_astro/page.B1D-nYk3.js"></script></head> <body class="bg-white dark:bg-[#0a0a0f] text-gray-800 dark:text-gray-200 antialiased font-sans leading-relaxed astro-5hce7sga">  <header class="sticky top-0 z-50 border-b border-border/50 bg-white/80 dark:bg-[#0a0a0f]/80 backdrop-blur-xl astro-rxxavq4o"> <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 astro-rxxavq4o"> <a href="/" class="brand font-mono text-xl font-bold tracking-tight text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors astro-rxxavq4o"> <!-- Below md the nav row is already over-full (pre-existing), so the
+           mark stays out of that band rather than adding to the overflow. --> <span class="brand-mark hidden md:block astro-rxxavq4o" aria-hidden="true"></span>
+xNet
+</a> <!-- Tighter link spacing below lg: the brand mark costs ~32px and the row
+         has no slack left at tablet widths. Desktop spacing is unchanged. --> <div class="flex items-center gap-4 lg:gap-5 text-sm astro-rxxavq4o"> <a href="/#app" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors astro-rxxavq4o"> App </a><a href="/#developers" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors astro-rxxavq4o"> Developers </a><a href="/#open" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors astro-rxxavq4o"> Open </a> <span class="hidden sm:inline h-4 w-px bg-border astro-rxxavq4o" aria-hidden="true"></span> <a href="/agents" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors astro-rxxavq4o"> Agents </a><a href="/why" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors astro-rxxavq4o"> Why </a><a href="/build-with" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors astro-rxxavq4o"> Build </a><a href="/demos/" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors astro-rxxavq4o"> Demos </a><a href="/blog" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors astro-rxxavq4o"> Blog </a> <a href="/docs/introduction/" class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all astro-rxxavq4o"> <svg class="h-4 w-4 astro-rxxavq4o" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"> <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" class="astro-rxxavq4o"></path> </svg>
+Docs
+</a> <a href="/agents" class="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 transition-all astro-rxxavq4o">
+Connect your agent
+</a> <button id="lp-theme-toggle" class="rounded-lg border border-border p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:border-gray-400 dark:hover:border-gray-500 transition-colors" aria-label="Toggle theme"> <!-- Sun icon (shown in dark mode) --> <svg class="h-4 w-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path> </svg> <!-- Moon icon (shown in light mode) --> <svg class="h-4 w-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path> </svg> </button> <script type="module">const t=document.getElementById("lp-theme-toggle");t?.addEventListener("click",()=>{const e=document.documentElement.classList.toggle("dark");localStorage.setItem("xnet-lp-theme",e?"dark":"light")});</script> <a href="https://github.com/crs48/xNet" aria-label="xNet on GitHub" class="hidden sm:flex items-center rounded-lg border border-border p-1.5 text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all astro-rxxavq4o"> <svg class="h-4 w-4 astro-rxxavq4o" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" class="astro-rxxavq4o"></path></svg> </a> </div> </nav> </header>  <main> <section class="relative overflow-hidden border-b border-border bg-surface/20 dark:bg-[#131217]"> <svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1040 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true"> <defs> <linearGradient id="bltGround" x1="0" y1="0" x2="1" y2="0"> <stop offset="0%" stop-color="#1d160b"></stop> <stop offset="50%" stop-color="#14131a"></stop> <stop offset="100%" stop-color="#070b16"></stop> </linearGradient> <radialGradient id="bltLamp" cx="50%" cy="50%" r="50%"> <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.34"></stop> <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"></stop> </radialGradient> <linearGradient id="bltPaper" x1="0" y1="0" x2="1" y2="0"> <stop offset="0%" stop-color="#f5ecd7"></stop> <stop offset="72%" stop-color="#e9dfc6"></stop> <stop offset="100%" stop-color="#e9dfc6" stop-opacity="0"></stop> </linearGradient> <linearGradient id="bltFibre" x1="0" y1="0" x2="1" y2="0"> <stop offset="0%" stop-color="#38bdf8" stop-opacity="0"></stop> <stop offset="60%" stop-color="#38bdf8" stop-opacity="0.55"></stop> <stop offset="100%" stop-color="#7dd3fc" stop-opacity="0.9"></stop> </linearGradient> </defs> <rect width="1040" height="340" fill="url(#bltGround)"></rect> <ellipse cx="330" cy="150" rx="330" ry="210" fill="url(#bltLamp)"></ellipse>  <line x1="0" y1="292" x2="1040" y2="292" stroke="#3a2f1c" stroke-width="1.5" opacity="0.7"></line>  <g transform="rotate(-3 380 170)"> <rect x="200" y="70" width="420" height="200" rx="3" fill="url(#bltPaper)"></rect> <rect x="228" y="92" width="150" height="7" rx="2" fill="#3b3426" opacity="0.75"></rect> <g> <rect x="230" y="122" width="20" height="20" fill="none" stroke="#3b3426" stroke-width="2"></rect> <rect x="264" y="128" width="210" height="6" rx="2" fill="#6b6250" opacity="0.6"></rect>  </g><g> <rect x="230" y="156" width="20" height="20" fill="none" stroke="#3b3426" stroke-width="2"></rect> <rect x="264" y="162" width="188" height="6" rx="2" fill="#6b6250" opacity="0.6"></rect> <path d="M226 153 L255 180 M255 152 L227 181" stroke="#1f2430" stroke-width="3.4" stroke-linecap="round" fill="none"></path> </g><g> <rect x="230" y="190" width="20" height="20" fill="none" stroke="#3b3426" stroke-width="2"></rect> <rect x="264" y="196" width="166" height="6" rx="2" fill="#6b6250" opacity="0.6"></rect>  </g><g> <rect x="230" y="224" width="20" height="20" fill="none" stroke="#3b3426" stroke-width="2"></rect> <rect x="264" y="230" width="144" height="6" rx="2" fill="#6b6250" opacity="0.6"></rect>  </g> </g>  <g transform="rotate(18 250 300)"> <rect x="130" y="276" width="170" height="11" rx="2" fill="#d97706"></rect> <rect x="130" y="276" width="18" height="11" rx="2" fill="#f4a9a0"></rect> <path d="M300 276 L322 281.5 L300 287 Z" fill="#e7d3a8"></path> <path d="M314 279.5 L322 281.5 L314 283.5 Z" fill="#1f2430"></path> </g>  <rect x="560" y="96" width="7" height="7" fill="#7dd3fc" opacity="0.85"></rect><rect x="566" y="121" width="7" height="7" fill="#e9dfc6" opacity="0.85"></rect><rect x="565" y="140" width="7" height="7" fill="#e9dfc6" opacity="0.85"></rect><rect x="562" y="158" width="7" height="7" fill="#e9dfc6" opacity="0.85"></rect><rect x="561" y="177" width="7" height="7" fill="#e9dfc6" opacity="0.85"></rect><rect x="567" y="195" width="7" height="7" fill="#7dd3fc" opacity="0.85"></rect><rect x="566" y="214" width="7" height="7" fill="#e9dfc6" opacity="0.85"></rect><rect x="563" y="232" width="7" height="7" fill="#e9dfc6" opacity="0.85"></rect><rect x="562" y="251" width="7" height="7" fill="#e9dfc6" opacity="0.85"></rect><rect x="584" y="98.8" width="6.8" height="6.8" fill="#e9dfc6" opacity="0.82"></rect><rect x="585" y="119.8" width="6.8" height="6.8" fill="#e9dfc6" opacity="0.82"></rect><rect x="577" y="140.8" width="6.8" height="6.8" fill="#e9dfc6" opacity="0.82"></rect><rect x="585" y="153.8" width="6.8" height="6.8" fill="#e9dfc6" opacity="0.82"></rect><rect x="577" y="174.8" width="6.8" height="6.8" fill="#7dd3fc" opacity="0.82"></rect><rect x="578" y="195.8" width="6.8" height="6.8" fill="#e9dfc6" opacity="0.82"></rect><rect x="577" y="215.8" width="6.8" height="6.8" fill="#e9dfc6" opacity="0.82"></rect><rect x="578" y="229.8" width="6.8" height="6.8" fill="#e9dfc6" opacity="0.82"></rect><rect x="579" y="250.8" width="6.8" height="6.8" fill="#e9dfc6" opacity="0.82"></rect><rect x="601" y="102.6" width="6.6" height="6.6" fill="#e9dfc6" opacity="0.79"></rect><rect x="595" y="118.6" width="6.6" height="6.6" fill="#e9dfc6" opacity="0.79"></rect><rect x="598" y="141.6" width="6.6" height="6.6" fill="#e9dfc6" opacity="0.79"></rect><rect x="601" y="157.6" width="6.6" height="6.6" fill="#e9dfc6" opacity="0.79"></rect><rect x="602" y="179.6" width="6.6" height="6.6" fill="#e9dfc6" opacity="0.79"></rect><rect x="596" y="195.6" width="6.6" height="6.6" fill="#e9dfc6" opacity="0.79"></rect><rect x="599" y="211.6" width="6.6" height="6.6" fill="#e9dfc6" opacity="0.79"></rect><rect x="602" y="234.6" width="6.6" height="6.6" fill="#e9dfc6" opacity="0.79"></rect><rect x="596" y="250.6" width="6.6" height="6.6" fill="#e9dfc6" opacity="0.79"></rect><rect x="618" y="99.4" width="6.4" height="6.4" fill="#e9dfc6" opacity="0.76"></rect><rect x="614" y="117.4" width="6.4" height="6.4" fill="#e9dfc6" opacity="0.76"></rect><rect x="619" y="142.4" width="6.4" height="6.4" fill="#e9dfc6" opacity="0.76"></rect><rect x="615" y="160.4" width="6.4" height="6.4" fill="#7dd3fc" opacity="0.76"></rect><rect x="611" y="178.4" width="6.4" height="6.4" fill="#e9dfc6" opacity="0.76"></rect><rect x="616" y="196.4" width="6.4" height="6.4" fill="#e9dfc6" opacity="0.76"></rect><rect x="612" y="214.4" width="6.4" height="6.4" fill="#e9dfc6" opacity="0.76"></rect><rect x="617" y="232.4" width="6.4" height="6.4" fill="#e9dfc6" opacity="0.76"></rect><rect x="613" y="250.4" width="6.4" height="6.4" fill="#7dd3fc" opacity="0.76"></rect><rect x="633" y="123.2" width="6.2" height="6.2" fill="#e9dfc6" opacity="0.73"></rect><rect x="631" y="143.2" width="6.2" height="6.2" fill="#7dd3fc" opacity="0.73"></rect><rect x="629" y="156.2" width="6.2" height="6.2" fill="#e9dfc6" opacity="0.73"></rect><rect x="636" y="176.2" width="6.2" height="6.2" fill="#e9dfc6" opacity="0.73"></rect><rect x="634" y="217.2" width="6.2" height="6.2" fill="#e9dfc6" opacity="0.73"></rect><rect x="632" y="237.2" width="6.2" height="6.2" fill="#7dd3fc" opacity="0.73"></rect><rect x="630" y="257.2" width="6.2" height="6.2" fill="#e9dfc6" opacity="0.73"></rect><rect x="650" y="106" width="6" height="6" fill="#7dd3fc" opacity="0.7"></rect><rect x="652" y="122" width="6" height="6" fill="#e9dfc6" opacity="0.7"></rect><rect x="652" y="144" width="6" height="6" fill="#e9dfc6" opacity="0.7"></rect><rect x="652" y="159" width="6" height="6" fill="#e9dfc6" opacity="0.7"></rect><rect x="645" y="182" width="6" height="6" fill="#e9dfc6" opacity="0.7"></rect><rect x="645" y="197" width="6" height="6" fill="#7dd3fc" opacity="0.7"></rect><rect x="647" y="235" width="6" height="6" fill="#e9dfc6" opacity="0.7"></rect><rect x="647" y="257" width="6" height="6" fill="#e9dfc6" opacity="0.7"></rect><rect x="667" y="102.8" width="5.8" height="5.8" fill="#e9dfc6" opacity="0.6699999999999999"></rect><rect x="664" y="144.8" width="5.8" height="5.8" fill="#e9dfc6" opacity="0.6699999999999999"></rect><rect x="670" y="179.8" width="5.8" height="5.8" fill="#7dd3fc" opacity="0.6699999999999999"></rect><rect x="665" y="197.8" width="5.8" height="5.8" fill="#e9dfc6" opacity="0.6699999999999999"></rect><rect x="667" y="214.8" width="5.8" height="5.8" fill="#e9dfc6" opacity="0.6699999999999999"></rect><rect x="662" y="239.8" width="5.8" height="5.8" fill="#e9dfc6" opacity="0.6699999999999999"></rect><rect x="664" y="256.8" width="5.8" height="5.8" fill="#e9dfc6" opacity="0.6699999999999999"></rect><rect x="684" y="106.6" width="5.6" height="5.6" fill="#e9dfc6" opacity="0.64"></rect><rect x="685" y="145.6" width="5.6" height="5.6" fill="#e9dfc6" opacity="0.64"></rect><rect x="682" y="158.6" width="5.6" height="5.6" fill="#e9dfc6" opacity="0.64"></rect><rect x="683" y="197.6" width="5.6" height="5.6" fill="#e9dfc6" opacity="0.64"></rect><rect x="680" y="217.6" width="5.6" height="5.6" fill="#e9dfc6" opacity="0.64"></rect><rect x="686" y="237.6" width="5.6" height="5.6" fill="#e9dfc6" opacity="0.64"></rect><rect x="681" y="256.6" width="5.6" height="5.6" fill="#e9dfc6" opacity="0.64"></rect><rect x="697" y="146.4" width="5.4" height="5.4" fill="#e9dfc6" opacity="0.61"></rect><rect x="696" y="161.4" width="5.4" height="5.4" fill="#7dd3fc" opacity="0.61"></rect><rect x="704" y="183.4" width="5.4" height="5.4" fill="#e9dfc6" opacity="0.61"></rect><rect x="703" y="198.4" width="5.4" height="5.4" fill="#e9dfc6" opacity="0.61"></rect><rect x="702" y="220.4" width="5.4" height="5.4" fill="#e9dfc6" opacity="0.61"></rect><rect x="716" y="106.2" width="5.2" height="5.2" fill="#e9dfc6" opacity="0.58"></rect><rect x="717" y="123.2" width="5.2" height="5.2" fill="#e9dfc6" opacity="0.58"></rect><rect x="718" y="147.2" width="5.2" height="5.2" fill="#7dd3fc" opacity="0.58"></rect><rect x="733" y="110" width="5" height="5" fill="#7dd3fc" opacity="0.55"></rect><rect x="736" y="129" width="5" height="5" fill="#e9dfc6" opacity="0.55"></rect><rect x="738" y="180" width="5" height="5" fill="#e9dfc6" opacity="0.55"></rect><rect x="732" y="199" width="5" height="5" fill="#7dd3fc" opacity="0.55"></rect><rect x="735" y="218" width="5" height="5" fill="#e9dfc6" opacity="0.55"></rect><rect x="750" y="106.8" width="4.8" height="4.8" fill="#e9dfc6" opacity="0.52"></rect><rect x="755" y="127.8" width="4.8" height="4.8" fill="#e9dfc6" opacity="0.52"></rect><rect x="749" y="163.8" width="4.8" height="4.8" fill="#e9dfc6" opacity="0.52"></rect><rect x="754" y="184.8" width="4.8" height="4.8" fill="#7dd3fc" opacity="0.52"></rect><rect x="748" y="220.8" width="4.8" height="4.8" fill="#e9dfc6" opacity="0.52"></rect><rect x="751" y="256.8" width="4.8" height="4.8" fill="#e9dfc6" opacity="0.52"></rect><rect x="765" y="126.6" width="4.6" height="4.6" fill="#e9dfc6" opacity="0.49"></rect><rect x="772" y="166.6" width="4.6" height="4.6" fill="#e9dfc6" opacity="0.49"></rect><rect x="770" y="206.6" width="4.6" height="4.6" fill="#e9dfc6" opacity="0.49"></rect><rect x="770" y="223.6" width="4.6" height="4.6" fill="#e9dfc6" opacity="0.49"></rect><rect x="768" y="263.6" width="4.6" height="4.6" fill="#e9dfc6" opacity="0.49"></rect><rect x="782" y="106.4" width="4.4" height="4.4" fill="#e9dfc6" opacity="0.45999999999999996"></rect><rect x="784" y="125.4" width="4.4" height="4.4" fill="#e9dfc6" opacity="0.45999999999999996"></rect><rect x="788" y="188.4" width="4.4" height="4.4" fill="#e9dfc6" opacity="0.45999999999999996"></rect><rect x="781" y="207.4" width="4.4" height="4.4" fill="#e9dfc6" opacity="0.45999999999999996"></rect><rect x="785" y="263.4" width="4.4" height="4.4" fill="#7dd3fc" opacity="0.45999999999999996"></rect><rect x="799" y="110.2" width="4.199999999999999" height="4.199999999999999" fill="#e9dfc6" opacity="0.43"></rect><rect x="803" y="131.2" width="4.199999999999999" height="4.199999999999999" fill="#e9dfc6" opacity="0.43"></rect><rect x="798" y="145.2" width="4.199999999999999" height="4.199999999999999" fill="#7dd3fc" opacity="0.43"></rect><rect x="798" y="242.2" width="4.199999999999999" height="4.199999999999999" fill="#7dd3fc" opacity="0.43"></rect><rect x="802" y="263.2" width="4.199999999999999" height="4.199999999999999" fill="#e9dfc6" opacity="0.43"></rect><rect x="822" y="130" width="4" height="4" fill="#e9dfc6" opacity="0.4"></rect><rect x="819" y="146" width="4" height="4" fill="#e9dfc6" opacity="0.4"></rect><rect x="816" y="169" width="4" height="4" fill="#e9dfc6" opacity="0.4"></rect><rect x="822" y="185" width="4" height="4" fill="#e9dfc6" opacity="0.4"></rect><rect x="819" y="208" width="4" height="4" fill="#7dd3fc" opacity="0.4"></rect><rect x="816" y="224" width="4" height="4" fill="#e9dfc6" opacity="0.4"></rect><rect x="822" y="247" width="4" height="4" fill="#e9dfc6" opacity="0.4"></rect><rect x="819" y="263" width="4" height="4" fill="#e9dfc6" opacity="0.4"></rect><rect x="840" y="146.8" width="3.8" height="3.8" fill="#e9dfc6" opacity="0.37"></rect><rect x="839" y="171.8" width="3.8" height="3.8" fill="#e9dfc6" opacity="0.37"></rect><rect x="838" y="226.8" width="3.8" height="3.8" fill="#e9dfc6" opacity="0.37"></rect><rect x="837" y="244.8" width="3.8" height="3.8" fill="#e9dfc6" opacity="0.37"></rect><rect x="852" y="147.6" width="3.5999999999999996" height="3.5999999999999996" fill="#e9dfc6" opacity="0.33999999999999997"></rect><rect x="856" y="188.6" width="3.5999999999999996" height="3.5999999999999996" fill="#e9dfc6" opacity="0.33999999999999997"></rect><rect x="852" y="242.6" width="3.5999999999999996" height="3.5999999999999996" fill="#e9dfc6" opacity="0.33999999999999997"></rect><rect x="874" y="110.4" width="3.4" height="3.4" fill="#e9dfc6" opacity="0.30999999999999994"></rect><rect x="873" y="148.4" width="3.4" height="3.4" fill="#e9dfc6" opacity="0.30999999999999994"></rect><rect x="867" y="247.4" width="3.4" height="3.4" fill="#e9dfc6" opacity="0.30999999999999994"></rect><rect x="883" y="174.2" width="3.1999999999999997" height="3.1999999999999997" fill="#e9dfc6" opacity="0.28"></rect><rect x="884" y="227.2" width="3.1999999999999997" height="3.1999999999999997" fill="#e9dfc6" opacity="0.28"></rect><rect x="891" y="245.2" width="3.1999999999999997" height="3.1999999999999997" fill="#7dd3fc" opacity="0.28"></rect><rect x="906" y="190" width="3" height="3" fill="#e9dfc6" opacity="0.25"></rect><rect x="906" y="210" width="3" height="3" fill="#7dd3fc" opacity="0.25"></rect><rect x="906" y="230" width="3" height="3" fill="#e9dfc6" opacity="0.25"></rect><rect x="940" y="117.6" width="2.5999999999999996" height="2.5999999999999996" fill="#e9dfc6" opacity="0.19000000000000006"></rect><rect x="940" y="193.6" width="2.5999999999999996" height="2.5999999999999996" fill="#e9dfc6" opacity="0.19000000000000006"></rect><rect x="940" y="269.6" width="2.5999999999999996" height="2.5999999999999996" fill="#e9dfc6" opacity="0.19000000000000006"></rect><rect x="959" y="172.4" width="2.3999999999999995" height="2.3999999999999995" fill="#7dd3fc" opacity="0.16000000000000003"></rect><rect x="957" y="269.4" width="2.3999999999999995" height="2.3999999999999995" fill="#7dd3fc" opacity="0.16000000000000003"></rect><rect x="973" y="139.2" width="2.1999999999999993" height="2.1999999999999993" fill="#e9dfc6" opacity="0.13"></rect><rect x="974" y="233.2" width="2.1999999999999993" height="2.1999999999999993" fill="#e9dfc6" opacity="0.13"></rect><rect x="992" y="138" width="2" height="2" fill="#e9dfc6" opacity="0.12"></rect><rect x="993" y="212" width="2" height="2" fill="#7dd3fc" opacity="0.12"></rect>  <path d="M700 232 C 800 250, 900 205, 1040 222" stroke="url(#bltFibre)" stroke-width="2" fill="none"></path> <path d="M720 258 C 830 270, 920 240, 1040 252" stroke="url(#bltFibre)" stroke-width="1.2" fill="none" opacity="0.6"></path> </svg>  <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#131217]/85 via-[#131217]/70 to-[#131217]/40" aria-hidden="true"></div> <div class="relative mx-auto max-w-3xl px-6 pb-14 pt-44 lg:pt-52"> <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-amber-200/80"> <time datetime="September 19, 2026">September 19, 2026</time> <span aria-hidden="true">·</span> <span>13 min read</span> <span class="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 font-mono lowercase text-amber-200"> essay </span><span class="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 font-mono lowercase text-amber-200"> protocol </span><span class="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 font-mono lowercase text-amber-200"> decentralization </span> </div> <h1 class="mt-4 text-4xl font-bold tracking-tight text-white drop-shadow lg:text-5xl"> Atoms for the Ballot </h1> <p class="mt-4 max-w-2xl text-lg leading-relaxed text-gray-300">In 2010 four people from Michigan took over Washington DC&#39;s internet voting trial in two days and left the site playing their fight song. Sixteen years on, the experts still say it can&#39;t be done safely. On why a vote is the one thing that must be secret, checkable and final all at once, why paper is the only record you can read without trusting a program, and what the same five tests say about open, federated software like ours — including the one we fail.</p> </div> </section> <article class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400"> <div class="not-prose flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400"> <span class="flex -space-x-2"> <img src="/blog/authors/crs48.jpg" alt="crs48" width="24" height="24" loading="lazy" class="rounded-full ring-2 ring-white dark:ring-gray-900"><img src="/blog/authors/claude.svg" alt="Claude" width="24" height="24" loading="lazy" class="rounded-full ring-2 ring-white dark:ring-gray-900"> </span> <a href="https://github.com/crs48" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-600 transition-colors hover:text-indigo-500 dark:text-gray-300 dark:hover:text-indigo-400"> crs48 </a><span aria-hidden="true">with</span><a href="https://claude.com/claude-code" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-600 transition-colors hover:text-indigo-500 dark:text-gray-300 dark:hover:text-indigo-400"> Claude </a>  <span aria-hidden="true">·</span> <a href="https://github.com/crs48/xNet/commits/main/site/src/pages/blog/atoms-for-the-ballot.astro" target="_blank" rel="noopener noreferrer" title="This essay may have been revised since publication. See every change to it on GitHub." class="inline-flex items-center gap-1 text-gray-500 transition-colors hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400"> <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"> <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3"></path> <path stroke-linecap="round" stroke-linejoin="round" d="M3.05 11a9 9 0 1 1 .5 4m-.5 4v-4h4"></path> </svg>
+History
+</a>  </div> <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Atoms for the Ballot","description":"In 2010 four people from Michigan took over Washington DC's internet voting trial in two days and left the site playing their fight song. Sixteen years on, the experts still say it can't be done safely. On why a vote is the one thing that must be secret, checkable and final all at once, why paper is the only record you can read without trusting a program, and what the same five tests say about open, federated software like ours — including the one we fail.","datePublished":"2026-09-19T01:08:00Z","url":"https://xnet.fyi/blog/atoms-for-the-ballot","author":[{"@type":"Person","name":"crs48","url":"https://github.com/crs48"},{"@type":"Person","name":"Claude","url":"https://claude.com/claude-code"}]}</script> <p>
+In the autumn of 2010, Washington DC was about to let overseas voters
+        cast real ballots through a website. Before it did, the city tried
+        something brave. It put the system online for a mock election and
+        invited anyone who liked to break in.
+</p> <p>
+A professor and three colleagues at the University of Michigan took
+        up the offer. Within forty-eight hours they had near-complete control
+        of the election server. They changed every vote and could read
+        almost every secret ballot. They even found the building's security
+        cameras on the same network and watched the server room from Ann
+        Arbor. Then they left a calling card: after you voted, your browser
+        played "The Victors", the Michigan fight song.
+</p> <p>
+Nobody running the election noticed for about a day and a half. What
+        gave it away was a message on a mailing list, asking if anyone knew
+        what tune the site played for successful voters. The city shelved the
+        plan.
+</p> <p>
+That was sixteen years ago, and a great deal of clever cryptography
+        has been written since. Yet in January this year, twenty-one computer
+        scientists signed a letter saying what the field has said all along:
+        internet voting is insecure, and nothing we know how to build can
+        make it secure. The names on it include Ron Rivest, who is the R in
+        RSA, and Bruce Schneier. These aren't people who are afraid of
+        computers. So I went looking for why they're so sure, and came back
+        with an awkward question about the software we make here.
+</p> <h2 id="five-things">Five things at once</h2> <p>
+The clearest account I found is a paper from MIT by Sunoo Park,
+        Michael Specter, Neha Narula and Rivest. They list five things an
+        election needs, and the list is worth walking slowly, because the
+        whole problem is in how they rub against each other.
+</p> <p>
+First, the ballot is secret. That isn't a courtesy. If nobody can
+        find out how you voted, nobody can pay you to vote their way, or
+        threaten you if you don't. Before the secret ballot, buying votes was
+        the main way elections were stolen.
+</p> <p>
+Second is a property with an ugly name, software independence. It
+        means a hidden bug or a hidden change in the software must not be
+        able to cause a hidden change in the result. You're allowed to use
+        computers. You just can't be forced to take their word.
+</p> <p>
+Third, you can see that your ballot says what you meant before you
+        cast it. Fourth, if someone finds an error, they can prove it to
+        everyone else. And fifth, somebody actually checks. The authors have
+        a nice line for a system that could be audited and never is: it's
+        like keeping every receipt and never looking at the bill.
+</p> <p>
+Any one of these is easy. Now try them together, from a phone. To
+        check that your vote counted, you need some kind of receipt. But a
+        receipt that proves how you voted is a receipt you can sell, or be
+        made to show to your boss. Cryptographers have clever ways round
+        this, and they work on a whiteboard. The January letter's complaint
+        is that in a real voter's hands they are confusing, and few voters
+        bother.
+</p> <p>
+Suppose you do check, and your checker says your vote was changed.
+        Now what? You can't show anyone without giving up your secret. The
+        officials can't cancel an election because some people say their
+        phones told them something. A check that can't end in proof, the
+        letter says, adds no useful security at all.
+</p> <p>
+Then there's the phone itself. At a polling place the booth belongs
+        to the election. At home the booth is your own device, which nobody
+        has inspected, running whatever it picked up last month. Malware can
+        show you one choice and send another. It can lie to the checking app
+        as well.
+</p> <p>
+Two more things make it worse. An election happens once, so catching
+        a fraud doesn't undo it; all you can do is run a different election
+        later. And the attacker isn't a thief. It may be a state, and a state
+        doesn't even need to change the result, only to leave enough doubt
+        that the losing side won't accept it. What an election really
+        makes isn't a winner. It's a loser who goes home.
+</p> <h2 id="the-bank">But I bank on my phone</h2> <p>
+Everyone says this, and it deserves a straight answer. Online banking
+        isn't safe either. It's insured.
+</p> <p>
+Your bank knows exactly who you are, and every payment has your name
+        on it. When a payment turns out to be fraud, the bank reverses it.
+        When it can't, the bank or the shop or an insurer eats the loss, and
+        the cost comes back to all of us as slightly higher prices. Fraud is
+        a line in the budget. You can also audit the bank yourself, simply by
+        reading your statement.
+</p> <p>
+A ballot allows none of that. Your name can't be on it. It can't be
+        reversed. Nobody can make a country whole after a stolen election.
+        And you can't read your own line in the count without breaking the
+        secrecy that protects you.
+</p> <p>
+Hold on to this, because it matters later. Most of what we do with
+        computers is shaped like the bank: named, fixable, and checkable by
+        the person it belongs to. Voting is the strange one.
+</p> <h2 id="atoms">What atoms do for free</h2> <p>
+So why paper? Not because it's old, and not because election
+        officials are sentimental. Look at what a marked paper ballot
+        actually gives you.
+</p> <p>
+You can read it with your eyes. That sounds trivial until you notice
+        that every electronic record needs a program to show it to you, and
+        the program is the very thing in doubt. Paper is the only data format
+        whose reader has no moving parts.
+</p> <p>
+You also can't edit paper from another continent. To change a paper
+        ballot you have to be in the room with it. To change a million, you
+        need a million acts, in thousands of rooms, in front of people who
+        are there to watch. That takes a conspiracy, and big conspiracies
+        leak. The MIT paper puts the other side plainly: one remote
+        programmer, changing one line, could alter millions of electronic
+        ballots in milliseconds. On paper, cheating costs something for every
+        vote. In software the millionth vote is as cheap as the first.
+</p> <p>
+This is the sense in which electrons are less robust than atoms.
+        Electrons copy for nothing, change without a trace, and can be
+        reached from anywhere. Those are the same features that make them
+        wonderful. The slowness that makes paper annoying is exactly what
+        makes it hard to cheat with.
+</p> <p>
+None of this means counting by hand. Scanners count the paper, fast.
+        Afterwards, officials pull a random sample of ballots and compare
+        them with what the machines said. If the margin is healthy, a few
+        hundred ballots can confirm a contest of tens of millions, with a
+        known, small chance of being wrong. If the sample disagrees, you pull
+        more, all the way to a full hand count if you must. It's called a
+        risk-limiting audit, and America's National Academies asked for it
+        in every state back in 2018, alongside paper for everyone and no
+        marked ballots sent home over the internet. The machines give you
+        speed, the paper keeps the machines honest, and a bit of statistics
+        makes the honesty cheap.
+</p> <p>
+I owe Estonia a fair paragraph. It has voted online since 2005. In
+        2023, for the first time, more than half its votes came in that way.
+        Every citizen carries an identity card with a cryptographic key
+        inside, and you can vote again to overwrite a vote someone pressured
+        you into. Nobody has shown a stolen Estonian election. But when a
+        team that included Alex Halderman, the professor from the DC story,
+        studied the system in 2014, their finding wasn't that it had been
+        hacked. It was that the design leans on trusting the voters'
+        computers, the servers and the staff, and couldn't prove it
+<em>hadn't</em> been hacked. A small country with high trust has
+        looked at that and decided to live with it. That's a real choice. It
+        isn't a proof.
+</p> <h2 id="the-mirror">Now do us</h2> <p>
+Here's the awkward question. We build xNet, which hopes to move a lot
+        of everyday software out of a few companies' data centres and into
+        something closer to a commons: your data on your own machines,
+        synced through servers that anyone can run. If the world's best
+        security people can't make one vote safe online, what business do we
+        have?
+</p> <p>
+There are three sharp versions of the doubt, and I've heard all of
+        them. Isn't some software safer because attackers can't read it? Ours
+        is open source; nobody even needs a decompiler. Isn't small safer?
+        Ours isn't small. And if good people can read the code to find the
+        holes, can't bad people read it too?
+</p> <p>
+Take secrecy first. Voatz was the phone voting app West Virginia used
+        for real in 2018, and its code was closed. Three researchers at MIT
+        pulled the app apart anyway, rebuilt enough of the server to study
+        it, and found that an attacker could change, block or expose a
+        person's vote. Hiding the code had delayed the bad news. It hadn't
+        prevented it. Swiss Post went the other way in 2019 and published the
+        code for its new voting system. Three outsiders found a flaw that
+        allowed votes to be changed without detection, in the very part that
+        was meant to prove nothing had been changed. They found it before an
+        election rather than after, because they could read it.
+</p> <p>
+So the old rule holds. A Dutch linguist named Kerckhoffs wrote it
+        down in 1883: a system should stay safe even when everything about it
+        is public except the key. Keep your keys secret, and your passwords,
+        and the details of a bug until it's fixed. Don't rest anything on the
+        hope that nobody reads how the lock works. That hope is shrinking
+        anyway. Software that reads software has got very good, very quickly,
+        and it reads a compiled program nearly as happily as the source.
+</p> <p>
+But I won't pretend open code checks itself. Heartbleed sat in
+        OpenSSL, the library guarding much of the web, for more than two
+        years, while two full-time people looked after half a million lines
+        on about two thousand dollars a year in donations. In 2024 somebody
+        spent over two years befriending the one tired volunteer who
+        maintained a small compression tool called xz, then slipped a back
+        door into it. The piece that armed it never appeared in the public
+        code at all, only in the packaged releases. One engineer caught it,
+        because his logins were using more processor than they should.
+        Openness made that catch possible. Luck made it happen. As for who
+        wins the race between good readers and bad ones, the studies I could
+        find say open and closed software come out about even on how bad
+        their holes are. What differs is whether you're allowed to look.
+</p> <p>
+Now size. I counted. xNet is about seven hundred thousand lines of
+        TypeScript across fifty-two packages, resting on nearly two hundred
+        libraries we didn't write. When I ran a security audit on those
+        libraries for this essay, it found eighty-five known serious
+        problems, and until this month nothing in our pipeline was looking.
+        Most will be unreachable from our code. I don't yet know which, and
+        that's the point.
+</p> <p>
+The honest defence isn't that we're small. It's that the part which
+        must be right is small. Every change you make in xNet is signed with
+        your key and chained to the change before it. The server checks that
+        signature on the way in, and every other device checks it again when
+        the change arrives. So a server can lose your data, or refuse it, but under
+        our standard settings it can't forge it. That's software independence
+        in the MIT paper's sense, and it's why running your own server, or
+        trusting a stranger's, isn't reckless. It also turns one big target
+        into many small ones. Break into a company that holds everyone's
+        data and you have everyone's. Break into one xNet server and you have
+        one community's files, and still no way to forge a word in anyone's
+        name.
+        That's the difference between the line of code and the thousand
+        rooms.
+</p> <p>
+And we're shaped like the bank, not the ballot. Your changes carry
+        your name and can be undone. We never have to keep a record both
+        secret and provable, so the impossible knot never gets tied.
+</p> <p>
+Here is where it stops being comfortable. All of that protects you
+        from our servers. None of it protects you from our app. The app holds
+        your key. If someone poisoned an update, the app could sign anything
+        in your name, every check on every other device would pass, and
+        nothing could tell the difference afterwards. That's the voter's
+        phone again, and we haven't solved it any more than the election
+        people have.
+</p> <p>
+We have four doors like that: the packages we publish, the desktop
+        app's updates, the plugin marketplace, and the web app. The web app
+        is the widest, because a website can hand out new code every time
+        you load the page. If what you keep in xNet matters to you, use the
+        desktop app, which asks before it updates. What we do have is a
+        public, signed record of where each published package was built, and
+        a second copy of the core rules, written in another language, that
+        must agree with the first. What we don't have yet is a way for you to
+        prove that the app you downloaded was built from the code you can
+        read. Until this month we didn't even have a page telling researchers
+        where to send a bug. We do now, along with a robot that proposes
+        dependency updates and a check that fails when a new serious hole
+        appears. The longer list of what's still open is in the sources
+        below.
+</p> <h2 id="fast-where-its-safe">Fast where it's safe</h2> <p>
+So how does a democracy move forward, when everything else moves at
+        the speed of light? I think the impatience is fair and the target is
+        wrong.
+</p> <p>
+Almost everything around a vote is bank-shaped. Registering. Finding
+        your polling place. Arguing about the question in public: cities from
+        Barcelona outward run budgets and proposals on Decidim, which is open
+        source. Tracking your postal ballot like a parcel. Publishing the
+        results as signed data anyone can add up. Releasing the audit's
+        evidence so a teenager with a laptop can redo the sums. All of that
+        carries names, can be corrected, and gets better with more eyes. Send
+        all of it down the fibre.
+</p> <p>
+Then keep atoms for the single step that has to be both secret and
+        final. It's one moment, a few times a decade. It can afford a pencil.
+</p> <p>
+Most of the deciding people do together isn't even that hard. A
+        housing co-op, a union branch, a software project, the members of one
+        xNet server: they rarely need a secret ballot, and they're not facing
+        a foreign spy agency. An open show of hands, signed so nobody can
+        fake a hand, does the job, and that part is a solved problem. We've
+        written the other half into our governance: xNet won't host a binding
+        secret ballot. It isn't a feature we're behind on. It's a problem
+        nobody has solved, and I'd rather say so than sell it.
+</p> <p>
+Light is for everything you can take back. For the one thing you
+        can't, a piece of paper, a pencil, and a room with other people in
+        it.
+</p> <hr> <h3 id="sources">Sources</h3> <ul class="text-base"> <li>
+The Washington DC break-in is told by the people who did it:
+          Wolchok, Wustrow, Isabel and Halderman,
+<a href="https://jhalderm.com/pub/papers/dcvoting-fc12.pdf" rel="noopener noreferrer"><em>Attacking the Washington, D.C. Internet Voting System</em></a>
+(Financial Cryptography, 2012), read in full for this essay. The
+          forty-eight hours, the thirty-six-hour delay, the cameras and the
+          mailing-list message are all theirs. They also saw password-guessing
+          from Iran, India, China and New Jersey in the logs, and say plainly
+          that it was the internet's ordinary background noise, not an attack
+          on the election, so I have left it out of the story.
+</li> <li>
+The five requirements, the line about one programmer and millions
+          of ballots, and the banking comparison come from Park, Specter,
+          Narula and Rivest,
+<a href="https://people.csail.mit.edu/rivest/pubs/PSNR20.pdf" rel="noopener noreferrer"><em>Going from Bad to Worse: From Internet Voting to Blockchain Voting</em></a>
+(2020 draft, later in the <em>Journal of Cybersecurity</em>). The
+          January 2026 letter is
+<a href="https://blog.citp.princeton.edu/2026/01/16/internet-voting-is-insecure-and-should-not-be-used-in-public-elections/" rel="noopener noreferrer"><em>Internet voting is insecure and should not be used in public elections</em></a>, on Princeton's CITP blog, with all twenty-one names. The banking
+          argument is made at more length by David Jefferson for
+<a href="https://verifiedvoting.org/publication/if-i-can-shop-and-bank-online-why-cant-i-vote-online/" rel="noopener noreferrer">Verified Voting</a>. "Software independence" is Rivest and Wack's term, from
+<a href="https://royalsocietypublishing.org/doi/abs/10.1098/rsta.2008.0149" rel="noopener noreferrer">a 2008 Royal Society paper</a>.
+</li> <li>
+Paper and risk-limiting audits are the recommendation of the US
+          National Academies'
+<a href="https://www.nationalacademies.org/read/25120/chapter/7" rel="noopener noreferrer"><em>Securing the Vote</em></a>
+(2018). "A few hundred ballots" is their own example and depends on
+          a comfortable margin; close contests need far more.
+</li> <li>
+Estonia's system was examined by Springall and colleagues in
+<a href="https://jhalderm.com/pub/papers/ivoting-ccs14.pdf" rel="noopener noreferrer"><em>Security Analysis of the Estonian Internet Voting System</em></a>
+(2014). The online majority in 2023 is reported by
+<a href="https://investinestonia.com/estonia-makes-history-with-i-voting-majority-and-record-female-presence-in-new-parliament/" rel="noopener noreferrer">Invest in Estonia</a>, a government promotion site, so treat the framing as friendly and
+          the number as sound.
+</li> <li>
+Voatz: Specter, Koppel and Weitzner,
+<a href="https://www.usenix.org/conference/usenixsecurity20/presentation/specter" rel="noopener noreferrer"><em>The Ballot is Busted Before the Blockchain</em></a>
+(USENIX Security, 2020). The Swiss Post flaw was found by Sarah
+          Jamie Lewis, Olivier Pereira and Vanessa Teague; the disclosure is
+          at
+<a href="https://openprivacy.ca/work/swisspost-scytl-evoting/" rel="noopener noreferrer">Open Privacy</a>. Swiss Post has since relaunched a rebuilt system for limited
+          trials, with public code and a bug bounty, under the
+<a href="https://www.bk.admin.ch/bk/en/home/politische-rechte/e-voting.html" rel="noopener noreferrer">Federal Chancellery</a>.
+</li> <li>
+Kerckhoffs's rule and Shannon's shorter version, "the enemy knows
+          the system", are summarised on
+<a href="https://en.wikipedia.org/wiki/Kerckhoffs%27s_principle" rel="noopener noreferrer">Wikipedia</a>. Heartbleed's dates and OpenSSL's staffing are from
+<a href="https://en.wikipedia.org/wiki/Heartbleed" rel="noopener noreferrer">its Wikipedia entry</a>, which cites the <em>New York Times</em>. The xz story is from the
+<a href="https://openssf.org/blog/2024/03/30/xz-backdoor-cve-2024-3094/" rel="noopener noreferrer">Open Source Security Foundation</a>
+and
+<a href="https://en.wikipedia.org/wiki/XZ_Utils_backdoor" rel="noopener noreferrer">Wikipedia</a>. "About even" is my reading of Guido Schryen's
+<a href="https://www.researchgate.net/publication/220891308_Security_of_Open_Source_and_Closed_Source_Software_An_Empirical_Comparison_of_Published_Vulnerabilities" rel="noopener noreferrer">comparison of published vulnerabilities</a>, which is careful and more than a decade old. Machines that find
+          bugs: Google's
+<a href="https://projectzero.google/2024/10/from-naptime-to-big-sleep.html" rel="noopener noreferrer">Big Sleep</a>
+is the example I trust; I have left vendors' headline numbers out.
+</li> <li> <a href="https://en.wikipedia.org/wiki/Decidim" rel="noopener noreferrer">Decidim</a>
+began in Barcelona in 2016 and is free software.
+</li> <li>
+Our side is in the open. Signing and checking live in
+<code>packages/sync/src/change.ts</code>, the server's check in
+<code>packages/hub/src/services/node-relay.ts</code>, and each
+          device's own check in <code>packages/data/src/store/store.ts</code>.
+          "Standard settings" matters: there is a compatibility switch,
+<code>allowUnsignedReplication</code>, that turns the guarantee off,
+          and it is off by default. The line counts are from
+<code>git ls-files</code> on the day of writing. The eighty-five
+          advisories are high or critical findings from
+<code>pnpm audit --prod</code>, now held by
+<code>scripts/check-dependency-audit.mjs</code> against a committed
+          baseline so the number can only fall. The new
+<a href="https://github.com/crs48/xNet/blob/main/SECURITY.md" rel="noopener noreferrer">security policy</a>
+says where to send a bug. The secret-ballot rule is in
+<a href="https://github.com/crs48/xNet/blob/main/GOVERNANCE.md" rel="noopener noreferrer">GOVERNANCE.md</a>.
+</li> <li>
+Still open on the day this was published, and findable in
+<a href="https://github.com/crs48/xNet/tree/main/docs/explorations" rel="noopener noreferrer">our explorations</a>: no reproducible builds, so nobody outside can yet confirm that a
+          release matches the source; no answer for the web app beyond "prefer
+          the desktop"; a threat model begun in
+<a href="https://github.com/crs48/xNet/blob/main/docs/explorations/0134_%5B_%5D_BAD_ACTOR_ATTACKS_AND_SECURITY_THREAT_MODEL.md" rel="noopener noreferrer">0134</a>
+and never finished; the end-to-end review of how a change travels,
+<a href="https://github.com/crs48/xNet/blob/main/docs/explorations/0307_%5B_%5D_SECURITY_OF_NODE_AND_CHANGE_FLOW.md" rel="noopener noreferrer">0307</a>, likewise; desktop
+          releases that fall back to an unsigned-by-Apple build when our
+          signing secrets are absent; and a newer, quantum-resistant
+          signature scheme that is written but not yet wired into the change
+          log. The plan for closing them is exploration 0463.
+</li> </ul> <nav aria-label="More in this series" class="mx-auto max-w-3xl px-6 pb-16"><div class="border-t border-border pt-8"><p class="mb-4 font-mono text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500">
+More from the blog
+</p><div class="grid gap-4 sm:grid-cols-2"><a href="/blog/the-hundred-year-machine" rel="prev" class="group flex flex-col rounded-2xl border border-border bg-surface/20 p-5 transition-all hover:border-indigo-500/40 hover:bg-surface/40"><span class="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400"><svg class="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"></path></svg>
+Previous
+</span><span class="mt-2 font-bold tracking-tight text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">The Hundred-Year Machine</span></a><span class="hidden sm:block" aria-hidden="true"></span></div></div></nav> </article> </main> <footer class="border-t border-border/50 bg-surface/10 dark:bg-surface/20"> <div class="mx-auto max-w-6xl px-6 py-12 lg:py-16"> <!-- Main footer content --> <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-8"> <!-- Brand --> <div class="lg:col-span-2"> <a href="/" class="inline-flex items-center gap-2"> <span class="font-mono text-xl font-bold text-gray-800 dark:text-white">xNet</span> </a> <p class="mt-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
+Local-first apps that work offline, sync peer-to-peer, and keep your data under your control.
+</p> <div class="mt-6 flex gap-4"> <a href="https://github.com/crs48/xNet" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="GitHub"> <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"> <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path> </svg> </a> <a href="https://github.com/crs48/xNet/discussions" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="GitHub Discussions"> <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"> <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"></path> </svg> </a> <!-- Syndication targets (exploration 0432). Icons are inline SVG, never a
+               platform embed script: five essays promise the reader that these pages
+               load nothing third-party. --> <a href="https://bsky.app/profile/xnetfyi.bsky.social" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="xNet on Bluesky"> <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"> <path d="M5.769 3.446C8.32 5.363 11.065 9.25 12 11.334c.935-2.085 3.68-5.971 6.231-7.888C20.052 2.06 23 .965 23 4.328c0 .671-.385 5.643-.611 6.45-.787 2.808-3.65 3.524-6.198 3.09 4.454.758 5.587 3.269 3.14 5.78-4.648 4.77-6.68-1.196-7.201-2.726-.096-.28-.141-.412-.141-.3 0-.113-.045.019-.141.3-.521 1.53-2.553 7.496-7.201 2.726-2.447-2.511-1.314-5.022 3.14-5.78-2.548.434-5.411-.282-6.198-3.09C1.385 9.971 1 5 1 4.328 1 .965 3.948 2.06 5.769 3.446Z"></path> </svg> </a> <a href="https://x.com/xnetfyi" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="xNet on X"> <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"> <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644Z"></path> </svg> </a> </div> </div> <!-- Agents --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Agents</h4> <ul class="space-y-3"> <li> <a href="/agents" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Connect your agent </a> </li><li> <a href="/docs/guides/coding-agents/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Use from Claude Code </a> </li><li> <a href="/docs/guides/agent-interfaces/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Agent Interfaces </a> </li><li> <a href="/agents.md" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> agents.md </a> </li><li> <a href="/llms.txt" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> llms.txt </a> </li> </ul> </div> <!-- Product --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Product</h4> <ul class="space-y-3"> <li> <a href="/app" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Try the App </a> </li><li> <a href="/mobile" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Run on Mobile </a> </li><li> <a href="/download" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Download Desktop </a> </li><li> <a href="/plugins" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Plugins </a> </li><li> <a href="/docs" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Documentation </a> </li><li> <a href="/docs/quickstart/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Quickstart </a> </li><li> <a href="/changelog" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Changelog </a> </li> </ul> </div> <!-- Cloud --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Cloud</h4> <ul class="space-y-3"> <li> <a href="/cloud" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> xNet Cloud </a> </li><li> <a href="/cloud/pricing" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Pricing </a> </li><li> <a href="/open" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Open metrics </a> </li><li> <a href="/status" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Status </a> </li> </ul> </div> <!-- Develop --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Develop</h4> <ul class="space-y-3"> <li> <a href="/react" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> xNet for React </a> </li><li> <a href="/build-with" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Build with any language </a> </li><li> <a href="/docs/languages/swift/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Swift SDK </a> </li><li> <a href="/docs/languages/rust/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Rust core </a> </li><li> <a href="/devtool" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> DevTools </a> </li><li> <a href="/docs/hooks/overview/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> React Hooks </a> </li><li> <a href="/docs/guides/server/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Your own server </a> </li> </ul> </div> <!-- Resources --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Resources</h4> <ul class="space-y-3"> <li> <a href="/why" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Why xNet </a> </li><li> <a href="/blog" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Blog </a> </li><li> <a href="/compare" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Compare </a> </li><li> <a href="/commitments" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Commitments </a> </li><li> <a href="/roadmap" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Roadmap </a> </li><li> <a href="/docs/architecture/overview/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Architecture </a> </li><li> <a href="/docs/contributing/getting-started/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Contributing </a> </li> </ul> </div> <!-- Community --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Community</h4> <ul class="space-y-3"> <li> <a href="https://github.com/crs48/xNet" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> GitHub </a> </li><li> <a href="https://github.com/crs48/xNet/discussions" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> GitHub Discussions </a> </li><li> <a href="https://bsky.app/profile/xnetfyi.bsky.social" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Bluesky </a> </li><li> <a href="https://x.com/xnetfyi" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> X </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/GOVERNANCE.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Governance </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/TRADEMARK.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Trademark &amp; Brand </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Code of Conduct </a> </li> </ul> </div> </div> <!-- Bottom bar --> <div class="mt-12 pt-8 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4"> <p class="text-sm text-gray-500">
+&copy; 2026 xNet. Open source under MIT License.
+</p> <div class="flex items-center gap-6"> <a href="https://github.com/crs48/xNet/blob/main/LICENSE" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> MIT License </a><a href="/privacy" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Privacy </a><a href="/terms" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Terms </a><a href="/acceptable-use" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Acceptable Use </a><a href="https://github.com/crs48/xNet/blob/main/SECURITY.md" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Security </a><a href="/subprocessors" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Sub-processors </a> </div> </div> </div> </footer>  <script type="module">const o=new IntersectionObserver(e=>{e.forEach(t=>{t.isIntersecting&&(t.target.classList.add("visible"),o.unobserve(t.target))})},{threshold:.1,rootMargin:"0px 0px -40px 0px"});document.querySelectorAll(".animate-on-scroll").forEach(e=>o.observe(e));document.querySelectorAll(".copy-btn").forEach(e=>{e.addEventListener("click",async()=>{const t=e.dataset.copy||e.closest(".relative")?.querySelector("code")?.textContent||"";await navigator.clipboard.writeText(t.trim()),e.textContent="Copied!",e.classList.add("copied"),setTimeout(()=>{e.textContent="Copy",e.classList.remove("copied")},2e3)})});</script> </body> </html>

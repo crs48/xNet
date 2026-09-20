@@ -1,0 +1,4 @@
+# xnet.fyi — everything public is crawlable.
+# Agents: start at /llms.txt (index) or /agents.md (what connecting gives you).
+User-agent: *
+Allow: /

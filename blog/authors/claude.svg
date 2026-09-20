@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Claude, AI co-author">
+  <!-- Original xNet artwork (exploration 0269): a spark glyph standing in for the
+       AI co-author. Deliberately NOT a vendor logo — the blog promises all
+       artwork is original and pages load nothing third-party. -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#1e2a4a"/>
+      <stop offset="100%" stop-color="#0b1020"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a5b4fc" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="48" cy="48" r="48" fill="url(#bg)"/>
+  <circle cx="48" cy="48" r="30" fill="url(#glow)"/>
+  <g stroke="#c7d2fe" stroke-width="5.5" stroke-linecap="round">
+    <line x1="48" y1="22" x2="48" y2="74"/>
+    <line x1="22" y1="48" x2="74" y2="48"/>
+    <line x1="30" y1="30" x2="66" y2="66"/>
+    <line x1="66" y1="30" x2="30" y2="66"/>
+  </g>
+  <circle cx="48" cy="48" r="7.5" fill="#eef2ff"/>
+</svg>
