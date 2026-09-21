@@ -24,7 +24,7 @@ jobs:
       name: pr-${{ github.event.pull_request.number }}
       url: https://xnet.fyi/pr/${{ github.event.pull_request.number }}/app/
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -72,7 +72,7 @@ jobs:
           commit-message: 'deploy(preview): publish PR #${{ github.event.pull_request.number }} demos preview'
 
       - name: Comment preview link
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const body = [

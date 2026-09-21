@@ -21,7 +21,7 @@ jobs:
     if: github.ref_name != 'main' && github.ref_name != 'gh-pages'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup
 
