@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Parallel SQLite Readers In Electron: WAL, Worker Threads, And Why The OPFS Wall Doesn't Apply
 
 > **Implementation status.** Phases 0, 0.5, and 1 are implemented and unit/

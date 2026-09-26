@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # The Migrating 18-Second Boot Stall: Stop Guessing, Instrument To Ground Truth
 
 ## Problem Statement

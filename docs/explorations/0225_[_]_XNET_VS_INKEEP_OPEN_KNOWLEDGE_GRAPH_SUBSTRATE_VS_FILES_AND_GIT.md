@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # xNet vs. inkeep/open-knowledge — Graph Substrate vs. Files-and-Git
 
 ## Problem Statement

@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # The Intuitive Cloud Dashboard — Guided Connect, Per-Platform Onboarding, and a Clean Redeploy
 
 ## Problem Statement

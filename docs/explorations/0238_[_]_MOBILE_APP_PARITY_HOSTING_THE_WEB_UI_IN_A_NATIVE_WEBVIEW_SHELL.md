@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Mobile App Parity: Host the Web UI in a Thin Native Webview Shell
 
 > Status: exploration / unchecked. Recommends a container strategy and an

@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Mitigating the Harms of the Internet: A Neo‑Luddite Audit of xNet
 
 > _"We're building the alternative social infrastructure needed to make Silicon

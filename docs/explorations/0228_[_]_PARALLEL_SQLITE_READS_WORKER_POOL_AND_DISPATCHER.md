@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Parallelizing SQLite Reads: A Worker Pool, A Dispatcher, And The OPFS Exclusivity Wall
 
 ## Problem Statement
