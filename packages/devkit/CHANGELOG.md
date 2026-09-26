@@ -1,5 +1,92 @@
 # @xnetjs/devkit
 
+## 1.1.0
+
+### Minor Changes
+
+- [#668](https://github.com/crs48/xNet/pull/668) [`2c148e8`](https://github.com/crs48/xNet/commit/2c148e8f134b0062ea9bca7af888710834f1ad91) Thanks [@crs48](https://github.com/crs48)! - Agent accountability substrate and JSON-RPC agent adapters (exploration 0416).
+
+  **`@xnetjs/identity`** — `enrollForeignAgent()` mints a scoped Agent Passport
+  from a verified foreign credential (a Buzz `npub`, an A2A agent card), with the
+  proof verifier injected so no ecosystem-specific dependency enters the package.
+  Passport revocation is no longer expiry-only: `revokeAgentPassport()` signs a
+  denylist entry and `verifyAgentPassport()` consults one via the new
+  `revocations` option.
+
+  **`@xnetjs/data`** — new `@xnetjs/data/agent-audit` sub-entry: build, serialize
+  and **offline-verify** an `AgentAuditBundle`. `verifyAgentAudit()` checks the
+  passport, every change's hash and signature, the unbroken per-author chain (which
+  is what catches a _removed_ action), and that every high/critical action carries
+  an operator-signed approval.
+
+  **`@xnetjs/plugins`** — a per-session egress budget (`EgressMeter`) meters agent
+  reads and raises a typed `EgressBudgetError` rather than returning a silently
+  truncated result. The model lane now emits the same `AiAgentFrame` vocabulary the
+  bridge lane speaks, via the new `onFrame` runtime option.
+
+  **`@xnetjs/devkit`** — `codexAppServerChatAgent()` and `acpChatAgent()` drive
+  Codex `app-server` and any ACP agent over a new JSON-RPC-over-stdio transport
+  (`JsonRpcSession`, `NodeDuplexRunner`), so conversations resume on a thread
+  instead of replaying history. `createPermissionBroker()` plus
+  `POST /v1/agent/permission` give the bridge a real answer channel, so a
+  permission request can be approved in-app instead of only displayed.
+
+  **`@xnetjs/cli`** — `xnet audit verify <bundle>` verifies an exported audit
+  bundle offline and exits non-zero on any problem.
+
+  All additions are additive; no existing export changed shape.
+
+- [#623](https://github.com/crs48/xNet/pull/623) [`380385c`](https://github.com/crs48/xNet/commit/380385cfdf006e91a8d6ca04424ddd2d2eedd504) Thanks [@crs48](https://github.com/crs48)! - Structured agent frames for the bridge (exploration 0392). The agent bridge can
+  now stream a turn as structured `AgentFrame`s — tool calls, tool results,
+  permission requests, cost, and session id — over a new framed endpoint
+  (`POST /v1/agent/stream`) instead of only text. `@xnetjs/devkit` exports the
+  `AgentFrame` vocabulary, `foldStreamJsonFrames`, and `streamTurnFrames` on the
+  Claude streaming agent; the existing OpenAI-compatible `/v1/chat/completions`
+  endpoint is unchanged. The bridge session map can now be made durable
+  (`fileSessionPersistence`) so `--resume` sessions survive a daemon restart, and
+  `xnet bridge serve --agent claude` wires this automatically.
+
+  `@xnetjs/plugins` adds a models.dev catalog consumer (`fetchModelsDevCatalog`,
+  with a vendored snapshot fallback for offline/outage) for cloud-key and local
+  model pickers, and now sends OpenRouter app-attribution headers
+  (`HTTP-Referer` / `X-Title`) on OpenRouter-bound requests.
+
+- [#620](https://github.com/crs48/xNet/pull/620) [`3aac04b`](https://github.com/crs48/xNet/commit/3aac04bd1de08d7cf7208eee47810f3973ffb2ff) Thanks [@crs48](https://github.com/crs48)! - Workspace writes from the bridged agent are now consent-gated. The devkit
+  exports a read-only MCP tool tier (`XNET_READONLY_ALLOWED_TOOLS`) and
+  `buildAgentArgs`/`buildStreamingAgentArgs` accept multiple allowed-tool
+  patterns; `xnet bridge serve` defaults the agent to read-only workspace
+  tools and requires `--allow-writes` to enable create/update/delete.
+
+- [#620](https://github.com/crs48/xNet/pull/620) [`cd87b4d`](https://github.com/crs48/xNet/commit/cd87b4d5a462d2cee0eeea57b62df7147b0abe18) Thanks [@crs48](https://github.com/crs48)! - The local agent bridge now streams Claude Code replies live and carries
+  conversations across turns. `cliStreamingChatAgent` drives Claude's
+  `stream-json` headless mode with partial deltas forwarded as they arrive,
+  the bridge maps conversations to CLI sessions (`--resume`) via transcript
+  fingerprints, timeouts are idle-based instead of a 120s wall-clock cap, and
+  chat turns run in a dedicated `~/.xnet/agent-home` working directory.
+  Workspace tools (`--mcp`) are on by default for the Claude agent
+  (`--no-mcp` opts out). New: `xnet bridge install` / `uninstall` manage a
+  macOS launchd login item with a stable pairing code, and `xnet doctor`
+  reports bridge daemon health.
+
+- [#638](https://github.com/crs48/xNet/pull/638) [`77e2ac5`](https://github.com/crs48/xNet/commit/77e2ac5c7c3a3f7994d478277d2babb1e0c20607) Thanks [@crs48](https://github.com/crs48)! - Add `mcpHttpConfigFor` for pointing a coding agent at an already-running MCP
+  server over Streamable HTTP, alongside the existing `mcpConfigFor` for servers
+  the agent spawns itself. This is how a host application hands the agent its
+  tools without shipping a CLI for it to launch: the app serves the workspace from
+  its own process and passes the URL plus a pairing header.
+
+- [#631](https://github.com/crs48/xNet/pull/631) [`6737116`](https://github.com/crs48/xNet/commit/67371169d213f0ac9388af9ae78e9ece8726b069) Thanks [@crs48](https://github.com/crs48)! - Add the point-and-change substrate from exploration 0399.
+
+  `@xnetjs/devkit` gains `resolveLane()` (plus `workspaceOf`, `isKernel`,
+  `lane3Prompt`) on a new browser-safe `./blast-radius` subpath, and the Lane 3
+  preconditions `probeDevEnvironment`, `assertEditable`, `previewWorktree`, and
+  `reviewWorktree`. `openPullRequest()` now opens a **draft** by default — pass
+  `draft: false` for the previous behaviour.
+
+  `@xnetjs/ui` exposes the theme token-override contract (`setThemeToken`,
+  `clearThemeToken`, `clearThemeTokens`, `readTokenOverrides`,
+  `applyTokenOverrides`) as plain functions usable outside `ThemeProvider`, and
+  `useTheme()` gains `tokenOverrides` / `setToken` / `clearToken` / `clearTokens`.
+
 ## 1.0.1
 
 ### Patch Changes
