@@ -1,5 +1,29 @@
 # @xnetjs/sync
 
+## 4.0.0
+
+### Minor Changes
+
+- [#619](https://github.com/crs48/xNet/pull/619) [`06fb240`](https://github.com/crs48/xNet/commit/06fb240fc7ecf55b6364395602c1d906d4e2255c) Thanks [@crs48](https://github.com/crs48)! - Play well with the ATmosphere (exploration 0389). `@xnetjs/data` gains
+  `RecordLens` — a node↔lexicon mapping that preserves foreign fields another app
+  wrote (unlike `SchemaLens`, whose one-way `backward` would eat them under
+  `putRecord`'s whole-object replace) — a concrete `pageToDocumentLens` projecting
+  a Page onto the adopted `site.standard.document` lexicon with one minted
+  `fyi.xnet.richBody` block, an authoring-time `publish` guard that flags
+  unprojectable properties (floats, formulas) at `defineSchema` time, and an
+  `AtmospherePublishState` machine encoding the publish one-way door (Withdraw,
+  never make-private; gated content never crosses to the public rail).
+  `@xnetjs/sync` gains signed `SpaceSnapshot` — an order-independent, verifiable
+  checkpoint over a Space frontier — the shared primitive that bounded replay,
+  anti-entropy, and encrypted atmosphere backup all needed.
+
+### Patch Changes
+
+- Updated dependencies [[`2c148e8`](https://github.com/crs48/xNet/commit/2c148e8f134b0062ea9bca7af888710834f1ad91)]:
+  - @xnetjs/identity@4.0.0
+  - @xnetjs/crypto@4.0.0
+  - @xnetjs/core@4.0.0
+
 ## 3.0.0
 
 ### Minor Changes
