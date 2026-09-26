@@ -8,7 +8,7 @@ import Byline from '../../components/blog/Byline.astro'
 import Mermaid from '../../components/blog/Mermaid.astro'
 import CodeFigure from '../../components/blog/CodeFigure.astro'
 import HonestVault from '../../components/blog/HonestVault.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('the-vault-and-the-view')!
 
@@ -68,7 +68,12 @@ const twoViews = `sequenceDiagram
   Note over T,C: two views, one change —<br/>both update, instantly`
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

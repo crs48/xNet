@@ -8,12 +8,17 @@ import Byline from '../../components/blog/Byline.astro'
 import WatchTheOriginal from '../../components/blog/WatchTheOriginal.astro'
 import GrowthVsLeverage from '../../components/blog/GrowthVsLeverage.astro'
 import HonestExit from '../../components/blog/HonestExit.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('the-right-to-say-no')!
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

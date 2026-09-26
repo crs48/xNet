@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # The Followed — A Mockumentary Video Series From The `/why` Page
 
 > Take the just-shipped [`/why`](../../site/src/pages/why.astro) landing page

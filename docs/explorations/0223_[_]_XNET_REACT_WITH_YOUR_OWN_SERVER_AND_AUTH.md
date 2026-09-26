@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # xNet React With Your Own Server (Bring-Your-Own Backend & Auth)
 
 > Status: exploration / proposal. Filename starts `[_]`; flip to `[x]` once the

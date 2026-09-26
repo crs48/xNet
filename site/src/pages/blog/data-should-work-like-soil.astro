@@ -7,12 +7,17 @@ import MycelialHero from '../../components/blog/MycelialHero.astro'
 import Byline from '../../components/blog/Byline.astro'
 import ThreeNervousSystems from '../../components/blog/ThreeNervousSystems.astro'
 import HonestMycelium from '../../components/blog/HonestMycelium.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('data-should-work-like-soil')!
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

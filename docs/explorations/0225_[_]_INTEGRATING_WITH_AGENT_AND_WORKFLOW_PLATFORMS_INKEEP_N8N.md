@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Integrating With Agent & Workflow Platforms (Inkeep Agents, n8n)
 
 > Status: exploration / recommendation. Should xNet integrate with an

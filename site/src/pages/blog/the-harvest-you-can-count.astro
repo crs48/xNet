@@ -8,12 +8,17 @@ import Byline from '../../components/blog/Byline.astro'
 import HarvestArt from '../../components/blog/HarvestArt.astro'
 import HonestHarvest from '../../components/blog/HonestHarvest.astro'
 import Mermaid from '../../components/blog/Mermaid.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('the-harvest-you-can-count')!
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

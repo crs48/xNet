@@ -8,7 +8,7 @@ import Byline from '../../components/blog/Byline.astro'
 import Mermaid from '../../components/blog/Mermaid.astro'
 import CodeFigure from '../../components/blog/CodeFigure.astro'
 import Peek from '../../components/blog/Peek.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('the-tip-of-the-hook')!
 
@@ -160,7 +160,12 @@ const trustFlow = `sequenceDiagram
   P->>P: the live query deltas the new value into view`
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

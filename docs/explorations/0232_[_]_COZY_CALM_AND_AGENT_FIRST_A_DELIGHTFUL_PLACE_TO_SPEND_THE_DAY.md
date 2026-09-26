@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Cozy, Calm, and Agent-First — Making xNet a Delightful Place to Spend the Day
 
 ## Problem Statement

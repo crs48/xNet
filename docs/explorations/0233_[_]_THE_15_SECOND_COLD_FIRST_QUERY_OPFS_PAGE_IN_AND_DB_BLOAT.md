@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # The 15-Second Cold First Query: First Paint Blocked by Cold OPFS Page-In
 
 ## Problem Statement

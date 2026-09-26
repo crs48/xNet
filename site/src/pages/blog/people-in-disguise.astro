@@ -8,7 +8,7 @@ import Byline from '../../components/blog/Byline.astro'
 import WatchTheOriginal from '../../components/blog/WatchTheOriginal.astro'
 import HonestDisguise from '../../components/blog/HonestDisguise.astro'
 import CodeFigure from '../../components/blog/CodeFigure.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('people-in-disguise')!
 
@@ -51,7 +51,12 @@ const prescriptions = [
 ]
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

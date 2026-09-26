@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Codebase Refactoring Atlas: Dead Code, God Files, and Deduplication
 
 > Status: unimplemented (`[_]`). A survey + prioritized plan, not a single PR.

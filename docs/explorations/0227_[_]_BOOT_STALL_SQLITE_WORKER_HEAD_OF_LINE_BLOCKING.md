@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # The 18-Second Blank-Page Boot Stall: Single-Worker Head-of-Line Blocking
 
 ## Problem Statement

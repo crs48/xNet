@@ -6,7 +6,7 @@ import SeriesNav from '../../components/blog/SeriesNav.astro'
 import PalimpsestHero from '../../components/blog/PalimpsestHero.astro'
 import Byline from '../../components/blog/Byline.astro'
 import CodeFigure from '../../components/blog/CodeFigure.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('palimpsest')!
 
@@ -57,7 +57,12 @@ const envelope = [
 const envelopeTotal = envelope.reduce((sum, seg) => sum + seg.bytes, 0)
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

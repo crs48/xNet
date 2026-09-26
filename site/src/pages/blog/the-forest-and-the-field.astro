@@ -7,12 +7,17 @@ import ForestHero from '../../components/blog/ForestHero.astro'
 import Byline from '../../components/blog/Byline.astro'
 import PrincipleWheel from '../../components/blog/PrincipleWheel.astro'
 import HonestGarden from '../../components/blog/HonestGarden.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('the-forest-and-the-field')!
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

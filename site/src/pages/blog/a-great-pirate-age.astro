@@ -7,12 +7,17 @@ import PirateHero from '../../components/blog/PirateHero.astro'
 import Byline from '../../components/blog/Byline.astro'
 import ArticlesMap from '../../components/blog/ArticlesMap.astro'
 import HonestPirate from '../../components/blog/HonestPirate.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('a-great-pirate-age')!
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

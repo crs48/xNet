@@ -1,3 +1,7 @@
+---
+review: 2027-02-01
+---
+
 # Google-Earth-Class GIS Mapping: LOD Tiles, A SQLite Spatial Index, And A Layered Map API/UX
 
 > **Implementation status — Phase 1 shipped.** The keystone phase is built and

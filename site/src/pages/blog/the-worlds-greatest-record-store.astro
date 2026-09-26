@@ -6,12 +6,17 @@ import SeriesNav from '../../components/blog/SeriesNav.astro'
 import RecordHero from '../../components/blog/RecordHero.astro'
 import Byline from '../../components/blog/Byline.astro'
 import HonestRecord from '../../components/blog/HonestRecord.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('the-worlds-greatest-record-store')!
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>
