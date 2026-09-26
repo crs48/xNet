@@ -4,5 +4,14 @@
   "title": "Shared blog links now show the essay's own artwork",
   "summary": "Pasting a blog post link into Slack, iMessage, X or Bluesky now unfurls with that essay's hero picture instead of the generic xNet screenshot.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 720,
+  "mergedAt": "2026-09-26T02:33:06Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
