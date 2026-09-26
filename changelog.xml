@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Shared blog links now show the essay's own artwork</title>
+      <link>https://xnet.fyi/changelog#2026-09-25-shared-blog-links-now-show-the-essay-s-o</link>
+      <guid isPermaLink="false">2026-09-25-shared-blog-links-now-show-the-essay-s-o</guid>
+      <pubDate>Sat, 26 Sep 2026 02:33:06 GMT</pubDate>
+      <description>Pasting a blog post link into Slack, iMessage, X or Bluesky now unfurls with that essay's hero picture instead of the generic xNet screenshot.</description>
+    </item>
+    <item>
       <title>New essay: Atoms for the Ballot, plus a security policy</title>
       <link>https://xnet.fyi/changelog#2026-09-18-new-essay-atoms-for-the-ballot-plus-a-se</link>
       <guid isPermaLink="false">2026-09-18-new-essay-atoms-for-the-ballot-plus-a-se</guid>
