@@ -7,12 +7,17 @@ import BoardHero from '../../components/blog/BoardHero.astro'
 import Byline from '../../components/blog/Byline.astro'
 import HonestBoard from '../../components/blog/HonestBoard.astro'
 import Mermaid from '../../components/blog/Mermaid.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('rig-the-game-or-play')!
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

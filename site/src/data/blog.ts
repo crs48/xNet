@@ -94,7 +94,11 @@ export interface BlogPost {
   tags: BlogTag[]
   /** Rough read time in minutes, shown on the card. */
   readingMinutes: number
-  /** Optional hero image (absolute site path or https URL) for social cards. */
+  /**
+   * Optional social-card image override (absolute site path or https URL).
+   * Unset means the post's hero art, rasterised at `/blog/og/<slug>.png`
+   * (see `postSocialImage`).
+   */
   hero?: { src: string; alt: string }
   /** Hide from index + feed while authoring. */
   draft?: boolean
@@ -471,6 +475,23 @@ const posts: BlogPost[] = [
 /** Published posts, newest first. Drops drafts. */
 export function publishedPosts(): BlogPost[] {
   return posts.filter((p) => !p.draft).sort((a, b) => b.pubDate.localeCompare(a.pubDate))
+}
+
+/** Every post, drafts included — for build steps that must cover authoring URLs too. */
+export function allPosts(): BlogPost[] {
+  return [...posts]
+}
+
+/**
+ * The image a link unfurler should show for a post (`og:image` / `twitter:image`).
+ *
+ * Defaults to the post's own hero art, rasterised to PNG at build time by
+ * `pages/blog/og/[slug].png.ts` — unfurlers do not render SVG, and before this
+ * every essay shared the site-wide workbench screenshot. `hero` overrides it
+ * for a post whose card should be a photograph or bespoke image instead.
+ */
+export function postSocialImage(post: BlogPost): { src: string; alt: string } {
+  return post.hero ?? { src: `/blog/og/${post.slug}.png`, alt: `Cover art for “${post.title}”` }
 }
 
 /**

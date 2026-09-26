@@ -7,12 +7,17 @@ import DustHero from '../../components/blog/DustHero.astro'
 import Byline from '../../components/blog/Byline.astro'
 import DustBridge from '../../components/blog/DustBridge.astro'
 import HonestDesert from '../../components/blog/HonestDesert.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('the-desert-that-feeds-the-forest')!
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

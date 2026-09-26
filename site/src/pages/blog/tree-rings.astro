@@ -7,7 +7,7 @@ import RingsHero from '../../components/blog/RingsHero.astro'
 import Byline from '../../components/blog/Byline.astro'
 import WatchTheOriginal from '../../components/blog/WatchTheOriginal.astro'
 import CodeFigure from '../../components/blog/CodeFigure.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('tree-rings')!
 
@@ -66,7 +66,12 @@ const midBand = [
 ] as const
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

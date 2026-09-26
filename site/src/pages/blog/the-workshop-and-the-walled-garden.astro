@@ -8,7 +8,7 @@ import Byline from '../../components/blog/Byline.astro'
 import Mermaid from '../../components/blog/Mermaid.astro'
 import CodeFigure from '../../components/blog/CodeFigure.astro'
 import HonestWorkshop from '../../components/blog/HonestWorkshop.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('the-workshop-and-the-walled-garden')!
 
@@ -62,7 +62,12 @@ const viewsOverData = `flowchart LR
   STORE -->|"tasks + notes,<br/>nothing else"| P`
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

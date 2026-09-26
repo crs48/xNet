@@ -4,9 +4,12 @@ import '../styles/tailwind.css'
 interface Props {
   title: string
   description: string
+  /** Social-card image (absolute site path or https URL); defaults to the workbench screenshot. */
+  image?: string
+  imageAlt?: string
 }
 
-const { title, description } = Astro.props
+const { title, description, image, imageAlt } = Astro.props
 
 // Cookieless, privacy-preserving analytics (exploration 0210). Off unless
 // PUBLIC_ANALYTICS_DOMAIN is set at build time (e.g. in the deploy workflow), so
@@ -16,10 +19,13 @@ const { title, description } = Astro.props
 const analyticsDomain = import.meta.env.PUBLIC_ANALYTICS_DOMAIN
 const analyticsSrc = import.meta.env.PUBLIC_ANALYTICS_SRC || 'https://plausible.io/js/script.js'
 
-// Canonical + social-card metadata (exploration 0457). The screenshot doubles
-// as the card image until a dedicated OG image exists.
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://xnet.fyi')
-const ogImage = new URL('/images/workbench-light.png', Astro.site ?? 'https://xnet.fyi')
+// Canonical + social-card metadata (exploration 0457). Pages with their own
+// picture (blog posts pass their rasterised hero art) override `image`; the
+// workbench screenshot is the fallback for everything else.
+const siteOrigin = Astro.site ?? 'https://xnet.fyi'
+const canonicalUrl = new URL(Astro.url.pathname, siteOrigin)
+const ogImage = new URL(image ?? '/images/workbench-light.png', siteOrigin)
+const ogImageAlt = imageAlt ?? (image ? undefined : 'The xNet workbench')
 ---
 
 <!doctype html>
@@ -36,10 +42,12 @@ const ogImage = new URL('/images/workbench-light.png', Astro.site ?? 'https://xn
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={ogImage} />
+    {ogImageAlt && <meta property="og:image:alt" content={ogImageAlt} />}
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
+    {ogImageAlt && <meta name="twitter:image:alt" content={ogImageAlt} />}
     <title>{title}</title>
     <style>
       /* Landing page theme variables */

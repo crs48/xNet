@@ -9,7 +9,7 @@ import WatchTheOriginal from '../../components/blog/WatchTheOriginal.astro'
 import HonestWeights from '../../components/blog/HonestWeights.astro'
 import Mermaid from '../../components/blog/Mermaid.astro'
 import CodeFigure from '../../components/blog/CodeFigure.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('weights-you-can-hold')!
 
@@ -44,7 +44,12 @@ const spiral = `flowchart TB
   E -->|"the quiet exits<br/>this essay is about"| F["The next turn<br/>(being built now)"]`
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

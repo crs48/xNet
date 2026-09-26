@@ -10,7 +10,7 @@ import CodeFigure from '../../components/blog/CodeFigure.astro'
 import Peek from '../../components/blog/Peek.astro'
 import TrustBoundary from '../../components/blog/TrustBoundary.astro'
 import HonestMachine from '../../components/blog/HonestMachine.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('the-loom-you-can-read')!
 
@@ -107,7 +107,12 @@ const mergeSeq = `sequenceDiagram
   Note over L,P: the same 3-line rule runs on BOTH devices —<br/>lamport ties, wallTime ties, higher key wins —<br/>both land on the same title, with no server vote`
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>

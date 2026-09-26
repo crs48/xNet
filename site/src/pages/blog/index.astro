@@ -2,65 +2,11 @@
 import Base from '../../layouts/Base.astro'
 import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
-import PirateArt from '../../components/blog/PirateArt.astro'
-import MycelialArt from '../../components/blog/MycelialArt.astro'
-import StarArt from '../../components/blog/StarArt.astro'
-import LeverArt from '../../components/blog/LeverArt.astro'
-import DustArt from '../../components/blog/DustArt.astro'
-import ForestArt from '../../components/blog/ForestArt.astro'
-import LoomArt from '../../components/blog/LoomArt.astro'
-import HookArt from '../../components/blog/HookArt.astro'
-import TillerArt from '../../components/blog/TillerArt.astro'
-import WorkshopArt from '../../components/blog/WorkshopArt.astro'
-import VaultArt from '../../components/blog/VaultArt.astro'
-import TimeoutArt from '../../components/blog/TimeoutArt.astro'
-import WeightsArt from '../../components/blog/WeightsArt.astro'
-import BrickArt from '../../components/blog/BrickArt.astro'
-import DisguiseArt from '../../components/blog/DisguiseArt.astro'
-import RingsArt from '../../components/blog/RingsArt.astro'
-import PalimpsestArt from '../../components/blog/PalimpsestArt.astro'
-import RecordArt from '../../components/blog/RecordArt.astro'
-import BoardArt from '../../components/blog/BoardArt.astro'
-import HarvestArt from '../../components/blog/HarvestArt.astro'
-import MeterArt from '../../components/blog/MeterArt.astro'
-import TableWallArt from '../../components/blog/TableWallArt.astro'
-import DoorHouseArt from '../../components/blog/DoorHouseArt.astro'
-import HundredYearArt from '../../components/blog/HundredYearArt.astro'
-import BallotArt from '../../components/blog/BallotArt.astro'
+import { heroArt } from '../../data/blog-art'
 import Byline from '../../components/blog/Byline.astro'
 import { publishedPosts, formatPostDate } from '../../data/blog'
 
 const posts = publishedPosts()
-
-// Each post's art-directed hero art doubles as its preview-card header image, so
-// the same inline SVG is single-sourced from the hero's *Art.astro component.
-const heroArt: Record<string, typeof PirateArt> = {
-  'atoms-for-the-ballot': BallotArt,
-  'the-hundred-year-machine': HundredYearArt,
-  'the-door-inside-the-house': DoorHouseArt,
-  'the-table-and-the-wall': TableWallArt,
-  'the-matchmaker-and-the-meter': MeterArt,
-  'the-harvest-you-can-count': HarvestArt,
-  'rig-the-game-or-play': BoardArt,
-  'the-worlds-greatest-record-store': RecordArt,
-  palimpsest: PalimpsestArt,
-  'tree-rings': RingsArt,
-  'people-in-disguise': DisguiseArt,
-  'clutch-power': BrickArt,
-  'weights-you-can-hold': WeightsArt,
-  timeout: TimeoutArt,
-  'the-vault-and-the-view': VaultArt,
-  'the-workshop-and-the-walled-garden': WorkshopArt,
-  'hand-on-the-tiller': TillerArt,
-  'the-tip-of-the-hook': HookArt,
-  'a-great-pirate-age': PirateArt,
-  'data-should-work-like-soil': MycelialArt,
-  'the-gentlest-furnace': StarArt,
-  'the-right-to-say-no': LeverArt,
-  'the-desert-that-feeds-the-forest': DustArt,
-  'the-forest-and-the-field': ForestArt,
-  'the-loom-you-can-read': LoomArt
-}
 ---
 
 <Base

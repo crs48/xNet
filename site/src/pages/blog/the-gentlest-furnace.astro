@@ -7,12 +7,17 @@ import StarHero from '../../components/blog/StarHero.astro'
 import Byline from '../../components/blog/Byline.astro'
 import HydrostaticBalance from '../../components/blog/HydrostaticBalance.astro'
 import HonestStar from '../../components/blog/HonestStar.astro'
-import { postBySlug, formatPostDate } from '../../data/blog'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
 
 const post = postBySlug('the-gentlest-furnace')!
 ---
 
-<Base title={`${post.title} — xNet`} description={post.description}>
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
   <Nav />
 
   <main>
