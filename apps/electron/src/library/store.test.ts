@@ -141,3 +141,24 @@ it('refuses a missing queue table instead of silently rebuilding it', () => {
   db.close()
   expect(() => new LibraryStore(path)).toThrow('preserved')
 })
+
+it('indexes authored notes independently of fetched text and refreshes removed notes', () => {
+  store.seed(resource())
+  const notes = [
+    {
+      id: 'garden-note',
+      title: 'Why I saved it',
+      text: 'my personal copperbridge observation',
+      url: 'https://example.com/note',
+      author: 'fixture'
+    }
+  ]
+  store.replaceSourceNotes(new Map([['video-one', notes]]))
+  expect(store.search({ text: 'copperbridge' })[0].id).toBe('video-one')
+  expect(store.search({ text: 'copperbridge' })[0]).not.toHaveProperty('notes')
+  expect(store.get('video-one')?.notes).toEqual(notes)
+  store.seed(resource())
+  expect(store.get('video-one')?.notes).toEqual(notes)
+  store.replaceSourceNotes(new Map())
+  expect(store.search({ text: 'copperbridge' })).toEqual([])
+})

@@ -234,7 +234,7 @@ export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): voi
 const archiveDialogOptions: OpenDialogOptions = {
   title: 'Select social archive',
   properties: ['openFile'],
-  filters: [{ name: 'Social exports and stars snapshots', extensions: ['zip', 'json'] }]
+  filters: [{ name: 'Social exports, stars, and garden snapshots', extensions: ['zip', 'json'] }]
 }
 
 async function createArchivePreview(archivePath: string): Promise<SocialImportArchivePreview> {

@@ -582,6 +582,21 @@ helper setup, garden ingestion, full-corpus reconciliation, and the installed
 release exercise remain unproven. No full personal corpus has been imported into
 a daily workspace. ADR-42 records the local storage boundary.
 
+**Garden evidence (2026-09-29):** the standalone JSON picker now accepts the
+garden's version-1 format. Its read-only inventory found eight resources, eight
+authored commentary records, eleven category/tag collections, and twenty-seven
+memberships. Known YouTube, Instagram, and Twitter URL aliases use the same
+resource IDs as their archive importers. Distinct source posts keep distinct
+notes and memberships. The retained JSON carries the original profile, media,
+mentions, and source-post evidence.
+
+All 242 social tests and eight Library storage tests passed. In an isolated
+Electron exercise, a synthetic garden entry appeared in Library search through
+its authored note, with a link to the original post. After removing the input
+file and restoring a recovery point, both the note and retained JSON survived.
+This does not check off the broader garden-and-website item: website material
+and URL reconciliation for renamed GitHub repositories remain outstanding.
+
 ### C. Keep the library useful as new things arrive
 
 - [ ] Add Library entry points for Inbox, Resources, Collections, and Guides using existing social records and Pages, without making a blank Page for every import.

@@ -1,4 +1,4 @@
-/** A ZIP export or one GitHub JSON snapshot, exposed through the same entry readers. */
+/** A ZIP export or a supported JSON snapshot, exposed through the same entry readers. */
 import type { ArchiveManifest, JsonArchiveEntryReader, TextArchiveEntryReader } from './types'
 import { createHash } from 'node:crypto'
 import { readFile, stat } from 'node:fs/promises'
@@ -22,7 +22,7 @@ export async function openSocialImportSource(path: string): Promise<{
     }
   }
   if (extname(path).toLowerCase() !== '.json')
-    throw new Error('Select a ZIP export or GitHub stars JSON snapshot')
+    throw new Error('Select a ZIP export, GitHub stars snapshot, or garden JSON file')
   const before = await stat(path)
   if (!before.isFile() || before.size > 128 * 1024 * 1024)
     throw new Error('JSON snapshots must be regular files smaller than 128 MiB')
@@ -40,10 +40,15 @@ export async function openSocialImportSource(path: string): Promise<{
     json && typeof json === 'object' && !Array.isArray(json)
       ? (json as Record<string, unknown>)
       : undefined
-  if (!Array.isArray(json) && object?.format !== 'xnet-github-stars/1')
+  const isGarden =
+    object?.version === 1 &&
+    typeof object.profile === 'object' &&
+    object.profile !== null &&
+    Array.isArray(object.entries)
+  if (!Array.isArray(json) && object?.format !== 'xnet-github-stars/1' && !isGarden)
     throw new Error('Unsupported standalone JSON snapshot')
   // A standalone file is a one-entry virtual archive. Preserve its actual filename on the manifest.
-  const entryPath = 'github-stars.json'
+  const entryPath = isGarden ? 'garden.json' : 'github-stars.json'
   const hash = createHash('sha256').update(bytes).digest('hex')
   const manifest: ArchiveManifest = {
     archivePath: path,

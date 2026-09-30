@@ -152,7 +152,7 @@ export function App(): React.ReactElement {
   useEffect(() => {
     const disposable = getCommandRegistry().register({
       id: 'desktop.importArchive',
-      title: 'Import social archive or GitHub stars',
+      title: 'Import social archive, GitHub stars, or garden',
       run: handleOpenSocialImport
     })
     return () => disposable.dispose()

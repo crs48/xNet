@@ -100,6 +100,7 @@ export class LibraryService {
     return this.scanning
   }
   private async scanAll(): Promise<number> {
+    const notes = new Map<string, NonNullable<LibraryResource['notes']>>()
     let offset = 0
     let count = 0
     for (;;) {
@@ -111,7 +112,23 @@ export class LibraryService {
       })
       for (const node of nodes) {
         const props = node.properties
-        if (props.contentKind === 'transcript' || props.parentContent) continue
+        if (props.contentKind === 'transcript') continue
+        if (props.parentContent) {
+          if (props.platformContentKind === 'garden-commentary') {
+            const parent = string(props.parentContent)
+            notes.set(parent, [
+              ...(notes.get(parent) ?? []),
+              {
+                id: node.id,
+                title: string(props.title),
+                text: string(props.searchText),
+                url: string(props.canonicalUrl),
+                author: string(props.actorHandle)
+              }
+            ])
+          }
+          continue
+        }
         const url = string(props.canonicalUrl) || string(props.platformUrl)
         if (!/^https?:\/\//.test(url)) continue
         this.store.seed({
@@ -128,7 +145,10 @@ export class LibraryService {
         count++
       }
       offset += nodes.length
-      if (nodes.length < 500) return count
+      if (nodes.length < 500) {
+        this.store.replaceSourceNotes(notes)
+        return count
+      }
     }
   }
   private async tick(): Promise<void> {

@@ -139,6 +139,7 @@ describe('social import adapters', () => {
         availableEntries.map((entry) => entry.id)
       )
       expect(builtInSocialImportAdapters.map((adapter) => adapter.id)).toEqual([
+        'garden',
         'github',
         'instagram',
         'grok',

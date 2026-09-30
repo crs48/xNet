@@ -336,6 +336,26 @@ export function LibraryView({
                 {selected.metadata.provider}
               </p>
             )}
+            {!!selected.notes?.length && (
+              <section className="space-y-3">
+                <h3 className="font-medium">Authored notes</h3>
+                {selected.notes.map((note) => (
+                  <article key={note.id} className="rounded-md bg-secondary p-3">
+                    <p className="whitespace-pre-wrap text-sm">{note.text}</p>
+                    {note.url && (
+                      <a
+                        className="text-xs underline"
+                        href={note.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Original note{note.author ? ` · ${note.author}` : ''}
+                      </a>
+                    )}
+                  </article>
+                ))}
+              </section>
+            )}
             {selected.transcript && (
               <section>
                 <h3 className="font-medium">Transcript · {selected.transcript.language}</h3>

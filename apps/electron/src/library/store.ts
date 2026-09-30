@@ -35,8 +35,9 @@ const jobFor = (row: JobRow): LibraryJob => ({
 })
 
 const cardFor = (resource: LibraryResource): LibrarySearchResult => {
-  const { transcript, metadata, ...source } = resource
+  const { transcript, metadata, notes, ...source } = resource
   void transcript
+  void notes
   if (!metadata) return source
   const { evidence, tracks, ...summary } = metadata
   void evidence
@@ -121,6 +122,7 @@ export class LibraryStore {
               metadata: previous.metadata,
               thumbnail: previous.thumbnail,
               transcript: previous.transcript,
+              notes: previous.notes,
               addedAt: previous.addedAt
             }
           : resource
@@ -140,6 +142,19 @@ export class LibraryStore {
         "INSERT OR IGNORE INTO work(resource_id,capability,version,language,state) VALUES (?,?,?,?,'queued')"
       )
       .run(id, capability, LIBRARY_PROVIDER_VERSION, language)
+  }
+  replaceSourceNotes(notes: Map<string, NonNullable<LibraryResource['notes']>>): void {
+    this.db.transaction(() => {
+      const rows = this.db.prepare('SELECT id FROM resources').all() as { id: string }[]
+      for (const row of rows) {
+        const resource = this.get(row.id)!
+        const next = notes.get(resource.id) ?? []
+        if (JSON.stringify(resource.notes ?? []) === JSON.stringify(next)) continue
+        const updated = { ...resource, notes: next }
+        this.put(updated)
+        this.index(updated)
+      }
+    })()
   }
   reindex(id: string): void {
     this.db
@@ -207,7 +222,13 @@ export class LibraryStore {
       insert.run(
         resource.id,
         title,
-        [resource.url, resource.actor, resource.sourceText, resource.metadata?.description]
+        [
+          resource.url,
+          resource.actor,
+          resource.sourceText,
+          resource.metadata?.description,
+          ...(resource.notes ?? []).map((note) => `${note.title}\n${note.text}\n${note.url}`)
+        ]
           .filter(Boolean)
           .join('\n'),
         null

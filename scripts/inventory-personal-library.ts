@@ -15,7 +15,7 @@ const value = (flag: string) => {
 }
 if (args.includes('--help')) {
   console.log(
-    'Read-only xNet seed preview: pnpm exec tsx scripts/inventory-personal-library.ts [--exports-dir .exports] [--output report.json]'
+    'Read-only xNet seed preview: pnpm exec tsx scripts/inventory-personal-library.ts [--exports-dir .exports] [--garden-file garden.json] [--output report.json]'
   )
   process.exit(0)
 }
@@ -31,6 +31,9 @@ const sources = [
   { file: 'youtube.zip', adapterId: 'youtube', buckets: ['youtube.playlists'] },
   { file: 'github-stars.json', adapterId: 'github', buckets: ['github.stars'] }
 ]
+const gardenFile = value('--garden-file')
+if (gardenFile)
+  sources.push({ file: resolve(gardenFile), adapterId: 'garden', buckets: ['garden.entries'] })
 const results = []
 for (const source of sources) {
   try {

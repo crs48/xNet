@@ -40,6 +40,7 @@ export type LibraryResource = {
   sourceText: string
   actor: string
   privacy: string
+  notes?: { id: string; title: string; text: string; url: string; author: string }[]
   metadata?: LibraryMetadata
   thumbnail?: { cid: string; contentType: string; bytes: number }
   transcript?: {

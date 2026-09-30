@@ -5,6 +5,7 @@
 import type { SocialImportAdapter } from '../import/types'
 import type { SocialPlatform, SocialPrivacyClass } from '../schemas/constants'
 import { claudeAdapter } from './claude'
+import { gardenAdapter } from './garden'
 import { githubAdapter } from './github'
 import { grokAdapter } from './grok'
 import { instagramAdapter } from './instagram'
@@ -61,6 +62,14 @@ const plannedImporter = (input: {
 })
 
 export const builtInSocialImporterRegistry = [
+  availableImporter({
+    adapter: gardenAdapter,
+    label: 'Personal garden',
+    description: 'Authored notes and source links from a version-1 garden JSON snapshot.',
+    archiveFormats: ['Garden JSON'],
+    recordTypes: ['resources', 'commentary', 'categories', 'tags'],
+    privacyClasses: ['private']
+  }),
   availableImporter({
     adapter: githubAdapter,
     label: 'GitHub stars',
