@@ -27,7 +27,7 @@ export interface DesktopNavDeps {
   /** The shell's own home transition (viewport/timer-aware). */
   returnHome: () => void
   /** Open a document by id through the shell's own resolution (type lookup + canvas glide). */
-  openDocument: (docId: string) => void
+  openDocument: (docId: string, type?: 'page' | 'database' | 'canvas') => void
   openAssistant: () => void
   openSettings: () => void
   openMeetings: () => void
@@ -84,7 +84,7 @@ export function navigateShell(target: NavTarget, deps: DesktopNavDeps): boolean 
         case 'page':
         case 'database':
         case 'canvas':
-          deps.openDocument(target.nodeId)
+          deps.openDocument(target.nodeId, target.nodeType)
           return true
         case 'settings':
           deps.openSettings()

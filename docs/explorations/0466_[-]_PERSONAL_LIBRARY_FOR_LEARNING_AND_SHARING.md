@@ -14,6 +14,12 @@ tags:
 > [!TIP]
 > Build Chris's library from the garden, website, Twitter/X and Instagram exports, YouTube playlists, and GitHub stars. Enrich every imported link with useful metadata and a local thumbnail, and obtain video transcripts wherever possible. Preserve how those things connect, then make them easy to find, annotate, and turn into useful guides. Start with a packaged Mac app whose data survives development and updates.
 
+## Implementation status
+
+A development preview now runs in Electron. It includes native recovery copies, encrypted native export/restore, resumable retained-source imports, a persistent enrichment queue, local thumbnails and retrieved captions, offline Library search, and editable URL-plus-note capture. [Try the preview](../reference/personal-library.md) and review the [storage coverage](../reference/desktop-storage.md) before relying on it.
+
+This is partially implemented. A Developer ID signing certificate is unavailable in this environment, the installed signed-upgrade test is open, and complete settings/key coverage and off-device retention are not verified. The real full corpus has not been imported into a daily profile. Managed helper setup, local transcription, full collection/creator navigation, complete website and overlapping-export reconciliation, guides, publishing, and the human trial remain work. The checklists below distinguish these gaps from the narrower proofs already obtained.
+
 ## The job to earn
 
 Chris already collects ideas, builds things, and shares resources. Much of that work has accumulated in social bookmarks, likes, saved videos, playlists, and starred repositories. The first library should bring that existing collection home, alongside the garden and website. A paper saved years ago should help answer a question next month. Notes from several sources should become a guide for a friend, a public page, or an optional resource for a coaching client.
@@ -541,7 +547,7 @@ unproven. The format and explicit limits are recorded in ADR-40.
 - [ ] Fetch complete available titles/descriptions and source metadata for YouTube, Instagram, Twitter/X, GitHub, and ordinary web links; keep unavailable fields explicit and support desktop use without a hub.
 - [ ] Fetch and cache source thumbnails/posters in the managed blob store, generate labeled local posters only from accessible media, and provide honest fallback cards.
 - [ ] Discover and import available video caption tracks; implement local transcription of accessible media for YouTube and Instagram when captions are unavailable, with language, timing, and partial-result handling.
-- [ ] Index full enriched descriptions and all transcript segments, join results to source resources and notes, and verify late-transcript search after restart without a network.
+- [x] Index full enriched descriptions and all transcript segments, join results to source resources and notes, and verify late-transcript search after restart without a network.
 - [ ] Validate enrichment on a representative real sample, then run it across the whole corpus; report field, image, and transcript coverage with unresolved reasons, storage use, and remaining work.
 
 **Exit:** Chris can rediscover an old save by enriched metadata or a phrase in an available transcript, see a useful local preview, inspect its collection, and follow a source-backed connection. Every selected record and enrichment job has an explained outcome. The corpus and its fetched content can be recovered and repeated safely. Any unavailable transcripts or metadata remain visible in the coverage report.
@@ -597,14 +603,20 @@ file and restoring a recovery point, both the note and retained JSON survived.
 This does not check off the broader garden-and-website item: website material
 and URL reconciliation for renamed GitHub repositories remain outstanding.
 
+The final offline Library check retrieved a stored 2,901-character description, 2,557 caption cues, and a 157,779-byte cached thumbnail. After restart, the image decoded without a network and the cue at 2,402,320 ms was searchable. Selecting that result displayed its matching passage and a YouTube link with the corresponding timestamp. This proves the local index and result path for the sample; whole-corpus coverage and local ASR remain unchecked.
+
 ### C. Keep the library useful as new things arrive
 
 - [ ] Add Library entry points for Inbox, Resources, Collections, and Guides using existing social records and Pages, without making a blank Page for every import.
-- [ ] Add URL-plus-note capture in the shared workbench, with optional excerpt, duplicate handling, and failure-safe input retention.
+- [x] Add URL-plus-note capture in the shared workbench, with optional excerpt, duplicate handling, and failure-safe input retention.
 - [ ] Add the explicit desktop capture shortcut; confirm focus returns and saving works offline.
 - [ ] Link new captures to existing imported resources when they match, preserving independent personal notes and source provenance.
 - [ ] Create two guide drafts from rediscovered sources; keep citations connected to the imported resource and its original URL.
 - [ ] Verify search over new captures, imported/enriched text, transcripts, URLs, and Page bodies after restart; make each result open the intended item or timestamp.
+
+**Implementation evidence (2026-09-29):** The shared workbench now has a Save a link form with a URL, title, personal note, and optional excerpt. A native capture intent is persisted before source/Page writes. Retrying the same request reuses those records and preserves any later Page edits. The note is an ordinary private Page whose optional `sourceResources` relation cites the source. Known YouTube, Instagram, and Twitter/X aliases use the import adapters’ resource IDs; an existing Library URL can also resolve a saved GitHub source. Garden/GitHub overlap before Library scanning still needs the broader reconciliation check above.
+
+Seven capture tests cover retry identity, a failed body write and reopen, interrupted completion, preservation of later edits, reuse without changing source evidence, and refusal to index an unsupported body format as an empty note. Together with Library store/provider, Page schema, and navigation checks, the focused run passed 28 tests. A real Electron run in an isolated profile saved while offline, rendered the original URL, note, and excerpt in the Page editor, quit, reopened offline, found the source by a phrase in its note, and recognized a second capture of the same video. A subsequent run edited both the Page title and body, quit, reopened offline, and found the later body text; the edited title also persisted. It exposed and fixed a stale Lamport clock when the renderer edits a record written by the native importer. Local change allocation now reads the persisted clock, and native notifications refresh renderer subscribers. A focused data/storage/Library run passed 1,915 tests with one opt-in benchmark skipped; a separate commit check passed 2,962 tests with one skipped. The run also confirmed shortcut registration. Actual switching from another app and returning focus remains unverified, so that checkbox stays open. Unsaved form drafts remain in browser local storage; they are not covered by native checkpoints. A submitted capture’s durable intent and saved Page are covered. The two-guide and publication checks remain open.
 
 **Exit:** Chris saves a resource during normal browsing and later finds it using a phrase from the note.
 
@@ -691,11 +703,23 @@ Enrichment must pass its own checks before the Library claims useful coverage:
 - [ ] Run storage and bundle tests that exercise the failure cases above, including a deliberately incomplete backup that the verifier rejects.
 - [ ] Drive the real packaged Mac app through archive import, graph browsing, capture, restart, upgrade, rollback/recovery, and external-backup restore.
 - [ ] Verify the complete publishing path in a clean browser session and at a phone viewport.
-- [ ] Record actual command results and manual observations alongside completed checklist items; leave unknowns unchecked.
+- [x] Record actual command results and manual observations alongside completed checklist items; leave unknowns unchecked.
 
 For the founder trial, look for use on at least eight of ten days when Chris naturally does relevant reading or sharing. This is a research measure, not a demand to manufacture daily activity. Ask Chris to find five saved resources from remembered context, including an old social save and a starred repository, aiming for under 30 seconds each. Trace three useful connections between imported resources and garden notes, with source evidence. Produce and share two useful guides. Record each update that requires a terminal, loses context, or creates doubt about stored data; those failures outrank adding features.
 
 For the two outside authors, success means completing save → find → share with their own material and little assistance. Reader feedback alone cannot establish demand for an authoring app. If Chris still prefers existing tools after the trial, inspect which step failed before adding more AI or a larger import pipeline.
+
+### Final preview checks (2026-09-29)
+
+| Check                                                                                                                                                                                    | Observed result                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm exec vitest run --project unit packages/data/src --project electron apps/electron/src/storage apps/electron/src/library apps/electron/src/renderer/shell/desktop-platform.test.ts` | 1,915 passed; one opt-in benchmark skipped                                                                                   |
+| `pnpm turbo run typecheck`                                                                                                                                                               | 101 tasks successful                                                                                                         |
+| `pnpm exec tsc -p apps/electron/tsconfig.node.json --noEmit`                                                                                                                             | Passed                                                                                                                       |
+| `pnpm --filter xnet-desktop build`                                                                                                                                                       | Passed                                                                                                                       |
+| Changed-file ESLint                                                                                                                                                                      | No errors                                                                                                                    |
+| Source Electron capture and offline Library runs                                                                                                                                         | Passed as described above; isolated temporary profiles, not the signed installed application                                 |
+| Standalone `tsconfig.web.json` check                                                                                                                                                     | Still fails on existing deep-link, FormView, header ref, plugin cleanup, and IPC interface typing; not covered by root Turbo |
 
 ## Risks and decisions still open
 

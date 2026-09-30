@@ -1,9 +1,19 @@
-import type { LibraryResource, LibrarySearchResult, LibraryStatus } from '../../library/types'
+import type { LibraryResource, LibrarySearchResult, LibraryStatus } from '../../shared/library'
+import { getCommandRegistry } from '@xnetjs/plugins'
+import { flushDocumentWrites } from '@xnetjs/react/internal'
 import { useEffect, useState } from 'react'
 
 const button =
   'rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50'
 const label = (value: string) => value.replaceAll('-', ' ')
+const timestamp = (ms: number) =>
+  `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`
+const atTime = (resource: LibraryResource, ms: number) => {
+  if (resource.platform !== 'youtube') return resource.url
+  const url = new URL(resource.url)
+  url.searchParams.set('t', `${Math.floor(ms / 1000)}s`)
+  return url.href
+}
 
 function Thumbnail({ resource }: { resource: Pick<LibraryResource, 'thumbnail' | 'platform'> }) {
   const [url, setUrl] = useState<string | null>(null)
@@ -53,11 +63,13 @@ function Thumbnail({ resource }: { resource: Pick<LibraryResource, 'thumbnail' |
 export function LibraryView({
   onOpenGraph,
   onImport,
-  onClose
+  onClose,
+  onOpenPage
 }: {
   onOpenGraph: () => void
   onImport: () => void
   onClose: () => void
+  onOpenPage: (id: string) => void
 }) {
   const [status, setStatus] = useState<(LibraryStatus & { error: string | null }) | null>(null)
   const [results, setResults] = useState<LibrarySearchResult[]>([])
@@ -65,11 +77,32 @@ export function LibraryView({
   const [platform, setPlatform] = useState('')
   const [offset, setOffset] = useState(0)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedCue, setSelectedCue] = useState<number | null>(null)
   const [cueLimit, setCueLimit] = useState(100)
   const [selected, setSelected] = useState<LibraryResource | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showProgress, setShowProgress] = useState(false)
+  const [shortcut, setShortcut] = useState<boolean | null>(null)
+  useEffect(() => {
+    let active = true
+    void window.xnet.libraryCaptureShortcut().then(
+      (value) => {
+        if (active) setShortcut(value.registered)
+      },
+      (error) => {
+        if (active) setError(String(error))
+      }
+    )
+    void flushDocumentWrites()
+      .then(() => window.xnet.libraryScan())
+      .catch((error) => {
+        if (active) setError(String(error))
+      })
+    return () => {
+      active = false
+    }
+  }, [])
   const refresh = async () => {
     setStatus(await window.xnet.libraryStatus())
     setResults(await window.xnet.librarySearch({ text: query, platform, offset, limit: 40 }))
@@ -137,8 +170,21 @@ export function LibraryView({
           <p className="text-sm text-muted-foreground">
             Keep what matters. Find it again with context.
           </p>
+          {shortcut !== null && (
+            <p className="text-xs text-muted-foreground">
+              {shortcut
+                ? 'Capture a copied link with Command/Ctrl + Shift + L.'
+                : 'The capture shortcut is unavailable. Use Save a link.'}
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
+          <button
+            className={button}
+            onClick={() => void getCommandRegistry().runCommand('library.capture')}
+          >
+            Save a link
+          </button>
           <button className={button} onClick={onImport}>
             Import archive
           </button>
@@ -264,7 +310,10 @@ export function LibraryView({
               <button
                 key={`${resource.id}:${index}`}
                 className="space-y-2 rounded-lg border border-border p-3 text-left hover:bg-accent/40"
-                onClick={() => setSelectedId(resource.id)}
+                onClick={() => {
+                  setSelectedId(resource.id)
+                  setSelectedCue(resource.startMs ?? null)
+                }}
               >
                 <Thumbnail resource={resource} />
                 <p className="text-xs text-muted-foreground">
@@ -285,10 +334,7 @@ export function LibraryView({
                     'Waiting for source details.'}
                 </p>
                 {resource.startMs !== undefined && (
-                  <p className="text-xs">
-                    Transcript match at {Math.floor(resource.startMs / 60000)}:
-                    {String(Math.floor(resource.startMs / 1000) % 60).padStart(2, '0')}
-                  </p>
+                  <p className="text-xs">Transcript match at {timestamp(resource.startMs)}</p>
                 )}
               </button>
             ))}
@@ -325,6 +371,25 @@ export function LibraryView({
             >
               Open original source
             </a>
+            {selectedCue !== null && selected.transcript && (
+              <section
+                className="rounded-md bg-secondary p-3 text-sm"
+                aria-label="Matching passage"
+              >
+                <p className="mb-2 font-medium">Matching passage · {timestamp(selectedCue)}</p>
+                <p>{selected.transcript.cues.find((cue) => cue.startMs === selectedCue)?.text}</p>
+                <a
+                  className="mt-2 block underline"
+                  href={atTime(selected, selectedCue)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {selected.platform === 'youtube'
+                    ? `Open video at ${timestamp(selectedCue)}`
+                    : 'Open source'}
+                </a>
+              </section>
+            )}
             <p className="whitespace-pre-wrap break-words text-sm">
               {selected.metadata?.description ||
                 selected.sourceText ||
@@ -342,6 +407,14 @@ export function LibraryView({
                 {selected.notes.map((note) => (
                   <article key={note.id} className="rounded-md bg-secondary p-3">
                     <p className="whitespace-pre-wrap text-sm">{note.text}</p>
+                    {note.pageId && (
+                      <button
+                        className="text-xs underline"
+                        onClick={() => onOpenPage(note.pageId!)}
+                      >
+                        Open editable note
+                      </button>
+                    )}
                     {note.url && (
                       <a
                         className="text-xs underline"
@@ -368,16 +441,11 @@ export function LibraryView({
                   <p key={index} className="mt-2 text-sm">
                     <a
                       className="mr-2 text-muted-foreground underline"
-                      href={
-                        selected.platform === 'youtube'
-                          ? `${selected.url}&t=${Math.floor(cue.startMs / 1000)}s`
-                          : selected.url
-                      }
+                      href={atTime(selected, cue.startMs)}
                       target="_blank"
                       rel="noreferrer"
                     >
-                      {Math.floor(cue.startMs / 60000)}:
-                      {String(Math.floor(cue.startMs / 1000) % 60).padStart(2, '0')}
+                      {timestamp(cue.startMs)}
                     </a>
                     {cue.text}
                   </p>

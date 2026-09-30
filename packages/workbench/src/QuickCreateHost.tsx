@@ -24,6 +24,7 @@ import { useDataBridge } from '@xnetjs/react/internal'
 import { Hash, Layers } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSpaces } from './hooks/useSpaces'
+import { LibraryCaptureHost } from './LibraryCaptureHost'
 import { useNavigateTo } from './platform'
 
 /** What the host is currently asking a name for (null = closed). */
@@ -48,6 +49,15 @@ async function runWhenRegistered(id: string, attempts = 20, stepMs = 50): Promis
 }
 
 export function QuickCreateHost() {
+  return (
+    <>
+      <LibraryCaptureHost />
+      <QuickCreateDialogs />
+    </>
+  )
+}
+
+function QuickCreateDialogs() {
   const navigate = useNavigateTo()
   const bridge = useDataBridge()
   const { createSpace } = useSpaces()

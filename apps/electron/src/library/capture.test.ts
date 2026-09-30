@@ -199,3 +199,12 @@ it('replays an interrupted completion without overwriting a subsequently edited 
   expect(store.pendingCaptures()).toEqual([])
   expect(store.search({ text: 'survives' })[0].id).toBe(pending.result.resourceId)
 })
+
+it('does not index an unsupported document format as an empty note', () => {
+  const doc = new Y.Doc()
+  doc.getText('legacy-body').insert(0, 'Text that must not disappear from the index silently.')
+  expect(() => readPageText(Array.from(Y.encodeStateAsUpdate(doc)))).toThrow(
+    'unsupported document format'
+  )
+  doc.destroy()
+})

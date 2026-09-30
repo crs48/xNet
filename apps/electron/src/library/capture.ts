@@ -69,6 +69,10 @@ export function readPageText(bytes: number[]): string {
   const doc = new Y.Doc()
   try {
     Y.applyUpdate(doc, new Uint8Array(bytes))
+    if (!doc.share.has('content-v4'))
+      throw new Error(
+        'The source note uses an unsupported document format; search was not marked complete.'
+      )
     const read = (node: unknown): string => {
       if (node instanceof Y.XmlText)
         return (node.toDelta() as { insert?: unknown }[])

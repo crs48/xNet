@@ -33,6 +33,7 @@ export function DataWorkspaceView(props: DataWorkspaceViewProps): React.ReactEle
       onClose={props.onClose}
       onOpenGraph={() => setGraph(true)}
       onImport={() => navigate({ kind: 'path', path: '/social-import' })}
+      onOpenPage={(nodeId) => navigate({ kind: 'node', nodeType: 'page', nodeId })}
     />
   )
 }

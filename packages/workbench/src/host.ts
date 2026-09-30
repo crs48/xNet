@@ -185,6 +185,19 @@ export interface WorkbenchHubHost {
 }
 
 export interface WorkbenchHost {
+  library?: {
+    capture(input: {
+      requestId: string
+      url: string
+      title: string
+      note: string
+      excerpt: string
+    }): Promise<{ resourceId: string; pageId: string; reusedResource: boolean }>
+    lookup(
+      url: string
+    ): Promise<{ id: string; title: string; notes: { pageId: string; title: string }[] } | null>
+    closed?(returnToPreviousApp?: boolean): void
+  }
   /** Lock the identity and restart the surface. */
   logout(): Promise<void>
 

@@ -19,6 +19,7 @@ import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { CanvasView } from './components/CanvasView'
 import { ConnectHubDialog } from './components/ConnectHubDialog'
 import { setPersistedHubUrl } from './lib/hub-url'
+import { useNativeNodeChanges } from './lib/use-native-node-changes'
 import { useDesktopPlatformPort } from './shell/desktop-platform'
 import { registerDesktopHostedViews } from './shell/hosted-views'
 import { STORIES_ENABLED, useDocumentShell } from './shell/use-document-shell'
@@ -83,6 +84,15 @@ export function App(): React.ReactElement {
   const [connectRequest, setConnectRequest] = useState<ConnectHubRequest | null>(null)
   const [recoveryNotice, setRecoveryNotice] = useState<string | null>(null)
   const [recoveryError, setRecoveryError] = useState<string | null>(null)
+  const nativeChangeError = useNativeNodeChanges()
+
+  useEffect(
+    () =>
+      window.xnet.onLibraryCapture((url) => {
+        window.dispatchEvent(new CustomEvent('xnet:open-library-capture', { detail: { url } }))
+      }),
+    []
+  )
 
   useEffect(() => {
     void window.xnet.getRecoveryStatus().then(
@@ -146,7 +156,9 @@ export function App(): React.ReactElement {
       title: 'Open Stories',
       run: () => handleOpenStories()
     })
-    return () => disposable.dispose()
+    return () => {
+      void disposable.dispose()
+    }
   }, [handleOpenStories])
 
   useEffect(() => {
@@ -155,7 +167,9 @@ export function App(): React.ReactElement {
       title: 'Import social archive, GitHub stars, or garden',
       run: handleOpenSocialImport
     })
-    return () => disposable.dispose()
+    return () => {
+      void disposable.dispose()
+    }
   }, [handleOpenSocialImport])
 
   useEffect(() => {
@@ -164,7 +178,9 @@ export function App(): React.ReactElement {
       title: 'Open Library',
       run: handleOpenDataWorkspace
     })
-    return () => disposable.dispose()
+    return () => {
+      void disposable.dispose()
+    }
   }, [handleOpenDataWorkspace])
 
   if (homeCanvasBootstrapError && !homeCanvasId) {
@@ -219,6 +235,11 @@ export function App(): React.ReactElement {
             Library
           </button>
         </header>
+        {nativeChangeError && (
+          <p role="alert" className="px-4 py-2 text-sm text-destructive">
+            {nativeChangeError}
+          </p>
+        )}
         {(recoveryError || recoveryNotice) && (
           <div
             role="status"

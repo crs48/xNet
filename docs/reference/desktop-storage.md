@@ -103,3 +103,23 @@ merely because a folder was chosen: the user must retain a copy on another disk
 or device. Browser preferences and sign-in sessions remain outside this format.
 Only the current storage version can be restored through this control today.
 See ADR-40 for format details and the limits of the cross-Mac evidence.
+
+## Library captures
+
+Library → Save a link creates a private Page with your note and optional
+excerpt, linked to a source resource. The source and your writing remain separate.
+The Library indexes the saved Page body and refreshes it when you return from the
+editor. Matching source URLs reuse the existing resource while keeping each
+explicitly requested note independent.
+
+Before native writes begin, `library.db` retains a versioned capture intent and
+the original text. Startup retries incomplete intents with the same record IDs;
+it never replaces a saved Page body during retry. These intents are currently
+retained, including completed ones, so the original captured text remains in
+local storage and recovery copies even after the Page changes. The Library database
+is included in native checkpoints and encrypted exports when present.
+
+The unsubmitted form draft lives in Chromium local storage and falls outside
+the native recovery contract. A successful save clears that draft only after
+native acknowledgement. Failed attempts retain their original payload for retry.
+The desktop shortcut reads the clipboard only when explicitly invoked.
