@@ -1,0 +1,8 @@
+{
+  "id": "2026-09-29-import-github-stars-and-keep-source-expo",
+  "date": "September 29, 2026",
+  "title": "Import GitHub stars and keep source exports for recovery",
+  "summary": "The desktop import picker accepts GitHub stars snapshots, preserves native star dates, and keeps a verified private copy of imported exports for local recovery.",
+  "highlights": [],
+  "tags": ["app"]
+}

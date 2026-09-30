@@ -1,13 +1,8 @@
 /** Read-only seed preview. Reads exports; never opens a workspace database. */
 import type { StagedSocialRecord } from '../packages/social/src/import/types.ts'
-import { createHash } from 'node:crypto'
-import { readFile, writeFile } from 'node:fs/promises'
+import { writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import {
-  createZipJsonEntryReader,
-  createZipTextEntryReader,
-  readZipArchiveManifest
-} from '../packages/social/src/import/node.ts'
+import { openSocialImportSource } from '../packages/social/src/import/node.ts'
 import { builtInSocialImportAdapters } from '../packages/social/src/importers/index.ts'
 
 const args = process.argv.slice(2)
@@ -33,17 +28,16 @@ const sources = [
     buckets: ['instagram.likes', 'instagram.saves']
   },
   { file: 'twitter.zip', adapterId: 'x', buckets: ['x.likes'] },
-  { file: 'youtube.zip', adapterId: 'youtube', buckets: ['youtube.playlists'] }
+  { file: 'youtube.zip', adapterId: 'youtube', buckets: ['youtube.playlists'] },
+  { file: 'github-stars.json', adapterId: 'github', buckets: ['github.stars'] }
 ]
 const results = []
 for (const source of sources) {
   try {
     const archivePath = resolve(exportsDir, source.file)
-    const manifest = await readZipArchiveManifest(archivePath, { hashEntries: false })
+    const { manifest, readJsonEntry, readTextEntry } = await openSocialImportSource(archivePath)
     const adapter = builtInSocialImportAdapters.find((adapter) => adapter.id === source.adapterId)
     if (!adapter) throw new Error(`Missing adapter: ${source.adapterId}`)
-    const readJsonEntry = await createZipJsonEntryReader(archivePath)
-    const readTextEntry = await createZipTextEntryReader(archivePath)
     const probe = await adapter.probe({ manifest })
     const counts: Record<string, number> = {}
     const unique = new Map<string, Set<string>>()
@@ -105,19 +99,7 @@ for (const source of sources) {
     process.exitCode = 1
   }
 }
-// A stars snapshot is a separate source; its absence cannot silently mean zero stars.
-let github
-try {
-  const bytes = await readFile(resolve(exportsDir, 'github-stars.json'))
-  github = {
-    status: 'present-not-yet-previewed',
-    sha256: createHash('sha256').update(bytes).digest('hex')
-  }
-} catch (error) {
-  if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-  github = { status: 'missing', detail: 'No github-stars.json snapshot is available.' }
-}
-const report = { createdAt: new Date().toISOString(), databaseWrites: 0, results, github }
+const report = { createdAt: new Date().toISOString(), databaseWrites: 0, results }
 const json = JSON.stringify(report, null, 2) + '\n'
 if (output) await writeFile(resolve(output), json, { mode: 0o600 })
 else process.stdout.write(json)

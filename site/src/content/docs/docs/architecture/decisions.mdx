@@ -1161,3 +1161,33 @@ must state this scope until separate off-device and cross-Mac recovery are prove
 **Tripwire:** A persistent file moves outside `xnet-data`, a database changes its
 storage format, or recovery must work on a different Mac. Any of these reopens the
 manifest scope and restore protocol before a broader protection claim ships.
+
+## ADR-38: Retain source evidence separately from imported social records
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** Social exports change shape. Parser fixes need the original evidence,
+and a file selected for preview may change before an import begins.
+
+**Decision:** Before its first node write, a desktop import retains the entire
+selected file under `xnet-data/import-sources/<sha256>/source.zip` or `source.json`.
+The copied bytes must match the preview fingerprint. Promotion is atomic and
+files are private to the local user. Reimports reuse verified bytes. Originals
+are never moved or deleted. The import screen states that unselected categories
+remain in this private source copy, though only selected categories become nodes.
+Native recovery includes this directory.
+
+GitHub captures use the JSON wrapper `xnet-github-stars/1`: account, capture start
+and finish, endpoint/media type/API version, coverage, and raw star rows. A finished
+paginated capture records `paginationCompleted: true` and `atomic: false`. Native
+repository IDs identify resources; native star times identify observed activity.
+Missing times stay missing. An absent repository never implies an unstar event.
+
+**Tradeoff:** Retaining raw exports costs disk space and keeps more private data
+than the selected graph alone. Credentials are not part of the GitHub snapshot.
+This format provides evidence for retries; it does not itself make a job resumable
+or turn local recovery into an off-device backup.
+
+**Tripwire:** A source cannot be represented as exact retained bytes, evidence
+needs selective deletion, or import resume requires a different source contract.
+Revisit custody and migration before changing the format or retention promise.

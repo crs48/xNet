@@ -26,14 +26,14 @@ import {
 } from '@xnetjs/social/import/core'
 import {
   createSocialArchivePreview,
-  createZipJsonEntryReader,
-  createZipTextEntryReader,
-  readZipArchiveManifest,
+  openSocialImportSource,
   streamSocialImportNodeDrafts
 } from '@xnetjs/social/import/node'
 import { builtInSocialImportAdapters } from '@xnetjs/social/importers'
 import { dialog, ipcMain } from 'electron'
+import { retainImportSource } from '../storage/import-sources'
 import { sendDataProcessRequest } from './data-process-manager'
+import { dataPath } from './profile'
 
 export type SocialImportArchivePreview = Omit<SharedSocialImportArchivePreview, 'archivePath'> & {
   archivePath: string
@@ -161,18 +161,18 @@ export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): voi
 const archiveDialogOptions: OpenDialogOptions = {
   title: 'Select social archive',
   properties: ['openFile'],
-  filters: [{ name: 'ZIP archives', extensions: ['zip'] }]
+  filters: [{ name: 'Social exports and stars snapshots', extensions: ['zip', 'json'] }]
 }
 
 async function createArchivePreview(archivePath: string): Promise<SocialImportArchivePreview> {
-  const manifest = await readZipArchiveManifest(archivePath, { hashEntries: false })
+  const { manifest } = await openSocialImportSource(archivePath)
   return requireArchivePath(await createSocialArchivePreview({ adapters, manifest }), archivePath)
 }
 
 async function stageArchive(request: SocialImportStageRequest): Promise<SocialImportStageResult> {
-  const manifest = await readZipArchiveManifest(request.archivePath, { hashEntries: false })
-  const readJsonEntry = await createZipJsonEntryReader(request.archivePath)
-  const readTextEntry = await createZipTextEntryReader(request.archivePath)
+  const { manifest, readJsonEntry, readTextEntry } = await openSocialImportSource(
+    request.archivePath
+  )
   const importedAt = new Date().toISOString()
 
   const streamResults: SocialImportNodeDraftStreamResult[] = []
@@ -275,8 +275,9 @@ function cancelCommitJob(
   if (!job || !isActiveJob(job)) return job ?? null
 
   cancelledCommitJobIds.add(jobId)
-  const next = updateCommitJob(jobId, { status: 'cancelled', updatedAt: Date.now() }, getWindow)
-  return next
+  // The current batch may still be writing. Keep quit/recovery blocked until it acknowledges.
+  publishCommitJob(job, getWindow)
+  return job
 }
 
 async function runCommitJob(input: {
@@ -324,8 +325,16 @@ async function runCommitJob(input: {
   try {
     updateCommitJob(input.jobId, { status: 'running', phase: 'checking' }, input.getWindow)
 
-    const readJsonEntry = await createZipJsonEntryReader(input.stagedResult.archivePath)
-    const readTextEntry = await createZipTextEntryReader(input.stagedResult.archivePath)
+    const expectedHash = input.stagedResult.manifest.archiveHash
+    if (!expectedHash) throw new Error('Import preview has no source fingerprint. Review it again.')
+    const retainedPath = await retainImportSource({
+      dataPath,
+      sourcePath: input.stagedResult.archivePath,
+      expectedHash
+    })
+    const { manifest, readJsonEntry, readTextEntry } = await openSocialImportSource(retainedPath)
+    if (manifest.archiveHash !== expectedHash)
+      throw new Error('Retained archive fingerprint does not match the preview.')
 
     const flushDraftBatch = async (): Promise<void> => {
       if (draftBatch.length === 0) return

@@ -146,6 +146,15 @@ export function App(): React.ReactElement {
     return () => disposable.dispose()
   }, [handleOpenStories])
 
+  useEffect(() => {
+    const disposable = getCommandRegistry().register({
+      id: 'desktop.importArchive',
+      title: 'Import social archive or GitHub stars',
+      run: handleOpenSocialImport
+    })
+    return () => disposable.dispose()
+  }, [handleOpenSocialImport])
+
   if (homeCanvasBootstrapError && !homeCanvasId) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">

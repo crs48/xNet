@@ -356,6 +356,10 @@ export function SocialImportView({
                   setCommitJobId(null)
                 }}
               />
+              <p className="text-xs text-muted-foreground">
+                Import keeps a private copy of the entire export for recovery, including categories
+                you leave unselected. Only selected categories become library records.
+              </p>
             </div>
           </div>
         </aside>
@@ -582,7 +586,7 @@ function BucketReview({
       <SectionLabel label="Buckets" />
       <div className="divide-y divide-border rounded-md border border-border">
         {archive.probe.buckets.map((bucket) => {
-          const sensitive = bucket.privacyClass === 'private-message'
+          const sensitive = bucket.privacyClass !== 'public' && !bucket.defaultSelected
           const disabled = sensitive && !includeSensitive
           const checked = selectedBuckets.includes(bucket.id) && !disabled
 
