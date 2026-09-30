@@ -1,4 +1,5 @@
 import type { SafeStorageLike } from '../main/secure-seed'
+import type { DesktopSettings } from '../shared/desktop-settings'
 import type { CheckpointManifest } from '../shared/recovery'
 import {
   createCipheriv,
@@ -13,9 +14,12 @@ import { lstat, mkdir, open, readFile, readdir, rename, rm, writeFile } from 'no
 import { dirname, join, resolve, sep } from 'node:path'
 import { getOrCreateIdentitySeed } from '../main/identity-seed'
 import { loadSeedPhrase, storeSeedPhrase } from '../main/secure-seed'
+import { validateDesktopSettings } from '../shared/desktop-settings'
 import { verifyCheckpoint } from './checkpoints'
+import { readDesktopSettings, SETTINGS_FILE, writeDesktopSettings } from './desktop-settings'
 
-const FORMAT = 'xnet-desktop-portable/1'
+const FORMAT = 'xnet-desktop-portable/2'
+const LEGACY_FORMAT = 'xnet-desktop-portable/1'
 const NONCE_SIZE = 12
 const TAG_SIZE = 16
 const CHUNK_BYTES = 4 * 1024 * 1024
@@ -26,10 +30,11 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 
 type PortableManifest = {
-  format: typeof FORMAT
+  format: typeof FORMAT | typeof LEGACY_FORMAT
   checkpoint: CheckpointManifest
   seedB64: string
   mnemonic: string | null
+  desktopSettings?: DesktopSettings | null
   chunks: Record<string, string[]>
 }
 
@@ -60,10 +65,10 @@ function seal(bytes: Uint8Array, key: Uint8Array): Buffer {
   return Buffer.concat([nonce, cipher.update(bytes), cipher.final(), cipher.getAuthTag()])
 }
 
-function unseal(bytes: Uint8Array, key: Uint8Array): Uint8Array {
+function unseal(bytes: Uint8Array, key: Uint8Array, format: string): Uint8Array {
   if (bytes.length < NONCE_SIZE + TAG_SIZE) throw new Error('Incomplete encrypted recovery object')
   const decipher = createDecipheriv('aes-256-gcm', key, bytes.subarray(0, NONCE_SIZE))
-  decipher.setAAD(Buffer.from(FORMAT))
+  decipher.setAAD(Buffer.from(format))
   decipher.setAuthTag(bytes.subarray(bytes.length - TAG_SIZE))
   return Buffer.concat([decipher.update(bytes.subarray(NONCE_SIZE, -TAG_SIZE)), decipher.final()])
 }
@@ -141,6 +146,7 @@ export async function exportPortableCheckpoint(options: {
       testMode: checkpoint.identity === 'test'
     })
     const mnemonic = loadSeedPhrase(workspace, options.safeStorage)
+    const desktopSettings = await readDesktopSettings(workspace, options.safeStorage)
     await mkdir(join(temporary, 'objects'), { recursive: true, mode: 0o700 })
     const chunks: Record<string, string[]> = Object.create(null) as Record<string, string[]>
     for (const file of checkpoint.files) {
@@ -160,6 +166,7 @@ export async function exportPortableCheckpoint(options: {
       checkpoint,
       seedB64: Buffer.from(sourceIdentity.seed).toString('base64'),
       mnemonic,
+      desktopSettings,
       chunks
     }
     const encodedManifest = Buffer.from(JSON.stringify(manifest))
@@ -207,7 +214,7 @@ async function readManifest(
   )
   if (
     !isRecord(header) ||
-    header.format !== FORMAT ||
+    (header.format !== FORMAT && header.format !== LEGACY_FORMAT) ||
     header.kdf !== KDF ||
     typeof header.salt !== 'string'
   )
@@ -221,12 +228,12 @@ async function readManifest(
       join(path, 'manifest.enc'),
       MANIFEST_LIMIT + NONCE_SIZE + TAG_SIZE
     )
-    const bytes = unseal(encoded, key)
+    const bytes = unseal(encoded, key, header.format)
     const value: unknown = JSON.parse(Buffer.from(bytes).toString('utf8'))
     bytes.fill(0)
     if (
       !isRecord(value) ||
-      value.format !== FORMAT ||
+      value.format !== header.format ||
       !isRecord(value.checkpoint) ||
       !Array.isArray(value.checkpoint.files) ||
       !isRecord(value.chunks) ||
@@ -239,6 +246,14 @@ async function readManifest(
       throw new Error('Invalid portable identity')
     seed.fill(0)
     const manifest = value as unknown as PortableManifest
+    const hasSettings = manifest.checkpoint.files.some((file) => file?.path === SETTINGS_FILE)
+    if (manifest.format === FORMAT) {
+      if (manifest.desktopSettings !== null) validateDesktopSettings(manifest.desktopSettings)
+      if (hasSettings !== (manifest.desktopSettings !== null))
+        throw new Error('Portable desktop settings do not match the checkpoint inventory')
+    } else if (hasSettings) {
+      throw new Error('This legacy backup cannot rewrap desktop settings')
+    }
     const paths = new Set<string>()
     for (const file of manifest.checkpoint.files) {
       if (
@@ -298,7 +313,7 @@ async function verifyObjects(
           CHUNK_BYTES + NONCE_SIZE + TAG_SIZE
         )
         if (hash(encrypted) !== id) throw new Error('Encrypted recovery object is damaged')
-        const bytes = unseal(encrypted, key)
+        const bytes = unseal(encrypted, key, manifest.format)
         size += bytes.byteLength
         if (size > file.size) throw new Error('Recovered file exceeds the recorded size')
         digest.update(bytes)
@@ -351,6 +366,10 @@ export async function unpackPortableCheckpoint(options: {
     )
     if (manifest.mnemonic !== null)
       storeSeedPhrase(workspace, manifest.mnemonic, options.safeStorage)
+    if (manifest.desktopSettings)
+      await writeDesktopSettings(workspace, manifest.desktopSettings, options.safeStorage, {
+        rewrap: true
+      })
     await sync(join(workspace, 'identity-seed.json'))
     if (manifest.mnemonic !== null) await sync(join(workspace, 'seed-recovery.json'))
     await sync(workspace)

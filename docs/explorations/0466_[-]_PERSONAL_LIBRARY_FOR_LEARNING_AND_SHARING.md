@@ -535,6 +535,28 @@ This does not complete the portable-backup checkbox: non-native settings and
 keys, a retained off-device destination, and a second physical Mac remain
 unproven. The format and explicit limits are recorded in ADR-40.
 
+**Logical settings recovery evidence (2026-09-30):** new recovery points include
+an encrypted snapshot of the known desktop settings, AI provider key, workspace
+layout, consent choices, and unfinished capture draft. Restore applies it before
+settings consumers load, and a per-restore receipt preserves later changes on
+ordinary restarts. Portable format 2 rewraps the snapshot with the destination
+key store; the reader still accepts format 1. The 70 storage tests passed,
+including corrupted settings, locked keys, interrupted application, distinct
+source/destination key stores, and a legacy-format fixture.
+
+A real Electron run exported through Settings, deleted the entire test profile,
+restored the encrypted folder, and displayed the exact unfinished capture in the
+form with the recovered theme. It also recovered the test provider key, omitted
+temporary authorization tokens, kept the original identity and note, and
+preserved a later settings change across another restart. A separate damaged-settings launch opened no normal windows, preserved the
+original database and damaged settings bytes, and showed native recovery before
+creating the blob database. Parser errors omit credential content. The production
+build and desktop main-process typecheck passed. The separate renderer typecheck still
+has the six previously recorded errors. ADR-45 and the storage reference define
+the new coverage. Device-bound sessions and unlisted browser state remain
+excluded; the real daily-profile inventory and off-device/physical-Mac proof
+remain open, so the broader recovery checkboxes stay unchecked.
+
 ### B. Seed the library from the existing corpus
 
 - [x] Add a read-only inventory and preview for `.exports/`; reconcile selected categories and unknown formats against the observed source counts.
@@ -634,7 +656,7 @@ would still not prove signed-release helper behavior.
 
 **Implementation evidence (2026-09-29):** The shared workbench now has a Save a link form with a URL, title, personal note, and optional excerpt. A native capture intent is persisted before source/Page writes. Retrying the same request reuses those records and preserves any later Page edits. The note is an ordinary private Page whose optional `sourceResources` relation cites the source. Known YouTube, Instagram, and Twitter/X aliases use the import adapters’ resource IDs; an existing Library URL can also resolve a saved GitHub source. Garden/GitHub overlap before Library scanning still needs the broader reconciliation check above.
 
-Seven capture tests cover retry identity, a failed body write and reopen, interrupted completion, preservation of later edits, reuse without changing source evidence, and refusal to index an unsupported body format as an empty note. Together with Library store/provider, Page schema, and navigation checks, the focused run passed 28 tests. A real Electron run in an isolated profile saved while offline, rendered the original URL, note, and excerpt in the Page editor, quit, reopened offline, found the source by a phrase in its note, and recognized a second capture of the same video. A subsequent run edited both the Page title and body, quit, reopened offline, and found the later body text; the edited title also persisted. It exposed and fixed a stale Lamport clock when the renderer edits a record written by the native importer. Local change allocation now reads the persisted clock, and native notifications refresh renderer subscribers. A focused data/storage/Library run passed 1,915 tests with one opt-in benchmark skipped; a separate commit check passed 2,962 tests with one skipped. The run also confirmed shortcut registration. Actual switching from another app and returning focus remains unverified, so that checkbox stays open. Unsaved form drafts remain in browser local storage; they are not covered by native checkpoints. A submitted capture’s durable intent and saved Page are covered. The two-guide and publication checks remain open.
+Seven capture tests cover retry identity, a failed body write and reopen, interrupted completion, preservation of later edits, reuse without changing source evidence, and refusal to index an unsupported body format as an empty note. Together with Library store/provider, Page schema, and navigation checks, the focused run passed 28 tests. A real Electron run in an isolated profile saved while offline, rendered the original URL, note, and excerpt in the Page editor, quit, reopened offline, found the source by a phrase in its note, and recognized a second capture of the same video. A subsequent run edited both the Page title and body, quit, reopened offline, and found the later body text; the edited title also persisted. It exposed and fixed a stale Lamport clock when the renderer edits a record written by the native importer. Local change allocation now reads the persisted clock, and native notifications refresh renderer subscribers. A focused data/storage/Library run passed 1,915 tests with one opt-in benchmark skipped; a separate commit check passed 2,962 tests with one skipped. The run also confirmed shortcut registration. Actual switching from another app and returning focus remains unverified, so that checkbox stays open. At that capture validation stage, unsaved form drafts remained outside native checkpoints; the later logical settings recovery evidence above extends coverage to drafts at completed checkpoints. A submitted capture’s durable intent and saved Page are covered. The two-guide and publication checks remain open.
 
 **Exit:** Chris saves a resource during normal browsing and later finds it using a phrase from the note.
 

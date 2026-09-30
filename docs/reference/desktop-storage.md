@@ -1,9 +1,9 @@
 # Desktop storage and recovery
 
 This inventory describes the Electron paths inspected for exploration 0466. A
-native recovery copy covers `xnet-data`. It does not yet cover every preference,
-browser credential, or external file the desktop can use. The Settings screen
-states this limit. Native copies remain local. The separate encrypted export below supports portable recovery of the covered files.
+native recovery copy covers `xnet-data`, including an encrypted logical copy of
+known desktop settings. Device-bound sign-in sessions, unlisted browser state,
+and external files remain outside that claim. The Settings screen states this limit. Native copies remain local. The separate encrypted export below supports portable recovery of the covered files.
 
 ## Data locations
 
@@ -13,30 +13,33 @@ their profile with `dev-`; packaged builds reject that reserved prefix. The
 workspace directory is `<userData>/xnet-data`, and recovery copies live beside
 it in `<userData>/xnet-recovery`.
 
-| Location                                                          | Contents                                                                                                          | Current recovery coverage                                                    |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `xnet-data/data.db` and its WAL                                   | Nodes, properties, signed changes, Yjs state/history, sync state, indexes, and the data-process blob table        | Required; copied and normalized into a standalone database                   |
-| `xnet-data/xnet.db` and its WAL                                   | Main-process blob service bytes, including editor attachments                                                     | Required; copied and normalized                                              |
-| `xnet-data/identity-seed.json`                                    | Desktop signing seed, normally encrypted by Electron `safeStorage`                                                | Required outside explicit test mode; same Mac key store needed               |
-| `xnet-data/seed-recovery.json`                                    | Optional encrypted recovery mnemonic                                                                              | Included when present; same Mac key store needed                             |
-| `xnet-data/import-sources/<sha256>/`                              | Exact source export bytes retained before an import writes nodes                                                  | Included recursively, including unselected source categories                 |
-| `xnet-data/import-jobs/`                                          | Reviewed import selections, adapter versions, and acknowledged batch cursors; no signing keys                     | Included with retained source evidence; interrupted jobs reopen paused       |
-| Other files under `xnet-data`, including tunnel state             | Native persisted configuration and future files                                                                   | Included recursively; symlinks and special files fail the copy               |
-| Chromium `Local Storage`, `IndexedDB`, `Preferences`, and cookies | Shell/theme preferences, selected hub, provider settings, browser credentials, and caches used by shared packages | Excluded; a complete logical settings/key export remains work                |
-| macOS Keychain                                                    | The OS secret used by `safeStorage`; platform sign-in credentials                                                 | Not copied; a file copy alone cannot recover these on another Mac            |
-| `<userData>/library-helpers`                                      | Verified downloadable video helper; no workspace data or keys                                                     | Excluded; reinstall through Library after restore                            |
-| `<userData>/dictation`                                            | Downloaded local transcription models                                                                             | Excluded; models can be downloaded again                                     |
-| `<userData>/agent-bridge-mcp.json`                                | Generated agent connection configuration                                                                          | Excluded; regenerate it after restoring                                      |
-| System temporary recording directories                            | In-progress screen/audio recordings                                                                               | Not a saved attachment yet; quit stops capture before checkpointing          |
-| Files selected from outside the workspace                         | Export inputs, capture sources, published output                                                                  | Only a source explicitly retained under `xnet-data` is covered               |
-| `<userData>/xnet-recovery`                                        | Verified generations, pinned pre-upgrade points, preserved originals, and restore journals                        | Kept outside the source to prevent recursive backups; still on the same disk |
+| Location                                                          | Contents                                                                                                   | Current recovery coverage                                                     |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `xnet-data/data.db` and its WAL                                   | Nodes, properties, signed changes, Yjs state/history, sync state, indexes, and the data-process blob table | Required; copied and normalized into a standalone database                    |
+| `xnet-data/xnet.db` and its WAL                                   | Main-process blob service bytes, including editor attachments                                              | Required; copied and normalized                                               |
+| `xnet-data/identity-seed.json`                                    | Desktop signing seed, normally encrypted by Electron `safeStorage`                                         | Required outside explicit test mode; same Mac key store needed                |
+| `xnet-data/seed-recovery.json`                                    | Optional encrypted recovery mnemonic                                                                       | Included when present; same Mac key store needed                              |
+| `xnet-data/import-sources/<sha256>/`                              | Exact source export bytes retained before an import writes nodes                                           | Included recursively, including unselected source categories                  |
+| `xnet-data/import-jobs/`                                          | Reviewed import selections, adapter versions, and acknowledged batch cursors; no signing keys              | Included with retained source evidence; interrupted jobs reopen paused        |
+| Other files under `xnet-data`, including tunnel state             | Native persisted configuration and future files                                                            | Included recursively; symlinks and special files fail the copy                |
+| `xnet-data/desktop-settings.json`                                 | Encrypted logical copy of known settings, provider key, workspace layout, and unfinished capture draft     | Included after the renderer save barrier; portable export rewraps it          |
+| Chromium `Local Storage`, `IndexedDB`, `Preferences`, and cookies | Original settings, device-bound sessions, and caches                                                       | Raw files excluded; only the explicit logical settings contract above travels |
+| macOS Keychain                                                    | The OS secret used by `safeStorage`; platform sign-in credentials                                          | Not copied; a file copy alone cannot recover these on another Mac             |
+| `<userData>/library-helpers`                                      | Verified downloadable video helper; no workspace data or keys                                              | Excluded; reinstall through Library after restore                             |
+| `<userData>/dictation`                                            | Downloaded local transcription models                                                                      | Excluded; models can be downloaded again                                      |
+| `<userData>/agent-bridge-mcp.json`                                | Generated agent connection configuration                                                                   | Excluded; regenerate it after restoring                                       |
+| System temporary recording directories                            | In-progress screen/audio recordings                                                                        | Not a saved attachment yet; quit stops capture before checkpointing           |
+| Files selected from outside the workspace                         | Export inputs, capture sources, published output                                                           | Only a source explicitly retained under `xnet-data` is covered                |
+| `<userData>/xnet-recovery`                                        | Verified generations, pinned pre-upgrade points, preserved originals, and restore journals                 | Kept outside the source to prevent recursive backups; still on the same disk  |
 
 The renderer currently supplies its desktop signing identity directly to
 `XNetProvider` and uses IPC-backed node and blob storage. Shared browser identity
-and settings code also exists in the repository. Before broadening the backup
-claim, inventory its active stores in a real daily profile and export any
-non-reconstructible keys and preferences explicitly. Never replace a failed or
-missing identity with a fresh one just to get the app open.
+and session code also exists in the repository, but is not the desktop signing
+identity. Browser passkey credentials and non-extractable session wrapping keys
+are not exported. AI vector indexes, downloaded models, and telemetry buffers are
+rebuildable or disposable. Never replace a failed or missing identity with a
+fresh one just to get the app open. A real daily-profile inventory is still needed
+before claiming coverage for arbitrary plugins or future browser stores.
 
 ## Native checkpoint contract
 
@@ -104,9 +107,12 @@ remains preserved and the recovered workspace opens offline for review.
 The original Keychain secret is unnecessary for these encrypted exports. The
 app does not save the recovery password. It does not claim off-device protection
 merely because a folder was chosen: the user must retain a copy on another disk
-or device. Browser preferences and sign-in sessions remain outside this format.
+or device. Version 2 adds the logical desktop settings and rewraps them with the
+destination key store. Version-1 exports remain readable, with their original
+coverage; they do not gain settings retroactively. Device-bound sessions remain
+excluded.
 Only the current storage version can be restored through this control today.
-See ADR-40 for format details and the limits of the cross-Mac evidence.
+See ADR-40 and ADR-45 for format details and the limits of the cross-Mac evidence.
 
 ## Library captures
 
@@ -123,7 +129,47 @@ retained, including completed ones, so the original captured text remains in
 local storage and recovery copies even after the Page changes. The Library database
 is included in native checkpoints and encrypted exports when present.
 
-The unsubmitted form draft lives in Chromium local storage and falls outside
-the native recovery contract. A successful save clears that draft only after
+The unsubmitted form draft lives in Chromium local storage. The save barrier
+now includes it in the encrypted settings copy before checkpoints, export, and
+normal quit. Text entered after the last completed copy is not protected by that
+copy. A successful save clears the draft only after
 native acknowledgement. Failed attempts retain their original payload for retry.
 The desktop shortcut reads the clipboard only when explicitly invoked.
+
+## Desktop settings recovery
+
+The versioned list in `src/shared/desktop-settings.ts` covers the workspace
+layout and queued pins, theme and token overrides, selected hub, AI provider key
+and preferences, meeting settings, consent choices, dismissed data suggestions,
+and capture draft. Absent values are recorded too, so restoring an older point
+can clear a setting introduced later. Unknown keys are not silently added to the
+contract. Debug switches, test bypasses, temporary OAuth verifiers, and bridge
+pairing tokens are excluded. Bridge pairing and sign-in may need to be repeated.
+
+The renderer snapshots these values only after document writes finish. Main
+encrypts them with `safeStorage`, writes a private temporary file, fsyncs it, and
+renames it into place. A locked key store or damaged prior settings copy fails
+the operation and keeps the existing bytes. Unchanged settings do not rewrite
+the file. The periodic checkpoint check captures settings before comparing the
+workspace fingerprint, so a settings-only change can trigger an overdue copy.
+
+```mermaid
+sequenceDiagram
+  participant Renderer
+  participant Main
+  participant Recovery
+  Renderer->>Renderer: Finish pending document writes
+  Renderer->>Main: Logical settings snapshot
+  Main->>Main: Encrypt, fsync, atomic rename
+  Main->>Recovery: Copy and verify native workspace
+  Recovery->>Main: Restore generation with unique ID
+  Main->>Renderer: Decrypted settings and restore ID
+  Renderer->>Renderer: Apply settings before importing the app
+```
+
+A boot module restores settings before theme, consent, and workspace stores
+hydrate. Each restore has a unique receipt; ordinary restarts keep later edits.
+An interrupted application leaves no completed receipt and retries on the next
+launch. Losing the entire browser profile also triggers recovery from the native
+settings copy. This is checkpoint recovery, not a claim that every keystroke in
+an unfinished form has already reached a backup.

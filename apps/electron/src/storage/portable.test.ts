@@ -1,4 +1,5 @@
 import type { SafeStorageLike } from '../main/secure-seed'
+import { createCipheriv, createHash, randomBytes, scryptSync } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -6,7 +7,9 @@ import Database from 'better-sqlite3'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { getOrCreateIdentitySeed } from '../main/identity-seed'
 import { loadSeedPhrase, storeSeedPhrase } from '../main/secure-seed'
+import { captureDesktopSettings } from '../shared/desktop-settings'
 import { createCheckpoint, verifyCheckpoint } from './checkpoints'
+import { readDesktopSettings, writeDesktopSettings } from './desktop-settings'
 import { exportPortableCheckpoint, unpackPortableCheckpoint } from './portable'
 
 const safe = (mac: string): SafeStorageLike => ({
@@ -69,6 +72,53 @@ const unpack = (path: string, recoveryPassword = password, output = join(root, '
     safeStorage: safe('second-Mac')
   })
 
+it('still reads a version-1 backup without desktop settings', async () => {
+  // Independent legacy writer: an old backup must not depend on the current export format.
+  const format = 'xnet-desktop-portable/1'
+  const salt = randomBytes(32)
+  const key = scryptSync(password, salt, 32, { N: 131072, r: 8, p: 1, maxmem: 256 * 1024 * 1024 })
+  const sealLegacy = (bytes: Buffer) => {
+    const nonce = randomBytes(12)
+    const cipher = createCipheriv('aes-256-gcm', key, nonce)
+    cipher.setAAD(Buffer.from(format))
+    return Buffer.concat([nonce, cipher.update(bytes), cipher.final(), cipher.getAuthTag()])
+  }
+  const path = join(destination, 'legacy.xnetbackup')
+  await mkdir(join(path, 'objects'), { recursive: true })
+  const checkpoint = await verifyCheckpoint(checkpointPath)
+  const chunks: Record<string, string[]> = {}
+  for (const file of checkpoint.files) {
+    const encrypted = sealLegacy(await readFile(join(checkpointPath, 'workspace', file.path)))
+    const hash = createHash('sha256').update(encrypted).digest('hex')
+    chunks[file.path] = [hash]
+    await writeFile(join(path, 'objects', hash), encrypted)
+  }
+  await writeFile(
+    join(path, 'header.json'),
+    JSON.stringify({ format, kdf: 'scrypt-N131072-r8-p1', salt: salt.toString('base64') })
+  )
+  await writeFile(
+    join(path, 'manifest.enc'),
+    sealLegacy(
+      Buffer.from(
+        JSON.stringify({
+          format,
+          checkpoint,
+          chunks,
+          seedB64: Buffer.from(seed).toString('base64'),
+          mnemonic: loadSeedPhrase(dataPath, safe('first-Mac'))
+        })
+      )
+    )
+  )
+  key.fill(0)
+  const restored = await unpack(path)
+  expect(
+    getOrCreateIdentitySeed(restored.workspace, safe('second-Mac'), { profile: 'daily' }).seed
+  ).toEqual(seed)
+  expect(await readDesktopSettings(restored.workspace, safe('second-Mac'))).toBeNull()
+})
+
 it('restores exact content and the same identity without the original Mac key store', async () => {
   const exported = await exportPoint()
   await rm(dataPath, { recursive: true })
@@ -115,6 +165,34 @@ it('authenticates a multi-chunk file without losing its tail', async () => {
   checkpointPath = join(recoveryPath, point.id)
   const restored = await unpack((await exportPoint()).path)
   expect(await readFile(join(restored.workspace, 'large.bin'))).toEqual(bytes)
+})
+
+it('rewraps preferences, a provider key, and a draft for a different Mac key store', async () => {
+  const settings = captureDesktopSettings({ getItem: () => null })
+  settings.values['xnet:ai-api-key'] = 'fixture-provider-secret'
+  settings.values['xnet.library.capture-draft.v1'] = '{"note":"unfinished private thought"}'
+  settings.values['xnet-electron-theme'] = 'light'
+  await writeDesktopSettings(dataPath, settings, safe('first-Mac'))
+  const point = await createCheckpoint({
+    dataPath,
+    recoveryPath,
+    profile: 'daily',
+    appVersion: 'fixture'
+  })
+  checkpointPath = join(recoveryPath, point.id)
+  const exported = await exportPoint()
+  await rm(dataPath, { recursive: true })
+  await rm(recoveryPath, { recursive: true })
+  const restored = await unpack(exported.path)
+  expect(await readDesktopSettings(restored.workspace, safe('second-Mac'))).toEqual(settings)
+  await expect(readDesktopSettings(restored.workspace, safe('first-Mac'))).rejects.toThrow(
+    'another Mac'
+  )
+  for (const object of await readdir(join(exported.path, 'objects'))) {
+    const bytes = await readFile(join(exported.path, 'objects', object))
+    expect(bytes.includes('fixture-provider-secret')).toBe(false)
+    expect(bytes.includes('unfinished private thought')).toBe(false)
+  }
 })
 
 it('rejects a wrong password before creating any plaintext output', async () => {

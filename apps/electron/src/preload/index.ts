@@ -2,6 +2,7 @@
  * Preload script - exposes xNet API to renderer
  */
 import type { CloudConnectPayload } from '../main/deep-link'
+import type { DesktopSettings, SettingsRecovery } from '../shared/desktop-settings'
 import type {
   CaptureInput,
   CaptureResult,
@@ -23,6 +24,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
+  getSettingsRecovery: () => ipcRenderer.invoke('xnet:settings:recovery'),
+  saveDesktopSettings: (settings: DesktopSettings) =>
+    ipcRenderer.invoke('xnet:settings:save', settings),
   getRecoveryStatus: () => ipcRenderer.invoke('xnet:recovery:status'),
   libraryStatus: () => ipcRenderer.invoke('xnet:library:status'),
   libraryHelperStatus: () => ipcRenderer.invoke('xnet:library:helper-status'),
@@ -628,6 +632,8 @@ export interface XNetAPI {
   ): Promise<{ path: string; createdAt: string; files: number; bytes: number } | null>
   restoreEncryptedBackup(password: string): Promise<{ restored: boolean }>
   onRecoveryError(handler: (message: string | null) => void): () => void
+  getSettingsRecovery(): Promise<SettingsRecovery>
+  saveDesktopSettings(settings: DesktopSettings): Promise<void>
   onFlushDocuments(flush: () => Promise<void>): () => void
   onResumeEditing(callback: () => void): () => void
   getProfile(): Promise<string>

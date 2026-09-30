@@ -61,7 +61,9 @@ export async function recoverPendingRestore(
   // A restored identity must not reconnect and replay older state before review.
   const review = await open(join(recoveryPath, 'review-required.json'), 'w', 0o600)
   try {
-    await review.writeFile(JSON.stringify({ version: 1, restoredAt: new Date().toISOString() }))
+    await review.writeFile(
+      JSON.stringify({ version: 1, id: value.id, restoredAt: new Date().toISOString() })
+    )
     await review.sync()
   } finally {
     await review.close()

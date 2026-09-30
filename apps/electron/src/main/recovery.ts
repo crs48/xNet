@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, open, realpath, rm } from 'node:fs/promises'
+import { mkdir, open, readFile, realpath, rm } from 'node:fs/promises'
 import { join, sep } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from 'electron'
+import { validateDesktopSettings } from '../shared/desktop-settings'
 import { createCheckpointSchedule } from '../storage/checkpoint-policy'
 import {
   createCheckpoint,
@@ -11,6 +12,7 @@ import {
   type CheckpointManifest
 } from '../storage/checkpoints'
 import { inspectDatabase, WorkspaceRecoveryRequired } from '../storage/compatibility'
+import { readDesktopSettings, writeDesktopSettings } from '../storage/desktop-settings'
 import { exportPortableCheckpoint, unpackPortableCheckpoint } from '../storage/portable'
 import { restoreCheckpoint } from '../storage/restore'
 import { freezeLibrary, thawLibrary } from './library-ipc'
@@ -96,11 +98,53 @@ export function setupRecovery(options: {
   stopWriters: () => Promise<void>
   restartWriters: () => Promise<void>
 }): void {
+  let settingsWrite = Promise.resolve()
+  ipcMain.handle('xnet:settings:save', async (_event, value: unknown) => {
+    const settings = validateDesktopSettings(value)
+    const next = settingsWrite.then(() => writeDesktopSettings(dataPath, settings, safeStorage))
+    // A failed save remains an error to its caller, while a later retry can run.
+    settingsWrite = next.catch(() => {})
+    await next
+  })
+  ipcMain.handle('xnet:settings:recovery', async () => {
+    await settingsWrite
+    const settings = await readDesktopSettings(dataPath, safeStorage)
+    let restoreId: string | null = null
+    try {
+      const review: unknown = JSON.parse(
+        await readFile(join(recoveryPath, 'review-required.json'), 'utf8')
+      )
+      if (
+        !review ||
+        typeof review !== 'object' ||
+        !('version' in review) ||
+        review.version !== 1 ||
+        !('restoredAt' in review) ||
+        typeof review.restoredAt !== 'string'
+      )
+        throw new Error('Unreadable settings restore marker. Workspace copies have been preserved.')
+      restoreId = 'id' in review && typeof review.id === 'string' ? review.id : review.restoredAt
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
+    return { settings, restoreId }
+  })
   const tick = createCheckpointSchedule({
     now: Date.now,
     busy: () => recoveryIsBusy() || hasActiveSocialImports(),
     latest: async () => (await inspectCheckpoints(recoveryPath)).checkpoints[0] ?? null,
-    fingerprint: () => workspaceFingerprint(dataPath),
+    fingerprint: async () => {
+      if (recoveryIsBusy() || hasActiveSocialImports()) return workspaceFingerprint(dataPath)
+      busy = true
+      try {
+        // Settings-only edits must make an overdue point eligible for replacement.
+        await flushRenderers()
+        return await workspaceFingerprint(dataPath)
+      } finally {
+        resumeRenderers()
+        busy = false
+      }
+    },
     create: () => checkpointWorkspace(),
     failed: (error) => reportFailure(error instanceof Error ? error.message : String(error))
   })
@@ -115,7 +159,7 @@ export function setupRecovery(options: {
     protection: 'local-only',
     networkPaused: process.env.XNET_RECOVERY_OFFLINE === 'true',
     coverage:
-      'Native workspace databases, files, and desktop identity. Browser settings and sign-in sessions are not included.'
+      'Native workspace, desktop identity, known desktop preferences, AI provider key, and capture draft. Device sign-in sessions and unlisted browser state are not included. Older copies may lack settings.'
   }))
   ipcMain.handle('xnet:recovery:resume-network', async () => {
     if (busy) throw new Error('A recovery operation is already running.')
@@ -239,7 +283,7 @@ export function setupRecovery(options: {
         title: 'Restore this encrypted backup?',
         message: `Restore the backup from ${new Date(recovered.source.createdAt).toLocaleString()}?`,
         detail:
-          'The password, files, and databases have been verified. xNet will keep your current workspace, then restart offline with the recovered identity and data. Browser settings and sign-in sessions are not included.',
+          'The password, files, and databases have been verified. xNet will keep your current workspace, then restart offline with the recovered identity and data. New backups also restore desktop preferences, the AI provider key, and capture draft. Device sessions require signing in again; older backups may lack settings.',
         buttons: ['Cancel', 'Restore and restart'],
         defaultId: 0,
         cancelId: 0

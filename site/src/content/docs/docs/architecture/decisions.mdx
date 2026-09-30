@@ -1409,3 +1409,41 @@ readable, and is for stores sharing the same underlying committed state.
 clock reads measurably harm typing or imports, or a remote transport starts using
 this API. Revisit single-writer ownership or atomic allocation before widening
 the guarantee.
+
+## ADR-45: Recover desktop settings through an encrypted logical snapshot
+
+**Status:** Accepted · 2026-09-30 · exploration 0466
+
+**Context:** Native workspace copies omitted browser-held preferences, provider
+keys, and an unfinished capture draft. Copying Chromium directories would bind
+recovery to browser internals and device session keys.
+
+**Decision:** `desktop-settings.json` stores a version-1, bounded, explicit map
+of desktop setting names to strings or null. Main encrypts it with `safeStorage`
+and acknowledges a private atomic write only after file and directory fsync. The
+renderer save barrier includes this snapshot. Missing settings are distinct from
+unreadable settings, and unreadable prior copies cannot be overwritten.
+
+`xnet-desktop-portable/2` carries the logical snapshot inside its authenticated,
+password-encrypted manifest and rewraps the native file for the destination key
+store. The manifest and checkpoint inventory must agree about its presence. The
+reader still accepts version 1 with its original coverage. Older readers reject
+version 2. This extends the coverage limits recorded in ADR-40 and ADR-43; their
+original format and capture contracts remain historical decisions.
+
+Restore applies the map before importing settings consumers. A unique restore
+generation and browser receipt prevent normal restarts from replaying an older
+snapshot over newer edits. A failed application retries before app startup.
+Device-bound passkeys, session wrapping keys, cookies, test flags, temporary
+OAuth verifiers, and bridge authorization tokens are excluded. Desktop signing
+identity still comes from the native seed.
+
+**Tradeoff:** The explicit list needs maintenance as desktop settings grow. The
+copy protects values at a completed checkpoint, not every subsequent draft edit.
+Existing browser APIs still hold their normal values in Chromium; this decision
+encrypts the recovery copy rather than moving all live credentials into a vault.
+
+**Tripwire:** A new non-reconstructible desktop key or setting appears outside
+the list, an identity flow starts using IndexedDB as its authoritative store, or
+restore receipts can replay stale settings over later edits. Extend the versioned
+contract and failure tests before broadening the recovery claim.

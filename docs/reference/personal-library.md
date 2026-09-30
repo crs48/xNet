@@ -73,12 +73,15 @@ Settings → Data provides verified native recovery copies and password-encrypte
 `.xnetbackup` export/restore. Keep the whole encrypted folder and its password.
 Native copies remain on this disk. Selecting a folder does not prove it has
 reached another device. See [Desktop storage and recovery](./desktop-storage.md)
-for exactly which files are covered.
+for exactly which files are covered. New copies include known desktop settings,
+the AI provider key, and an unfinished capture draft. Restore applies these before
+the app opens; device sessions and unlisted browser state are excluded.
 
 The current implementation has been exercised in isolated Electron profiles:
 checkpoint restore, encrypted export/restore, interrupted-import resume after
 removing its original source, saved thumbnails and late-caption search after an
-offline restart, and capture followed by ordinary title/body edits and restart.
+offline restart, capture followed by ordinary title/body edits and restart, and
+settings/draft recovery after deleting an entire test profile.
 The installed signed-Mac upgrade, complete settings/key recovery, off-device
 retention, full real-corpus import/enrichment, guide publication, and founder trial
 remain open in the exploration. The preview is not a durability guarantee for

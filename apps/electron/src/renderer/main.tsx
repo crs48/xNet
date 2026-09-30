@@ -25,6 +25,7 @@ import React, { useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
+import { captureDesktopSettings } from '../shared/desktop-settings'
 import { App } from './App'
 import { ShellErrorBoundary } from './components/ShellErrorBoundary'
 import { configuredHubUrl } from './lib/hub-url'
@@ -895,6 +896,7 @@ async function init() {
     if (root) root.inert = true
     await flushDocumentWrites()
     await ipcSyncManager.flushDocuments()
+    await window.xnet.saveDesktopSettings(captureDesktopSettings(localStorage))
   })
   const removeResume = window.xnet.onResumeEditing(() => {
     const root = document.getElementById('root')

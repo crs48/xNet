@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import { app, BrowserWindow, dialog, safeStorage } from 'electron'
 import { inspectCheckpoints } from '../storage/checkpoints'
 import { requireCompatibleDatabase } from '../storage/compatibility'
+import { readDesktopSettings } from '../storage/desktop-settings'
 import { prepareWorkspaceUpgrade } from '../storage/migrations'
 import { recoverPendingRestore, restoreCheckpoint } from '../storage/restore'
 import { setupAgentBridgeIPC, startAgentBridge, stopAgentBridge } from './agent-bridge-manager'
@@ -95,6 +96,7 @@ async function restartWorkspaceWriters(): Promise<void> {
   requireCompatibleDatabase(dbPath)
   requireCompatibleDatabase(join(dataPath, 'xnet.db'), 'blobs')
   requireCompatibleDatabase(join(dataPath, 'library.db'), 'library')
+  await readDesktopSettings(dataPath, safeStorage)
   await getOrCreateStorage().open()
   await spawnDataProcess(dbPath)
   await configureLibrary()
@@ -448,6 +450,7 @@ app
       allowTestIdentity: process.env.XNET_TEST_BYPASS === 'true'
     })
     requireCompatibleDatabase(join(dataPath, 'library.db'), 'library')
+    await readDesktopSettings(dataPath, safeStorage)
     await prepareWorkspaceUpgrade({
       dataPath,
       recoveryPath,
