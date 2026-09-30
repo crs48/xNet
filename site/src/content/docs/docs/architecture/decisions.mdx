@@ -1376,3 +1376,36 @@ path before a guide is exported.
 **Tripwire:** Capture starts editing an existing Page, source relations imply
 sharing permissions, or a new document format changes replay. Revisit request
 identity, privacy checks, and interrupted-save tests before expanding the path.
+
+## ADR-44: Observe committed local writes without applying them twice
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** The desktop utility process imports and enriches records while the
+renderer keeps a NodeStore open over the same database. The renderer previously
+ignored native change notifications and kept its startup change clock. A later
+title edit could receive an older timestamp and lose to an already-saved import.
+
+**Decision:** Every local change allocation advances from the persisted Lamport
+time as well as the instance's current time. An unreadable stored clock fails the
+write. `NodeStore.refreshPersistedNodes(ids)` reads committed records through the
+store's read boundary and notifies subscribers without writing them again. It
+rejects missing or unreadable records. Refresh events are marked remote so sync
+listeners do not rebroadcast them. Native notifications carry only IDs into this
+API; supplied notification properties are never used as authoritative content.
+
+Desktop subscribes to its existing native change channel, refreshes in bounded
+groups, and retains failed groups for another notification or the end of a write
+barrier. Refresh errors remain visible. A notification is not a save receipt; the
+native write acknowledgement remains the persistence boundary.
+
+**Tradeoff:** Clock allocation gains a storage read. This prevents sequential
+writers from using stale clocks; it does not serialize overlapping writes from
+two NodeStore instances. Native mutation barriers and stronger concurrent-writer
+validation remain separate work. The API requires all requested records to be
+readable, and is for stores sharing the same underlying committed state.
+
+**Tripwire:** Concurrent native and renderer mutations overwrite one another,
+clock reads measurably harm typing or imports, or a remote transport starts using
+this API. Revisit single-writer ownership or atomic allocation before widening
+the guarantee.

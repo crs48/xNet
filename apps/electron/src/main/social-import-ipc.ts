@@ -1,3 +1,11 @@
+import type {
+  ElectronStagedSocialImport,
+  SocialImportArchivePreview,
+  SocialImportStageRequest,
+  SocialImportStageResult,
+  SocialImportCommitJobRequest,
+  SocialImportCommitJobSnapshot
+} from '../shared/social-import'
 /**
  * Main-process IPC for local social graph archive imports.
  */
@@ -8,14 +16,12 @@ import type {
   NodeBatchWriteTimings
 } from '@xnetjs/data'
 import type {
-  ArchiveManifest,
   SocialImportArchivePreview as SharedSocialImportArchivePreview,
   SocialImportNodeDraft as SharedSocialImportNodeDraft,
   SocialImportJobCheckpointSnapshot,
   SocialImportNodeDraftStreamResult,
   SocialImportJobMetrics,
-  SocialImportJobPhase,
-  SocialImportJobProgress
+  SocialImportJobPhase
 } from '@xnetjs/social/import/core'
 import type { BrowserWindow, OpenDialogOptions } from 'electron'
 import { extname } from 'node:path'
@@ -44,39 +50,16 @@ import { freezeLibrary, thawLibrary, refreshLibrarySources } from './library-ipc
 import { dataPath } from './profile'
 import { recoveryIsBusy } from './recovery'
 
-export type SocialImportArchivePreview = Omit<SharedSocialImportArchivePreview, 'archivePath'> & {
-  archivePath: string
-}
-
-export type SocialImportNodeDraft = SharedSocialImportNodeDraft
-
-export type SocialImportStageRequest = {
-  archivePath: string
-  buckets?: string[]
-  includeSensitive?: boolean
-}
-
-export type SocialImportStageResult = Omit<SocialImportNodeDraftStreamResult, 'archive'> & {
-  archive: SocialImportArchivePreview
-  stageId: string
-}
-
-export type SocialImportCommitJobRequest = {
-  stageId: string
-  includeSourceRecords: boolean
-  authorDID: string
-  signingKey: number[]
-}
-
-export type SocialImportCommitJobSummary = {
-  created: number
-  updated: number
-  batches: number
-}
-
-export type SocialImportCommitJobSnapshot = SocialImportJobProgress & {
-  summary?: SocialImportCommitJobSummary
-}
+export type {
+  ElectronStagedSocialImport,
+  SocialImportArchivePreview,
+  SocialImportNodeDraft,
+  SocialImportStageRequest,
+  SocialImportStageResult,
+  SocialImportCommitJobRequest,
+  SocialImportCommitJobSummary,
+  SocialImportCommitJobSnapshot
+} from '../shared/social-import'
 
 const adapters = builtInSocialImportAdapters
 const approvedArchivePaths = new Set<string>()
@@ -100,14 +83,6 @@ const COMMIT_BATCH_SIZE = 2500
 
 export function hasActiveSocialImports(): boolean {
   return [...commitJobs.values()].some((job) => job.status === 'queued' || job.status === 'running')
-}
-
-export type ElectronStagedSocialImport = Omit<SocialImportNodeDraftStreamResult, 'archive'> & {
-  archive: SocialImportArchivePreview
-  archivePath: string
-  manifest: ArchiveManifest
-  stageRequest: SocialImportStageRequest
-  importedAt: string
 }
 
 export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): void {

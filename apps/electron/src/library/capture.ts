@@ -1,18 +1,12 @@
 import type { LibraryStore } from './store'
 import type { DataService } from '../data-process/data-service'
+import type { CaptureInput, CaptureResult } from '../shared/library'
 import { PageSchema } from '@xnetjs/data'
 import { resourceIdentityForUrl } from '@xnetjs/social/import/core'
 import { SocialContentSchema } from '@xnetjs/social/schemas'
 import * as Y from 'yjs'
 
-export type CaptureInput = {
-  requestId: string
-  url: string
-  title: string
-  note: string
-  excerpt: string
-}
-export type CaptureResult = { resourceId: string; pageId: string; reusedResource: boolean }
+export type { CaptureInput, CaptureResult } from '../shared/library'
 export type CaptureIntent = {
   version: 1
   input: CaptureInput

@@ -1,7 +1,7 @@
 import type {
   ElectronStagedSocialImport,
   SocialImportCommitJobSnapshot
-} from '../main/social-import-ipc'
+} from '../shared/social-import'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   closeSync,

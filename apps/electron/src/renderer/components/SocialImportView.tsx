@@ -6,7 +6,7 @@ import type {
   SocialImportArchivePreview,
   SocialImportCommitJobSnapshot,
   SocialImportStageResult
-} from '../../main/social-import-ipc'
+} from '../../shared/social-import'
 import type { SocialImporterRegistryEntry } from '@xnetjs/social/importers'
 import { useMutate, useXNet } from '@xnetjs/react'
 import { useXNetInternal } from '@xnetjs/react/internal'

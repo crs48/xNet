@@ -222,7 +222,38 @@ export class NodeStore {
    */
   async initialize(): Promise<void> {
     const lastTime = await this.storage.getLastLamportTime()
-    this.clock = { ...this.clock, time: lastTime }
+    if (!Number.isSafeInteger(lastTime) || lastTime < 0)
+      throw new Error('Stored Lamport time is unreadable; refusing to allocate a new change.')
+    this.clock = { ...this.clock, time: Math.max(this.clock.time, lastTime) }
+  }
+
+  private async nextLamportTime(): Promise<number> {
+    // Another local store (for example the desktop import utility) can commit
+    // while this instance stays open. A later edit must follow that clock.
+    await this.initialize()
+    const [clock, timestamp] = tick(this.clock)
+    this.clock = clock
+    return timestamp.time
+  }
+
+  /**
+   * Refresh subscribers after another local owner commits to the SAME storage.
+   * Reads persisted changes and nodes; never applies or broadcasts them again.
+   * Call only after commit, with IDs readable by this store's identity.
+   * This is a notification boundary, not a lock for concurrent writers.
+   */
+  async refreshPersistedNodes(nodeIds: readonly NodeId[]): Promise<void> {
+    await this.initialize()
+    const events = await Promise.all(
+      Array.from(new Set(nodeIds)).map(async (id) => {
+        this.authEvaluator?.invalidate(id)
+        const [change, node] = await Promise.all([this.storage.getLastChange(id), this.getRaw(id)])
+        if (!change || !node)
+          throw new Error(`Cannot refresh a missing or unreadable persisted node: ${id}`)
+        return { change, node }
+      })
+    )
+    for (const { change, node } of events) this.emit(change, node, null, true)
   }
 
   /**
@@ -294,9 +325,7 @@ export class NodeStore {
       const now = Date.now()
 
       // Tick the clock
-      const [newClock, ts] = tick(this.clock)
-      this.clock = newClock
-      const lamport = ts.time
+      const lamport = await this.nextLamportTime()
 
       // Create the change
       const payload: NodePayload = {
@@ -722,9 +751,7 @@ export class NodeStore {
       const now = Date.now()
 
       // Tick the clock
-      const [newClock, ts] = tick(this.clock)
-      this.clock = newClock
-      const lamport = ts.time
+      const lamport = await this.nextLamportTime()
 
       // Create the change with sparse properties
       const payload: NodePayload = {
@@ -824,9 +851,7 @@ export class NodeStore {
       const now = Date.now()
 
       // Tick the clock
-      const [newClock, ts] = tick(this.clock)
-      this.clock = newClock
-      const lamport = ts.time
+      const lamport = await this.nextLamportTime()
 
       // Create the delete change
       const payload: NodePayload = {
@@ -904,9 +929,7 @@ export class NodeStore {
     const now = Date.now()
 
     // Tick the clock
-    const [newClock, ts] = tick(this.clock)
-    this.clock = newClock
-    const lamport = ts.time
+    const lamport = await this.nextLamportTime()
 
     // Create the restore change
     const payload: NodePayload = {
@@ -1234,9 +1257,7 @@ export class NodeStore {
     const previousClock = this.clock
 
     // Tick the clock once for the entire batch
-    const [newClock, ts] = tick(this.clock)
-    this.clock = newClock
-    const lamport = ts.time
+    const lamport = await this.nextLamportTime()
 
     try {
       const result = await this.runTransactionOperationsBatch({
@@ -1403,9 +1424,7 @@ export class NodeStore {
     const batchSize = resolvedOps.length
     const now = Date.now()
     const previousClock = this.clock
-    const [newClock, ts] = tick(this.clock)
-    this.clock = newClock
-    const lamport = ts.time
+    const lamport = await this.nextLamportTime()
 
     try {
       const applyStartedAt = Date.now()
@@ -1511,9 +1530,7 @@ export class NodeStore {
     const previousClock = this.clock
     const indexMode = this.resolveDeterministicImportIndexMode(options)
 
-    const [newClock, ts] = tick(this.clock)
-    this.clock = newClock
-    const lamport = ts.time
+    const lamport = await this.nextLamportTime()
 
     try {
       let result: DeterministicNodeImportAppliedPlan
@@ -2477,9 +2494,7 @@ export class NodeStore {
 
     const now = Date.now()
     const previousClock = this.clock
-    const [newClock, ts] = tick(this.clock)
-    this.clock = newClock
-    const lamport = ts.time
+    const lamport = await this.nextLamportTime()
 
     try {
       const parentHash = preflight.lastChangesByNodeId.get(input.nodeId)?.hash ?? null

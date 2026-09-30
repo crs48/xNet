@@ -1,16 +1,22 @@
 /**
  * Preload script - exposes xNet API to renderer
  */
-import type { LibraryResource, LibrarySearchResult, LibraryStatus } from '../library/types'
 import type { CloudConnectPayload } from '../main/deep-link'
+import type {
+  CaptureInput,
+  CaptureResult,
+  LibraryResource,
+  LibrarySearchResult,
+  LibraryStatus
+} from '../shared/library'
+import type { CheckpointManifest } from '../shared/recovery'
 import type {
   SocialImportArchivePreview,
   SocialImportCommitJobRequest,
   SocialImportCommitJobSnapshot,
   SocialImportStageRequest,
   SocialImportStageResult
-} from '../main/social-import-ipc'
-import type { CheckpointManifest } from '../shared/recovery'
+} from '../shared/social-import'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { contextBridge, ipcRenderer } from 'electron'
 
@@ -18,8 +24,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('xnet', {
   getRecoveryStatus: () => ipcRenderer.invoke('xnet:recovery:status'),
   libraryStatus: () => ipcRenderer.invoke('xnet:library:status'),
-  libraryCapture: (input: import('../library/capture').CaptureInput) =>
-    ipcRenderer.invoke('xnet:library:capture', input),
+  libraryCapture: (input: CaptureInput) => ipcRenderer.invoke('xnet:library:capture', input),
   libraryLookup: (url: string) => ipcRenderer.invoke('xnet:library:lookup', { url }),
   libraryCaptureShortcut: () => ipcRenderer.invoke('xnet:library:capture-shortcut'),
   closeLibraryCapture: (returnToPreviousApp = true) => {
@@ -589,9 +594,7 @@ export interface XNetAPI {
   libraryCaptureShortcut(): Promise<{ accelerator: string; registered: boolean }>
   closeLibraryCapture(returnToPreviousApp?: boolean): void
   onLibraryCapture(handler: (url: string) => void): () => void
-  libraryCapture(
-    input: import('../library/capture').CaptureInput
-  ): Promise<import('../library/capture').CaptureResult>
+  libraryCapture(input: CaptureInput): Promise<CaptureResult>
   libraryLookup(
     url: string
   ): Promise<{ id: string; title: string; notes: { pageId: string; title: string }[] } | null>
