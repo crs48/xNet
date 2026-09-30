@@ -10,7 +10,7 @@
       "label": "Data",
       "file": "routes/data.png",
       "status": "changed",
-      "ssim": 0.996521,
+      "ssim": 0.996432,
       "before": "before/routes/data.png",
       "after": "routes/data.png",
       "diff": "diff/routes/data.png"
@@ -20,7 +20,7 @@
       "label": "Discover",
       "file": "routes/discover.png",
       "status": "changed",
-      "ssim": 0.983572,
+      "ssim": 0.983483,
       "before": "before/routes/discover.png",
       "after": "routes/discover.png",
       "diff": "diff/routes/discover.png"
