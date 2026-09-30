@@ -138,6 +138,18 @@ export class LibraryStore {
       | undefined
     return row ? (JSON.parse(row.payload) as LibraryResource) : null
   }
+  cards(ids: unknown): (LibrarySearchResult | null)[] {
+    if (
+      !Array.isArray(ids) ||
+      ids.length > 100 ||
+      ids.some((id) => typeof id !== 'string' || !id || id.length > 500)
+    )
+      throw new Error('Library cards require at most 100 valid resource IDs.')
+    return ids.map((id: string) => {
+      const resource = this.get(id)
+      return resource ? cardFor(resource) : null
+    })
+  }
   put(resource: LibraryResource): void {
     this.db
       .prepare(

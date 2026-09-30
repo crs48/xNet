@@ -7,6 +7,12 @@ import type {
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { flushDocumentWrites } from '@xnetjs/react/internal'
 import { useEffect, useState } from 'react'
+import { LibraryCollections } from './LibraryCollections'
+import {
+  LibraryResourceCard,
+  LibraryThumbnail,
+  libraryTimestamp as timestamp
+} from './LibraryResourceCard'
 
 const button =
   'rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50'
@@ -15,58 +21,11 @@ const errorText = (error: unknown) =>
   (error instanceof Error ? error.message : String(error))
     .replace(/^Error: /, '')
     .replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
-const timestamp = (ms: number) =>
-  `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`
 const atTime = (resource: LibraryResource, ms: number) => {
   if (resource.platform !== 'youtube') return resource.url
   const url = new URL(resource.url)
   url.searchParams.set('t', `${Math.floor(ms / 1000)}s`)
   return url.href
-}
-
-function Thumbnail({ resource }: { resource: Pick<LibraryResource, 'thumbnail' | 'platform'> }) {
-  const [url, setUrl] = useState<string | null>(null)
-  const [failed, setFailed] = useState(false)
-  const cid = resource.thumbnail?.cid
-  const contentType = resource.thumbnail?.contentType
-  useEffect(() => {
-    let active = true
-    let objectUrl: string | null = null
-    setUrl(null)
-    setFailed(false)
-    if (cid) {
-      void window.xnetBSM
-        .getBlob(cid)
-        .then((bytes) => {
-          if (!active) return
-          if (!bytes) {
-            setFailed(true)
-            return
-          }
-          objectUrl = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: contentType }))
-          setUrl(objectUrl)
-        })
-        .catch(() => {
-          if (active) setFailed(true)
-        })
-    }
-    return () => {
-      active = false
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
-  }, [cid, contentType])
-  return url && !failed ? (
-    <img
-      src={url}
-      alt=""
-      className="aspect-video w-full rounded-md object-cover"
-      onError={() => setFailed(true)}
-    />
-  ) : (
-    <div className="flex aspect-video items-center justify-center rounded-md bg-secondary px-4 text-center text-xs text-muted-foreground">
-      {resource.platform} · {failed ? 'Saved image could not be read' : 'No saved thumbnail yet'}
-    </div>
-  )
 }
 
 export function LibraryView({
@@ -83,6 +42,7 @@ export function LibraryView({
   const [status, setStatus] = useState<(LibraryStatus & { error: string | null }) | null>(null)
   const [results, setResults] = useState<LibrarySearchResult[]>([])
   const [query, setQuery] = useState('')
+  const [section, setSection] = useState<'resources' | 'collections'>('resources')
   const [platform, setPlatform] = useState('')
   const [offset, setOffset] = useState(0)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -125,7 +85,10 @@ export function LibraryView({
       try {
         const nextStatus = await window.xnet.libraryStatus()
         const helperState = await window.xnet.libraryHelperStatus()
-        const rows = await window.xnet.librarySearch({ text: query, platform, offset, limit: 40 })
+        const rows =
+          section === 'resources'
+            ? await window.xnet.librarySearch({ text: query, platform, offset, limit: 40 })
+            : []
         if (active) {
           setStatus(nextStatus)
           setHelper(helperState)
@@ -141,7 +104,7 @@ export function LibraryView({
       active = false
       clearInterval(timer)
     }
-  }, [query, platform, offset])
+  }, [query, platform, offset, section])
   useEffect(() => {
     let active = true
     setSelected(null)
@@ -203,48 +166,65 @@ export function LibraryView({
             Import archive
           </button>
           <button className={button} onClick={onOpenGraph}>
-            Collections & graph
+            Graph & saved views
           </button>
           <button className={button} onClick={onClose}>
             Close
           </button>
         </div>
       </header>
-      <div className="flex flex-wrap items-center gap-3 border-b border-border px-6 py-3">
-        <input
-          aria-label="Search library"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value)
-            setOffset(0)
-          }}
-          placeholder="Search titles, descriptions, URLs, and transcripts"
-          className="min-w-64 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
-        />
-        <select
-          aria-label="Source platform"
-          value={platform}
-          onChange={(event) => {
-            setPlatform(event.target.value)
-            setOffset(0)
-          }}
-          className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-        >
-          <option value="">All sources</option>
-          {['youtube', 'instagram', 'x', 'twitter', 'github', 'generic'].map((name) => (
-            <option key={name} value={name}>
-              {name === 'generic' ? 'Web links' : name}
-            </option>
-          ))}
-        </select>
-        <button
-          className={button}
-          disabled={busy}
-          onClick={() => void run(() => window.xnet.libraryScan())}
-        >
-          Find imported links
-        </button>
-      </div>
+      <nav aria-label="Library sections" className="flex gap-2 border-b border-border px-6 py-3">
+        {(['resources', 'collections'] as const).map((name) => (
+          <button
+            key={name}
+            className={`${button} ${section === name ? 'bg-accent font-medium' : ''}`}
+            aria-pressed={section === name}
+            onClick={() => {
+              setSection(name)
+              setSelectedId(null)
+            }}
+          >
+            {name === 'resources' ? 'Resources' : 'Collections'}
+          </button>
+        ))}
+      </nav>
+      {section === 'resources' && (
+        <div className="flex flex-wrap items-center gap-3 border-b border-border px-6 py-3">
+          <input
+            aria-label="Search library"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setOffset(0)
+            }}
+            placeholder="Search titles, descriptions, URLs, and transcripts"
+            className="min-w-64 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+          />
+          <select
+            aria-label="Source platform"
+            value={platform}
+            onChange={(event) => {
+              setPlatform(event.target.value)
+              setOffset(0)
+            }}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            <option value="">All sources</option>
+            {['youtube', 'instagram', 'x', 'twitter', 'github', 'generic'].map((name) => (
+              <option key={name} value={name}>
+                {name === 'generic' ? 'Web links' : name}
+              </option>
+            ))}
+          </select>
+          <button
+            className={button}
+            disabled={busy}
+            onClick={() => void run(() => window.xnet.libraryScan())}
+          >
+            Find imported links
+          </button>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-6 py-3 text-sm">
         <span>
           {status?.resources.toLocaleString() ?? '…'} resources ·{' '}
@@ -354,70 +334,59 @@ export function LibraryView({
       )}
       <div className="flex min-h-0 flex-1">
         <main className="min-w-0 flex-1 overflow-auto p-6">
-          {!results.length && (
-            <p className="py-12 text-center text-sm text-muted-foreground">
-              {query
-                ? 'No matching source text yet. Check enrichment coverage for unresolved sources.'
-                : 'Import an archive to begin, then find its links here.'}
-            </p>
+          {section === 'collections' ? (
+            <LibraryCollections
+              onSelectResource={(id) => {
+                setSelectedId(id)
+                setSelectedCue(null)
+              }}
+            />
+          ) : (
+            <>
+              {!results.length && (
+                <p className="py-12 text-center text-sm text-muted-foreground">
+                  {query
+                    ? 'No matching source text yet. Check enrichment coverage for unresolved sources.'
+                    : 'Import an archive to begin, then find its links here.'}
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-5 xl:grid-cols-3">
+                {results.map((resource, index) => (
+                  <LibraryResourceCard
+                    key={`${resource.id}:${index}`}
+                    resource={resource}
+                    onSelect={() => {
+                      setSelectedId(resource.id)
+                      setSelectedCue(resource.startMs ?? null)
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="mt-5 flex justify-between">
+                <button
+                  className={button}
+                  disabled={offset === 0}
+                  onClick={() => setOffset(Math.max(0, offset - 40))}
+                >
+                  Previous
+                </button>
+                <button
+                  className={button}
+                  disabled={results.length < 40}
+                  onClick={() => setOffset(offset + 40)}
+                >
+                  Next
+                </button>
+              </div>
+            </>
           )}
-          <div className="grid grid-cols-2 gap-5 xl:grid-cols-3">
-            {results.map((resource, index) => (
-              <button
-                key={`${resource.id}:${index}`}
-                className="space-y-2 rounded-lg border border-border p-3 text-left hover:bg-accent/40"
-                onClick={() => {
-                  setSelectedId(resource.id)
-                  setSelectedCue(resource.startMs ?? null)
-                }}
-              >
-                <Thumbnail resource={resource} />
-                <p className="text-xs text-muted-foreground">
-                  {resource.platform}{' '}
-                  {resource.metadata?.author
-                    ? `· ${resource.metadata.author}`
-                    : resource.actor
-                      ? `· ${resource.actor}`
-                      : ''}
-                </p>
-                <h2 className="line-clamp-2 font-medium">
-                  {resource.metadata?.title || resource.title}
-                </h2>
-                <p className="line-clamp-3 text-sm text-muted-foreground">
-                  {resource.snippet ||
-                    resource.metadata?.description ||
-                    resource.sourceText ||
-                    'Waiting for source details.'}
-                </p>
-                {resource.startMs !== undefined && (
-                  <p className="text-xs">Transcript match at {timestamp(resource.startMs)}</p>
-                )}
-              </button>
-            ))}
-          </div>
-          <div className="mt-5 flex justify-between">
-            <button
-              className={button}
-              disabled={offset === 0}
-              onClick={() => setOffset(Math.max(0, offset - 40))}
-            >
-              Previous
-            </button>
-            <button
-              className={button}
-              disabled={results.length < 40}
-              onClick={() => setOffset(offset + 40)}
-            >
-              Next
-            </button>
-          </div>
         </main>
         {selected && (
           <aside className="w-96 shrink-0 space-y-4 overflow-auto border-l border-border p-5">
             <button className={button} onClick={() => setSelectedId(null)}>
               Close details
             </button>
-            <Thumbnail resource={selected} />
+            <LibraryThumbnail resource={selected} />
             <h2 className="text-lg font-medium">{selected.metadata?.title || selected.title}</h2>
             <a
               href={selected.url}

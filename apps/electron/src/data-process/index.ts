@@ -1,7 +1,3 @@
-import type { DeterministicNodeImportDraft, NodeBatchWritePolicy } from '@xnetjs/data'
-import type { SyncReplicationConfig } from '@xnetjs/sync'
-import { dirname } from 'node:path'
-import { LibraryService } from '../library/service'
 /**
  * Data Process Entry Point (Electron Utility Process)
  *
@@ -24,6 +20,10 @@ import { LibraryService } from '../library/service'
  *                                                          Hub/Signaling
  */
 
+import type { DeterministicNodeImportDraft, NodeBatchWritePolicy } from '@xnetjs/data'
+import type { SyncReplicationConfig } from '@xnetjs/sync'
+import { dirname } from 'node:path'
+import { LibraryService } from '../library/service'
 import { createDataService, type DataService } from './data-service'
 
 // Debug logging - controllable via message from main process
@@ -86,6 +86,9 @@ process.parentPort?.on('message', async (event) => {
           break
         case 'library:get':
           result = library.store.get(String(payload.id))
+          break
+        case 'library:cards':
+          result = library.store.cards(payload.ids)
           break
         case 'library:lookup':
           result = await library.lookup(String(payload.url))

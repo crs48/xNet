@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('xnet', {
     ipcRenderer.invoke('xnet:settings:save', settings),
   getRecoveryStatus: () => ipcRenderer.invoke('xnet:recovery:status'),
   libraryStatus: () => ipcRenderer.invoke('xnet:library:status'),
+  libraryCards: (ids: string[]) => ipcRenderer.invoke('xnet:library:cards', { ids }),
   libraryHelperStatus: () => ipcRenderer.invoke('xnet:library:helper-status'),
   installLibraryHelper: () => ipcRenderer.invoke('xnet:library:helper-install'),
   cancelLibraryHelper: () => ipcRenderer.invoke('xnet:library:helper-cancel'),
@@ -618,6 +619,7 @@ export interface XNetAPI {
     limit?: number
   }): Promise<LibrarySearchResult[]>
   libraryGet(id: string): Promise<LibraryResource | null>
+  libraryCards(ids: string[]): Promise<(LibrarySearchResult | null)[]>
   libraryScan(): Promise<number>
   libraryPause(): Promise<void>
   libraryResume(): Promise<void>

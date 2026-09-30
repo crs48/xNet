@@ -1,0 +1,9 @@
+{
+  "id": "2026-09-30-browse-imported-playlists-in-library",
+  "date": "September 30, 2026",
+  "title": "Browse imported playlists in Library",
+  "summary": "Open saved collections, page through their original entries, and view enriched source details while keeping repeated saves and missing items visible.",
+  "highlights": [],
+  "tags": ["app"],
+  "pr": 721
+}

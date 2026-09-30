@@ -656,6 +656,22 @@ would still not prove signed-release helper behavior.
 
 ### C. Keep the library useful as new things arrive
 
+**Collection browsing evidence (2026-09-30):** Library now has Resources and
+Collections entry points. The collection view uses the existing social schemas
+and local query hook, keeps each membership separate, and opens the same cached
+source cards and details as resource search. Both lists paginate at forty rows.
+Unindexed members remain visible. Source-reported counts and actual local
+membership counts have separate labels.
+
+In an isolated Electron development profile, a manual run paged through 41
+collections and a 42-entry playlist, searched for a collection, retained a
+missing-source placeholder, preserved repeated entries, and opened resource
+details. The fixture inserted memberships in reverse order; the final view
+followed their archived sort keys. Nine Library storage tests passed, including
+bounded card requests, missing entries, and omission of full transcripts and
+notes from card responses. The broader collection/creator/neighborhood item
+stays open; this does not prove full-corpus import or sharing.
+
 - [ ] Add Library entry points for Inbox, Resources, Collections, and Guides using existing social records and Pages, without making a blank Page for every import.
 - [x] Add URL-plus-note capture in the shared workbench, with optional excerpt, duplicate handling, and failure-safe input retention.
 - [ ] Add the explicit desktop capture shortcut; confirm focus returns and saving works offline.

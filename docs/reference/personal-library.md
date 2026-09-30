@@ -29,8 +29,9 @@ Registration has been exercised; the switch from another app and return of focus
 still needs the native shortcut acceptance check.
 
 A failed save keeps its original request and text for retry. You can explicitly edit it as a separate capture if you need a different note; the earlier attempt may already be saved. The unsubmitted
-form draft is stored in Chromium local storage, outside native backups. Once the
-native capture intent is written, it joins the covered workspace files. Completed
+form draft is stored in Chromium local storage and included in the logical settings
+snapshot at completed checkpoints. Once the native capture intent is written,
+it joins the covered workspace files. Completed
 intents currently retain the original capture text even after later Page edits.
 
 ## Import and enrich
@@ -45,6 +46,18 @@ Paused or interrupted import jobs can resume from retained source files. A batch
 only advances the saved cursor after acknowledgement. Repeating a batch after a
 crash uses deterministic IDs. Full-corpus and cross-version overlapping-import
 reconciliation remain acceptance work; they are not implied by a small test.
+
+Open **Collections** to find an imported playlist or saved group by name. Both
+the collection list and its entries have pages of forty items. Entries follow
+the export's ordering key when present. Repeated saves remain separate entries;
+opening either occurrence shows the same resource's source details and notes.
+An entry without an indexed resource remains visible with an explanation.
+
+Collection cards show the item count reported by the source when available;
+the opened collection counts the actual local membership records. These can
+differ after an incomplete import. **Graph & saved views** still opens the
+existing data workspace for inspecting the broader graph. Dedicated creator
+views and bounded resource neighborhoods remain unfinished.
 
 Choose **Start enrichment** to request source websites from this Mac. It is
 paused by default. Coverage & gaps separates metadata, thumbnail, caption, and
