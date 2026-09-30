@@ -557,6 +557,15 @@ the new coverage. Device-bound sessions and unlisted browser state remain
 excluded; the real daily-profile inventory and off-device/physical-Mac proof
 remain open, so the broader recovery checkboxes stay unchecked.
 
+**Existing-profile observation (2026-09-30):** the local `xnet-desktop` directory
+contains version-9 storage, 207 nodes, and 20 saved Yjs states, but no native
+identity-seed file. Chromium storage is also present. No migration or identity
+replacement was attempted. This profile would stop at the missing-identity
+guard; it is not a passed upgrade fixture. Preserve it while tracing legacy
+ownership rather than enabling the test identity or writing a replacement seed.
+The [storage inventory](../reference/desktop-storage.md) records this remaining
+pass-A prerequisite.
+
 ### B. Seed the library from the existing corpus
 
 - [x] Add a read-only inventory and preview for `.exports/`; reconcile selected categories and unknown formats against the observed source counts.

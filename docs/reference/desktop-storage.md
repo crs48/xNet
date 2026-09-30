@@ -41,6 +41,20 @@ rebuildable or disposable. Never replace a failed or missing identity with a
 fresh one just to get the app open. A real daily-profile inventory is still needed
 before claiming coverage for arbitrary plugins or future browser stores.
 
+### Existing local profile observation (2026-09-30)
+
+The existing `xnet-desktop` profile has storage version 9, 207 node records,
+20 saved Yjs states, both native databases, and Chromium local/IndexedDB stores.
+It has no `identity-seed.json`. These are metadata observations, not a claim that
+all records belong to one recoverable identity. No migration or identity
+replacement was attempted. The new startup guard refuses this combination.
+
+Preserve the whole legacy profile before investigating its identity history.
+Do not enable the deterministic test identity to make it open, generate a new
+seed over it, or treat this profile as a successful installed-upgrade fixture.
+Legacy ownership recovery remains a separate prerequisite for using it with the
+new daily build. Development profiles continue to use separate directories.
+
 ## Native checkpoint contract
 
 `xnet-desktop-checkpoint/1` records each retained file's path, size, and SHA-256,
