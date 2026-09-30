@@ -560,6 +560,8 @@ export class AiWorkspaceExporter {
 export class AiWorkspaceWatcher {
   private readonly aiSurface: AiSurfaceService
   private readonly clock: () => Date
+  private readonly activeWatches = new Set<Promise<void>>()
+  private readonly watchFailures: unknown[] = []
 
   constructor(private readonly config: AiWorkspaceExporterConfig) {
     this.aiSurface =
@@ -570,6 +572,13 @@ export class AiWorkspaceWatcher {
         clock: config.clock
       })
     this.clock = config.clock ?? (() => new Date())
+  }
+
+  /** Close watch handles first, then wait for their scans and async callbacks before disposal. */
+  async waitForIdle(): Promise<void> {
+    while (this.activeWatches.size > 0) await Promise.all([...this.activeWatches])
+    if (this.watchFailures.length > 0)
+      throw new AggregateError(this.watchFailures, 'AI workspace watching failed before shutdown')
   }
 
   async scanChangedFiles(
@@ -685,30 +694,53 @@ export class AiWorkspaceWatcher {
     let pollTimer: ReturnType<typeof setInterval> | null = null
     let watcher: FSWatcher | null = null
     let closed = false
+    let scanning = false
+    let rescan = false
 
-    const scheduleScan = (): void => {
+    const close = (): void => {
+      closed = true
       if (timer) clearTimeout(timer)
-      timer = setTimeout(() => {
-        void this.scanChangedFiles(options).then(onScan)
-      }, 250)
+      if (pollTimer) clearInterval(pollTimer)
+      watcher?.close()
     }
 
-    // Polling ticks scan directly (with an overlap guard) instead of going
-    // through the debounce, which a fast poll interval would starve forever.
-    let scanning = false
-    const pollScan = (): void => {
-      if (scanning) return
+    const scan = (): void => {
+      if (closed) return
+      if (scanning) {
+        rescan = true
+        return
+      }
       scanning = true
-      void this.scanChangedFiles(options)
+      const work = this.scanChangedFiles(options)
         .then(onScan)
-        .finally(() => {
-          scanning = false
+        .catch((error: unknown) => {
+          this.watchFailures.push(error)
+          close()
+          console.error('[AiWorkspaceWatcher] Watch stopped after a failed scan:', error)
         })
+        .finally(() => {
+          this.activeWatches.delete(work)
+          scanning = false
+          if (rescan && !closed) {
+            rescan = false
+            scheduleScan()
+          }
+        })
+      this.activeWatches.add(work)
+    }
+
+    const scheduleScan = (): void => {
+      if (closed) return
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(scan, 250)
     }
 
     const startPolling = (): void => {
       if (closed || pollTimer) return
-      pollTimer = setInterval(pollScan, options.pollIntervalMs ?? 2000)
+      // Polling bypasses debounce so a short interval cannot starve the scan.
+      pollTimer = setInterval(() => {
+        if (!scanning) scan()
+      }, options.pollIntervalMs ?? 2000)
     }
 
     // fs.watch recursive is reliable on macOS/Windows but historically flaky
@@ -744,12 +776,7 @@ export class AiWorkspaceWatcher {
     }
 
     return {
-      close: () => {
-        closed = true
-        if (timer) clearTimeout(timer)
-        if (pollTimer) clearInterval(pollTimer)
-        watcher?.close()
-      },
+      close,
       isPolling: () => pollTimer !== null
     }
   }

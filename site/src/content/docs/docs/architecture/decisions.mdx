@@ -1447,3 +1447,27 @@ encrypts the recovery copy rather than moving all live credentials into a vault.
 the list, an identity flow starts using IndexedDB as its authoritative store, or
 restore receipts can replay stale settings over later edits. Extend the versioned
 contract and failure tests before broadening the recovery claim.
+
+## ADR-46: Drain workspace watches before disposing their storage
+
+**Status:** Accepted · 2026-09-30 · exploration 0466 verification
+
+**Context:** Closing a workspace watch stopped future timers but left its current
+scan writing review files. The CLI could dispose storage while an asynchronous
+scan callback was still applying edits. Full-suite cleanup exposed this race.
+
+**Decision:** Keep the synchronous watch handle's `close()` contract and add
+`AiWorkspaceWatcher.waitForIdle()`. Callers close their handles, then await this
+method before disposing storage or removing the checkout. The drain includes
+both scans and their asynchronous callbacks. Each watch serializes scans.
+Background failures stop that watch, log the failure, and remain available as an
+`AggregateError` from the drain. The CLI follows this order on Ctrl-C and exits
+with failure when draining or disposal fails.
+
+**Tradeoff:** Closing alone does not wait. A callback that never settles can hold
+shutdown open; forcing process exit would abandon work and cannot claim a clean
+shutdown. The method covers watch-dispatched work, not independent explicit scans.
+
+**Tripwire:** A caller needs bounded cancellation, parallel scans become necessary,
+or any consumer disposes storage before awaiting the drain. Revisit ownership and
+cancellation semantics before changing the shutdown guarantee.
