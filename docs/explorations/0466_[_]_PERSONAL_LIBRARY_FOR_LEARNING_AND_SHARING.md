@@ -554,6 +554,15 @@ Instagram now maps all 25 liked comments and 15 named collections, alongside the
 
 The desktop picker now accepts saved JSON as well as ZIP exports. GitHub repository IDs survive renames; stars remain separate dated interactions; imported visibility stays private. Before writing nodes, the desktop retains the exact reviewed source bytes under `xnet-data/import-sources/<sha256>/`. A mismatch fails before node writes. The screen explains that this private recovery copy includes unselected archive categories. Five custody tests cover changed input, damaged copies, concurrent retention, missing originals, and invalid paths. All 237 social tests and workspace typechecking passed. An isolated real Electron run used the command palette and import controls, imported a synthetic snapshot, removed its original file, restored a recovery point, and found both the repository and its retained source after restart. Persistent import-job resume, the full personal import, and enrichment remain unchecked.
 
+Desktop import progress now survives restart under `xnet-data/import-jobs`.
+Five journal tests cover interrupted state, atomic publication, invalid progress,
+relocated sources, and private-key exclusion. A real Electron exercise imported
+1,500 synthetic GitHub repositories (6,004 draft records), paused after 5,000
+acknowledged records, quit, removed the original export, and resumed to 6,004.
+The resulting store contained exactly 1,500 resource nodes. Its recovery point
+included the job journal. This is resume evidence, not the still-pending faithful
+full-corpus acceptance run. ADR-41 records replay semantics and version limits.
+
 ### C. Keep the library useful as new things arrive
 
 - [ ] Add Library entry points for Inbox, Resources, Collections, and Guides using existing social records and Pages, without making a blank Page for every import.

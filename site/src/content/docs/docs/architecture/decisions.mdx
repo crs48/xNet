@@ -1266,3 +1266,36 @@ signed installer continuity.
 this manifest, a supported backup needs migration during restore, or large
 exports block normal desktop use. Reopen the format and recovery evidence before
 changing the reader or broadening the protection claim.
+
+## ADR-41: Resume archive imports from retained evidence and acknowledged batches
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** An in-memory progress bar cannot continue an import after a restart.
+Retaining an archive alone does not record which categories were reviewed or
+which writes completed.
+
+**Decision:** Desktop imports retain a version-1 journal under
+`xnet-data/import-jobs`. It records the reviewed stage, adapter version, source
+hash and extension, original import time, source-record policy, author DID, and
+acknowledged progress. Private signing keys are never written to this journal.
+Each journal update uses a private temporary file, fsync, and atomic rename.
+The cursor advances only after the database acknowledges the batch.
+
+An interrupted running job appears paused after startup. Resume requires the
+same workspace identity and importer version, verifies the retained source, and
+replays its stable stream through the last saved cursor. Previously acknowledged
+batches are skipped. A crash after a database commit but before the journal update
+may replay one batch using deterministic node IDs. This provides at-least-once
+writes, not an exactly-once claim. A changed importer requires fresh review.
+Native and encrypted recovery include the journal and source together; source
+paths are resolved against the restored workspace, not the original machine.
+
+**Tradeoff:** Resume reparses the earlier source records to reconstruct its
+position. A damaged journal fails visibly rather than appearing as an empty job
+list. Old adapter versions are not bundled indefinitely, and progress from older
+in-memory-only imports cannot be recovered automatically.
+
+**Tripwire:** An importer no longer emits a stable stream for identical bytes,
+an import gains non-idempotent effects, or its batch boundary changes. Version
+the journal or importer and prove replay safety before accepting old cursors.

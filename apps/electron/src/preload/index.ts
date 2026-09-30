@@ -475,6 +475,8 @@ contextBridge.exposeInMainWorld('xnetTunnel', {
 })
 
 contextBridge.exposeInMainWorld('xnetSocialImport', {
+  resumeCommitJob: (request: { jobId: string; authorDID: string; signingKey: number[] }) =>
+    ipcRenderer.invoke('xnet:social-import:resumeCommitJob', request),
   pickArchive: (): Promise<SocialImportArchivePreview | null> =>
     ipcRenderer.invoke('xnet:social-import:pickArchive'),
   queueArchiveForTest: (archivePath: string): Promise<SocialImportArchivePreview> =>
@@ -576,6 +578,11 @@ export interface XNetAPI {
 }
 
 export interface XNetSocialImportAPI {
+  resumeCommitJob(request: {
+    jobId: string
+    authorDID: string
+    signingKey: number[]
+  }): Promise<SocialImportCommitJobSnapshot>
   pickArchive(): Promise<SocialImportArchivePreview | null>
   queueArchiveForTest(archivePath: string): Promise<SocialImportArchivePreview>
   stageArchive(request: SocialImportStageRequest): Promise<SocialImportStageResult>

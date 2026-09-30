@@ -74,6 +74,7 @@ export function SocialImportView({
   const [commitSummary, setCommitSummary] = useState<CommitSummary | null>(null)
   const [commitProgress, setCommitProgress] = useState<CommitProgress | null>(null)
   const [commitJobId, setCommitJobId] = useState<string | null>(null)
+  const [savedJobs, setSavedJobs] = useState<SocialImportCommitJobSnapshot[]>([])
   const [workspaceSummary, setWorkspaceSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
   const [workspaceSeeding, setWorkspaceSeeding] = useState(false)
   const activeCommitJobIdRef = useRef<string | null>(null)
@@ -157,6 +158,7 @@ export function SocialImportView({
   }, [archive, includeSensitive, selectedBuckets])
 
   const applyCommitJobSnapshot = useCallback((job: SocialImportCommitJobSnapshot) => {
+    setSavedJobs((jobs) => [job, ...jobs.filter((item) => item.jobId !== job.jobId)])
     upsertSocialImportJobProgress(job)
     if (job.jobId !== activeCommitJobIdRef.current) return
 
@@ -183,12 +185,12 @@ export function SocialImportView({
       return
     }
 
-    if (job.status === 'cancelled') {
+    if (job.status === 'cancelled' || job.status === 'paused') {
       setStatus('staged')
       activeCommitJobIdRef.current = null
       setCommitJobId(null)
       setCommitProgress(null)
-      setError('Import cancelled.')
+      setError(job.error ?? 'Import paused. You can resume it below.')
     }
   }, [])
 
@@ -196,6 +198,36 @@ export function SocialImportView({
     () => window.xnetSocialImport.onCommitJob(applyCommitJobSnapshot),
     [applyCommitJobSnapshot]
   )
+  useEffect(() => {
+    void window.xnetSocialImport
+      .listCommitJobs()
+      .then(setSavedJobs)
+      .catch((error: unknown) => setError(toErrorMessage(error)))
+  }, [])
+
+  const handleResume = async (jobId: string) => {
+    if (!authorDID || !signingKey || !nodeStoreReady) return
+    setError(null)
+    setStatus('committing')
+    activeCommitJobIdRef.current = jobId
+    setCommitJobId(jobId)
+    try {
+      applyCommitJobSnapshot(
+        await window.xnetSocialImport.resumeCommitJob({
+          jobId,
+          authorDID,
+          signingKey: Array.from(signingKey)
+        })
+      )
+      const latest = await window.xnetSocialImport.getCommitJob(jobId)
+      if (latest) applyCommitJobSnapshot(latest)
+    } catch (error) {
+      activeCommitJobIdRef.current = null
+      setCommitJobId(null)
+      setStatus('idle')
+      setError(toErrorMessage(error))
+    }
+  }
 
   const handleCommit = useCallback(async () => {
     if (!stageResult || !nodeStoreReady || !authorDID || !signingKey) return
@@ -409,7 +441,7 @@ export function SocialImportView({
                   className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent"
                 >
                   <X size={14} />
-                  Cancel
+                  Pause
                 </button>
               ) : null}
               <button
@@ -430,6 +462,38 @@ export function SocialImportView({
 
           <div className="min-h-0 flex-1 overflow-auto p-5">
             <div className="space-y-5">
+              {savedJobs.length > 0 && (
+                <section className="space-y-2 rounded-md border border-border p-3">
+                  <h3 className="text-sm font-medium">Saved import progress</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Resume from retained source files, even after a restart. Completed batches stay
+                    in your library.
+                  </p>
+                  {savedJobs.map((job) => (
+                    <div
+                      key={job.jobId}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <div>
+                        <p>
+                          {job.archiveName} · {job.status} · {job.processedRecords.toLocaleString()}{' '}
+                          / {job.totalRecords?.toLocaleString() ?? '?'} records
+                        </p>
+                        {job.error && <p className="text-xs text-muted-foreground">{job.error}</p>}
+                      </div>
+                      {['paused', 'failed', 'cancelled'].includes(job.status) && (
+                        <button
+                          className="rounded-md border border-border px-3 py-1 disabled:opacity-50"
+                          disabled={status === 'committing' || !nodeStoreReady}
+                          onClick={() => void handleResume(job.jobId)}
+                        >
+                          Resume
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </section>
+              )}
               {error ? <StatusBanner tone="error" message={error} /> : null}
               {status === 'committed' && commitSummary ? (
                 <StatusBanner
