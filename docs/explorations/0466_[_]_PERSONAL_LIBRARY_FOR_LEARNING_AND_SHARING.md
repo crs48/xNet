@@ -12,28 +12,29 @@ tags:
 # A personal library for learning and sharing, safe enough to use every day
 
 > [!TIP]
-> Build Chris's library from the garden, website, Twitter/X and Instagram exports, YouTube playlists, and GitHub stars. Preserve how those things connect, then make them easy to find, annotate, and turn into useful guides. Start with a packaged Mac app whose data survives development and updates.
+> Build Chris's library from the garden, website, Twitter/X and Instagram exports, YouTube playlists, and GitHub stars. Enrich every imported link with useful metadata and a local thumbnail, and obtain video transcripts wherever possible. Preserve how those things connect, then make them easy to find, annotate, and turn into useful guides. Start with a packaged Mac app whose data survives development and updates.
 
 ## The job to earn
 
 Chris already collects ideas, builds things, and shares resources. Much of that work has accumulated in social bookmarks, likes, saved videos, playlists, and starred repositories. The first library should bring that existing collection home, alongside the garden and website. A paper saved years ago should help answer a question next month. Notes from several sources should become a guide for a friend, a public page, or an optional resource for a coaching client.
 
-The starting loop is **import → connect → rediscover**. The daily loop is **save → find → compose → share**. Each step must be useful on its own. Import should preserve the evidence and organization already present. Finding should work with a half-remembered phrase, a creator, or a playlist. Writing should start with notes already at hand. Sharing should give someone a readable link they can open without installing xNet.
+The starting loop is **import → enrich → connect → rediscover**. The daily loop is **save → find → compose → share**. Each step must be useful on its own. Import should preserve the evidence and organization already present. Enrichment should recover the titles, descriptions, images, and spoken content that make a saved link useful. Finding should work with a half-remembered phrase, a creator, or a playlist. Writing should start with notes already at hand. Sharing should give someone a readable link they can open without installing xNet.
 
 There is a prerequisite: Chris must be able to trust the app while changing its code. If using xNet means rebuilding a checkout, watching migrations, or wondering whether an update will erase notes, the library will stay empty. The first milestone is a safe daily desktop installation with a simple update and recovery path.
 
-This exploration records the direction chosen in conversation, the durability concern, and the later decision to start with existing social exports and GitHub stars. It proposes work; it does not certify the current app as safe for irreplaceable data.
+This exploration records the direction chosen in conversation, the durability concern, and the decision to start with enriched social exports and GitHub stars. Metadata and thumbnails for every link, plus transcripts where obtainable, are core import work. It proposes work; it does not certify the current app as safe for irreplaceable data.
 
-| Choice                    | Direction                                                                                                                           |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| First personal value      | Learning and sharing                                                                                                                |
-| Starting material         | Garden and website content; Twitter/X likes and bookmarks; YouTube playlists; Instagram saves, collections, and likes; GitHub stars |
-| Existing collection       | Import the available corpus in resumable batches; use a small sample to prove fidelity, not to cap the library                      |
-| Primary authoring surface | Packaged Mac desktop app                                                                                                            |
-| First reader experience   | A public page, with no account or installation                                                                                      |
-| AI's role                 | Optional help over deliberately selected sources                                                                                    |
-| First trust requirement   | Keep real data safe while the app and its data model evolve                                                                         |
-| Publication destination   | Proposed default: `crs.garden/guides/`; configurable, not a confirmed hosting decision                                              |
+| Choice                    | Direction                                                                                                                                       |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| First personal value      | Learning and sharing                                                                                                                            |
+| Starting material         | Garden and website content; Twitter/X likes and bookmarks; YouTube playlists; Instagram saves, collections, and likes; GitHub stars             |
+| Existing collection       | Import the available corpus in resumable batches; use a small sample to prove fidelity, not to cap the library                                  |
+| Enrichment                | Automatic metadata and local thumbnails for every link; caption retrieval and accessible-media transcription for videos, with measured coverage |
+| Primary authoring surface | Packaged Mac desktop app                                                                                                                        |
+| First reader experience   | A public page, with no account or installation                                                                                                  |
+| AI's role                 | Optional help over deliberately selected sources                                                                                                |
+| First trust requirement   | Keep real data safe while the app and its data model evolve                                                                                     |
+| Publication destination   | Proposed default: `crs.garden/guides/`; configurable, not a confirmed hosting decision                                                          |
 
 The review date leaves roughly six weeks for initial work and a four-week usage trial. It is a date to reconsider this direction, not a promised delivery date. Chris decides whether to continue, narrow, or stop. Choosing this workflow is reversible. A new persistent format or public compatibility promise needs a separate ADR under the repository's decision policy before implementation.
 
@@ -42,6 +43,8 @@ flowchart LR
     Archives[Social archives and GitHub stars] --> Import[Import with provenance]
     Garden[Garden and website] --> Import
     Import --> Library
+    Library -. background enrichment .-> Enrich[Metadata, thumbnails, and available transcripts]
+    Enrich --> Library
     Source[Link, paper, or video] --> Capture[Save URL and a thought]
     Capture --> Library[Private personal library]
     Library --> Find[Find and revisit]
@@ -158,20 +161,20 @@ The [release workflow](../../.github/workflows/electron-release.yml) already bui
 <details>
 <summary>Explorations to reuse, and scope to defer</summary>
 
-| Existing exploration                                                                                                                                                                                                                   | Use here                                                                                 |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| [0105: what to work on next](./0105_%5B_%5D_WHAT_TO_WORK_ON_NEXT_AFTER_OPEN_SOURCE_LAUNCH.md)                                                                                                                                          | The daily-use question has recurred; settle it with a small real trial                   |
-| [0112: universal clipper](./0112_%5B_%5D_UNIVERSAL_CLIPPER_AND_AI_KNOWLEDGE_GRAPH_INGESTION.md)                                                                                                                                        | Borrow capture intent; defer full extraction, entity ingestion, and video transcripts    |
-| [0169: folders and tags](./0169_%5Bx%5D_CONTENT_ORGANIZATION_FOLDERS_TAGS_AND_CHANNELS.md)                                                                                                                                             | Reuse organization already present                                                       |
-| [0179: spaces and sharing](./0179_%5B_%5D_SPACES_GROUPS_AND_UNIFIED_SHARING.md)                                                                                                                                                        | Revisit for private collaboration after public reader value is proven                    |
-| [0180: experiment journal](./0180_%5B_%5D_EXPERIMENT_JOURNAL_AND_HABIT_TRACKER.md)                                                                                                                                                     | Keep available; it is not the selected daily job                                         |
-| [0344: portability](./0344_%5Bx%5D_FIRST_CLASS_DATA_EXPORT_IMPORT_AND_PORTABLE_BUNDLES.md)                                                                                                                                             | Use the export/import primitives, then prove desktop completeness                        |
-| [0362: publishing](./0362_%5B_%5D_PUBLISHING_ON_XNET_GHOST_SUBSTACK_AND_THE_OWNED_AUDIENCE.md)                                                                                                                                         | Finish one small route to a public guide                                                 |
-| [0379: knowledge base](./0379_%5B_%5D_A_KNOWLEDGE_BASE_ON_XNET_PRIMITIVES_DISTILLATION_BURSTS_AND_THE_GOVERNED_CORPUS.md) and [0391: daily AI interface](./0391_%5Bx%5D_XNET_AS_THE_DAILY_DRIVER_AI_INTERFACE.md)                      | Reuse retrieval work; check later implementation before repeating old gaps               |
-| [0406: shared shell](./0406_%5Bx%5D_ONE_SHELL_TWO_SURFACES_ENDING_THE_DESKTOP_WEB_UI_FORK.md)                                                                                                                                          | Put the Library experience in the shared workbench                                       |
-| [0413: worktree desktop development](./0413_%5B-%5D_PLURAL_ELECTRON_WORKTREE_SCOPED_DESKTOP_DEV.md)                                                                                                                                    | Extend profile isolation to a protected daily installation                               |
-| [0430: risk-adjusted engineering](./0430_%5B-%5D_RISK_ADJUSTED_ENGINEERING_READING_ASTERISK_14.md)                                                                                                                                     | Give upgrade checks a consumer, a pass condition, and proof they can fail                |
-| [0455: plugin composition](./0455_%5B-%5D_CORDIS_LESSONS_FOR_XNET_PLUGIN_COMPOSITION.md), [0456: agent door](./0456_%5B-%5D_ENTRY_VECTOR_THE_AGENT_DOOR_FIRST.md), and [0457: site](./0457_%5B-%5D_AGENT_FIRST_SITE_REARCHITECTURE.md) | Preserve completed agent work; use this library as a concrete human workflow to validate |
+| Existing exploration                                                                                                                                                                                                                   | Use here                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [0105: what to work on next](./0105_%5B_%5D_WHAT_TO_WORK_ON_NEXT_AFTER_OPEN_SOURCE_LAUNCH.md)                                                                                                                                          | The daily-use question has recurred; settle it with a small real trial                                           |
+| [0112: universal clipper](./0112_%5B_%5D_UNIVERSAL_CLIPPER_AND_AI_KNOWLEDGE_GRAPH_INGESTION.md)                                                                                                                                        | Reuse capture intent; include metadata, thumbnails, and obtainable transcripts; defer automatic entity inference |
+| [0169: folders and tags](./0169_%5Bx%5D_CONTENT_ORGANIZATION_FOLDERS_TAGS_AND_CHANNELS.md)                                                                                                                                             | Reuse organization already present                                                                               |
+| [0179: spaces and sharing](./0179_%5B_%5D_SPACES_GROUPS_AND_UNIFIED_SHARING.md)                                                                                                                                                        | Revisit for private collaboration after public reader value is proven                                            |
+| [0180: experiment journal](./0180_%5B_%5D_EXPERIMENT_JOURNAL_AND_HABIT_TRACKER.md)                                                                                                                                                     | Keep available; it is not the selected daily job                                                                 |
+| [0344: portability](./0344_%5Bx%5D_FIRST_CLASS_DATA_EXPORT_IMPORT_AND_PORTABLE_BUNDLES.md)                                                                                                                                             | Use the export/import primitives, then prove desktop completeness                                                |
+| [0362: publishing](./0362_%5B_%5D_PUBLISHING_ON_XNET_GHOST_SUBSTACK_AND_THE_OWNED_AUDIENCE.md)                                                                                                                                         | Finish one small route to a public guide                                                                         |
+| [0379: knowledge base](./0379_%5B_%5D_A_KNOWLEDGE_BASE_ON_XNET_PRIMITIVES_DISTILLATION_BURSTS_AND_THE_GOVERNED_CORPUS.md) and [0391: daily AI interface](./0391_%5Bx%5D_XNET_AS_THE_DAILY_DRIVER_AI_INTERFACE.md)                      | Reuse retrieval work; check later implementation before repeating old gaps                                       |
+| [0406: shared shell](./0406_%5Bx%5D_ONE_SHELL_TWO_SURFACES_ENDING_THE_DESKTOP_WEB_UI_FORK.md)                                                                                                                                          | Put the Library experience in the shared workbench                                                               |
+| [0413: worktree desktop development](./0413_%5B-%5D_PLURAL_ELECTRON_WORKTREE_SCOPED_DESKTOP_DEV.md)                                                                                                                                    | Extend profile isolation to a protected daily installation                                                       |
+| [0430: risk-adjusted engineering](./0430_%5B-%5D_RISK_ADJUSTED_ENGINEERING_READING_ASTERISK_14.md)                                                                                                                                     | Give upgrade checks a consumer, a pass condition, and proof they can fail                                        |
+| [0455: plugin composition](./0455_%5B-%5D_CORDIS_LESSONS_FOR_XNET_PLUGIN_COMPOSITION.md), [0456: agent door](./0456_%5B-%5D_ENTRY_VECTOR_THE_AGENT_DOOR_FIRST.md), and [0457: site](./0457_%5B-%5D_AGENT_FIRST_SITE_REARCHITECTURE.md) | Preserve completed agent work; use this library as a concrete human workflow to validate                         |
 
 </details>
 
@@ -346,7 +349,7 @@ Save the response as a local import source with fetch time and coverage informat
 
 Use stable repository IDs when supplied, keeping owner/name and old URLs as aliases across renames. Preserve `star` as the native action, distinct from a social like or follow. Reuse the existing content/external-item and interaction schemas with an explicit GitHub mapping; review any vocabulary extension for compatibility. If star lists or categories are supplied, preserve them as collections; the basic REST star list does not by itself prove that grouping was captured.
 
-The available description, topics, language, owner, and URL can make a star useful without downloading the repository. README fetching is a later, explicit enrichment step. Match accounts before a fetch; an inaccessible or private profile must not be reported as having no stars.
+The description, topics, language, owner, and URL make a star useful immediately. Fetch README text and an available social preview as part of enrichment; repository cloning is unnecessary. Match accounts before a fetch; an inaccessible or private profile must not be reported as having no stars.
 
 ### The graph should explain why things belong together
 
@@ -377,17 +380,71 @@ Offer useful entry points before a whole-library graph: collections, saved items
 
 Initial questions to make possible include “What did I save about this topic across platforms?”, “Which playlists contain this video?”, and “Which starred repos relate to this garden post?” An answer must open the underlying resource and show where the connection came from. If there is not enough text or evidence, say so.
 
-### Preserve first, enrich with a purpose
+### Enrichment is part of importing
 
-Import and local search must work without a network request per record. Titles, captions, descriptions, URLs, and collection names present in the source are the first search corpus. Keep unavailable videos, deleted posts, and repositories with missing metadata as source-backed placeholders. A dead link should not erase the note or the evidence of saving it.
+Every unique imported link enters an enrichment job. This applies to the full corpus and to new captures, including ordinary web links. Chris should not have to open each card or select thousands of items to get useful titles and images. Saving the source record remains immediate and works offline; queued enrichment continues when the network returns. A durable import and a fully enriched library are separate milestones shown in the UI.
 
-The YouTube export makes selective metadata enrichment particularly useful: a video ID alone cannot answer a content question. Add a per-selection action to fetch titles and descriptions for chosen videos or repos, with progress, retry, and an explicit unavailable state. Reuse the existing [enrichment queue](../../packages/social/src/enrichment/queue.ts). Store fetched content as a dated enrichment record with provenance, rather than silently replacing the archive's version.
+| Resource                         | Metadata to seek                                                                            | Visual preview                                                                 | Searchable content                                                                        |
+| -------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| YouTube video                    | Full title and description, channel, publication date, duration, language, canonical ID/URL | Best usable source thumbnail, cached locally                                   | Description plus available captions or generated transcript                               |
+| Instagram post or reel           | Written caption, creator, permalink, post date, media type and carousel structure           | Source image or video poster; a local frame if needed and media is available   | Written caption plus speech transcript for accessible video/audio                         |
+| Twitter/X post                   | Full available post text, author, date, and outbound links                                  | Attached image or video poster when available                                  | Post text and metadata for linked resources                                               |
+| GitHub repository                | Name, owner, description, topics, language, canonical ID/URL                                | Repository social preview when obtainable; otherwise a labeled repository card | Description and fetched README text                                                       |
+| Garden, website, and other links | Page title, description, author/date where supplied, canonical URL and site                 | Source preview image, then a site icon or labeled card                         | Existing authored text and available page metadata; extracted article text when supported |
 
-Full article scraping, video transcripts, embeddings, and model-generated topic clusters can follow measured needs. Existing transcript code does not mean the archive contains transcripts. Reading external content or sending it to a model remains explicit. The first success criterion is faithful import and useful retrieval, not a graph that depends on paid AI processing of every saved item.
+“All links” is the coverage target. It cannot mean that every provider will return every field. Each applicable field needs a value, an explicit pending/retry state, or a recorded reason it could not be obtained. An Instagram written caption is distinct from its video's spoken transcript. A synthetic card title derived from a caption must be labeled as derived, not presented as an original video title.
+
+#### Provider strategy
+
+For YouTube metadata, use the [Data API's `videos.list`](https://developers.google.com/youtube/v3/docs/videos/list) with video IDs and the relevant parts. It returns titles and descriptions and supports multiple IDs per request. Reconcile every requested ID against the response. An omitted video needs an unresolved/unavailable outcome, not an empty success. Use a managed provider credential when required; the desktop setup should not require a terminal. oEmbed or public page metadata can provide a limited fallback, but a title and thumbnail alone do not satisfy description coverage.
+
+For transcripts, prefer an existing caption track, including automatic captions when that is all the source offers. Preserve track language, timing, and whether the text was human-authored or machine-generated. YouTube's official [caption download API](https://developers.google.com/youtube/v3/docs/captions/download) requires permission to edit the video, so it cannot be the general solution for Chris's saved third-party videos.
+
+Evaluate a maintained local extractor such as [yt-dlp](https://github.com/yt-dlp/yt-dlp/blob/master/README.md) behind a replaceable provider adapter. It supports subtitle discovery and fetching without downloading the video. Prove its behavior on a representative sample before a large run; pin the tested helper version and report provider failures. The existing guessed-language timed-text fetcher is a starting seam, not a proven archive-wide caption service. Discover available tracks rather than treating a failed English request as proof that no captions exist.
+
+For Instagram, preserve the exported captions and nested metadata first, then resolve missing public metadata and posters through a tested provider. The upstream [Instagram extractor](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/instagram.py) is one candidate for a local adapter, not a guarantee that every saved reel is accessible. Meta's current documentation endpoints returned HTTP 429 during this research; exact official API coverage still needs verification against the chosen account and content types. Do not assume an embed response contains full text, speech captions, or downloadable media.
+
+If no usable caption track exists, offer automatic speech recognition over media already in the archive or otherwise accessible through the configured provider. Prefer the existing local engines, reusing [recording transcription](../../packages/recordings/src/transcribe/transcribe.ts) where its audio-processing contract fits. This fallback belongs in the first enrichment implementation for both YouTube and Instagram. A remote transcription provider is optional and needs an explicit budget/data-sharing choice. If the media cannot be accessed, retain an honest unavailable transcript state. Do not bypass private-content restrictions or silently extract browser credentials.
+
+Metadata lookup for the selected import is enabled by default under this requested workflow. Show the provider choices once, allow pause and retry, and keep paid services or account access explicit. No prompt is needed for every public link. Full article parsing can expand by provider; embeddings and model-generated topic clusters can wait. Captions, descriptions, and local thumbnails cannot.
+
+#### Thumbnails that remain useful
+
+Store thumbnail bytes in the managed blob store. An expiring CDN URL is provenance, not an offline image. Prefer a clear source thumbnail or poster with enough resolution for a large card, within a fixed byte and dimension budget. Keep its aspect ratio and offer sensible crops in the UI. For a carousel, retain the lead image and references to the other supplied media. If accessible local video has no poster, derive one and label its origin.
+
+When no image is available, show a deliberate resource card using a title, source identity, and icon. Record this as a fallback so it does not inflate fetched-thumbnail coverage. Do not generate an invented image that might be mistaken for the source. Distinguish absent images from a failed or interrupted image download.
+
+Validate content type, size, and decoded dimensions before accepting a fetched image. Reuse URL validation for redirects and avoid treating archived URLs as permission to fetch arbitrary local-network resources. Deduplicate by content hash, keep the last good preview when refresh fails, and retry expired source URLs through their provider. Cache small display variants if needed for fast grids. Backups must include the image blobs, not just their URLs. Publishing only includes the images selected in the guide preview.
+
+#### A persistent queue for the whole corpus
+
+The current [enrichment queue](../../packages/social/src/enrichment/queue.ts) is scoped to a session. The [shared feed hook](../../packages/views/src/social-enrichment/useSocialFeedEnrichment.ts) requests previews visible on screen and loads a limited set of enrichment rows. The [fetch path](../../packages/social/src/enrichment/fetch.ts) depends on a hub for platforms without its direct oEmbed path. These pieces do not yet meet full-corpus, restart-safe desktop enrichment.
+
+Add durable work items keyed by resource identity, capability, provider version, and language where relevant. Capabilities include metadata, thumbnail bytes, caption discovery, transcript fetch, local transcription, and indexing. Deduplicate work across likes, saves, and playlists; the observed 11,419 YouTube memberships should not fetch the same 9,273 video IDs repeatedly. Cover the entire corpus through paginated queries, not the first screen or the first 2,000 rows.
+
+Use bounded concurrency per provider, backoff, `Retry-After` where supplied, and persisted retry times. Pause across sleep, offline periods, app quit, or a run of refusals. Resume without redoing completed work. An unavailable credential or blocked provider should leave actionable queued work; it must not classify thousands of videos as having no captions. Prioritize recently opened resources while the rest of the corpus continues in the background.
+
+Run network work in a desktop background process so a purely local workspace can enrich without hosting a hub. Keep provider helpers separate from storage migration. Store attempt history and last successful results, and make changed extractor versions eligible for controlled retry. Installing a new app version should preserve queue progress and previously indexed material.
+
+Budget the expensive fallback separately. Discover metadata and existing captions before downloading audio. Estimate remaining audio duration and storage from a sample, limit local transcription concurrency, and keep the app responsive while work runs. Temporary media can be discarded after verified transcription under the chosen retention policy; the full transcript and its provenance stay in the library. Do not promise that thousands of videos will finish in one import session.
+
+Track metadata, thumbnail, and transcript outcomes independently. Use states such as queued, running, complete, partial, retryable failure, needs credentials, unavailable, and not applicable. A successfully fetched title must not mark its missing description or transcript complete. Report totals by platform and capability, with denominators based on distinct resources. Use **Finished with gaps** when work is blocked, unavailable, or deferred. Reserve complete field coverage for actual retrieved content; a stopped worker is not evidence of completeness.
+
+#### Index the recovered content, not just the card
+
+Fetched metadata already has a separate [SocialEnrichment schema](../../packages/social/src/schemas/enrichment.ts). Keep that separation from archive facts and personal notes, and record source URL, fetch time, language, provider version, content hash, and field-level completeness. Preserve full text outside bounded preview fields when necessary. Refresh failures must not erase an earlier successful result.
+
+The existing [transcript node builder](../../packages/social/src/transcripts/nodes.ts) creates searchable segments linked to their source video. Reuse that model, with explicit transcript version and track identity. Retain the full raw caption/transcript and cue timing so indexing can be rebuilt. Distinguish source captions, platform-generated captions, and local speech recognition. Translations and summaries remain separate derived records.
+
+Wire metadata and every transcript segment into the same search and retrieval path used by the Library and helper. Group results by resource, show the matching passage, and open the video at its timestamp where supported. A phrase late in a long transcript must be findable after restart with no network. Do not silently truncate at `textPreview` or `searchText` limits. An oversized cue, interrupted transcription, or incomplete segment write needs an explicit partial/error result.
+
+The current [YouTube fetcher](../../packages/social/src/transcripts/youtube.ts) and [scheduler](../../packages/social/src/transcripts/schedule.ts) have parsers and pacing, but this review found no application call site for running them. The fetcher also turns some read/parse failures into empty caption results. Close those gaps before claiming transcript coverage: failed reads, malformed payloads, login pages, and an exhausted language guess must not become “no captions.”
+
+Enrichment is complete as a product capability when every imported link is scheduled, progress survives restarts, recovered text is searchable, cached images render offline, and gaps are visible. Actual availability will vary. Measure metadata, image, and transcript coverage on the real corpus before deciding whether another provider is needed.
 
 ### The seed data belongs in the durability contract
 
-Back up the imported graph, personal notes, collection memberships, import-run checkpoints, and retained source evidence together. The current [large-archive storage policy](../../packages/social/src/import/storage.ts) can split archive storage; default source-record handling can also use sidecars. A backup of canonical node rows alone may therefore be incomplete.
+Back up the imported graph, personal notes, collection memberships, job checkpoints, and retained source evidence together. Include fetched descriptions, full transcripts and timing, thumbnail blobs, and enrichment provenance. Derived search indexes can be rebuilt from that content. The current [large-archive storage policy](../../packages/social/src/import/storage.ts) can split archive storage; default source-record handling can also use sidecars. A backup of canonical node rows alone may therefore be incomplete.
 
 Manage a durable copy of each archive or all required source entries with hashes and an inventory, and include it in recovery. A path back to `.exports/` is useful provenance, but it is not a backup. Avoid duplicating hundreds of MiB at every 15-minute checkpoint: store immutable source blobs once and reference them from complete recovery manifests. A missing sidecar or source blob must fail the restore's completeness check.
 
@@ -397,15 +454,15 @@ After importing, restore into an isolated workspace with the original `.exports/
 
 Extend the shared workbench's capture flow. Pasting a URL opens a small form with title, optional selected excerpt, and “Why I saved this.” Save locally before fetching metadata. Offline capture succeeds with the URL as its initial label. Failed writes preserve the text. Repeated URLs offer the existing note or an explicit second note; URL normalization must not remove meaningful query parameters.
 
-For desktop convenience, add one explicit global shortcut that opens this form and returns focus to the prior app after saving. Read the clipboard only when invoked or pasted. A browser share target or extension can follow if the shortcut proves awkward. Full article extraction, PDF parsing, and transcripts remain outside this first pass. The structural graph from imports is part of the first pass.
+For desktop convenience, add one explicit global shortcut that opens this form and returns focus to the prior app after saving. Read the clipboard only when invoked or pasted. A browser share target or extension can follow if the shortcut proves awkward. New URLs join the same metadata, thumbnail, and transcript pipeline as imported links. Bulk full-text PDF extraction can follow; the structural graph and video enrichment are part of the first pass.
 
 Use a normal Page whose document contains the source URL, excerpt, and commentary. Reuse the [URL utilities](../../packages/data/src/external-references.ts). Do not overload the Page's `canonicalUrl`, which belongs to publication identity. If the URL already belongs to an imported resource, offer to attach this note to it. The [ExternalReference schema](../../packages/data/src/schema/schemas/external-reference.ts) supports resource links; a standalone thought should still save without a new schema or a required import record.
 
-The notes are the value Chris owns. The linked site may disappear. Clearly distinguish a saved link from a saved copy of its content. Selected excerpts and notes are backed up; full source preservation is a separate future feature.
+The notes are the value Chris owns. The linked site may disappear. Clearly distinguish a saved link from a saved copy of its content. Back up notes and every fetched description, transcript, and image. Keeping a full original video or a complete offline copy of every linked page is a separate storage choice.
 
 ### Find something you only half remember
 
-Search imported titles, captions, descriptions, source URLs, collection names, and personal note bodies. An exact URL should find its resource and linked notes. A phrase present only in a note body should work after the app restarts, with no network. Filter by source, creator, collection, and known dates. Show missing dates honestly and distinguish save time from import time. Each result should open the resource or Page with its source context.
+Search imported and enriched titles, captions, descriptions, transcripts, source URLs, collection names, and personal note bodies. An exact URL should find its resource and linked notes. A phrase present only in a note body should work after the app restarts, with no network. Filter by source, creator, collection, and known dates. Show missing dates honestly and distinguish save time from import time. Each result should open the resource or Page with its source context.
 
 The current global Page search already loads document content. Reuse it for personal notes and combine results with indexed social fields. Measure search on the full imported corpus before adding another index. The AI retriever's property-based text path needs separate attention. “Search exists” does not prove a helper can see the same content the human finds.
 
@@ -413,7 +470,7 @@ The current global Page search already loads document content. Reuse it for pers
 
 A guide is another Page. Put source notes beside it, link back to sources, and write the missing context: who might find this useful, why these few links belong together, and where Chris's own experience ends. Possible first drafts include a reading path through local-first software or an introduction to resources Chris already shares in conversation. Chris chooses the topics; the app does not infer a client's needs.
 
-The optional helper operates on selected imported resources, linked notes, and the current draft. It can compare sources, suggest an outline, or identify an unsupported claim. It must cite the Page or source record behind a suggestion and admit when the selection lacks evidence. A video title is not a transcript. Fetching external content and using a remote model are explicit actions with clear scope. No background rewriting, automatic publication, or unstated access to private notes.
+The optional helper operates on selected imported resources, linked notes, and the current draft. It can compare sources, suggest an outline, or identify an unsupported claim. It must cite the Page or source record behind a suggestion and admit when the selection lacks evidence. A video title is not a transcript. The import-level enrichment choice covers external metadata and caption fetching. Sending material to a remote model remains an explicit action with clear scope. No background rewriting, automatic publication, or unstated access to private notes.
 
 ## Share a guide without sharing the workspace
 
@@ -458,9 +515,14 @@ All items below are proposed work. None is checked off by writing this explorati
 - [ ] Preserve raw source evidence and sidecars in managed storage and backup; restore the corpus without access to the original `.exports/` directory.
 - [ ] Verify same-archive and overlapping-export reimports, preserving distinct save/like/star actions, repeated memberships, and Chris's notes without duplicating resources.
 - [ ] Wire Library collections, source filters, creator views, and bounded graph neighborhoods through existing social schemas, saved views, and graph lenses.
-- [ ] Search imported text and linked Page bodies after restart; offer explicit metadata enrichment for sparse selected records and keep unavailable sources visible.
+- [ ] Schedule every unique imported link and new capture in a persistent desktop enrichment queue, with provider-specific pacing, retry, pause/resume, and separate capability coverage.
+- [ ] Fetch complete available titles/descriptions and source metadata for YouTube, Instagram, Twitter/X, GitHub, and ordinary web links; keep unavailable fields explicit and support desktop use without a hub.
+- [ ] Fetch and cache source thumbnails/posters in the managed blob store, generate labeled local posters only from accessible media, and provide honest fallback cards.
+- [ ] Discover and import available video caption tracks; implement local transcription of accessible media for YouTube and Instagram when captions are unavailable, with language, timing, and partial-result handling.
+- [ ] Index full enriched descriptions and all transcript segments, join results to source resources and notes, and verify late-transcript search after restart without a network.
+- [ ] Validate enrichment on a representative real sample, then run it across the whole corpus; report field, image, and transcript coverage with unresolved reasons, storage use, and remaining work.
 
-**Exit:** Chris can rediscover an old save, inspect its original playlist or collection, follow a meaningful connection across sources, and add a note. Every selected record has an explained outcome. The full saved-resource import can be recovered and repeated safely.
+**Exit:** Chris can rediscover an old save by enriched metadata or a phrase in an available transcript, see a useful local preview, inspect its collection, and follow a source-backed connection. Every selected record and enrichment job has an explained outcome. The corpus and its fetched content can be recovered and repeated safely. Any unavailable transcripts or metadata remain visible in the coverage report.
 
 ### C. Keep the library useful as new things arrive
 
@@ -469,7 +531,7 @@ All items below are proposed work. None is checked off by writing this explorati
 - [ ] Add the explicit desktop capture shortcut; confirm focus returns and saving works offline.
 - [ ] Link new captures to existing imported resources when they match, preserving independent personal notes and source provenance.
 - [ ] Create two guide drafts from rediscovered sources; keep citations connected to the imported resource and its original URL.
-- [ ] Verify search over new captures, imported text, URLs, and Page bodies after restart; make each result open the intended item.
+- [ ] Verify search over new captures, imported/enriched text, transcripts, URLs, and Page bodies after restart; make each result open the intended item or timestamp.
 
 **Exit:** Chris saves a resource during normal browsing and later finds it using a phrase from the note.
 
@@ -531,9 +593,28 @@ Import validation must use the shapes in `.exports/` as well as small synthetic 
 | Restore without `.exports/`                     | Imported data, retained evidence, memberships, checkpoints, and personal notes remain available                                |
 | Cross-source question                           | The answer names the evidence for each connection; sparse titles never stand in for unseen video or article content            |
 
+Enrichment must pass its own checks before the Library claims useful coverage:
+
+| Enrichment case                                                        | Required observation                                                                                    |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Never-opened resource beyond the first query page                      | Metadata, thumbnail, and applicable transcript jobs run without scrolling its card into view            |
+| Title succeeds, description fails                                      | Field coverage remains partial; a resolved title does not hide the missing description                  |
+| Provider throttling, missing credentials, or malformed caption payload | Retry/actionable failure, never a false no-captions or all-done result                                  |
+| Non-English or automatic caption track                                 | Correct language and generation source retained; an English miss does not end discovery                 |
+| Video without usable captions but with accessible audio                | Local transcription yields indexed text and timestamps, or reports an explicit failure/partial result   |
+| Instagram written caption and speech differ                            | Both remain separate and searchable; neither is substituted for the other                               |
+| Long transcript or a single oversized cue                              | Text beyond preview/index-field limits remains searchable; no dropped tail or duplicated stale segments |
+| Expired thumbnail URL or offline restart                               | Cached image still renders; a missing image displays a labeled fallback and accurate coverage           |
+| Invalid image response or oversized asset                              | Download is rejected safely; the prior good image remains available                                     |
+| App update during enrichment                                           | Completed work survives; pending jobs resume without repeating every provider request                   |
+| Restore without provider credentials or network                        | Stored descriptions, complete transcripts, and thumbnail blobs remain usable                            |
+| Full-corpus report                                                     | Unique-resource totals reconcile by capability, including incomplete, deferred, and unsupported work    |
+
 - [ ] Use fixtures from the previous installed release and the oldest supported storage version, plus unversioned and future-version fixtures.
 - [ ] Add sanitized fixtures for the observed social archive shapes and GitHub star snapshots; prove fidelity, source reconciliation, idempotence, cancellation/resume, and private defaults.
 - [ ] Run a read-only dry run against the actual selected archives, followed by a recoverable full import after pass A; record counts, time, storage growth, and every unsupported category locally.
+- [ ] Test metadata, thumbnail, and transcript providers with deterministic failure fixtures, then verify live behavior on a representative sample of Chris's links; separate network limits from parser defects.
+- [ ] Prove full-corpus scheduling, field-level coverage, durable retry, offline thumbnail rendering, transcript retrieval, and backup/restore of fetched content in the real desktop app.
 - [ ] Run storage and bundle tests that exercise the failure cases above, including a deliberately incomplete backup that the verifier rejects.
 - [ ] Drive the real packaged Mac app through archive import, graph browsing, capture, restart, upgrade, rollback/recovery, and external-backup restore.
 - [ ] Verify the complete publishing path in a clean browser session and at a phone viewport.
@@ -555,4 +636,4 @@ The signing configuration, supported historical database versions, and complete 
 
 The garden export destination remains a proposed default. The library and public renderer should work if Chris chooses a different site. Private collaboration, a coaching portal, full-content clipping, mobile authoring, automatic topic inference, and a new business model wait for evidence from this loop. The source-backed graph of saved items, collections, creators, and notes is part of the first library.
 
-**Recommended next work:** use the actual `.exports/` shapes to prepare import fixtures and a dry-run report while closing pass A's destructive startup and recovery gaps. Then finish pass B before expanding capture or publishing: import the full selected social corpus, garden/website material, and GitHub stars, and make their existing connections useful. Let a month of using that library determine how much enrichment, publishing, and AI it needs.
+**Recommended next work:** use the actual `.exports/` shapes to prepare import fixtures and a dry-run report while closing pass A's destructive startup and recovery gaps. Then finish pass B before expanding capture or publishing: import the full selected social corpus, garden/website material, and GitHub stars, and make their existing connections useful. Metadata, thumbnail, and transcript enrichment belong in that first library. Let a month of use determine further extraction needs and the value of publishing and AI.
