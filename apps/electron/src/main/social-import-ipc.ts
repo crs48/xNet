@@ -40,7 +40,9 @@ import {
 } from '../storage/import-journal'
 import { retainImportSource } from '../storage/import-sources'
 import { sendDataProcessRequest } from './data-process-manager'
+import { freezeLibrary, thawLibrary, refreshLibrarySources } from './library-ipc'
 import { dataPath } from './profile'
+import { recoveryIsBusy } from './recovery'
 
 export type SocialImportArchivePreview = Omit<SharedSocialImportArchivePreview, 'archivePath'> & {
   archivePath: string
@@ -170,6 +172,8 @@ export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): voi
       }
     ) => {
       ensureCommitJobsLoaded()
+      if (recoveryIsBusy())
+        throw new Error('Wait for workspace recovery to finish before resuming.')
       if (hasActiveSocialImports()) throw new Error('Finish or pause the current import first.')
       const journal = journals.get(request.jobId)
       const job = commitJobs.get(request.jobId)
@@ -293,6 +297,7 @@ function startCommitJob(
   getWindow: () => BrowserWindow | null
 ): SocialImportCommitJobSnapshot {
   ensureCommitJobsLoaded()
+  if (recoveryIsBusy()) throw new Error('Wait for workspace recovery to finish before importing.')
   if (hasActiveSocialImports()) throw new Error('Finish or pause the current import first.')
   const stagedResult = stagedResults.get(request.stageId)
   if (!stagedResult) {
@@ -399,6 +404,7 @@ async function runCommitJob(input: {
   const checkpointAccumulator = createSocialImportJobCheckpointAccumulator()
 
   try {
+    await freezeLibrary()
     updateCommitJob(input.jobId, { status: 'running', phase: 'checking' }, input.getWindow)
 
     const expectedHash = input.stagedResult.manifest.archiveHash
@@ -527,6 +533,8 @@ async function runCommitJob(input: {
     }
 
     await flushDraftBatch()
+    await thawLibrary()
+    await refreshLibrarySources()
 
     if (processedRecords !== totalRecords || streamedRecords !== totalRecords) {
       throw new Error(
@@ -574,6 +582,7 @@ async function runCommitJob(input: {
       publishCommitJob(next, input.getWindow)
     }
   } finally {
+    await thawLibrary()
     cancelledCommitJobIds.delete(input.jobId)
   }
 }

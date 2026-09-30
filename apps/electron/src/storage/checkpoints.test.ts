@@ -34,6 +34,10 @@ const create = () =>
   createCheckpoint({ dataPath, recoveryPath, appVersion: '3.0.0', profile: 'test' })
 
 describe('complete native recovery copies', () => {
+  it('refuses an optional database whose recovery sidecars remain without its base file', async () => {
+    await writeFile(join(dataPath, 'library.db-wal'), 'not a complete database')
+    await expect(create()).rejects.toThrow('missing database with remaining sidecars')
+  })
   it('verifies both stores, key files, and nested imported evidence', async () => {
     await mkdir(join(dataPath, 'sources'))
     await writeFile(join(dataPath, 'sources', 'archive.zip'), 'retained archive bytes')

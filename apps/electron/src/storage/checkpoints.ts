@@ -8,6 +8,7 @@ import { retainedCheckpointIds } from './checkpoint-policy'
 
 const FORMAT = 'xnet-desktop-checkpoint/1'
 const DATABASES = ['data.db', 'xnet.db']
+const OPTIONAL_DATABASES = ['library.db']
 const REQUIRED = [...DATABASES, 'identity-seed.json']
 
 export type { CheckpointManifest } from '../shared/recovery'
@@ -123,6 +124,15 @@ export async function createCheckpoint(options: {
   )
     throw new Error('Recovery copies must live outside the workspace directory')
   const before = await inventory(options.dataPath)
+  for (const name of OPTIONAL_DATABASES) {
+    if (
+      !before.some((entry) => entry.path === name) &&
+      before.some((entry) =>
+        ['-wal', '-shm', '-journal'].some((suffix) => entry.path === name + suffix)
+      )
+    )
+      throw new Error(`Recovery copy is missing database with remaining sidecars: ${name}`)
+  }
   const required = options.testIdentity ? DATABASES : REQUIRED
   for (const path of required) {
     if (!before.some((entry) => entry.path === path))
@@ -147,7 +157,11 @@ export async function createCheckpoint(options: {
         'Workspace changed while making a recovery copy. Retry after current work finishes.'
       )
     }
-    for (const name of DATABASES) await normalizeDatabase(join(payload, name))
+    for (const name of [
+      ...DATABASES,
+      ...OPTIONAL_DATABASES.filter((name) => before.some((entry) => entry.path === name))
+    ])
+      await normalizeDatabase(join(payload, name))
     const files: CheckpointManifest['files'] = []
     for (const entry of await inventory(payload)) {
       const path = safePath(payload, entry.path)
@@ -253,7 +267,10 @@ export async function verifyCheckpoint(
     if ((await lstat(stored)).size !== file.size || (await digest(stored)) !== file.sha256)
       throw new Error(`Recovery file verification failed: ${file.path}`)
   }
-  for (const name of DATABASES) {
+  for (const name of [
+    ...DATABASES,
+    ...OPTIONAL_DATABASES.filter((name) => manifest.files.some((entry) => entry.path === name))
+  ]) {
     const db = new Database(join(payload, name), { readonly: true, fileMustExist: true })
     try {
       if (db.pragma('quick_check', { simple: true }) !== 'ok')

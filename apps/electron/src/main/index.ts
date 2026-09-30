@@ -23,6 +23,7 @@ import { attachDevLogWindow, installDevLogBridge } from './dev-log-bridge'
 import { titleSuffix } from './dev-scope'
 import { getOrCreateIdentitySeed } from './identity-seed'
 import { setupIPC, getOrCreateStorage, closeStorage } from './ipc'
+import { configureLibrary, setupLibraryIPC } from './library-ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { setupMeetingCaptureIPC } from './meeting-capture-ipc'
 import { createMenu } from './menu'
@@ -93,8 +94,10 @@ async function restartWorkspaceWriters(): Promise<void> {
     : 'false'
   requireCompatibleDatabase(dbPath)
   requireCompatibleDatabase(join(dataPath, 'xnet.db'), 'blobs')
+  requireCompatibleDatabase(join(dataPath, 'library.db'), 'library')
   await getOrCreateStorage().open()
   await spawnDataProcess(dbPath)
+  await configureLibrary()
   writersStopped = false
   if (process.env.XNET_RECOVERY_OFFLINE !== 'true') {
     await startLocalAPI()
@@ -444,6 +447,7 @@ app
     await recoverPendingRestore(dataPath, recoveryPath, {
       allowTestIdentity: process.env.XNET_TEST_BYPASS === 'true'
     })
+    requireCompatibleDatabase(join(dataPath, 'library.db'), 'library')
     await prepareWorkspaceUpgrade({
       dataPath,
       recoveryPath,
@@ -477,6 +481,8 @@ app
     bootTrace('spawning data process')
     await spawnDataProcess(dbPath)
     bootTrace('data process ready')
+    await configureLibrary()
+    setupLibraryIPC()
 
     // Setup IPC handlers for main process operations
     setupIPC()

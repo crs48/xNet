@@ -13,6 +13,7 @@ import {
 import { inspectDatabase, WorkspaceRecoveryRequired } from '../storage/compatibility'
 import { exportPortableCheckpoint, unpackPortableCheckpoint } from '../storage/portable'
 import { restoreCheckpoint } from '../storage/restore'
+import { freezeLibrary, thawLibrary } from './library-ipc'
 import { dataPath, profile } from './profile'
 import { flushRenderers, resumeRenderers } from './renderer-flush'
 import { hasActiveSocialImports } from './social-import-ipc'
@@ -40,7 +41,10 @@ export async function checkpointWorkspace(
   inFlight = (async () => {
     if (hasActiveSocialImports())
       throw new Error('Finish or cancel the current import before making a recovery copy.')
-    if (!options.writersStopped) await flushRenderers()
+    if (!options.writersStopped) {
+      await flushRenderers()
+      await freezeLibrary()
+    }
     const point = await createCheckpoint({
       dataPath,
       recoveryPath,
@@ -62,7 +66,10 @@ export async function checkpointWorkspace(
     throw error
   } finally {
     inFlight = null
-    if (options.resume !== false) resumeRenderers()
+    if (options.resume !== false) {
+      if (!options.writersStopped) await thawLibrary()
+      resumeRenderers()
+    }
   }
 }
 
@@ -197,11 +204,15 @@ export function setupRecovery(options: {
       })
       for (const [name, kind] of [
         ['data.db', 'workspace'],
-        ['xnet.db', 'blobs']
+        ['xnet.db', 'blobs'],
+        ['library.db', 'library']
       ] as const) {
         const path = join(recovered.workspace, name)
         const compatibility = inspectDatabase(path, kind)
-        if (compatibility.status !== 'supported')
+        if (
+          compatibility.status !== 'supported' &&
+          !(kind === 'library' && compatibility.status === 'missing')
+        )
           throw new WorkspaceRecoveryRequired(path, compatibility)
       }
       const { response } = await dialog.showMessageBox({

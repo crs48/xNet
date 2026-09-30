@@ -1011,7 +1011,7 @@ the tenant.
 
 - The hub's authorization model is rich and correct — grants, spaces, roles, the
   CRUD split. What was missing sat one layer above it: nothing decided which DIDs
-  *are* the tenant. Admission control and seat counting are the same missing
+  _are_ the tenant. Admission control and seat counting are the same missing
   concept wearing a security hat and a product hat.
 - Putting the roster in the control plane rather than in the hub's own grants
   keeps it readable during a support call and during a GDPR request, and lets a
@@ -1020,14 +1020,14 @@ the tenant.
   email an IdP vouches for and a member is a key on someone's device, and
   conflating them would put the billing identity provider in charge of the data
   identity — the arrangement the non-custodial claim flow exists to avoid.
-  `organizationId` is a pointer that decides who is *entitled* to join; each
+  `organizationId` is a pointer that decides who is _entitled_ to join; each
   human still binds their own key.
 
 **Tradeoff:** membership changes push a new revision, which on Cloud Run restarts
 the hub — invisible on scale-to-zero plans, a brief rolling drop on warm ones.
 Accepted: the alternative is a hub anyone on the internet can write to.
 
-**Tripwire:** the first proposal to authorize on the roster *instead of* the hub's
+**Tripwire:** the first proposal to authorize on the roster _instead of_ the hub's
 grant model — the roster decides admission, never permission — or the first hub
 shipped with `HUB_TRUSTED_DIDS` written as an empty string. Either re-opens this.
 
@@ -1299,3 +1299,40 @@ in-memory-only imports cannot be recovered automatically.
 **Tripwire:** An importer no longer emits a stable stream for identical bytes,
 an import gains non-idempotent effects, or its batch boundary changes. Version
 the journal or importer and prove replay safety before accepting old cursors.
+
+## ADR-42: Desktop enrichment keeps full evidence in a recoverable local store
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** Social card fields have size limits. Putting a video description or
+transcript only in those fields silently loses searchable text. A browser queue
+also cannot reliably survive a desktop restart or carry work into a recovery copy.
+
+**Decision:** `xnet-data/library.db`, SQLite user version 1, stores full metadata,
+caption cues, provider evidence, FTS search rows, and durable capability jobs.
+Job identity includes resource ID, capability, provider version, and language.
+Metadata, thumbnails, transcripts, and indexing have separate outcomes. Missing
+fields and failed discovery stay explicit. Interrupted work returns to the queue;
+provider backoff and pause state survive restart. Fetching starts only after the
+user enables enrichment and remains disabled during recovery review.
+
+Source resources stay in NodeStore. Bounded SocialEnrichment card projections and
+versioned transcript segments link back to those resources; they do not replace
+full evidence. Thumbnail bytes live in the existing managed blob store. The
+Library reads cached images, full descriptions, and caption matches offline.
+List responses exclude raw evidence and full transcripts; details load on demand.
+
+Native checkpoints freeze enrichment and include the library database with its
+committed WAL content. Portable recovery includes it through the same manifest.
+Library compatibility is checked before any startup migration or writable open.
+A damaged or unknown library format requires recovery rather than reconstruction.
+
+**Tradeoff:** The full-text store is device-local and is not yet synced between
+peers. Caption retrieval currently uses the explicitly tested local yt-dlp
+version; login-limited sources remain blocked. This decision does not claim local
+ASR, whole-corpus enrichment, or packaged helper installation. Full source evidence
+costs disk space, and schema upgrades need copied fixtures before support expands.
+
+**Tripwire:** Another device must receive full enriched text, provider evidence
+outgrows practical backups, or a library schema/provider upgrade invalidates
+stored work. Revisit the storage boundary and migration proof before changing it.

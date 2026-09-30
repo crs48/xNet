@@ -25,7 +25,7 @@ function fingerprint(path: string): string | null {
 /** SQLite can write the SHM even in readonly mode. Inspect a disposable copy instead. */
 export function inspectDatabase(
   path: string,
-  kind: 'workspace' | 'blobs' = 'workspace'
+  kind: 'workspace' | 'blobs' | 'library' = 'workspace'
 ): StorageCompatibility {
   let db: Database.Database | undefined
   let scratch: string | undefined
@@ -73,6 +73,22 @@ export function inspectDatabase(
       db.prepare('SELECT cid, data FROM blobs LIMIT 0').all()
       return { status: 'supported', version: 1 }
     }
+    if (kind === 'library') {
+      const version = db.pragma('user_version', { simple: true })
+      if (version !== 1)
+        return { status: 'unreadable', reason: 'Unsupported library storage version.' }
+      db.prepare(
+        'SELECT resource_id, capability, version, language, state, attempts, next_at, reason FROM work LIMIT 0'
+      ).all()
+      db.prepare('SELECT id, url, platform, title, payload, added_at FROM resources LIMIT 0').all()
+      db.prepare('SELECT key, value FROM settings LIMIT 0').all()
+      db.prepare('SELECT platform, until_ms FROM provider_pause LIMIT 0').all()
+      db.prepare(
+        'SELECT resource_id, capability, version, at_ms, state, reason FROM attempts LIMIT 0'
+      ).all()
+      db.prepare('SELECT resource_id, title, body, start_ms FROM search LIMIT 0').all()
+      return { status: 'supported', version: 1 }
+    }
     const table = db
       .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '_schema_version'")
       .get()
@@ -116,7 +132,7 @@ export class WorkspaceRecoveryRequired extends TaggedError {
 
 export function requireCompatibleDatabase(
   path: string,
-  kind: 'workspace' | 'blobs' = 'workspace'
+  kind: 'workspace' | 'blobs' | 'library' = 'workspace'
 ): void {
   const result = inspectDatabase(path, kind)
   if (result.status !== 'missing' && result.status !== 'supported') {

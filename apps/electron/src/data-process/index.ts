@@ -1,3 +1,7 @@
+import type { DeterministicNodeImportDraft, NodeBatchWritePolicy } from '@xnetjs/data'
+import type { SyncReplicationConfig } from '@xnetjs/sync'
+import { dirname } from 'node:path'
+import { LibraryService } from '../library/service'
 /**
  * Data Process Entry Point (Electron Utility Process)
  *
@@ -20,8 +24,6 @@
  *                                                          Hub/Signaling
  */
 
-import type { DeterministicNodeImportDraft, NodeBatchWritePolicy } from '@xnetjs/data'
-import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { createDataService, type DataService } from './data-service'
 
 // Debug logging - controllable via message from main process
@@ -33,6 +35,7 @@ function log(...args: unknown[]): void {
 }
 
 let dataService: DataService | null = null
+let library: LibraryService | null = null
 
 // Handle messages from main process via parentPort
 process.parentPort?.on('message', async (event) => {
@@ -45,6 +48,56 @@ process.parentPort?.on('message', async (event) => {
   log('Received message:', type, requestId ? `(${requestId})` : '')
 
   try {
+    if (type.startsWith('library:')) {
+      if (!library) throw new Error('Library is not ready.')
+      let result: unknown
+      switch (type) {
+        case 'library:configure':
+          library.configure(payload as { authorDID: string; signingKey: number[] })
+          result = true
+          break
+        case 'library:scan':
+          result = await library.scan()
+          break
+        case 'library:status':
+          result = library.status()
+          break
+        case 'library:search':
+          result = library.store.search(
+            payload as { text?: string; platform?: string; offset?: number; limit?: number }
+          )
+          break
+        case 'library:get':
+          result = library.store.get(String(payload.id))
+          break
+        case 'library:pause':
+          await library.pause()
+          result = true
+          break
+        case 'library:resume':
+          library.resume()
+          result = true
+          break
+        case 'library:retry':
+          library.retry(typeof payload.id === 'string' ? payload.id : undefined)
+          result = true
+          break
+        case 'library:freeze':
+          await library.freeze()
+          result = true
+          break
+        case 'library:thaw':
+          library.thaw()
+          result = true
+          break
+        default:
+          throw new Error('Unknown library operation')
+      }
+      sendResponse(requestId, { value: result })
+      return
+    }
+    if (!dataService && !['init', 'shutdown'].includes(type))
+      throw new Error('Workspace storage is not ready; no write was acknowledged.')
     switch (type) {
       // ─── Lifecycle ───────────────────────────────────────────────────────
 
@@ -53,12 +106,17 @@ process.parentPort?.on('message', async (event) => {
         log('Initializing data service with dbPath:', dbPath)
         dataService = createDataService({ dbPath })
         await dataService.initialize()
+        library = new LibraryService(dataService, dirname(dbPath))
         sendResponse(requestId, { success: true })
         break
       }
 
       case 'shutdown': {
         log('Shutting down data service')
+        if (library) {
+          await library.close()
+          library = null
+        }
         if (dataService) {
           await dataService.shutdown()
           dataService = null
