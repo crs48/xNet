@@ -9,12 +9,39 @@ import type {
   SocialImportStageRequest,
   SocialImportStageResult
 } from '../main/social-import-ipc'
+import type { CheckpointManifest } from '../shared/recovery'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { contextBridge, ipcRenderer } from 'electron'
 
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
+  getRecoveryStatus: () => ipcRenderer.invoke('xnet:recovery:status'),
+  resumeRecoveryNetwork: () => ipcRenderer.invoke('xnet:recovery:resume-network'),
+  createRecoveryCopy: () => ipcRenderer.invoke('xnet:recovery:create'),
+  showRecoveryFolder: () => ipcRenderer.invoke('xnet:recovery:show'),
+  restoreRecoveryCopy: (id: string) => ipcRenderer.invoke('xnet:recovery:restore', id),
   getProfile: () => ipcRenderer.invoke('xnet:getProfile'),
+  onFlushDocuments: (flush: () => Promise<void>) => {
+    const handler = async (_event: unknown, requestId: string) => {
+      if (typeof requestId !== 'string' || !/^[a-f0-9-]{36}$/.test(requestId)) return
+      try {
+        await flush()
+        ipcRenderer.send(`xnet:flush-result:${requestId}`, { ok: true })
+      } catch (error) {
+        ipcRenderer.send(`xnet:flush-result:${requestId}`, {
+          ok: false,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      }
+    }
+    ipcRenderer.on('xnet:flush-documents', handler)
+    ipcRenderer.send('xnet:flush-ready')
+    return () => ipcRenderer.removeListener('xnet:flush-documents', handler)
+  },
+  onResumeEditing: (callback: () => void) => {
+    ipcRenderer.on('xnet:resume-editing', callback)
+    return () => ipcRenderer.removeListener('xnet:resume-editing', callback)
+  },
   getIdentitySeed: () => ipcRenderer.invoke('xnet:identity:getSeed'),
   setSeedPhrase: (mnemonic: string) => ipcRenderer.invoke('xnet:seed:set', { mnemonic }),
   getSeedPhrase: () => ipcRenderer.invoke('xnet:seed:get'),
@@ -507,7 +534,23 @@ contextBridge.exposeInMainWorld('xnetNodes', {
 })
 
 // Type declaration for renderer
+export interface RecoveryStatus {
+  checkpoints: CheckpointManifest[]
+  busy: boolean
+  error: string | null
+  protection: 'local-only'
+  networkPaused: boolean
+  coverage: string
+}
+
 export interface XNetAPI {
+  getRecoveryStatus(): Promise<RecoveryStatus>
+  resumeRecoveryNetwork(): Promise<void>
+  createRecoveryCopy(): Promise<CheckpointManifest>
+  showRecoveryFolder(): Promise<void>
+  restoreRecoveryCopy(id: string): Promise<{ restored: boolean }>
+  onFlushDocuments(flush: () => Promise<void>): () => void
+  onResumeEditing(callback: () => void): () => void
   getProfile(): Promise<string>
   getIdentitySeed(): Promise<{ seedB64: string; mode: 'secure' | 'plaintext' | 'test' }>
   setSeedPhrase(mnemonic: string): Promise<{ ok: true }>

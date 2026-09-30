@@ -81,6 +81,17 @@ export function App(): React.ReactElement {
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const [prefilledShareValue, setPrefilledShareValue] = useState('')
   const [connectRequest, setConnectRequest] = useState<ConnectHubRequest | null>(null)
+  const [recoveryNotice, setRecoveryNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    void window.xnet.getRecoveryStatus().then(
+      (status) => {
+        if (status.networkPaused)
+          setRecoveryNotice('Restored workspace: sync is paused while you review your data.')
+      },
+      (error: unknown) => setRecoveryNotice(`Could not read recovery status: ${String(error)}`)
+    )
+  }, [])
 
   useEffect(() => {
     const cleanup = window.xnet.onSharePayload((payload) => {
@@ -179,6 +190,17 @@ export function App(): React.ReactElement {
             frames subtract --titlebar-height so the bottom islands stay
             on-screen. */}
         <header className="titlebar-drag h-[38px] shrink-0" />
+        {recoveryNotice && (
+          <div
+            role="status"
+            className="flex items-center justify-center gap-3 border-b border-border px-4 py-2 text-sm"
+          >
+            <span>{recoveryNotice}</span>
+            <button className="underline" onClick={handleOpenSettings}>
+              Open recovery settings
+            </button>
+          </div>
+        )}
         <div className="min-h-0 flex-1">
           <Workbench>
             {/* Focused surfaces are lazy chunks (cold-open budget); the null

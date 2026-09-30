@@ -52,6 +52,7 @@ interface DevToolsEventBus {
 }
 
 export interface IPCSyncManager extends SyncManager {
+  flushDocuments(): Promise<void>
   /** Instrument with devtools event bus for sync monitoring */
   instrument(eventBus: DevToolsEventBus): () => void
   /** Set identity for signing outgoing updates */
@@ -396,6 +397,13 @@ export function createIPCSyncManager(): IPCSyncManager {
     untrack(nodeId: string) {
       trackedSchemas.delete(nodeId)
       window.xnetBSM.untrack(nodeId)
+    },
+
+    async flushDocuments(): Promise<void> {
+      await Promise.all([...pendingAcquires.values()])
+      for (const [nodeId, doc] of docs) {
+        await window.xnetNodes.setDocumentContent(nodeId, Array.from(Y.encodeStateAsUpdate(doc)))
+      }
     },
 
     async acquire(nodeId: string): Promise<Y.Doc> {

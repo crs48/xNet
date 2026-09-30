@@ -1,0 +1,8 @@
+{
+  "id": "2026-09-29-recover-an-earlier-desktop-workspace",
+  "date": "September 29, 2026",
+  "title": "Recover an earlier desktop workspace",
+  "summary": "Create verified local recovery copies from Settings, restore without deleting newer work, and keep a restored workspace offline for review. Desktop quit and update installation now wait for text saves and a recovery copy.",
+  "highlights": [],
+  "tags": ["app"]
+}

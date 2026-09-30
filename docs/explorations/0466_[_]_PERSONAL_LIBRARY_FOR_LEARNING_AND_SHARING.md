@@ -496,14 +496,20 @@ Unchecked items are proposed work. Checked items carry implementation evidence b
 - [x] Add a read-only compatibility probe with distinct missing, supported, old, future, and unreadable outcomes before any writable open.
 - [ ] Inventory all desktop data and key locations; define a complete checkpoint manifest and fail if required content is missing.
 - [ ] Protect the daily profile from every development launch; migrate existing profile selection without losing data or identity.
-- [ ] Wire a durable saved acknowledgement and coordinated renderer/data-process flush. Measure `FULL` transaction durability on the daily workload.
-- [ ] Create and verify automatic local checkpoints with bounded retention, visible failure, and a Restore action.
+- [x] Wire acknowledged text saves and a coordinated renderer/data-process flush; retain failed document writes for retry.
+- [ ] Extend acknowledgement to all mutation paths and measure `FULL` transaction durability on the daily workload.
+- [x] Create verified local checkpoints on quit and before updates, keep a bounded history, surface failures, and provide Restore in Settings and startup recovery.
+- [ ] Add changed-data periodic checkpoints and the proposed daily/weekly retention policy; verify complete coverage beyond native workspace files.
 - [ ] Wire complete portable export, encrypted cross-Mac key recovery, and one off-device backup destination; show its actual protection status.
 - [ ] Implement ordered migration on a candidate copy, validated promotion, and a recovery path that preserves post-update edits.
-- [ ] Route every updater install path through the flush/checkpoint barrier; keep normal no-format-change updates simple.
+- [x] Route every updater install path through the flush/checkpoint barrier; keep normal no-format-change updates simple.
 - [ ] Extend the existing release checks with a real installed Mac upgrade and restore exercise; prove signing and Keychain continuity across releases.
 
 **Implementation evidence (2026-09-29):** startup now probes a disposable database/WAL copy before either desktop store opens for writes, preserves unknown and damaged originals, and exposes a native recovery dialog before the renderer starts. Targeted SQLite, compatibility, and profile tests passed (74 tests); `pnpm turbo run typecheck` passed (101 tasks). The real Electron smoke checks passed for clean boot and restart persistence (2 tests). A separate isolated Electron recovery run observed the unversioned warning, zero normal windows, unchanged source bytes, and no newly created blob database. Desktop Node typechecking also exposed two missing import-preview coverage fields; both now reach the caller. Source-launch profile isolation is implemented, but profile transition and full recovery remain unchecked until the rest of pass A is proven.
+
+**Recovery implementation evidence (2026-09-29):** document writes now serialize by store and document, retain failed snapshots, and retry before reopening. Desktop SQLite uses `synchronous=FULL`. A native checkpoint covers both databases and files under `xnet-data`, verifies each file and database, and retains twenty copies. Restore uses a durable rename journal and keeps the replaced workspace separately. Restored workspaces pause automatic sync, the local API, and the agent bridge until an explicit reconnect. This scope excludes Chromium settings and sign-in sessions; it is not portable encrypted or off-device protection.
+
+Focused verification passed: 29 compatibility/checkpoint/restore tests, six document-barrier tests, two quit-barrier tests, 32 SQLite adapter tests, and 22 existing data-process/sync checks. Workspace typechecking passed (101 tasks), desktop Node typechecking passed, and two existing real Electron smoke tests passed. In isolated desktop runs, text typed immediately before quit survived relaunch; Settings created a verified copy; restoring an older node recovered its original value while keeping newer work; and the restored app reported recovery mode with sync paused. The direct desktop renderer typecheck also exposed existing unrelated errors in its composite file list, form props, effect cleanup signatures, and sync interfaces; it is not reported as passing. Signed installed-app upgrades, Keychain continuity, periodic scheduling, and full protection remain unproven.
 
 **Exit:** Chris can save notes, quit, reopen, install an update, and recover an earlier copy without a terminal. Development uses a different workspace. No valuable collection moves in before this exit is demonstrated.
 

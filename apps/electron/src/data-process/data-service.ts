@@ -579,6 +579,10 @@ export function createDataService(config: DataServiceConfig): DataService {
   }
 
   function connect(): void {
+    if (process.env.XNET_RECOVERY_OFFLINE === 'true') {
+      log('Recovery review: sync remains offline until explicitly resumed.')
+      return
+    }
     if (destroyed || !signalingUrl) return
     if (ws) return
 
@@ -1099,6 +1103,28 @@ export function createDataService(config: DataServiceConfig): DataService {
 
   // ─── Public API ─────────────────────────────────────────────────────────
 
+  async function flushPooledDocuments(): Promise<void> {
+    if (!adapter) return
+    for (const [nodeId, entry] of pool) {
+      if (!entry.dirty) continue
+      const stored = await adapter.queryOne<{ state: Buffer }>(
+        'SELECT state FROM yjs_state WHERE node_id = ?',
+        [nodeId]
+      )
+      const merged = new Y.Doc({ gc: false })
+      try {
+        if (stored) Y.applyUpdate(merged, stored.state)
+        Y.applyUpdate(merged, Y.encodeStateAsUpdate(entry.doc))
+        await adapter.run(
+          'INSERT OR REPLACE INTO yjs_state (node_id, state, updated_at) VALUES (?, ?, ?)',
+          [nodeId, Y.encodeStateAsUpdate(merged), Date.now()]
+        )
+      } finally {
+        merged.destroy()
+      }
+    }
+  }
+
   return {
     async initialize(): Promise<void> {
       log('Initializing database at:', config.dbPath)
@@ -1129,6 +1155,7 @@ export function createDataService(config: DataServiceConfig): DataService {
     async shutdown(): Promise<void> {
       log('Shutting down')
       disconnect()
+      await flushPooledDocuments()
 
       // Close all renderer ports
       for (const [, port] of rendererPorts) {

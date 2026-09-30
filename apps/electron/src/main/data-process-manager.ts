@@ -90,6 +90,7 @@ export async function spawnDataProcess(dbPath: string): Promise<void> {
   }
 
   log('Spawning data process...')
+  isShuttingDown = false
 
   return new Promise((resolve, reject) => {
     try {
@@ -201,17 +202,26 @@ export async function stopDataProcess(): Promise<void> {
 
   try {
     await sendRequest('shutdown', {}, 5000)
-  } catch {
-    log('Shutdown request failed, killing process')
+  } catch (error) {
+    isShuttingDown = false
+    throw error
   }
 
-  if (dataProcess) {
-    dataProcess.kill()
-    dataProcess = null
+  const stopping = dataProcess
+  if (stopping) {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(
+        () => reject(new Error('Data process did not exit after saving.')),
+        5000
+      )
+      stopping.once('exit', () => {
+        clearTimeout(timeout)
+        resolve()
+      })
+      stopping.kill()
+    })
   }
-
   isReady = false
-  isShuttingDown = false
 }
 
 /**

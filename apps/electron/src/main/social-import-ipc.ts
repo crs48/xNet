@@ -77,6 +77,10 @@ const cancelledCommitJobIds = new Set<string>()
 let queuedTestArchivePath: string | null = null
 const COMMIT_BATCH_SIZE = 2500
 
+export function hasActiveSocialImports(): boolean {
+  return [...commitJobs.values()].some((job) => job.status === 'queued' || job.status === 'running')
+}
+
 type ElectronStagedSocialImport = Omit<SocialImportNodeDraftStreamResult, 'archive'> & {
   archive: SocialImportArchivePreview
   archivePath: string

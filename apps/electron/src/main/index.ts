@@ -1,11 +1,13 @@
 /**
  * Electron main process entry point
  */
-import { appendFileSync, readlinkSync } from 'fs'
+import { appendFileSync, existsSync, readlinkSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
+import { listCheckpoints } from '../storage/checkpoints'
 import { requireCompatibleDatabase } from '../storage/compatibility'
+import { recoverPendingRestore, restoreCheckpoint } from '../storage/restore'
 import { setupAgentBridgeIPC, startAgentBridge, stopAgentBridge } from './agent-bridge-manager'
 import { setupCloudflareTunnelIPC, stopCloudflareTunnel } from './cloudflare-tunnel-ipc'
 import { installMainCrashLog } from './crash-log'
@@ -18,17 +20,20 @@ import {
 import { parseConnectDeepLink, type CloudConnectPayload } from './deep-link'
 import { attachDevLogWindow, installDevLogBridge } from './dev-log-bridge'
 import { titleSuffix } from './dev-scope'
-import { setupIPC, getOrCreateStorage } from './ipc'
+import { setupIPC, getOrCreateStorage, closeStorage } from './ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { setupMeetingCaptureIPC } from './meeting-capture-ipc'
 import { createMenu } from './menu'
 import { dataPath, profile } from './profile'
+import { createQuitBarrier } from './quit-barrier'
 import { setupRecordingCaptureIPC, shutdownRecordingCapture } from './recording-capture-ipc'
+import { checkpointWorkspace, recoveryPath, recoveryIsBusy, setupRecovery } from './recovery'
+import { flushRenderers, resumeRenderers, setupRendererFlush } from './renderer-flush'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
-import { setupSocialImportIPC } from './social-import-ipc'
+import { setupSocialImportIPC, hasActiveSocialImports } from './social-import-ipc'
 import { showStartupRecovery } from './startup-recovery'
 import { setupStorybookIPC, stopStorybook } from './storybook-ipc'
-import { initAutoUpdater } from './updater'
+import { hasDownloadedUpdate, initAutoUpdater, installDownloadedUpdate } from './updater'
 
 // Capture main-process console output for the renderer console (0413). First
 // statement after the imports so a failure during early module init is still
@@ -61,6 +66,85 @@ let mainWindow: BrowserWindow | null = null
 let pendingSharePayload: string | null = null
 let pendingCloudConnect: CloudConnectPayload | null = null
 let cleanupTunnelIPC: (() => void) | null = null
+let installRequested = false
+let workspaceReady = false
+let writersStopped = false
+
+async function stopWorkspaceWriters(): Promise<void> {
+  await shutdownRecordingCapture()
+  await stopAgentBridge()
+  await stopLocalAPI()
+  await cleanupServices()
+  await stopCloudflareTunnel()
+  await stopStorybook()
+  await stopDataProcess()
+  await closeStorage()
+  writersStopped = true
+}
+
+async function restartWorkspaceWriters(): Promise<void> {
+  await recoverPendingRestore(dataPath, recoveryPath, {
+    allowTestIdentity: process.env.XNET_TEST_BYPASS === 'true'
+  })
+  process.env.XNET_RECOVERY_OFFLINE = existsSync(join(recoveryPath, 'review-required.json'))
+    ? 'true'
+    : 'false'
+  requireCompatibleDatabase(dbPath)
+  requireCompatibleDatabase(join(dataPath, 'xnet.db'), 'blobs')
+  await getOrCreateStorage().open()
+  await spawnDataProcess(dbPath)
+  writersStopped = false
+  if (process.env.XNET_RECOVERY_OFFLINE !== 'true') {
+    await startLocalAPI()
+    await startAgentBridge()
+  }
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.once('did-finish-load', () => setupWindowChannel(window))
+    window.reload()
+  }
+}
+
+const quitBarrier = createQuitBarrier({
+  prepare: async () => {
+    if (!workspaceReady) {
+      await stopDataProcess()
+      await closeStorage()
+      return
+    }
+    if (hasActiveSocialImports())
+      throw new Error('An import is still running. Finish or cancel it before quitting.')
+    if (recoveryIsBusy())
+      throw new Error('Wait for the current recovery operation before quitting.')
+    await flushRenderers()
+    await stopWorkspaceWriters()
+    cleanupTunnelIPC?.()
+    cleanupTunnelIPC = null
+    await checkpointWorkspace({ writersStopped: true, resume: false })
+  },
+  finish: () => {
+    if (installRequested || hasDownloadedUpdate()) installDownloadedUpdate()
+    else app.quit()
+  },
+  failed: async (error) => {
+    installRequested = false
+    if (writersStopped) {
+      try {
+        await restartWorkspaceWriters()
+      } catch (restartError) {
+        workspaceReady = false
+        await showStartupRecovery(restartError, dataPath)
+        app.exit(1)
+        return
+      }
+    }
+    resumeRenderers()
+    dialog.showErrorBox(
+      'xNet is still open',
+      error instanceof Error ? error.message : String(error)
+    )
+  }
+})
+setupRendererFlush()
 
 const DEEP_LINK_PROTOCOL = 'xnet'
 
@@ -277,6 +361,25 @@ async function createWindow() {
     mainWindow = null
   })
 
+  const window = mainWindow
+  let closing = false
+  window.on('close', (event) => {
+    if (quitBarrier.approved) return
+    event.preventDefault()
+    if (closing) return
+    closing = true
+    void flushRenderers([window])
+      .then(() => window.destroy())
+      .catch((error: unknown) => {
+        closing = false
+        resumeRenderers()
+        dialog.showErrorBox(
+          'Your workspace is still open',
+          error instanceof Error ? error.message : String(error)
+        )
+      })
+  })
+
   mainWindow.webContents.on('did-finish-load', () => {
     bootTrace('renderer loaded')
     // Flush everything main logged before a renderer existed (0413). Done here
@@ -336,6 +439,12 @@ app
       }
     }
 
+    await recoverPendingRestore(dataPath, recoveryPath, {
+      allowTestIdentity: process.env.XNET_TEST_BYPASS === 'true'
+    })
+    process.env.XNET_RECOVERY_OFFLINE = existsSync(join(recoveryPath, 'review-required.json'))
+      ? 'true'
+      : 'false'
     // Inspect both stores before either is opened for writes.
     requireCompatibleDatabase(dbPath)
     requireCompatibleDatabase(join(dataPath, 'xnet.db'), 'blobs')
@@ -353,6 +462,8 @@ app
 
     // Setup IPC handlers for main process operations
     setupIPC()
+    setupRecovery({ stopWriters: stopWorkspaceWriters, restartWriters: restartWorkspaceWriters })
+    workspaceReady = true
 
     // Setup IPC handlers that proxy to data utility process
     setupDataProcessIPC(() => mainWindow)
@@ -385,11 +496,11 @@ app
 
     // Start Local API server (for external integrations)
     bootTrace('starting local API')
-    await startLocalAPI()
+    if (process.env.XNET_RECOVERY_OFFLINE !== 'true') await startLocalAPI()
 
     // Start the agent bridge daemon (no-op if the agent CLI isn't installed).
     // Fire-and-forget: a slow `--version` probe must not delay window creation.
-    void startAgentBridge().catch(() => undefined)
+    if (process.env.XNET_RECOVERY_OFFLINE !== 'true') void startAgentBridge().catch(() => undefined)
 
     // Create menu
     createMenu()
@@ -402,7 +513,11 @@ app
     // Setup MessagePort channel between renderer and data process
     if (mainWindow) {
       setupWindowChannel(mainWindow)
-      initAutoUpdater(mainWindow)
+      initAutoUpdater(mainWindow, async () => {
+        if (!hasDownloadedUpdate()) throw new Error('No downloaded update is ready to install.')
+        installRequested = true
+        await quitBarrier.request()
+      })
     }
 
     app.on('activate', async () => {
@@ -414,7 +529,31 @@ app
       }
     })
   })
-  .catch((error: unknown) => showStartupRecovery(error, dataPath))
+  .catch(async (error: unknown) => {
+    workspaceReady = false
+    await stopDataProcess()
+    await closeStorage()
+    let latest: string | undefined
+    try {
+      latest = (await listCheckpoints(recoveryPath)).find((point) => point.profile === profile)?.id
+    } catch (listingError) {
+      console.error('[Recovery] Could not list recovery copies:', listingError)
+    }
+    await showStartupRecovery(
+      error,
+      dataPath,
+      latest
+        ? () =>
+            restoreCheckpoint({
+              id: latest!,
+              dataPath,
+              recoveryPath,
+              profile,
+              allowTestIdentity: process.env.XNET_TEST_BYPASS === 'true'
+            })
+        : undefined
+    )
+  })
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -422,29 +561,8 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', async () => {
-  // Finalize any in-flight recording so its files are closed, not truncated
-  await shutdownRecordingCapture()
-
-  // Stop the agent bridge daemon
-  await stopAgentBridge()
-
-  // Stop Local API server
-  await stopLocalAPI()
-
-  // Stop all plugin services
-  await cleanupServices()
-
-  // Stop cloudflare tunnel process
-  await stopCloudflareTunnel()
-
-  // Remove tunnel event listeners
-  cleanupTunnelIPC?.()
-  cleanupTunnelIPC = null
-
-  // Stop Storybook dev runtime
-  await stopStorybook()
-
-  // Stop data utility process (handles BSM, SQLite, Yjs cleanup)
-  await stopDataProcess()
+app.on('before-quit', (event) => {
+  if (quitBarrier.approved) return
+  event.preventDefault()
+  void quitBarrier.request()
 })

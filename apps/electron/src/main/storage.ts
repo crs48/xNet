@@ -7,6 +7,7 @@ export class SQLiteAdapter implements StorageAdapter {
 
   constructor(path: string) {
     this.db = new Database(path)
+    this.db.pragma('synchronous = FULL')
   }
 
   async open(): Promise<void> {
