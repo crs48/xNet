@@ -9,9 +9,10 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { assertPublicUrl, TaggedError } from '@xnetjs/core'
 import { resolveExternalReferenceMetadata } from '@xnetjs/data'
+import { managedHelperPath, TESTED_EXTRACTOR_VERSION, verifyHelperVersion } from './managed-helper'
 
 const exec = promisify(execFile)
-export const TESTED_EXTRACTOR_VERSION = '2026.07.04'
+export { TESTED_EXTRACTOR_VERSION } from './managed-helper'
 const record = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 const text = (value: unknown): string | undefined =>
@@ -27,40 +28,55 @@ export class LibraryProviderError extends TaggedError {
   }
 }
 
-/** Validate each redirect before requesting it, cap bytes while streaming, and send no browser cookies. */
-export async function fetchPublic(
-  url: string,
-  options: { signal?: AbortSignal; limit?: number; headers?: Record<string, string> } = {}
+type PublicFetchOptions = {
+  signal?: AbortSignal
+  limit?: number
+  headers?: Record<string, string>
+  timeoutMs?: number
+}
+
+function untilAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const abort = () => reject(signal.reason)
+    signal.addEventListener('abort', abort, { once: true })
+    if (signal.aborted) abort()
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', abort)
+        resolve(value)
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', abort)
+        reject(error)
+      }
+    )
+  })
+}
+
+function requestAtAddress(
+  parsed: URL,
+  address: { address: string; family: number },
+  options: PublicFetchOptions,
+  signal: AbortSignal
 ): Promise<Response> {
-  const signal = options.signal
-    ? AbortSignal.any([options.signal, AbortSignal.timeout(30_000)])
-    : AbortSignal.timeout(30_000)
-  for (let redirects = 0; redirects <= 5; redirects++) {
-    assertPublicUrl(url)
-    const parsed = new URL(url)
-    if (parsed.username || parsed.password)
-      throw new LibraryProviderError('URLs with embedded credentials are not fetched.', 'blocked')
-    const addresses = await lookup(parsed.hostname.replace(/^\[|\]$/g, ''), { all: true })
-    for (const { address, family } of addresses)
-      assertPublicUrl(`https://${family === 6 ? `[${address}]` : address}/`)
-    const address = addresses.find((entry) => entry.family === 4) ?? addresses[0]
-    if (!address) throw new LibraryProviderError('Source hostname has no address.', 'retry')
-    const response = await new Promise<Response>((resolve, reject) => {
-      const request = (parsed.protocol === 'https:' ? httpsRequest : httpRequest)(
-        parsed,
-        {
-          signal,
-          agent: false,
-          family: address.family,
-          // Pin the validated address while preserving the original Host and TLS name.
-          lookup: (_host, _options, callback) => callback(null, address.address, address.family),
-          headers: {
-            'User-Agent': 'xNet-Personal-Library/1',
-            ...options.headers,
-            'Accept-Encoding': 'identity'
-          }
-        },
-        (incoming) => {
+  return new Promise((resolve, reject) => {
+    const request = (parsed.protocol === 'https:' ? httpsRequest : httpRequest)(
+      parsed,
+      {
+        signal,
+        agent: false,
+        family: address.family,
+        // Pin a validated address while preserving the original Host and TLS name.
+        lookup: (_host, _options, callback) => callback(null, address.address, address.family),
+        headers: {
+          'User-Agent': 'xNet-Personal-Library/1',
+          ...options.headers,
+          'Accept-Encoding': 'identity'
+        }
+      },
+      (incoming) => {
+        clearTimeout(connectTimer)
+        try {
           const headers = new Headers()
           for (let i = 0; i < incoming.rawHeaders.length; i += 2)
             headers.append(incoming.rawHeaders[i], incoming.rawHeaders[i + 1])
@@ -82,66 +98,165 @@ export async function fetchPublic(
           incoming.on('data', (chunk: Buffer) => {
             length += chunk.length
             if (length > (options.limit ?? 8 * 1024 * 1024)) {
-              incoming.destroy(
+              reject(
                 new LibraryProviderError(
                   'Response exceeds the byte limit; it was not truncated.',
                   'blocked'
                 )
               )
+              incoming.destroy()
               return
             }
             chunks.push(chunk)
           })
           incoming.on('error', reject)
-          incoming.on('end', () =>
-            resolve(
-              new Response([204, 205].includes(status) ? null : Buffer.concat(chunks), {
-                status,
-                headers
-              })
+          incoming.on('aborted', () =>
+            reject(
+              new LibraryProviderError('Source closed before the response completed.', 'retry')
             )
           )
+          incoming.on('end', () => {
+            try {
+              resolve(
+                new Response([204, 205].includes(status) ? null : Buffer.concat(chunks), {
+                  status,
+                  headers
+                })
+              )
+            } catch (error) {
+              reject(error)
+            }
+          })
+        } catch (error) {
+          incoming.destroy()
+          reject(error)
         }
-      )
-      request.on('error', reject)
-      request.end()
+      }
+    )
+    // A single unreachable CDN address must not consume the entire request deadline.
+    const connectTimer = setTimeout(
+      () =>
+        request.destroy(
+          new LibraryProviderError(
+            'Source did not respond in time. Check your connection or firewall settings, then retry.',
+            'retry'
+          )
+        ),
+      8_000
+    )
+    request.once('close', () => clearTimeout(connectTimer))
+    request.once('error', (error) => {
+      clearTimeout(connectTimer)
+      reject(error)
     })
-    if ([301, 302, 303, 307, 308].includes(response.status)) {
-      const location = response.headers.get('location')
-      await response.body?.cancel()
-      if (!location) throw new LibraryProviderError('Redirect has no destination.', 'retry')
-      url = new URL(location, url).href
-      continue
-    }
-    if ([401, 403, 429].includes(response.status)) {
-      const retry = response.headers.get('retry-after')
-      const delay =
-        retry && /^\d+$/.test(retry)
-          ? Number(retry) * 1000
-          : retry
-            ? Date.parse(retry) - Date.now()
-            : 0
-      await response.body?.cancel()
-      throw new LibraryProviderError(
-        `Provider refused this request (HTTP ${response.status}).`,
-        response.status === 429 ? 'retry' : 'blocked',
-        Date.now() + Math.max(60_000, Number.isFinite(delay) ? delay : 0)
-      )
-    }
-    if (response.status === 404 || response.status === 410) {
-      await response.body?.cancel()
-      throw new LibraryProviderError('Source is unavailable or no longer public.', 'unavailable')
-    }
-    if (!response.ok) {
-      await response.body?.cancel()
-      throw new LibraryProviderError(`Provider returned HTTP ${response.status}.`, 'retry')
-    }
-    return response
-  }
-  throw new LibraryProviderError('Too many source redirects.', 'blocked')
+    request.end()
+  })
 }
 
-export async function findExtractor(): Promise<string> {
+/** Validate all DNS answers and every redirect, bound the whole request, and send no cookies. */
+export async function fetchPublic(
+  url: string,
+  options: PublicFetchOptions = {}
+): Promise<Response> {
+  const controller = new AbortController()
+  const abort = () => controller.abort(options.signal?.reason)
+  options.signal?.addEventListener('abort', abort, { once: true })
+  if (options.signal?.aborted) abort()
+  // An owned timer stays live for the entire operation, including redirected requests.
+  const deadline = setTimeout(
+    () =>
+      controller.abort(
+        new Error(
+          'Source request timed out. Check your connection or firewall settings, then retry.'
+        )
+      ),
+    options.timeoutMs ?? 30_000
+  )
+  const signal = controller.signal
+  try {
+    for (let redirects = 0; redirects <= 5; redirects++) {
+      signal.throwIfAborted()
+      assertPublicUrl(url)
+      const parsed = new URL(url)
+      if (parsed.username || parsed.password)
+        throw new LibraryProviderError('URLs with embedded credentials are not fetched.', 'blocked')
+      const addresses = await untilAborted(
+        lookup(parsed.hostname.replace(/^\[|\]$/g, ''), { all: true }),
+        signal
+      )
+      signal.throwIfAborted()
+      for (const { address, family } of addresses)
+        assertPublicUrl(`https://${family === 6 ? `[${address}]` : address}/`)
+      const ordered = [
+        ...addresses.filter((entry) => entry.family === 4),
+        ...addresses.filter((entry) => entry.family !== 4)
+      ]
+      let response: Response | undefined
+      let lastError: unknown = new LibraryProviderError('Source hostname has no address.', 'retry')
+      for (const address of ordered.slice(0, 8)) {
+        signal.throwIfAborted()
+        try {
+          response = await requestAtAddress(parsed, address, options, signal)
+          break
+        } catch (error) {
+          signal.throwIfAborted()
+          if (error instanceof LibraryProviderError && error.disposition === 'blocked') throw error
+          lastError = error
+        }
+      }
+      if (!response) throw lastError
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        const location = response.headers.get('location')
+        await response.body?.cancel()
+        if (!location) throw new LibraryProviderError('Redirect has no destination.', 'retry')
+        url = new URL(location, url).href
+        continue
+      }
+      if ([401, 403, 429].includes(response.status)) {
+        const retry = response.headers.get('retry-after')
+        const delay =
+          retry && /^\d+$/.test(retry)
+            ? Number(retry) * 1000
+            : retry
+              ? Date.parse(retry) - Date.now()
+              : 0
+        await response.body?.cancel()
+        throw new LibraryProviderError(
+          `Provider refused this request (HTTP ${response.status}).`,
+          response.status === 429 ? 'retry' : 'blocked',
+          Date.now() + Math.max(60_000, Number.isFinite(delay) ? delay : 0)
+        )
+      }
+      if (response.status === 404 || response.status === 410) {
+        await response.body?.cancel()
+        throw new LibraryProviderError('Source is unavailable or no longer public.', 'unavailable')
+      }
+      if (!response.ok) {
+        await response.body?.cancel()
+        throw new LibraryProviderError(`Provider returned HTTP ${response.status}.`, 'retry')
+      }
+      return response
+    }
+    throw new LibraryProviderError('Too many source redirects.', 'blocked')
+  } finally {
+    clearTimeout(deadline)
+    options.signal?.removeEventListener('abort', abort)
+  }
+}
+
+export async function findExtractor(directory?: string): Promise<string> {
+  if (directory && process.platform === 'darwin') {
+    try {
+      const managed = await managedHelperPath(directory)
+      if (managed) return managed
+    } catch (error) {
+      throw new LibraryProviderError(
+        `${error instanceof Error ? error.message : String(error)} Repair the helper in Library → Coverage & gaps.`,
+        'blocked'
+      )
+    }
+  }
+  const failures: string[] = []
   for (const path of [
     join(homedir(), '.local/bin/yt-dlp'),
     '/opt/homebrew/bin/yt-dlp',
@@ -152,19 +267,15 @@ export async function findExtractor(): Promise<string> {
     } catch {
       continue
     }
-    const result = await exec(path, ['--ignore-config', '--no-plugin-dirs', '--version'], {
-      timeout: 10_000,
-      maxBuffer: 65536
-    })
-    if (result.stdout.trim() !== TESTED_EXTRACTOR_VERSION)
-      throw new LibraryProviderError(
-        `This build was tested with yt-dlp ${TESTED_EXTRACTOR_VERSION}; found ${result.stdout.trim()}. Update the provider integration before retrying.`,
-        'blocked'
-      )
-    return path
+    try {
+      await verifyHelperVersion(path)
+      return path
+    } catch (error) {
+      failures.push(error instanceof Error ? error.message : String(error))
+    }
   }
   throw new LibraryProviderError(
-    `Video extraction needs yt-dlp ${TESTED_EXTRACTOR_VERSION}. Install the tested helper to fetch descriptions and caption tracks.`,
+    `Video extraction needs yt-dlp ${TESTED_EXTRACTOR_VERSION}. Open Library → Coverage & gaps to install the managed Mac helper.${failures.length ? ` ${failures.join(' ')}` : ''}`,
     'blocked'
   )
 }
@@ -247,10 +358,11 @@ export function parseExtractorMetadata(
 
 export async function fetchLibraryMetadata(
   resource: LibraryResource,
-  signal: AbortSignal
+  signal: AbortSignal,
+  helperDirectory?: string
 ): Promise<LibraryMetadata> {
   if (['youtube', 'instagram', 'twitter', 'x'].includes(resource.platform)) {
-    const helper = await findExtractor()
+    const helper = await findExtractor(helperDirectory)
     try {
       const result = await exec(
         helper,

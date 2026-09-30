@@ -51,11 +51,20 @@ paused by default. Coverage & gaps separates metadata, thumbnail, caption, and
 index work, and shows missing fields and retry reasons. Saved thumbnails use local
 blob storage, so expired source URLs do not remove the fetched image.
 
-Video extraction currently requires the tested local `yt-dlp` version
-`2026.07.04`. The app checks common local helper locations and reports a missing
-or incompatible version. It does not yet install that helper. Available source
-captions are supported; automatic local transcription and generated video posters
-are not connected. Ordinary web descriptions may be preview text rather than the
+On macOS, **Coverage & gaps → Install video helper** downloads the tested
+`yt-dlp 2026.07.04` executable from its official release (about 38 MB). The app
+checks its pinned size, checksum, and version before installation. You can cancel
+the download or repair a damaged helper. Installation does not start enrichment
+or read browser cookies. The managed helper is preferred over compatible existing
+local installations. It can be downloaded again after restoring a workspace.
+The installer’s integrity and failure tests pass. In the live Electron check on
+this Mac, the GitHub asset connection timed out; cancellation, cleanup, retry,
+and restart worked. Successful download and installation through this control
+still need a live check. Existing compatible local helpers can already supply
+source metadata and captions.
+
+Available source captions are supported; automatic local transcription and
+generated video posters are not connected. Ordinary web descriptions may be preview text rather than the
 full article, and login-limited sources remain explicit gaps.
 
 ## Recovery and readiness

@@ -6,6 +6,7 @@ import type {
   CaptureInput,
   CaptureResult,
   LibraryResource,
+  LibraryHelperStatus,
   LibrarySearchResult,
   LibraryStatus
 } from '../shared/library'
@@ -24,6 +25,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('xnet', {
   getRecoveryStatus: () => ipcRenderer.invoke('xnet:recovery:status'),
   libraryStatus: () => ipcRenderer.invoke('xnet:library:status'),
+  libraryHelperStatus: () => ipcRenderer.invoke('xnet:library:helper-status'),
+  installLibraryHelper: () => ipcRenderer.invoke('xnet:library:helper-install'),
+  cancelLibraryHelper: () => ipcRenderer.invoke('xnet:library:helper-cancel'),
   libraryCapture: (input: CaptureInput) => ipcRenderer.invoke('xnet:library:capture', input),
   libraryLookup: (url: string) => ipcRenderer.invoke('xnet:library:lookup', { url }),
   libraryCaptureShortcut: () => ipcRenderer.invoke('xnet:library:capture-shortcut'),
@@ -600,6 +604,9 @@ export interface XNetAPI {
     url: string
   ): Promise<{ id: string; title: string; notes: { pageId: string; title: string }[] } | null>
   libraryStatus(): Promise<LibraryStatus & { error: string | null }>
+  libraryHelperStatus(): Promise<LibraryHelperStatus>
+  installLibraryHelper(): Promise<LibraryHelperStatus>
+  cancelLibraryHelper(): Promise<void>
   librarySearch(options: {
     text?: string
     platform?: string

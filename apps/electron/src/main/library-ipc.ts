@@ -69,7 +69,19 @@ export function setupLibraryIPC(getWindow: () => BrowserWindow | null): void {
       return (response as { value: unknown }).value
     })
   )
-  for (const action of ['status', 'search', 'get', 'lookup', 'scan', 'pause', 'resume', 'retry']) {
+  for (const action of [
+    'status',
+    'search',
+    'get',
+    'lookup',
+    'scan',
+    'pause',
+    'resume',
+    'retry',
+    'helper-status',
+    'helper-install',
+    'helper-cancel'
+  ]) {
     ipcMain.handle(
       `xnet:library:${action}`,
       async (_event, payload: Record<string, unknown> = {}) => {

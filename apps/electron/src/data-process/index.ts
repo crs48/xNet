@@ -66,6 +66,16 @@ process.parentPort?.on('message', async (event) => {
         case 'library:scan':
           result = await library.scan()
           break
+        case 'library:helper-status':
+          result = await library.helperStatus()
+          break
+        case 'library:helper-install':
+          result = await library.installHelper()
+          break
+        case 'library:helper-cancel':
+          library.cancelHelper()
+          result = true
+          break
         case 'library:status':
           result = library.status()
           break

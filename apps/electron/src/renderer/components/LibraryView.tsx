@@ -1,4 +1,9 @@
-import type { LibraryResource, LibrarySearchResult, LibraryStatus } from '../../shared/library'
+import type {
+  LibraryResource,
+  LibrarySearchResult,
+  LibraryStatus,
+  LibraryHelperStatus
+} from '../../shared/library'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { flushDocumentWrites } from '@xnetjs/react/internal'
 import { useEffect, useState } from 'react'
@@ -6,6 +11,10 @@ import { useEffect, useState } from 'react'
 const button =
   'rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50'
 const label = (value: string) => value.replaceAll('-', ' ')
+const errorText = (error: unknown) =>
+  (error instanceof Error ? error.message : String(error))
+    .replace(/^Error: /, '')
+    .replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
 const timestamp = (ms: number) =>
   `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`
 const atTime = (resource: LibraryResource, ms: number) => {
@@ -83,6 +92,8 @@ export function LibraryView({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showProgress, setShowProgress] = useState(false)
+  const [helper, setHelper] = useState<LibraryHelperStatus | null>(null)
+  const [installingHelper, setInstallingHelper] = useState(false)
   const [shortcut, setShortcut] = useState<boolean | null>(null)
   useEffect(() => {
     let active = true
@@ -91,13 +102,13 @@ export function LibraryView({
         if (active) setShortcut(value.registered)
       },
       (error) => {
-        if (active) setError(String(error))
+        if (active) setError(errorText(error))
       }
     )
     void flushDocumentWrites()
       .then(() => window.xnet.libraryScan())
       .catch((error) => {
-        if (active) setError(String(error))
+        if (active) setError(errorText(error))
       })
     return () => {
       active = false
@@ -105,6 +116,7 @@ export function LibraryView({
   }, [])
   const refresh = async () => {
     setStatus(await window.xnet.libraryStatus())
+    setHelper(await window.xnet.libraryHelperStatus())
     setResults(await window.xnet.librarySearch({ text: query, platform, offset, limit: 40 }))
   }
   useEffect(() => {
@@ -112,13 +124,15 @@ export function LibraryView({
     const load = async () => {
       try {
         const nextStatus = await window.xnet.libraryStatus()
+        const helperState = await window.xnet.libraryHelperStatus()
         const rows = await window.xnet.librarySearch({ text: query, platform, offset, limit: 40 })
         if (active) {
           setStatus(nextStatus)
+          setHelper(helperState)
           setResults(rows)
         }
       } catch (error) {
-        if (active) setError(String(error))
+        if (active) setError(errorText(error))
       }
     }
     void load()
@@ -138,7 +152,7 @@ export function LibraryView({
         const resource = await window.xnet.libraryGet(selectedId)
         if (active) setSelected(resource)
       } catch (error) {
-        if (active) setError(String(error))
+        if (active) setError(errorText(error))
       }
     }
     void load()
@@ -155,7 +169,7 @@ export function LibraryView({
       await operation()
       await refresh()
     } catch (error) {
-      setError(error instanceof Error ? error.message : String(error))
+      setError(errorText(error))
     } finally {
       setBusy(false)
     }
@@ -263,6 +277,48 @@ export function LibraryView({
             available offline. Video descriptions and captions currently need the tested local
             yt-dlp helper. Automatic local transcription is not connected yet.
           </p>
+          <div className="space-y-2 rounded-md border border-border p-3">
+            <p>
+              Managed video helper: {helper ? label(helper.state) : 'checking…'}
+              {helper ? ` · yt-dlp ${helper.version}` : ''}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Download the tested helper directly from its official GitHub release (about 38 MB).
+              xNet verifies it before use. This does not read browser cookies, download video media,
+              or start enrichment. A compatible existing yt-dlp installation can also be used.
+            </p>
+            {helper?.reason && <p role="alert">{helper.reason}</p>}
+            {helper && !['ready', 'unsupported'].includes(helper.state) && (
+              <button
+                className={button}
+                disabled={busy || installingHelper || helper.state === 'installing'}
+                onClick={() => {
+                  setInstallingHelper(true)
+                  void run(() => window.xnet.installLibraryHelper()).finally(() =>
+                    setInstallingHelper(false)
+                  )
+                }}
+              >
+                {installingHelper || helper.state === 'installing'
+                  ? 'Downloading and verifying…'
+                  : helper.state === 'damaged'
+                    ? 'Repair video helper'
+                    : 'Install video helper'}
+              </button>
+            )}
+            {(installingHelper || helper?.state === 'installing') && (
+              <button
+                className={`${button} ml-2`}
+                onClick={() =>
+                  void window.xnet
+                    .cancelLibraryHelper()
+                    .catch((error: unknown) => setError(errorText(error)))
+                }
+              >
+                Cancel download
+              </button>
+            )}
+          </div>
           <div className="flex flex-wrap gap-5">
             {['metadata', 'thumbnail', 'transcript', 'index'].map((capability) => (
               <div key={capability}>

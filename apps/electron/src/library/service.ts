@@ -1,9 +1,10 @@
 import type { CaptureInput, CaptureResult } from './capture'
 import type { LibraryJob, LibraryResource, LibraryStatus } from './types'
 import type { DataService } from '../data-process/data-service'
+import type { LibraryHelperStatus } from '../shared/library'
 import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import { createHash } from 'node:crypto'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { PageSchema } from '@xnetjs/data'
 import { resourceIdentityForUrl } from '@xnetjs/social/import/core'
 import {
@@ -14,6 +15,7 @@ import {
 import { createTranscriptContentDrafts } from '@xnetjs/social/transcripts'
 import sharp from 'sharp'
 import { readPageText, saveCapture } from './capture'
+import { inspectManagedHelper, installManagedHelper, MAC_VIDEO_HELPER } from './managed-helper'
 import {
   chooseTrack,
   fetchLibraryMetadata,
@@ -35,17 +37,56 @@ export class LibraryService {
   private frozen = false
   private fatal: string | null = null
   private timer: ReturnType<typeof setInterval>
+  private readonly helperDirectory: string
+  private helperController: AbortController | null = null
+  private helperInstall: Promise<LibraryHelperStatus> | null = null
   constructor(
     private readonly data: DataService,
     dataPath: string
   ) {
     this.store = new LibraryStore(join(dataPath, 'library.db'))
+    this.helperDirectory = join(dirname(dataPath), 'library-helpers')
     this.timer = setInterval(() => {
       void this.tick().catch((error: unknown) => {
         this.fatal = errorMessage(error)
       })
     }, 1000)
     this.timer.unref()
+  }
+  async helperStatus(): Promise<LibraryHelperStatus> {
+    const base = { version: MAC_VIDEO_HELPER.version, bytes: MAC_VIDEO_HELPER.size }
+    if (process.platform !== 'darwin')
+      return {
+        ...base,
+        state: 'unsupported',
+        reason: 'Managed video-helper installation currently supports macOS.'
+      }
+    if (this.helperInstall) return { ...base, state: 'installing' }
+    return inspectManagedHelper(this.helperDirectory)
+  }
+  cancelHelper(): void {
+    this.helperController?.abort()
+  }
+  installHelper(): Promise<LibraryHelperStatus> {
+    if (process.platform !== 'darwin')
+      throw new Error('Managed video-helper installation currently supports macOS.')
+    if (process.env.XNET_RECOVERY_OFFLINE === 'true')
+      throw new Error(
+        'Review this recovered workspace and reconnect before downloading the helper.'
+      )
+    this.requireWritable()
+    if (this.helperInstall) throw new Error('Video helper installation is already running.')
+    const controller = new AbortController()
+    this.helperController = controller
+    this.helperInstall = installManagedHelper({
+      directory: this.helperDirectory,
+      signal: controller.signal,
+      download: (url, signal, limit) => fetchPublic(url, { signal, limit, timeoutMs: 120_000 })
+    }).finally(() => {
+      this.helperInstall = null
+      this.helperController = null
+    })
+    return this.helperInstall
   }
   configure(identity: { authorDID: string; signingKey: number[] }): void {
     if (!identity.authorDID || identity.signingKey.length !== 32)
@@ -115,6 +156,9 @@ export class LibraryService {
   async close(): Promise<void> {
     clearInterval(this.timer)
     await this.freeze()
+    this.cancelHelper()
+    // Cancellation already reaches the requesting renderer; quit only waits for cleanup.
+    if (this.helperInstall) await Promise.allSettled([this.helperInstall])
     this.store.close()
     this.identity?.signingKey.fill(0)
   }
@@ -295,7 +339,7 @@ export class LibraryService {
         return
       }
       if (job.capability === 'metadata') {
-        const metadata = await fetchLibraryMetadata(resource, signal)
+        const metadata = await fetchLibraryMetadata(resource, signal, this.helperDirectory)
         const next = { ...resource, metadata }
         // Retain the full result independently of bounded card projections.
         this.store.put(next)

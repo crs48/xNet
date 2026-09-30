@@ -18,7 +18,7 @@ tags:
 
 A development preview now runs in Electron. It includes native recovery copies, encrypted native export/restore, resumable retained-source imports, a persistent enrichment queue, local thumbnails and retrieved captions, offline Library search, and editable URL-plus-note capture. [Try the preview](../reference/personal-library.md) and review the [storage coverage](../reference/desktop-storage.md) before relying on it.
 
-This is partially implemented. A Developer ID signing certificate is unavailable in this environment, the installed signed-upgrade test is open, and complete settings/key coverage and off-device retention are not verified. The real full corpus has not been imported into a daily profile. Managed helper setup, local transcription, full collection/creator navigation, complete website and overlapping-export reconciliation, guides, publishing, and the human trial remain work. The checklists below distinguish these gaps from the narrower proofs already obtained.
+This is partially implemented. A Developer ID signing certificate is unavailable in this environment, the installed signed-upgrade test is open, and complete settings/key coverage and off-device retention are not verified. The real full corpus has not been imported into a daily profile. Successful live managed-helper installation, local transcription, full collection/creator navigation, complete website and overlapping-export reconciliation, guides, publishing, and the human trial remain work. The checklists below distinguish these gaps from the narrower proofs already obtained.
 
 ## The job to earn
 
@@ -606,6 +606,22 @@ This does not check off the broader garden-and-website item: website material
 and URL reconciliation for renamed GitHub repositories remain outstanding.
 
 The final offline Library check retrieved a stored 2,901-character description, 2,557 caption cues, and a 157,779-byte cached thumbnail. After restart, the image decoded without a network and the cue at 2,402,320 ms was searchable. Selecting that result displayed its matching passage and a YouTube link with the corresponding timestamp. This proves the local index and result path for the sample; whole-corpus coverage and local ASR remain unchecked.
+
+**Managed helper evidence:** Coverage & gaps now offers installation, cancellation,
+and repair of the pinned macOS yt-dlp release. The native process checks its
+expected byte count, SHA-256, and executable version before atomic promotion.
+It does not start enrichment or read browser cookies. Ten installer tests cover
+multi-chunk downloads, damaged bytes, failed repair, cancellation, and symlink
+refusal; seven HTTP tests cover public-address validation, redirects, fallback,
+byte limits, deadlines, and cancellation. Six provider tests also pass.
+
+A real isolated Electron run cancelled a download, observed no partial files,
+kept enrichment paused, and restarted cleanly. A second attempt displayed a
+retryable timeout. This Mac could reach the same official GitHub asset from
+Node and curl, but not from Electron’s Node or Chromium networking. Little Snitch
+is running; a blocking rule has not been confirmed. No firewall setting was
+changed. Successful live installation remains unchecked, and a source-app test
+would still not prove signed-release helper behavior.
 
 ### C. Keep the library useful as new things arrive
 

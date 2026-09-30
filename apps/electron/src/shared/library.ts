@@ -92,3 +92,10 @@ export type CaptureInput = {
   excerpt: string
 }
 export type CaptureResult = { resourceId: string; pageId: string; reusedResource: boolean }
+
+export type LibraryHelperStatus = {
+  state: 'missing' | 'ready' | 'damaged' | 'installing' | 'unsupported'
+  version: string
+  bytes: number
+  reason?: string
+}
