@@ -1191,3 +1191,39 @@ or turn local recovery into an off-device backup.
 **Tripwire:** A source cannot be represented as exact retained bytes, evidence
 needs selective deletion, or import resume requires a different source contract.
 Revisit custody and migration before changing the format or retention promise.
+
+## ADR-39: Validate desktop upgrades on a separate workspace generation
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** A known older database needs an upgrade path without making the only
+copy the migration's test subject. Recovery also needs to run while the app stays
+open for days.
+
+**Decision:** The desktop supports candidate migration from the oldest tested
+historical schema, currently version 8, through the current schema. Before any
+normal store opens, validate identity and pin a verified original checkpoint.
+Apply every registered SQL step to a separate copy. Validate the resulting column
+contract, existing row counts, foreign keys, and integrity before promotion
+through the durable restore journal. Keep the replaced generation. Unknown,
+earlier, future, or unreadable formats stop in recovery without writes to their
+database. A promoted workspace pauses automatic network services for review.
+
+The native checkpoint manifest gains optional `sourceFingerprint`, `storageVersion`,
+and `pinned` fields. `appVersion` names the app that made the copy, not a promise
+that every app with that version can open its contents. The scheduler checks once
+a minute, copying changed data when fifteen minutes overdue. This supersedes
+ADR-37's flat twenty-copy retention: keep one point per fifteen-minute bucket for
+a day, per day for a week, and per week for four weeks, plus the latest two.
+Pinned points and preserved originals are not pruned automatically. Pruning still
+requires a newly verified point, and copy failures remain visible in the app.
+
+**Tradeoff:** Backups can briefly delay editing, pinned originals consume space,
+and only tested historical versions migrate automatically. Native copies still
+exclude browser settings and need the same Mac key store. This decision adds no
+portable or off-device guarantee.
+
+**Tripwire:** A migration changes existing row contents, the oldest supported
+version changes, or checkpoint time/storage use disrupts daily work. Add the
+relevant historical fixture and data-preservation proof before widening support
+or changing the displayed recovery policy.
