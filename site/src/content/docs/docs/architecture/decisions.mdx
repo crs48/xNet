@@ -1131,3 +1131,33 @@ moderation path that writes to storage rather than to a policy list, or a
 retention job that treats suspension as a deletion trigger. Quota and dormancy
 reclamation are the honest place this sneaks in, because there the deletion has
 an operator's reason and no villain attached.
+
+## ADR-37: Native desktop recovery preserves whole workspace generations
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** A desktop upgrade can change storage while the same Mac holds the only
+copy of a workspace. A database dump alone omits blobs, imported source files, and
+the desktop identity needed to use the data.
+
+**Decision:** The local `xnet-desktop-checkpoint/1` format stores a manifest and a
+complete copy of `xnet-data`. Its manifest names the app version, profile, identity
+mode, and every file's size and SHA-256 hash. Both SQLite stores must pass an
+integrity check. Production copies require the stored identity seed. Test copies
+are explicitly marked and cannot restore a daily workspace.
+
+A copy becomes available only after verification and an atomic directory rename.
+Restore verifies it again, stages a new generation, and records a durable journal
+before renaming directories. Startup finishes that journal before opening any
+store. The replaced generation remains available separately from the last twenty
+recovery copies. An installer waits for saved text, closed stores, and a verified
+copy before running.
+
+**Tradeoff:** These are local recovery copies, not encrypted portable backups.
+They exclude Chromium settings and sign-in sessions. Platform-encrypted keys still
+need the same Mac's key store. Losing the disk loses these copies too. The product
+must state this scope until separate off-device and cross-Mac recovery are proven.
+
+**Tripwire:** A persistent file moves outside `xnet-data`, a database changes its
+storage format, or recovery must work on a different Mac. Any of these reopens the
+manifest scope and restore protocol before a broader protection claim ships.

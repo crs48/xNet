@@ -97,6 +97,11 @@ describeNativeSQLite('ElectronSQLiteAdapter', () => {
       expect(result?.journal_mode).toBe('wal')
     })
 
+    it('syncs the WAL before acknowledging a committed write', async () => {
+      const result = await adapter.queryOne<{ synchronous: number }>('PRAGMA synchronous')
+      expect(result?.synchronous).toBe(2)
+    })
+
     it('enables foreign keys', async () => {
       const result = await adapter.queryOne<{ foreign_keys: number }>('PRAGMA foreign_keys')
       expect(result?.foreign_keys).toBe(1)

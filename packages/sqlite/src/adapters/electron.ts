@@ -110,8 +110,8 @@ export class ElectronSQLiteAdapter implements SQLiteAdapter {
       this.db.pragma('busy_timeout = 5000')
     }
 
-    // Performance optimizations
-    this.db.pragma('synchronous = NORMAL')
+    // A resolved desktop write must include the WAL sync, not just a memory acknowledgement.
+    this.db.pragma('synchronous = FULL')
     this.db.pragma('cache_size = -64000') // 64MB cache
     this.db.pragma('temp_store = MEMORY')
     // Query-planner statistics hygiene (exploration 0264): bound ANALYZE

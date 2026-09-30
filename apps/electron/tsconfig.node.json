@@ -9,6 +9,7 @@
     "outDir": "./out"
   },
   "include": [
+    "src/shared/**/*.ts",
     "src/main/**/*.ts",
     "src/preload/**/*.ts",
     "src/storage/**/*.ts",

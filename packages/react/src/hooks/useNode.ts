@@ -30,16 +30,16 @@
  * update({ typo: 'x' })           // Type error!
  * ```
  */
-import type { SyncManager } from '@xnetjs/runtime'
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
+import type { SyncManager } from '@xnetjs/runtime'
+import { METABRIDGE_ORIGIN, METABRIDGE_SEED_ORIGIN, WebSocketSyncProvider } from '@xnetjs/runtime'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { useDataBridge, useXNetInternal } from '../context'
 import { useInstrumentation } from '../instrumentation'
-import { METABRIDGE_ORIGIN, METABRIDGE_SEED_ORIGIN } from '@xnetjs/runtime'
-import { WebSocketSyncProvider } from '@xnetjs/runtime'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
+import { persistDocument, registerDocumentFlush, retryDocumentWrite } from './document-writes'
 import { useNodeStore } from './useNodeStore'
 import { useSyncManager } from './useSyncManager'
 
@@ -214,14 +214,6 @@ function hasSyncManagerSetter(
 // Hook Implementation
 // =============================================================================
 
-/**
- * Module-level map tracking in-flight save promises by document ID.
- * When a useNode instance unmounts, it stores its flush promise here.
- * The next useNode instance loading the same doc awaits this before reading,
- * ensuring content survives navigation.
- */
-const pendingFlushes = new Map<string, Promise<void>>()
-
 /** High-resolution clock with a Date.now fallback for non-DOM runtimes. */
 function nowMs(): number {
   return typeof performance !== 'undefined' ? performance.now() : Date.now()
@@ -303,6 +295,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   const providerRef = useRef<WebSocketSyncProvider | null>(null)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const docRef = useRef<Y.Doc | null>(null)
+  const editRevision = useRef(0)
   const creatingRef = useRef(false)
   const storeRef = useRef(store)
   storeRef.current = store
@@ -360,10 +353,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     try {
       // Await any in-flight flush from a previous unmount to ensure
       // we read the latest persisted content (race condition on navigation)
-      const pendingFlush = pendingFlushes.get(id)
-      if (pendingFlush) {
-        await pendingFlush
-      }
+      await retryDocumentWrite(store, id)
 
       // Load node properties
       let node = await store.get(id)
@@ -527,16 +517,21 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   const save = useCallback(async () => {
     if (!store || !id || !docRef.current) return
 
-    // Clear the timeout ref since we're about to save
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
     saveTimeoutRef.current = null
+    const revision = editRevision.current
 
     try {
       const content = Y.encodeStateAsUpdate(docRef.current)
-      await store.setDocumentContent(id, content)
-      setIsDirty(false)
+      await persistDocument(store, id, content)
+      if (revision === editRevision.current) {
+        setIsDirty(false)
+        setError(null)
+      }
       setLastSavedAt(Date.now())
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)))
+      throw err
     }
   }, [store, id])
 
@@ -544,8 +539,11 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   const saveRef = useRef(save)
   saveRef.current = save
 
+  useEffect(() => registerDocumentFlush(() => saveRef.current()), [store, id])
+
   // Debounced save - use ref to avoid dependency changes
   const scheduleSave = useCallback(() => {
+    editRevision.current += 1
     setIsDirty(true)
 
     if (saveTimeoutRef.current) {
@@ -553,7 +551,9 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      saveRef.current()
+      void saveRef.current().catch(() => {
+        /* The hook exposes the error; the barrier retains the write. */
+      })
     }, persistDebounce)
   }, [persistDebounce])
 
@@ -1046,16 +1046,10 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       // This ensures content survives navigation regardless of sync mode.
       if (docRef.current && store && id) {
         const content = Y.encodeStateAsUpdate(docRef.current)
-        const flushPromise = store
-          .setDocumentContent(id, content)
-          .catch(() => {
-            // Silent fail on unmount
-          })
-          .finally(() => {
-            pendingFlushes.delete(id)
-          })
-        // Store the flush promise so the next load() can await it
-        pendingFlushes.set(id, flushPromise)
+        const flushPromise = persistDocument(store, id, content)
+        void flushPromise.catch((error: unknown) =>
+          console.error('[useNode] Unsaved document retained:', error)
+        )
       }
 
       // Release doc back to DataBridge (or SyncManager) on unmount
@@ -1089,8 +1083,8 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         try {
           const content = Y.encodeStateAsUpdate(docRef.current)
           // Fire and forget - we can't await in beforeunload
-          store.setDocumentContent(id, content).catch(() => {
-            // Silent fail - page is unloading anyway
+          void persistDocument(store, id, content).catch((error: unknown) => {
+            console.error('[useNode] Document flush failed:', error)
           })
         } catch {
           // Silent fail on encoding error
