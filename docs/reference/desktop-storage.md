@@ -44,7 +44,10 @@ the creating app version, profile, identity mode, and capture time. New points
 also record the workspace fingerprint and known storage version. A point is
 visible only after file hashes, required files, and both databases pass checks.
 An interrupted copy stays incomplete. A changed source, unreadable file, or
-missing identity fails visibly.
+missing identity fails visibly. An older point with an unreadable manifest stays
+on disk and appears as a warning in Settings. It is excluded from retention
+deletion and does not block fresh copies or safe quit. Restore still verifies
+every file, even when the manifest can be listed.
 
 ```mermaid
 flowchart LR

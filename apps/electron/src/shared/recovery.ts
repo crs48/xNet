@@ -10,3 +10,8 @@ export type CheckpointManifest = {
   storageVersion?: number
   files: { path: string; size: number; sha256: string }[]
 }
+
+export type CheckpointListing = {
+  checkpoints: CheckpointManifest[]
+  unreadable: { id: string; reason: string }[]
+}

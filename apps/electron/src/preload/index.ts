@@ -582,6 +582,7 @@ contextBridge.exposeInMainWorld('xnetNodes', {
 
 // Type declaration for renderer
 export interface RecoveryStatus {
+  unreadable: { id: string; reason: string }[]
   checkpoints: CheckpointManifest[]
   busy: boolean
   error: string | null

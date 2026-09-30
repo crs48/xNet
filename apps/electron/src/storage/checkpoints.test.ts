@@ -6,6 +6,7 @@ import { beforeEach, afterEach, describe, expect, it } from 'vitest'
 import {
   createCheckpoint,
   listCheckpoints,
+  inspectCheckpoints,
   retainCheckpoints,
   verifyCheckpoint
 } from './checkpoints'
@@ -147,4 +148,49 @@ describe('complete native recovery copies', () => {
     })
     await expect(verifyCheckpoint(join(recoveryPath, point.id))).rejects.toThrow('test identity')
   })
+})
+
+it('preserves damaged older manifests while creating and retaining new verified copies', async () => {
+  const broken = await create()
+  await writeFile(join(recoveryPath, broken.id, 'manifest.json'), '{truncated')
+  await create()
+  await create()
+  const newest = await create()
+  await retainCheckpoints(recoveryPath, newest.id, { keep: 2 })
+  const listing = await inspectCheckpoints(recoveryPath)
+  expect(listing.checkpoints).toHaveLength(2)
+  expect(listing.checkpoints[0].id).toBe(newest.id)
+  expect(listing.unreadable).toEqual([{ id: broken.id, reason: expect.any(String) }])
+  expect(await readFile(join(recoveryPath, broken.id, 'manifest.json'), 'utf8')).toBe('{truncated')
+  await expect(listCheckpoints(recoveryPath)).rejects.toThrow('Unreadable recovery points')
+  await verifyCheckpoint(join(recoveryPath, newest.id))
+})
+
+it('reports recovery symlinks and unsafe manifests without following or pruning them', async () => {
+  const point = await create()
+  const alias = '1-11111111-1111-1111-1111-111111111111'
+  await symlink(join(recoveryPath, point.id), join(recoveryPath, alias))
+  const corrupt = await create()
+  const manifestPath = join(recoveryPath, corrupt.id, 'manifest.json')
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+  manifest.files.push({ path: '../outside', size: 0, sha256: '0'.repeat(64) })
+  await writeFile(manifestPath, JSON.stringify(manifest))
+  const listing = await inspectCheckpoints(recoveryPath)
+  expect(listing.checkpoints.map((value) => value.id)).toEqual([point.id])
+  expect(listing.unreadable).toHaveLength(2)
+  expect(listing.unreadable.map((value) => value.reason)).toEqual(
+    expect.arrayContaining([
+      'Recovery point must be a real directory',
+      'Invalid recovery file path'
+    ])
+  )
+  const newest = await create()
+  await retainCheckpoints(recoveryPath, newest.id, { keep: 2 })
+  expect(await readdir(recoveryPath)).toEqual(expect.arrayContaining([alias, corrupt.id]))
+})
+
+it('distinguishes absent recovery storage from an unreadable recovery root', async () => {
+  expect(await inspectCheckpoints(recoveryPath)).toEqual({ checkpoints: [], unreadable: [] })
+  await writeFile(recoveryPath, 'not a directory')
+  await expect(inspectCheckpoints(recoveryPath)).rejects.toThrow()
 })

@@ -1,4 +1,4 @@
-import type { CheckpointManifest } from '../shared/recovery'
+import type { CheckpointManifest, CheckpointListing } from '../shared/recovery'
 import { createHash, randomUUID } from 'node:crypto'
 import { createReadStream, constants } from 'node:fs'
 import { copyFile, lstat, mkdir, readdir, readFile, rename, rm, open } from 'node:fs/promises'
@@ -204,6 +204,12 @@ async function readManifest(
   path: string,
   options: { allowTestIdentity?: boolean } = {}
 ): Promise<CheckpointManifest> {
+  const directory = await lstat(path)
+  if (!directory.isDirectory() || directory.isSymbolicLink())
+    throw new Error('Recovery point must be a real directory')
+  const metadata = await lstat(join(path, 'manifest.json'))
+  if (!metadata.isFile() || metadata.isSymbolicLink())
+    throw new Error('Recovery manifest must be a regular file')
   const parsed: unknown = JSON.parse(await readFile(join(path, 'manifest.json'), 'utf8'))
   if (!parsed || typeof parsed !== 'object') throw new Error('Invalid recovery manifest')
   const manifest = parsed as CheckpointManifest
@@ -245,6 +251,7 @@ async function readManifest(
     throw new Error('Invalid recovery file inventory')
   if (new Set(files.map((file) => file.path)).size !== files.length)
     throw new Error('Duplicate recovery files')
+  for (const file of files) safePath(join(path, 'workspace'), file.path)
   const required = manifest.identity === 'test' ? DATABASES : REQUIRED
   for (const name of required)
     if (!files.some((file) => file.path === name))
@@ -282,25 +289,42 @@ export async function verifyCheckpoint(
   return manifest
 }
 
-export async function listCheckpoints(recoveryPath: string): Promise<CheckpointManifest[]> {
+/** Manifest inspection is cheap; restore still verifies every byte before changing anything. */
+export async function inspectCheckpoints(recoveryPath: string): Promise<CheckpointListing> {
   let names: string[]
   try {
     names = await readdir(recoveryPath)
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT')
+      return { checkpoints: [], unreadable: [] }
     throw error
   }
-  const checkpoints: CheckpointManifest[] = []
-  for (const name of names
-    .filter((name) => /^\d+-[a-f0-9-]{36}$/.test(name))
-    .sort()
-    .reverse()) {
-    // Listing is cheap; Restore always verifies every byte again.
-    const value = await readManifest(join(recoveryPath, name), { allowTestIdentity: true })
-    if (value.id !== name) throw new Error(`Unreadable recovery point: ${name}`)
-    checkpoints.push(value)
+  const result: CheckpointListing = { checkpoints: [], unreadable: [] }
+  for (const name of names.filter((name) => /^\d+-[a-f0-9-]{36}$/.test(name))) {
+    try {
+      const value = await readManifest(join(recoveryPath, name), { allowTestIdentity: true })
+      if (value.id !== name) throw new Error('Recovery directory and manifest IDs differ')
+      result.checkpoints.push(value)
+    } catch (error) {
+      result.unreadable.push({
+        id: name,
+        reason: error instanceof Error ? error.message : String(error)
+      })
+    }
   }
-  return checkpoints
+  result.checkpoints.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+  result.unreadable.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+  return result
+}
+
+/** Strict caller convenience: incomplete listing can never masquerade as an empty workspace. */
+export async function listCheckpoints(recoveryPath: string): Promise<CheckpointManifest[]> {
+  const result = await inspectCheckpoints(recoveryPath)
+  if (result.unreadable.length)
+    throw new Error(
+      `Unreadable recovery points: ${result.unreadable.map((point) => point.id).join(', ')}`
+    )
+  return result.checkpoints
 }
 
 /** Prune only after a new, complete point has passed verification. Preserved originals are separate. */
@@ -314,7 +338,9 @@ export async function retainCheckpoints(
     throw new Error('Keep at least two recovery copies')
   if (!/^\d+-[a-f0-9-]{36}$/.test(verifiedId)) throw new Error('Invalid recovery point')
   await verifyCheckpoint(join(recoveryPath, verifiedId), options)
-  const points = await listCheckpoints(recoveryPath)
+  // Unknown/corrupt points remain on disk for inspection. They must neither block
+  // a fresh verified copy nor become candidates for automatic deletion.
+  const { checkpoints: points } = await inspectCheckpoints(recoveryPath)
   const retained =
     keep === undefined
       ? retainedCheckpointIds(points, Date.now())

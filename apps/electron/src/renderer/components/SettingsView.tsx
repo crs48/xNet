@@ -268,7 +268,7 @@ function DataSettings() {
           {busy ? 'Working…' : 'Create recovery copy'}
         </button>
         <button
-          disabled={busy || !status?.checkpoints.length}
+          disabled={busy || !status || !(status.checkpoints.length + status.unreadable.length)}
           className={buttonClass}
           onClick={() => void run(() => window.xnet.showRecoveryFolder())}
         >
@@ -277,6 +277,21 @@ function DataSettings() {
       </div>
       {status?.checkpoints.length === 0 && (
         <p className="text-sm">No verified local recovery copy yet.</p>
+      )}
+      {Boolean(status?.unreadable.length) && (
+        <div role="alert" className="space-y-2 rounded-md border border-destructive p-3 text-sm">
+          <p>
+            {status!.unreadable.length} recovery point(s) could not be read. Their files have been
+            kept for inspection. New recovery copies can still be made.
+          </p>
+          <ul className="space-y-1">
+            {status!.unreadable.map((point) => (
+              <li key={point.id} className="break-all">
+                {point.id}: {point.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       <section className="space-y-3 rounded-md border border-border p-4">
         <h3 className="font-medium">Encrypted backup</h3>

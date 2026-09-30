@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import Database from 'better-sqlite3'
-import { beforeEach, afterEach, expect, it } from 'vitest'
+import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { getOrCreateIdentitySeed } from '../main/identity-seed'
 import { loadSeedPhrase, storeSeedPhrase } from '../main/secure-seed'
 import { createCheckpoint, verifyCheckpoint } from './checkpoints'
@@ -18,6 +18,9 @@ const safe = (mac: string): SafeStorageLike => ({
     return text.slice(mac.length + 1)
   }
 })
+// Production-cost scrypt and fsync run repeatedly; shared CI CPUs need a bounded larger budget.
+vi.setConfig({ testTimeout: 60_000 })
+
 const password = 'test-only four random recovery words'
 let root: string
 let dataPath: string

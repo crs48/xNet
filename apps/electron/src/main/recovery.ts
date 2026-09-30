@@ -5,7 +5,7 @@ import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from 'electro
 import { createCheckpointSchedule } from '../storage/checkpoint-policy'
 import {
   createCheckpoint,
-  listCheckpoints,
+  inspectCheckpoints,
   retainCheckpoints,
   workspaceFingerprint,
   type CheckpointManifest
@@ -99,7 +99,7 @@ export function setupRecovery(options: {
   const tick = createCheckpointSchedule({
     now: Date.now,
     busy: () => recoveryIsBusy() || hasActiveSocialImports(),
-    latest: async () => (await listCheckpoints(recoveryPath))[0] ?? null,
+    latest: async () => (await inspectCheckpoints(recoveryPath)).checkpoints[0] ?? null,
     fingerprint: () => workspaceFingerprint(dataPath),
     create: () => checkpointWorkspace(),
     failed: (error) => reportFailure(error instanceof Error ? error.message : String(error))
@@ -109,7 +109,7 @@ export function setupRecovery(options: {
   timer.unref()
   app.once('will-quit', () => clearInterval(timer))
   ipcMain.handle('xnet:recovery:status', async () => ({
-    checkpoints: await listCheckpoints(recoveryPath),
+    ...(await inspectCheckpoints(recoveryPath)),
     busy: busy || inFlight !== null,
     error: lastFailure,
     protection: 'local-only',
@@ -283,7 +283,7 @@ export function setupRecovery(options: {
     busy = true
     let stopped = false
     try {
-      const points = await listCheckpoints(recoveryPath)
+      const { checkpoints: points } = await inspectCheckpoints(recoveryPath)
       const point = points.find((point) => point.id === id && point.profile === profile)
       if (!point) throw new Error('Recovery point was not found in this workspace.')
       const { response } = await dialog.showMessageBox({

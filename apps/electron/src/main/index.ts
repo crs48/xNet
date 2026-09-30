@@ -5,7 +5,7 @@ import { appendFileSync, existsSync, readlinkSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { app, BrowserWindow, dialog, safeStorage } from 'electron'
-import { listCheckpoints } from '../storage/checkpoints'
+import { inspectCheckpoints } from '../storage/checkpoints'
 import { requireCompatibleDatabase } from '../storage/compatibility'
 import { prepareWorkspaceUpgrade } from '../storage/migrations'
 import { recoverPendingRestore, restoreCheckpoint } from '../storage/restore'
@@ -559,7 +559,10 @@ app
     await closeStorage()
     let latest: string | undefined
     try {
-      latest = (await listCheckpoints(recoveryPath)).find((point) => point.profile === profile)?.id
+      const listing = await inspectCheckpoints(recoveryPath)
+      for (const point of listing.unreadable)
+        console.error('[Recovery] Preserved unreadable point:', point.id, point.reason)
+      latest = listing.checkpoints.find((point) => point.profile === profile)?.id
     } catch (listingError) {
       console.error('[Recovery] Could not list recovery copies:', listingError)
     }
