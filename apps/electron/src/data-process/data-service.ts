@@ -22,7 +22,6 @@ import type {
   NodeChange
 } from '@xnetjs/data'
 import type { ElectronSQLiteDiagnostics } from '@xnetjs/sqlite'
-import { existsSync, unlinkSync } from 'fs'
 import { hashContent, createContentId } from '@xnetjs/core'
 import { NodeStore, SQLiteNodeStorageAdapter } from '@xnetjs/data'
 import { createElectronSQLiteAdapter, ElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
@@ -38,6 +37,7 @@ import {
 } from '@xnetjs/sync'
 import WebSocket from 'ws'
 import * as Y from 'yjs'
+import { requireCompatibleDatabase } from '../storage/compatibility'
 import { sendEvent } from './events'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -1103,53 +1103,7 @@ export function createDataService(config: DataServiceConfig): DataService {
     async initialize(): Promise<void> {
       log('Initializing database at:', config.dbPath)
 
-      // Check if database exists and has old schema (without version tracking)
-      if (existsSync(config.dbPath)) {
-        try {
-          const tempAdapter = new ElectronSQLiteAdapter()
-          await tempAdapter.open({ path: config.dbPath })
-          const version = await tempAdapter.getSchemaVersion()
-          await tempAdapter.close()
-
-          if (version === 0) {
-            // Old database without version tracking - delete it
-            log('Found old database without version tracking, removing...')
-            try {
-              unlinkSync(config.dbPath)
-            } catch {
-              // File may not exist, ignore
-            }
-            try {
-              unlinkSync(`${config.dbPath}-wal`)
-            } catch {
-              // File may not exist, ignore
-            }
-            try {
-              unlinkSync(`${config.dbPath}-shm`)
-            } catch {
-              // File may not exist, ignore
-            }
-          }
-        } catch {
-          // Corrupted database - delete it
-          log('Found corrupted database, removing...')
-          try {
-            unlinkSync(config.dbPath)
-          } catch {
-            // File may not exist, ignore
-          }
-          try {
-            unlinkSync(`${config.dbPath}-wal`)
-          } catch {
-            // File may not exist, ignore
-          }
-          try {
-            unlinkSync(`${config.dbPath}-shm`)
-          } catch {
-            // File may not exist, ignore
-          }
-        }
-      }
+      requireCompatibleDatabase(config.dbPath)
 
       // Create adapter with unified schema.
       //

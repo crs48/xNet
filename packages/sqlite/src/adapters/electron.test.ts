@@ -78,6 +78,16 @@ describeNativeSQLite('ElectronSQLiteAdapter', () => {
   })
 
   describe('Lifecycle', () => {
+    it('does not report an inspection failure as an unversioned database', async () => {
+      await adapter.close()
+      await expect(adapter.getSchemaVersion()).rejects.toThrow()
+    })
+
+    it('rejects malformed version tracking instead of initializing over it', async () => {
+      await adapter.exec('DROP TABLE _schema_version; CREATE TABLE _schema_version (wrong TEXT)')
+      await expect(adapter.getSchemaVersion()).rejects.toThrow()
+    })
+
     it('creates database file', () => {
       expect(existsSync(dbPath)).toBe(true)
     })

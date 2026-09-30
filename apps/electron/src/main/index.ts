@@ -5,6 +5,7 @@ import { appendFileSync, readlinkSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { app, BrowserWindow } from 'electron'
+import { requireCompatibleDatabase } from '../storage/compatibility'
 import { setupAgentBridgeIPC, startAgentBridge, stopAgentBridge } from './agent-bridge-manager'
 import { setupCloudflareTunnelIPC, stopCloudflareTunnel } from './cloudflare-tunnel-ipc'
 import { installMainCrashLog } from './crash-log'
@@ -20,11 +21,12 @@ import { titleSuffix } from './dev-scope'
 import { setupIPC, getOrCreateStorage } from './ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { setupMeetingCaptureIPC } from './meeting-capture-ipc'
-import { setupRecordingCaptureIPC, shutdownRecordingCapture } from './recording-capture-ipc'
 import { createMenu } from './menu'
 import { dataPath, profile } from './profile'
+import { setupRecordingCaptureIPC, shutdownRecordingCapture } from './recording-capture-ipc'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
 import { setupSocialImportIPC } from './social-import-ipc'
+import { showStartupRecovery } from './startup-recovery'
 import { setupStorybookIPC, stopStorybook } from './storybook-ipc'
 import { initAutoUpdater } from './updater'
 
@@ -321,91 +323,98 @@ process.on('unhandledRejection', (reason) => {
 installMainCrashLog(app.getPath('userData'))
 bootTrace('main module loaded')
 
-app.whenReady().then(async () => {
-  bootTrace('whenReady fired')
-  app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL)
+app
+  .whenReady()
+  .then(async () => {
+    bootTrace('whenReady fired')
+    app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL)
 
-  for (const arg of process.argv) {
-    if (arg.startsWith(`${DEEP_LINK_PROTOCOL}://`)) {
-      handleDeepLink(arg)
-      break
-    }
-  }
-
-  // Create storage early so IPC can use it
-  const storage = getOrCreateStorage()
-  bootTrace('opening storage')
-  await storage.open()
-
-  // Spawn the data utility process (SQLite, Yjs, WebSocket sync)
-  // This runs data operations off the main thread
-  bootTrace('spawning data process')
-  await spawnDataProcess(dbPath)
-  bootTrace('data process ready')
-
-  // Setup IPC handlers for main process operations
-  setupIPC()
-
-  // Setup IPC handlers that proxy to data utility process
-  setupDataProcessIPC(() => mainWindow)
-
-  // Setup service IPC for plugin background processes
-  setupServiceIPC()
-
-  // Setup Local API IPC handlers
-  setupLocalAPIIPC()
-
-  // Setup local social import IPC handlers
-  setupSocialImportIPC(() => mainWindow)
-
-  // Setup meeting capture IPC (system-audio loopback + native STT engines)
-  setupMeetingCaptureIPC()
-
-  // Setup recording capture IPC (ScreenCaptureKit helper, exploration 0414)
-  setupRecordingCaptureIPC()
-
-  // Setup Cloudflare tunnel IPC handlers
-  cleanupTunnelIPC = setupCloudflareTunnelIPC()
-
-  // Setup agent bridge IPC handlers (drives the user's claude/codex CLI)
-  setupAgentBridgeIPC()
-
-  // Setup dev-only Storybook IPC handlers
-  if (process.env.NODE_ENV === 'development') {
-    setupStorybookIPC()
-  }
-
-  // Start Local API server (for external integrations)
-  bootTrace('starting local API')
-  await startLocalAPI()
-
-  // Start the agent bridge daemon (no-op if the agent CLI isn't installed).
-  // Fire-and-forget: a slow `--version` probe must not delay window creation.
-  void startAgentBridge().catch(() => undefined)
-
-  // Create menu
-  createMenu()
-
-  // Create window
-  bootTrace('creating window')
-  await createWindow()
-  bootTrace('window created')
-
-  // Setup MessagePort channel between renderer and data process
-  if (mainWindow) {
-    setupWindowChannel(mainWindow)
-    initAutoUpdater(mainWindow)
-  }
-
-  app.on('activate', async () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      await createWindow()
-      if (mainWindow) {
-        setupWindowChannel(mainWindow)
+    for (const arg of process.argv) {
+      if (arg.startsWith(`${DEEP_LINK_PROTOCOL}://`)) {
+        handleDeepLink(arg)
+        break
       }
     }
+
+    // Inspect both stores before either is opened for writes.
+    requireCompatibleDatabase(dbPath)
+    requireCompatibleDatabase(join(dataPath, 'xnet.db'), 'blobs')
+
+    // Create storage early so IPC can use it
+    const storage = getOrCreateStorage()
+    bootTrace('opening storage')
+    await storage.open()
+
+    // Spawn the data utility process (SQLite, Yjs, WebSocket sync)
+    // This runs data operations off the main thread
+    bootTrace('spawning data process')
+    await spawnDataProcess(dbPath)
+    bootTrace('data process ready')
+
+    // Setup IPC handlers for main process operations
+    setupIPC()
+
+    // Setup IPC handlers that proxy to data utility process
+    setupDataProcessIPC(() => mainWindow)
+
+    // Setup service IPC for plugin background processes
+    setupServiceIPC()
+
+    // Setup Local API IPC handlers
+    setupLocalAPIIPC()
+
+    // Setup local social import IPC handlers
+    setupSocialImportIPC(() => mainWindow)
+
+    // Setup meeting capture IPC (system-audio loopback + native STT engines)
+    setupMeetingCaptureIPC()
+
+    // Setup recording capture IPC (ScreenCaptureKit helper, exploration 0414)
+    setupRecordingCaptureIPC()
+
+    // Setup Cloudflare tunnel IPC handlers
+    cleanupTunnelIPC = setupCloudflareTunnelIPC()
+
+    // Setup agent bridge IPC handlers (drives the user's claude/codex CLI)
+    setupAgentBridgeIPC()
+
+    // Setup dev-only Storybook IPC handlers
+    if (process.env.NODE_ENV === 'development') {
+      setupStorybookIPC()
+    }
+
+    // Start Local API server (for external integrations)
+    bootTrace('starting local API')
+    await startLocalAPI()
+
+    // Start the agent bridge daemon (no-op if the agent CLI isn't installed).
+    // Fire-and-forget: a slow `--version` probe must not delay window creation.
+    void startAgentBridge().catch(() => undefined)
+
+    // Create menu
+    createMenu()
+
+    // Create window
+    bootTrace('creating window')
+    await createWindow()
+    bootTrace('window created')
+
+    // Setup MessagePort channel between renderer and data process
+    if (mainWindow) {
+      setupWindowChannel(mainWindow)
+      initAutoUpdater(mainWindow)
+    }
+
+    app.on('activate', async () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        await createWindow()
+        if (mainWindow) {
+          setupWindowChannel(mainWindow)
+        }
+      }
+    })
   })
-})
+  .catch((error: unknown) => showStartupRecovery(error, dataPath))
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

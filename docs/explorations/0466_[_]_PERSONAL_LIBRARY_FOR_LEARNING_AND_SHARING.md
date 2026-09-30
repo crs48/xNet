@@ -486,14 +486,14 @@ Export through a staging directory, then replace only the managed guide director
 
 Deleting a local draft does not retract a public page. Offer an explicit unpublish/export operation and explain that copies and caches may remain. Sensitive session notes and client records are outside this public-guide workflow. Private client spaces need a separate review of authorization, revocation, and recovery before relying on them.
 
-## Work in five bounded passes
+## Implementation checklist: five bounded passes
 
-All items below are proposed work. None is checked off by writing this exploration. Each pass should end with a useful, inspectable result; do not reopen the entire platform backlog.
+Unchecked items are proposed work. Checked items carry implementation evidence below. Each pass should end with a useful, inspectable result; do not reopen the entire platform backlog.
 
 ### A. Make the daily desktop safe to trust
 
-- [ ] Remove database deletion on old schema, inspection error, or failed startup. Preserve originals and expose a recovery state.
-- [ ] Add a read-only compatibility probe with distinct missing, supported, old, future, and unreadable outcomes before any writable open.
+- [x] Remove database deletion on old schema, inspection error, or failed startup. Preserve originals and expose a recovery state.
+- [x] Add a read-only compatibility probe with distinct missing, supported, old, future, and unreadable outcomes before any writable open.
 - [ ] Inventory all desktop data and key locations; define a complete checkpoint manifest and fail if required content is missing.
 - [ ] Protect the daily profile from every development launch; migrate existing profile selection without losing data or identity.
 - [ ] Wire a durable saved acknowledgement and coordinated renderer/data-process flush. Measure `FULL` transaction durability on the daily workload.
@@ -502,6 +502,8 @@ All items below are proposed work. None is checked off by writing this explorati
 - [ ] Implement ordered migration on a candidate copy, validated promotion, and a recovery path that preserves post-update edits.
 - [ ] Route every updater install path through the flush/checkpoint barrier; keep normal no-format-change updates simple.
 - [ ] Extend the existing release checks with a real installed Mac upgrade and restore exercise; prove signing and Keychain continuity across releases.
+
+**Implementation evidence (2026-09-29):** startup now probes a disposable database/WAL copy before either desktop store opens for writes, preserves unknown and damaged originals, and exposes a native recovery dialog before the renderer starts. Targeted SQLite, compatibility, and profile tests passed (74 tests); `pnpm turbo run typecheck` passed (101 tasks). The real Electron smoke checks passed for clean boot and restart persistence (2 tests). A separate isolated Electron recovery run observed the unversioned warning, zero normal windows, unchanged source bytes, and no newly created blob database. Desktop Node typechecking also exposed two missing import-preview coverage fields; both now reach the caller. Source-launch profile isolation is implemented, but profile transition and full recovery remain unchecked until the rest of pass A is proven.
 
 **Exit:** Chris can save notes, quit, reopen, install an update, and recover an earlier copy without a terminal. Development uses a different workspace. No valuable collection moves in before this exit is demonstrated.
 
@@ -553,7 +555,7 @@ All items below are proposed work. None is checked off by writing this explorati
 
 **Exit:** There is evidence of voluntary use and useful output, or a clear reason to change course.
 
-## Proof that matters
+## Validation checklist: proof that matters
 
 Recovery and usefulness need different evidence. The first requires controlled failures. The second requires real work. Passing a unit test cannot certify either whole experience.
 

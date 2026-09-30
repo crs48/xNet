@@ -209,6 +209,8 @@ async function stageArchive(request: SocialImportStageRequest): Promise<SocialIm
     stageId,
     recordCount: result.recordCount,
     sourceRecordCount: result.sourceRecordCount,
+    sourceRecordMode: result.sourceRecordMode,
+    sidecarSourceRecordCount: result.sidecarSourceRecordCount,
     canonicalRecordCount: result.canonicalRecordCount
   }
 }

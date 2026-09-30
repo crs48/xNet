@@ -443,15 +443,18 @@ export class ElectronSQLiteAdapter implements SQLiteAdapter {
   }
 
   async getSchemaVersion(): Promise<number> {
-    try {
-      const row = await this.queryOne<{ version: number }>(
-        'SELECT version FROM _schema_version ORDER BY version DESC LIMIT 1'
-      )
-      return row?.version ?? 0
-    } catch {
-      // Table doesn't exist yet
-      return 0
+    const table = await this.queryOne<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = '_schema_version'"
+    )
+    if (!table) return 0
+    const row = await this.queryOne<{ version: number }>(
+      'SELECT version FROM _schema_version ORDER BY version DESC LIMIT 1'
+    )
+    if (!row) return 0
+    if (!Number.isSafeInteger(row.version) || row.version < 1) {
+      throw new Error('Invalid SQLite schema version')
     }
+    return row.version
   }
 
   async setSchemaVersion(version: number): Promise<void> {
