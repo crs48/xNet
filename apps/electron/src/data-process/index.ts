@@ -56,6 +56,13 @@ process.parentPort?.on('message', async (event) => {
           library.configure(payload as { authorDID: string; signingKey: number[] })
           result = true
           break
+        case 'library:capture':
+          result = await library.capture(payload.input as import('../library/capture').CaptureInput)
+          break
+        case 'library:recover-captures':
+          await library.recoverCaptures()
+          result = true
+          break
         case 'library:scan':
           result = await library.scan()
           break
@@ -69,6 +76,9 @@ process.parentPort?.on('message', async (event) => {
           break
         case 'library:get':
           result = library.store.get(String(payload.id))
+          break
+        case 'library:lookup':
+          result = await library.lookup(String(payload.url))
           break
         case 'library:pause':
           await library.pause()

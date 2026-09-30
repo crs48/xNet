@@ -250,7 +250,8 @@ async function sendRequest(
       timeout: timeoutHandle
     })
 
-    dataProcess!.postMessage({ type, requestId, ...payload })
+    // Transport identity must remain authoritative even when a payload has its own retry key.
+    dataProcess!.postMessage({ ...payload, type, requestId })
   })
 }
 

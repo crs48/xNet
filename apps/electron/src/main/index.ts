@@ -482,7 +482,7 @@ app
     await spawnDataProcess(dbPath)
     bootTrace('data process ready')
     await configureLibrary()
-    setupLibraryIPC()
+    setupLibraryIPC(() => mainWindow)
 
     // Setup IPC handlers for main process operations
     setupIPC()

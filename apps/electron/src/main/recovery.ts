@@ -24,6 +24,25 @@ let lastFailure: string | null = null
 let busy = false
 export const recoveryIsBusy = () => busy || inFlight !== null
 
+/** Small native mutations share the same writer barrier as recovery copies. */
+export async function withWorkspaceWriteBarrier<T>(write: () => Promise<T>): Promise<T> {
+  if (recoveryIsBusy() || hasActiveSocialImports())
+    throw new Error('Wait for the current import or recovery operation, then retry saving.')
+  busy = true
+  try {
+    await flushRenderers()
+    await freezeLibrary()
+    return await write()
+  } finally {
+    try {
+      await thawLibrary()
+    } finally {
+      resumeRenderers()
+      busy = false
+    }
+  }
+}
+
 function reportFailure(message: string | null): void {
   lastFailure = message
   for (const window of BrowserWindow.getAllWindows())

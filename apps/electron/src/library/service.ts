@@ -1,8 +1,11 @@
+import type { CaptureInput, CaptureResult } from './capture'
 import type { LibraryJob, LibraryResource, LibraryStatus } from './types'
 import type { DataService } from '../data-process/data-service'
 import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
+import { PageSchema } from '@xnetjs/data'
+import { resourceIdentityForUrl } from '@xnetjs/social/import/core'
 import {
   SocialContentSchema,
   SocialEnrichmentSchema,
@@ -10,6 +13,7 @@ import {
 } from '@xnetjs/social/schemas'
 import { createTranscriptContentDrafts } from '@xnetjs/social/transcripts'
 import sharp from 'sharp'
+import { readPageText, saveCapture } from './capture'
 import {
   chooseTrack,
   fetchLibraryMetadata,
@@ -50,6 +54,29 @@ export class LibraryService {
   }
   status(): LibraryStatus & { error: string | null } {
     return { ...this.store.status(), error: this.fatal }
+  }
+  async capture(input: CaptureInput): Promise<CaptureResult> {
+    if (!this.frozen || !this.identity)
+      throw new Error('Capture requires the workspace write barrier and identity.')
+    return saveCapture({ input, store: this.store, data: this.data, identity: this.identity })
+  }
+  async recoverCaptures(): Promise<void> {
+    for (const intent of this.store.pendingCaptures()) await this.capture(intent.input)
+  }
+  async lookup(
+    url: string
+  ): Promise<{ id: string; title: string; notes: { pageId: string; title: string }[] } | null> {
+    const identity = resourceIdentityForUrl(url)
+    const cached = this.store.byUrl(identity.url) ?? this.store.get(identity.id)
+    const node = cached ? null : await this.data.getNode(identity.id)
+    if (!cached && !node) return null
+    return {
+      id: cached?.id ?? node!.id,
+      title: cached?.metadata?.title || cached?.title || string(node?.properties.title) || url,
+      notes: (cached?.notes ?? []).flatMap((note) =>
+        note.pageId ? [{ pageId: note.pageId, title: note.title }] : []
+      )
+    }
   }
   async pause(): Promise<void> {
     this.requireWritable()
@@ -146,9 +173,46 @@ export class LibraryService {
       }
       offset += nodes.length
       if (nodes.length < 500) {
+        await this.collectPageNotes(notes)
         this.store.replaceSourceNotes(notes)
         return count
       }
+    }
+  }
+  private async collectPageNotes(
+    notes: Map<string, NonNullable<LibraryResource['notes']>>
+  ): Promise<void> {
+    for (let offset = 0; ; offset += 100) {
+      const pages = await this.data.listNodes({
+        schemaId: PageSchema._schemaId,
+        limit: 100,
+        offset,
+        orderBy: { createdAt: 'asc' }
+      })
+      for (const page of pages) {
+        const sources = page.properties.sourceResources
+        if (!Array.isArray(sources) || !sources.length) continue
+        const bytes = await this.data.getDocumentContent(page.id)
+        if (!bytes)
+          throw new Error(
+            `Source note ${page.id} has no saved document; search was not marked complete.`
+          )
+        const body = readPageText(bytes)
+        for (const id of sources)
+          if (typeof id === 'string')
+            notes.set(id, [
+              ...(notes.get(id) ?? []),
+              {
+                id: page.id,
+                title: string(page.properties.title),
+                text: body,
+                url: '',
+                author: page.createdBy,
+                pageId: page.id
+              }
+            ])
+      }
+      if (pages.length < 100) return
     }
   }
   private async tick(): Promise<void> {

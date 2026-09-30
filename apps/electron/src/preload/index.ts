@@ -18,6 +18,29 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('xnet', {
   getRecoveryStatus: () => ipcRenderer.invoke('xnet:recovery:status'),
   libraryStatus: () => ipcRenderer.invoke('xnet:library:status'),
+  libraryCapture: (input: import('../library/capture').CaptureInput) =>
+    ipcRenderer.invoke('xnet:library:capture', input),
+  libraryLookup: (url: string) => ipcRenderer.invoke('xnet:library:lookup', { url }),
+  libraryCaptureShortcut: () => ipcRenderer.invoke('xnet:library:capture-shortcut'),
+  closeLibraryCapture: (returnToPreviousApp = true) => {
+    void ipcRenderer.invoke('xnet:library:capture-closed', returnToPreviousApp)
+  },
+  onLibraryCapture: (handler: (url: string) => void) => {
+    let active = true
+    const receive = () => {
+      void ipcRenderer
+        .invoke('xnet:library:capture-intent')
+        .then((intent: { url: string } | null) => {
+          if (active && intent) handler(intent.url)
+        })
+    }
+    ipcRenderer.on('xnet:library:capture-ready', receive)
+    receive()
+    return () => {
+      active = false
+      ipcRenderer.removeListener('xnet:library:capture-ready', receive)
+    }
+  },
   librarySearch: (options: { text?: string; platform?: string; offset?: number; limit?: number }) =>
     ipcRenderer.invoke('xnet:library:search', options),
   libraryGet: (id: string) => ipcRenderer.invoke('xnet:library:get', { id }),
@@ -563,6 +586,15 @@ export interface RecoveryStatus {
 }
 
 export interface XNetAPI {
+  libraryCaptureShortcut(): Promise<{ accelerator: string; registered: boolean }>
+  closeLibraryCapture(returnToPreviousApp?: boolean): void
+  onLibraryCapture(handler: (url: string) => void): () => void
+  libraryCapture(
+    input: import('../library/capture').CaptureInput
+  ): Promise<import('../library/capture').CaptureResult>
+  libraryLookup(
+    url: string
+  ): Promise<{ id: string; title: string; notes: { pageId: string; title: string }[] } | null>
   libraryStatus(): Promise<LibraryStatus & { error: string | null }>
   librarySearch(options: {
     text?: string

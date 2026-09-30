@@ -1,3 +1,4 @@
+import type { CaptureIntent } from './capture'
 import type {
   Capability,
   LibraryJob,
@@ -8,6 +9,7 @@ import type {
 } from './types'
 import Database from 'better-sqlite3'
 import { requireCompatibleDatabase } from '../storage/compatibility'
+import { validateCapture } from './capture'
 import { CAPABILITIES, LIBRARY_PROVIDER_VERSION } from './types'
 
 export const inspectLibraryDatabase = (path: string): void =>
@@ -76,6 +78,41 @@ export class LibraryStore {
   }
   close(): void {
     if (this.db.open) this.db.close()
+  }
+  private readCapture(raw: string): CaptureIntent {
+    const value = JSON.parse(raw) as CaptureIntent
+    if (
+      value.version !== 1 ||
+      !value.authorDID ||
+      !value.result?.pageId ||
+      !value.result.resourceId ||
+      !value.resource?.url ||
+      typeof value.completed !== 'boolean' ||
+      !Array.isArray(value.document) ||
+      value.document.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)
+    )
+      throw new Error('Capture recovery record is unreadable; it was preserved.')
+    validateCapture(value.input)
+    return value
+  }
+  captureIntent(requestId: string): CaptureIntent | null {
+    const row = this.db
+      .prepare('SELECT value FROM settings WHERE key=?')
+      .get(`capture:${requestId}`) as { value: string } | undefined
+    return row ? this.readCapture(row.value) : null
+  }
+  pendingCaptures(): CaptureIntent[] {
+    const rows = this.db.prepare("SELECT value FROM settings WHERE key LIKE 'capture:%'").all() as {
+      value: string
+    }[]
+    return rows.map((row) => this.readCapture(row.value)).filter((intent) => !intent.completed)
+  }
+  saveCaptureIntent(intent: CaptureIntent): void {
+    const value = JSON.stringify(intent)
+    this.readCapture(value)
+    this.db
+      .prepare('INSERT OR REPLACE INTO settings(key,value) VALUES (?,?)')
+      .run(`capture:${intent.input.requestId}`, value)
   }
   get paused(): boolean {
     return (

@@ -1336,3 +1336,43 @@ costs disk space, and schema upgrades need copied fixtures before support expand
 **Tripwire:** Another device must receive full enriched text, provider evidence
 outgrows practical backups, or a library schema/provider upgrade invalidates
 stored work. Revisit the storage boundary and migration proof before changing it.
+
+## ADR-43: Captured notes are private Pages with explicit source relations
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** Saving a URL with an observation should create something editable.
+Importers and metadata refreshes must not own or replace the user's writing.
+A crash between creating a Page and saving its document must leave a recoverable
+intent rather than an unexplained empty note.
+
+**Decision:** Page gains the optional `sourceResources` relation. Capture reuses
+a matching social resource and creates a separate private Page with its own Yjs
+text, original URL, optional excerpt, and source relation. A second note is an
+explicit new capture. The relation grants no access to either endpoint and does
+not publish the resource or Page.
+
+The desktop writes a version-1 capture intent to `library.db` before creating
+nodes. Its stable request ID binds the exact input, author DID, resource ID,
+Page ID, and initial document bytes. Success requires acknowledged node and
+text writes plus local search indexing. Repeating a request resumes that intent;
+it never overwrites an existing document. Startup resumes incomplete intents
+under the workspace write barrier. The journal is included in native and portable
+recovery and contains no signing key.
+
+The shared workbench hosts the form through an optional host capability. Desktop
+provides the native save and URL lookup. A failed attempt keeps the original
+payload fixed for retry; successful saves unlock the normal Page editor. Desktop
+capture uses Command/Ctrl+Shift+L, reads clipboard text only when invoked, and
+returns to the prior foreground application on macOS when capture finishes.
+
+**Tradeoff:** Capture spans recoverable steps rather than one cross-database
+transaction. The intent retains a copy of the original writing. Unsaved form
+text lives in the browser profile until Save creates a native intent; it is not
+part of the portable-backup claim. Other hosts may implement the same optional
+capability later. Source relations must be reviewed by the separate publishing
+path before a guide is exported.
+
+**Tripwire:** Capture starts editing an existing Page, source relations imply
+sharing permissions, or a new document format changes replay. Revisit request
+identity, privacy checks, and interrupted-save tests before expanding the path.

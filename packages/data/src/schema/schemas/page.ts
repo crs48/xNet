@@ -19,6 +19,9 @@ export const PageSchema = defineSchema({
     /** Page title */
     title: text({ required: true, maxLength: 500 }),
 
+    /** Resources cited by a personal note or guide. Visibility remains independent. */
+    sourceResources: relation({ multiple: true }),
+
     /** Emoji or icon URL */
     icon: text({}),
 
