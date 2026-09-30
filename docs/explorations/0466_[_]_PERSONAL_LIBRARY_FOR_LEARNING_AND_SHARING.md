@@ -5,39 +5,43 @@ last_updated: 2026-09-29
 review: 2026-11-10
 decider: Chris Smothers
 door: two-way
-tags: [daily-driver, personal-library, durability, desktop, publishing]
+tags:
+  [daily-driver, personal-library, social-import, knowledge-graph, durability, desktop, publishing]
 ---
 
 # A personal library for learning and sharing, safe enough to use every day
 
 > [!TIP]
-> Make xNet the place Chris saves a useful link, adds a thought, finds it again, and turns a few sources into something worth sharing. Start with a packaged Mac app whose data survives development and updates. That trust is part of the product.
+> Build Chris's library from the garden, website, Twitter/X and Instagram exports, YouTube playlists, and GitHub stars. Preserve how those things connect, then make them easy to find, annotate, and turn into useful guides. Start with a packaged Mac app whose data survives development and updates.
 
 ## The job to earn
 
-Chris already collects ideas, builds things, and shares resources. The missing piece is a comfortable place to let that work accumulate. A paper saved today should help answer a question next month. Notes from several sources should become a guide for a friend, a public page, or an optional resource for a coaching client.
+Chris already collects ideas, builds things, and shares resources. Much of that work has accumulated in social bookmarks, likes, saved videos, playlists, and starred repositories. The first library should bring that existing collection home, alongside the garden and website. A paper saved years ago should help answer a question next month. Notes from several sources should become a guide for a friend, a public page, or an optional resource for a coaching client.
 
-The daily loop is **save → find → compose → share**. Each step must be useful on its own. Saving should take seconds. Finding should work with a half-remembered phrase. Writing should start with notes already at hand. Sharing should give someone a readable link they can open without installing xNet.
+The starting loop is **import → connect → rediscover**. The daily loop is **save → find → compose → share**. Each step must be useful on its own. Import should preserve the evidence and organization already present. Finding should work with a half-remembered phrase, a creator, or a playlist. Writing should start with notes already at hand. Sharing should give someone a readable link they can open without installing xNet.
 
 There is a prerequisite: Chris must be able to trust the app while changing its code. If using xNet means rebuilding a checkout, watching migrations, or wondering whether an update will erase notes, the library will stay empty. The first milestone is a safe daily desktop installation with a simple update and recovery path.
 
-This exploration records the direction chosen in conversation, plus the durability concern raised afterward. It proposes work; it does not certify the current app as safe for irreplaceable data.
+This exploration records the direction chosen in conversation, the durability concern, and the later decision to start with existing social exports and GitHub stars. It proposes work; it does not certify the current app as safe for irreplaceable data.
 
-| Choice                    | Direction                                                                              |
-| ------------------------- | -------------------------------------------------------------------------------------- |
-| First personal value      | Learning and sharing                                                                   |
-| Starting material         | Links, papers, videos, selected excerpts, and Chris's own notes                        |
-| Existing collection       | Scattered across tools; bring a small useful set across first                          |
-| Primary authoring surface | Packaged Mac desktop app                                                               |
-| First reader experience   | A public page, with no account or installation                                         |
-| AI's role                 | Optional help over deliberately selected sources                                       |
-| First trust requirement   | Keep real data safe while the app and its data model evolve                            |
-| Publication destination   | Proposed default: `crs.garden/guides/`; configurable, not a confirmed hosting decision |
+| Choice                    | Direction                                                                                                                           |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| First personal value      | Learning and sharing                                                                                                                |
+| Starting material         | Garden and website content; Twitter/X likes and bookmarks; YouTube playlists; Instagram saves, collections, and likes; GitHub stars |
+| Existing collection       | Import the available corpus in resumable batches; use a small sample to prove fidelity, not to cap the library                      |
+| Primary authoring surface | Packaged Mac desktop app                                                                                                            |
+| First reader experience   | A public page, with no account or installation                                                                                      |
+| AI's role                 | Optional help over deliberately selected sources                                                                                    |
+| First trust requirement   | Keep real data safe while the app and its data model evolve                                                                         |
+| Publication destination   | Proposed default: `crs.garden/guides/`; configurable, not a confirmed hosting decision                                              |
 
 The review date leaves roughly six weeks for initial work and a four-week usage trial. It is a date to reconsider this direction, not a promised delivery date. Chris decides whether to continue, narrow, or stop. Choosing this workflow is reversible. A new persistent format or public compatibility promise needs a separate ADR under the repository's decision policy before implementation.
 
 ```mermaid
 flowchart LR
+    Archives[Social archives and GitHub stars] --> Import[Import with provenance]
+    Garden[Garden and website] --> Import
+    Import --> Library
     Source[Link, paper, or video] --> Capture[Save URL and a thought]
     Capture --> Library[Private personal library]
     Library --> Find[Find and revisit]
@@ -71,6 +75,27 @@ The adjacent repositories also suggest a clear division of work:
 
 These are observations from public pages and selected local project documents, not evidence that clients want a new app. Friends and clients are initially readers. Test another person's authoring needs separately before treating this as a product for coaches.
 
+## The seed corpus is already here
+
+Chris identified `.exports/` as the local archive directory. A read-only inspection on 2026-09-29 found the three requested social archives below. The directory is Git-ignored. Only archive metadata, selected saved/liked records, playlist CSVs, and structural field shapes were inspected. Nothing was imported, extracted onto disk, sent for enrichment, or changed. Private messages and account-security records were not opened.
+
+| Source                   | Observed local material                                                                                                                      | What the first import must preserve                                                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Garden and website       | Existing public pages and the local `digitalgarden` project                                                                                  | Chris's commentary, original URLs, tags, dates where available, and links to source resources                                          |
+| `.exports/twitter.zip`   | 106.7 MiB; 10,028 records in `like.js`; no bookmark-named archive member detected                                                            | Tweet IDs, exported text and links, and the fact these are likes. Bookmark coverage remains unverified                                 |
+| `.exports/youtube.zip`   | 5.0 MiB; 38 playlist catalog rows; 32 playlist-video CSVs containing 11,419 membership rows and 9,273 distinct video IDs                     | Playlist identities and names, every membership, row order as exported, and timestamps with their original meaning                     |
+| `.exports/instagram.zip` | 423.1 MiB; 7,230 saved-post records, 8,827 liked-post records, 15 saved-collection records; also 74 saved-music and 25 liked-comment records | Separate saves and likes, named collections, nested item relationships, source URLs, captions, and available timestamps                |
+| GitHub stars             | No GitHub export found in `.exports/`                                                                                                        | Repository identity and URL, owner, description, available topics/language, and the star relationship with its timestamp when supplied |
+
+These counts describe the source files. They do not establish how many unique resources will import successfully. For example, one YouTube video can belong to several playlists. The difference between 38 catalog entries and 32 membership files needs a reconciliation report; it must not be guessed away as either data loss or empty playlists.
+
+The YouTube membership CSVs contain video IDs and playlist-video timestamps, without video titles or descriptions. The Twitter likes contain `tweetId`, `fullText`, and `expandedUrl`, without a like timestamp. Preserve those limits. Import time is not save time, and a video's presence in a playlist is not evidence that Chris watched it.
+
+Other archives are present for TikTok, Reddit, and AI chat services. Keep them intact and available for later selected imports through existing adapters. The first acceptance run covers the garden, website, Twitter/X, YouTube, Instagram, and GitHub. It does not silently ingest every category in every archive.
+
+> [!IMPORTANT]
+> The full saved-resource corpus is now core scope. The earlier suggestion of about 25 hand-picked resources becomes a small validation sample from the real archives. It is not a substitute for importing the rest.
+
 ## What the repository says, and what the code says
 
 The research inventoried 525 numbered exploration documents, then followed the roadmap, graph queries, relevant explorations, and their implementation paths. It did not read every document line by line. Code observations below refer to commit `fbedf30e7`, inspected on 2026-09-29. Filename checkboxes were treated as leads, not proof of a finished experience. This pass changed documentation only. The desktop recovery and update paths were inspected, not exercised end to end.
@@ -93,6 +118,23 @@ The [roadmap](../ROADMAP.md) already makes founder daily use the near-term test.
 
 > [!WARNING]
 > The startup deletion path is a concrete blocker. An old format, an unreadable database, and a new empty workspace must produce different outcomes. None is permission to delete the user's files.
+
+The social imports have a substantial foundation, but the actual archive shapes reveal gaps:
+
+| Existing code                                                                                                                            | Evidence and remaining work                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Importer registry](../../packages/social/src/importers/registry.ts)                                                                     | Twitter/X, YouTube, and Instagram adapters are registered. GitHub stars are absent                                                                                                                                                                                                                         |
+| [Twitter adapter](../../packages/social/src/importers/x.ts)                                                                              | Maps likes and several other archive categories; no bookmark bucket is defined. Add bookmark support against a supplied format rather than relabeling likes                                                                                                                                                |
+| [YouTube adapter](../../packages/social/src/importers/youtube.ts)                                                                        | Maps playlist catalogs and memberships. Reconcile the real files, preserve repeated memberships, and make sparse video records useful                                                                                                                                                                      |
+| [Instagram adapter](../../packages/social/src/importers/instagram.ts)                                                                    | Creates a collection per saved file and reads shallow labels. The real collection records contain nested item-shaped `dict` arrays; these need proper named-collection and membership mapping. The real liked-comments file is wrapped in `likes_comment_likes`, while the current mapper expects an array |
+| [Social schemas](../../packages/social/src/schemas/index.ts)                                                                             | Already model content, actors, interactions, collections, membership, import runs, and source records. Reuse them                                                                                                                                                                                          |
+| [IDs](../../packages/social/src/import/ids.ts) and [commit policy](../../packages/social/src/import/policy.ts)                           | Deterministic IDs and batched commits exist. Some IDs depend on paths, positions, or interaction kinds; cross-export reconciliation still needs proof. Default source-record mode is `sidecar`; verify actual retention, not only its count                                                                |
+| [Import jobs](../../packages/social/src/import/jobs.ts) and [desktop import IPC](../../apps/electron/src/main/social-import-ipc.ts)      | Progress, cancellation, and checkpoint records exist. Prove restart/resume and complete backup coverage with these archives                                                                                                                                                                                |
+| [Graph lenses](../../packages/social/src/lenses/graph-lenses.ts) and [canvas projection](../../packages/social/src/projection/canvas.ts) | Saved-content-by-creator and bounded graph projection primitives exist. Wire useful Library views rather than building a separate graph store                                                                                                                                                              |
+
+The GitHub addition can reuse [ExternalItem](../../packages/data/src/schema/schemas/external-item.ts) for a repository's stable external identity and payload. The social vocabulary currently lacks a GitHub platform entry. Choose one canonical repository representation and connect the star activity to it; avoid creating disconnected repository copies in two schema families.
+
+This extends [0152: social importer](./0152_%5Bx%5D_ACTUAL_SOCIAL_GRAPH_IMPORTER.md), [0153: social workspace](./0153_%5Bx%5D_SOCIAL_DATA_WORKSPACE_UI.md), and [0419: social graph atlas](./0419_%5B-%5D_SOCIAL_GRAPH_ATLAS.md). Their primitives are useful; their filename status does not establish fidelity for these specific archives.
 
 <details>
 <summary>Durability findings and the files behind them</summary>
@@ -278,31 +320,100 @@ Stable signing is part of convenience. Electron documents that [code signing](ht
 
 ## The library: useful in the first minute
 
-After the recovery milestone, start with roughly 25 real resources Chris chooses from existing collections. Do not bulk-import years of material before the app has earned trust. Create two guide drafts from a few of those sources so the first session includes both collecting and making something useful.
+After the recovery milestone, import the saved-resource corpus from `.exports/`, the garden and website, and a GitHub star snapshot. First validate a small sample that includes each platform and its awkward cases, then process the full selected categories in bounded batches. Create two guide drafts from rediscovered sources. Success includes making past collecting useful immediately.
 
-The Library entry point offers **Inbox**, **Resources**, and **Guides** through existing folders and tags. Inbox means “saved for later”; it is not a queue that demands completion. A resource can remain a URL and one sentence indefinitely.
+The Library entry point offers **Inbox**, **Resources**, **Collections**, and **Guides**. Use existing folders and tags for Pages, and project imported social content and collections into the same Library. Do not turn every like into a blank Page. Inbox means “saved for later”; it is not a queue that demands completion. An imported resource can remain a source record until Chris wants to add a note.
+
+### Import the history without flattening it
+
+Keep the original archives unchanged. Record an archive hash, account identity, export date when supplied, parser version, selected categories, and the source file and record for each imported fact. Preserve raw selected records and nested fields so better parsers can recover more later. Unknown shapes must appear in the report as unsupported or quarantined, with their source bytes retained.
+
+The import preview should answer: what is here, what will become searchable, what could not be read, and how much space the import and its backup need. Select saved resources, likes, stars, and collections for this workflow. Direct messages, account-security data, ad records, and watch/search history remain separate choices. Public source content does not make Chris's saving activity public.
+
+Reuse the existing import stream and write records in batches. Commit bounded chunks and persist the last committed checkpoint, tied to archive hash, parser version, and selection. A restart must resume safely or offer an explicit replay. Cancellation reports what was committed; it is not completion. The report must account for every selected input record: created, updated, duplicate, skipped with a reason, or failed. Unsupported and missing categories must never look like an empty successful import.
+
+Treat archive content as data. Parse Twitter's JavaScript assignment wrapper without executing it, and apply size and path limits when reading ZIP entries. Keep personal archive contents out of Git, fixture files, and routine logs. Commit only sanitized structural fixtures; detailed local reconciliation reports remain private.
+
+Reimporting the same archive must add no duplicate resources, activity, or collection memberships. A later export should add new observations without overwriting personal notes or discarding old evidence. Reordered files and repeated playlist entries are real cases. Do not assume a deterministic ID based on row position solves them. A resource absent from a later partial export must not be treated as deleted, unliked, or unstarred.
+
+The garden and website need their own source mapping. Preserve Chris's authored commentary as Pages, and link its source URLs to imported resources. Preserve stable post IDs where available, otherwise retain URL aliases and snapshot provenance. Keep a third-party resource's content separate from Chris's writing about it. The existing garden pipeline keeps its own source of truth.
+
+### Add GitHub stars through the same import boundary
+
+GitHub is a first-class seed source. Since there is no local star export yet, provide a one-time read-only fetch for the selected account or accept a saved JSON snapshot. GitHub's [starring API](https://docs.github.com/en/rest/activity/starring) lists starred repositories and offers a custom media type containing the star timestamp. Fetch every response page. If permissions or rate limits stop the fetch, mark the snapshot incomplete.
+
+Save the response as a local import source with fetch time and coverage information, excluding credentials. The rest of ingestion uses the same preview, provenance, deduplication, and recovery path as ZIP exports. No continuous sync or repository cloning is required for the seed import.
+
+Use stable repository IDs when supplied, keeping owner/name and old URLs as aliases across renames. Preserve `star` as the native action, distinct from a social like or follow. Reuse the existing content/external-item and interaction schemas with an explicit GitHub mapping; review any vocabulary extension for compatibility. If star lists or categories are supplied, preserve them as collections; the basic REST star list does not by itself prove that grouping was captured.
+
+The available description, topics, language, owner, and URL can make a star useful without downloading the repository. README fetching is a later, explicit enrichment step. Match accounts before a fetch; an inaccessible or private profile must not be reported as having no stars.
+
+### The graph should explain why things belong together
+
+Use the existing social graph as the durable source of imported facts, with ordinary Pages for notes and guides. A resource is the thing Chris saved; a like, save, star, or playlist membership is a separate observation about it. Keep every observation when matching the same resource across collections or platforms.
+
+```mermaid
+flowchart LR
+    Archive[Archive or API snapshot] --> Evidence[Source record and import run]
+    Evidence --> Activity[Like, save, bookmark, or star]
+    Chris[Chris's source account] --> Activity
+    Activity --> Item[Post, video, paper, or repository]
+    Creator[Creator or owner] -->|authored or owns| Item
+    Collection[Playlist or saved collection] --> Membership[Membership with source order]
+    Membership --> Item
+    Post[Garden post or website page] -->|links to| Item
+    Note[Personal note] -->|comments on| Item
+    Item -->|cited by| Guide[Guide]
+    Suggested[Suggested topic] -. inferred relationship .-> Item
+```
+
+Start with relationships the source actually supplies: saved by, liked by, starred by, belongs to collection, authored by, and links to. Keep a post that links to a paper separate from the paper itself. Match platform items by stable platform IDs; use conservative URL aliases to connect references. Shared titles or similar creator names are not enough to merge identities.
+
+The same Instagram post can be both liked and saved. The current mapper includes the interaction kind in the content ID, so this needs an explicit resolution layer. Preserve old IDs and signed history while connecting equivalent resources; do not rewrite past records to manufacture a clean graph. Human notes remain separate from imported fields so later imports cannot overwrite them.
+
+Concepts and related-topic edges can grow over time through Chris's tags and optional enrichment. Each inferred relationship carries its evidence, method/model, and review state. Show it as a suggestion that can be rejected. A liked post, watched video, or starred repository does not establish a belief, an endorsement, or use of that software.
+
+Offer useful entry points before a whole-library graph: collections, saved items by creator, repositories by topic, and a small neighborhood around the open resource. Reuse the [saved views](../../packages/social/src/views/defaults.ts), graph lenses, and bounded canvas projection. Show when a result is paginated or truncated. A large map is optional; browsing relationships and answering a real question are required.
+
+Initial questions to make possible include “What did I save about this topic across platforms?”, “Which playlists contain this video?”, and “Which starred repos relate to this garden post?” An answer must open the underlying resource and show where the connection came from. If there is not enough text or evidence, say so.
+
+### Preserve first, enrich with a purpose
+
+Import and local search must work without a network request per record. Titles, captions, descriptions, URLs, and collection names present in the source are the first search corpus. Keep unavailable videos, deleted posts, and repositories with missing metadata as source-backed placeholders. A dead link should not erase the note or the evidence of saving it.
+
+The YouTube export makes selective metadata enrichment particularly useful: a video ID alone cannot answer a content question. Add a per-selection action to fetch titles and descriptions for chosen videos or repos, with progress, retry, and an explicit unavailable state. Reuse the existing [enrichment queue](../../packages/social/src/enrichment/queue.ts). Store fetched content as a dated enrichment record with provenance, rather than silently replacing the archive's version.
+
+Full article scraping, video transcripts, embeddings, and model-generated topic clusters can follow measured needs. Existing transcript code does not mean the archive contains transcripts. Reading external content or sending it to a model remains explicit. The first success criterion is faithful import and useful retrieval, not a graph that depends on paid AI processing of every saved item.
+
+### The seed data belongs in the durability contract
+
+Back up the imported graph, personal notes, collection memberships, import-run checkpoints, and retained source evidence together. The current [large-archive storage policy](../../packages/social/src/import/storage.ts) can split archive storage; default source-record handling can also use sidecars. A backup of canonical node rows alone may therefore be incomplete.
+
+Manage a durable copy of each archive or all required source entries with hashes and an inventory, and include it in recovery. A path back to `.exports/` is useful provenance, but it is not a backup. Avoid duplicating hundreds of MiB at every 15-minute checkpoint: store immutable source blobs once and reference them from complete recovery manifests. A missing sidecar or source blob must fail the restore's completeness check.
+
+After importing, restore into an isolated workspace with the original `.exports/` directory unavailable. Verify that the imported collection, its evidence, and Chris's new notes still work. This also tests whether parser improvements can reprocess retained sources without asking Chris to download the original platform exports again.
 
 ### Capture a URL and a thought
 
 Extend the shared workbench's capture flow. Pasting a URL opens a small form with title, optional selected excerpt, and “Why I saved this.” Save locally before fetching metadata. Offline capture succeeds with the URL as its initial label. Failed writes preserve the text. Repeated URLs offer the existing note or an explicit second note; URL normalization must not remove meaningful query parameters.
 
-For desktop convenience, add one explicit global shortcut that opens this form and returns focus to the prior app after saving. Read the clipboard only when invoked or pasted. A browser share target or extension can follow if the shortcut proves awkward. Full article extraction, PDF parsing, transcripts, and automatic entity graphs remain outside this first pass.
+For desktop convenience, add one explicit global shortcut that opens this form and returns focus to the prior app after saving. Read the clipboard only when invoked or pasted. A browser share target or extension can follow if the shortcut proves awkward. Full article extraction, PDF parsing, and transcripts remain outside this first pass. The structural graph from imports is part of the first pass.
 
-Use a normal Page whose document contains the source URL, excerpt, and commentary. Reuse the [URL utilities](../../packages/data/src/external-references.ts). Do not overload the Page's `canonicalUrl`, which belongs to publication identity. The [ExternalReference schema](../../packages/data/src/schema/schemas/external-reference.ts) can support later structured links; it should not force a second record or a new schema just to save a thought.
+Use a normal Page whose document contains the source URL, excerpt, and commentary. Reuse the [URL utilities](../../packages/data/src/external-references.ts). Do not overload the Page's `canonicalUrl`, which belongs to publication identity. If the URL already belongs to an imported resource, offer to attach this note to it. The [ExternalReference schema](../../packages/data/src/schema/schemas/external-reference.ts) supports resource links; a standalone thought should still save without a new schema or a required import record.
 
 The notes are the value Chris owns. The linked site may disappear. Clearly distinguish a saved link from a saved copy of its content. Selected excerpts and notes are backed up; full source preservation is a separate future feature.
 
 ### Find something you only half remember
 
-Search titles, source URLs, and note bodies. An exact URL should find its note. A phrase present only in the note body should work after the app restarts, with no network. Show enough context to identify the result, and open the right Page.
+Search imported titles, captions, descriptions, source URLs, collection names, and personal note bodies. An exact URL should find its resource and linked notes. A phrase present only in a note body should work after the app restarts, with no network. Filter by source, creator, collection, and known dates. Show missing dates honestly and distinguish save time from import time. Each result should open the resource or Page with its source context.
 
-The current global Page search already loads document content. Reuse it, measure it with the starter collection, and avoid a second index unless the existing path cannot meet the task. The AI retriever's property-based text path needs separate attention. “Search exists” does not prove a helper can see the same content the human finds.
+The current global Page search already loads document content. Reuse it for personal notes and combine results with indexed social fields. Measure search on the full imported corpus before adding another index. The AI retriever's property-based text path needs separate attention. “Search exists” does not prove a helper can see the same content the human finds.
 
 ### Make the next useful resource
 
 A guide is another Page. Put source notes beside it, link back to sources, and write the missing context: who might find this useful, why these few links belong together, and where Chris's own experience ends. Possible first drafts include a reading path through local-first software or an introduction to resources Chris already shares in conversation. Chris chooses the topics; the app does not infer a client's needs.
 
-The optional helper operates on selected resources and the current draft. It can compare sources, suggest an outline, or identify an unsupported claim. It must cite the Page or source behind a suggestion and admit when the selection lacks evidence. Fetching external content and using a remote model are explicit actions with clear scope. No background rewriting, automatic publication, or unstated access to private notes.
+The optional helper operates on selected imported resources, linked notes, and the current draft. It can compare sources, suggest an outline, or identify an unsupported claim. It must cite the Page or source record behind a suggestion and admit when the selection lacks evidence. A video title is not a transcript. Fetching external content and using a remote model are explicit actions with clear scope. No background rewriting, automatic publication, or unstated access to private notes.
 
 ## Share a guide without sharing the workspace
 
@@ -310,7 +421,7 @@ The first publishing path should produce a static page. The recipient needs neit
 
 The existing [publication pipeline](../../packages/publish/src/pipeline.ts) provides useful parts. Two seams need special care. [Published-document resolution](../../packages/publish/src/published-doc.ts) can fall back to the live document when a pinned snapshot is unavailable; public export must refuse that fallback. The [CLI publisher](../../packages/cli/src/commands/publish.ts) takes a pre-rendered `PublicationFile` JSON input. It is not already a one-command export of a live workspace.
 
-Build the live-workspace adapter with an explicit allowlist of guide Pages and selected assets. No transitive export of private backlinks, notes, tags, or client names. Even a private link's visible label can leak context, so preview the final rendered page and handle unresolved links deliberately. Republishing updates the public snapshot only after another explicit action.
+Build the live-workspace adapter with an explicit allowlist of guide Pages and selected assets. No transitive export of private backlinks, notes, tags, client names, or imported saving activity. Linking to a public repo or video does not approve publication of Chris's star date, collection membership, or other saved items. Even a private link's visible label can leak context, so preview the final rendered page and handle unresolved links deliberately. Republishing updates the public snapshot only after another explicit action.
 
 The proposed destination is `digitalgarden/public/guides/`. Its existing [build script](https://github.com/crs48/digitalgarden/blob/main/scripts/build.mjs) copies `public/` into the generated site, and its [Pages workflow](https://github.com/crs48/digitalgarden/blob/main/.github/workflows/pages.yml) already deploys it. That keeps the garden's existing content flow intact. Make the output directory configurable.
 
@@ -318,7 +429,7 @@ Export through a staging directory, then replace only the managed guide director
 
 Deleting a local draft does not retract a public page. Offer an explicit unpublish/export operation and explain that copies and caches may remain. Sensitive session notes and client records are outside this public-guide workflow. Private client spaces need a separate review of authorization, revocation, and recovery before relying on them.
 
-## Work in four bounded passes
+## Work in five bounded passes
 
 All items below are proposed work. None is checked off by writing this exploration. Each pass should end with a useful, inspectable result; do not reopen the entire platform backlog.
 
@@ -337,17 +448,32 @@ All items below are proposed work. None is checked off by writing this explorati
 
 **Exit:** Chris can save notes, quit, reopen, install an update, and recover an earlier copy without a terminal. Development uses a different workspace. No valuable collection moves in before this exit is demonstrated.
 
-### B. Earn the save-and-find loop
+### B. Seed the library from the existing corpus
 
-- [ ] Add Library entry points for Inbox, Resources, and Guides using existing Pages, folders, and tags.
+- [ ] Add a read-only inventory and preview for `.exports/`; reconcile selected categories and unknown formats against the observed source counts.
+- [ ] Fix the Twitter/X, YouTube, and Instagram adapter gaps using sanitized fixtures from the actual archive shapes, including nested Instagram collections. Report unavailable bookmark data explicitly.
+- [ ] Add GitHub stars as a seed source via saved JSON or a complete paginated read-only snapshot, preserving repository IDs, native star activity, and timestamp/coverage limits.
+- [ ] Import garden and website material with authored commentary, source URLs, and stable provenance; connect it to matching imported resources.
+- [ ] Prove faithful import on a small representative sample, then import the full selected corpus in resumable batches with an honest reconciliation report.
+- [ ] Preserve raw source evidence and sidecars in managed storage and backup; restore the corpus without access to the original `.exports/` directory.
+- [ ] Verify same-archive and overlapping-export reimports, preserving distinct save/like/star actions, repeated memberships, and Chris's notes without duplicating resources.
+- [ ] Wire Library collections, source filters, creator views, and bounded graph neighborhoods through existing social schemas, saved views, and graph lenses.
+- [ ] Search imported text and linked Page bodies after restart; offer explicit metadata enrichment for sparse selected records and keep unavailable sources visible.
+
+**Exit:** Chris can rediscover an old save, inspect its original playlist or collection, follow a meaningful connection across sources, and add a note. Every selected record has an explained outcome. The full saved-resource import can be recovered and repeated safely.
+
+### C. Keep the library useful as new things arrive
+
+- [ ] Add Library entry points for Inbox, Resources, Collections, and Guides using existing social records and Pages, without making a blank Page for every import.
 - [ ] Add URL-plus-note capture in the shared workbench, with optional excerpt, duplicate handling, and failure-safe input retention.
 - [ ] Add the explicit desktop capture shortcut; confirm focus returns and saving works offline.
-- [ ] Bring in about 25 chosen resources and create two guide drafts; record source URLs and preserve personal notes.
-- [ ] Verify search over titles, URLs, and Page bodies after restart; make each result open the intended note.
+- [ ] Link new captures to existing imported resources when they match, preserving independent personal notes and source provenance.
+- [ ] Create two guide drafts from rediscovered sources; keep citations connected to the imported resource and its original URL.
+- [ ] Verify search over new captures, imported text, URLs, and Page bodies after restart; make each result open the intended item.
 
 **Exit:** Chris saves a resource during normal browsing and later finds it using a phrase from the note.
 
-### C. Share something useful
+### D. Share something useful
 
 - [ ] Wire selected guide snapshots and selected assets into the existing static renderer; reject missing snapshots and private dependencies.
 - [ ] Add preview and configurable export into a managed directory, with atomic replacement and stale-page cleanup limited to that directory.
@@ -356,10 +482,10 @@ All items below are proposed work. None is checked off by writing this explorati
 
 **Exit:** A friend or client opens a useful guide on a phone without logging in. The page contains only what Chris approved.
 
-### D. Let use decide what comes next
+### E. Let use decide what comes next
 
 - [ ] Trial an optional selected-source helper with citations and a no-answer case; leave manual writing fully useful without it.
-- [ ] Run a four-week founder trial after passes A and B; keep a short friction log without adding in-app streaks or scores.
+- [ ] Run a four-week founder trial after passes A through C; keep a short friction log without adding in-app streaks or scores.
 - [ ] Ask two other people who collect and share resources to save, find, and share their own material; record where they need help.
 - [ ] At review, decide whether to improve this loop, add a proven missing capability, or withdraw the direction; reconcile the roadmaps if continuing.
 
@@ -388,13 +514,32 @@ The release consumer is the existing Electron release workflow and the person pr
 | Private link and unselected asset in draft | Nothing private crosses the export boundary; preview explains omissions                   |
 | Second export after unpublish              | Managed output removes the page; unrelated garden files stay intact                       |
 
+Import validation must use the shapes in `.exports/` as well as small synthetic edge cases:
+
+| Import case                                     | Required observation                                                                                                           |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Known archive counts                            | Every selected source record reconciles; raw record counts, unique resources, and memberships remain separate measures         |
+| Instagram nested collections                    | Named collections and all available nested memberships survive; collection metadata is not turned into fake saved posts        |
+| Wrapped Instagram likes                         | The parser accepts the observed wrapper or reports it unsupported; it never reports zero successful records for an unread file |
+| YouTube catalog and membership files            | All 38 catalog rows and 32 membership files are accounted for, including repeated videos and unexplained gaps                  |
+| Twitter likes without bookmarks or dates        | Likes remain likes; missing bookmark coverage and save timestamps are visible                                                  |
+| Same resource saved and liked                   | One resolved resource exposes both actions and all source records; notes remain intact                                         |
+| Reimport, changed ordering, overlapping exports | Stable items and memberships do not multiply; fresh observations retain provenance; no inferred deletions                      |
+| GitHub repository rename or unavailable repo    | Stable IDs preserve identity and URL history; missing metadata remains explicit                                                |
+| Interrupted or rate-limited GitHub fetch        | The snapshot remains partial, resumes or retries safely, and never clears unseen stars                                         |
+| Restart or cancellation during import           | Only committed chunks advance the checkpoint; progress never claims an incomplete run finished                                 |
+| Restore without `.exports/`                     | Imported data, retained evidence, memberships, checkpoints, and personal notes remain available                                |
+| Cross-source question                           | The answer names the evidence for each connection; sparse titles never stand in for unseen video or article content            |
+
 - [ ] Use fixtures from the previous installed release and the oldest supported storage version, plus unversioned and future-version fixtures.
+- [ ] Add sanitized fixtures for the observed social archive shapes and GitHub star snapshots; prove fidelity, source reconciliation, idempotence, cancellation/resume, and private defaults.
+- [ ] Run a read-only dry run against the actual selected archives, followed by a recoverable full import after pass A; record counts, time, storage growth, and every unsupported category locally.
 - [ ] Run storage and bundle tests that exercise the failure cases above, including a deliberately incomplete backup that the verifier rejects.
-- [ ] Drive the real packaged Mac app through capture, restart, upgrade, rollback/recovery, and external-backup restore.
+- [ ] Drive the real packaged Mac app through archive import, graph browsing, capture, restart, upgrade, rollback/recovery, and external-backup restore.
 - [ ] Verify the complete publishing path in a clean browser session and at a phone viewport.
 - [ ] Record actual command results and manual observations alongside completed checklist items; leave unknowns unchecked.
 
-For the founder trial, look for use on at least eight of ten days when Chris naturally does relevant reading or sharing. This is a research measure, not a demand to manufacture daily activity. Ask Chris to find five saved resources from remembered context, aiming for under 30 seconds each. Produce and share two useful guides. Record each update that requires a terminal, loses context, or creates doubt about stored data; those failures outrank adding features.
+For the founder trial, look for use on at least eight of ten days when Chris naturally does relevant reading or sharing. This is a research measure, not a demand to manufacture daily activity. Ask Chris to find five saved resources from remembered context, including an old social save and a starred repository, aiming for under 30 seconds each. Trace three useful connections between imported resources and garden notes, with source evidence. Produce and share two useful guides. Record each update that requires a terminal, loses context, or creates doubt about stored data; those failures outrank adding features.
 
 For the two outside authors, success means completing save → find → share with their own material and little assistance. Reader feedback alone cannot establish demand for an authoring app. If Chris still prefers existing tools after the trial, inspect which step failed before adding more AI or a larger import pipeline.
 
@@ -402,10 +547,12 @@ For the two outside authors, success means completing save → find → share wi
 
 The largest risk is spending months on a general backup platform before saving a useful note. Keep pass A focused on the desktop paths that already exist, with one complete checkpoint format, one portable recovery path, and one installed upgrade test. These are justified by observed failure paths. A new multi-device service, background research fleet, or universal ingestion system is outside scope.
 
-Storage cost may make the proposed checkpoint cadence too expensive for large media libraries. Measure the small source-note workload first. A cap can change retention, but it must not quietly weaken the displayed recovery promise. Large recordings and bulk social imports need explicit inclusion or an honest unsupported result from the completeness check.
+Storage cost may make the proposed checkpoint cadence too expensive if unchanged archive blobs are copied repeatedly. Measure the actual seed corpus and its imported graph, and share immutable blobs across recovery points. A cap can change retention, but it must not quietly weaken the displayed recovery promise. The requested social corpus and its source evidence are core backup scope. Larger media categories need an explicit inclusion decision and a clear coverage report.
+
+The export shapes will change. Preserve the archive fingerprint and parser version so later repairs can reprocess retained records. The observed Twitter archive does not establish bookmark coverage, and sparse YouTube records cannot supply absent content. GitHub stars still need a selected account and snapshot. Report each gap without inventing relationships or asking Chris to reorganize the collection by hand.
 
 The signing configuration, supported historical database versions, and complete key inventory need implementation-time confirmation. Resolve them at the start of pass A. Do not paper over uncertainty with “backup successful.” An off-device destination and recovery-secret storage also require Chris's choice during setup; no service is chosen or provisioned here.
 
-The garden export destination remains a proposed default. The library and public renderer should work if Chris chooses a different site. Private collaboration, a coaching portal, full-content clipping, mobile authoring, automatic topic graphs, and a new business model wait for evidence from this loop.
+The garden export destination remains a proposed default. The library and public renderer should work if Chris chooses a different site. Private collaboration, a coaching portal, full-content clipping, mobile authoring, automatic topic inference, and a new business model wait for evidence from this loop. The source-backed graph of saved items, collections, creators, and notes is part of the first library.
 
-**Recommended next work:** finish pass A as the first implementation slice, starting with the destructive startup path and a verified recovery point. Then build the smallest capture-and-find loop around real sources. Let a month of using that library determine how much publishing and AI it needs.
+**Recommended next work:** use the actual `.exports/` shapes to prepare import fixtures and a dry-run report while closing pass A's destructive startup and recovery gaps. Then finish pass B before expanding capture or publishing: import the full selected social corpus, garden/website material, and GitHub stars, and make their existing connections useful. Let a month of using that library determine how much enrichment, publishing, and AI it needs.
