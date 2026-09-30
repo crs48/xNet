@@ -1,0 +1,53 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "changed",
+      "ssim": 0.996521,
+      "before": "before/routes/data.png",
+      "after": "routes/data.png",
+      "diff": "diff/routes/data.png"
+    },
+    {
+      "id": "discover",
+      "label": "Discover",
+      "file": "routes/discover.png",
+      "status": "changed",
+      "ssim": 0.983572,
+      "before": "before/routes/discover.png",
+      "after": "routes/discover.png",
+      "diff": "diff/routes/discover.png"
+    }
+  ],
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "file": "electron/electron-canvas-home.png",
+      "status": "changed",
+      "ssim": 0.996687,
+      "before": "before/electron/electron-canvas-home.png",
+      "after": "electron/electron-canvas-home.png",
+      "diff": "diff/electron/electron-canvas-home.png"
+    },
+    {
+      "id": "electron-canvas-objects",
+      "label": "Desktop · Canvas with objects",
+      "file": "electron/electron-canvas-objects.png",
+      "status": "changed",
+      "ssim": 0.996343,
+      "before": "before/electron/electron-canvas-objects.png",
+      "after": "electron/electron-canvas-objects.png",
+      "diff": "diff/electron/electron-canvas-objects.png"
+    }
+  ],
+  "flows": [],
+  "changedCount": 4
+}
