@@ -5,5 +5,8 @@ export type CheckpointManifest = {
   appVersion: string
   profile: string
   identity: 'stored' | 'test'
+  sourceFingerprint?: string
+  pinned?: boolean
+  storageVersion?: number
   files: { path: string; size: number; sha256: string }[]
 }

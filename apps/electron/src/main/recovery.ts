@@ -1,10 +1,12 @@
 import { open, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { app, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { createCheckpointSchedule } from '../storage/checkpoint-policy'
 import {
   createCheckpoint,
   listCheckpoints,
   retainCheckpoints,
+  workspaceFingerprint,
   type CheckpointManifest
 } from '../storage/checkpoints'
 import { restoreCheckpoint } from '../storage/restore'
@@ -17,6 +19,12 @@ let inFlight: Promise<CheckpointManifest> | null = null
 let lastFailure: string | null = null
 let busy = false
 export const recoveryIsBusy = () => busy || inFlight !== null
+
+function reportFailure(message: string | null): void {
+  lastFailure = message
+  for (const window of BrowserWindow.getAllWindows())
+    if (!window.isDestroyed()) window.webContents.send('xnet:recovery:error', message)
+}
 
 export async function checkpointWorkspace(
   options: {
@@ -44,10 +52,10 @@ export async function checkpointWorkspace(
   })()
   try {
     const point = await inFlight
-    lastFailure = null
+    reportFailure(null)
     return point
   } catch (error) {
-    lastFailure = error instanceof Error ? error.message : String(error)
+    reportFailure(error instanceof Error ? error.message : String(error))
     throw error
   } finally {
     inFlight = null
@@ -59,6 +67,18 @@ export function setupRecovery(options: {
   stopWriters: () => Promise<void>
   restartWriters: () => Promise<void>
 }): void {
+  const tick = createCheckpointSchedule({
+    now: Date.now,
+    busy: () => recoveryIsBusy() || hasActiveSocialImports(),
+    latest: async () => (await listCheckpoints(recoveryPath))[0] ?? null,
+    fingerprint: () => workspaceFingerprint(dataPath),
+    create: () => checkpointWorkspace(),
+    failed: (error) => reportFailure(error instanceof Error ? error.message : String(error))
+  })
+  // The first tick also catches an overdue copy after launch. Recheck once a minute after failures.
+  const timer = setInterval(() => void tick(), 60_000)
+  timer.unref()
+  app.once('will-quit', () => clearInterval(timer))
   ipcMain.handle('xnet:recovery:status', async () => ({
     checkpoints: await listCheckpoints(recoveryPath),
     busy: busy || inFlight !== null,
@@ -151,7 +171,7 @@ export function setupRecovery(options: {
       app.exit(0)
       return { restored: true }
     } catch (error) {
-      lastFailure = error instanceof Error ? error.message : String(error)
+      reportFailure(error instanceof Error ? error.message : String(error))
       if (stopped) await options.restartWriters()
       throw error
     } finally {

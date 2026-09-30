@@ -8,7 +8,7 @@ describe('protected daily profile', () => {
     expect(resolveProfilePath(daily, true)).toEqual({ profile: 'default', userData: daily })
   })
 
-  it.each(['default', 'user2', 'wt-feature', 'daily', 'dev-default'])(
+  it.each(['default', 'user2', 'wt-feature', 'daily'])(
     'isolates a source launch even with an explicit %s profile',
     (profile) => {
       const dev = resolveProfilePath(daily, false, profile)
@@ -17,6 +17,11 @@ describe('protected daily profile', () => {
       expect(dev.profile).toBe(`dev-${profile}`)
     }
   )
+
+  it('prevents a packaged profile from aliasing a development profile', () => {
+    expect(() => resolveProfilePath(daily, true, 'dev-default')).toThrow('reserved')
+    expect(resolveProfilePath(daily, false, 'dev-default').profile).toBe('dev-dev-default')
+  })
 
   it.each(['../default', '../../xnet-desktop', '/profiles', '', 'a/b', 'a\\b'])(
     'rejects profile path traversal: %s',

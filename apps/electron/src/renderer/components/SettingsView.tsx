@@ -252,8 +252,10 @@ function DataSettings() {
         </div>
       )}
       <p className="text-sm">
-        xNet verifies a recovery copy before quitting or installing an update. Copies include
-        private workspace content; keep the recovery folder private.
+        xNet copies changed data about every 15 minutes, and verifies a copy before quitting or
+        installing an update. Recent copies cover a day, daily copies a week, and weekly copies a
+        month. The latest two and pinned copies stay available. Copies include private workspace
+        content; keep the recovery folder private.
       </p>
       <div className="flex gap-3">
         <button
@@ -283,7 +285,9 @@ function DataSettings() {
             <div className="text-sm">
               <div>{new Date(point.createdAt).toLocaleString()}</div>
               <div className="text-xs text-muted-foreground">
-                xNet {point.appVersion} · {point.files.length} files ·{' '}
+                Created by xNet {point.appVersion}
+                {point.storageVersion ? ` · Storage ${point.storageVersion}` : ''}
+                {point.pinned ? ' · Pinned before upgrade' : ''} · {point.files.length} files ·{' '}
                 {(point.files.reduce((total, file) => total + file.size, 0) / 1048576).toFixed(1)}{' '}
                 MB
               </div>

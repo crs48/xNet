@@ -9,6 +9,8 @@ export function resolveProfilePath(
   if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,100}$/.test(requested)) {
     throw new Error('Invalid xNet profile name. Use letters, numbers, underscores, or hyphens.')
   }
+  if (packaged && requested.startsWith('dev-'))
+    throw new Error('Profile names beginning with dev- are reserved for source builds.')
   const profile = packaged ? requested : `dev-${requested}`
   return {
     profile,

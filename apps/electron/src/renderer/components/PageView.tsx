@@ -8,15 +8,7 @@
  * - Real-time presence indicators
  */
 
-import type {
-  SyncStatus,
-  TaskCollectionEmbed,
-  useComments,
-  useNode,
-  useIdentity,
-  usePageTaskSync,
-  type PageTaskInput
-} from '@xnetjs/react'
+import type { SyncStatus, PageTaskInput } from '@xnetjs/react'
 import type { CommentThreadData } from '@xnetjs/ui'
 import { PageSchema } from '@xnetjs/data'
 import {
@@ -29,6 +21,13 @@ import {
   type TaskViewConfig,
   type XNetEditorInstance
 } from '@xnetjs/editor/react'
+import {
+  TaskCollectionEmbed,
+  useComments,
+  useNode,
+  useIdentity,
+  usePageTaskSync
+} from '@xnetjs/react'
 import { CommentsSidebar } from '@xnetjs/ui'
 import React, { useState, useCallback, useMemo, useRef } from 'react'
 import { DocumentHeader } from './DocumentHeader'

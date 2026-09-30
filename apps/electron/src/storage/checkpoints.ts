@@ -4,6 +4,7 @@ import { createReadStream, constants } from 'node:fs'
 import { copyFile, lstat, mkdir, readdir, readFile, rename, rm, open } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import Database from 'better-sqlite3'
+import { retainedCheckpointIds } from './checkpoint-policy'
 
 const FORMAT = 'xnet-desktop-checkpoint/1'
 const DATABASES = ['data.db', 'xnet.db']
@@ -36,6 +37,17 @@ async function inventory(root: string, at = root): Promise<{ path: string; stamp
     } else throw new Error(`Unsupported workspace file: ${relative(root, path)}`)
   }
   return files
+}
+
+function inventoryFingerprint(files: { path: string; stamp: string }[]): string {
+  // Shared-memory reader locks can change without any saved workspace data changing.
+  return createHash('sha256')
+    .update(JSON.stringify(files.filter((file) => !file.path.endsWith('-shm'))))
+    .digest('hex')
+}
+
+export async function workspaceFingerprint(dataPath: string): Promise<string> {
+  return inventoryFingerprint(await inventory(dataPath))
 }
 
 function safePath(root: string, path: string): string {
@@ -80,6 +92,22 @@ async function normalizeDatabase(path: string): Promise<void> {
   for (const suffix of ['-wal', '-shm']) await rm(path + suffix, { force: true })
 }
 
+function databaseVersion(path: string): number | undefined {
+  const db = new Database(path, { readonly: true, fileMustExist: true })
+  try {
+    if (!db.prepare("SELECT 1 FROM sqlite_master WHERE name = '_schema_version'").get())
+      return undefined
+    const row = db.prepare('SELECT MAX(version) AS version FROM _schema_version').get() as {
+      version: unknown
+    }
+    if (!Number.isSafeInteger(row.version) || Number(row.version) < 1)
+      throw new Error('Recovery source has an invalid storage version')
+    return Number(row.version)
+  } finally {
+    db.close()
+  }
+}
+
 /** The caller flushes editors first. A changing source fails instead of producing a mixed copy. */
 export async function createCheckpoint(options: {
   dataPath: string
@@ -87,6 +115,7 @@ export async function createCheckpoint(options: {
   appVersion: string
   profile: string
   testIdentity?: boolean
+  pinned?: boolean
 }): Promise<CheckpointManifest> {
   if (
     resolve(options.recoveryPath).startsWith(resolve(options.dataPath) + sep) ||
@@ -133,6 +162,9 @@ export async function createCheckpoint(options: {
       appVersion: options.appVersion,
       profile: options.profile,
       identity: options.testIdentity ? 'test' : 'stored',
+      sourceFingerprint: inventoryFingerprint(before),
+      ...(options.pinned ? { pinned: true } : {}),
+      storageVersion: databaseVersion(join(payload, 'data.db')),
       files
     }
     const file = await open(join(temporary, 'manifest.json'), 'wx', 0o600)
@@ -168,10 +200,20 @@ async function readManifest(
     !Array.isArray(manifest.files) ||
     typeof manifest.appVersion !== 'string' ||
     typeof manifest.profile !== 'string' ||
+    typeof manifest.createdAt !== 'string' ||
     !Number.isFinite(Date.parse(manifest.createdAt)) ||
     !['stored', 'test'].includes(manifest.identity)
   )
     throw new Error('Unsupported recovery manifest')
+  if (
+    (manifest.sourceFingerprint !== undefined &&
+      (typeof manifest.sourceFingerprint !== 'string' ||
+        !/^[a-f0-9]{64}$/.test(manifest.sourceFingerprint))) ||
+    (manifest.pinned !== undefined && typeof manifest.pinned !== 'boolean') ||
+    (manifest.storageVersion !== undefined &&
+      (!Number.isSafeInteger(manifest.storageVersion) || manifest.storageVersion < 1))
+  )
+    throw new Error('Invalid recovery policy metadata')
   if (manifest.identity === 'test' && !options.allowTestIdentity)
     throw new Error('A test identity cannot restore a daily workspace')
   const files = manifest.files
@@ -250,15 +292,19 @@ export async function retainCheckpoints(
   verifiedId: string,
   options: { keep?: number; allowTestIdentity?: boolean } = {}
 ): Promise<void> {
-  const keep = options.keep ?? 20
-  if (!Number.isSafeInteger(keep) || keep < 2) throw new Error('Keep at least two recovery copies')
+  const keep = options.keep
+  if (keep !== undefined && (!Number.isSafeInteger(keep) || keep < 2))
+    throw new Error('Keep at least two recovery copies')
   if (!/^\d+-[a-f0-9-]{36}$/.test(verifiedId)) throw new Error('Invalid recovery point')
   await verifyCheckpoint(join(recoveryPath, verifiedId), options)
   const points = await listCheckpoints(recoveryPath)
-  const retained = new Set([verifiedId, ...points.slice(0, keep - 1).map((point) => point.id)])
-  // When verifiedId is already newest, retain one more to reach the requested count.
+  const retained =
+    keep === undefined
+      ? retainedCheckpointIds(points, Date.now())
+      : new Set(points.slice(0, keep).map((point) => point.id))
+  retained.add(verifiedId)
   for (const point of points) {
-    if (retained.size < keep) retained.add(point.id)
+    if (point.pinned) retained.add(point.id)
     if (!retained.has(point.id)) await rm(join(recoveryPath, point.id), { recursive: true })
   }
   await syncFile(recoveryPath)

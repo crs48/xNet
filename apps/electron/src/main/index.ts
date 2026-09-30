@@ -4,9 +4,10 @@
 import { appendFileSync, existsSync, readlinkSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog, safeStorage } from 'electron'
 import { listCheckpoints } from '../storage/checkpoints'
 import { requireCompatibleDatabase } from '../storage/compatibility'
+import { prepareWorkspaceUpgrade } from '../storage/migrations'
 import { recoverPendingRestore, restoreCheckpoint } from '../storage/restore'
 import { setupAgentBridgeIPC, startAgentBridge, stopAgentBridge } from './agent-bridge-manager'
 import { setupCloudflareTunnelIPC, stopCloudflareTunnel } from './cloudflare-tunnel-ipc'
@@ -20,6 +21,7 @@ import {
 import { parseConnectDeepLink, type CloudConnectPayload } from './deep-link'
 import { attachDevLogWindow, installDevLogBridge } from './dev-log-bridge'
 import { titleSuffix } from './dev-scope'
+import { getOrCreateIdentitySeed } from './identity-seed'
 import { setupIPC, getOrCreateStorage, closeStorage } from './ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { setupMeetingCaptureIPC } from './meeting-capture-ipc'
@@ -442,12 +444,28 @@ app
     await recoverPendingRestore(dataPath, recoveryPath, {
       allowTestIdentity: process.env.XNET_TEST_BYPASS === 'true'
     })
+    await prepareWorkspaceUpgrade({
+      dataPath,
+      recoveryPath,
+      profile,
+      appVersion: app.getVersion(),
+      testIdentity: process.env.XNET_TEST_BYPASS === 'true',
+      requireIdentity: () => {
+        getOrCreateIdentitySeed(dataPath, safeStorage, {
+          profile,
+          testMode: process.env.XNET_TEST_BYPASS === 'true'
+        })
+      }
+    })
     process.env.XNET_RECOVERY_OFFLINE = existsSync(join(recoveryPath, 'review-required.json'))
       ? 'true'
       : 'false'
-    // Inspect both stores before either is opened for writes.
-    requireCompatibleDatabase(dbPath)
-    requireCompatibleDatabase(join(dataPath, 'xnet.db'), 'blobs')
+
+    // Resolve identity before opening stores: an unavailable key must not look like a fresh app.
+    getOrCreateIdentitySeed(dataPath, safeStorage, {
+      profile,
+      testMode: process.env.XNET_TEST_BYPASS === 'true'
+    })
 
     // Create storage early so IPC can use it
     const storage = getOrCreateStorage()

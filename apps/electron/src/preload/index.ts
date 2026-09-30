@@ -20,6 +20,11 @@ contextBridge.exposeInMainWorld('xnet', {
   createRecoveryCopy: () => ipcRenderer.invoke('xnet:recovery:create'),
   showRecoveryFolder: () => ipcRenderer.invoke('xnet:recovery:show'),
   restoreRecoveryCopy: (id: string) => ipcRenderer.invoke('xnet:recovery:restore', id),
+  onRecoveryError: (handler: (message: string | null) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, message: string | null) => handler(message)
+    ipcRenderer.on('xnet:recovery:error', listener)
+    return () => ipcRenderer.removeListener('xnet:recovery:error', listener)
+  },
   getProfile: () => ipcRenderer.invoke('xnet:getProfile'),
   onFlushDocuments: (flush: () => Promise<void>) => {
     const handler = async (_event: unknown, requestId: string) => {
@@ -549,6 +554,7 @@ export interface XNetAPI {
   createRecoveryCopy(): Promise<CheckpointManifest>
   showRecoveryFolder(): Promise<void>
   restoreRecoveryCopy(id: string): Promise<{ restored: boolean }>
+  onRecoveryError(handler: (message: string | null) => void): () => void
   onFlushDocuments(flush: () => Promise<void>): () => void
   onResumeEditing(callback: () => void): () => void
   getProfile(): Promise<string>
