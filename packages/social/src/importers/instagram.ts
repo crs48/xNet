@@ -22,7 +22,7 @@ import {
 } from '../import/core'
 
 export const INSTAGRAM_ADAPTER_ID = 'instagram'
-export const INSTAGRAM_ADAPTER_VERSION = '0.1.0'
+export const INSTAGRAM_ADAPTER_VERSION = '0.2.0'
 
 type InstagramStringListData = {
   href?: string
@@ -35,10 +35,20 @@ type InstagramRelationshipRecord = {
   string_list_data?: InstagramStringListData[]
 }
 
+type InstagramLabel = {
+  label?: string
+  value?: string
+  href?: string
+  title?: string
+  timestamp_value?: number
+  dict?: InstagramLabel[]
+}
+
 type InstagramLabeledRecord = {
+  raw?: unknown
   timestamp?: number
   fbid?: string
-  label_values?: Array<{ label?: string; value?: string; href?: string }>
+  label_values?: InstagramLabel[]
   media?: unknown[]
 }
 
@@ -426,22 +436,58 @@ export function mapInstagramSavedPosts(input: {
   selfActorId: string
   input: unknown
 }): StagedSocialRecord[] {
+  const rows = asLabeledArray(input.input)
+  if (input.source.path.includes('saved_collections')) {
+    return rows.flatMap((row) => {
+      const labels = labelMap(row)
+      const members = (row.label_values ?? [])
+        .flatMap((label) => label.dict ?? [])
+        .filter((member) => member.dict?.some((label) => label.label?.toLowerCase() === 'url'))
+        .map((member) => ({ label_values: member.dict, raw: member }))
+      return mapSavedCollection(input, {
+        key: row.fbid ?? labels.name ?? 'unnamed',
+        title: labels.name ?? 'Instagram collection',
+        rows: members,
+        payload: row,
+        named: true
+      })
+    })
+  }
+  return mapSavedCollection(input, {
+    key: input.source.path,
+    title: savedCollectionTitle(input.source.path),
+    rows,
+    payload: { rowCount: rows.length },
+    named: false
+  })
+}
+
+function mapSavedCollection(
+  input: Parameters<typeof mapInstagramSavedPosts>[0],
+  collection: {
+    key: string
+    title: string
+    rows: InstagramLabeledRecord[]
+    payload: unknown
+    named: boolean
+  }
+): StagedSocialRecord[] {
   const collectionId = createSocialNodeId('collection', [
     'instagram',
     input.selfActorId,
-    input.source.path
+    collection.key
   ])
   const collectionSource = createSourceRecord({
     ...sourceBase(
       input,
       'instagram.saves',
-      `collection:${input.source.path}`,
-      {},
+      `collection:${collection.key}`,
+      collection.payload,
       'collection',
-      'public'
+      'private'
     )
   })
-
+  const occurrences = new Map<string, number>()
   return [
     collectionSource,
     createStagedNode({
@@ -451,35 +497,43 @@ export function mapInstagramSavedPosts(input: {
       bucketId: 'instagram.saves',
       source: input.source,
       sourceRecordId: collectionSource.deterministicId,
-      privacyClass: 'public',
+      privacyClass: 'private',
       properties: {
         collectionKind: 'saved',
-        platformCollectionId: input.source.path,
-        title: savedCollectionTitle(input.source.path),
+        platformCollectionId: collection.key,
+        title: collection.title,
         ownerActor: input.selfActorId,
-        itemCount: asLabeledArray(input.input).length,
+        itemCount: collection.rows.length,
         observedAt: input.context.importedAt
       }
     }),
-    ...asLabeledArray(input.input).flatMap((row, index) => {
+    ...collection.rows.flatMap((row, index) => {
       const mapped = mapInstagramLabeledContentInteraction({
         ...input,
         row,
         index,
         bucketId: 'instagram.saves',
         interactionKind: 'save',
-        platformInteractionKind: input.source.path.includes('music') ? 'saved_music' : 'saved_posts'
+        sourceDiscriminator: collectionId,
+        platformInteractionKind: collection.named
+          ? 'collection_membership'
+          : input.source.path.includes('music')
+            ? 'saved_music'
+            : 'saved_posts'
       })
       const content = mapped.find((record) => record.kind === 'content')
       if (!content) return mapped
+      const occurrence = occurrences.get(content.deterministicId) ?? 0
+      occurrences.set(content.deterministicId, occurrence + 1)
       return [
-        ...mapped,
+        ...mapped.filter((record) => !collection.named || record.kind !== 'interaction'),
         createStagedNode({
           kind: 'collection-item',
           deterministicId: createSocialNodeId('collection-item', [
             'instagram',
             collectionId,
-            content.deterministicId
+            content.deterministicId,
+            occurrence
           ]),
           platform: 'instagram',
           bucketId: 'instagram.saves',
@@ -487,7 +541,7 @@ export function mapInstagramSavedPosts(input: {
           sourceRecordId:
             mapped.find((record) => record.kind === 'source-record')?.deterministicId ??
             collectionSource.deterministicId,
-          privacyClass: 'public',
+          privacyClass: 'private',
           properties: {
             collection: collectionId,
             item: content.deterministicId,
@@ -769,21 +823,36 @@ function mapInstagramLabeledContentInteraction(input: {
   bucketId: string
   interactionKind: 'like' | 'save'
   platformInteractionKind: string
+  sourceDiscriminator?: string
 }): StagedSocialRecord[] {
   const labels = labelMap(input.row)
   const url = labels.href ?? labels.url
-  const contentKey = input.row.fbid ?? url ?? `${input.source.path}:${input.index}`
-  const sourceRecordId = `${input.platformInteractionKind}:${contentKey}:${input.index}`
+  const shortcode = url?.match(
+    /^https?:\/\/(?:www\.)?instagram\.com\/(?:p|reel|tv)\/([^/?#]+)/i
+  )?.[1]
+  const contentKey = input.platformInteractionKind.includes('comment')
+    ? (url ?? input.row.fbid ?? `${input.source.path}:${input.index}`)
+    : (shortcode ?? input.row.fbid ?? url ?? `${input.source.path}:${input.index}`)
+  const sourceRecordId = `${input.platformInteractionKind}:${input.sourceDiscriminator ?? ''}:${contentKey}:${input.index}`
   const sourceRecord = createSourceRecord({
-    ...sourceBase(input, input.bucketId, sourceRecordId, input.row, 'interaction', 'public')
+    ...sourceBase(
+      input,
+      input.bucketId,
+      sourceRecordId,
+      input.row.raw ?? input.row,
+      input.platformInteractionKind === 'collection_membership' ? 'collection-item' : 'interaction',
+      'private'
+    )
   })
   const contentId = createSocialNodeId('content', [
     'instagram',
-    input.platformInteractionKind,
+    input.platformInteractionKind.includes('comment') ? 'comment' : 'post',
     contentKey
   ])
   const observedAt = secondsToIso(input.row.timestamp)
   const title = labels.title ?? labels.name ?? input.row.fbid
+  const nestedLabels = flattenInstagramLabels(input.row.label_values ?? [])
+  const creator = nestedLabels.find((label) => label.label?.toLowerCase() === 'username')?.value
 
   return [
     sourceRecord,
@@ -802,8 +871,12 @@ function mapInstagramLabeledContentInteraction(input: {
         canonicalUrl: url ? normalizeUrl(url) : undefined,
         platformUrl: url ? normalizeUrl(url) : undefined,
         title,
-        textPreview: trimPreview(labels.description ?? title ?? ''),
-        searchText: Object.values(labels).filter(Boolean).join('\n'),
+        textPreview: trimPreview(labels.caption ?? labels.description ?? title ?? ''),
+        searchText: nestedLabels
+          .map((label) => label.value ?? label.href)
+          .filter(Boolean)
+          .join('\n'),
+        authorHandle: creator,
         observedAt,
         importedAt: input.context.importedAt,
         confidence: input.row.fbid ? 0.9 : 0.7,
@@ -823,7 +896,7 @@ function mapInstagramLabeledContentInteraction(input: {
       bucketId: input.bucketId,
       source: input.source,
       sourceRecordId: sourceRecord.deterministicId,
-      privacyClass: 'public',
+      privacyClass: 'private',
       properties: {
         interactionKind: input.interactionKind,
         platformInteractionKind: input.platformInteractionKind,
@@ -921,7 +994,19 @@ function asRelationshipArray(input: unknown, key?: string): InstagramRelationshi
 }
 
 function asLabeledArray(input: unknown): InstagramLabeledRecord[] {
-  return asArray<InstagramLabeledRecord>(input)
+  if (Array.isArray(input)) return input as InstagramLabeledRecord[]
+  if (isRecord(input) && Array.isArray(input.likes_comment_likes)) {
+    return (input.likes_comment_likes as InstagramRelationshipRecord[]).map((row) => ({
+      raw: row,
+      timestamp: row.string_list_data?.[0]?.timestamp,
+      label_values: [
+        { label: 'URL', href: row.string_list_data?.[0]?.href },
+        { label: 'Title', value: row.title },
+        { label: 'Description', value: row.string_list_data?.[0]?.value }
+      ]
+    }))
+  }
+  throw new Error('Unsupported Instagram likes/saves shape; no records were imported.')
 }
 
 function asArray<T>(input: unknown): T[] {
@@ -930,6 +1015,10 @@ function asArray<T>(input: unknown): T[] {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function flattenInstagramLabels(labels: InstagramLabel[]): InstagramLabel[] {
+  return labels.flatMap((label) => [label, ...flattenInstagramLabels(label.dict ?? [])])
 }
 
 function labelMap(row: InstagramLabeledRecord): Record<string, string | undefined> {

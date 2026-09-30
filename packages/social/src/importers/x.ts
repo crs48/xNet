@@ -21,7 +21,7 @@ import {
 } from '../import/core'
 
 export const X_ADAPTER_ID = 'x'
-export const X_ADAPTER_VERSION = '0.1.0'
+export const X_ADAPTER_VERSION = '0.2.0'
 
 type XBucketPattern = {
   id: string
@@ -264,7 +264,12 @@ export const xAdapter: SocialImportAdapter = {
     platform: 'x',
     confidence: hasXArchiveSignals(manifest) ? 0.95 : 0,
     buckets: createXBuckets(manifest),
-    warnings: []
+    warnings: [
+      manifest.entries.some((entry) => /bookmarks?\.js$/.test(entry.path))
+        ? 'Bookmark data is present, but this adapter does not yet map that category.'
+        : 'No bookmark file is present in this archive.',
+      'The likes export does not include native like timestamps.'
+    ]
   }),
   stage: stageXArchive
 }

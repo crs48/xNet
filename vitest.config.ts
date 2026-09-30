@@ -167,7 +167,9 @@ export default defineConfig({
             // config, where CI would never see it. Named explicitly rather than
             // globbing __tests__: its neighbours there need the package subpath
             // resolution this shared pool does not provide.
-            'packages/social/src/__tests__/publish.test.ts'
+            'packages/social/src/__tests__/publish.test.ts',
+            // Seed archive fidelity (0466): source-shaped fixtures must run in the CI unit lane.
+            'packages/social/src/__tests__/seed-import-fidelity.test.ts'
           ],
           // data-bridge tests run separately - they have Yjs module import order issues
           // when combined with other tests in the same worker thread

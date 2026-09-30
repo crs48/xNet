@@ -21,7 +21,7 @@ import {
 } from '../import/core'
 
 export const YOUTUBE_ADAPTER_ID = 'youtube'
-export const YOUTUBE_ADAPTER_VERSION = '0.1.0'
+export const YOUTUBE_ADAPTER_VERSION = '0.2.0'
 
 export type YouTubeCsvRow = Record<string, string>
 
@@ -407,31 +407,63 @@ export function mapYouTubePlaylists(input: {
   videoFiles?: readonly YouTubePlaylistVideoFile[]
 }): StagedSocialRecord[] {
   const catalogRows = input.catalogRows ?? []
-  const rowsByTitle = new Map(
-    catalogRows.map((row) => [normalizePlaylistTitle(row['Playlist Title (Original)']), row])
-  )
+  const matchingRows = (title: string) =>
+    catalogRows.filter(
+      (row) =>
+        normalizePlaylistTitle(row['Playlist Title (Original)']) === normalizePlaylistTitle(title)
+    )
   const emittedCollections = new Set<string>()
 
   const collectionRecords = catalogRows.flatMap((row, index) => {
     if (!input.catalogSource) return []
     const collection = createPlaylistCollection(input, input.catalogSource, row, index)
     emittedCollections.add(collection.collectionId)
-    return collection.records
+    const hasFile = (input.videoFiles ?? []).some(
+      (file) =>
+        normalizePlaylistTitle(playlistTitleFromVideoPath(file.source.path)) ===
+        normalizePlaylistTitle(row['Playlist Title (Original)'])
+    )
+    return collection.records.map((record) => ({
+      ...record,
+      warnings: hasFile
+        ? record.warnings
+        : [
+            ...record.warnings,
+            'No membership file was exported for this playlist; membership coverage is unknown.'
+          ]
+    }))
   })
 
   const itemRecords = (input.videoFiles ?? []).flatMap((file) => {
     const playlistTitle = playlistTitleFromVideoPath(file.source.path)
-    const catalogRow = rowsByTitle.get(normalizePlaylistTitle(playlistTitle))
+    const candidates = matchingRows(playlistTitle)
+    // A filename cannot disambiguate two catalog titles that normalize alike.
+    // Keep the file's own collection and report the ambiguity instead of guessing.
+    const catalogRow = candidates.length === 1 ? candidates[0] : undefined
     const collection = createPlaylistCollection(input, file.source, catalogRow, 0, playlistTitle)
     const collectionIntro = emittedCollections.has(collection.collectionId)
       ? []
       : collection.records
     emittedCollections.add(collection.collectionId)
-
+    const occurrences = new Map<string, number>()
+    const warnings =
+      candidates.length === 1
+        ? []
+        : [
+            candidates.length
+              ? 'Ambiguous playlist catalog match; file preserved separately.'
+              : 'No playlist catalog match; file preserved separately.'
+          ]
     return [
-      ...collectionIntro,
-      ...file.rows.flatMap((row, index) =>
-        createPlaylistItemRecords({
+      ...collectionIntro.map((record) => ({
+        ...record,
+        warnings: [...record.warnings, ...warnings]
+      })),
+      ...file.rows.flatMap((row, index) => {
+        const identity = JSON.stringify([row['Video ID'], row['Playlist Video Creation Timestamp']])
+        const occurrence = occurrences.get(identity) ?? 0
+        occurrences.set(identity, occurrence + 1)
+        return createPlaylistItemRecords({
           context: input.context,
           source: file.source,
           selfActorId: input.selfActorId,
@@ -439,9 +471,10 @@ export function mapYouTubePlaylists(input: {
           collectionTitle: collection.title,
           row,
           index,
+          occurrence,
           privacyClass: collection.privacyClass
         })
-      )
+      })
     ]
   })
 
@@ -810,6 +843,7 @@ function createPlaylistItemRecords(input: {
   collectionTitle: string
   row: YouTubeCsvRow
   index: number
+  occurrence: number
   privacyClass: SocialPrivacyClass
 }): StagedSocialRecord[] {
   const videoId = input.row['Video ID'] || `${input.collectionId}:${input.index}`
@@ -842,7 +876,9 @@ function createPlaylistItemRecords(input: {
       deterministicId: createSocialNodeId('collection-item', [
         'youtube',
         input.collectionId,
-        contentId
+        contentId,
+        addedAt,
+        input.occurrence
       ]),
       platform: 'youtube',
       bucketId: 'youtube.playlists',
@@ -1024,7 +1060,10 @@ function playlistTitleFromVideoPath(path: string): string {
 }
 
 function normalizePlaylistTitle(value?: string): string {
-  return (value ?? '').trim().toLowerCase()
+  return (value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\\/:*?"<>|]/g, '_')
 }
 
 function youtubeVisibilityToPrivacy(value?: string): SocialPrivacyClass {

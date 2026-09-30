@@ -86,11 +86,11 @@ Chris identified `.exports/` as the local archive directory. A read-only inspect
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | Garden and website       | Existing public pages and the local `digitalgarden` project                                                                                  | Chris's commentary, original URLs, tags, dates where available, and links to source resources                                          |
 | `.exports/twitter.zip`   | 106.7 MiB; 10,028 records in `like.js`; no bookmark-named archive member detected                                                            | Tweet IDs, exported text and links, and the fact these are likes. Bookmark coverage remains unverified                                 |
-| `.exports/youtube.zip`   | 5.0 MiB; 38 playlist catalog rows; 32 playlist-video CSVs containing 11,419 membership rows and 9,273 distinct video IDs                     | Playlist identities and names, every membership, row order as exported, and timestamps with their original meaning                     |
+| `.exports/youtube.zip`   | 5.0 MiB; 33 playlist catalog rows; 32 playlist-video CSVs containing 11,259 membership rows and 9,273 distinct video IDs                     | Playlist identities and names, every membership, row order as exported, and timestamps with their original meaning                     |
 | `.exports/instagram.zip` | 423.1 MiB; 7,230 saved-post records, 8,827 liked-post records, 15 saved-collection records; also 74 saved-music and 25 liked-comment records | Separate saves and likes, named collections, nested item relationships, source URLs, captions, and available timestamps                |
 | GitHub stars             | No GitHub export found in `.exports/`                                                                                                        | Repository identity and URL, owner, description, available topics/language, and the star relationship with its timestamp when supplied |
 
-These counts describe the source files. They do not establish how many unique resources will import successfully. For example, one YouTube video can belong to several playlists. The difference between 38 catalog entries and 32 membership files needs a reconciliation report; it must not be guessed away as either data loss or empty playlists.
+These counts describe the source files. They do not establish how many unique resources will import successfully. For example, one YouTube video can belong to several playlists. The difference between 33 catalog entries and 32 membership files needs a reconciliation report; it must not be guessed away as either data loss or empty playlists.
 
 The YouTube membership CSVs contain video IDs and playlist-video timestamps, without video titles or descriptions. The Twitter likes contain `tweetId`, `fullText`, and `expandedUrl`, without a like timestamp. Preserve those limits. Import time is not save time, and a video's presence in a playlist is not evidence that Chris watched it.
 
@@ -420,7 +420,7 @@ Validate content type, size, and decoded dimensions before accepting a fetched i
 
 The current [enrichment queue](../../packages/social/src/enrichment/queue.ts) is scoped to a session. The [shared feed hook](../../packages/views/src/social-enrichment/useSocialFeedEnrichment.ts) requests previews visible on screen and loads a limited set of enrichment rows. The [fetch path](../../packages/social/src/enrichment/fetch.ts) depends on a hub for platforms without its direct oEmbed path. These pieces do not yet meet full-corpus, restart-safe desktop enrichment.
 
-Add durable work items keyed by resource identity, capability, provider version, and language where relevant. Capabilities include metadata, thumbnail bytes, caption discovery, transcript fetch, local transcription, and indexing. Deduplicate work across likes, saves, and playlists; the observed 11,419 YouTube memberships should not fetch the same 9,273 video IDs repeatedly. Cover the entire corpus through paginated queries, not the first screen or the first 2,000 rows.
+Add durable work items keyed by resource identity, capability, provider version, and language where relevant. Capabilities include metadata, thumbnail bytes, caption discovery, transcript fetch, local transcription, and indexing. Deduplicate work across likes, saves, and playlists; the observed 11,259 YouTube memberships should not fetch the same 9,273 video IDs repeatedly. Cover the entire corpus through paginated queries, not the first screen or the first 2,000 rows.
 
 Use bounded concurrency per provider, backoff, `Retry-After` where supplied, and persisted retry times. Pause across sleep, offline periods, app quit, or a run of refusals. Resume without redoing completed work. An unavailable credential or blocked provider should leave actionable queued work; it must not classify thousands of videos as having no captions. Prioritize recently opened resources while the rest of the corpus continues in the background.
 
@@ -515,8 +515,8 @@ Focused verification passed: 29 compatibility/checkpoint/restore tests, six docu
 
 ### B. Seed the library from the existing corpus
 
-- [ ] Add a read-only inventory and preview for `.exports/`; reconcile selected categories and unknown formats against the observed source counts.
-- [ ] Fix the Twitter/X, YouTube, and Instagram adapter gaps using sanitized fixtures from the actual archive shapes, including nested Instagram collections. Report unavailable bookmark data explicitly.
+- [x] Add a read-only inventory and preview for `.exports/`; reconcile selected categories and unknown formats against the observed source counts.
+- [x] Fix the Twitter/X, YouTube, and Instagram adapter gaps using sanitized fixtures from the actual archive shapes, including nested Instagram collections. Report unavailable bookmark data explicitly.
 - [ ] Add GitHub stars as a seed source via saved JSON or a complete paginated read-only snapshot, preserving repository IDs, native star activity, and timestamp/coverage limits.
 - [ ] Import garden and website material with authored commentary, source URLs, and stable provenance; connect it to matching imported resources.
 - [ ] Prove faithful import on a small representative sample, then import the full selected corpus in resumable batches with an honest reconciliation report.
@@ -531,6 +531,10 @@ Focused verification passed: 29 compatibility/checkpoint/restore tests, six docu
 - [ ] Validate enrichment on a representative real sample, then run it across the whole corpus; report field, image, and transcript coverage with unresolved reasons, storage use, and remaining work.
 
 **Exit:** Chris can rediscover an old save by enriched metadata or a phrase in an available transcript, see a useful local preview, inspect its collection, and follow a source-backed connection. Every selected record and enrichment job has an explained outcome. The corpus and its fetched content can be recovered and repeated safely. Any unavailable transcripts or metadata remain visible in the coverage report.
+
+**Seed preview evidence (2026-09-29):** `pnpm exec tsx scripts/inventory-personal-library.ts --output /tmp/xnet-seed-inventory.json` reads the selected archive categories without opening a workspace database. It records archive hashes, adapter versions, excluded buckets, unclassified entry counts, emitted and unique record counts, and unresolved warnings. The parsed YouTube count corrects the earlier estimate to 33 catalog rows and 11,259 memberships across 32 files. All 11,259 memberships now retain distinct IDs, covering 9,273 videos. One ambiguous catalog-title match is kept as a separate collection with a warning, producing 34 collection nodes rather than guessing a join.
+
+Instagram now maps all 25 liked comments and 15 named collections, alongside the saved-post and music collections. The preview accounts for 14,763 memberships and 9,599 unique content nodes. One repeated interaction resolves to an existing deterministic interaction ID; every source record remains accounted for. Twitter contributes 10,028 likes and explicitly reports absent bookmark data and missing native like timestamps. A GitHub snapshot is still missing. The social package's 231 tests and its typecheck passed. These are read-only previews; no personal archive has been committed to a workspace. Existing imports from adapter 0.1 still need an ID-consolidation migration before claiming cross-version reimport fidelity.
 
 ### C. Keep the library useful as new things arrive
 
@@ -591,7 +595,7 @@ Import validation must use the shapes in `.exports/` as well as small synthetic 
 | Known archive counts                            | Every selected source record reconciles; raw record counts, unique resources, and memberships remain separate measures         |
 | Instagram nested collections                    | Named collections and all available nested memberships survive; collection metadata is not turned into fake saved posts        |
 | Wrapped Instagram likes                         | The parser accepts the observed wrapper or reports it unsupported; it never reports zero successful records for an unread file |
-| YouTube catalog and membership files            | All 38 catalog rows and 32 membership files are accounted for, including repeated videos and unexplained gaps                  |
+| YouTube catalog and membership files            | All 33 catalog rows and 32 membership files are accounted for, including repeated videos and unexplained gaps                  |
 | Twitter likes without bookmarks or dates        | Likes remain likes; missing bookmark coverage and save timestamps are visible                                                  |
 | Same resource saved and liked                   | One resolved resource exposes both actions and all source records; notes remain intact                                         |
 | Reimport, changed ordering, overlapping exports | Stable items and memberships do not multiply; fresh observations retain provenance; no inferred deletions                      |
