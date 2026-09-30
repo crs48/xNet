@@ -3,7 +3,7 @@
 This inventory describes the Electron paths inspected for exploration 0466. A
 native recovery copy covers `xnet-data`. It does not yet cover every preference,
 browser credential, or external file the desktop can use. The Settings screen
-states this limit. Do not call these copies portable or off-device backups.
+states this limit. Native copies remain local. The separate encrypted export below supports portable recovery of the covered files.
 
 ## Data locations
 
@@ -86,3 +86,19 @@ validation; a higher version number alone is not proof of compatibility.
 Native tests and source-app runs do not establish cross-Mac recovery, signed
 installer continuity, or a power-loss guarantee for the underlying hardware.
 Those remain separate acceptance checks in exploration 0466.
+
+## Encrypted export
+
+Settings → Data can export a verified native point into a password-encrypted
+`.xnetbackup` folder. Keep the entire folder and password separately. Export
+verifies all encrypted objects before publishing the folder. Restore verifies
+all files in a new private directory and rewraps the actual signing seed with
+the destination key store before replacing anything. The current workspace
+remains preserved and the recovered workspace opens offline for review.
+
+The original Keychain secret is unnecessary for these encrypted exports. The
+app does not save the recovery password. It does not claim off-device protection
+merely because a folder was chosen: the user must retain a copy on another disk
+or device. Browser preferences and sign-in sessions remain outside this format.
+Only the current storage version can be restored through this control today.
+See ADR-40 for format details and the limits of the cross-Mac evidence.

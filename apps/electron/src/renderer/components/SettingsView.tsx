@@ -198,6 +198,8 @@ function AppearanceSettings() {
 // ─── Data Settings ────────────────────────────────────────────────────────────
 
 function DataSettings() {
+  const [recoveryPassword, setRecoveryPassword] = useState('')
+  const [exported, setExported] = useState<string | null>(null)
   const [status, setStatus] = useState<RecoveryStatus | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -276,6 +278,71 @@ function DataSettings() {
       {status?.checkpoints.length === 0 && (
         <p className="text-sm">No verified local recovery copy yet.</p>
       )}
+      <section className="space-y-3 rounded-md border border-border p-4">
+        <h3 className="font-medium">Encrypted backup</h3>
+        <p className="text-sm text-muted-foreground">
+          Save your workspace and recovery keys to a folder you choose. For protection against
+          losing this Mac, copy the entire .xnetbackup folder to another disk or device. xNet
+          verifies the exported files; it cannot confirm that your destination is off this Mac.
+        </p>
+        <label className="block text-sm" htmlFor="recovery-password">
+          Recovery password
+        </label>
+        <input
+          id="recovery-password"
+          type="password"
+          autoComplete="off"
+          minLength={12}
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          value={recoveryPassword}
+          onChange={(event) => setRecoveryPassword(event.target.value)}
+          placeholder="At least 12 characters; several random words work well"
+          disabled={busy}
+        />
+        <p className="text-xs text-muted-foreground">
+          Keep this password somewhere safe and separate from the backup. xNet does not save it and
+          cannot recover a forgotten password. Browser settings and sign-in sessions are excluded.
+        </p>
+        <div className="flex gap-3">
+          <button
+            className={buttonClass}
+            disabled={busy || status?.busy || recoveryPassword.length < 12}
+            onClick={() =>
+              void run(async () => {
+                try {
+                  const result = await window.xnet.exportEncryptedBackup(recoveryPassword)
+                  if (result)
+                    setExported(`${result.path} · verified ${new Date().toLocaleString()}`)
+                } finally {
+                  setRecoveryPassword('')
+                }
+              })
+            }
+          >
+            Export encrypted backup…
+          </button>
+          <button
+            className={buttonClass}
+            disabled={busy || status?.busy || recoveryPassword.length < 12}
+            onClick={() =>
+              void run(async () => {
+                try {
+                  await window.xnet.restoreEncryptedBackup(recoveryPassword)
+                } finally {
+                  setRecoveryPassword('')
+                }
+              })
+            }
+          >
+            Restore encrypted backup…
+          </button>
+        </div>
+        {exported && (
+          <p role="status" className="break-all text-sm">
+            Backup written and verified: {exported}
+          </p>
+        )}
+      </section>
       <ul className="space-y-3">
         {status?.checkpoints.map((point) => (
           <li

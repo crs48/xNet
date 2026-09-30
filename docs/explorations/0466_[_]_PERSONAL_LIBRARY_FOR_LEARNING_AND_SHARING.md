@@ -518,6 +518,15 @@ Candidate upgrades currently support storage version 8 to 9, using a historical 
 
 **Exit:** Chris can save notes, quit, reopen, install an update, and recover an earlier copy without a terminal. Development uses a different workspace. No valuable collection moves in before this exit is demonstrated.
 
+The encrypted native export now has desktop controls and seven failure/recovery
+tests. A real Electron run exported through Settings, removed the entire test
+profile, restored from the encrypted folder alone, and recovered the item and
+retained source file while preserving the replacement generation. Different
+mock key stores verify seed rewrapping independently of the source key store.
+This does not complete the portable-backup checkbox: non-native settings and
+keys, a retained off-device destination, and a second physical Mac remain
+unproven. The format and explicit limits are recorded in ADR-40.
+
 ### B. Seed the library from the existing corpus
 
 - [x] Add a read-only inventory and preview for `.exports/`; reconcile selected categories and unknown formats against the observed source counts.

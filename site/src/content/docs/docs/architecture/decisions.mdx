@@ -1227,3 +1227,42 @@ portable or off-device guarantee.
 version changes, or checkpoint time/storage use disrupts daily work. Add the
 relevant historical fixture and data-preservation proof before widening support
 or changing the displayed recovery policy.
+
+## ADR-40: Portable desktop recovery carries encrypted identity and source bytes
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** Copying native recovery files to another disk does not make their
+Keychain-encrypted identity usable on another Mac. Losing the original machine
+must not make the only surviving backup useless.
+
+**Decision:** `xnet-desktop-portable/1` is a directory containing a small public
+header, an encrypted manifest, and encrypted file chunks. The password derives
+a 32-byte key with scrypt (N=131072, r=8, p=1, random 32-byte salt). Each object
+uses native AES-256-GCM with a fresh random 12-byte nonce, a 16-byte tag, and the
+format identifier as authenticated data. File chunks are at most four MiB.
+The authenticated manifest binds ordered ciphertext hashes to each original
+path, size, and plaintext SHA-256. It also carries the actual desktop signing
+seed and any stored recovery mnemonic, encrypted under the recovery password.
+The public header contains no filenames, identity, or password.
+
+Export starts from a verified native checkpoint and verifies the encrypted
+manifest and every object before atomically publishing the folder. Restore
+extracts only into a new private directory, verifies files and databases, and
+rewraps the same seed using the destination key store. A fresh native checkpoint
+records those changed key-file bytes. Only then may the existing restore journal
+replace the workspace, preserving its prior generation and pausing networking.
+The desktop currently accepts portable restores for the current storage version;
+an incompatible backup fails before changing live files.
+
+**Tradeoff:** Password loss is unrecoverable. This format has no password escrow,
+compression, or incremental deduplication. Browser settings and sign-in sessions
+remain excluded. The app verifies written bytes but cannot infer that a chosen
+folder is off-device. It must state that distinction. Tests with different mock
+key stores and a real desktop round trip do not prove a second physical Mac or
+signed installer continuity.
+
+**Tripwire:** A cryptographic parameter changes, a required key lives outside
+this manifest, a supported backup needs migration during restore, or large
+exports block normal desktop use. Reopen the format and recovery evidence before
+changing the reader or broadening the protection claim.

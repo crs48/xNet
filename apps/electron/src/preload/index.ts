@@ -20,6 +20,9 @@ contextBridge.exposeInMainWorld('xnet', {
   createRecoveryCopy: () => ipcRenderer.invoke('xnet:recovery:create'),
   showRecoveryFolder: () => ipcRenderer.invoke('xnet:recovery:show'),
   restoreRecoveryCopy: (id: string) => ipcRenderer.invoke('xnet:recovery:restore', id),
+  exportEncryptedBackup: (password: string) => ipcRenderer.invoke('xnet:recovery:export', password),
+  restoreEncryptedBackup: (password: string) =>
+    ipcRenderer.invoke('xnet:recovery:import', password),
   onRecoveryError: (handler: (message: string | null) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, message: string | null) => handler(message)
     ipcRenderer.on('xnet:recovery:error', listener)
@@ -554,6 +557,10 @@ export interface XNetAPI {
   createRecoveryCopy(): Promise<CheckpointManifest>
   showRecoveryFolder(): Promise<void>
   restoreRecoveryCopy(id: string): Promise<{ restored: boolean }>
+  exportEncryptedBackup(
+    password: string
+  ): Promise<{ path: string; createdAt: string; files: number; bytes: number } | null>
+  restoreEncryptedBackup(password: string): Promise<{ restored: boolean }>
   onRecoveryError(handler: (message: string | null) => void): () => void
   onFlushDocuments(flush: () => Promise<void>): () => void
   onResumeEditing(callback: () => void): () => void
