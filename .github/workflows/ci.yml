@@ -402,8 +402,8 @@ jobs:
       - name: Rebuild native modules for Electron (unpacked app)
         run: pnpm --filter xnet-desktop run deps:electron
 
-      - name: Install xvfb
-        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Install desktop test services
+        run: sudo apt-get update && sudo apt-get install -y xvfb dbus-x11 gnome-keyring libsecret-1-0
 
       - name: Cache Playwright browser
         id: playwright-cache
@@ -437,7 +437,8 @@ jobs:
 
       - name: Run convergence matrix + Electron app smoke (xvfb)
         run: |
-          xvfb-run --auto-servernum pnpm --filter @xnetjs/e2e-tests exec \
+          bash scripts/with-linux-test-keyring.sh \
+            xvfb-run --auto-servernum pnpm --filter @xnetjs/e2e-tests exec \
             playwright test src/sync-matrix.spec.ts src/electron-smoke.spec.ts \
             --project=chromium --project=electron --fail-on-flaky-tests
         env:
