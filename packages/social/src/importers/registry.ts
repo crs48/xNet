@@ -5,6 +5,7 @@
 import type { SocialImportAdapter } from '../import/types'
 import type { SocialPlatform, SocialPrivacyClass } from '../schemas/constants'
 import { claudeAdapter } from './claude'
+import { githubAdapter } from './github'
 import { grokAdapter } from './grok'
 import { instagramAdapter } from './instagram'
 import { openaiAdapter } from './openai'
@@ -60,6 +61,14 @@ const plannedImporter = (input: {
 })
 
 export const builtInSocialImporterRegistry = [
+  availableImporter({
+    adapter: githubAdapter,
+    label: 'GitHub stars',
+    description: 'Saved GitHub API stars snapshots with native repository IDs and star timestamps.',
+    archiveFormats: ['JSON snapshot', 'ZIP with JSON snapshot'],
+    recordTypes: ['repositories', 'stars', 'owners', 'collections'],
+    privacyClasses: ['public', 'private']
+  }),
   availableImporter({
     adapter: instagramAdapter,
     label: 'Instagram',

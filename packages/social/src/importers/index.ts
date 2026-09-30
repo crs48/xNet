@@ -102,3 +102,5 @@ export {
   type SocialImporterAvailability,
   type SocialImporterRegistryEntry
 } from './registry'
+
+export { GITHUB_ADAPTER_ID, GITHUB_ADAPTER_VERSION, githubAdapter, mapGitHubStars } from './github'

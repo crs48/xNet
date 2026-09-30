@@ -5,6 +5,7 @@
 export const SOCIAL_NAMESPACE = 'xnet://xnet.fyi/social/' as const
 
 export const socialPlatforms = [
+  { id: 'github', name: 'GitHub' },
   { id: 'instagram', name: 'Instagram' },
   { id: 'grok', name: 'Grok' },
   { id: 'x', name: 'X' },
@@ -120,6 +121,7 @@ export const contentKinds = [
 export type SocialContentKind = (typeof contentKinds)[number]['id']
 
 export const interactionKinds = [
+  { id: 'star', name: 'Star' },
   { id: 'follow', name: 'Follow' },
   { id: 'like', name: 'Like' },
   { id: 'save', name: 'Save' },

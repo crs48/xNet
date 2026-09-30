@@ -2,6 +2,7 @@ import type { StagedSocialRecord } from '../import/types'
 import { describe, expect, it } from 'vitest'
 import { mapInstagramLikedPosts, mapInstagramSavedPosts } from '../importers/instagram'
 import { mapYouTubePlaylists } from '../importers/youtube'
+import { SocialContentSchema } from '../schemas/content'
 
 const context = {
   archiveId: 'archive:fixture',
@@ -54,7 +55,12 @@ describe('observed seed export shapes (synthetic content)', () => {
     const resources = [saved, liked, named].map((records) => ofKind(records, 'content')[0])
     expect(new Set(resources.map((record) => record.deterministicId)).size).toBe(1)
     expect(resources[0].properties.searchText).toContain('Full caption')
-    expect(resources[0].properties.authorHandle).toBe('example_creator')
+    expect(resources[0].properties.actorHandle).toBe('example_creator')
+    for (const resource of resources)
+      for (const key of Object.keys(resource.properties))
+        expect(
+          SocialContentSchema.schema.properties.some((property) => property.name === key)
+        ).toBe(true)
     expect(ofKind(saved, 'interaction')[0].properties.interactionKind).toBe('save')
     expect(ofKind(liked, 'interaction')[0].properties.interactionKind).toBe('like')
     expect(ofKind(named, 'interaction')).toHaveLength(0)

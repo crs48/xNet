@@ -876,7 +876,7 @@ function mapInstagramLabeledContentInteraction(input: {
           .map((label) => label.value ?? label.href)
           .filter(Boolean)
           .join('\n'),
-        authorHandle: creator,
+        actorHandle: creator,
         observedAt,
         importedAt: input.context.importedAt,
         confidence: input.row.fbid ? 0.9 : 0.7,
