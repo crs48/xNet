@@ -563,6 +563,25 @@ The resulting store contained exactly 1,500 resource nodes. Its recovery point
 included the job journal. This is resume evidence, not the still-pending faithful
 full-corpus acceptance run. ADR-41 records replay semantics and version limits.
 
+**Desktop Library evidence (2026-09-29):** the app now has a Library entry
+point, source filters, bounded card pages, source details, and separate capability
+coverage. A private, versioned SQLite queue in the existing data process retains
+pause/retry state and full source text. Imported resources are scheduled after
+commit; the Library can also scan existing imports. Recovery pauses this writer
+and includes its database. Source thumbnails are saved in the managed blob store.
+
+A live read-only sample fetched two exported YouTube links with descriptions of
+2,901 and 3,063 characters and 2,557 and 2,649 caption cues. A public GitHub
+fixture returned a full README. In an isolated Electron profile, the first video
+completed all four capabilities. After quitting and restarting with the renderer
+offline, its 157,779-byte thumbnail decoded from local storage and a caption at
+2,402,320 ms was searchable. The recovery manifest included `library.db`.
+
+This is a narrow working sample. Instagram/Twitter coverage, local ASR, a managed
+helper setup, garden ingestion, full-corpus reconciliation, and the installed
+release exercise remain unproven. No full personal corpus has been imported into
+a daily workspace. ADR-42 records the local storage boundary.
+
 ### C. Keep the library useful as new things arrive
 
 - [ ] Add Library entry points for Inbox, Resources, Collections, and Guides using existing social records and Pages, without making a blank Page for every import.

@@ -1,6 +1,7 @@
 /**
  * Preload script - exposes xNet API to renderer
  */
+import type { LibraryResource, LibrarySearchResult, LibraryStatus } from '../library/types'
 import type { CloudConnectPayload } from '../main/deep-link'
 import type {
   SocialImportArchivePreview,
@@ -16,6 +17,14 @@ import { contextBridge, ipcRenderer } from 'electron'
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
   getRecoveryStatus: () => ipcRenderer.invoke('xnet:recovery:status'),
+  libraryStatus: () => ipcRenderer.invoke('xnet:library:status'),
+  librarySearch: (options: { text?: string; platform?: string; offset?: number; limit?: number }) =>
+    ipcRenderer.invoke('xnet:library:search', options),
+  libraryGet: (id: string) => ipcRenderer.invoke('xnet:library:get', { id }),
+  libraryScan: () => ipcRenderer.invoke('xnet:library:scan'),
+  libraryPause: () => ipcRenderer.invoke('xnet:library:pause'),
+  libraryResume: () => ipcRenderer.invoke('xnet:library:resume'),
+  libraryRetry: (id?: string) => ipcRenderer.invoke('xnet:library:retry', { id }),
   resumeRecoveryNetwork: () => ipcRenderer.invoke('xnet:recovery:resume-network'),
   createRecoveryCopy: () => ipcRenderer.invoke('xnet:recovery:create'),
   showRecoveryFolder: () => ipcRenderer.invoke('xnet:recovery:show'),
@@ -554,6 +563,18 @@ export interface RecoveryStatus {
 }
 
 export interface XNetAPI {
+  libraryStatus(): Promise<LibraryStatus & { error: string | null }>
+  librarySearch(options: {
+    text?: string
+    platform?: string
+    offset?: number
+    limit?: number
+  }): Promise<LibrarySearchResult[]>
+  libraryGet(id: string): Promise<LibraryResource | null>
+  libraryScan(): Promise<number>
+  libraryPause(): Promise<void>
+  libraryResume(): Promise<void>
+  libraryRetry(id?: string): Promise<void>
   getRecoveryStatus(): Promise<RecoveryStatus>
   resumeRecoveryNetwork(): Promise<void>
   createRecoveryCopy(): Promise<CheckpointManifest>

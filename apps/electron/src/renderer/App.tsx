@@ -158,6 +158,15 @@ export function App(): React.ReactElement {
     return () => disposable.dispose()
   }, [handleOpenSocialImport])
 
+  useEffect(() => {
+    const disposable = getCommandRegistry().register({
+      id: 'desktop.library',
+      title: 'Open Library',
+      run: handleOpenDataWorkspace
+    })
+    return () => disposable.dispose()
+  }, [handleOpenDataWorkspace])
+
   if (homeCanvasBootstrapError && !homeCanvasId) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
@@ -201,7 +210,15 @@ export function App(): React.ReactElement {
             starts below a slim drag strip instead of underneath them. The
             frames subtract --titlebar-height so the bottom islands stay
             on-screen. */}
-        <header className="titlebar-drag h-[38px] shrink-0" />
+        <header className="titlebar-drag flex h-[38px] shrink-0 items-center justify-end px-4">
+          <button
+            className="rounded px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            onClick={handleOpenDataWorkspace}
+          >
+            Library
+          </button>
+        </header>
         {(recoveryError || recoveryNotice) && (
           <div
             role="status"
