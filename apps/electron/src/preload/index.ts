@@ -11,6 +11,7 @@ import type {
   LibrarySearchResult,
   LibraryStatus
 } from '../shared/library'
+import type { SerializedNodeBatch } from '../shared/node-batch'
 import type { CheckpointManifest } from '../shared/recovery'
 import type {
   SocialImportArchivePreview,
@@ -19,6 +20,7 @@ import type {
   SocialImportStageRequest,
   SocialImportStageResult
 } from '../shared/social-import'
+import type { ApplyNodeBatchResult } from '@xnetjs/data'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { contextBridge, ipcRenderer } from 'electron'
 
@@ -550,6 +552,8 @@ contextBridge.exposeInMainWorld('xnetSocialImport', {
 // This enables persistent node storage in Electron (replacing MemoryNodeStorageAdapter).
 
 contextBridge.exposeInMainWorld('xnetNodes', {
+  applyNodeBatch: (input: SerializedNodeBatch) =>
+    ipcRenderer.invoke('xnet:nodes:applyNodeBatch', { input }),
   // Change log operations
   appendChange: (change: unknown) => ipcRenderer.invoke('xnet:nodes:appendChange', { change }),
   getChanges: (nodeId: string) => ipcRenderer.invoke('xnet:nodes:getChanges', { nodeId }),
@@ -790,6 +794,7 @@ export interface XNetTunnelAPI {
 
 // Node Storage API types (for IPC-based NodeStorageAdapter)
 export interface XNetNodesAPI {
+  applyNodeBatch(input: SerializedNodeBatch): Promise<ApplyNodeBatchResult>
   // Change log operations
   appendChange(change: unknown): Promise<void>
   getChanges(nodeId: string): Promise<unknown[]>

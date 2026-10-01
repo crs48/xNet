@@ -514,6 +514,20 @@ Unchecked items are proposed work. Checked items carry implementation evidence b
 
 **Implementation evidence (2026-09-29):** startup now probes a disposable database/WAL copy before either desktop store opens for writes, preserves unknown and damaged originals, and exposes a native recovery dialog before the renderer starts. Targeted SQLite, compatibility, and profile tests passed (74 tests); `pnpm turbo run typecheck` passed (101 tasks). The real Electron smoke checks passed for clean boot and restart persistence (2 tests). A separate isolated Electron recovery run observed the unversioned warning, zero normal windows, unchanged source bytes, and no newly created blob database. Desktop Node typechecking also exposed two missing import-preview coverage fields; both now reach the caller. Source-launch profile isolation is implemented, but profile transition and full recovery remain unchecked until the rest of pass A is proven.
 
+**Atomic record-save evidence (2026-09-30):** the desktop IPC adapter now uses
+`applyNodeBatch` for ordinary structured edits and explicit transactions. Native
+SQLite commits records, indexes, signed history, and the clock together; failed
+batches emit no success notification. Desktop history reads now decode the
+shared envelope used by imports, preserving signed change IDs and batch positions.
+Five backend integration tests cover restart, rollback/retry, deleted-record
+restore, imported-record edits, and closed-storage failures. The real Electron
+app also passed injected-write failure and retry, direct-exit restart, and an
+acknowledged last-moment edit before normal quit with a verified recovery copy.
+A synthetic 100-create/100-update sample measured median 4.3/5.3 ms and p95
+8.6/10.0 ms with `FULL` durability. The broader mutation-acknowledgement item stays
+open: pending work before IPC, separate mutation paths, overlapping writers, and
+the full daily workload are not covered by this proof.
+
 **Recovery implementation evidence (2026-09-29):** document writes now serialize by store and document, retain failed snapshots, and retry before reopening. Desktop SQLite uses `synchronous=FULL`. A native checkpoint covers both databases and files under `xnet-data`, verifies each file and database, and retains twenty copies. Restore uses a durable rename journal and keeps the replaced workspace separately. Restored workspaces pause automatic sync, the local API, and the agent bridge until an explicit reconnect. This scope excludes Chromium settings and sign-in sessions; it is not portable encrypted or off-device protection.
 
 Focused verification passed: 29 compatibility/checkpoint/restore tests, six document-barrier tests, two quit-barrier tests, 32 SQLite adapter tests, and 22 existing data-process/sync checks. Workspace typechecking passed (101 tasks), desktop Node typechecking passed, and two existing real Electron smoke tests passed. In isolated desktop runs, text typed immediately before quit survived relaunch; Settings created a verified copy; restoring an older node recovered its original value while keeping newer work; and the restored app reported recovery mode with sync paused. The direct desktop renderer typecheck also exposed existing unrelated errors in its composite file list, form props, effect cleanup signatures, and sync interfaces; it is not reported as passing. Signed installed-app upgrades, Keychain continuity, periodic scheduling, and full protection remain unproven.

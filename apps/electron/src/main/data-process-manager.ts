@@ -521,6 +521,11 @@ export function setupDataProcessIPC(getMainWindow: () => BrowserWindow | null): 
   })
 
   // Change log operations
+  ipcMain.handle('xnet:nodes:applyNodeBatch', async (_event, opts: { input: unknown }) => {
+    const result = (await sendRequest('nodes:applyNodeBatch', opts)) as { result: unknown }
+    return result.result
+  })
+
   ipcMain.handle('xnet:nodes:appendChange', async (_event, opts: { change: unknown }) => {
     await sendRequest('nodes:appendChange', opts)
   })

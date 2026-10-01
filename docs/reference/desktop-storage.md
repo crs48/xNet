@@ -55,6 +55,46 @@ seed over it, or treat this profile as a successful installed-upgrade fixture.
 Legacy ownership recovery remains a separate prerequisite for using it with the
 new daily build. Development profiles continue to use separate directories.
 
+## Atomic record saves
+
+Desktop `NodeStore` creates, updates, deletes, restores, and explicit multi-record
+transactions use the native SQLite batch operation. The materialized records,
+property indexes, signed changes, and logical clock commit together. IPC returns
+success and broadcasts changes only after that commit. A rejected write rolls the
+batch back and remains an error to its caller. History reads use the shared
+storage decoder, including records written by imports; change IDs, signatures,
+protocol versions, and batch positions survive reopening.
+
+```mermaid
+sequenceDiagram
+    participant UI as Desktop NodeStore
+    participant IPC as Native data process
+    participant DB as SQLite FULL transaction
+    UI->>IPC: Signed changes and final record states
+    IPC->>DB: Apply one atomic batch
+    alt Commit succeeds
+        DB-->>IPC: Committed
+        IPC-->>UI: Change notification and acknowledgement
+    else Any statement fails
+        DB-->>IPC: Entire batch rolled back
+        IPC-->>UI: Save error
+    end
+```
+
+A disposable real Electron profile verified a deliberately rejected transaction,
+retry, signed batch history after a direct exit that bypassed the quit barrier,
+and a final acknowledged edit after normal quit and restart. A local synthetic
+sample of 100 creates and 100 updates on 2026-09-30 measured median 4.3/5.3 ms and
+95th-percentile 8.6/10.0 ms respectively, through the renderer and native IPC with
+the configured `FULL` writer. This is a small warm sample, not a full-corpus
+benchmark or a physical power-loss test.
+
+This does not yet cover every mutation path. Document and blob operations have
+separate persistence paths; concurrent writers can still need reconciliation
+between reading a record and submitting its batch. A renderer operation still
+signing or waiting in an application debounce has not reached this commit
+boundary. Do not interpret atomic batches as a global save barrier.
+
 ## Native checkpoint contract
 
 `xnet-desktop-checkpoint/1` records each retained file's path, size, and SHA-256,

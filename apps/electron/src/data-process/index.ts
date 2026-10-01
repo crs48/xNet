@@ -382,6 +382,14 @@ process.parentPort?.on('message', async (event) => {
       // These handlers implement the NodeStorageAdapter interface for the renderer.
       // See: docs/explorations/0074_ELECTRON_IPC_NODE_STORAGE.md
 
+      case 'nodes:applyNodeBatch': {
+        const result = await dataService!.applyNodeBatch(
+          payload.input as import('../shared/node-batch').SerializedNodeBatch
+        )
+        sendResponse(requestId, { result })
+        break
+      }
+
       case 'nodes:appendChange': {
         const { change } = payload as { change: unknown }
         if (dataService) {
