@@ -140,7 +140,11 @@ it('does not consume retry attempts for user pauses or interrupted requests', ()
 
 it('upgrades Instagram work without refetching completed YouTube metadata or losing backoff', () => {
   store.seed(resource('youtube'))
-  store.seed({ ...resource('instagram'), platform: 'instagram' })
+  store.seed({
+    ...resource('instagram'),
+    platform: 'instagram',
+    url: 'https://www.instagram.com/p/abc123/'
+  })
   // Both old providers had finished metadata; only Instagram needs the new pass.
   for (let i = 0; i < 2; i++) store.finish(store.next(0, ['metadata'])!, 'complete')
   store.pauseProvider('youtube', 60_000)
@@ -275,4 +279,45 @@ it('indexes authored notes independently of fetched text and refreshes removed n
   expect(store.get('video-one')?.notes).toEqual(notes)
   store.replaceSourceNotes(new Map())
   expect(store.search({ text: 'copperbridge' })).toEqual([])
+})
+
+it('paces citations by the network provider while retaining archive provenance', () => {
+  store.seed({ ...resource('citation'), platform: 'openai' })
+  store.pauseProvider('youtube:metadata', 60_000)
+  expect(store.next(0, ['metadata'])).toBeNull()
+  expect(store.next(60_000, ['metadata'])?.resourceId).toBe('citation')
+  expect(store.get('citation')?.platform).toBe('openai')
+  expect(store.get('citation')?.networkPlatform).toBe('youtube')
+})
+
+it('preserves successful captions and newest Instagram work across the public-page upgrade', () => {
+  store.seed({ ...resource(), platform: 'instagram', url: 'https://www.instagram.com/p/abc/' })
+  store.close()
+  const db = new Database(path)
+  db.prepare(
+    "UPDATE work SET version='desktop-3/youtube-page-1/instagram-embed-1/yt-dlp-2026.07.04',state='complete'"
+  ).run()
+  db.prepare(
+    "INSERT INTO work SELECT resource_id,capability,'desktop-2/youtube-page-1/yt-dlp-2026.07.04',language,'blocked',attempts,next_at,'older failure' FROM work"
+  ).run()
+  db.close()
+  store = new LibraryStore(path)
+  expect(store.status().counts).toHaveLength(4)
+  expect(store.status().counts.every((row) => row.state === 'complete')).toBe(true)
+  expect(store.next(0)).toBeNull()
+})
+
+it('bounds un-enriched cards without truncating stored source text', () => {
+  store.seed({ ...resource(), sourceText: 'word '.repeat(10000) })
+  expect(store.search({})[0].sourceText).toHaveLength(600)
+  expect(store.get('video-one')?.sourceText).toHaveLength(50000)
+})
+
+it('prioritizes a selected old source without bypassing provider backoff', () => {
+  store.seed({ ...resource('old'), addedAt: 1 })
+  store.seed({ ...resource('new'), addedAt: 2 })
+  store.retry('old')
+  store.pauseProvider('youtube', 60_000)
+  expect(store.next(0, ['metadata'])).toBeNull()
+  expect(store.next(60_000, ['metadata'])?.resourceId).toBe('old')
 })

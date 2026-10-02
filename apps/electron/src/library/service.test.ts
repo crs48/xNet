@@ -7,10 +7,17 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { LibraryProviderError } from './providers'
 import { LibraryService } from './service'
 
-const stubs = vi.hoisted(() => ({ metadata: vi.fn(), fetch: vi.fn(), putBlob: vi.fn() }))
+const stubs = vi.hoisted(() => ({
+  metadata: vi.fn(),
+  extractor: vi.fn(),
+  fetch: vi.fn(),
+  listNodes: vi.fn(),
+  putBlob: vi.fn()
+}))
 vi.mock('./providers', async (original) => ({
   ...(await original<typeof import('./providers')>()),
   fetchLibraryMetadata: stubs.metadata,
+  fetchExtractorMetadata: stubs.extractor,
   fetchPublic: stubs.fetch
 }))
 
@@ -44,6 +51,7 @@ const open = (path: string) => {
   const result = new LibraryService(
     {
       importDeterministicNodes: vi.fn(async () => undefined),
+      listNodes: stubs.listNodes,
       putBlob: stubs.putBlob
     } as unknown as DataService,
     path
@@ -55,7 +63,9 @@ beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), 'xnet-enrichment-'))
   vi.useFakeTimers()
   stubs.metadata.mockReset().mockResolvedValue(metadata)
+  stubs.extractor.mockReset().mockResolvedValue(metadata)
   stubs.fetch.mockReset()
+  stubs.listNodes.mockReset().mockResolvedValue([])
   stubs.putBlob.mockReset()
   service = open(root)
 })
@@ -205,4 +215,67 @@ it('reports an empty caption response as an access gap without retrying or block
       .recent.filter((job) => job.capability === 'transcript')
       .every((job) => job.reason?.includes('empty caption track'))
   ).toBe(true)
+})
+
+it('never fetches private conversation text or fabricates remote media jobs', async () => {
+  service.store.seed({
+    ...resource('conversation'),
+    kind: 'conversation',
+    url: '',
+    platform: 'claude',
+    sourceText: 'Private conversation contents'
+  })
+  service.resume()
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(stubs.metadata).not.toHaveBeenCalled()
+  expect(stubs.fetch).not.toHaveBeenCalled()
+  expect(stubs.extractor).not.toHaveBeenCalled()
+  expect(service.store.search({ text: 'contents' })[0].id).toBe('conversation')
+  expect(count('metadata', 'not-applicable')).toBe(1)
+  expect(count('transcript', 'not-applicable')).toBe(1)
+  expect(count('thumbnail', 'not-applicable')).toBe(1)
+})
+
+it('indexes saved comments and local export text without turning garden commentary into a second card', async () => {
+  stubs.listNodes.mockImplementation(async (options: { schemaId: string }) =>
+    options.schemaId.includes('/SocialContent@')
+      ? [
+          {
+            id: 'comment',
+            createdAt: 1,
+            properties: {
+              platform: 'reddit',
+              parentContent: 'post',
+              contentKind: 'comment',
+              canonicalUrl: 'https://www.reddit.com/r/example/comments/post/comment',
+              searchText: 'Saved comment'
+            }
+          },
+          {
+            id: 'local',
+            createdAt: 1,
+            properties: {
+              platform: 'tiktok',
+              contentKind: 'comment',
+              searchText: 'Exported local comment'
+            }
+          },
+          {
+            id: 'note',
+            createdAt: 1,
+            properties: {
+              platform: 'generic',
+              parentContent: 'comment',
+              platformContentKind: 'garden-commentary',
+              searchText: 'My garden note'
+            }
+          }
+        ]
+      : []
+  )
+  expect(await service.scan()).toBe(2)
+  expect(service.store.search({ text: 'Saved comment' })[0].id).toBe('comment')
+  expect(service.store.get('comment')?.notes?.[0].text).toBe('My garden note')
+  expect(service.store.get('local')?.kind).toBe('archive-text')
+  expect(service.store.get('note')).toBeNull()
 })

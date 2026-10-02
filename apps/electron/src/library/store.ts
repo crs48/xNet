@@ -10,6 +10,7 @@ import type {
 import Database from 'better-sqlite3'
 import { requireCompatibleDatabase } from '../storage/compatibility'
 import { validateCapture } from './capture'
+import { queueProvider } from './source'
 import { CAPABILITIES, LIBRARY_PROVIDER_VERSION } from './types'
 
 export const inspectLibraryDatabase = (path: string): void =>
@@ -40,7 +41,7 @@ const cardFor = (resource: LibraryResource): LibrarySearchResult => {
   const { transcript, metadata, notes, ...source } = resource
   void transcript
   void notes
-  if (!metadata) return source
+  if (!metadata) return { ...source, sourceText: source.sourceText.slice(0, 600) }
   const { evidence, tracks, ...summary } = metadata
   void evidence
   void tracks
@@ -73,16 +74,30 @@ export class LibraryStore {
     // A new provider version gets a complete, resumable pass over existing resources.
     // Retain older jobs as evidence; current successful work is never reset on restart.
     this.db.transaction(() => {
-      // Only Instagram changed in desktop-3. Carry other providers' completed work
-      // and retry deadlines forward so the ongoing YouTube import is not restarted.
-      this.db
-        .prepare(
-          `INSERT OR IGNORE INTO work(resource_id,capability,version,language,state,attempts,next_at,reason)
+      // Preserve results from the newest compatible pass. Only newly supported
+      // providers and unresolved captions need another attempt in desktop-4.
+      for (const previous of [
+        'desktop-3/youtube-page-1/instagram-embed-1/yt-dlp-2026.07.04',
+        'desktop-2/youtube-page-1/yt-dlp-2026.07.04'
+      ]) {
+        const unchanged = previous.startsWith('desktop-3')
+          ? "('youtube','instagram')"
+          : "('youtube')"
+        this.db
+          .prepare(
+            `
+          INSERT OR IGNORE INTO work(resource_id,capability,version,language,state,attempts,next_at,reason)
           SELECT w.resource_id,w.capability,?,w.language,w.state,w.attempts,w.next_at,w.reason
           FROM work w JOIN resources r ON r.id=w.resource_id
-          WHERE w.version=? AND r.platform!='instagram'`
-        )
-        .run(LIBRARY_PROVIDER_VERSION, 'desktop-2/youtube-page-1/yt-dlp-2026.07.04')
+          WHERE w.version=? AND (
+            w.capability='index'
+            OR (w.capability='metadata' AND r.platform IN ${unchanged})
+            OR (w.capability='thumbnail' AND (w.state='complete' OR r.platform IN ${unchanged}))
+            OR (w.capability='transcript' AND w.state='complete'))
+        `
+          )
+          .run(LIBRARY_PROVIDER_VERSION, previous)
+      }
       for (const capability of CAPABILITIES)
         this.db
           .prepare(
@@ -171,6 +186,7 @@ export class LibraryStore {
     })
   }
   put(resource: LibraryResource): void {
+    resource = { ...resource, networkPlatform: queueProvider(resource) }
     this.db
       .prepare(
         'INSERT INTO resources VALUES (@id,@url,@platform,@title,@payload,@addedAt) ON CONFLICT(id) DO UPDATE SET url=excluded.url, platform=excluded.platform, title=excluded.title, payload=excluded.payload'
@@ -184,18 +200,19 @@ export class LibraryStore {
   seed(resource: LibraryResource): void {
     this.db.transaction(() => {
       const previous = this.get(resource.id)
-      this.put(
-        previous
-          ? {
-              ...resource,
-              metadata: previous.metadata,
-              thumbnail: previous.thumbnail,
-              transcript: previous.transcript,
-              notes: previous.notes,
-              addedAt: previous.addedAt
-            }
-          : resource
-      )
+      const next = previous
+        ? {
+            ...previous,
+            ...resource,
+            kind: resource.kind,
+            metadata: previous.metadata,
+            thumbnail: previous.thumbnail,
+            transcript: previous.transcript,
+            notes: previous.notes,
+            addedAt: previous.addedAt
+          }
+        : resource
+      if (!previous || JSON.stringify(previous) !== JSON.stringify(next)) this.put(next)
       if (
         !previous ||
         previous.sourceText !== resource.sourceText ||
@@ -203,6 +220,18 @@ export class LibraryStore {
       )
         this.index(this.get(resource.id)!)
       for (const capability of CAPABILITIES) this.enqueue(resource.id, capability)
+      if (previous?.kind && !resource.kind)
+        this.db
+          .prepare(
+            "UPDATE work SET state='queued',reason=NULL WHERE resource_id=? AND version=? AND capability!='index' AND state='not-applicable'"
+          )
+          .run(resource.id, LIBRARY_PROVIDER_VERSION)
+      if (resource.kind)
+        this.db
+          .prepare(
+            "UPDATE work SET state='not-applicable',reason='Text is imported locally; there is no public source to fetch.' WHERE resource_id=? AND version=? AND capability!='index'"
+          )
+          .run(resource.id, LIBRARY_PROVIDER_VERSION)
     })()
   }
   enqueue(id: string, capability: Capability, language = 'preferred'): void {
@@ -244,11 +273,11 @@ export class LibraryStore {
         : (this.db
             .prepare(
               `SELECT w.* FROM work w JOIN resources r ON r.id=w.resource_id
-      LEFT JOIN provider_pause p ON p.platform=r.platform
-      LEFT JOIN provider_pause lane ON lane.platform=r.platform || ':' || w.capability
+      LEFT JOIN provider_pause p ON p.platform=COALESCE(json_extract(r.payload,'$.networkPlatform'),r.platform)
+      LEFT JOIN provider_pause lane ON lane.platform=COALESCE(json_extract(r.payload,'$.networkPlatform'),r.platform) || ':' || w.capability
       WHERE w.version=? AND w.capability IN (${capabilities.map(() => '?').join(',')}) AND w.state IN ('queued','retry') AND w.next_at<=? AND (p.until_ms IS NULL OR p.until_ms<=? OR w.capability='index') AND (lane.until_ms IS NULL OR lane.until_ms<=? OR w.capability='index')
       AND (w.capability IN ('metadata','index') OR NOT EXISTS (SELECT 1 FROM work m WHERE m.resource_id=w.resource_id AND m.capability='metadata' AND m.version=w.version AND m.state IN ('queued','running','retry')))
-      ORDER BY CASE w.capability WHEN 'index' THEN 0 ELSE 1 END, r.added_at DESC, r.id, CASE w.capability WHEN 'metadata' THEN 0 WHEN 'thumbnail' THEN 1 ELSE 2 END LIMIT 1`
+      ORDER BY CASE w.capability WHEN 'index' THEN 0 ELSE 1 END, MIN(w.next_at,0), r.added_at DESC, r.id, CASE w.capability WHEN 'metadata' THEN 0 WHEN 'thumbnail' THEN 1 ELSE 2 END LIMIT 1`
             )
             .get(LIBRARY_PROVIDER_VERSION, ...capabilities, now, now, now) as JobRow | undefined)
     if (!row) return null
@@ -295,15 +324,15 @@ export class LibraryStore {
     if (id)
       this.db
         .prepare(
-          "UPDATE work SET state='queued',attempts=0,next_at=0,reason=NULL WHERE resource_id=? AND state IN ('blocked','retry','partial','unavailable')"
+          "UPDATE work SET state='queued',attempts=0,next_at=?,reason=NULL WHERE resource_id=? AND version=? AND state IN ('queued','blocked','retry','partial','unavailable')"
         )
-        .run(id)
+        .run(-Date.now(), id, LIBRARY_PROVIDER_VERSION)
     else
       this.db
         .prepare(
-          "UPDATE work SET state='queued',attempts=0,next_at=0,reason=NULL WHERE state IN ('blocked','retry','partial')"
+          "UPDATE work SET state='queued',attempts=0,next_at=0,reason=NULL WHERE version=? AND state IN ('blocked','retry','partial')"
         )
-        .run()
+        .run(LIBRARY_PROVIDER_VERSION)
   }
   index(resource: LibraryResource): void {
     this.db.transaction(() => {
@@ -385,8 +414,8 @@ export class LibraryStore {
       .prepare(
         `SELECT MIN(MAX(w.next_at,COALESCE(p.until_ms,0),COALESCE(lane.until_ms,0))) AS at
       FROM work w JOIN resources r ON r.id=w.resource_id
-      LEFT JOIN provider_pause p ON p.platform=r.platform
-      LEFT JOIN provider_pause lane ON lane.platform=r.platform || ':' || w.capability
+      LEFT JOIN provider_pause p ON p.platform=COALESCE(json_extract(r.payload,'$.networkPlatform'),r.platform)
+      LEFT JOIN provider_pause lane ON lane.platform=COALESCE(json_extract(r.payload,'$.networkPlatform'),r.platform) || ':' || w.capability
       WHERE w.version=? AND w.state IN ('queued','retry') AND w.capability!='index'
       AND (w.capability='metadata' OR NOT EXISTS (SELECT 1 FROM work m WHERE m.resource_id=w.resource_id AND m.capability='metadata' AND m.version=w.version AND m.state IN ('queued','running','retry')))`
       )

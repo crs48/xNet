@@ -36,9 +36,9 @@ intents currently retain the original capture text even after later Page edits.
 
 ## Import and enrich
 
-Choose **Import archive** and review the detected categories before starting.
-The adapters cover the supplied Twitter/X, Instagram, YouTube, GitHub-star, and
-garden export shapes. A garden file uses the existing version-1 `garden.json`
+Choose **Import archive**, select or drop a ZIP/JSON export, and review its categories.
+The adapters cover Twitter/X, Instagram, YouTube, TikTok, Reddit, GitHub stars,
+Claude, ChatGPT, Grok, and the personal garden. A garden file uses the existing version-1 `garden.json`
 format. A retained copy of the complete source export is kept before node writes,
 including categories you did not select. Keep this in mind when choosing files.
 
@@ -46,6 +46,11 @@ Paused or interrupted import jobs can resume from retained source files. A batch
 only advances the saved cursor after acknowledgement. Repeating a batch after a
 crash uses deterministic IDs. Full-corpus and cross-version overlapping-import
 reconciliation remain acceptance work; they are not implied by a small test.
+
+Imported AI conversations and source records with local text can be searched and
+read in Library. Conversation text stays local; the app does not fetch private
+chat pages. Attachments remain in the retained export. Cited public links have
+their own enrichment jobs.
 
 Open **Collections** to find an imported playlist or saved group by name. Both
 the collection list and its entries have pages of forty items. Entries follow
@@ -75,11 +80,13 @@ can run at once, with separate pacing for metadata, images, and captions. A
 private or removed video leaves a gap on that video. A provider rate limit pauses
 that provider and survives retry or restart. Pausing cancels active requests;
 starting again resumes the saved queue without resetting completed work.
+**Retry missing details** on a selected item moves its unfinished jobs ahead of
+the bulk import queue. It still respects any provider rate limit.
 
-Caption discovery does not guarantee readable caption text. YouTube may return
-an empty caption response even when it lists a track. This is shown as a blocked
-caption job, while titles and images continue. A missing track is reported
-separately. Neither case is counted as a retrieved transcript.
+Caption discovery does not guarantee readable text. When YouTube returns an empty
+or expired track, the app tries another format and a fresh track from the video
+helper. It saves successful captions with their language and timestamps. An empty
+response stays an explicit gap; it is never counted as a retrieved transcript.
 
 Instagram public embeds supply written captions, author names, and post images.
 The saved post URL is used even when the export identifies the record with a
@@ -90,9 +97,11 @@ unavailable. Private, removed, or login-limited posts remain explicit gaps.
 
 Instagram's written caption is separate from speech in the video. The public
 embed does not supply transcript tracks; local transcription is still pending.
-YouTube work already completed is preserved when this Instagram provider is added.
+Completed YouTube and Instagram metadata, saved images, and captions survive
+provider upgrades. Unresolved caption jobs receive a fresh pass.
 
-For X/Twitter on macOS, **Coverage & gaps → Install video helper** downloads the tested
+For X/Twitter metadata and YouTube caption fallback on macOS,
+**Coverage & gaps → Install video helper** downloads the tested
 `yt-dlp 2026.07.04` executable from its official release (about 38 MB). The app
 checks its pinned size, checksum, and version before installation. You can cancel
 the download or repair a damaged helper. Installation does not start enrichment
@@ -103,6 +112,13 @@ this Mac, the GitHub asset connection timed out; cancellation, cleanup, retry,
 and restart worked. Successful download and installation through this control
 still need a live check. Existing compatible local helpers can already supply
 source metadata and captions.
+
+TikTok uses public post data for written captions, creator names, posters, and
+available subtitle tracks. GitHub uses the public repository page and its rendered
+README, avoiding the small anonymous API quota. Reddit uses public embed previews;
+these do not promise full post bodies, images, or video transcripts. Ordinary web
+pages can supply embedded subtitle tracks. Cited links use the provider named by
+their URL while retaining the archive they came from.
 
 Available source captions are supported; automatic local transcription and
 generated video posters are not connected. Ordinary web descriptions may be preview text rather than the

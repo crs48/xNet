@@ -15,15 +15,12 @@ import {
 import { createTranscriptContentDrafts } from '@xnetjs/social/transcripts'
 import sharp from 'sharp'
 import { readPageText, saveCapture } from './capture'
+import { conversationResources } from './conversations'
 import { inspectManagedHelper, installManagedHelper, MAC_VIDEO_HELPER } from './managed-helper'
-import {
-  chooseTrack,
-  fetchLibraryMetadata,
-  fetchPublic,
-  LibraryProviderError,
-  parseCaptionBody
-} from './providers'
+import { fetchLibraryMetadata, fetchPublic, LibraryProviderError } from './providers'
+import { providerResource, queueProvider } from './source'
 import { LibraryStore } from './store'
+import { fetchLibraryTranscript } from './transcripts'
 
 const string = (value: unknown): string => (typeof value === 'string' ? value : '')
 const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error))
@@ -187,31 +184,32 @@ export class LibraryService {
       for (const node of nodes) {
         const props = node.properties
         if (props.contentKind === 'transcript') continue
-        if (props.parentContent) {
-          if (props.platformContentKind === 'garden-commentary') {
-            const parent = string(props.parentContent)
-            notes.set(parent, [
-              ...(notes.get(parent) ?? []),
-              {
-                id: node.id,
-                title: string(props.title),
-                text: string(props.searchText),
-                url: string(props.canonicalUrl),
-                author: string(props.actorHandle)
-              }
-            ])
-          }
+        if (props.parentContent && props.platformContentKind === 'garden-commentary') {
+          const parent = string(props.parentContent)
+          notes.set(parent, [
+            ...(notes.get(parent) ?? []),
+            {
+              id: node.id,
+              title: string(props.title),
+              text: string(props.searchText),
+              url: string(props.canonicalUrl),
+              author: string(props.actorHandle)
+            }
+          ])
           continue
         }
         const url = string(props.canonicalUrl) || string(props.platformUrl)
-        if (!/^https?:\/\//.test(url)) continue
+        const sourceText = string(props.searchText) || string(props.textPreview)
+        const remote = /^https?:\/\//.test(url)
+        if (!remote && !sourceText && !string(props.title)) continue
         this.store.seed({
           id: node.id,
+          ...(!remote ? { kind: 'archive-text' as const } : {}),
           platform: string(props.platform) || 'generic',
-          platformContentId: string(props.platformContentId) || url,
+          platformContentId: string(props.platformContentId) || url || node.id,
           url,
           title: string(props.title) || url,
-          sourceText: string(props.searchText) || string(props.textPreview),
+          sourceText,
           actor: string(props.actorHandle),
           privacy: string(props.privacyClass) || 'unknown',
           addedAt: node.createdAt
@@ -220,6 +218,10 @@ export class LibraryService {
       }
       offset += nodes.length
       if (nodes.length < 500) {
+        for await (const resource of conversationResources(this.data)) {
+          this.store.seed(resource)
+          count++
+        }
         await this.collectPageNotes(notes)
         this.store.replaceSourceNotes(notes)
         return count
@@ -376,16 +378,25 @@ export class LibraryService {
       this.store.finish(job, 'unavailable', 'Source resource is missing.')
       return
     }
+    if (resource.kind && job.capability !== 'index') {
+      this.store.finish(
+        job,
+        'not-applicable',
+        'Text is imported locally; there is no public source to fetch.'
+      )
+      return
+    }
+    const provider = queueProvider(resource)
     const interval =
       job.capability === 'thumbnail'
         ? 250
-        : resource.platform === 'instagram'
+        : ['instagram', 'tiktok'].includes(provider)
           ? 8000
-          : resource.platform === 'youtube'
+          : provider === 'youtube'
             ? 1000
             : 2000
     if (job.capability !== 'index')
-      this.store.pauseProvider(`${resource.platform}:${job.capability}`, Date.now() + interval)
+      this.store.pauseProvider(`${provider}:${job.capability}`, Date.now() + interval)
     try {
       if (job.capability === 'index') {
         this.store.index(resource)
@@ -443,42 +454,35 @@ export class LibraryService {
         this.store.finish(job, 'complete')
         return
       }
-      if (!['youtube', 'instagram', 'twitter', 'x'].includes(resource.platform)) {
-        this.store.finish(job, 'not-applicable', 'This source is not a supported video provider.')
-        return
-      }
-      if (!resource.metadata || resource.metadata.fields.captions?.state !== 'complete') {
+      if (!resource.metadata) {
         this.store.finish(
           job,
           'blocked',
-          resource.metadata?.fields.captions?.reason ??
-            'Caption discovery has not succeeded. Retry metadata before caption fetching.'
+          'Metadata has not succeeded; caption discovery is pending.'
         )
         return
       }
-      const track = chooseTrack(resource.metadata.tracks ?? [], resource.metadata.language || 'en')
-      if (!track) {
-        this.store.finish(
-          job,
-          'unavailable',
-          'No readable caption track was discovered. Local transcription has not run.'
-        )
+      if (
+        !resource.metadata.fields.captions &&
+        !resource.metadata.tracks?.length &&
+        providerResource(resource).platform !== 'youtube'
+      ) {
+        this.store.finish(job, 'not-applicable', 'This page does not expose caption tracks.')
         return
       }
-      const raw = await (await fetchPublic(track.url, { signal, limit: 32 * 1024 * 1024 })).text()
-      const cues = raw.trim() ? parseCaptionBody(raw, track.format) : []
-      if (!cues.length)
-        throw new LibraryProviderError(
-          'The source returned an empty caption track. Captions need additional access; titles and thumbnails can still finish.',
-          'blocked'
-        )
+      const result = await fetchLibraryTranscript(resource, signal, this.helperDirectory)
+      if (result.status === 'unavailable') {
+        this.store.finish(job, 'unavailable', result.reason)
+        return
+      }
+      const { track, cues, raw, provider: captionProvider } = result.value
       const transcript: NonNullable<LibraryResource['transcript']> = {
         cues,
         language: track.language,
         autoGenerated: track.autoGenerated,
         source: 'captions',
         fetchedAt: Date.now(),
-        provider: resource.metadata.provider,
+        provider: captionProvider,
         evidence: raw
       }
       this.retain(resource.id, { transcript })
@@ -538,7 +542,7 @@ export class LibraryService {
         failure.disposition === 'retry' && job.attempts >= 5 ? 'blocked' : failure.disposition
       this.store.finish(job, state, failure.message, next)
       if (failure.scope === 'provider')
-        this.store.pauseProvider(resource.platform, Math.max(next, Date.now() + 60_000))
+        this.store.pauseProvider(provider, Math.max(next, Date.now() + 60_000))
     }
   }
 }

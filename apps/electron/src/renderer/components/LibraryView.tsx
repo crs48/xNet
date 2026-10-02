@@ -22,7 +22,7 @@ const errorText = (error: unknown) =>
     .replace(/^Error: /, '')
     .replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
 const atTime = (resource: LibraryResource, ms: number) => {
-  if (resource.platform !== 'youtube') return resource.url
+  if ((resource.networkPlatform ?? resource.platform) !== 'youtube') return resource.url
   const url = new URL(resource.url)
   url.searchParams.set('t', `${Math.floor(ms / 1000)}s`)
   return url.href
@@ -210,7 +210,19 @@ export function LibraryView({
             className="rounded-md border border-border bg-background px-3 py-2 text-sm"
           >
             <option value="">All sources</option>
-            {['youtube', 'instagram', 'x', 'twitter', 'github', 'generic'].map((name) => (
+            {[
+              'youtube',
+              'instagram',
+              'tiktok',
+              'x',
+              'twitter',
+              'reddit',
+              'github',
+              'claude',
+              'openai',
+              'grok',
+              'generic'
+            ].map((name) => (
               <option key={name} value={name}>
                 {name === 'generic' ? 'Web links' : name}
               </option>
@@ -302,14 +314,16 @@ export function LibraryView({
           <p>
             Enrichment requests source websites from this Mac. Saved text and images remain
             available offline. YouTube titles, descriptions, thumbnails, and available caption
-            tracks are fetched directly. Instagram public posts supply written captions, authors,
-            and thumbnails without a helper. Written captions are separate from spoken transcripts.
-            Restricted or unavailable posts are listed below and do not stop the remaining videos.
-            Automatic local transcription is not connected yet.
+            tracks are fetched directly, with a helper fallback for inaccessible YouTube captions.
+            Instagram and TikTok public posts supply written captions, authors, and thumbnails.
+            Available TikTok and web subtitle tracks are saved and indexed. Written captions are
+            separate from spoken transcripts. Restricted or unavailable posts are listed below and
+            do not stop the remaining videos. Automatic local transcription is not connected yet.
           </p>
           <div className="space-y-2 rounded-md border border-border p-3">
             <p>
-              Optional helper for X/Twitter: {helper ? label(helper.state) : 'checking…'}
+              Helper for X/Twitter and YouTube caption fallback:{' '}
+              {helper ? label(helper.state) : 'checking…'}
               {helper ? ` · yt-dlp ${helper.version}` : ''}
             </p>
             <p className="text-xs text-muted-foreground">
@@ -438,14 +452,19 @@ export function LibraryView({
             </button>
             <LibraryThumbnail resource={selected} />
             <h2 className="text-lg font-medium">{selected.metadata?.title || selected.title}</h2>
-            <a
-              href={selected.url}
-              target="_blank"
-              rel="noreferrer"
-              className="block break-all text-sm underline"
-            >
-              Open original source
-            </a>
+            {/^https?:\/\//.test(selected.url) && (
+              <a
+                href={selected.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block break-all text-sm underline"
+              >
+                Open original source
+              </a>
+            )}
+            {selected.kind && (
+              <p className="text-xs text-muted-foreground">Imported text · kept locally</p>
+            )}
             {selectedCue !== null && selected.transcript && (
               <section
                 className="rounded-md bg-secondary p-3 text-sm"
@@ -459,7 +478,7 @@ export function LibraryView({
                   target="_blank"
                   rel="noreferrer"
                 >
-                  {selected.platform === 'youtube'
+                  {(selected.networkPlatform ?? selected.platform) === 'youtube'
                     ? `Open video at ${timestamp(selectedCue)}`
                     : 'Open source'}
                 </a>

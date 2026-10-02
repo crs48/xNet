@@ -1,5 +1,4 @@
-export const LIBRARY_PROVIDER_VERSION =
-  'desktop-3/youtube-page-1/instagram-embed-1/yt-dlp-2026.07.04'
+export const LIBRARY_PROVIDER_VERSION = 'desktop-4/public-pages-1/captions-2/yt-dlp-2026.07.04'
 export const CAPABILITIES = ['metadata', 'thumbnail', 'transcript', 'index'] as const
 export type Capability = (typeof CAPABILITIES)[number]
 export type WorkState =
@@ -34,7 +33,10 @@ export type LibraryMetadata = {
 }
 export type LibraryResource = {
   id: string
+  kind?: 'conversation' | 'archive-text'
   platform: string
+  /** Queue routing derived from the source URL; archive provenance stays in platform. */
+  networkPlatform?: string
   platformContentId: string
   url: string
   title: string

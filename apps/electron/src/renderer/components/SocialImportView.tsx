@@ -90,7 +90,7 @@ export function SocialImportView({
     return 2 + (includeSourceRecords ? stagedRecordCount : canonicalRecordCount)
   }, [canonicalRecordCount, includeSourceRecords, stageResult, stagedRecordCount])
 
-  const handlePickArchive = useCallback(async () => {
+  const handlePickArchive = useCallback(async (file?: File) => {
     setError(null)
     setCommitSummary(null)
     setCommitProgress(null)
@@ -99,7 +99,9 @@ export function SocialImportView({
     setWorkspaceSummary(null)
 
     try {
-      const preview = await window.xnetSocialImport.pickArchive()
+      const preview = file
+        ? await window.xnetSocialImport.previewArchiveFile(file)
+        : await window.xnetSocialImport.pickArchive()
       if (!preview) return
 
       setArchive(preview)
@@ -328,7 +330,15 @@ export function SocialImportView({
 
       <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)]">
         <aside className="flex min-h-0 flex-col border-r border-border">
-          <div className="border-b border-border p-4">
+          <div
+            className="border-b border-border p-4"
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault()
+              const file = event.dataTransfer.files[0]
+              if (file) void handlePickArchive(file)
+            }}
+          >
             <button
               type="button"
               onClick={() => void handlePickArchive()}
@@ -337,6 +347,20 @@ export function SocialImportView({
               <FileArchive size={15} />
               Choose Archive
             </button>
+            <label className="mt-2 block cursor-pointer text-center text-xs text-muted-foreground">
+              Or drop a ZIP or JSON export here
+              <input
+                type="file"
+                accept=".zip,.json"
+                aria-label="Import archive file"
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0]
+                  event.currentTarget.value = ''
+                  if (file) void handlePickArchive(file)
+                }}
+              />
+            </label>
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto p-4">

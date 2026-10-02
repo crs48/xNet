@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-02-more-saved-sources-get-details-and-avail",
+  "date": "October 2, 2026",
+  "title": "More saved sources get details and available captions",
+  "summary": "Import more social exports, enrich TikTok and starred repositories, and retrieve YouTube captions through a fallback when direct tracks fail.",
+  "highlights": [],
+  "tags": ["app"],
+  "pr": 721
+}

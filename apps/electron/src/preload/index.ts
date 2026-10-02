@@ -22,7 +22,7 @@ import type {
 } from '../shared/social-import'
 import type { ApplyNodeBatchResult } from '@xnetjs/data'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
@@ -523,6 +523,11 @@ contextBridge.exposeInMainWorld('xnetTunnel', {
 })
 
 contextBridge.exposeInMainWorld('xnetSocialImport', {
+  previewArchiveFile: (file: File): Promise<SocialImportArchivePreview> => {
+    const path = webUtils.getPathForFile(file)
+    if (!path) throw new Error('Choose an archive file from this computer.')
+    return ipcRenderer.invoke('xnet:social-import:previewSelectedFile', path)
+  },
   resumeCommitJob: (request: { jobId: string; authorDID: string; signingKey: number[] }) =>
     ipcRenderer.invoke('xnet:social-import:resumeCommitJob', request),
   pickArchive: (): Promise<SocialImportArchivePreview | null> =>
@@ -660,6 +665,7 @@ export interface XNetSocialImportAPI {
     signingKey: number[]
   }): Promise<SocialImportCommitJobSnapshot>
   pickArchive(): Promise<SocialImportArchivePreview | null>
+  previewArchiveFile(file: File): Promise<SocialImportArchivePreview>
   queueArchiveForTest(archivePath: string): Promise<SocialImportArchivePreview>
   stageArchive(request: SocialImportStageRequest): Promise<SocialImportStageResult>
   startCommitJob(request: SocialImportCommitJobRequest): Promise<SocialImportCommitJobSnapshot>

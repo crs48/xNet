@@ -8,10 +8,11 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { assertPublicUrl } from '@xnetjs/core'
-import { resolveExternalReferenceMetadata } from '@xnetjs/data'
 import { parseInstagramPage } from './instagram'
 import { managedHelperPath, TESTED_EXTRACTOR_VERSION, verifyHelperVersion } from './managed-helper'
 import { LibraryProviderError } from './provider-error'
+import { parsePostPreview, parsePublicPage, parseTikTokPage } from './public-pages'
+import { providerResource } from './source'
 
 const exec = promisify(execFile)
 export { TESTED_EXTRACTOR_VERSION } from './managed-helper'
@@ -491,6 +492,14 @@ export async function fetchLibraryMetadata(
   signal: AbortSignal,
   helperDirectory?: string
 ): Promise<LibraryMetadata> {
+  return fetchProviderMetadata(providerResource(resource), signal, helperDirectory)
+}
+
+async function fetchProviderMetadata(
+  resource: LibraryResource,
+  signal: AbortSignal,
+  helperDirectory?: string
+): Promise<LibraryMetadata> {
   if (resource.platform === 'youtube') return fetchYouTubeMetadata(resource, signal)
   if (resource.platform === 'instagram') {
     const url = extractorUrl(resource)
@@ -509,142 +518,88 @@ export async function fetchLibraryMetadata(
     const response = await fetchPublic(url, { signal, limit: 4 * 1024 * 1024, timeoutMs: 20_000 })
     return parseInstagramPage(await response.text(), shortcode)
   }
-  if (['twitter', 'x'].includes(resource.platform)) {
-    const helper = await findExtractor(helperDirectory)
+  if (['twitter', 'x'].includes(resource.platform))
+    return fetchExtractorMetadata(resource, signal, helperDirectory)
+  if (resource.platform === 'tiktok') {
     try {
-      const result = await exec(
-        helper,
-        [
-          '--ignore-config',
-          '--no-plugin-dirs',
-          '--no-cache-dir',
-          '--no-playlist',
-          '--skip-download',
-          '--dump-single-json',
-          '--no-warnings',
-          '--no-progress',
-          '--socket-timeout',
-          '15',
-          '--retries',
-          '0',
-          '--extractor-retries',
-          '0',
-          '--',
-          extractorUrl(resource)
-        ],
-        {
-          signal,
-          timeout: 90_000,
-          maxBuffer: 16 * 1024 * 1024,
-          env: { ...process.env, PYTHONUNBUFFERED: '1' }
-        }
-      )
-      const metadata = parseExtractorMetadata(JSON.parse(result.stdout))
+      const page = await fetchPublic(resource.url, {
+        signal,
+        limit: 8 * 1024 * 1024,
+        timeoutMs: 20_000
+      })
+      return parseTikTokPage(await page.text(), resource.platformContentId)
+    } catch (error) {
+      if (signal.aborted || (error instanceof LibraryProviderError && error.scope === 'provider'))
+        throw error
+    }
+    const response = await fetchPublic(
+      `https://www.tiktok.com/oembed?url=${encodeURIComponent(resource.url)}`,
+      { signal, limit: 256 * 1024 }
+    )
+    return parsePostPreview(await response.json(), 'tiktok')
+  }
+  if (resource.platform === 'reddit') {
+    const response = await fetchPublic(
+      `https://www.reddit.com/oembed?url=${encodeURIComponent(resource.url)}`,
+      { signal, limit: 256 * 1024 }
+    )
+    return parsePostPreview(await response.json(), 'reddit')
+  }
+  const response = await fetchPublic(resource.url, { signal, limit: 8 * 1024 * 1024 })
+  return parsePublicPage(await response.text(), resource.url, resource.platform === 'github')
+}
+
+export async function fetchExtractorMetadata(
+  resource: LibraryResource,
+  signal: AbortSignal,
+  helperDirectory?: string
+): Promise<LibraryMetadata> {
+  const helper = await findExtractor(helperDirectory)
+  try {
+    const result = await exec(
+      helper,
+      [
+        '--ignore-config',
+        '--no-plugin-dirs',
+        '--no-cache-dir',
+        '--no-playlist',
+        '--skip-download',
+        '--ignore-no-formats-error',
+        ...(resource.platform === 'youtube'
+          ? ['--extractor-args', 'youtube:skip=translated_subs']
+          : []),
+        '--dump-single-json',
+        '--no-warnings',
+        '--no-progress',
+        '--socket-timeout',
+        '15',
+        '--retries',
+        '0',
+        '--extractor-retries',
+        '0',
+        '--',
+        extractorUrl(resource)
+      ],
+      {
+        signal,
+        timeout: 90_000,
+        maxBuffer: 16 * 1024 * 1024,
+        env: { ...process.env, PYTHONUNBUFFERED: '1' }
+      }
+    )
+    const metadata = parseExtractorMetadata(JSON.parse(result.stdout))
+    if (['x', 'twitter'].includes(resource.platform))
       metadata.fields.title = {
         state: 'partial',
         reason: 'Extractor display label; this platform may not provide a separate authored title.'
       }
-      return metadata
-    } catch (error) {
-      if (signal.aborted) throw error
-      if (error instanceof LibraryProviderError) throw error
-      const message = error instanceof Error ? error.message : String(error)
-      const blocked = /sign in|login|log in|cookies|private|403|429|confirm.*bot/i.test(message)
-      throw new LibraryProviderError(message.slice(0, 1800), blocked ? 'blocked' : 'retry')
-    }
-  }
-  if (resource.platform === 'github') {
-    const url = new URL(resource.url)
-    const parts = url.pathname.split('/').filter(Boolean)
-    if (
-      url.hostname !== 'github.com' ||
-      parts.length !== 2 ||
-      parts.some((part) => !/^[\w.-]+$/.test(part))
-    )
-      throw new LibraryProviderError('Invalid repository URL.', 'blocked')
-    const response = await fetchPublic(`https://api.github.com/repos/${parts.join('/')}`, {
-      signal,
-      headers: { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
-    })
-    const repo: unknown = await response.json()
-    if (!record(repo) || typeof repo.full_name !== 'string')
-      throw new LibraryProviderError('Repository metadata is malformed.', 'retry')
-    let readme = ''
-    let readmeReason: string | undefined
-    try {
-      readme = await (
-        await fetchPublic(`https://api.github.com/repos/${parts.join('/')}/readme`, {
-          signal,
-          headers: { Accept: 'application/vnd.github.raw+json' }
-        })
-      ).text()
-    } catch (error) {
-      if (signal.aborted) throw error
-      readmeReason = error instanceof Error ? error.message : String(error)
-    }
-    const description = [
-      text(repo.description),
-      Array.isArray(repo.topics) ? repo.topics.join(' ') : '',
-      text(repo.language),
-      readme
-    ]
-      .filter(Boolean)
-      .join('\n\n')
-    return {
-      title: repo.full_name,
-      description,
-      author: record(repo.owner) ? text(repo.owner.login) : undefined,
-      thumbnailUrl: `https://opengraph.githubassets.com/1/${parts.join('/')}`,
-      fields: {
-        title: { state: 'complete' },
-        description: description
-          ? { state: 'complete' }
-          : { state: 'unavailable', reason: 'Repository has no description.' },
-        readme: readme
-          ? { state: 'complete' }
-          : { state: 'unavailable', reason: readmeReason ?? 'No README returned.' }
-      },
-      provider: 'github-rest/2022-11-28',
-      fetchedAt: Date.now(),
-      evidence: { repo, readme, readmeReason }
-    }
-  }
-  const result = await resolveExternalReferenceMetadata({
-    url: resource.url,
-    allowOEmbed: true,
-    allowOpenGraph: true,
-    signal,
-    fetcher: (url) => fetchPublic(url, { signal })
-  })
-  if (result.status !== 'resolved')
-    throw new LibraryProviderError(
-      result.reason,
-      result.status === 'blocked'
-        ? 'blocked'
-        : result.status === 'unavailable'
-          ? 'unavailable'
-          : 'retry'
-    )
-  const metadata = result.metadata
-  return {
-    title: metadata.title ?? undefined,
-    description: metadata.description ?? undefined,
-    author: metadata.authorName ?? undefined,
-    thumbnailUrl: metadata.imageUrl ?? undefined,
-    fields: {
-      title: metadata.title
-        ? { state: 'complete' }
-        : { state: 'unavailable', reason: 'Page has no title metadata.' },
-      description: metadata.description
-        ? {
-            state: 'partial',
-            reason: 'Page preview metadata; article text has not been extracted.'
-          }
-        : { state: 'unavailable', reason: 'Page has no description metadata.' }
-    },
-    provider: metadata.source,
-    fetchedAt: Date.now(),
-    evidence: result
+    return metadata
+  } catch (error) {
+    if (signal.aborted) throw error
+    if (error instanceof LibraryProviderError) throw error
+    const message = error instanceof Error ? error.message : String(error)
+    const blocked = /sign in|login|log in|cookies|private|403|429|confirm.*bot/i.test(message)
+    throw new LibraryProviderError(message.slice(0, 1800), blocked ? 'blocked' : 'retry')
   }
 }
 

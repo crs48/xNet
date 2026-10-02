@@ -86,6 +86,18 @@ export function hasActiveSocialImports(): boolean {
 }
 
 export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): void {
+  // The preload obtains this path from a disk-backed File selected or dropped
+  // by the user. Renderer-created File objects have no filesystem path.
+  ipcMain.handle('xnet:social-import:previewSelectedFile', async (_event, archivePath: string) => {
+    if (
+      typeof archivePath !== 'string' ||
+      !['.zip', '.json'].includes(extname(archivePath).toLowerCase())
+    )
+      throw new Error('Choose a ZIP or JSON archive.')
+    const preview = await createArchivePreview(archivePath)
+    approvedArchivePaths.add(archivePath)
+    return preview
+  })
   ipcMain.handle('xnet:social-import:pickArchive', async () => {
     if (process.env.XNET_TEST_BYPASS === 'true' && queuedTestArchivePath) {
       const archivePath = queuedTestArchivePath
