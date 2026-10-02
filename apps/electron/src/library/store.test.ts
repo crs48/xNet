@@ -138,6 +138,32 @@ it('does not consume retry attempts for user pauses or interrupted requests', ()
   expect(store.next(0, ['metadata'])?.attempts).toBe(1)
 })
 
+it('upgrades Instagram work without refetching completed YouTube metadata or losing backoff', () => {
+  store.seed(resource('youtube'))
+  store.seed({ ...resource('instagram'), platform: 'instagram' })
+  // Both old providers had finished metadata; only Instagram needs the new pass.
+  for (let i = 0; i < 2; i++) store.finish(store.next(0, ['metadata'])!, 'complete')
+  store.pauseProvider('youtube', 60_000)
+  store.setPaused(false)
+  store.close()
+  const db = new Database(path)
+  db.prepare("UPDATE work SET version='desktop-2/youtube-page-1/yt-dlp-2026.07.04'").run()
+  db.close()
+  store = new LibraryStore(path)
+  expect(store.next(0, ['metadata'])?.resourceId).toBe('instagram')
+  expect(store.next(0, ['metadata'])).toBeNull()
+  expect(store.next(0, ['thumbnail'])).toBeNull()
+  expect(store.next(60_000, ['thumbnail'])?.resourceId).toBe('youtube')
+  expect(store.paused).toBe(false)
+  store.close()
+  store = new LibraryStore(path)
+  expect(store.next(0, ['metadata'])?.resourceId).toBe('instagram')
+  expect(
+    store.status().counts.find((row) => row.capability === 'metadata' && row.state === 'complete')
+      ?.count
+  ).toBe(1)
+})
+
 it('paginates every resource and safely handles FTS punctuation', () => {
   for (let i = 0; i < 85; i++) store.seed(resource(`source-${i}`))
   const ids = new Set(

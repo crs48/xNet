@@ -451,7 +451,8 @@ export class LibraryService {
         this.store.finish(
           job,
           'blocked',
-          'Caption discovery has not succeeded. Retry metadata before caption fetching.'
+          resource.metadata?.fields.captions?.reason ??
+            'Caption discovery has not succeeded. Retry metadata before caption fetching.'
         )
         return
       }

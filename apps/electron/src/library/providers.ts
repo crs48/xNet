@@ -7,28 +7,19 @@ import { request as httpsRequest } from 'node:https'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
-import { assertPublicUrl, TaggedError } from '@xnetjs/core'
+import { assertPublicUrl } from '@xnetjs/core'
 import { resolveExternalReferenceMetadata } from '@xnetjs/data'
+import { parseInstagramPage } from './instagram'
 import { managedHelperPath, TESTED_EXTRACTOR_VERSION, verifyHelperVersion } from './managed-helper'
+import { LibraryProviderError } from './provider-error'
 
 const exec = promisify(execFile)
 export { TESTED_EXTRACTOR_VERSION } from './managed-helper'
+export { LibraryProviderError } from './provider-error'
 const record = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 const text = (value: unknown): string | undefined =>
   typeof value === 'string' && value.trim() ? value.trim() : undefined
-export class LibraryProviderError extends TaggedError {
-  readonly _tag = 'LibraryProviderError'
-  constructor(
-    message: string,
-    readonly disposition: 'retry' | 'blocked' | 'unavailable',
-    readonly retryAt?: number,
-    readonly scope: 'resource' | 'provider' = 'resource'
-  ) {
-    super(message)
-  }
-}
-
 type PublicFetchOptions = {
   signal?: AbortSignal
   limit?: number
@@ -286,8 +277,16 @@ export function extractorUrl(resource: LibraryResource): string {
   // Only named providers reach the helper: a captured URL cannot select a local file or arbitrary extractor.
   if (resource.platform === 'youtube' && /^[A-Za-z0-9_-]{11}$/.test(resource.platformContentId))
     return `https://www.youtube.com/watch?v=${resource.platformContentId}`
-  if (resource.platform === 'instagram' && /^[A-Za-z0-9_-]+$/.test(resource.platformContentId))
-    return `https://www.instagram.com/p/${resource.platformContentId}/`
+  if (resource.platform === 'instagram') {
+    // Meta exports may identify a saved record by its numeric fbid. The saved
+    // URL carries the post's actual shortcode; the two are not interchangeable.
+    const url = new URL(resource.url)
+    const shortcode = url.pathname.match(
+      /^\/(?:[^/]+\/)?(?:p|reels?|tv)\/([A-Za-z0-9_-]+)\/?$/
+    )?.[1]
+    if (['instagram.com', 'www.instagram.com'].includes(url.hostname) && shortcode)
+      return `https://www.instagram.com/p/${shortcode}/`
+  }
   if (
     (resource.platform === 'x' || resource.platform === 'twitter') &&
     /^\d+$/.test(resource.platformContentId)
@@ -493,7 +492,24 @@ export async function fetchLibraryMetadata(
   helperDirectory?: string
 ): Promise<LibraryMetadata> {
   if (resource.platform === 'youtube') return fetchYouTubeMetadata(resource, signal)
-  if (['instagram', 'twitter', 'x'].includes(resource.platform)) {
+  if (resource.platform === 'instagram') {
+    const url = extractorUrl(resource)
+    const shortcode = new URL(url).pathname.split('/')[2]
+    try {
+      const response = await fetchPublic(`${url}embed/captioned/`, {
+        signal,
+        limit: 4 * 1024 * 1024,
+        timeoutMs: 20_000
+      })
+      return parseInstagramPage(await response.text(), shortcode)
+    } catch (error) {
+      if (signal.aborted || (error instanceof LibraryProviderError && error.scope === 'provider'))
+        throw error
+    }
+    const response = await fetchPublic(url, { signal, limit: 4 * 1024 * 1024, timeoutMs: 20_000 })
+    return parseInstagramPage(await response.text(), shortcode)
+  }
+  if (['twitter', 'x'].includes(resource.platform)) {
     const helper = await findExtractor(helperDirectory)
     try {
       const result = await exec(
@@ -524,16 +540,10 @@ export async function fetchLibraryMetadata(
         }
       )
       const metadata = parseExtractorMetadata(JSON.parse(result.stdout))
-      if (
-        resource.platform === 'instagram' ||
-        resource.platform === 'x' ||
-        resource.platform === 'twitter'
-      )
-        metadata.fields.title = {
-          state: 'partial',
-          reason:
-            'Extractor display label; this platform may not provide a separate authored title.'
-        }
+      metadata.fields.title = {
+        state: 'partial',
+        reason: 'Extractor display label; this platform may not provide a separate authored title.'
+      }
       return metadata
     } catch (error) {
       if (signal.aborted) throw error

@@ -302,13 +302,14 @@ export function LibraryView({
           <p>
             Enrichment requests source websites from this Mac. Saved text and images remain
             available offline. YouTube titles, descriptions, thumbnails, and available caption
-            tracks are fetched directly. Restricted or unavailable videos are listed below and do
-            not stop the remaining videos. Automatic local transcription is not connected yet.
+            tracks are fetched directly. Instagram public posts supply written captions, authors,
+            and thumbnails without a helper. Written captions are separate from spoken transcripts.
+            Restricted or unavailable posts are listed below and do not stop the remaining videos.
+            Automatic local transcription is not connected yet.
           </p>
           <div className="space-y-2 rounded-md border border-border p-3">
             <p>
-              Optional helper for other video platforms:{' '}
-              {helper ? label(helper.state) : 'checking…'}
+              Optional helper for X/Twitter: {helper ? label(helper.state) : 'checking…'}
               {helper ? ` · yt-dlp ${helper.version}` : ''}
             </p>
             <p className="text-xs text-muted-foreground">

@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-02-instagram-saves-gain-captions-and-thumbn",
+  "date": "October 2, 2026",
+  "title": "Instagram saves gain captions and thumbnails",
+  "summary": "Imported Instagram posts now fetch public captions, authors, and cached thumbnails without an extra helper. Posts that need sign-in show a gap while enrichment continues.",
+  "highlights": [],
+  "tags": ["app"],
+  "pr": 721
+}

@@ -73,6 +73,16 @@ export class LibraryStore {
     // A new provider version gets a complete, resumable pass over existing resources.
     // Retain older jobs as evidence; current successful work is never reset on restart.
     this.db.transaction(() => {
+      // Only Instagram changed in desktop-3. Carry other providers' completed work
+      // and retry deadlines forward so the ongoing YouTube import is not restarted.
+      this.db
+        .prepare(
+          `INSERT OR IGNORE INTO work(resource_id,capability,version,language,state,attempts,next_at,reason)
+          SELECT w.resource_id,w.capability,?,w.language,w.state,w.attempts,w.next_at,w.reason
+          FROM work w JOIN resources r ON r.id=w.resource_id
+          WHERE w.version=? AND r.platform!='instagram'`
+        )
+        .run(LIBRARY_PROVIDER_VERSION, 'desktop-2/youtube-page-1/yt-dlp-2026.07.04')
       for (const capability of CAPABILITIES)
         this.db
           .prepare(

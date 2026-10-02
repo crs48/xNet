@@ -81,7 +81,18 @@ an empty caption response even when it lists a track. This is shown as a blocked
 caption job, while titles and images continue. A missing track is reported
 separately. Neither case is counted as a retrieved transcript.
 
-For other video platforms on macOS, **Coverage & gaps → Install video helper** downloads the tested
+Instagram public embeds supply written captions, author names, and post images.
+The saved post URL is used even when the export identifies the record with a
+numeric Facebook ID. Photos and carousels can have a thumbnail without containing
+a video. Display titles come from the written caption, so their coverage remains
+partial. A public page preview is also marked partial when the full caption is
+unavailable. Private, removed, or login-limited posts remain explicit gaps.
+
+Instagram's written caption is separate from speech in the video. The public
+embed does not supply transcript tracks; local transcription is still pending.
+YouTube work already completed is preserved when this Instagram provider is added.
+
+For X/Twitter on macOS, **Coverage & gaps → Install video helper** downloads the tested
 `yt-dlp 2026.07.04` executable from its official release (about 38 MB). The app
 checks its pinned size, checksum, and version before installation. You can cancel
 the download or repair a damaged helper. Installation does not start enrichment

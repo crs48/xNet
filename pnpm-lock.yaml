@@ -322,6 +322,9 @@ importers:
       mermaid:
         specifier: ^11.4.0
         version: 11.12.2
+      parse5:
+        specifier: 7.3.0
+        version: 7.3.0
       sharp:
         specifier: ^0.34.5
         version: 0.34.5

@@ -1,4 +1,5 @@
-export const LIBRARY_PROVIDER_VERSION = 'desktop-2/youtube-page-1/yt-dlp-2026.07.04'
+export const LIBRARY_PROVIDER_VERSION =
+  'desktop-3/youtube-page-1/instagram-embed-1/yt-dlp-2026.07.04'
 export const CAPABILITIES = ['metadata', 'thumbnail', 'transcript', 'index'] as const
 export type Capability = (typeof CAPABILITIES)[number]
 export type WorkState =

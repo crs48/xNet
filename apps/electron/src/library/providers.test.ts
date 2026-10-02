@@ -55,6 +55,26 @@ it('rejects local paths and provider identifiers that could change helper argume
     extractorUrl({ platform: 'generic', url: 'file:///private/example' } as never)
   ).toThrow()
 })
+it('resolves Instagram export fbids through the saved post URL without changing their identity', () => {
+  for (const path of ['p/abc123', 'reel/abc123', 'creator/reel/abc123', 'tv/abc123']) {
+    expect(
+      extractorUrl({
+        platform: 'instagram',
+        platformContentId: '17866765571880000',
+        url: `https://www.instagram.com/${path}/?utm_source=export`
+      } as never)
+    ).toBe('https://www.instagram.com/p/abc123/')
+  }
+  for (const url of [
+    'https://evil.example/p/abc123/',
+    'https://www.instagram.com/reels/audio/123/',
+    'https://www.instagram.com/creator/'
+  ]) {
+    expect(() =>
+      extractorUrl({ platform: 'instagram', platformContentId: '17866765571880000', url } as never)
+    ).toThrow()
+  }
+})
 it('does not accept HTML or SVG as a cached thumbnail', () => {
   expect(imageContentType(Buffer.from('<html>Login</html>'))).toBeNull()
   expect(imageContentType(Buffer.from('<svg/>'))).toBeNull()

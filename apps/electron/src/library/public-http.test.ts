@@ -48,6 +48,63 @@ const respond =
     if (!stream.destroyed) stream.end(body)
   }
 
+const instagramResource = {
+  id: 'instagram-post',
+  platform: 'instagram',
+  platformContentId: '17866765571880000',
+  url: 'https://www.instagram.com/p/abc123/',
+  title: 'Imported post',
+  sourceText: '',
+  actor: '',
+  privacy: 'private',
+  addedAt: 0
+}
+
+it('fetches Instagram written captions and posters without requiring the video helper', async () => {
+  responses = [
+    respond(
+      200,
+      `<a class="EmbeddedMedia" href="/p/abc123/"><img class="EmbeddedMediaImage" src="https://images.example/post.jpg"></a><span class="UsernameText">creator</span><div class="Caption">A written caption</div>`
+    )
+  ]
+  const result = await fetchLibraryMetadata(
+    instagramResource,
+    new AbortController().signal,
+    '/missing-helper'
+  )
+  expect(result.description).toBe('A written caption')
+  expect(result.thumbnailUrl).toBe('https://images.example/post.jpg')
+  expect(result.fields.captions.state).toBe('unavailable')
+  expect(stubs.request.mock.calls[0][0].pathname).toBe('/p/abc123/embed/captioned/')
+  expect(stubs.request).toHaveBeenCalledOnce()
+})
+
+it('keeps Instagram public page previews partial when its embed is unavailable', async () => {
+  responses = [
+    respond(200, 'Log in'),
+    respond(
+      200,
+      `<meta property="og:url" content="https://www.instagram.com/p/abc123/"><meta property="og:description" content="A preview"><meta property="og:image" content="https://images.example/post.jpg">`
+    )
+  ]
+  const result = await fetchLibraryMetadata(instagramResource, new AbortController().signal)
+  expect(result.provider).toBe('instagram-page/1')
+  expect(result.fields.description.state).toBe('partial')
+  expect(stubs.request).toHaveBeenCalledTimes(2)
+})
+
+it('stops at an Instagram rate limit and reports login pages without saving them as post metadata', async () => {
+  responses = [respond(429, '', ['retry-after', '120'])]
+  await expect(
+    fetchLibraryMetadata(instagramResource, new AbortController().signal)
+  ).rejects.toMatchObject({ scope: 'provider', disposition: 'retry' })
+  expect(stubs.request).toHaveBeenCalledOnce()
+  responses = [respond(200, 'Log in'), respond(200, '<title>Instagram</title>Log in')]
+  await expect(
+    fetchLibraryMetadata(instagramResource, new AbortController().signal)
+  ).rejects.toThrow('sign-in')
+})
+
 it('falls back to another validated address when the first connection fails', async () => {
   responses = [
     (request) => {

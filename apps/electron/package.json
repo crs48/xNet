@@ -55,6 +55,7 @@
     "electron-updater": "^6.3.0",
     "lucide-react": "^0.400.0",
     "mermaid": "^11.4.0",
+    "parse5": "7.3.0",
     "sharp": "^0.34.5",
     "ws": "^8.18.0",
     "y-protocols": "^1.0.6",

@@ -709,6 +709,44 @@ fixture batch across rate limiting and restart. Native-process typechecking,
 changed-file lint, and the desktop build also passed. Full-corpus enrichment and
 the broader acceptance checklist remain open.
 
+**Instagram import and enrichment repair (2026-10-02):** the actual archive
+completed in the founder's development workspace: 58,293 source records across
+24 batches, with 44,262 created and 14,031 updated records. Native graph reads
+confirmed 17 collections and all 14,763 memberships. There are 9,661 Instagram
+content nodes, of which 9,525 have links that can enter the Library queue. The
+136 records without web links remain in the graph. Recovery copies were verified
+before and after the import.
+
+The first native enrichment run found a mismatch the synthetic samples had
+missed. Some exported content IDs are numeric Facebook record IDs; the post URL
+contains a different Instagram shortcode. The provider now reads that shortcode
+from the saved URL while preserving the imported identity and its relationships.
+Public post embeds supply written captions, authors, and posters without the
+optional video helper. A public-page fallback keeps its preview coverage partial.
+Neither path executes source scripts or reads browser credentials.
+
+The parser keeps the full written caption, including line breaks, entities, and
+hashtags, and excludes the author label and comment links. A card's short label
+is derived from that caption. Spoken transcripts remain a separate, explicit gap:
+public embeds do not expose those tracks, and local transcription has not run.
+Private, removed, or login-limited posts record a gap without stalling other posts.
+The provider upgrade preserves existing YouTube results and retry deadlines.
+
+In the native app, four saved posts returned searchable captions of 83, 800,
+409, and 372 characters, with cached image blobs of 603,415, 197,024, 89,446,
+and 194,673 bytes. Both the embed and public-page fallback produced real cards.
+After a verified recovery copy and restart, the queue stayed paused and all
+18,799 Library resources remained. With the development modules loaded and the
+renderer set offline, 37 Instagram thumbnails decoded from local blobs. The four
+sample captions were still searchable after restart. This checks saved data in
+the native development app; packaged offline startup is a separate acceptance test.
+The focused Library suite passed 64 tests, including numeric export IDs, full
+captions, partial previews, rejected login pages, rate limits, and preservation
+of YouTube work across restart. The live pass reached 44 enriched posts and 44 saved thumbnails, with four
+metadata access gaps and 9,477 posts still queued. Native-process typechecking,
+changed-file lint, and the desktop build also passed. These samples do not
+establish whole-corpus coverage or spoken transcript support.
+
 ### C. Keep the library useful as new things arrive
 
 **Collection browsing evidence (2026-09-30):** Library now has Resources and
