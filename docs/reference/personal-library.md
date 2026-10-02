@@ -64,7 +64,24 @@ paused by default. Coverage & gaps separates metadata, thumbnail, caption, and
 index work, and shows missing fields and retry reasons. Saved thumbnails use local
 blob storage, so expired source URLs do not remove the fetched image.
 
-On macOS, **Coverage & gaps → Install video helper** downloads the tested
+YouTube titles, full descriptions, authors, thumbnail URLs, and caption lists now
+come directly from the public video page. No helper installation is needed for
+these cards. A public preview can supply a title and image when the full page
+fails; the description and caption coverage then remain partial.
+
+The progress strip shows completed metadata, pending videos, saved images, and
+current requests. Local indexing does not hold up network work. Several requests
+can run at once, with separate pacing for metadata, images, and captions. A
+private or removed video leaves a gap on that video. A provider rate limit pauses
+that provider and survives retry or restart. Pausing cancels active requests;
+starting again resumes the saved queue without resetting completed work.
+
+Caption discovery does not guarantee readable caption text. YouTube may return
+an empty caption response even when it lists a track. This is shown as a blocked
+caption job, while titles and images continue. A missing track is reported
+separately. Neither case is counted as a retrieved transcript.
+
+For other video platforms on macOS, **Coverage & gaps → Install video helper** downloads the tested
 `yt-dlp 2026.07.04` executable from its official release (about 38 MB). The app
 checks its pinned size, checksum, and version before installation. You can cancel
 the download or repair a damaged helper. Installation does not start enrichment

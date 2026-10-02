@@ -104,6 +104,40 @@ it('finds full descriptions and late transcript cues after restart', () => {
   expect(store.get(saved.id)?.transcript?.cues).toHaveLength(2)
 })
 
+it('backfills a new provider version once without resetting completed current work', () => {
+  store.seed(resource())
+  store.close()
+  const db = new Database(path)
+  db.prepare("UPDATE work SET version='previous-provider',state='complete'").run()
+  db.close()
+  store = new LibraryStore(path)
+  expect(store.status().counts.every((row) => row.state === 'queued' && row.count === 1)).toBe(true)
+  const job = store.next(0, ['metadata'])!
+  store.finish(job, 'complete')
+  store.close()
+  store = new LibraryStore(path)
+  expect(store.next(0, ['metadata'])).toBeNull()
+  expect(store.status().counts.find((row) => row.capability === 'metadata')?.state).toBe('complete')
+  const check = new Database(path, { readonly: true })
+  expect(
+    check.prepare("SELECT COUNT(*) AS n FROM work WHERE version='previous-provider'").get()
+  ).toEqual({ n: 4 })
+  check.close()
+})
+
+it('does not consume retry attempts for user pauses or interrupted requests', () => {
+  store.seed(resource())
+  for (let i = 0; i < 10; i++) {
+    const job = store.next(0, ['metadata'])!
+    expect(job.attempts).toBe(1)
+    store.finish(job, 'queued', 'Paused')
+  }
+  store.next(0, ['metadata'])
+  store.close()
+  store = new LibraryStore(path)
+  expect(store.next(0, ['metadata'])?.attempts).toBe(1)
+})
+
 it('paginates every resource and safely handles FTS punctuation', () => {
   for (let i = 0; i < 85; i++) store.seed(resource(`source-${i}`))
   const ids = new Set(
@@ -145,6 +179,36 @@ it('honors provider backoff while permitting local indexing', () => {
   store.finish(first, 'complete')
   expect(store.next(100)).toBeNull()
   expect(store.next(60_000)?.capability).toBe('metadata')
+})
+
+it('isolates capability pacing and never shortens a provider rate limit', () => {
+  store.seed(resource())
+  const metadata = store.next(0, ['metadata'])!
+  store.finish(metadata, 'complete')
+  store.pauseProvider('youtube:transcript', 120_000)
+  expect(store.next(0, ['thumbnail'])?.capability).toBe('thumbnail')
+  expect(store.next(0, ['transcript'])).toBeNull()
+  store.pauseProvider('youtube', 180_000)
+  store.pauseProvider('youtube', 60_000)
+  store.retry()
+  expect(store.next(120_000, ['transcript'])).toBeNull()
+  expect(store.next(180_000, ['transcript'])?.capability).toBe('transcript')
+})
+
+it('requeues dependent gaps when metadata succeeds and resets explicit retry attempts', () => {
+  store.seed(resource())
+  const metadata = store.next(0, ['metadata'])!
+  store.finish(metadata, 'blocked', 'Could not discover the video')
+  const thumbnail = store.next(0, ['thumbnail'])!
+  store.finish(thumbnail, 'unavailable', 'No metadata')
+  const transcript = store.next(0, ['transcript'])!
+  store.finish(transcript, 'blocked', 'No tracks')
+  store.retry(resource().id)
+  const retry = store.next(0, ['metadata'])!
+  expect(retry.attempts).toBe(1)
+  store.finish(retry, 'complete')
+  expect(store.next(0, ['thumbnail'])?.state).toBe('running')
+  expect(store.next(0, ['transcript'])?.state).toBe('running')
 })
 
 it('refuses future storage without changing its version', () => {

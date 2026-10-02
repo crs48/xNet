@@ -31,11 +31,14 @@ const errorMessage = (error: unknown) => (error instanceof Error ? error.message
 export class LibraryService {
   readonly store: LibraryStore
   private identity: { authorDID: string; signingKey: number[] } | null = null
-  private active: Promise<void> | null = null
+  private active = new Map<
+    string,
+    { job: LibraryJob; controller: AbortController; done: Promise<void> }
+  >()
   private scanning: Promise<number> | null = null
-  private controller: AbortController | null = null
   private frozen = false
   private fatal: string | null = null
+  private projection: Promise<void> = Promise.resolve()
   private timer: ReturnType<typeof setInterval>
   private readonly helperDirectory: string
   private helperController: AbortController | null = null
@@ -50,7 +53,7 @@ export class LibraryService {
       void this.tick().catch((error: unknown) => {
         this.fatal = errorMessage(error)
       })
-    }, 1000)
+    }, 250)
     this.timer.unref()
   }
   async helperStatus(): Promise<LibraryHelperStatus> {
@@ -122,8 +125,8 @@ export class LibraryService {
   async pause(): Promise<void> {
     this.requireWritable()
     this.store.setPaused(true)
-    this.controller?.abort()
-    await this.active
+    for (const task of this.active.values()) task.controller.abort()
+    await Promise.all([...this.active.values()].map((task) => task.done))
   }
   resume(): void {
     this.requireWritable()
@@ -146,8 +149,8 @@ export class LibraryService {
   }
   async freeze(): Promise<void> {
     this.frozen = true
-    this.controller?.abort()
-    await this.active
+    for (const task of this.active.values()) task.controller.abort()
+    await Promise.all([...this.active.values()].map((task) => task.done))
     await this.scanning
   }
   thaw(): void {
@@ -261,7 +264,6 @@ export class LibraryService {
   }
   private async tick(): Promise<void> {
     if (
-      this.active ||
       this.frozen ||
       this.fatal ||
       this.store.paused ||
@@ -269,19 +271,58 @@ export class LibraryService {
       process.env.XNET_RECOVERY_OFFLINE === 'true'
     )
       return
-    const job = this.store.next(Date.now())
-    if (!job) return
-    this.controller = new AbortController()
-    const signal = this.controller.signal
-    this.active = this.execute(job, signal)
-      .catch((error: unknown) => {
-        this.fatal = errorMessage(error)
+    // Local indexing is already available at import. Drain repair work in bounded batches,
+    // independently of network work, instead of delaying every source by one second.
+    const deadline = Date.now() + 25
+    for (let count = 0; count < 100 && Date.now() < deadline; count++) {
+      const job = this.store.next(Date.now(), ['index'])
+      if (!job) break
+      const resource = this.store.get(job.resourceId)
+      try {
+        if (resource) this.store.index(resource)
+      } catch (error) {
+        this.store.finish(job, 'retry', errorMessage(error), Date.now() + 30_000)
+        throw error
+      }
+      this.store.finish(
+        job,
+        resource ? 'complete' : 'unavailable',
+        resource ? null : 'Source resource is missing.'
+      )
+    }
+    while (this.active.size < 4) {
+      const capabilities = (['metadata', 'thumbnail', 'transcript'] as const).filter(
+        (capability) =>
+          [...this.active.values()].filter((task) => task.job.capability === capability).length <
+          (capability === 'transcript' ? 1 : 2)
+      )
+      const job = this.store.next(Date.now(), capabilities)
+      if (!job) break
+      const key = `${job.resourceId}:${job.capability}`
+      const controller = new AbortController()
+      const done = this.execute(job, controller.signal)
+        .catch((error: unknown) => {
+          this.fatal = errorMessage(error)
+        })
+        .finally(() => {
+          this.active.delete(key)
+        })
+      this.active.set(key, { job, controller, done })
+    }
+  }
+  private async persist(drafts: DeterministicNodeImportDraft[]): Promise<void> {
+    if (!this.identity) throw new Error('Library identity is not ready.')
+    const identity = this.identity
+    // Parallel fetches share one ordered projection writer and Lamport allocator.
+    const next = this.projection.then(async () => {
+      await this.data.importDeterministicNodes({
+        ...identity,
+        drafts,
+        policy: { indexMode: 'touched', notificationMode: 'batch', syncMode: 'defer' }
       })
-      .finally(() => {
-        this.active = null
-        this.controller = null
-      })
-    await this.active
+    })
+    this.projection = next.catch(() => {})
+    await next
   }
   private async project(resource: LibraryResource): Promise<void> {
     if (!this.identity) throw new Error('Library identity is not ready.')
@@ -310,17 +351,24 @@ export class LibraryService {
     if (metadata.author) properties.authorName = metadata.author.slice(0, 500)
     if (metadata.thumbnailUrl) properties.thumbnailUrl = metadata.thumbnailUrl
     if (resource.thumbnail) properties.thumbnailBlobCid = resource.thumbnail.cid
-    await this.data.importDeterministicNodes({
-      ...this.identity,
-      drafts: [
-        {
-          id: createSocialEnrichmentId(resource.platform, resource.platformContentId),
-          schemaId: SocialEnrichmentSchema._schemaId,
-          properties
-        }
-      ],
-      policy: { indexMode: 'touched', notificationMode: 'batch', syncMode: 'defer' }
-    })
+    await this.persist([
+      {
+        id: createSocialEnrichmentId(resource.platform, resource.platformContentId),
+        schemaId: SocialEnrichmentSchema._schemaId,
+        properties
+      }
+    ])
+  }
+  private retain(
+    id: string,
+    patch: Partial<Pick<LibraryResource, 'metadata' | 'thumbnail' | 'transcript'>>
+  ): LibraryResource {
+    const current = this.store.get(id)
+    if (!current) throw new Error('Source resource disappeared while enrichment was running.')
+    // Another capability may have finished while this request was in flight.
+    const next = { ...current, ...patch }
+    this.store.put(next)
+    return next
   }
   private async execute(job: LibraryJob, signal: AbortSignal): Promise<void> {
     const resource = this.store.get(job.resourceId)
@@ -329,9 +377,15 @@ export class LibraryService {
       return
     }
     const interval =
-      resource.platform === 'instagram' ? 8000 : resource.platform === 'youtube' ? 4000 : 2000
+      job.capability === 'thumbnail'
+        ? 250
+        : resource.platform === 'instagram'
+          ? 8000
+          : resource.platform === 'youtube'
+            ? 1000
+            : 2000
     if (job.capability !== 'index')
-      this.store.pauseProvider(resource.platform, Date.now() + interval)
+      this.store.pauseProvider(`${resource.platform}:${job.capability}`, Date.now() + interval)
     try {
       if (job.capability === 'index') {
         this.store.index(resource)
@@ -340,9 +394,8 @@ export class LibraryService {
       }
       if (job.capability === 'metadata') {
         const metadata = await fetchLibraryMetadata(resource, signal, this.helperDirectory)
-        const next = { ...resource, metadata }
         // Retain the full result independently of bounded card projections.
-        this.store.put(next)
+        const next = this.retain(resource.id, { metadata })
         this.store.reindex(resource.id)
         await this.project(next)
         const gaps = Object.entries(metadata.fields).filter(
@@ -383,8 +436,9 @@ export class LibraryService {
           .raw()
           .toBuffer()
         const cid = await this.data.putBlob(bytes)
-        const next = { ...resource, thumbnail: { cid, contentType, bytes: bytes.length } }
-        this.store.put(next)
+        const next = this.retain(resource.id, {
+          thumbnail: { cid, contentType, bytes: bytes.length }
+        })
         await this.project(next)
         this.store.finish(job, 'complete')
         return
@@ -411,11 +465,11 @@ export class LibraryService {
         return
       }
       const raw = await (await fetchPublic(track.url, { signal, limit: 32 * 1024 * 1024 })).text()
-      const cues = parseCaptionBody(raw, track.format)
+      const cues = raw.trim() ? parseCaptionBody(raw, track.format) : []
       if (!cues.length)
         throw new LibraryProviderError(
-          'The discovered track returned no readable captions; availability is unresolved.',
-          'retry'
+          'The source returned an empty caption track. Captions need additional access; titles and thumbnails can still finish.',
+          'blocked'
         )
       const transcript: NonNullable<LibraryResource['transcript']> = {
         cues,
@@ -426,8 +480,7 @@ export class LibraryService {
         provider: resource.metadata.provider,
         evidence: raw
       }
-      const next = { ...resource, transcript }
-      this.store.put(next)
+      this.retain(resource.id, { transcript })
       this.store.reindex(resource.id)
       const digest = createHash('sha256').update(raw).digest('hex')
       const splitCues = cues.flatMap((cue) => {
@@ -466,11 +519,7 @@ export class LibraryService {
       }))
       if (!this.identity) throw new Error('Library identity is not ready.')
       for (let offset = 0; offset < drafts.length; offset += 100)
-        await this.data.importDeterministicNodes({
-          ...this.identity,
-          drafts: drafts.slice(offset, offset + 100),
-          policy: { indexMode: 'touched', notificationMode: 'batch', syncMode: 'defer' }
-        })
+        await this.persist(drafts.slice(offset, offset + 100))
       this.store.finish(job, 'complete')
     } catch (error) {
       if (signal.aborted) {
@@ -487,7 +536,7 @@ export class LibraryService {
       const state =
         failure.disposition === 'retry' && job.attempts >= 5 ? 'blocked' : failure.disposition
       this.store.finish(job, state, failure.message, next)
-      if (state === 'retry' || state === 'blocked')
+      if (failure.scope === 'provider')
         this.store.pauseProvider(resource.platform, Math.max(next, Date.now() + 60_000))
     }
   }

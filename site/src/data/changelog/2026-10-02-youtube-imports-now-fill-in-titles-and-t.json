@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-02-youtube-imports-now-fill-in-titles-and-t",
+  "date": "October 2, 2026",
+  "title": "YouTube imports now fill in titles and thumbnails",
+  "summary": "Enrichment starts while local indexing continues, saves YouTube details without installing a helper, shows live progress, and keeps restricted videos from holding up the rest.",
+  "highlights": [],
+  "tags": ["app", "performance"],
+  "pr": 721
+}

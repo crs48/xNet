@@ -2,7 +2,7 @@ import type { RequestOptions } from 'node:https'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { fetchPublic } from './providers'
+import { fetchLibraryMetadata, fetchPublic } from './providers'
 
 const stubs = vi.hoisted(() => ({ lookup: vi.fn(), request: vi.fn() }))
 vi.mock('node:dns/promises', () => ({ lookup: stubs.lookup }))
@@ -128,4 +128,51 @@ it('cancels an active request and clears its timers', async () => {
   controller.abort()
   await pending
   expect(vi.getTimerCount()).toBe(0)
+})
+
+it('distinguishes provider rate limits from one restricted resource', async () => {
+  responses = [respond(429, '', ['retry-after', '120']), respond(403, '')]
+  await expect(fetchPublic('https://example.com/rate')).rejects.toMatchObject({
+    scope: 'provider',
+    disposition: 'retry',
+    retryAt: expect.any(Number)
+  })
+  await expect(fetchPublic('https://example.com/private')).rejects.toMatchObject({
+    scope: 'resource',
+    disposition: 'blocked'
+  })
+})
+
+it('keeps YouTube cards useful when the page cannot expose complete metadata', async () => {
+  responses = [
+    respond(200, '<html>Consent needed</html>'),
+    respond(
+      200,
+      JSON.stringify({
+        title: 'Public preview title',
+        author_name: 'Original author',
+        thumbnail_url: 'https://i.ytimg.com/poster.jpg'
+      })
+    )
+  ]
+  const result = await fetchLibraryMetadata(
+    {
+      id: 'fixture',
+      platform: 'youtube',
+      platformContentId: 'abcdefghijk',
+      url: 'https://www.youtube.com/watch?v=abcdefghijk',
+      title: 'Unresolved',
+      sourceText: '',
+      actor: '',
+      privacy: 'private',
+      addedAt: 1
+    },
+    new AbortController().signal,
+    '/nonexistent/helper'
+  )
+  expect(result.title).toBe('Public preview title')
+  expect(result.thumbnailUrl).toBe('https://i.ytimg.com/poster.jpg')
+  expect(result.fields.description.state).toBe('partial')
+  expect(result.fields.captions.state).toBe('partial')
+  expect(stubs.request).toHaveBeenCalledTimes(2)
 })

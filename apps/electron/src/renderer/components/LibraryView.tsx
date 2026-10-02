@@ -228,23 +228,70 @@ export function LibraryView({
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-6 py-3 text-sm">
         <span>
           {status?.resources.toLocaleString() ?? '…'} resources ·{' '}
-          {status?.paused ? 'Enrichment paused' : 'Enrichment running'}
+          {status?.error
+            ? 'Enrichment stopped'
+            : status?.paused
+              ? 'Enrichment paused'
+              : status?.running.length
+                ? 'Enriching sources'
+                : status?.nextAt !== null
+                  ? 'Waiting for next source request'
+                  : 'Pass finished — review Coverage & gaps'}
         </span>
         <button
           className={button}
           disabled={busy}
           onClick={() =>
             void run(() =>
-              status?.paused ? window.xnet.libraryResume() : window.xnet.libraryPause()
+              status?.paused || status?.error
+                ? window.xnet.libraryResume()
+                : window.xnet.libraryPause()
             )
           }
         >
-          {status?.paused ? 'Start enrichment' : 'Pause enrichment'}
+          {status?.error
+            ? 'Retry enrichment'
+            : status?.paused
+              ? 'Start enrichment'
+              : 'Pause enrichment'}
         </button>
         <button className="underline" onClick={() => setShowProgress(!showProgress)}>
           Coverage & gaps
         </button>
       </div>
+      {status && (
+        <div
+          aria-live="polite"
+          className="space-y-1 border-b border-border px-6 py-2 text-xs text-muted-foreground"
+        >
+          <p>
+            Metadata: {count('metadata', 'complete').toLocaleString()} complete,{' '}
+            {count('metadata', 'partial').toLocaleString()} partial,{' '}
+            {(
+              count('metadata', 'queued') +
+              count('metadata', 'running') +
+              count('metadata', 'retry')
+            ).toLocaleString()}{' '}
+            pending
+            {' · '}Thumbnails: {count('thumbnail', 'complete').toLocaleString()}
+            {' · '}Captions: {count('transcript', 'complete').toLocaleString()}
+          </p>
+          {status.running.map((job) => (
+            <p key={`${job.resourceId}:${job.capability}`}>
+              {label(job.capability)} · {job.title}
+            </p>
+          ))}
+          {!status.paused &&
+            !status.running.length &&
+            status.nextAt !== null &&
+            status.nextAt > Date.now() && (
+              <p>
+                Next request {new Date(status.nextAt).toLocaleTimeString()}. Provider pacing and
+                retry delays are preserved when you restart.
+              </p>
+            )}
+        </div>
+      )}
       {(error || status?.error) && (
         <p role="alert" className="px-6 py-3 text-sm text-destructive">
           {error || status?.error}
@@ -254,12 +301,14 @@ export function LibraryView({
         <section className="max-h-72 shrink-0 space-y-3 overflow-auto border-b border-border px-6 py-3 text-sm">
           <p>
             Enrichment requests source websites from this Mac. Saved text and images remain
-            available offline. Video descriptions and captions currently need the tested local
-            yt-dlp helper. Automatic local transcription is not connected yet.
+            available offline. YouTube titles, descriptions, thumbnails, and available caption
+            tracks are fetched directly. Restricted or unavailable videos are listed below and do
+            not stop the remaining videos. Automatic local transcription is not connected yet.
           </p>
           <div className="space-y-2 rounded-md border border-border p-3">
             <p>
-              Managed video helper: {helper ? label(helper.state) : 'checking…'}
+              Optional helper for other video platforms:{' '}
+              {helper ? label(helper.state) : 'checking…'}
               {helper ? ` · yt-dlp ${helper.version}` : ''}
             </p>
             <p className="text-xs text-muted-foreground">

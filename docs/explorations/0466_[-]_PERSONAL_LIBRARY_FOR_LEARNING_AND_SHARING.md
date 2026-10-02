@@ -668,6 +668,47 @@ is running; a blocking rule has not been confirmed. No firewall setting was
 changed. Successful live installation remains unchecked, and a source-app test
 would still not prove signed-release helper behavior.
 
+**YouTube enrichment repair (2026-10-02):** the founder's development workspace
+now contains 9,274 imported resources. Clicking Start enrichment previously put
+every local index job ahead of every network job, at one job per second. That
+could delay the first title for more than two hours. The YouTube provider also
+required a helper that was absent on this Mac. A failure on one video could put
+all YouTube work into backoff.
+
+The queue now drains local indexing alongside bounded network workers. Metadata,
+images, and captions have separate pacing; only a provider-wide rate limit pauses
+the provider. Pausing cancels active requests and keeps their retry budget.
+Restart preserves completed jobs and retry deadlines. Parallel results merge
+with the latest saved resource, and native graph writes stay serialized.
+
+YouTube metadata now comes from the public watch page, with a public oEmbed
+fallback that records partial coverage. This needs no helper or browser cookies.
+Full descriptions and provider evidence stay in the local Library. The progress
+strip shows completed and pending metadata, saved thumbnails, active requests,
+and the next retry time. Empty caption responses become explicit access gaps.
+They do not count as absent tracks or retrieved transcripts.
+
+The first live pass saved 120 full metadata records, one partial preview, and
+121 thumbnails in the actual imported workspace. Two videos had explicit
+metadata access/unavailability gaps. Cached images decoded from local blobs,
+including resources beyond the first forty cards. A verified recovery copy was
+made before the repair and another after this pass. The batch remains pending;
+these counts do not establish whole-corpus coverage or caption availability.
+After restarting with enrichment paused, all 121 images and completed metadata
+jobs remained saved. Forty cards decoded their local images with the renderer
+offline. Starting enrichment resumed the remaining queue.
+The next pass reached 218 full metadata records, one partial preview, and 218
+saved thumbnails. Six metadata gaps remained explicit. Empty caption responses
+were recorded as blocked jobs, with no repeated JSON-error retries. The batch
+will continue from its saved position while the app is running.
+
+The focused Library suite passed 54 tests. New cases cover a large index backlog,
+a hung request, a restricted video, cancellation, provider-version upgrades,
+out-of-order image/caption completion, empty captions, and all 250 videos in a
+fixture batch across rate limiting and restart. Native-process typechecking,
+changed-file lint, and the desktop build also passed. Full-corpus enrichment and
+the broader acceptance checklist remain open.
+
 ### C. Keep the library useful as new things arrive
 
 **Collection browsing evidence (2026-09-30):** Library now has Resources and
