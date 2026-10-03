@@ -34,6 +34,34 @@ snapshot at completed checkpoints. Once the native capture intent is written,
 it joins the covered workspace files. Completed
 intents currently retain the original capture text even after later Page edits.
 
+## Explore links in 3D
+
+Open **3D graph** in Library. The graph fills the window and includes every saved
+web link, even when it has no known connections. Local text and conversations
+stay in Resources; the inspector shows both counts. This view reads existing
+data and does not change the database schema or write new relationships.
+
+Drag to orbit, scroll to zoom, and right-drag to pan. Hover over a dot to read its
+saved title, thumbnail, description, and connections. Click to pin the preview.
+**All saved metadata & provenance** expands the original imported fields and
+saved enrichment. **Read in Library** opens the source's notes and transcript.
+Missing images or descriptions are shown as missing, not fetched by the graph.
+
+Search for a title, URL, creator, tag, or playlist, then select a match to move
+the camera to it. The same search and connection buttons work with the keyboard.
+**Isolate neighborhood** shows a group's links, or the links sharing a connection
+with the selected resource. **Back to all links** clears that focus. Filter by
+source or turn relationship types on and off; the counts describe the current
+view. **Hide inspector** gives the graph more room. Escape returns to Library.
+
+Connections use imported playlist and collection memberships, GitHub topics,
+garden tags, source hashtags, categories, and matching creator names within a
+platform. A matching name is not a verified identity. The graph does not infer
+missing playlist memberships or generate AI categories. All graph work stays on
+this Mac. The force layout runs in the background and can be paused; it stops
+when settled and is released when the view closes. Reduced-motion settings start
+it paused. **Reload graph** picks up new imports and enrichment.
+
 ## Import and enrich
 
 Choose **Import archive**, select or drop a ZIP/JSON export, and review its categories.

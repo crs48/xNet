@@ -1,4 +1,5 @@
 import type { CaptureIntent } from './capture'
+import type { GraphResource } from './graph'
 import type {
   Capability,
   LibraryJob,
@@ -10,6 +11,7 @@ import type {
 import Database from 'better-sqlite3'
 import { requireCompatibleDatabase } from '../storage/compatibility'
 import { validateCapture } from './capture'
+import { hashtagsIn } from './graph'
 import { queueProvider } from './source'
 import { CAPABILITIES, LIBRARY_PROVIDER_VERSION } from './types'
 
@@ -186,6 +188,24 @@ export class LibraryStore {
     return ids.map((id: string) => {
       const resource = this.get(id)
       return resource ? cardFor(resource) : null
+    })
+  }
+  graphResources(): GraphResource[] {
+    // Read text only while extracting explicit hashtags; never send transcripts,
+    // source bodies or provider evidence with the overview's compact nodes.
+    const rows = this.db
+      .prepare(
+        `SELECT id,url,title,platform,
+      COALESCE(json_extract(payload,'$.networkPlatform'),platform) AS provider,
+      COALESCE(NULLIF(json_extract(payload,'$.metadata.author'),''),json_extract(payload,'$.actor'),'') AS author,
+      COALESCE(json_extract(payload,'$.sourceText'),'') || char(10) ||
+      COALESCE(json_extract(payload,'$.metadata.description'),'') AS body
+      FROM resources WHERE lower(url) LIKE 'https://%' OR lower(url) LIKE 'http://%' ORDER BY id`
+      )
+      .iterate()
+    return Array.from(rows, (value) => {
+      const { body, ...resource } = value as Omit<GraphResource, 'hashtags'> & { body: string }
+      return { ...resource, hashtags: hashtagsIn(body) }
     })
   }
   put(resource: LibraryResource): void {

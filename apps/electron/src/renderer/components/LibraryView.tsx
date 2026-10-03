@@ -6,13 +6,17 @@ import type {
 } from '../../shared/library'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { flushDocumentWrites } from '@xnetjs/react/internal'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { LibraryCollections } from './LibraryCollections'
 import {
   LibraryResourceCard,
   LibraryThumbnail,
   libraryTimestamp as timestamp
 } from './LibraryResourceCard'
+
+const LibraryGraphView = lazy(() =>
+  import('./LibraryGraphView').then((module) => ({ default: module.LibraryGraphView }))
+)
 
 const button =
   'rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50'
@@ -42,7 +46,7 @@ export function LibraryView({
   const [status, setStatus] = useState<(LibraryStatus & { error: string | null }) | null>(null)
   const [results, setResults] = useState<LibrarySearchResult[]>([])
   const [query, setQuery] = useState('')
-  const [section, setSection] = useState<'resources' | 'collections'>('resources')
+  const [section, setSection] = useState<'resources' | 'collections' | 'graph'>('resources')
   const [platform, setPlatform] = useState('')
   const [offset, setOffset] = useState(0)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -166,7 +170,7 @@ export function LibraryView({
             Import archive
           </button>
           <button className={button} onClick={onOpenGraph}>
-            Graph & saved views
+            Data & saved views
           </button>
           <button className={button} onClick={onClose}>
             Close
@@ -174,7 +178,7 @@ export function LibraryView({
         </div>
       </header>
       <nav aria-label="Library sections" className="flex gap-2 border-b border-border px-6 py-3">
-        {(['resources', 'collections'] as const).map((name) => (
+        {(['resources', 'collections', 'graph'] as const).map((name) => (
           <button
             key={name}
             className={`${button} ${section === name ? 'bg-accent font-medium' : ''}`}
@@ -184,7 +188,11 @@ export function LibraryView({
               setSelectedId(null)
             }}
           >
-            {name === 'resources' ? 'Resources' : 'Collections'}
+            {name === 'resources'
+              ? 'Resources'
+              : name === 'collections'
+                ? 'Collections'
+                : '3D graph'}
           </button>
         ))}
       </nav>
@@ -396,171 +404,184 @@ export function LibraryView({
           ))}
         </section>
       )}
-      <div className="flex min-h-0 flex-1">
-        <main className="min-w-0 flex-1 overflow-auto p-6">
-          {section === 'collections' ? (
-            <LibraryCollections
-              onSelectResource={(id) => {
-                setSelectedId(id)
-                setSelectedCue(null)
-              }}
-            />
-          ) : (
-            <>
-              {!results.length && (
-                <p className="py-12 text-center text-sm text-muted-foreground">
-                  {query
-                    ? 'No matching source text yet. Check enrichment coverage for unresolved sources.'
-                    : 'Import an archive to begin, then find its links here.'}
-                </p>
-              )}
-              <div className="grid grid-cols-2 gap-5 xl:grid-cols-3">
-                {results.map((resource, index) => (
-                  <LibraryResourceCard
-                    key={`${resource.id}:${index}`}
-                    resource={resource}
-                    onSelect={() => {
-                      setSelectedId(resource.id)
-                      setSelectedCue(resource.startMs ?? null)
-                    }}
-                  />
-                ))}
-              </div>
-              <div className="mt-5 flex justify-between">
-                <button
-                  className={button}
-                  disabled={offset === 0}
-                  onClick={() => setOffset(Math.max(0, offset - 40))}
-                >
-                  Previous
-                </button>
-                <button
-                  className={button}
-                  disabled={results.length < 40}
-                  onClick={() => setOffset(offset + 40)}
-                >
-                  Next
-                </button>
-              </div>
-            </>
-          )}
-        </main>
-        {selected && (
-          <aside className="w-96 shrink-0 space-y-4 overflow-auto border-l border-border p-5">
-            <button className={button} onClick={() => setSelectedId(null)}>
-              Close details
-            </button>
-            <LibraryThumbnail resource={selected} />
-            <h2 className="text-lg font-medium">{selected.metadata?.title || selected.title}</h2>
-            {/^https?:\/\//.test(selected.url) && (
-              <a
-                href={selected.url}
-                target="_blank"
-                rel="noreferrer"
-                className="block break-all text-sm underline"
-              >
-                Open original source
-              </a>
+      {section === 'graph' ? (
+        <Suspense fallback={<p className="p-6 text-sm text-muted-foreground">Loading 3D view…</p>}>
+          <LibraryGraphView
+            onClose={() => setSection('resources')}
+            onOpenResource={(id) => {
+              setSection('resources')
+              setSelectedId(id)
+              setSelectedCue(null)
+            }}
+          />
+        </Suspense>
+      ) : (
+        <div className="flex min-h-0 flex-1">
+          <main className="min-w-0 flex-1 overflow-auto p-6">
+            {section === 'collections' ? (
+              <LibraryCollections
+                onSelectResource={(id) => {
+                  setSelectedId(id)
+                  setSelectedCue(null)
+                }}
+              />
+            ) : (
+              <>
+                {!results.length && (
+                  <p className="py-12 text-center text-sm text-muted-foreground">
+                    {query
+                      ? 'No matching source text yet. Check enrichment coverage for unresolved sources.'
+                      : 'Import an archive to begin, then find its links here.'}
+                  </p>
+                )}
+                <div className="grid grid-cols-2 gap-5 xl:grid-cols-3">
+                  {results.map((resource, index) => (
+                    <LibraryResourceCard
+                      key={`${resource.id}:${index}`}
+                      resource={resource}
+                      onSelect={() => {
+                        setSelectedId(resource.id)
+                        setSelectedCue(resource.startMs ?? null)
+                      }}
+                    />
+                  ))}
+                </div>
+                <div className="mt-5 flex justify-between">
+                  <button
+                    className={button}
+                    disabled={offset === 0}
+                    onClick={() => setOffset(Math.max(0, offset - 40))}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    className={button}
+                    disabled={results.length < 40}
+                    onClick={() => setOffset(offset + 40)}
+                  >
+                    Next
+                  </button>
+                </div>
+              </>
             )}
-            {selected.kind && (
-              <p className="text-xs text-muted-foreground">Imported text · kept locally</p>
-            )}
-            {selectedCue !== null && selected.transcript && (
-              <section
-                className="rounded-md bg-secondary p-3 text-sm"
-                aria-label="Matching passage"
-              >
-                <p className="mb-2 font-medium">Matching passage · {timestamp(selectedCue)}</p>
-                <p>{selected.transcript.cues.find((cue) => cue.startMs === selectedCue)?.text}</p>
+          </main>
+          {selected && (
+            <aside className="w-96 shrink-0 space-y-4 overflow-auto border-l border-border p-5">
+              <button className={button} onClick={() => setSelectedId(null)}>
+                Close details
+              </button>
+              <LibraryThumbnail resource={selected} />
+              <h2 className="text-lg font-medium">{selected.metadata?.title || selected.title}</h2>
+              {/^https?:\/\//.test(selected.url) && (
                 <a
-                  className="mt-2 block underline"
-                  href={atTime(selected, selectedCue)}
+                  href={selected.url}
                   target="_blank"
                   rel="noreferrer"
+                  className="block break-all text-sm underline"
                 >
-                  {(selected.networkPlatform ?? selected.platform) === 'youtube'
-                    ? `Open video at ${timestamp(selectedCue)}`
-                    : 'Open source'}
+                  Open original source
                 </a>
-              </section>
-            )}
-            <p className="whitespace-pre-wrap break-words text-sm">
-              {selected.metadata?.description ||
-                selected.sourceText ||
-                'Source description is still unresolved.'}
-            </p>
-            {selected.metadata && (
-              <p className="text-xs text-muted-foreground">
-                Fetched {new Date(selected.metadata.fetchedAt).toLocaleString()} ·{' '}
-                {selected.metadata.provider}
+              )}
+              {selected.kind && (
+                <p className="text-xs text-muted-foreground">Imported text · kept locally</p>
+              )}
+              {selectedCue !== null && selected.transcript && (
+                <section
+                  className="rounded-md bg-secondary p-3 text-sm"
+                  aria-label="Matching passage"
+                >
+                  <p className="mb-2 font-medium">Matching passage · {timestamp(selectedCue)}</p>
+                  <p>{selected.transcript.cues.find((cue) => cue.startMs === selectedCue)?.text}</p>
+                  <a
+                    className="mt-2 block underline"
+                    href={atTime(selected, selectedCue)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {(selected.networkPlatform ?? selected.platform) === 'youtube'
+                      ? `Open video at ${timestamp(selectedCue)}`
+                      : 'Open source'}
+                  </a>
+                </section>
+              )}
+              <p className="whitespace-pre-wrap break-words text-sm">
+                {selected.metadata?.description ||
+                  selected.sourceText ||
+                  'Source description is still unresolved.'}
               </p>
-            )}
-            {!!selected.notes?.length && (
-              <section className="space-y-3">
-                <h3 className="font-medium">Authored notes</h3>
-                {selected.notes.map((note) => (
-                  <article key={note.id} className="rounded-md bg-secondary p-3">
-                    <p className="whitespace-pre-wrap text-sm">{note.text}</p>
-                    {note.pageId && (
-                      <button
-                        className="text-xs underline"
-                        onClick={() => onOpenPage(note.pageId!)}
-                      >
-                        Open editable note
-                      </button>
-                    )}
-                    {note.url && (
+              {selected.metadata && (
+                <p className="text-xs text-muted-foreground">
+                  Fetched {new Date(selected.metadata.fetchedAt).toLocaleString()} ·{' '}
+                  {selected.metadata.provider}
+                </p>
+              )}
+              {!!selected.notes?.length && (
+                <section className="space-y-3">
+                  <h3 className="font-medium">Authored notes</h3>
+                  {selected.notes.map((note) => (
+                    <article key={note.id} className="rounded-md bg-secondary p-3">
+                      <p className="whitespace-pre-wrap text-sm">{note.text}</p>
+                      {note.pageId && (
+                        <button
+                          className="text-xs underline"
+                          onClick={() => onOpenPage(note.pageId!)}
+                        >
+                          Open editable note
+                        </button>
+                      )}
+                      {note.url && (
+                        <a
+                          className="text-xs underline"
+                          href={note.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Original note{note.author ? ` · ${note.author}` : ''}
+                        </a>
+                      )}
+                    </article>
+                  ))}
+                </section>
+              )}
+              {selected.transcript && (
+                <section>
+                  <h3 className="font-medium">Transcript · {selected.transcript.language}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {selected.transcript.autoGenerated
+                      ? 'Machine-generated source captions'
+                      : 'Source captions'}
+                  </p>
+                  {selected.transcript.cues.slice(0, cueLimit).map((cue, index) => (
+                    <p key={index} className="mt-2 text-sm">
                       <a
-                        className="text-xs underline"
-                        href={note.url}
+                        className="mr-2 text-muted-foreground underline"
+                        href={atTime(selected, cue.startMs)}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Original note{note.author ? ` · ${note.author}` : ''}
+                        {timestamp(cue.startMs)}
                       </a>
-                    )}
-                  </article>
-                ))}
-              </section>
-            )}
-            {selected.transcript && (
-              <section>
-                <h3 className="font-medium">Transcript · {selected.transcript.language}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {selected.transcript.autoGenerated
-                    ? 'Machine-generated source captions'
-                    : 'Source captions'}
-                </p>
-                {selected.transcript.cues.slice(0, cueLimit).map((cue, index) => (
-                  <p key={index} className="mt-2 text-sm">
-                    <a
-                      className="mr-2 text-muted-foreground underline"
-                      href={atTime(selected, cue.startMs)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {timestamp(cue.startMs)}
-                    </a>
-                    {cue.text}
-                  </p>
-                ))}
-                {selected.transcript.cues.length > cueLimit && (
-                  <button className={button} onClick={() => setCueLimit(cueLimit + 100)}>
-                    Show more transcript
-                  </button>
-                )}
-              </section>
-            )}
-            <button
-              className={button}
-              disabled={busy}
-              onClick={() => void run(() => window.xnet.libraryRetry(selected.id))}
-            >
-              Retry missing details
-            </button>
-          </aside>
-        )}
-      </div>
+                      {cue.text}
+                    </p>
+                  ))}
+                  {selected.transcript.cues.length > cueLimit && (
+                    <button className={button} onClick={() => setCueLimit(cueLimit + 100)}>
+                      Show more transcript
+                    </button>
+                  )}
+                </section>
+              )}
+              <button
+                className={button}
+                disabled={busy}
+                onClick={() => void run(() => window.xnet.libraryRetry(selected.id))}
+              >
+                Retry missing details
+              </button>
+            </aside>
+          )}
+        </div>
+      )}
     </div>
   )
 }

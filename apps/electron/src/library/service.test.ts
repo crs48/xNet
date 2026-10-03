@@ -279,3 +279,42 @@ it('indexes saved comments and local export text without turning garden commenta
   expect(service.store.get('local')?.kind).toBe('archive-text')
   expect(service.store.get('note')).toBeNull()
 })
+
+it('reads graph memberships beyond the first page and shares concurrent graph reads', async () => {
+  for (let i = 0; i < 1001; i++) service.store.put(resource(`graph-${i}`))
+  const { SocialCollectionSchema, SocialCollectionItemSchema } =
+    await import('@xnetjs/social/schemas')
+  const memberships = Array.from({ length: 1001 }, (_, i) => ({
+    id: `membership-${i}`,
+    properties: { collection: 'playlist', item: `graph-${i}` }
+  }))
+  stubs.listNodes.mockImplementation(
+    async (options: { schemaId: string; offset: number; limit: number }) => {
+      const rows =
+        options.schemaId === SocialCollectionSchema._schemaId
+          ? [{ id: 'playlist', properties: { title: 'Full playlist' } }]
+          : options.schemaId === SocialCollectionItemSchema._schemaId
+            ? memberships
+            : []
+      return rows.slice(options.offset, options.offset + options.limit)
+    }
+  )
+  const first = service.graph()
+  expect(service.graph()).toBe(first)
+  const graph = await first
+  expect(graph.linkCount).toBe(1001)
+  expect(graph.edges.filter((edge) => edge.kind === 'collection')).toHaveLength(1001)
+  expect(
+    stubs.listNodes.mock.calls
+      .filter(([options]) => options.schemaId === SocialCollectionItemSchema._schemaId)
+      .map(([options]) => options.offset)
+  ).toEqual([0, 500, 1000])
+})
+
+it('does not start new graph reads after the recovery write barrier closes', async () => {
+  await service.freeze()
+  await expect(service.graph()).rejects.toThrow('being copied or imported')
+  await expect(service.graphDetail('example')).rejects.toThrow('being copied or imported')
+  service.thaw()
+  expect((await service.graph()).nodes).toEqual([])
+})

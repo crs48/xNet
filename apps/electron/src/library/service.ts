@@ -2,6 +2,7 @@ import type { CaptureInput, CaptureResult } from './capture'
 import type { LibraryJob, LibraryResource, LibraryStatus } from './types'
 import type { DataService } from '../data-process/data-service'
 import type { LibraryHelperStatus } from '../shared/library'
+import type { LibraryGraph, LibraryGraphDetail } from '../shared/library-graph'
 import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
@@ -16,6 +17,7 @@ import { createTranscriptContentDrafts } from '@xnetjs/social/transcripts'
 import sharp from 'sharp'
 import { readPageText, saveCapture } from './capture'
 import { conversationResources } from './conversations'
+import { readLibraryGraph } from './graph'
 import { inspectManagedHelper, installManagedHelper, MAC_VIDEO_HELPER } from './managed-helper'
 import { fetchLibraryMetadata, fetchPublic, LibraryProviderError } from './providers'
 import { providerResource, queueProvider } from './source'
@@ -33,6 +35,7 @@ export class LibraryService {
     { job: LibraryJob; controller: AbortController; done: Promise<void> }
   >()
   private scanning: Promise<number> | null = null
+  private graphRead: Promise<LibraryGraph> | null = null
   private frozen = false
   private fatal: string | null = null
   private projection: Promise<void> = Promise.resolve()
@@ -96,6 +99,30 @@ export class LibraryService {
   status(): LibraryStatus & { error: string | null } {
     return { ...this.store.status(), error: this.fatal }
   }
+  graph(): Promise<LibraryGraph> {
+    if (this.frozen)
+      return Promise.reject(
+        new Error('Graph is unavailable while workspace storage is being copied or imported.')
+      )
+    if (!this.graphRead)
+      this.graphRead = (async () => {
+        await this.scanning
+        return readLibraryGraph(this.data, this.store)
+      })().finally(() => {
+        this.graphRead = null
+      })
+    return this.graphRead
+  }
+  async graphDetail(id: string): Promise<LibraryGraphDetail> {
+    if (this.frozen)
+      throw new Error(
+        'Graph details are unavailable while workspace storage is being copied or imported.'
+      )
+    return {
+      resource: this.store.get(id),
+      source: (await this.data.getNode(id))?.properties ?? null
+    }
+  }
   async capture(input: CaptureInput): Promise<CaptureResult> {
     if (!this.frozen || !this.identity)
       throw new Error('Capture requires the workspace write barrier and identity.')
@@ -149,6 +176,7 @@ export class LibraryService {
     for (const task of this.active.values()) task.controller.abort()
     await Promise.all([...this.active.values()].map((task) => task.done))
     await this.scanning
+    await this.graphRead
   }
   thaw(): void {
     this.frozen = false

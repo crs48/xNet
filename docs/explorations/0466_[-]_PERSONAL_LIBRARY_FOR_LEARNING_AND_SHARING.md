@@ -846,6 +846,60 @@ recovery copy, `1790990379981-e87f7137-4d58-4652-a025-287d71af6c5e`, covers 28
 workspace files. Enrichment was then resumed. This is an on-disk copy; restoring
 this complete enlarged corpus on another Mac has not been tested.
 
+### 3D link graph evidence (2026-10-02)
+
+Library now opens a full-window 3D graph of saved web links. The native run used
+all 54,233 links in the 55,973-resource Library. It found 95,367 connections through
+60 collections, 6,451 creator-name groups, 15,144 tags, and 80 categories. All
+30,764 links without known connections stayed visible. The projection reported
+no unreadable metadata and no edges pointing to missing nodes. The remaining
+1,740 local text resources and conversations stay in Resources.
+
+Connections come from imported memberships, explicit topics and tags, source
+hashtags, categories, and creator names scoped to a platform. Matching names do
+not merge identities. Missing memberships are not invented. AI-generated
+categories remain open work; the UI says so.
+
+```mermaid
+flowchart LR
+    A[Imported social records] --> C[Read-only graph projection]
+    B[Saved Library metadata] --> C
+    C --> D[Serialized desktop snapshot]
+    D --> E[3D force layout in a worker]
+    E --> F[GPU points and relationship lines]
+    F --> G[Hover or pin a link]
+    G --> H[Load saved image and full metadata]
+```
+
+The overview sends compact labels and relationships, then loads source details
+on demand. Its native boundary carries serialized JSON to avoid copying and
+freezing tens of thousands of objects through Electron's context bridge. The
+view uses [Three.js points](https://threejs.org/docs/pages/Points.html) and
+[OrbitControls](https://threejs.org/docs/pages/OrbitControls.html), with
+[d3-force-3d](https://github.com/vasturiano/d3-force-3d) in a disposable worker.
+It adds no database schema or persisted relationship type.
+
+In the real Electron development profile, search focused an enriched YouTube
+link, loaded its saved 1280-pixel thumbnail, and opened a 45-link neighborhood.
+Hover picking showed the same title, image, and connections. The metadata
+expander included source fields and enrichment provenance. The GitHub filter
+included all 1,514 repositories and reached a settled layout. Orbit, zoom,
+relationship filters, and keyboard search are available. Escape closed the view,
+removed its canvas, and restored focus access to the rest of the app. Reopening
+returned to all links. A 90-frame sample during the full layout measured 8 ms
+median and 9 ms at the 95th percentile between animation callbacks on this Mac;
+this is a local responsiveness observation, not a hardware-independent benchmark.
+
+The focused Library and graph checks passed: 92 tests across 13 files, including
+complete pagination, duplicate memberships, isolated links, platform filtering,
+malformed metadata, deterministic 3D seeds, and the recovery read barrier. The
+main-process typecheck passed. The standalone renderer check still reports the
+six pre-existing errors recorded above, with no new graph diagnostics.
+
+- [x] Add a desktop 3D view of all saved web links with source relationships,
+      hover metadata, source filters, and selectable neighborhoods.
+- [ ] Add reviewed AI topic suggestions with visible evidence and provenance.
+
 ### C. Keep the library useful as new things arrive
 
 **Collection browsing evidence (2026-09-30):** Library now has Resources and

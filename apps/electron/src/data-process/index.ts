@@ -90,6 +90,16 @@ process.parentPort?.on('message', async (event) => {
         case 'library:cards':
           result = library.store.cards(payload.ids)
           break
+        case 'library:graph':
+          // A single string avoids contextBridge recursively freezing tens of
+          // thousands of objects on the renderer's main thread.
+          result = JSON.stringify(await library.graph())
+          break
+        case 'library:graph-detail':
+          if (typeof payload.id !== 'string' || !payload.id || payload.id.length > 500)
+            throw new Error('A valid Library resource ID is required.')
+          result = await library.graphDetail(payload.id)
+          break
         case 'library:lookup':
           result = await library.lookup(String(payload.url))
           break

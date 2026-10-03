@@ -74,6 +74,8 @@ export function setupLibraryIPC(getWindow: () => BrowserWindow | null): void {
     'search',
     'get',
     'cards',
+    'graph',
+    'graph-detail',
     'lookup',
     'scan',
     'pause',

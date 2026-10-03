@@ -328,3 +328,34 @@ it('indexes freshly enriched passages ahead of a bulk import backlog', () => {
   store.reindex('fresh')
   expect(store.next(Date.now(), ['index'])?.resourceId).toBe('fresh')
 })
+
+it('projects every web link for the graph without source bodies or caption payloads', () => {
+  for (let index = 0; index < 1100; index++) store.put(resource(`graph-${index}`))
+  store.put({ ...resource('local'), url: 'xnet://conversation/local', kind: 'conversation' })
+  store.put({
+    ...resource('tagged'),
+    sourceText: 'An explicit #learning tag',
+    metadata: {
+      title: 'Fetched title',
+      author: 'Fetched author',
+      description: 'More #topics',
+      fields: {},
+      provider: 'test',
+      fetchedAt: 1,
+      evidence: { large: 'private evidence' }
+    }
+  })
+  const rows = store.graphResources()
+  expect(rows).toHaveLength(1101)
+  expect(rows.find((row) => row.id === 'local')).toBeUndefined()
+  expect(rows.find((row) => row.id === 'tagged')).toEqual({
+    id: 'tagged',
+    title: 'Fetched title',
+    url: resource().url,
+    platform: 'youtube',
+    provider: 'youtube',
+    author: 'Fetched author',
+    hashtags: ['learning', 'topics']
+  })
+  expect(JSON.stringify(rows)).not.toContain('private evidence')
+})

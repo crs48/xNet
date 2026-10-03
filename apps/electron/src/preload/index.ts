@@ -11,6 +11,7 @@ import type {
   LibrarySearchResult,
   LibraryStatus
 } from '../shared/library'
+import type { LibraryGraphDetail } from '../shared/library-graph'
 import type { SerializedNodeBatch } from '../shared/node-batch'
 import type { CheckpointManifest } from '../shared/recovery'
 import type {
@@ -32,6 +33,8 @@ contextBridge.exposeInMainWorld('xnet', {
   getRecoveryStatus: () => ipcRenderer.invoke('xnet:recovery:status'),
   libraryStatus: () => ipcRenderer.invoke('xnet:library:status'),
   libraryCards: (ids: string[]) => ipcRenderer.invoke('xnet:library:cards', { ids }),
+  libraryGraph: () => ipcRenderer.invoke('xnet:library:graph'),
+  libraryGraphDetail: (id: string) => ipcRenderer.invoke('xnet:library:graph-detail', { id }),
   libraryHelperStatus: () => ipcRenderer.invoke('xnet:library:helper-status'),
   installLibraryHelper: () => ipcRenderer.invoke('xnet:library:helper-install'),
   cancelLibraryHelper: () => ipcRenderer.invoke('xnet:library:helper-cancel'),
@@ -629,6 +632,8 @@ export interface XNetAPI {
   }): Promise<LibrarySearchResult[]>
   libraryGet(id: string): Promise<LibraryResource | null>
   libraryCards(ids: string[]): Promise<(LibrarySearchResult | null)[]>
+  libraryGraph(): Promise<string>
+  libraryGraphDetail(id: string): Promise<LibraryGraphDetail>
   libraryScan(): Promise<number>
   libraryPause(): Promise<void>
   libraryResume(): Promise<void>
