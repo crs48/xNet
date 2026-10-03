@@ -19,6 +19,7 @@ import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { CanvasView } from './components/CanvasView'
 import { ConnectHubDialog } from './components/ConnectHubDialog'
 import { setPersistedHubUrl } from './lib/hub-url'
+import { useNativeNodeChanges } from './lib/use-native-node-changes'
 import { useDesktopPlatformPort } from './shell/desktop-platform'
 import { registerDesktopHostedViews } from './shell/hosted-views'
 import { STORIES_ENABLED, useDocumentShell } from './shell/use-document-shell'
@@ -81,6 +82,29 @@ export function App(): React.ReactElement {
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const [prefilledShareValue, setPrefilledShareValue] = useState('')
   const [connectRequest, setConnectRequest] = useState<ConnectHubRequest | null>(null)
+  const [recoveryNotice, setRecoveryNotice] = useState<string | null>(null)
+  const [recoveryError, setRecoveryError] = useState<string | null>(null)
+  const nativeChangeError = useNativeNodeChanges()
+
+  useEffect(
+    () =>
+      window.xnet.onLibraryCapture((url) => {
+        window.dispatchEvent(new CustomEvent('xnet:open-library-capture', { detail: { url } }))
+      }),
+    []
+  )
+
+  useEffect(() => {
+    void window.xnet.getRecoveryStatus().then(
+      (status) => {
+        setRecoveryError(status.error)
+        if (status.networkPaused)
+          setRecoveryNotice('Restored workspace: sync is paused while you review your data.')
+      },
+      (error: unknown) => setRecoveryNotice(`Could not read recovery status: ${String(error)}`)
+    )
+    return window.xnet.onRecoveryError(setRecoveryError)
+  }, [])
 
   useEffect(() => {
     const cleanup = window.xnet.onSharePayload((payload) => {
@@ -132,8 +156,32 @@ export function App(): React.ReactElement {
       title: 'Open Stories',
       run: () => handleOpenStories()
     })
-    return () => disposable.dispose()
+    return () => {
+      void disposable.dispose()
+    }
   }, [handleOpenStories])
+
+  useEffect(() => {
+    const disposable = getCommandRegistry().register({
+      id: 'desktop.importArchive',
+      title: 'Import social archive, GitHub stars, or garden',
+      run: handleOpenSocialImport
+    })
+    return () => {
+      void disposable.dispose()
+    }
+  }, [handleOpenSocialImport])
+
+  useEffect(() => {
+    const disposable = getCommandRegistry().register({
+      id: 'desktop.library',
+      title: 'Open Library',
+      run: handleOpenDataWorkspace
+    })
+    return () => {
+      void disposable.dispose()
+    }
+  }, [handleOpenDataWorkspace])
 
   if (homeCanvasBootstrapError && !homeCanvasId) {
     return (
@@ -178,7 +226,31 @@ export function App(): React.ReactElement {
             starts below a slim drag strip instead of underneath them. The
             frames subtract --titlebar-height so the bottom islands stay
             on-screen. */}
-        <header className="titlebar-drag h-[38px] shrink-0" />
+        <header className="titlebar-drag flex h-[38px] shrink-0 items-center justify-end px-4">
+          <button
+            className="rounded px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            onClick={handleOpenDataWorkspace}
+          >
+            Library
+          </button>
+        </header>
+        {nativeChangeError && (
+          <p role="alert" className="px-4 py-2 text-sm text-destructive">
+            {nativeChangeError}
+          </p>
+        )}
+        {(recoveryError || recoveryNotice) && (
+          <div
+            role="status"
+            className="flex items-center justify-center gap-3 border-b border-border px-4 py-2 text-sm"
+          >
+            <span>{recoveryError ? `Recovery copy failed: ${recoveryError}` : recoveryNotice}</span>
+            <button className="underline" onClick={handleOpenSettings}>
+              Open recovery settings
+            </button>
+          </div>
+        )}
         <div className="min-h-0 flex-1">
           <Workbench>
             {/* Focused surfaces are lazy chunks (cold-open budget); the null

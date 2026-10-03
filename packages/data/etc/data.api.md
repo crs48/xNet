@@ -897,6 +897,7 @@ export type BuiltInSchemaIRI = keyof typeof builtInSchemas;
 export const builtInSchemas: {
     readonly 'xnet://xnet.fyi/Page@1.0.0': () => Promise<DefinedSchema<{
         title: PropertyBuilder<string>;
+        sourceResources: PropertyBuilder<string[]>;
         icon: PropertyBuilder<string>;
         cover: PropertyBuilder<FileRef>;
         folder: PropertyBuilder<string>;
@@ -2216,6 +2217,7 @@ export const builtInSchemas: {
     }>>;
     readonly 'xnet://xnet.fyi/Page': () => Promise<DefinedSchema<{
         title: PropertyBuilder<string>;
+        sourceResources: PropertyBuilder<string[]>;
         icon: PropertyBuilder<string>;
         cover: PropertyBuilder<FileRef>;
         folder: PropertyBuilder<string>;
@@ -8192,6 +8194,7 @@ export class NodeStore {
     query(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>;
     // (undocumented)
     rebuildIndexesForSchemas(schemaIds: readonly SchemaIRI[]): Promise<void>;
+    refreshPersistedNodes(nodeIds: readonly NodeId[]): Promise<void>;
     restore(id: NodeId): Promise<NodeState>;
     searchText(query: string, limit: number, options?: NodeTextSearchOptions): Promise<NodeTextSearchResult[] | null>;
     setCheckedOutDraft(overlay: CheckedOutDraftOverlay | null): void;
@@ -8460,6 +8463,7 @@ export type Page = InferNode<(typeof PageSchema)['_properties']>;
 // @public (undocumented)
 export const PageSchema: DefinedSchema<{
     title: PropertyBuilder<string>;
+    sourceResources: PropertyBuilder<string[]>;
     icon: PropertyBuilder<string>;
     cover: PropertyBuilder<FileRef>;
     folder: PropertyBuilder<string>;
@@ -11510,7 +11514,7 @@ export { YXmlText }
 
 // Warnings were encountered during analysis:
 //
-// dist/types-DmwyWSm5.d.ts:444:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
+// dist/types-CjDvN0zw.d.ts:444:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

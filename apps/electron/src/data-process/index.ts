@@ -22,6 +22,8 @@
 
 import type { DeterministicNodeImportDraft, NodeBatchWritePolicy } from '@xnetjs/data'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
+import { dirname } from 'node:path'
+import { LibraryService } from '../library/service'
 import { createDataService, type DataService } from './data-service'
 
 // Debug logging - controllable via message from main process
@@ -33,6 +35,7 @@ function log(...args: unknown[]): void {
 }
 
 let dataService: DataService | null = null
+let library: LibraryService | null = null
 
 // Handle messages from main process via parentPort
 process.parentPort?.on('message', async (event) => {
@@ -45,6 +48,89 @@ process.parentPort?.on('message', async (event) => {
   log('Received message:', type, requestId ? `(${requestId})` : '')
 
   try {
+    if (type.startsWith('library:')) {
+      if (!library) throw new Error('Library is not ready.')
+      let result: unknown
+      switch (type) {
+        case 'library:configure':
+          library.configure(payload as { authorDID: string; signingKey: number[] })
+          result = true
+          break
+        case 'library:capture':
+          result = await library.capture(payload.input as import('../library/capture').CaptureInput)
+          break
+        case 'library:recover-captures':
+          await library.recoverCaptures()
+          result = true
+          break
+        case 'library:scan':
+          result = await library.scan()
+          break
+        case 'library:helper-status':
+          result = await library.helperStatus()
+          break
+        case 'library:helper-install':
+          result = await library.installHelper()
+          break
+        case 'library:helper-cancel':
+          library.cancelHelper()
+          result = true
+          break
+        case 'library:status':
+          result = library.status()
+          break
+        case 'library:search':
+          result = library.store.search(
+            payload as { text?: string; platform?: string; offset?: number; limit?: number }
+          )
+          break
+        case 'library:get':
+          result = library.store.get(String(payload.id))
+          break
+        case 'library:cards':
+          result = library.store.cards(payload.ids)
+          break
+        case 'library:graph':
+          // A single string avoids contextBridge recursively freezing tens of
+          // thousands of objects on the renderer's main thread.
+          result = JSON.stringify(await library.graph())
+          break
+        case 'library:graph-detail':
+          if (typeof payload.id !== 'string' || !payload.id || payload.id.length > 500)
+            throw new Error('A valid Library resource ID is required.')
+          result = await library.graphDetail(payload.id)
+          break
+        case 'library:lookup':
+          result = await library.lookup(String(payload.url))
+          break
+        case 'library:pause':
+          await library.pause()
+          result = true
+          break
+        case 'library:resume':
+          library.resume()
+          result = true
+          break
+        case 'library:retry':
+          library.retry(typeof payload.id === 'string' ? payload.id : undefined)
+          result = true
+          break
+        case 'library:freeze':
+          await library.freeze()
+          result = true
+          break
+        case 'library:thaw':
+          library.thaw()
+          result = true
+          break
+        default:
+          throw new Error('Unknown library operation')
+      }
+      sendResponse(requestId, { value: result })
+      return
+    }
+    if (!dataService && !['init', 'shutdown'].includes(type))
+      throw new Error('Workspace storage is not ready; no write was acknowledged.')
     switch (type) {
       // ─── Lifecycle ───────────────────────────────────────────────────────
 
@@ -53,12 +139,17 @@ process.parentPort?.on('message', async (event) => {
         log('Initializing data service with dbPath:', dbPath)
         dataService = createDataService({ dbPath })
         await dataService.initialize()
+        library = new LibraryService(dataService, dirname(dbPath))
         sendResponse(requestId, { success: true })
         break
       }
 
       case 'shutdown': {
         log('Shutting down data service')
+        if (library) {
+          await library.close()
+          library = null
+        }
         if (dataService) {
           await dataService.shutdown()
           dataService = null
@@ -300,6 +391,14 @@ process.parentPort?.on('message', async (event) => {
       // ─── Node Storage ─────────────────────────────────────────────────────
       // These handlers implement the NodeStorageAdapter interface for the renderer.
       // See: docs/explorations/0074_ELECTRON_IPC_NODE_STORAGE.md
+
+      case 'nodes:applyNodeBatch': {
+        const result = await dataService!.applyNodeBatch(
+          payload.input as import('../shared/node-batch').SerializedNodeBatch
+        )
+        sendResponse(requestId, { result })
+        break
+      }
 
       case 'nodes:appendChange': {
         const { change } = payload as { change: unknown }

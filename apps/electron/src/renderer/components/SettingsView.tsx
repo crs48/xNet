@@ -4,9 +4,10 @@
  * Organized into sections: General, Appearance, Plugins, Data, Network
  */
 
+import type { RecoveryStatus } from '../../preload'
 import { MeetingEngineSettings } from '@xnetjs/views'
 import { Settings, Palette, Puzzle, Database, Mic, Wifi, ChevronRight } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { PluginManager } from './PluginManager'
 
@@ -197,30 +198,192 @@ function AppearanceSettings() {
 // ─── Data Settings ────────────────────────────────────────────────────────────
 
 function DataSettings() {
+  const [recoveryPassword, setRecoveryPassword] = useState('')
+  const [exported, setExported] = useState<string | null>(null)
+  const [status, setStatus] = useState<RecoveryStatus | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const refresh = async () => setStatus(await window.xnet.getRecoveryStatus())
+  useEffect(() => {
+    void refresh().catch((error: unknown) => setError(String(error)))
+  }, [])
+  const run = async (operation: () => Promise<unknown>) => {
+    setBusy(true)
+    setError(null)
+    try {
+      await operation()
+      await refresh()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const buttonClass =
+    'bg-secondary hover:bg-accent border border-border px-3 py-1.5 rounded-md text-sm disabled:opacity-50'
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-3xl">
       <div>
-        <h2 className="text-lg font-medium mb-1">Data</h2>
-        <p className="text-sm text-muted-foreground">Storage and sync settings</p>
+        <h2 className="text-lg font-medium mb-1">Local recovery</h2>
+        <p className="text-sm text-muted-foreground">
+          Recovery copies stay on this Mac. They help undo a bad update or restore older work, but
+          cannot protect against losing this Mac or its disk.
+        </p>
       </div>
-
-      <div className="space-y-4">
-        <SettingRow label="Local storage" description="Data is stored locally using IndexedDB">
-          <span className="text-sm text-muted-foreground">Browser storage</span>
-        </SettingRow>
-
-        <SettingRow label="Clear local data" description="Remove all local data (cannot be undone)">
-          <button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 px-3 py-1.5 rounded-md text-sm transition-colors">
-            Clear Data
+      {(error || status?.error) && (
+        <p role="alert" className="text-sm text-destructive">
+          {error || status?.error}
+        </p>
+      )}
+      <p className="text-sm text-muted-foreground">
+        {status?.coverage || 'Reading recovery status…'}
+      </p>
+      {status?.networkPaused && (
+        <div className="space-y-3 rounded-md border border-border p-3">
+          <p className="text-sm">
+            This restored workspace is offline for review. Automatic sync, the local API, and the
+            agent bridge are paused.
+          </p>
+          <button
+            className={buttonClass}
+            disabled={busy}
+            onClick={() => void run(() => window.xnet.resumeRecoveryNetwork())}
+          >
+            Reconnect and restart…
           </button>
-        </SettingRow>
-
-        <SettingRow label="Export data" description="Download a backup of your data">
-          <button className="bg-secondary hover:bg-accent border border-border px-3 py-1.5 rounded-md text-sm transition-colors">
-            Export
-          </button>
-        </SettingRow>
+        </div>
+      )}
+      <p className="text-sm">
+        xNet copies changed data about every 15 minutes, and verifies a copy before quitting or
+        installing an update. Recent copies cover a day, daily copies a week, and weekly copies a
+        month. The latest two and pinned copies stay available. Copies include private workspace
+        content; keep the recovery folder private.
+      </p>
+      <div className="flex gap-3">
+        <button
+          disabled={busy || status?.busy}
+          className={buttonClass}
+          onClick={() => void run(() => window.xnet.createRecoveryCopy())}
+        >
+          {busy ? 'Working…' : 'Create recovery copy'}
+        </button>
+        <button
+          disabled={busy || !status || !(status.checkpoints.length + status.unreadable.length)}
+          className={buttonClass}
+          onClick={() => void run(() => window.xnet.showRecoveryFolder())}
+        >
+          Show recovery folder
+        </button>
       </div>
+      {status?.checkpoints.length === 0 && (
+        <p className="text-sm">No verified local recovery copy yet.</p>
+      )}
+      {Boolean(status?.unreadable.length) && (
+        <div role="alert" className="space-y-2 rounded-md border border-destructive p-3 text-sm">
+          <p>
+            {status!.unreadable.length} recovery point(s) could not be read. Their files have been
+            kept for inspection. New recovery copies can still be made.
+          </p>
+          <ul className="space-y-1">
+            {status!.unreadable.map((point) => (
+              <li key={point.id} className="break-all">
+                {point.id}: {point.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <section className="space-y-3 rounded-md border border-border p-4">
+        <h3 className="font-medium">Encrypted backup</h3>
+        <p className="text-sm text-muted-foreground">
+          Save your workspace and recovery keys to a folder you choose. For protection against
+          losing this Mac, copy the entire .xnetbackup folder to another disk or device. xNet
+          verifies the exported files; it cannot confirm that your destination is off this Mac.
+        </p>
+        <label className="block text-sm" htmlFor="recovery-password">
+          Recovery password
+        </label>
+        <input
+          id="recovery-password"
+          type="password"
+          autoComplete="off"
+          minLength={12}
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          value={recoveryPassword}
+          onChange={(event) => setRecoveryPassword(event.target.value)}
+          placeholder="At least 12 characters; several random words work well"
+          disabled={busy}
+        />
+        <p className="text-xs text-muted-foreground">
+          Keep this password somewhere safe and separate from the backup. xNet does not save it and
+          cannot recover a forgotten password. Browser settings and sign-in sessions are excluded.
+        </p>
+        <div className="flex gap-3">
+          <button
+            className={buttonClass}
+            disabled={busy || status?.busy || recoveryPassword.length < 12}
+            onClick={() =>
+              void run(async () => {
+                try {
+                  const result = await window.xnet.exportEncryptedBackup(recoveryPassword)
+                  if (result)
+                    setExported(`${result.path} · verified ${new Date().toLocaleString()}`)
+                } finally {
+                  setRecoveryPassword('')
+                }
+              })
+            }
+          >
+            Export encrypted backup…
+          </button>
+          <button
+            className={buttonClass}
+            disabled={busy || status?.busy || recoveryPassword.length < 12}
+            onClick={() =>
+              void run(async () => {
+                try {
+                  await window.xnet.restoreEncryptedBackup(recoveryPassword)
+                } finally {
+                  setRecoveryPassword('')
+                }
+              })
+            }
+          >
+            Restore encrypted backup…
+          </button>
+        </div>
+        {exported && (
+          <p role="status" className="break-all text-sm">
+            Backup written and verified: {exported}
+          </p>
+        )}
+      </section>
+      <ul className="space-y-3">
+        {status?.checkpoints.map((point) => (
+          <li
+            key={point.id}
+            className="flex items-center justify-between gap-4 border border-border rounded-md p-3"
+          >
+            <div className="text-sm">
+              <div>{new Date(point.createdAt).toLocaleString()}</div>
+              <div className="text-xs text-muted-foreground">
+                Created by xNet {point.appVersion}
+                {point.storageVersion ? ` · Storage ${point.storageVersion}` : ''}
+                {point.pinned ? ' · Pinned before upgrade' : ''} · {point.files.length} files ·{' '}
+                {(point.files.reduce((total, file) => total + file.size, 0) / 1048576).toFixed(1)}{' '}
+                MB
+              </div>
+            </div>
+            <button
+              disabled={busy || status.busy}
+              className={buttonClass}
+              onClick={() => void run(() => window.xnet.restoreRecoveryCopy(point.id))}
+            >
+              Restore…
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

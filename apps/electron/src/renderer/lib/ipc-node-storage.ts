@@ -9,6 +9,8 @@
 
 import type { ContentId, DID } from '@xnetjs/core'
 import type {
+  ApplyNodeBatchInput,
+  ApplyNodeBatchResult,
   NodeStorageAdapter,
   NodeState,
   NodeChange,
@@ -19,6 +21,7 @@ import type {
   SchemaIRI,
   PropertyTimestamp
 } from '@xnetjs/data'
+import { serializeNodeBatch, type SerializedNodeBatch } from '../../shared/node-batch'
 
 // Debug logging - controlled by localStorage flag (same as sync debug)
 function log(...args: unknown[]): void {
@@ -51,6 +54,10 @@ export class IPCNodeStorageAdapter implements NodeStorageAdapter {
   // ==========================================================================
   // Change Log Operations
   // ==========================================================================
+
+  async applyNodeBatch(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    return window.xnetNodes.applyNodeBatch(serializeNodeBatch(input))
+  }
 
   async appendChange(change: NodeChange): Promise<void> {
     log('appendChange()', change.payload.nodeId)
@@ -328,6 +335,7 @@ declare global {
 }
 
 export interface XNetNodesAPI {
+  applyNodeBatch(input: SerializedNodeBatch): Promise<ApplyNodeBatchResult>
   // Change log operations
   appendChange(change: unknown): Promise<void>
   getChanges(nodeId: string): Promise<unknown[]>

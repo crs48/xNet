@@ -8,7 +8,7 @@
  * - Real-time presence indicators
  */
 
-import type { SyncStatus } from '@xnetjs/react'
+import type { SyncStatus, PageTaskInput } from '@xnetjs/react'
 import type { CommentThreadData } from '@xnetjs/ui'
 import { PageSchema } from '@xnetjs/data'
 import {
@@ -26,8 +26,7 @@ import {
   useComments,
   useNode,
   useIdentity,
-  usePageTaskSync,
-  type PageTaskInput
+  usePageTaskSync
 } from '@xnetjs/react'
 import { CommentsSidebar } from '@xnetjs/ui'
 import React, { useState, useCallback, useMemo, useRef } from 'react'
@@ -79,6 +78,9 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
     data: page,
     doc,
     loading,
+    isDirty,
+    error,
+    save,
     update,
     syncStatus,
     peerCount,
@@ -292,6 +294,23 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
         onTitleSubmit={handleTitleSubmit}
         titleInputRef={titleInputRef}
       >
+        <span role="status" className="text-xs text-muted-foreground">
+          {error ? (
+            <button
+              className="text-destructive underline"
+              onClick={() => {
+                void save().catch(() => undefined)
+              }}
+              title={error.message}
+            >
+              Text save failed — retry
+            </button>
+          ) : isDirty ? (
+            'Saving text…'
+          ) : (
+            'Text saved on this Mac'
+          )}
+        </span>
         {!minimalChrome && <SyncIndicator status={syncStatus} peerCount={peerCount} />}
         {!minimalChrome && unresolvedCount > 0 && (
           <button

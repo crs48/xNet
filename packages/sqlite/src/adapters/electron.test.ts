@@ -78,6 +78,16 @@ describeNativeSQLite('ElectronSQLiteAdapter', () => {
   })
 
   describe('Lifecycle', () => {
+    it('does not report an inspection failure as an unversioned database', async () => {
+      await adapter.close()
+      await expect(adapter.getSchemaVersion()).rejects.toThrow()
+    })
+
+    it('rejects malformed version tracking instead of initializing over it', async () => {
+      await adapter.exec('DROP TABLE _schema_version; CREATE TABLE _schema_version (wrong TEXT)')
+      await expect(adapter.getSchemaVersion()).rejects.toThrow()
+    })
+
     it('creates database file', () => {
       expect(existsSync(dbPath)).toBe(true)
     })
@@ -85,6 +95,11 @@ describeNativeSQLite('ElectronSQLiteAdapter', () => {
     it('enables WAL mode', async () => {
       const result = await adapter.queryOne<{ journal_mode: string }>('PRAGMA journal_mode')
       expect(result?.journal_mode).toBe('wal')
+    })
+
+    it('syncs the WAL before acknowledging a committed write', async () => {
+      const result = await adapter.queryOne<{ synchronous: number }>('PRAGMA synchronous')
+      expect(result?.synchronous).toBe(2)
     })
 
     it('enables foreign keys', async () => {

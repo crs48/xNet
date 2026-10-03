@@ -142,6 +142,11 @@ export function useDesktopWorkbenchHost(
 
   return useMemo<WorkbenchHost>(
     () => ({
+      library: {
+        capture: window.xnet.libraryCapture,
+        lookup: window.xnet.libraryLookup,
+        closed: window.xnet.closeLibraryCapture
+      },
       logout: async () => {
         // Desktop has no lock/relock flow yet (identity lives in the OS keychain);
         // loud so a dead menu item is diagnosable, not mysterious.

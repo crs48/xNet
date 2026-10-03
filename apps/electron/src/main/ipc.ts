@@ -9,6 +9,12 @@ import { SQLiteAdapter } from './storage'
 
 let storage: SQLiteAdapter | null = null
 
+export async function closeStorage(): Promise<void> {
+  if (!storage) return
+  await storage.close()
+  storage = null
+}
+
 export function getOrCreateStorage(): SQLiteAdapter {
   if (storage) return storage
 

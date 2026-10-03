@@ -372,7 +372,7 @@ jobs:
       - name: Smoke-test packaged app
         if: matrix.arch == 'x64'
         run: |
-          sudo apt-get update && sudo apt-get install -y xvfb
+          sudo apt-get update && sudo apt-get install -y xvfb dbus-x11 gnome-keyring libsecret-1-0
           BIN=$(find "$PWD/apps/electron/dist/linux-unpacked" -maxdepth 1 -type f -executable \
             ! -name 'chrome*' ! -name '*.so*' ! -name '*.bin' | head -1)
           if [ -z "$BIN" ]; then echo "no Electron binary found"; ls -la apps/electron/dist/linux-unpacked; exit 1; fi
@@ -385,6 +385,7 @@ jobs:
           rm -f "$XNET_BOOT_TRACE"
           set +e
           XNET_PACKAGED_BINARY="$BIN" XNET_ELECTRON_NO_SANDBOX=1 XNET_DEBUG=1 E2E_DEBUG=1 \
+            bash scripts/with-linux-test-keyring.sh \
             xvfb-run --auto-servernum pnpm --filter @xnetjs/e2e-tests exec \
             playwright test src/packaged-smoke.spec.ts --project=electron --fail-on-flaky-tests
           rc=$?

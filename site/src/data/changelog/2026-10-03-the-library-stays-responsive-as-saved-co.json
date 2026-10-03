@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-03-the-library-stays-responsive-as-saved-co",
+  "date": "October 3, 2026",
+  "title": "The Library stays responsive as saved content grows",
+  "summary": "Browsing large Libraries no longer holds up enrichment as more descriptions and transcripts are saved. Resource refreshes also avoid piling up during slower operations.",
+  "highlights": [],
+  "tags": ["app", "performance"],
+  "pr": 721
+}

@@ -6,7 +6,7 @@ import type { AIProvider } from '../ai/providers'
 import { mkdtemp, readFile, rm, unlink, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAiAgentRuntime } from '../ai/runtime'
 import {
   createAiWorkspaceExporter,
@@ -667,8 +667,94 @@ describe('AiWorkspaceExporter', () => {
       await new Promise((resolve) => setTimeout(resolve, 10))
     }
     handle.close()
+    await watcher.waitForIdle()
 
     expect(scans.length).toBeGreaterThan(0)
     expect(scans[scans.length - 1]).toBe(1)
   })
+
+  it.each(['scan', 'callback'] as const)('drains an active %s after closing', async (stage) => {
+    const config = createRoadmapWorkspace()
+    await createAiWorkspaceExporter(config).exportWorkspace({
+      rootDir,
+      scope: { nodeIds: ['page_1'] }
+    })
+    const watcher = createAiWorkspaceWatcher(config)
+    let release = () => {}
+    let entered = false
+    const held = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const hold = async () => {
+      entered = true
+      await held
+    }
+    const originalScan = watcher.scanChangedFiles.bind(watcher)
+    const scan = vi.spyOn(watcher, 'scanChangedFiles').mockImplementation(async (options) => {
+      if (stage === 'scan') await hold()
+      return originalScan(options)
+    })
+    const callback = vi.fn(async () => {
+      if (stage === 'callback') await hold()
+    })
+    const handle = watcher.watchWorkspace(
+      { rootDir, usePolling: true, pollIntervalMs: 5 },
+      callback
+    )
+    try {
+      await vi.waitFor(() => expect(entered).toBe(true))
+      handle.close()
+      let drained = false
+      const finished = watcher.waitForIdle().then(() => {
+        drained = true
+      })
+      await Promise.resolve()
+      expect(drained).toBe(false)
+      release()
+      await finished
+      expect(scan).toHaveBeenCalledTimes(1)
+      expect(callback).toHaveBeenCalledTimes(1)
+      expect(drained).toBe(true)
+      expect(
+        JSON.parse(await readFile(join(rootDir, '.xnet/review/index.json'), 'utf8'))
+      ).toMatchObject({ rootDir, entries: [] })
+    } finally {
+      handle.close()
+      release()
+      await watcher.waitForIdle()
+      scan.mockRestore()
+    }
+  })
+
+  it.each(['scan', 'callback'] as const)(
+    'retains a background %s failure for shutdown',
+    async (stage) => {
+      const config = createRoadmapWorkspace()
+      await createAiWorkspaceExporter(config).exportWorkspace({
+        rootDir,
+        scope: { nodeIds: ['page_1'] }
+      })
+      const watcher = createAiWorkspaceWatcher(config)
+      const failure = new Error('fixture watch failure')
+      const scan = vi.spyOn(watcher, 'scanChangedFiles')
+      if (stage === 'scan') scan.mockRejectedValue(failure)
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const handle = watcher.watchWorkspace(
+        { rootDir, usePolling: true, pollIntervalMs: 5 },
+        async () => {
+          if (stage === 'callback') throw failure
+        }
+      )
+      try {
+        await vi.waitFor(() => expect(logged).toHaveBeenCalled())
+        handle.close()
+        await expect(watcher.waitForIdle()).rejects.toMatchObject({ errors: [failure] })
+        expect(scan).toHaveBeenCalledTimes(1)
+      } finally {
+        handle.close()
+        scan.mockRestore()
+        logged.mockRestore()
+      }
+    }
+  )
 })

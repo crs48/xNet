@@ -1,0 +1,8 @@
+{
+  "id": "2026-09-29-keep-recovery-copies-while-the-desktop-s",
+  "date": "September 29, 2026",
+  "title": "Keep recovery copies while the desktop stays open",
+  "summary": "The desktop now schedules copies of changed data, shows backup failures, and upgrades supported storage on a separate verified copy while retaining the original workspace.",
+  "highlights": [],
+  "tags": ["app"]
+}

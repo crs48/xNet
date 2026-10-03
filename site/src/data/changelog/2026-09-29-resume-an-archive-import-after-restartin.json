@@ -1,0 +1,8 @@
+{
+  "id": "2026-09-29-resume-an-archive-import-after-restartin",
+  "date": "September 29, 2026",
+  "title": "Resume an archive import after restarting",
+  "summary": "Pause a desktop archive import and resume from its last saved batch after reopening xNet. Reviewed selections and original source bytes stay with the workspace, so the original export path is no longer required.",
+  "highlights": [],
+  "tags": ["app"]
+}

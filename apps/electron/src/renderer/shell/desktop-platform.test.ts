@@ -16,7 +16,7 @@ function makeDeps(): DesktopNavDeps & { calls: string[] } {
     calls,
     shellState: { kind: 'canvas-home' },
     returnHome: () => void calls.push('shell:return-home'),
-    openDocument: (id) => void calls.push(`doc:${id}`),
+    openDocument: (id, type) => void calls.push(`doc:${id}:${type}`),
     openAssistant: () => void calls.push('assistant'),
     openSettings: () => void calls.push('settings'),
     openMeetings: () => void calls.push('meetings'),
@@ -53,7 +53,7 @@ describe('navigateShell', () => {
     navigateShell({ kind: 'node', nodeType: 'page', nodeId: 'p1' }, deps)
     navigateShell({ kind: 'node', nodeType: 'settings', nodeId: '' }, deps)
     navigateShell({ kind: 'home' }, deps)
-    expect(deps.calls).toEqual(['doc:p1', 'settings', 'shell:return-home'])
+    expect(deps.calls).toEqual(['doc:p1:page', 'settings', 'shell:return-home'])
   })
 
   it('maps the path escape hatch onto desktop surfaces', () => {

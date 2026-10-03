@@ -11,8 +11,10 @@ import {
   DataWorkspaceBody,
   type SavedViewCanvasFrameInput
 } from '@xnetjs/views'
+import { useNavigateTo } from '@xnetjs/workbench'
 import { Database, Import, Loader2, X } from 'lucide-react'
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { LibraryView } from './LibraryView'
 
 export type { SavedViewCanvasFrameInput }
 
@@ -21,7 +23,22 @@ type DataWorkspaceViewProps = {
   onInsertSavedLensAsCanvasFrame?: (input: SavedViewCanvasFrameInput) => void
 }
 
-export function DataWorkspaceView({
+export function DataWorkspaceView(props: DataWorkspaceViewProps): React.ReactElement {
+  const [graph, setGraph] = useState(false)
+  const navigate = useNavigateTo()
+  return graph ? (
+    <DataWorkspaceGraphView {...props} onClose={() => setGraph(false)} />
+  ) : (
+    <LibraryView
+      onClose={props.onClose}
+      onOpenGraph={() => setGraph(true)}
+      onImport={() => navigate({ kind: 'path', path: '/social-import' })}
+      onOpenPage={(nodeId) => navigate({ kind: 'node', nodeType: 'page', nodeId })}
+    />
+  )
+}
+
+function DataWorkspaceGraphView({
   onClose,
   onInsertSavedLensAsCanvasFrame
 }: DataWorkspaceViewProps): React.ReactElement {

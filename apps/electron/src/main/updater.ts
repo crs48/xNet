@@ -12,9 +12,10 @@ const { autoUpdater } = pkg
 
 // ─── Configuration ──────────────────────────────────────────
 
-// Disable auto download — we ask the user first
-autoUpdater.autoDownload = false
-autoUpdater.autoInstallOnAppQuit = true
+// Download in the background; installation waits for a verified recovery copy.
+autoUpdater.autoDownload = true
+// Only the main-process save/checkpoint barrier may hand control to the installer.
+autoUpdater.autoInstallOnAppQuit = false
 
 // Check interval: every 4 hours
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000
@@ -36,10 +37,22 @@ function safeSend(window: BrowserWindow, channel: string, data: unknown): void {
 let checkInterval: ReturnType<typeof setInterval> | null = null
 let initialTimeout: ReturnType<typeof setTimeout> | null = null
 let initialized = false
+let downloadedUpdateReady = false
 
-export function initAutoUpdater(mainWindow: BrowserWindow): void {
+export function hasDownloadedUpdate(): boolean {
+  return downloadedUpdateReady
+}
+
+export function installDownloadedUpdate(): void {
+  autoUpdater.quitAndInstall()
+}
+
+export function initAutoUpdater(
+  mainWindow: BrowserWindow,
+  requestInstall: () => Promise<void>
+): void {
   // Skip in development
-  if (process.env.NODE_ENV === 'development') {
+  if (!app.isPackaged) {
     return
   }
 
@@ -80,23 +93,6 @@ export function initAutoUpdater(mainWindow: BrowserWindow): void {
       version: info.version,
       releaseNotes: info.releaseNotes
     })
-
-    if (mainWindow.isDestroyed()) return
-
-    dialog
-      .showMessageBox(mainWindow, {
-        type: 'info',
-        title: 'Update Available',
-        message: `Version ${info.version} is available.`,
-        detail: 'Would you like to download and install it now?',
-        buttons: ['Download', 'Later'],
-        defaultId: 0
-      })
-      .then(({ response }: { response: number }) => {
-        if (response === 0) {
-          autoUpdater.downloadUpdate()
-        }
-      })
   })
 
   autoUpdater.on('download-progress', (progress: any) => {
@@ -113,6 +109,7 @@ export function initAutoUpdater(mainWindow: BrowserWindow): void {
   })
 
   autoUpdater.on('update-downloaded', (info: any) => {
+    downloadedUpdateReady = true
     if (process.platform === 'darwin') {
       app.dock?.setBadge('')
     }
@@ -134,7 +131,7 @@ export function initAutoUpdater(mainWindow: BrowserWindow): void {
       })
       .then(({ response }: { response: number }) => {
         if (response === 0) {
-          autoUpdater.quitAndInstall()
+          void requestInstall()
         }
       })
   })
@@ -148,19 +145,16 @@ export function initAutoUpdater(mainWindow: BrowserWindow): void {
   // ─── IPC handlers for manual update control ─────────────
 
   ipcMain.handle('check-for-updates', async () => {
-    try {
-      const result = await autoUpdater.checkForUpdates()
-      return result?.updateInfo ?? null
-    } catch {
-      return null
-    }
+    const result = await autoUpdater.checkForUpdates()
+    if (!result) throw new Error('Update checks are unavailable in this installation.')
+    return result.updateInfo
   })
 
   ipcMain.handle('download-update', () => {
-    autoUpdater.downloadUpdate()
+    return autoUpdater.downloadUpdate()
   })
 
   ipcMain.handle('install-update', () => {
-    autoUpdater.quitAndInstall()
+    return requestInstall()
   })
 }

@@ -86,4 +86,40 @@ describe('identity-seed', () => {
       getOrCreateIdentitySeed(dir, makeSafeStorage(true), { profile: 'default' })
     ).toThrow(/invalid/)
   })
+
+  it.each(['data.db', 'xnet.db'])('refuses a replacement identity when %s remains', (name) => {
+    const dir = tempDir()
+    writeFileSync(join(dir, name), 'original bytes')
+    expect(() => getOrCreateIdentitySeed(dir, makeSafeStorage(), { profile: 'default' })).toThrow(
+      'identity is missing'
+    )
+    expect(readFileSync(join(dir, name), 'utf8')).toBe('original bytes')
+    expect(() => readFileSync(join(dir, 'identity-seed.json'))).toThrow()
+  })
+
+  it('preserves the encrypted seed when the key store is locked', () => {
+    const dir = tempDir()
+    getOrCreateIdentitySeed(dir, makeSafeStorage(), { profile: 'default' })
+    const original = readFileSync(join(dir, 'identity-seed.json'))
+    expect(() =>
+      getOrCreateIdentitySeed(dir, makeSafeStorage(false), { profile: 'default' })
+    ).toThrow('key store is unavailable')
+    expect(readFileSync(join(dir, 'identity-seed.json'))).toEqual(original)
+  })
+
+  it('rejects corrupt base64 that permissive decoding would silently accept', () => {
+    const dir = tempDir()
+    writeFileSync(
+      join(dir, 'identity-seed.json'),
+      JSON.stringify({
+        version: 1,
+        plaintext: true,
+        updatedAt: Date.now(),
+        payload: Buffer.alloc(32).toString('base64') + '!'
+      })
+    )
+    expect(() => getOrCreateIdentitySeed(dir, makeSafeStorage(), { profile: 'default' })).toThrow(
+      'encoding is invalid'
+    )
+  })
 })

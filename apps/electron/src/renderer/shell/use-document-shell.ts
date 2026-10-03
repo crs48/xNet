@@ -73,7 +73,7 @@ export interface DocumentShell {
     docType: Exclude<DocType, 'canvas'>,
     animateFromCanvas: boolean
   ) => void
-  handleOpenDocument: (docId: string) => void
+  handleOpenDocument: (docId: string, type?: DocType) => void
   handleCreateLinkedDocument: (type: Exclude<DocType, 'canvas'>) => Promise<void>
   handleCreateCanvasNote: () => void
   handleReturnHome: () => void
@@ -250,18 +250,21 @@ export function useDocumentShell(): DocumentShell {
   )
 
   const handleOpenDocument = useCallback(
-    (docId: string) => {
+    (docId: string, type?: DocType) => {
       const document = documents.find((entry) => entry.id === docId)
-      if (!document) return
+      // Typed links can target a newly imported note or a Page outside the
+      // recent-document query's 100-row window.
+      const documentType = document?.type ?? type
+      if (!documentType) return
 
-      if (document.type === 'canvas') {
-        setHomeCanvasId(document.id)
+      if (documentType === 'canvas') {
+        setHomeCanvasId(docId)
         transitionShell({ type: 'return-home' })
-        setActiveNodeId(document.id)
+        setActiveNodeId(docId)
         return
       }
 
-      focusDocument(document.id, document.type, true)
+      focusDocument(docId, documentType, true)
     },
     [documents, focusDocument, setActiveNodeId, transitionShell]
   )
@@ -271,9 +274,11 @@ export function useDocumentShell(): DocumentShell {
       clearTransitionTimer()
 
       try {
-        const schema = type === 'page' ? PageSchema : DatabaseSchema
         const title = type === 'page' ? 'Untitled Page' : 'Untitled Database'
-        const newDocument = await create(schema, { title })
+        const newDocument =
+          type === 'page'
+            ? await create(PageSchema, { title })
+            : await create(DatabaseSchema, { title })
         if (!newDocument) return
 
         setPendingCanvasInsert({

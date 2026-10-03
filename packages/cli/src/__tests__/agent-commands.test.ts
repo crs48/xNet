@@ -314,6 +314,7 @@ describe('agent CLI commands', () => {
       await new Promise((resolve) => setTimeout(resolve, 10))
     }
     handle.close()
+    await services.watcher.waitForIdle()
 
     expect(summaries.length).toBeGreaterThan(0)
     expect(summaries[0]).toContain('planned\tPages/q3-planning.md')

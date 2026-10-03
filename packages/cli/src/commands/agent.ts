@@ -13,8 +13,8 @@
  * - skill:    print the cross-harness SKILL.md
  */
 
-import type { EntrySearch } from '@xnetjs/brain'
 import type { AgentBackend } from '../utils/agent-remote.js'
+import type { EntrySearch } from '@xnetjs/brain'
 import type {
   AiMutationPlan,
   AiSurfaceService,
@@ -716,7 +716,7 @@ export function startDaemon(services: AgentCliServices, options: DaemonOptions):
       usePolling: options.poll,
       ...(options.pollIntervalMs !== undefined ? { pollIntervalMs: options.pollIntervalMs } : {})
     },
-    (scan) => void handleScan(scan)
+    handleScan
   )
   return handle
 }
@@ -957,9 +957,24 @@ export function registerAgentCommands(
     const services = await createServices({ ...options, forWrites: Boolean(options.apply) })
     const handle = startDaemon(services, options)
     console.log(`watching ${resolve(options.dir)} (ctrl-c to stop)`)
-    process.on('SIGINT', () => {
+    process.once('SIGINT', () => {
       handle.close()
-      void services.dispose?.().finally(() => process.exit(0))
+      void (async () => {
+        let exitCode = 0
+        try {
+          await services.watcher.waitForIdle()
+        } catch (error) {
+          console.error('Workspace watcher did not shut down cleanly:', error)
+          exitCode = 1
+        }
+        try {
+          await services.dispose?.()
+        } catch (error) {
+          console.error('Workspace services did not shut down cleanly:', error)
+          exitCode = 1
+        }
+        process.exit(exitCode)
+      })()
     })
   })
 

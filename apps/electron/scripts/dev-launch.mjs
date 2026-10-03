@@ -28,7 +28,8 @@
 import { spawn } from 'node:child_process'
 import { resolveDevScope, scopeEnv } from './dev-scope.mjs'
 
-const PROBE_TIMEOUT_MS = Number(process.env.XNET_DEV_PROBE_TIMEOUT_MS || 90_000)
+// Include the workspace inspection and the data process's two-minute init budget.
+const PROBE_TIMEOUT_MS = Number(process.env.XNET_DEV_PROBE_TIMEOUT_MS || 180_000)
 const PROBE_INTERVAL_MS = 500
 
 const argv = process.argv.slice(2)

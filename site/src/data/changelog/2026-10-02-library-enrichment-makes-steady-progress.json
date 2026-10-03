@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-02-library-enrichment-makes-steady-progress",
+  "date": "October 2, 2026",
+  "title": "Library enrichment makes steady progress across sources",
+  "summary": "Saved links get richer GitHub READMEs and repository details, visible article text, thumbnails, and available captions. Large imports spend less time waiting on the local queue, and unrelated websites no longer share an enrichment cooldown. A throttled image server no longer delays page text from another host.",
+  "highlights": [],
+  "tags": ["app", "performance"],
+  "pr": 721
+}

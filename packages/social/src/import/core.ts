@@ -134,3 +134,4 @@ export type {
   StagedSourceRecord,
   StagingSummary
 } from './types'
+export { resourceIdentityForUrl } from './resource-url'

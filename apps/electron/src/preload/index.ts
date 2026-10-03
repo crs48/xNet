@@ -2,19 +2,105 @@
  * Preload script - exposes xNet API to renderer
  */
 import type { CloudConnectPayload } from '../main/deep-link'
+import type { DesktopSettings, SettingsRecovery } from '../shared/desktop-settings'
+import type {
+  CaptureInput,
+  CaptureResult,
+  LibraryResource,
+  LibraryHelperStatus,
+  LibrarySearchResult,
+  LibraryStatus
+} from '../shared/library'
+import type { LibraryGraphDetail } from '../shared/library-graph'
+import type { SerializedNodeBatch } from '../shared/node-batch'
+import type { CheckpointManifest } from '../shared/recovery'
 import type {
   SocialImportArchivePreview,
   SocialImportCommitJobRequest,
   SocialImportCommitJobSnapshot,
   SocialImportStageRequest,
   SocialImportStageResult
-} from '../main/social-import-ipc'
+} from '../shared/social-import'
+import type { ApplyNodeBatchResult } from '@xnetjs/data'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
+  getSettingsRecovery: () => ipcRenderer.invoke('xnet:settings:recovery'),
+  saveDesktopSettings: (settings: DesktopSettings) =>
+    ipcRenderer.invoke('xnet:settings:save', settings),
+  getRecoveryStatus: () => ipcRenderer.invoke('xnet:recovery:status'),
+  libraryStatus: () => ipcRenderer.invoke('xnet:library:status'),
+  libraryCards: (ids: string[]) => ipcRenderer.invoke('xnet:library:cards', { ids }),
+  libraryGraph: () => ipcRenderer.invoke('xnet:library:graph'),
+  libraryGraphDetail: (id: string) => ipcRenderer.invoke('xnet:library:graph-detail', { id }),
+  libraryHelperStatus: () => ipcRenderer.invoke('xnet:library:helper-status'),
+  installLibraryHelper: () => ipcRenderer.invoke('xnet:library:helper-install'),
+  cancelLibraryHelper: () => ipcRenderer.invoke('xnet:library:helper-cancel'),
+  libraryCapture: (input: CaptureInput) => ipcRenderer.invoke('xnet:library:capture', input),
+  libraryLookup: (url: string) => ipcRenderer.invoke('xnet:library:lookup', { url }),
+  libraryCaptureShortcut: () => ipcRenderer.invoke('xnet:library:capture-shortcut'),
+  closeLibraryCapture: (returnToPreviousApp = true) => {
+    void ipcRenderer.invoke('xnet:library:capture-closed', returnToPreviousApp)
+  },
+  onLibraryCapture: (handler: (url: string) => void) => {
+    let active = true
+    const receive = () => {
+      void ipcRenderer
+        .invoke('xnet:library:capture-intent')
+        .then((intent: { url: string } | null) => {
+          if (active && intent) handler(intent.url)
+        })
+    }
+    ipcRenderer.on('xnet:library:capture-ready', receive)
+    receive()
+    return () => {
+      active = false
+      ipcRenderer.removeListener('xnet:library:capture-ready', receive)
+    }
+  },
+  librarySearch: (options: { text?: string; platform?: string; offset?: number; limit?: number }) =>
+    ipcRenderer.invoke('xnet:library:search', options),
+  libraryGet: (id: string) => ipcRenderer.invoke('xnet:library:get', { id }),
+  libraryScan: () => ipcRenderer.invoke('xnet:library:scan'),
+  libraryPause: () => ipcRenderer.invoke('xnet:library:pause'),
+  libraryResume: () => ipcRenderer.invoke('xnet:library:resume'),
+  libraryRetry: (id?: string) => ipcRenderer.invoke('xnet:library:retry', { id }),
+  resumeRecoveryNetwork: () => ipcRenderer.invoke('xnet:recovery:resume-network'),
+  createRecoveryCopy: () => ipcRenderer.invoke('xnet:recovery:create'),
+  showRecoveryFolder: () => ipcRenderer.invoke('xnet:recovery:show'),
+  restoreRecoveryCopy: (id: string) => ipcRenderer.invoke('xnet:recovery:restore', id),
+  exportEncryptedBackup: (password: string) => ipcRenderer.invoke('xnet:recovery:export', password),
+  restoreEncryptedBackup: (password: string) =>
+    ipcRenderer.invoke('xnet:recovery:import', password),
+  onRecoveryError: (handler: (message: string | null) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, message: string | null) => handler(message)
+    ipcRenderer.on('xnet:recovery:error', listener)
+    return () => ipcRenderer.removeListener('xnet:recovery:error', listener)
+  },
   getProfile: () => ipcRenderer.invoke('xnet:getProfile'),
+  onFlushDocuments: (flush: () => Promise<void>) => {
+    const handler = async (_event: unknown, requestId: string) => {
+      if (typeof requestId !== 'string' || !/^[a-f0-9-]{36}$/.test(requestId)) return
+      try {
+        await flush()
+        ipcRenderer.send(`xnet:flush-result:${requestId}`, { ok: true })
+      } catch (error) {
+        ipcRenderer.send(`xnet:flush-result:${requestId}`, {
+          ok: false,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      }
+    }
+    ipcRenderer.on('xnet:flush-documents', handler)
+    ipcRenderer.send('xnet:flush-ready')
+    return () => ipcRenderer.removeListener('xnet:flush-documents', handler)
+  },
+  onResumeEditing: (callback: () => void) => {
+    ipcRenderer.on('xnet:resume-editing', callback)
+    return () => ipcRenderer.removeListener('xnet:resume-editing', callback)
+  },
   getIdentitySeed: () => ipcRenderer.invoke('xnet:identity:getSeed'),
   setSeedPhrase: (mnemonic: string) => ipcRenderer.invoke('xnet:seed:set', { mnemonic }),
   getSeedPhrase: () => ipcRenderer.invoke('xnet:seed:get'),
@@ -440,6 +526,13 @@ contextBridge.exposeInMainWorld('xnetTunnel', {
 })
 
 contextBridge.exposeInMainWorld('xnetSocialImport', {
+  previewArchiveFile: (file: File): Promise<SocialImportArchivePreview> => {
+    const path = webUtils.getPathForFile(file)
+    if (!path) throw new Error('Choose an archive file from this computer.')
+    return ipcRenderer.invoke('xnet:social-import:previewSelectedFile', path)
+  },
+  resumeCommitJob: (request: { jobId: string; authorDID: string; signingKey: number[] }) =>
+    ipcRenderer.invoke('xnet:social-import:resumeCommitJob', request),
   pickArchive: (): Promise<SocialImportArchivePreview | null> =>
     ipcRenderer.invoke('xnet:social-import:pickArchive'),
   queueArchiveForTest: (archivePath: string): Promise<SocialImportArchivePreview> =>
@@ -467,6 +560,8 @@ contextBridge.exposeInMainWorld('xnetSocialImport', {
 // This enables persistent node storage in Electron (replacing MemoryNodeStorageAdapter).
 
 contextBridge.exposeInMainWorld('xnetNodes', {
+  applyNodeBatch: (input: SerializedNodeBatch) =>
+    ipcRenderer.invoke('xnet:nodes:applyNodeBatch', { input }),
   // Change log operations
   appendChange: (change: unknown) => ipcRenderer.invoke('xnet:nodes:appendChange', { change }),
   getChanges: (nodeId: string) => ipcRenderer.invoke('xnet:nodes:getChanges', { nodeId }),
@@ -507,7 +602,56 @@ contextBridge.exposeInMainWorld('xnetNodes', {
 })
 
 // Type declaration for renderer
+export interface RecoveryStatus {
+  unreadable: { id: string; reason: string }[]
+  checkpoints: CheckpointManifest[]
+  busy: boolean
+  error: string | null
+  protection: 'local-only'
+  networkPaused: boolean
+  coverage: string
+}
+
 export interface XNetAPI {
+  libraryCaptureShortcut(): Promise<{ accelerator: string; registered: boolean }>
+  closeLibraryCapture(returnToPreviousApp?: boolean): void
+  onLibraryCapture(handler: (url: string) => void): () => void
+  libraryCapture(input: CaptureInput): Promise<CaptureResult>
+  libraryLookup(
+    url: string
+  ): Promise<{ id: string; title: string; notes: { pageId: string; title: string }[] } | null>
+  libraryStatus(): Promise<LibraryStatus & { error: string | null }>
+  libraryHelperStatus(): Promise<LibraryHelperStatus>
+  installLibraryHelper(): Promise<LibraryHelperStatus>
+  cancelLibraryHelper(): Promise<void>
+  librarySearch(options: {
+    text?: string
+    platform?: string
+    offset?: number
+    limit?: number
+  }): Promise<LibrarySearchResult[]>
+  libraryGet(id: string): Promise<LibraryResource | null>
+  libraryCards(ids: string[]): Promise<(LibrarySearchResult | null)[]>
+  libraryGraph(): Promise<string>
+  libraryGraphDetail(id: string): Promise<LibraryGraphDetail>
+  libraryScan(): Promise<number>
+  libraryPause(): Promise<void>
+  libraryResume(): Promise<void>
+  libraryRetry(id?: string): Promise<void>
+  getRecoveryStatus(): Promise<RecoveryStatus>
+  resumeRecoveryNetwork(): Promise<void>
+  createRecoveryCopy(): Promise<CheckpointManifest>
+  showRecoveryFolder(): Promise<void>
+  restoreRecoveryCopy(id: string): Promise<{ restored: boolean }>
+  exportEncryptedBackup(
+    password: string
+  ): Promise<{ path: string; createdAt: string; files: number; bytes: number } | null>
+  restoreEncryptedBackup(password: string): Promise<{ restored: boolean }>
+  onRecoveryError(handler: (message: string | null) => void): () => void
+  getSettingsRecovery(): Promise<SettingsRecovery>
+  saveDesktopSettings(settings: DesktopSettings): Promise<void>
+  onFlushDocuments(flush: () => Promise<void>): () => void
+  onResumeEditing(callback: () => void): () => void
   getProfile(): Promise<string>
   getIdentitySeed(): Promise<{ seedB64: string; mode: 'secure' | 'plaintext' | 'test' }>
   setSeedPhrase(mnemonic: string): Promise<{ ok: true }>
@@ -520,7 +664,13 @@ export interface XNetAPI {
 }
 
 export interface XNetSocialImportAPI {
+  resumeCommitJob(request: {
+    jobId: string
+    authorDID: string
+    signingKey: number[]
+  }): Promise<SocialImportCommitJobSnapshot>
   pickArchive(): Promise<SocialImportArchivePreview | null>
+  previewArchiveFile(file: File): Promise<SocialImportArchivePreview>
   queueArchiveForTest(archivePath: string): Promise<SocialImportArchivePreview>
   stageArchive(request: SocialImportStageRequest): Promise<SocialImportStageResult>
   startCommitJob(request: SocialImportCommitJobRequest): Promise<SocialImportCommitJobSnapshot>
@@ -655,6 +805,7 @@ export interface XNetTunnelAPI {
 
 // Node Storage API types (for IPC-based NodeStorageAdapter)
 export interface XNetNodesAPI {
+  applyNodeBatch(input: SerializedNodeBatch): Promise<ApplyNodeBatchResult>
   // Change log operations
   appendChange(change: unknown): Promise<void>
   getChanges(nodeId: string): Promise<unknown[]>
