@@ -3,7 +3,10 @@
   "date": "October 2, 2026",
   "title": "Explore saved links in a 3D graph",
   "summary": "Browse your saved links through playlists, tags, topics, categories, and creator names, with thumbnail previews and searchable neighborhoods.",
-  "highlights": [],
+  "highlights": [
+    "Navigate with keyboard autocomplete for links, tags, categories, creators, and playlists.",
+    "Browse groups with link counts and combine filters to match any or all selected groups."
+  ],
   "tags": ["app"],
   "pr": 721
 }

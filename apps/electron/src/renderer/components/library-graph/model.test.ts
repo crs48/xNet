@@ -50,3 +50,32 @@ it('seeds a deterministic, finite 3D layout, including empty and disconnected gr
   expect(new Set(Array.from(positions).filter((_value, i) => i % 3 === 2)).size).toBeGreaterThan(1)
   expect(initialPositions({ nodes: [], edges: [] })).toHaveLength(0)
 })
+
+it('combines group memberships with any/all semantics and preserves other relationships', () => {
+  const any = selectGraph(graph, '', relationKinds, null, ['tag', 'list'])
+  expect(any.nodes.map((node) => node.id)).toEqual(['a', 'b', 'tag', 'list'])
+  const all = selectGraph(graph, '', relationKinds, null, ['tag', 'list'], 'all')
+  expect(all.nodes.map((node) => node.id)).toEqual(['a', 'tag', 'list'])
+  expect(
+    all.edges.map(({ source, target }) => [all.nodes[source].id, all.nodes[target].id])
+  ).toEqual([
+    ['a', 'tag'],
+    ['a', 'list']
+  ])
+  expect(selectGraph(graph, 'github', relationKinds, null, ['list']).linkCount).toBe(0)
+})
+
+it('filters memberships even when relationship lines are hidden', () => {
+  const result = selectGraph(graph, '', [], null, ['list'])
+  expect(result.nodes.map((node) => node.id)).toEqual(['a'])
+  expect(result.edges).toEqual([])
+  expect(selectGraph(graph, '', relationKinds, 'tag', ['list']).linkCount).toBe(1)
+})
+
+it('does not mistake duplicate edges for membership in another selected group', () => {
+  const duplicate = { ...graph, edges: [...graph.edges, graph.edges[1]] }
+  expect(selectGraph(duplicate, '', relationKinds, null, ['tag', 'list'], 'all').linkCount).toBe(1)
+  expect(selectGraph(graph, '', relationKinds, null, ['missing']).linkCount).toBe(0)
+  expect(selectGraph(graph, '', relationKinds, null, ['tag', 'missing'], 'all').linkCount).toBe(0)
+  expect(selectGraph(graph, '', relationKinds, null, []).linkCount).toBe(graph.linkCount)
+})

@@ -47,12 +47,25 @@ saved title, thumbnail, description, and connections. Click to pin the preview.
 saved enrichment. **Read in Library** opens the source's notes and transcript.
 Missing images or descriptions are shown as missing, not fetched by the graph.
 
-Search for a title, URL, creator, tag, or playlist, then select a match to move
-the camera to it. The same search and connection buttons work with the keyboard.
+Search for a title, URL, creator, tag, category, or playlist. Autocomplete ranks
+matches in the current view as you type; use the arrow keys and Enter, or click
+a suggestion, to move the camera and open its preview. An empty search suggests
+popular groups. Escape dismisses suggestions first, then returns to Library.
+
+**Browse groups** lists categories, tags, playlists, and creators, with a search
+field for each type. Counts show unique links from the selected source. Choose
+one or more groups to filter the graph. **Any group** includes links in at least
+one selected group; **All groups** includes only links in every selected group.
+Remove a filter using its chip, or use **Clear filters** to return to all links.
+Category labels come from saved source categories, subreddits, or repository
+languages; they are not an AI classification of the whole Library.
+
 **Isolate neighborhood** shows a group's links, or the links sharing a connection
-with the selected resource. **Back to all links** clears that focus. Filter by
-source or turn relationship types on and off; the counts describe the current
-view. **Hide inspector** gives the graph more room. Escape returns to Library.
+with the selected resource, within the active filters. **Leave neighborhood**
+clears that focus and keeps the filters. The **Show connections** checkboxes
+control relationship lines and hubs; hiding them keeps the selected membership
+filters in effect. **Hide groups** and **Hide inspector** give the graph more
+room. The graph counts always describe the current view.
 
 Connections use imported playlist and collection memberships, GitHub topics,
 garden tags, source hashtags, categories, and matching creator names within a

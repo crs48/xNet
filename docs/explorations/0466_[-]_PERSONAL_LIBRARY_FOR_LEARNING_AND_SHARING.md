@@ -898,7 +898,42 @@ six pre-existing errors recorded above, with no new graph diagnostics.
 
 - [x] Add a desktop 3D view of all saved web links with source relationships,
       hover metadata, source filters, and selectable neighborhoods.
+- [x] Add keyboard autocomplete and browsable category, tag, playlist, and
+      creator filters with any/all membership matching.
 - [ ] Add reviewed AI topic suggestions with visible evidence and provenance.
+
+**Graph navigation follow-up (2026-10-02):** Search now suggests ranked links
+and groups below the input. Arrow keys and Enter navigate to a preview, including
+when the inspector was hidden. Escape dismisses suggestions before closing the
+graph. Matching supports separate title words, URLs, and accent-insensitive
+labels. Suggestions stay within the current view and render at most twelve
+matches, with the full match count shown.
+
+The group browser lists saved categories, tags, playlists, and creators by
+unique link count. Counts reflect the source filter. Multiple selections use
+either a union or intersection; hiding relationship lines does not remove
+membership constraints. Filter chips are removable, and clearing filters restores
+isolated links too. Neighborhoods stay within the active filters.
+
+```mermaid
+flowchart LR
+    A[All saved web links] --> B[Source filter]
+    B --> C[Any or all selected groups]
+    C --> D[Optional neighborhood]
+    D --> E[Visible 3D graph]
+    E --> F[Ranked autocomplete]
+    F --> G[Focus camera and open preview]
+```
+
+Native verification used 54,233 links and 96,285 connections. Selecting JavaScript
+and Ruby categories showed 661 links with **any**, and zero with **all**. A tag
+selection showed seven links; a playlist selection showed 7,230. Keyboard preview,
+no-result feedback, source filtering, relationship visibility, chip removal,
+and clearing back to all 54,233 links were exercised in Electron. Eleven focused
+model/navigation tests passed, including duplicate memberships, missing groups,
+edge remapping, search ranking, Unicode, and source-scoped counts. Changed-file
+lint passed. The standalone renderer typecheck still reports the same six
+pre-existing diagnostics, with none in these changes.
 
 ### C. Keep the library useful as new things arrive
 

@@ -5,20 +5,17 @@ import type {
   LibraryGraphNode,
   LibraryGraphRelation
 } from '../../shared/library-graph'
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { GraphCanvas } from './library-graph/GraphCanvas'
+import { GraphGroups } from './library-graph/GraphGroups'
+import { GraphSearch } from './library-graph/GraphSearch'
 import { graphAdjacency, graphColor, relationKinds, selectGraph } from './library-graph/model'
+import { groupNames } from './library-graph/navigation'
 import { LibraryThumbnail } from './LibraryResourceCard'
 
 const button =
   'rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-accent disabled:opacity-50'
-const names: Record<LibraryGraphRelation, string> = {
-  collection: 'Playlists & collections',
-  tag: 'Tags & topics',
-  category: 'Categories',
-  creator: 'Creator names'
-}
 const count = (value: number) => value.toLocaleString()
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
@@ -242,6 +239,9 @@ export function LibraryGraphView({
     }
   }, [])
   const [showInspector, setShowInspector] = useState(true)
+  const [showGroups, setShowGroups] = useState(true)
+  const [groups, setGroups] = useState<string[]>([])
+  const [match, setMatch] = useState<'any' | 'all'>('any')
   const [graph, setGraph] = useState<LibraryGraph | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -252,9 +252,6 @@ export function LibraryGraphView({
   const [focus, setFocus] = useState<string | null>(null)
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [pinned, setPinned] = useState(false)
-  const [query, setQuery] = useState('')
-  const search = useDeferredValue(query.trim().toLocaleLowerCase())
-  const [searchLimit, setSearchLimit] = useState(30)
   const [paused, setPaused] = useState(
     () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
   )
@@ -284,21 +281,19 @@ export function LibraryGraphView({
     }
   }, [revision])
   const visible = useMemo(
-    () => (graph ? selectGraph(graph, platform, kinds, focus) : null),
-    [graph, platform, kinds, focus]
+    () => (graph ? selectGraph(graph, platform, kinds, focus, groups, match) : null),
+    [graph, platform, kinds, focus, groups, match]
   )
   const adjacency = useMemo(() => (visible ? graphAdjacency(visible) : []), [visible])
   const indices = useMemo(() => new Map(visible?.nodes.map((node, i) => [node.id, i])), [visible])
   const previewIndex = previewId ? indices.get(previewId) : undefined
   const preview = previewIndex === undefined ? null : visible!.nodes[previewIndex]
-  const results = useMemo(
+  const groupLabels = useMemo(
     () =>
-      !search || !visible
-        ? []
-        : visible.nodes.filter((node) =>
-            `${node.label} ${node.url ?? ''}`.toLocaleLowerCase().includes(search)
-          ),
-    [visible, search]
+      new Map(
+        graph?.nodes.filter((node) => node.kind !== 'link').map((node) => [node.id, node.label])
+      ),
+    [graph]
   )
   const hubs = useMemo(
     () =>
@@ -312,6 +307,7 @@ export function LibraryGraphView({
     (node: LibraryGraphNode) => {
       setPreviewId(node.id)
       setPinned(true)
+      setShowInspector(true)
       const index = indices.get(node.id)
       if (index !== undefined) controller.current?.focus(index)
     },
@@ -321,6 +317,20 @@ export function LibraryGraphView({
     setPreviewId(null)
     setPinned(false)
     setRenderError(null)
+  }
+  const toggleGroup = (id: string) => {
+    setGroups((current) =>
+      current.includes(id) ? current.filter((value) => value !== id) : [...current, id]
+    )
+    setFocus(null)
+    resetPreview()
+  }
+  const clearFilters = () => {
+    setGroups([])
+    setPlatform('')
+    setFocus(null)
+    setMatch('any')
+    resetPreview()
   }
   const platforms = useMemo(
     () =>
@@ -352,17 +362,7 @@ export function LibraryGraphView({
         </button>
       </div>
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-3">
-        <input
-          ref={searchInput}
-          aria-label="Search graph"
-          placeholder="Find a link, tag, creator, or playlist…"
-          className="min-w-48 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value)
-            setSearchLimit(30)
-          }}
-        />
+        <GraphSearch graph={loading ? null : visible} inputRef={searchInput} onChoose={choose} />
         <select
           aria-label="Graph source"
           value={platform}
@@ -378,6 +378,14 @@ export function LibraryGraphView({
             <option key={source}>{source}</option>
           ))}
         </select>
+        <button
+          className={button}
+          aria-expanded={showGroups}
+          onClick={() => setShowGroups((value) => !value)}
+        >
+          {showGroups ? 'Hide groups' : 'Browse groups'}
+          {groups.length ? ` (${groups.length})` : ''}
+        </button>
         <button
           className={button}
           disabled={loading}
@@ -396,11 +404,12 @@ export function LibraryGraphView({
               resetPreview()
             }}
           >
-            Back to all links
+            Leave neighborhood
           </button>
         )}
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-2 text-xs">
+        <span className="text-muted-foreground">Show connections:</span>
         {relationKinds.map((kind) => (
           <label key={kind} className="flex items-center gap-1.5">
             <input
@@ -416,11 +425,54 @@ export function LibraryGraphView({
               }}
             />
             <span className="h-2 w-2 rounded-full" style={{ background: graphColor(kind, '') }} />
-            {names[kind]}
+            {groupNames[kind]}
           </label>
         ))}
         <span className="text-muted-foreground">Source relationships · no AI categories yet</span>
       </div>
+      {(groups.length > 0 || platform || focus) && (
+        <div
+          aria-label="Active graph filters"
+          className="flex max-h-28 flex-wrap items-center gap-2 overflow-y-auto border-b border-border px-5 py-2 text-xs"
+        >
+          {groups.length > 0 && (
+            <>
+              <label className="flex items-center gap-1.5">
+                Links matching
+                <select
+                  aria-label="Match selected groups"
+                  value={match}
+                  className="rounded border border-border bg-background px-1 py-1"
+                  onChange={(event) => {
+                    setMatch(event.target.value === 'all' ? 'all' : 'any')
+                    setFocus(null)
+                    resetPreview()
+                  }}
+                >
+                  <option value="any">any group</option>
+                  <option value="all">all groups</option>
+                </select>
+              </label>
+              {groups.map((id) => (
+                <button
+                  key={id}
+                  className={`${button} max-w-60 truncate bg-accent`}
+                  aria-label={`Remove group filter ${groupLabels.get(id) ?? 'unavailable group'}`}
+                  onClick={() => toggleGroup(id)}
+                  title={groupLabels.get(id)}
+                >
+                  {groupLabels.get(id) ?? 'Unavailable group'} ×
+                </button>
+              ))}
+            </>
+          )}
+          {platform && <span>Source: {platform}</span>}
+          {focus && <span>Within a neighborhood</span>}
+          <button className={`${button} ml-auto`} onClick={clearFilters}>
+            Clear filters
+          </button>
+        </div>
+      )}
       {error && (
         <p role="alert" className="px-5 py-3 text-sm text-destructive">
           {error}
@@ -432,6 +484,9 @@ export function LibraryGraphView({
         </p>
       ))}
       <div className="flex min-h-0 flex-1">
+        {showGroups && graph && (
+          <GraphGroups graph={graph} platform={platform} selected={groups} onToggle={toggleGroup} />
+        )}
         <div className="relative min-h-64 min-w-0 flex-1 overflow-hidden bg-[#080f1d] text-slate-200">
           {visible && !loading && !renderError && (
             <GraphCanvas
@@ -452,7 +507,11 @@ export function LibraryGraphView({
           )}
           <div className="pointer-events-none absolute left-5 top-4 space-y-1">
             <h2 className="text-sm font-medium tracking-wide">
-              {focus ? 'A closer look' : 'Your link universe'}
+              {focus
+                ? 'A closer look'
+                : groups.length || platform
+                  ? 'Filtered links'
+                  : 'Your link universe'}
             </h2>
             <p role="status" className="text-xs text-slate-400">
               {loading
@@ -522,32 +581,6 @@ export function LibraryGraphView({
             className="w-72 shrink-0 space-y-5 overflow-auto border-l border-border bg-background p-4"
             aria-label="Graph inspector"
           >
-            {search && (
-              <div className="space-y-2">
-                <h3 className="text-xs font-medium">
-                  {count(results.length)} matches in this view
-                </h3>
-                {results.slice(0, searchLimit).map((node) => (
-                  <button
-                    key={node.id}
-                    className="block w-full rounded p-2 text-left text-xs hover:bg-accent"
-                    onClick={() => choose(node)}
-                  >
-                    <span
-                      className="mr-2 inline-block h-2 w-2 rounded-full"
-                      style={{ background: graphColor(node.kind, node.platform) }}
-                    />
-                    {node.label}
-                    <span className="ml-2 text-muted-foreground">{node.kind}</span>
-                  </button>
-                ))}
-                {results.length > searchLimit && (
-                  <button className={button} onClick={() => setSearchLimit((value) => value + 50)}>
-                    More matches
-                  </button>
-                )}
-              </div>
-            )}
             {preview && visible && previewIndex !== undefined ? (
               <GraphDetail
                 key={preview.id}

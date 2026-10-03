@@ -33,13 +33,34 @@ export function selectGraph(
   graph: LibraryGraph,
   platform: string,
   kinds: LibraryGraphRelation[],
-  focus: string | null
+  focus: string | null,
+  groups: string[] = [],
+  match: 'any' | 'all' = 'any'
 ): LibraryGraph {
   const accepted = new Set(kinds)
-  const edges = graph.edges.filter(
-    (edge) =>
-      accepted.has(edge.kind) && (!platform || graph.nodes[edge.source].platform === platform)
+  const selected = new Set(groups)
+  const memberships = new Map<number, Set<string>>()
+  if (selected.size) {
+    // Group membership filters do not depend on which relationship lines are shown.
+    graph.edges.forEach(({ source, target }) => {
+      const group = graph.nodes[target].id
+      if (!selected.has(group)) return
+      const values = memberships.get(source) ?? new Set<string>()
+      values.add(group)
+      memberships.set(source, values)
+    })
+  }
+  const included = new Set(
+    graph.nodes.flatMap((node, index) =>
+      node.kind === 'link' &&
+      (!platform || node.platform === platform) &&
+      (!selected.size ||
+        (match === 'all' ? memberships.get(index)?.size === selected.size : memberships.has(index)))
+        ? [index]
+        : []
+    )
   )
+  const edges = graph.edges.filter((edge) => accepted.has(edge.kind) && included.has(edge.source))
   let scope: Set<number> | null = null
   if (focus) {
     const center = graph.nodes.findIndex((node) => node.id === focus)
@@ -59,10 +80,7 @@ export function selectGraph(
   const hubs = new Set(chosenEdges.map((edge) => edge.target))
   const indices = new Map<number, number>()
   const nodes = graph.nodes.filter((node, i) => {
-    const visible =
-      node.kind === 'link'
-        ? (!platform || node.platform === platform) && (!scope || scope.has(i))
-        : hubs.has(i)
+    const visible = node.kind === 'link' ? included.has(i) && (!scope || scope.has(i)) : hubs.has(i)
     if (visible) indices.set(i, indices.size)
     return visible
   })
