@@ -22,7 +22,7 @@ import {
 } from '../import/core'
 
 export const REDDIT_ADAPTER_ID = 'reddit'
-export const REDDIT_ADAPTER_VERSION = '0.1.1'
+export const REDDIT_ADAPTER_VERSION = '0.1.2'
 
 export type RedditCsvRow = Record<string, string>
 
@@ -145,7 +145,6 @@ export async function* stageRedditArchive(
     const previous = content.get(record.deterministicId)
     if (!previous) {
       content.set(record.deterministicId, record)
-      yield record
       continue
     }
     // Votes and saves often contain only an ID. Keep the fuller observation from
@@ -166,8 +165,10 @@ export async function* stageRedditArchive(
     const poorer = preferPrevious ? record : previous
     const merged = { ...record, properties: { ...defined(poorer), ...defined(richer) } }
     content.set(record.deterministicId, merged)
-    yield merged
   }
+  // Repeated fields within one native write batch share a timestamp. Emit the
+  // final merged content once so a thin first reference cannot win that tie.
+  yield* content.values()
 }
 
 async function* readRedditArchive(

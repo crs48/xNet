@@ -179,44 +179,49 @@ describe('observed seed export shapes (synthetic content)', () => {
   })
 })
 
-it('preserves authored text when the same Reddit item appears later as a vote or save', async () => {
-  const body = 'Full authored comment with a searchable final passage'
-  const permalink = '/r/example/comments/post/_/comment'
-  const files: Record<string, string> = {
-    'comments.csv': `id,permalink,body\ncomment,${permalink},${body}`,
-    'comment_votes.csv': `id,permalink,direction\ncomment,${permalink},up`,
-    'saved_comments.csv': `id,permalink\ncomment,${permalink}`
+it.each([false, true])(
+  'merges Reddit content once with references first: %s',
+  async (referencesFirst) => {
+    const body = 'Full authored comment with a searchable final passage'
+    const permalink = '/r/example/comments/post/_/comment'
+    const files: Record<string, string> = {
+      'comments.csv': `id,permalink,body\ncomment,${permalink},${body}`,
+      'comment_votes.csv': `id,permalink,direction\ncomment,${permalink},up`,
+      'saved_comments.csv': `id,permalink\ncomment,${permalink}`
+    }
+    const context: SocialImportContext = {
+      archiveId: 'archive',
+      importRunId: 'run',
+      observedBy: 'did:key:fixture',
+      importedAt: '2026-10-02T00:00:00Z',
+      manifest: {
+        filename: 'reddit.zip',
+        byteSize: 1000,
+        entries: (referencesFirst ? Object.keys(files).reverse() : Object.keys(files)).map(
+          (path) => ({ path, byteSize: 100, compressedByteSize: 100 })
+        )
+      },
+      readJsonEntry: async () => {
+        throw new Error('CSV only')
+      },
+      readTextEntry: async (path) => files[path]
+    }
+    const records: StagedSocialRecord[] = []
+    for await (const record of redditAdapter.stage(context, {
+      buckets: ['reddit.authored-content', 'reddit.votes', 'reddit.saved-hidden'],
+      includeSensitive: true
+    }))
+      records.push(record)
+    const comments = records.filter(
+      (record) => record.kind === 'content' && record.properties.contentKind === 'comment'
+    )
+    expect(comments).toHaveLength(1)
+    expect(new Set(comments.map((record) => record.deterministicId)).size).toBe(1)
+    for (const comment of comments) {
+      expect(comment.properties.searchText).toBe(body)
+      expect(comment.properties.canonicalUrl).toBe('https://www.reddit.com' + permalink)
+      expect(comment.properties.confidence).toBe(0.95)
+    }
+    expect(records.filter((record) => record.kind === 'interaction')).toHaveLength(3)
   }
-  const context: SocialImportContext = {
-    archiveId: 'archive',
-    importRunId: 'run',
-    observedBy: 'did:key:fixture',
-    importedAt: '2026-10-02T00:00:00Z',
-    manifest: {
-      filename: 'reddit.zip',
-      byteSize: 1000,
-      entries: Object.keys(files).map((path) => ({ path, byteSize: 100, compressedByteSize: 100 }))
-    },
-    readJsonEntry: async () => {
-      throw new Error('CSV only')
-    },
-    readTextEntry: async (path) => files[path]
-  }
-  const records: StagedSocialRecord[] = []
-  for await (const record of redditAdapter.stage(context, {
-    buckets: ['reddit.authored-content', 'reddit.votes', 'reddit.saved-hidden'],
-    includeSensitive: true
-  }))
-    records.push(record)
-  const comments = records.filter(
-    (record) => record.kind === 'content' && record.properties.contentKind === 'comment'
-  )
-  expect(comments).toHaveLength(3)
-  expect(new Set(comments.map((record) => record.deterministicId)).size).toBe(1)
-  for (const comment of comments) {
-    expect(comment.properties.searchText).toBe(body)
-    expect(comment.properties.canonicalUrl).toBe('https://www.reddit.com' + permalink)
-    expect(comment.properties.confidence).toBe(0.95)
-  }
-  expect(records.filter((record) => record.kind === 'interaction')).toHaveLength(3)
-})
+)
