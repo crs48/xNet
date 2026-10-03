@@ -352,19 +352,57 @@ it('keeps other providers moving while several requests from one source hang', a
   expect(service.status().running).toEqual([])
 })
 
-it('keeps provider throttling resumable beyond the per-resource retry limit', async () => {
+it('backs off repeated provider throttling without exhausting the per-resource retry limit', async () => {
   service.store.seed(resource('throttled'))
-  stubs.metadata.mockRejectedValue(
-    new LibraryProviderError('Rate limited', 'retry', Date.now() + 60_000, 'provider')
+  stubs.metadata.mockImplementation(() =>
+    Promise.reject(
+      new LibraryProviderError('Rate limited', 'retry', Date.now() + 60_000, 'provider')
+    )
   )
   service.resume()
-  await vi.advanceTimersByTimeAsync(370_000)
-  expect(stubs.metadata.mock.calls.length).toBeGreaterThanOrEqual(6)
-  expect(count('metadata', 'blocked')).toBe(0)
-  expect(count('metadata', 'retry')).toBe(1)
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    const startedAt = Date.now()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(stubs.metadata).toHaveBeenCalledTimes(attempt)
+    expect(count('metadata', 'blocked')).toBe(0)
+    expect(count('metadata', 'retry')).toBe(1)
+    const nextAt = service.status().nextAt!
+    expect(nextAt).toBeGreaterThanOrEqual(startedAt + 30_000 * 2 ** attempt)
+    vi.setSystemTime(nextAt)
+  }
   stubs.metadata.mockResolvedValue(metadata)
-  await vi.advanceTimersByTimeAsync(60_000)
+  await vi.advanceTimersByTimeAsync(1000)
   expect(count('metadata', 'complete')).toBe(1)
+})
+
+it('preserves a longer provider Retry-After across restart while another provider progresses', async () => {
+  service.store.seed(resource('throttled'))
+  service.store.seed({
+    ...resource('other-provider'),
+    platform: 'github',
+    url: 'https://github.com/example/repo'
+  })
+  const retryAt = Date.now() + 2 * 60 * 60 * 1000
+  stubs.metadata.mockImplementation((item: LibraryResource) =>
+    item.id === 'throttled'
+      ? Promise.reject(new LibraryProviderError('Rate limited', 'retry', retryAt, 'provider'))
+      : Promise.resolve(metadata)
+  )
+  service.resume()
+  await vi.advanceTimersByTimeAsync(1500)
+  expect(service.store.get('other-provider')?.metadata?.title).toBe('Fetched title')
+  expect(count('metadata', 'retry')).toBe(1)
+  expect(service.status().nextAt).toBe(retryAt)
+  await service.close()
+  service = open(root)
+  service.resume()
+  stubs.metadata.mockResolvedValue(metadata)
+  vi.setSystemTime(retryAt - 2000)
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(stubs.metadata).toHaveBeenCalledTimes(2)
+  expect(count('metadata', 'retry')).toBe(1)
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(count('metadata', 'complete')).toBe(2)
 })
 
 it.each([

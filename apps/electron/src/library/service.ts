@@ -576,9 +576,11 @@ export class LibraryService {
         error instanceof LibraryProviderError
           ? error
           : new LibraryProviderError(errorMessage(error), 'retry')
-      const next =
-        failure.retryAt ??
+      // Retry-After is a floor; a short hint must not defeat repeated-failure backoff.
+      const next = Math.max(
+        failure.retryAt ?? 0,
         Date.now() + Math.min(24 * 60 * 60 * 1000, 30_000 * 2 ** Math.min(job.attempts, 10))
+      )
       const state =
         failure.disposition === 'retry' && failure.scope !== 'provider' && job.attempts >= 5
           ? 'blocked'

@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-03-library-retries-back-off-when-sites-stay",
+  "date": "October 3, 2026",
+  "title": "Library retries back off when sites stay rate limited",
+  "summary": "Repeated rate limits now increase the wait between enrichment attempts while honoring longer delays requested by the source.",
+  "highlights": [],
+  "tags": ["app"],
+  "pr": 721
+}
