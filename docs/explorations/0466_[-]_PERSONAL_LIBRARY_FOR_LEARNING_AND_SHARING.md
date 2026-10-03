@@ -1,7 +1,7 @@
 ---
 title: A personal library for learning and sharing, safe enough to use every day
 status: draft
-last_updated: 2026-09-29
+last_updated: 2026-10-02
 review: 2026-11-10
 decider: Chris Smothers
 door: two-way
@@ -18,7 +18,7 @@ tags:
 
 A development preview now runs in Electron. It includes native recovery copies, encrypted native export/restore, resumable retained-source imports, a persistent enrichment queue, local thumbnails and retrieved captions, offline Library search, and editable URL-plus-note capture. [Try the preview](../reference/personal-library.md) and review the [storage coverage](../reference/desktop-storage.md) before relying on it.
 
-This is partially implemented. A Developer ID signing certificate is unavailable in this environment, the installed signed-upgrade test is open, and complete settings/key coverage and off-device retention are not verified. The real full corpus has not been imported into a daily profile. Successful live managed-helper installation, local transcription, full collection/creator navigation, complete website and overlapping-export reconciliation, guides, publishing, and the human trial remain work. The checklists below distinguish these gaps from the narrower proofs already obtained.
+This is partially implemented. A Developer ID signing certificate is unavailable in this environment, the installed signed-upgrade test is open, and complete settings/key coverage and off-device retention are not verified. Selected real exports are now imported into the development profile. This remains separate from the signed daily-use app and complete enrichment coverage. Successful live managed-helper installation, local transcription, full collection/creator navigation, complete website and overlapping-export reconciliation, guides, publishing, and the human trial remain work. The checklists below distinguish these gaps from the narrower proofs already obtained.
 
 ## The job to earn
 
@@ -747,6 +747,105 @@ metadata access gaps and 9,477 posts still queued. Native-process typechecking,
 changed-file lint, and the desktop build also passed. These samples do not
 establish whole-corpus coverage or spoken transcript support.
 
+**More importers and source captions (2026-10-02):** The remaining export
+adapters were exercised through the native import screen. The selected
+scope includes social activity and AI conversations; direct messages, billing,
+and account/security categories are excluded. Complete exports remain in the
+local recovery copy, including excluded categories. The earlier YouTube playlist
+and Instagram saves/likes selection is unchanged.
+
+GitHub, TikTok, Reddit, X, Claude, ChatGPT, Grok, and garden imports completed. Every expected stable
+record ID was found in the native database, and every nonempty text field matched
+an observed export value. The comparison covers full text, not card previews.
+Six AI messages exceed 20,000 characters. A 157,679-character Claude conversation
+was found by words at its end. Its card stays bounded to 600 characters, and its
+private conversation text needs no network fetch.
+
+The Reddit pass found a real loss of text: later saved/voted references could
+clear or shorten a post body imported earlier in the same archive. Adapter 0.1.2
+merges those observations and emits each content item once before writing. It preserves the higher-confidence
+body, or the longer body when confidence is equal. A regression fixture covers
+this overlap. The native reimport also resolved all 11 field mismatches caused by repeated
+content in the same write batch. The full reconciliation follows below.
+
+Enrichment now routes cited links by their URL while retaining their archive
+provenance. TikTok public data supplies posters and available subtitle tracks.
+GitHub pages supply repository details and their rendered README. Reddit embeds
+supply partial previews. Ordinary pages can supply embedded subtitle tracks.
+Caption retrieval tries alternate tracks and formats; YouTube can refresh signed
+tracks through the tested local helper. Empty caption responses stay gaps.
+
+In the native queue, one YouTube video returned 125 timed English cues through
+the helper fallback. A TikTok video returned four English subtitle cues from its
+public page. Both transcripts were searchable, and both thumbnails were read
+from saved blobs. Instagram written captions remain separate from spoken audio;
+local transcription has not run.
+
+Large imports also exposed a slow final Library scan. The data service now
+hydrates each page in one batch instead of reading every record separately.
+The native regression checks order, document bytes, and one batch read.
+New caption indexing and selected-item retries take priority over the bulk
+backlog, while provider rate limits still apply.
+
+The focused native batch and Library run passed 87 tests across 12 files. The
+full social package run passed 244 tests across 22 files. Desktop main-process
+typechecking and the production build passed. The full pre-push run passed
+12,677 tests with four skipped, and all 101 workspace typecheck tasks passed.
+Repository ESLint reported no errors and 469 existing warnings. The separate
+renderer typecheck still reports six existing issues. The exploration-link scan
+also finds 200 stale references in ignored worktrees and local agent memory,
+with none in these edited documents. These checks do not complete the
+whole-corpus enrichment or signed-app acceptance items above. Hosted checks at
+`dd8ae0489` still fail the existing exploration-age gate (51 overdue documents
+against a baseline of 41) and dependency audit (five high-severity advisories).
+Neither baseline was raised.
+
+The native imports completed for all eight additional sources. A separate
+read-only pass restaged the selected exports and compared every expected graph
+record ID, schema, and nonempty text hash against the workspace database.
+
+| Source    | Expected graph records | Source material                            |
+| --------- | ---------------------: | ------------------------------------------ |
+| GitHub    |                  5,768 | 1,514 starred repositories                 |
+| TikTok    |                 14,122 | 5,055 content records; 38 collection names |
+| Reddit    |                  8,006 | 3,734 posts and comments                   |
+| X/Twitter |                 32,098 | 12,632 content records; 8 AI conversations |
+| Claude    |                  2,302 | 130 conversations and 1,762 messages       |
+| ChatGPT   |                 35,069 | 676 conversations and 7,419 messages       |
+| Grok      |                 23,565 | 766 conversations and 11,370 messages      |
+| Garden    |                     55 | 8 sources and 8 linked notes               |
+
+The 120,985 records include archive records and source relationships, but exclude
+per-run job records and raw source sidecars. All IDs and schemas matched, and all
+37,518 nonempty text comparisons passed. No shorter text variant remained.
+The checked visibility fields were private. TikTok's export names collections
+without assigning saved videos to them; those missing memberships stay missing.
+The garden reused two existing source records.
+
+The Library contains 55,973 resources. An explicit scan took 7,976 ms after the
+batch-read fix. At the paused snapshot, metadata work had 5,213 complete results
+and 721 partial results, with 48,037 queued or retrying. There were 5,834 saved
+thumbnails and 25 retrieved transcripts, including video links cited in AI
+conversations. Another 53,998 caption jobs were queued or retrying. These are
+capability counts, not a claim that every link is enriched. The structured
+database occupied about 3.9 GiB and the Library database about 448 MiB;
+retained archives, blobs, and recovery copies use additional space.
+
+The native GitHub check recovered a 7,802-character repository description and
+README, found its ending in search, and read a 106,016-byte cached image. Another
+GitHub image request returned HTTP 429 and retained its cooldown. X returned
+metadata through the local helper. A garden source returned a searchable public
+page description while retaining its authored note. Reddit's public embed check
+returned a partial preview, not a full post body or spoken transcript.
+
+With the renderer offline, the reopened TikTok details loaded their saved
+540-pixel-wide image from a local blob and displayed the transcript. The app
+returned online afterward. After the final restart on `dd8ae0489`, the same YouTube and TikTok transcripts
+remained searchable and their saved image bytes were readable. A verified native
+recovery copy, `1790990379981-e87f7137-4d58-4652-a025-287d71af6c5e`, covers 28
+workspace files. Enrichment was then resumed. This is an on-disk copy; restoring
+this complete enlarged corpus on another Mac has not been tested.
+
 ### C. Keep the library useful as new things arrive
 
 **Collection browsing evidence (2026-09-30):** Library now has Resources and
@@ -891,4 +990,4 @@ The signing configuration, supported historical database versions, and complete 
 
 The garden export destination remains a proposed default. The library and public renderer should work if Chris chooses a different site. Private collaboration, a coaching portal, full-content clipping, mobile authoring, automatic topic inference, and a new business model wait for evidence from this loop. The source-backed graph of saved items, collections, creators, and notes is part of the first library.
 
-**Recommended next work:** use the actual `.exports/` shapes to prepare import fixtures and a dry-run report while closing pass A's destructive startup and recovery gaps. Then finish pass B before expanding capture or publishing: import the full selected social corpus, garden/website material, and GitHub stars, and make their existing connections useful. Metadata, thumbnail, and transcript enrichment belong in that first library. Let a month of use determine further extraction needs and the value of publishing and AI.
+**Recommended next work:** verify an installed upgrade and restore the enlarged corpus before relying on it for irreplaceable notes. Let the existing enrichment queue run, review its recorded gaps, and close the caption and navigation checks in pass B. Full website import and overlapping-export reconciliation remain open. Use the library in ordinary work before expanding publishing or AI.

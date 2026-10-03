@@ -44,8 +44,22 @@ including categories you did not select. Keep this in mind when choosing files.
 
 Paused or interrupted import jobs can resume from retained source files. A batch
 only advances the saved cursor after acknowledgement. Repeating a batch after a
-crash uses deterministic IDs. Full-corpus and cross-version overlapping-import
-reconciliation remain acceptance work; they are not implied by a small test.
+crash uses deterministic IDs. The October 2 run matched all 120,985 expected
+graph records and 37,518 nonempty text values from eight additional sources
+against their original exports. This does not establish reconciliation across
+every historical export or archive version.
+
+To preview the available archives without writing to a workspace, run:
+
+```bash
+pnpm exec tsx scripts/inventory-personal-library.ts --all-supported \
+  --garden-file /path/to/garden.json --output /tmp/library-preview.json
+```
+
+This includes social activity and AI conversations. It excludes direct messages,
+billing, and account/security categories. The report lists selected and excluded
+categories, raw counts, unique records, and parser warnings. Review it before
+choosing categories in the app; it does not import them.
 
 Imported AI conversations and source records with local text can be searched and
 read in Library. Conversation text stays local; the app does not fetch private
@@ -140,7 +154,7 @@ removing its original source, saved thumbnails and late-caption search after an
 offline restart, capture followed by ordinary title/body edits and restart, and
 settings/draft recovery after deleting an entire test profile.
 The installed signed-Mac upgrade, complete settings/key recovery, off-device
-retention, full real-corpus import/enrichment, guide publication, and founder trial
+retention, complete real-corpus enrichment, guide publication, and founder trial
 remain open in the exploration. The preview is not a durability guarantee for
 irreplaceable data.
 
