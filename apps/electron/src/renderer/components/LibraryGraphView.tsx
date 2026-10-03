@@ -117,9 +117,9 @@ function GraphDetail({
             {resource.metadata?.description || resource.sourceText || 'No description saved yet.'}
           </p>
           <dl className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-            <dt>Saved</dt>
+            <dt>Added to Library</dt>
             <dd>{new Date(resource.addedAt).toLocaleDateString()}</dd>
-            <dt>Visibility</dt>
+            <dt>Source privacy</dt>
             <dd>{resource.privacy}</dd>
             {resource.metadata?.durationSeconds !== undefined && (
               <>
