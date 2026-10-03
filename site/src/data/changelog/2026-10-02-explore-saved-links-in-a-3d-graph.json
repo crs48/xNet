@@ -5,7 +5,8 @@
   "summary": "Browse your saved links through playlists, tags, topics, categories, and creator names, with thumbnail previews and searchable neighborhoods.",
   "highlights": [
     "Navigate with keyboard autocomplete for links, tags, categories, creators, and playlists.",
-    "Browse groups with link counts and combine filters to match any or all selected groups."
+    "Browse groups with link counts and combine filters to match any or all selected groups.",
+    "Large libraries have more time to finish startup integrity checks before recovery is requested."
   ],
   "tags": ["app"],
   "pr": 721

@@ -935,6 +935,16 @@ edge remapping, search ranking, Unicode, and source-scoped counts. Changed-file
 lint passed. The standalone renderer typecheck still reports the same six
 pre-existing diagnostics, with none in these changes.
 
+The final restart exposed a separate size-related failure: the data process's
+whole-database inspection exceeded its ordinary 30-second request timeout twice.
+Initialization now has a two-minute deadline, and the development launch probe
+allows three minutes. Ordinary requests keep their 30-second deadline. The actual
+manager test failed with the old timeout and passes with the longer startup
+budget; it also verifies that integrity errors propagate and an unresponsive
+initialization still times out. The native app reached its ready state with this
+change. Startup recovery checks remain enabled. Recovery-copy work can still
+block the main thread on this corpus; making that work responsive remains open.
+
 ### C. Keep the library useful as new things arrive
 
 **Collection browsing evidence (2026-09-30):** Library now has Resources and
