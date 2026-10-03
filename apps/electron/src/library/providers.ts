@@ -218,7 +218,8 @@ export async function fetchPublic(
           `Provider refused this request (HTTP ${response.status}).`,
           response.status === 429 ? 'retry' : 'blocked',
           Date.now() + Math.max(60_000, Number.isFinite(delay) ? delay : 0),
-          response.status === 429 ? 'provider' : 'resource'
+          response.status === 429 ? 'provider' : 'resource',
+          parsed.hostname.toLowerCase()
         )
       }
       if (response.status === 404 || response.status === 410) {

@@ -137,7 +137,9 @@ that provider and survives retry or restart. Pausing cancels active requests;
 starting again resumes the saved queue without resetting completed work.
 Leave the desktop app running for a bulk pass. Different websites have independent
 cooldowns, even when their links came from the same archive. Temporary provider
-throttling stays retryable; completed work is retained across restarts.
+throttling stays retryable; completed work is retained across restarts. When a
+separate image server is throttled, its thumbnail requests wait while source
+pages can continue. Same-host and unidentified throttling still pause the source.
 **Retry missing details** on a selected item moves its unfinished jobs ahead of
 the bulk import queue. It still respects any provider rate limit.
 

@@ -6,7 +6,8 @@ export class LibraryProviderError extends TaggedError {
     message: string,
     readonly disposition: 'retry' | 'blocked' | 'unavailable',
     readonly retryAt?: number,
-    readonly scope: 'resource' | 'provider' = 'resource'
+    readonly scope: 'resource' | 'provider' = 'resource',
+    readonly host?: string
   ) {
     super(message)
   }

@@ -192,7 +192,8 @@ it('distinguishes provider rate limits from one restricted resource', async () =
   await expect(fetchPublic('https://example.com/rate')).rejects.toMatchObject({
     scope: 'provider',
     disposition: 'retry',
-    retryAt: expect.any(Number)
+    retryAt: expect.any(Number),
+    host: 'example.com'
   })
   await expect(fetchPublic('https://example.com/private')).rejects.toMatchObject({
     scope: 'resource',
@@ -231,5 +232,18 @@ it('keeps YouTube cards useful when the page cannot expose complete metadata', a
   expect(result.thumbnailUrl).toBe('https://i.ytimg.com/poster.jpg')
   expect(result.fields.description.state).toBe('partial')
   expect(result.fields.captions.state).toBe('partial')
+  expect(stubs.request).toHaveBeenCalledTimes(2)
+})
+
+it('attributes throttling to the final response host after an image redirect', async () => {
+  responses = [
+    respond(302, '', ['location', 'https://images.example/poster']),
+    respond(429, '', ['retry-after', '180'])
+  ]
+  await expect(fetchPublic('https://example.com/image')).rejects.toMatchObject({
+    scope: 'provider',
+    disposition: 'retry',
+    host: 'images.example'
+  })
   expect(stubs.request).toHaveBeenCalledTimes(2)
 })

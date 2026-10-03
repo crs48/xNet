@@ -584,8 +584,23 @@ export class LibraryService {
           ? 'blocked'
           : failure.disposition
       this.store.finish(job, state, failure.message, next)
-      if (failure.scope === 'provider')
-        this.store.pauseProvider(provider, Math.max(next, Date.now() + 60_000))
+      if (failure.scope === 'provider') {
+        const sourceHosts = [
+          new URL(resource.url).hostname.replace(/^www\./, ''),
+          provider.startsWith('web:') ? provider.slice(4) : `${provider}.com`,
+          ...(provider === 'x' ? ['twitter.com'] : [])
+        ]
+        const throttledHost = failure.host
+        const separateImageHost =
+          job.capability === 'thumbnail' &&
+          throttledHost &&
+          !sourceHosts.some((host) => throttledHost === host || throttledHost.endsWith(`.${host}`))
+        // A CDN's Retry-After applies to its images; repository pages can still progress.
+        this.store.pauseProvider(
+          separateImageHost ? `${provider}:thumbnail` : provider,
+          Math.max(next, Date.now() + 60_000)
+        )
+      }
     }
   }
 }

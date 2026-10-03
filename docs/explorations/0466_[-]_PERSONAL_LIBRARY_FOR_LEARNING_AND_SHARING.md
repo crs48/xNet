@@ -907,6 +907,16 @@ verification passed 12,706 tests with four skipped, and all 101 workspace
 TypeScript tasks passed. This is sample verification plus a progressing bulk
 queue, not a completed enrichment pass.
 
+A later pass reached 9,989 fetched titles, 9,160 descriptions, 7,877 thumbnails,
+and 268 transcripts. All 55,973 resources had completed local indexing; 43,681
+metadata jobs were queued or retrying. A GitHub thumbnail response exposed a
+cross-host scheduling error: its 15-minute CDN cooldown also held repository
+pages. HTTP errors now retain the final response hostname. A rate-limited image
+host pauses the source's thumbnail lane when it differs from the source host;
+source-host or unidentified throttling retains the whole-source pause. Existing
+cooldowns are not shortened. The focused suite passed 100 tests, including
+redirect attribution and both cooldown scopes surviving restart.
+
 ### 3D link graph evidence (2026-10-02)
 
 Library now opens a full-window 3D graph of saved web links. The native run used

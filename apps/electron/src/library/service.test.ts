@@ -366,3 +366,30 @@ it('keeps provider throttling resumable beyond the per-resource retry limit', as
   await vi.advanceTimersByTimeAsync(60_000)
   expect(count('metadata', 'complete')).toBe(1)
 })
+
+it.each([
+  ['images.example', 2],
+  ['www.youtube.com', 1],
+  [undefined, 1]
+])('keeps image throttling scoped to its source host (%s)', async (host, expectedMetadata) => {
+  service.store.seed(resource('a'))
+  service.store.seed(resource('b'))
+  stubs.metadata.mockResolvedValue({
+    ...metadata,
+    thumbnailUrl: 'https://images.example/poster.png'
+  })
+  stubs.fetch.mockRejectedValue(
+    new LibraryProviderError('Image rate limit', 'retry', Date.now() + 60_000, 'provider', host)
+  )
+  service.resume()
+  await vi.advanceTimersByTimeAsync(1500)
+  expect(count('metadata', 'complete')).toBe(expectedMetadata)
+  expect(count('thumbnail', 'retry')).toBe(1)
+  expect(stubs.fetch).toHaveBeenCalledOnce()
+  await service.close()
+  service = open(root)
+  service.resume()
+  await vi.advanceTimersByTimeAsync(5000)
+  expect(stubs.fetch).toHaveBeenCalledOnce()
+  expect(count('metadata', 'complete')).toBe(expectedMetadata)
+})
