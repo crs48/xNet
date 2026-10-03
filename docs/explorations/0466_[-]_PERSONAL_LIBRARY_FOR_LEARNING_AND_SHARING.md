@@ -846,6 +846,67 @@ recovery copy, `1790990379981-e87f7137-4d58-4652-a025-287d71af6c5e`, covers 28
 workspace files. Enrichment was then resumed. This is an on-disk copy; restoring
 this complete enlarged corpus on another Mac has not been tested.
 
+### Enrichment throughput and richer pages (2026-10-02)
+
+The next pass started with 55,973 resources, 7,508 fetched titles, 7,113 nonempty
+fetched descriptions, 6,551 cached thumbnails, and 111 transcripts. These counts
+include partial metadata and outbound citations from conversation archives.
+They do not mean that 7,508 links have every field. Most network work remained
+queued: GitHub had 73 fetched titles, Instagram 280, and YouTube 5,853.
+
+The bottleneck was partly local. One network-job claim took 421 ms on the real
+queue: SQLite scanned pending work and sorted it against the resource table.
+The revised query reads queue order from its existing partial index. On a
+disposable copy of the same Library, twelve metadata claims took 0.13–0.64 ms.
+The copy migrated in 4.0 seconds. These are local operation timings, not an
+estimate of website throughput or total enrichment duration.
+
+Search updates also scanned all 127,761 passages to remove a resource's old
+text. A reconciled row-ownership index now targets those passages directly.
+The sampled lookup previously took 41 ms; a complete reindex on the migrated
+copy took 0.95 ms. Restart reconciles ownership with FTS, including writes made
+by an older app. Source records and fetched content are preserved.
+
+Network scheduling allows ten active jobs, with six metadata slots, two image
+slots, two transcript slots, and at most three active jobs per source. Existing
+provider pacing and persisted cooldowns still apply. Outbound web citations
+use the destination hostname instead of their archive's platform for pacing;
+the corpus contains 5,012 distinct provider/host keys. A throttled website no
+longer delays every unrelated link imported from the same AI archive. Repeated
+provider rate limits remain retryable beyond the ordinary per-resource attempt
+limit. Successful metadata brings its dependent image/caption work forward.
+
+GitHub extraction now reads its embedded repository overview as well as the
+rendered README. It retains public descriptions, README text, topics, website,
+stars, forks, and license details without retaining viewer state or page tokens.
+A current public xNet repository page yielded 5,482 README characters and 18
+topics. Public article pages contribute their visible article text; they remain
+partial because the public page can omit content. Older GitHub and web previews
+are queued once for this richer extraction without clearing their saved data or
+refetching completed media.
+
+The focused Library suite passed 96 tests, including existing caption parsers,
+host isolation, queue migration, passage replacement, provider concurrency, and
+repeated throttling followed by recovery. Desktop main-process typechecking and
+changed-file ESLint passed. Whole-corpus enrichment remains an open acceptance
+item. Instagram written captions still do not establish spoken transcript
+coverage, and automatic local transcription remains unconnected.
+
+In real Electron on `def125f38`, the first 120 seconds produced 260 fresh
+metadata results across GitHub, Instagram, YouTube, TikTok, Reddit, X, and web
+sources. Some refreshed existing previews. The snapshot held 7,676 fetched
+titles, 7,257 descriptions, 6,637 thumbnails, and 124 transcripts; 46,524 metadata
+jobs were still queued, retrying, or active. The app reported no Library error.
+
+Native search found the ending of a newly fetched 41,794-character GitHub README
+and text from a 90,404-character web article. Cached images decoded for GitHub,
+Instagram, YouTube, TikTok, and web samples. New YouTube and TikTok transcripts
+contained 149 and 55 cues respectively, and their late passages were searchable.
+The GitHub result also opened through the Library search UI. Full pre-push
+verification passed 12,706 tests with four skipped, and all 101 workspace
+TypeScript tasks passed. This is sample verification plus a progressing bulk
+queue, not a completed enrichment pass.
+
 ### 3D link graph evidence (2026-10-02)
 
 Library now opens a full-window 3D graph of saved web links. The native run used

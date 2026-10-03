@@ -135,6 +135,9 @@ can run at once, with separate pacing for metadata, images, and captions. A
 private or removed video leaves a gap on that video. A provider rate limit pauses
 that provider and survives retry or restart. Pausing cancels active requests;
 starting again resumes the saved queue without resetting completed work.
+Leave the desktop app running for a bulk pass. Different websites have independent
+cooldowns, even when their links came from the same archive. Temporary provider
+throttling stays retryable; completed work is retained across restarts.
 **Retry missing details** on a selected item moves its unfinished jobs ahead of
 the bulk import queue. It still respects any provider rate limit.
 
@@ -169,10 +172,13 @@ still need a live check. Existing compatible local helpers can already supply
 source metadata and captions.
 
 TikTok uses public post data for written captions, creator names, posters, and
-available subtitle tracks. GitHub uses the public repository page and its rendered
-README, avoiding the small anonymous API quota. Reddit uses public embed previews;
+available subtitle tracks. GitHub uses the public repository page, its embedded
+repository details, and its rendered README. Retrieved details include topics,
+website, stars, forks, and license information when the page supplies them. The
+README and topics are searchable. Older page previews receive one fresh pass
+automatically. Reddit uses public embed previews;
 these do not promise full post bodies, images, or video transcripts. Ordinary web
-pages can supply embedded subtitle tracks. Cited links use the provider named by
+pages contribute visible article text and embedded subtitle tracks. Cited links use the provider named by
 their URL while retaining the archive they came from.
 
 Available source captions are supported; automatic local transcription and
