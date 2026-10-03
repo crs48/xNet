@@ -102,7 +102,7 @@ An entry without an indexed resource remains visible with an explanation.
 
 Collection cards show the item count reported by the source when available;
 the opened collection counts the actual local membership records. These can
-differ after an incomplete import. **Graph & saved views** still opens the
+differ after an incomplete import. **Data & saved views** still opens the
 existing data workspace for inspecting the broader graph. Dedicated creator
 views and bounded resource neighborhoods remain unfinished.
 
