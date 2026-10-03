@@ -85,7 +85,10 @@ export function LibraryView({
   }
   useEffect(() => {
     let active = true
+    let loading = false
     const load = async () => {
+      if (!active || loading) return
+      loading = true
       try {
         const nextStatus = await window.xnet.libraryStatus()
         const helperState = await window.xnet.libraryHelperStatus()
@@ -100,6 +103,8 @@ export function LibraryView({
         }
       } catch (error) {
         if (active) setError(errorText(error))
+      } finally {
+        loading = false
       }
     }
     void load()

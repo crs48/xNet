@@ -65,6 +65,8 @@ export class LibraryStore {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS resources(id TEXT PRIMARY KEY, url TEXT NOT NULL, platform TEXT NOT NULL, title TEXT NOT NULL, payload TEXT NOT NULL, added_at INTEGER NOT NULL);
       CREATE INDEX IF NOT EXISTS resource_url ON resources(url);
+      CREATE INDEX IF NOT EXISTS resource_added ON resources(added_at DESC,id);
+      CREATE INDEX IF NOT EXISTS resource_platform_added ON resources(platform,added_at DESC,id);
       CREATE TABLE IF NOT EXISTS work(resource_id TEXT NOT NULL, capability TEXT NOT NULL, version TEXT NOT NULL, language TEXT NOT NULL, state TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, next_at INTEGER NOT NULL DEFAULT 0, reason TEXT, PRIMARY KEY(resource_id, capability, version, language));
       CREATE INDEX IF NOT EXISTS work_due ON work(state, next_at);
       CREATE INDEX IF NOT EXISTS work_pending_capability ON work(version,capability,next_at) WHERE state IN ('queued','retry');
@@ -490,9 +492,9 @@ export class LibraryStore {
     return (
       this.db
         .prepare(
-          "SELECT payload FROM resources WHERE (?='' OR platform=?) ORDER BY added_at DESC,id LIMIT ? OFFSET ?"
+          `SELECT payload FROM resources ${platform ? 'WHERE platform=?' : ''} ORDER BY added_at DESC,id LIMIT ? OFFSET ?`
         )
-        .all(platform, platform, limit, offset) as { payload: string }[]
+        .all(...(platform ? [platform] : []), limit, offset) as { payload: string }[]
     ).map((row) => cardFor(JSON.parse(row.payload) as LibraryResource))
   }
   status(): LibraryStatus {

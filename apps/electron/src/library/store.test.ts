@@ -125,6 +125,40 @@ it('backfills a new provider version once without resetting completed current wo
   check.close()
 })
 
+it('preserves chronological pagination and large saved text across a browse-index upgrade', () => {
+  const description = 'Full retained description. '.repeat(10_000)
+  const rows: LibraryResource[] = [
+    { ...resource('youtube-b'), addedAt: 20 },
+    { ...resource('web-middle'), platform: 'web', addedAt: 15 },
+    { ...resource('youtube-a'), addedAt: 20 },
+    { ...resource('youtube-old'), addedAt: 5 },
+    { ...resource('web-newest'), platform: 'web', addedAt: 30 }
+  ]
+  for (const row of rows)
+    store.seed({
+      ...row,
+      metadata: { description, fields: {}, provider: 'fixture', fetchedAt: 2, evidence: {} }
+    })
+  store.close()
+  const older = new Database(path)
+  older.exec('DROP INDEX IF EXISTS resource_added; DROP INDEX IF EXISTS resource_platform_added;')
+  older.close()
+  store = new LibraryStore(path)
+
+  expect(store.search({ offset: 1, limit: 2 }).map((row) => row.id)).toEqual([
+    'youtube-a',
+    'youtube-b'
+  ])
+  expect(store.search({ platform: 'youtube', offset: 1, limit: 2 }).map((row) => row.id)).toEqual([
+    'youtube-b',
+    'youtube-old'
+  ])
+  expect(store.search({ platform: 'instagram' })).toEqual([])
+  expect(store.search({ offset: 99 })).toEqual([])
+  expect(store.get('youtube-a')?.metadata?.description).toBe(description)
+  expect(store.search({ limit: 1 })[0].metadata?.description).toHaveLength(600)
+})
+
 it('does not consume retry attempts for user pauses or interrupted requests', () => {
   store.seed(resource())
   for (let i = 0; i < 10; i++) {
