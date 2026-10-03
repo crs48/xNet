@@ -58,39 +58,48 @@ export async function checkpointWorkspace(
   } = {}
 ): Promise<CheckpointManifest> {
   // A quit checkpoint must be newer than a manual copy that was already running.
-  if (inFlight) await inFlight
+  while (inFlight) await inFlight
   inFlight = (async () => {
-    if (hasActiveSocialImports())
-      throw new Error('Finish or cancel the current import before making a recovery copy.')
-    if (!options.writersStopped) {
-      await flushRenderers()
-      await freezeLibrary()
+    try {
+      let point: CheckpointManifest
+      try {
+        if (hasActiveSocialImports())
+          throw new Error('Finish or cancel the current import before making a recovery copy.')
+        if (!options.writersStopped) {
+          await flushRenderers()
+          await freezeLibrary()
+        }
+        point = await createCheckpoint({
+          dataPath,
+          recoveryPath,
+          profile,
+          appVersion: app.getVersion(),
+          testIdentity: process.env.XNET_TEST_BYPASS === 'true'
+        })
+        await retainCheckpoints(recoveryPath, point.id, {
+          allowTestIdentity: process.env.XNET_TEST_BYPASS === 'true'
+        })
+      } finally {
+        if (options.resume !== false) {
+          try {
+            if (!options.writersStopped) await thawLibrary()
+          } finally {
+            // A failed acknowledgement must not leave the workspace inert.
+            resumeRenderers()
+          }
+        }
+      }
+      reportFailure(null)
+      return point
+    } catch (error) {
+      reportFailure(error instanceof Error ? error.message : String(error))
+      throw error
     }
-    const point = await createCheckpoint({
-      dataPath,
-      recoveryPath,
-      profile,
-      appVersion: app.getVersion(),
-      testIdentity: process.env.XNET_TEST_BYPASS === 'true'
-    })
-    await retainCheckpoints(recoveryPath, point.id, {
-      allowTestIdentity: process.env.XNET_TEST_BYPASS === 'true'
-    })
-    return point
   })()
   try {
-    const point = await inFlight
-    reportFailure(null)
-    return point
-  } catch (error) {
-    reportFailure(error instanceof Error ? error.message : String(error))
-    throw error
+    return await inFlight
   } finally {
     inFlight = null
-    if (options.resume !== false) {
-      if (!options.writersStopped) await thawLibrary()
-      resumeRenderers()
-    }
   }
 }
 

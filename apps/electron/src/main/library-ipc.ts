@@ -26,7 +26,7 @@ export async function configureLibrary(): Promise<void> {
   }
 }
 export const freezeLibrary = () => sendDataProcessRequest('library:freeze', {}, 120_000)
-export const thawLibrary = () => sendDataProcessRequest('library:thaw', {})
+export const thawLibrary = () => sendDataProcessRequest('library:thaw', {}, 120_000)
 export const refreshLibrarySources = () =>
   sendDataProcessRequest('library:scan', {}, 10 * 60 * 1000)
 export function setupLibraryIPC(getWindow: () => BrowserWindow | null): void {

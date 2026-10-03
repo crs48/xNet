@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-03-editing-resumes-after-recovery-copy-time",
+  "date": "October 3, 2026",
+  "title": "Editing resumes after recovery copy timeouts",
+  "summary": "The desktop restores editing if resuming Library enrichment times out after a recovery copy, keeps recovery errors visible, and gives large workspaces more time to resume.",
+  "highlights": [],
+  "tags": ["app"],
+  "pr": 721
+}
