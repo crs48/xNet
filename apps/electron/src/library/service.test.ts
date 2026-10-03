@@ -318,3 +318,51 @@ it('does not start new graph reads after the recovery write barrier closes', asy
   service.thaw()
   expect((await service.graph()).nodes).toEqual([])
 })
+
+it('keeps other providers moving while several requests from one source hang', async () => {
+  const hosts = ['youtube', 'instagram', 'github', 'reddit']
+  for (const host of hosts)
+    for (let i = 0; i < 4; i++)
+      service.store.seed({
+        ...resource(`${host}-${i}`),
+        platform: host,
+        url:
+          host === 'youtube'
+            ? resource('').url
+            : host === 'instagram'
+              ? `https://www.instagram.com/p/post${i}/`
+              : host === 'github'
+                ? `https://github.com/owner/repo${i}`
+                : `https://www.reddit.com/comments/${i}`
+      })
+  stubs.metadata.mockImplementation(
+    (_item: LibraryResource, signal: AbortSignal) =>
+      new Promise((_resolve, reject) =>
+        signal.addEventListener('abort', () => reject(new Error('cancelled')), { once: true })
+      )
+  )
+  service.resume()
+  await vi.advanceTimersByTimeAsync(9000)
+  const called = new Set(
+    stubs.metadata.mock.calls.map(([item]) => (item as LibraryResource).platform)
+  )
+  expect([...called].sort()).toEqual(hosts.sort())
+  expect(service.status().running.length).toBeLessThanOrEqual(10)
+  await service.pause()
+  expect(service.status().running).toEqual([])
+})
+
+it('keeps provider throttling resumable beyond the per-resource retry limit', async () => {
+  service.store.seed(resource('throttled'))
+  stubs.metadata.mockRejectedValue(
+    new LibraryProviderError('Rate limited', 'retry', Date.now() + 60_000, 'provider')
+  )
+  service.resume()
+  await vi.advanceTimersByTimeAsync(370_000)
+  expect(stubs.metadata.mock.calls.length).toBeGreaterThanOrEqual(6)
+  expect(count('metadata', 'blocked')).toBe(0)
+  expect(count('metadata', 'retry')).toBe(1)
+  stubs.metadata.mockResolvedValue(metadata)
+  await vi.advanceTimersByTimeAsync(60_000)
+  expect(count('metadata', 'complete')).toBe(1)
+})

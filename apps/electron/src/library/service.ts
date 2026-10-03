@@ -320,13 +320,26 @@ export class LibraryService {
         resource ? null : 'Source resource is missing.'
       )
     }
-    while (this.active.size < 4) {
+    while (this.active.size < 10) {
       const capabilities = (['metadata', 'thumbnail', 'transcript'] as const).filter(
         (capability) =>
           [...this.active.values()].filter((task) => task.job.capability === capability).length <
-          (capability === 'transcript' ? 1 : 2)
+          (capability === 'metadata' ? 6 : 2)
       )
-      const job = this.store.next(Date.now(), capabilities)
+      const providers = new Map<string, number>()
+      for (const task of this.active.values()) {
+        const source = this.store.get(task.job.resourceId)
+        if (source) {
+          const provider = queueProvider(source)
+          providers.set(provider, (providers.get(provider) ?? 0) + 1)
+        }
+      }
+      // Slow requests from one host cannot occupy every worker. Pacing and Retry-After
+      // remain enforced by the persistent queue, including after a restart.
+      const excluded = [...providers]
+        .filter(([, count]) => count >= 3)
+        .map(([provider]) => provider)
+      const job = this.store.next(Date.now(), capabilities, excluded)
       if (!job) break
       const key = `${job.resourceId}:${job.capability}`
       const controller = new AbortController()
@@ -567,7 +580,9 @@ export class LibraryService {
         failure.retryAt ??
         Date.now() + Math.min(24 * 60 * 60 * 1000, 30_000 * 2 ** Math.min(job.attempts, 10))
       const state =
-        failure.disposition === 'retry' && job.attempts >= 5 ? 'blocked' : failure.disposition
+        failure.disposition === 'retry' && failure.scope !== 'provider' && job.attempts >= 5
+          ? 'blocked'
+          : failure.disposition
       this.store.finish(job, state, failure.message, next)
       if (failure.scope === 'provider')
         this.store.pauseProvider(provider, Math.max(next, Date.now() + 60_000))

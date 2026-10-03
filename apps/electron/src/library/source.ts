@@ -40,5 +40,9 @@ export function providerResource(resource: LibraryResource): LibraryResource {
 
 export function queueProvider(resource: LibraryResource): string {
   if (!/^https?:\/\//.test(resource.url)) return resource.platform
-  return providerResource(resource).platform
+  const target = providerResource(resource)
+  if (['youtube', 'instagram', 'github', 'reddit', 'tiktok', 'x'].includes(target.platform))
+    return target.platform
+  // An archive's provenance is not the host serving its outbound citations.
+  return `web:${new URL(resource.url).hostname.toLowerCase().replace(/^www\./, '')}`
 }

@@ -1,7 +1,7 @@
 import type { LibraryResource } from './types'
 import { expect, it } from 'vitest'
 import { parsePostPreview, parsePublicPage, parseTikTokPage } from './public-pages'
-import { providerResource } from './source'
+import { providerResource, queueProvider } from './source'
 
 const resource = (url: string): LibraryResource => ({
   id: 'citation',
@@ -108,4 +108,63 @@ it('labels Reddit previews as partial and never treats them as transcripts', () 
   expect(result.fields.description.state).toBe('partial')
   expect(result.fields.captions.state).toBe('unavailable')
   expect(() => parsePostPreview({ error: 'not found' }, 'reddit')).toThrow('no public post')
+})
+
+it('keeps unrelated web hosts independent of the archive that imported them', () => {
+  expect(queueProvider(resource('https://example.org/a'))).toBe('web:example.org')
+  expect(queueProvider(resource('https://www.example.org/b'))).toBe('web:example.org')
+  expect(queueProvider(resource('https://another.org/a'))).toBe('web:another.org')
+})
+
+it('reads GitHub embedded READMEs and repository facts without retaining viewer data', () => {
+  const data = {
+    payload: {
+      csrf_tokens: { secret: 'must-not-retain' },
+      codeViewRepoRoute: {
+        overview: {
+          overviewFiles: [
+            { preferredFileType: 'license', richText: '<p>License text</p>' },
+            {
+              preferredFileType: 'readme',
+              path: 'README.md',
+              richText: '<article><h1>Example</h1><p>Searchable readme body</p></article>'
+            }
+          ]
+        }
+      },
+      sidebarAbout: {
+        description: 'Repository purpose',
+        topics: [{ name: 'learning' }, { name: 'graphs' }],
+        website: 'https://example.org',
+        stargazerCount: 123,
+        forksCount: 4,
+        repo: { license: { spdxId: 'MIT' } },
+        viewer: { secret: 'must-not-retain' }
+      }
+    }
+  }
+  const result = parsePublicPage(
+    `<title>Example repository</title><script data-target="react-app.embeddedData" type="application/json">${JSON.stringify(data)}</script>`,
+    'https://github.com/example/repo',
+    true
+  )
+  expect(result.description).toContain('Repository purpose')
+  expect(result.description).toContain('Searchable readme body')
+  expect(result.description).toContain('learning, graphs')
+  expect(result.fields.readme.state).toBe('complete')
+  expect(result.fields.description.state).toBe('complete')
+  expect(result.evidence).toMatchObject({
+    repository: { stars: 123, forks: 4, license: 'MIT', readmePath: 'README.md' }
+  })
+  expect(JSON.stringify(result)).not.toContain('must-not-retain')
+  expect(result.description).not.toContain('License text')
+})
+
+it('indexes visible article text without claiming hidden content was retrieved', () => {
+  const result = parsePublicPage(
+    '<title>Essay</title><nav>Navigation</nav><article><p>Late searchable passage</p><script>secret script</script></article>',
+    'https://example.org/essay'
+  )
+  expect(result.description).toBe('Late searchable passage')
+  expect(result.fields.description.state).toBe('partial')
 })

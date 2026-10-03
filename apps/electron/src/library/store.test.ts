@@ -359,3 +359,60 @@ it('projects every web link for the graph without source bodies or caption paylo
   })
   expect(JSON.stringify(rows)).not.toContain('private evidence')
 })
+
+it('bounds active hosts without skipping ready work from other providers', () => {
+  store.seed(resource('video'))
+  store.seed({ ...resource('repo'), url: 'https://github.com/example/repo', platform: 'github' })
+  expect(store.next(0, ['metadata'], ['youtube'])?.resourceId).toBe('repo')
+  expect(store.next(0, ['metadata'], ['youtube'])).toBeNull()
+  expect(store.next(0, ['metadata'])?.resourceId).toBe('video')
+})
+
+it('migrates archive-wide pacing to hosts and queues richer page extraction only once', () => {
+  store.seed({
+    ...resource('web'),
+    platform: 'openai',
+    url: 'https://example.org/essay',
+    metadata: {
+      title: 'Preview',
+      description: 'Short preview',
+      fields: {},
+      provider: 'public-page/1',
+      fetchedAt: 1,
+      evidence: {}
+    }
+  })
+  store.finish(store.next(0, ['metadata'])!, 'partial')
+  store.close()
+  const db = new Database(path)
+  db.prepare("DELETE FROM settings WHERE key IN ('queue-hosts-v1','page-text-v2')").run()
+  db.prepare("UPDATE resource_providers SET platform='openai'").run()
+  db.close()
+  store = new LibraryStore(path)
+  store.pauseProvider('web:example.org', 5000)
+  expect(store.next(0, ['metadata'])).toBeNull()
+  const job = store.next(5000, ['metadata'])!
+  expect(job.resourceId).toBe('web')
+  expect(store.get('web')?.metadata?.description).toBe('Short preview')
+  store.finish(job, 'complete')
+  store.close()
+  store = new LibraryStore(path)
+  expect(store.next(6000, ['metadata'])).toBeNull()
+})
+
+it('reconciles existing passage ownership and removes replaced text from search', () => {
+  store.seed({ ...resource(), sourceText: 'oldsearchphrase' })
+  store.close()
+  const db = new Database(path)
+  db.exec('DROP TABLE search_rows')
+  db.close()
+  store = new LibraryStore(path)
+  store.index({ ...resource(), sourceText: 'newsearchphrase' })
+  expect(store.search({ text: 'oldsearchphrase' })).toEqual([])
+  expect(store.search({ text: 'newsearchphrase' })).toHaveLength(1)
+  store.close()
+  store = new LibraryStore(path)
+  store.index({ ...resource(), sourceText: 'finalsearchphrase' })
+  expect(store.search({ text: 'newsearchphrase' })).toEqual([])
+  expect(store.search({ text: 'finalsearchphrase' })).toHaveLength(1)
+})

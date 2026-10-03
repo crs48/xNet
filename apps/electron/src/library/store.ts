@@ -74,8 +74,34 @@ export class LibraryStore {
       INSERT OR IGNORE INTO resource_providers SELECT id,COALESCE(json_extract(payload,'$.networkPlatform'),platform) FROM resources;
       CREATE TABLE IF NOT EXISTS attempts(resource_id TEXT NOT NULL, capability TEXT NOT NULL, version TEXT NOT NULL, at_ms INTEGER NOT NULL, state TEXT NOT NULL, reason TEXT);
       CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5(resource_id UNINDEXED, title, body, start_ms UNINDEXED, tokenize='unicode61');
+      CREATE TABLE IF NOT EXISTS search_rows(row_id INTEGER PRIMARY KEY, resource_id TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS search_rows_resource ON search_rows(resource_id);
       PRAGMA user_version = 1;
     `)
+    // FTS's UNINDEXED resource_id otherwise scans every saved passage on each update.
+    // Reconcile on open so an older app can still write this disposable search cache.
+    this.db.transaction(() => {
+      this.db.exec(`
+        DELETE FROM search_rows WHERE row_id NOT IN (SELECT rowid FROM search);
+        INSERT OR REPLACE INTO search_rows SELECT rowid,resource_id FROM search;
+      `)
+    })()
+    if (!this.db.prepare("SELECT 1 FROM settings WHERE key='queue-hosts-v1'").get()) {
+      this.db.transaction(() => {
+        const update = this.db.prepare(
+          'UPDATE resource_providers SET platform=? WHERE resource_id=?'
+        )
+        for (let offset = 0; ; offset += 500) {
+          const rows = this.db
+            .prepare('SELECT id,payload FROM resources ORDER BY id LIMIT 500 OFFSET ?')
+            .all(offset) as { id: string; payload: string }[]
+          for (const source of rows)
+            update.run(queueProvider(JSON.parse(source.payload) as LibraryResource), source.id)
+          if (rows.length < 500) break
+        }
+        this.db.prepare("INSERT INTO settings VALUES ('queue-hosts-v1','true')").run()
+      })()
+    }
     // A new provider version gets a complete, resumable pass over existing resources.
     // Retain older jobs as evidence; current successful work is never reset on restart.
     this.db.transaction(() => {
@@ -110,11 +136,31 @@ export class LibraryStore {
           )
           .run(capability, LIBRARY_PROVIDER_VERSION)
     })()
+    if (!this.db.prepare("SELECT 1 FROM settings WHERE key='page-text-v2'").get()) {
+      this.db.transaction(() => {
+        this.db
+          .prepare(
+            `UPDATE work SET state='queued',attempts=0,next_at=0,reason=NULL
+          WHERE version=? AND capability='metadata' AND state IN ('partial','complete')
+          AND resource_id IN (SELECT id FROM resources WHERE json_extract(payload,'$.metadata.provider') IN ('github-page/1','public-page/1'))`
+          )
+          .run(LIBRARY_PROVIDER_VERSION)
+        this.db.prepare("INSERT INTO settings VALUES ('page-text-v2','true')").run()
+      })()
+    }
     this.db
       .prepare(
         "UPDATE work SET state = 'queued', attempts=MAX(0,attempts-1), reason = 'Interrupted; ready to resume' WHERE state = 'running'"
       )
       .run()
+    this.db
+      .prepare(
+        `UPDATE work SET next_at=-1 WHERE version=?
+      AND capability IN ('thumbnail','transcript') AND state='queued' AND next_at=0
+      AND EXISTS (SELECT 1 FROM work m WHERE m.resource_id=work.resource_id
+        AND m.version=work.version AND m.capability='metadata' AND m.state IN ('complete','partial'))`
+      )
+      .run(LIBRARY_PROVIDER_VERSION)
   }
   close(): void {
     if (this.db.open) this.db.close()
@@ -291,26 +337,42 @@ export class LibraryStore {
       )
       .run(-Date.now(), id, LIBRARY_PROVIDER_VERSION)
   }
-  next(now: number, capabilities: readonly Capability[] = CAPABILITIES): LibraryJob | null {
+  next(
+    now: number,
+    capabilities: readonly Capability[] = CAPABILITIES,
+    excludedProviders: readonly string[] = []
+  ): LibraryJob | null {
     if (!capabilities.length) return null
-    const row =
-      capabilities.length === 1 && capabilities[0] === 'index'
-        ? (this.db
-            .prepare(
-              "SELECT * FROM work WHERE version=? AND capability='index' AND state IN ('queued','retry') AND next_at<=? ORDER BY next_at LIMIT 1"
-            )
-            .get(LIBRARY_PROVIDER_VERSION, now) as JobRow | undefined)
-        : (this.db
-            .prepare(
-              `SELECT w.* FROM work w JOIN resources r ON r.id=w.resource_id
-      LEFT JOIN resource_providers rp ON rp.resource_id=r.id
-      LEFT JOIN provider_pause p ON p.platform=COALESCE(rp.platform,r.platform)
-      LEFT JOIN provider_pause lane ON lane.platform=COALESCE(rp.platform,r.platform) || ':' || w.capability
-      WHERE w.version=? AND w.capability IN (${capabilities.map(() => '?').join(',')}) AND w.state IN ('queued','retry') AND w.next_at<=? AND (p.until_ms IS NULL OR p.until_ms<=? OR w.capability='index') AND (lane.until_ms IS NULL OR lane.until_ms<=? OR w.capability='index')
-      AND (w.capability IN ('metadata','index') OR NOT EXISTS (SELECT 1 FROM work m WHERE m.resource_id=w.resource_id AND m.capability='metadata' AND m.version=w.version AND m.state IN ('queued','running','retry')))
-      ORDER BY CASE w.capability WHEN 'index' THEN 0 ELSE 1 END, MIN(w.next_at,0), r.added_at DESC, r.id, CASE w.capability WHEN 'metadata' THEN 0 WHEN 'thumbnail' THEN 1 ELSE 2 END LIMIT 1`
-            )
-            .get(LIBRARY_PROVIDER_VERSION, ...capabilities, now, now, now) as JobRow | undefined)
+    let row: JobRow | undefined
+    // The index supplies queue order directly; never sort the entire import backlog per claim.
+    const ordered = capabilities.includes('index')
+      ? ['index' as const, ...capabilities.filter((capability) => capability !== 'index')]
+      : capabilities
+    for (const capability of ordered) {
+      row =
+        capability === 'index'
+          ? (this.db
+              .prepare(
+                "SELECT * FROM work WHERE version=? AND capability='index' AND state IN ('queued','retry') AND next_at<=? ORDER BY next_at LIMIT 1"
+              )
+              .get(LIBRARY_PROVIDER_VERSION, now) as JobRow | undefined)
+          : (this.db
+              .prepare(
+                `SELECT w.* FROM work w INDEXED BY work_pending_capability
+      JOIN resource_providers rp ON rp.resource_id=w.resource_id
+      LEFT JOIN provider_pause p ON p.platform=rp.platform
+      LEFT JOIN provider_pause lane ON lane.platform=rp.platform || ':' || w.capability
+      WHERE w.version=? AND w.capability=? AND w.state IN ('queued','retry') AND w.next_at<=?
+      AND (p.until_ms IS NULL OR p.until_ms<=?) AND (lane.until_ms IS NULL OR lane.until_ms<=?)
+      ${excludedProviders.length ? `AND rp.platform NOT IN (${excludedProviders.map(() => '?').join(',')})` : ''}
+      AND (w.capability='metadata' OR NOT EXISTS (SELECT 1 FROM work m WHERE m.resource_id=w.resource_id AND m.capability='metadata' AND m.version=w.version AND m.state IN ('queued','running','retry')))
+      ORDER BY w.next_at LIMIT 1`
+              )
+              .get(LIBRARY_PROVIDER_VERSION, capability, now, now, now, ...excludedProviders) as
+              | JobRow
+              | undefined)
+      if (row) break
+    }
     if (!row) return null
     const job = jobFor(row)
     this.db
@@ -336,7 +398,7 @@ export class LibraryStore {
       if (job.capability === 'metadata' && (state === 'complete' || state === 'partial'))
         this.db
           .prepare(
-            "UPDATE work SET state='queued',attempts=0,next_at=0,reason=NULL WHERE resource_id=? AND version=? AND capability IN ('thumbnail','transcript') AND state IN ('blocked','unavailable')"
+            "UPDATE work SET state='queued',attempts=0,next_at=MIN(next_at,-1),reason=NULL WHERE resource_id=? AND version=? AND capability IN ('thumbnail','transcript') AND state IN ('queued','blocked','unavailable')"
           )
           .run(job.resourceId, job.version)
       this.db
@@ -367,13 +429,22 @@ export class LibraryStore {
   }
   index(resource: LibraryResource): void {
     this.db.transaction(() => {
-      this.db.prepare('DELETE FROM search WHERE resource_id=?').run(resource.id)
+      this.db
+        .prepare(
+          'DELETE FROM search WHERE rowid IN (SELECT row_id FROM search_rows WHERE resource_id=?)'
+        )
+        .run(resource.id)
+      this.db.prepare('DELETE FROM search_rows WHERE resource_id=?').run(resource.id)
       const insert = this.db.prepare(
         'INSERT INTO search(resource_id,title,body,start_ms) VALUES (?,?,?,?)'
       )
+      const owner = this.db.prepare('INSERT INTO search_rows(row_id,resource_id) VALUES (?,?)')
+      const passage = (title: string, body: string, startMs: number | null) => {
+        const result = insert.run(resource.id, title, body, startMs)
+        owner.run(result.lastInsertRowid, resource.id)
+      }
       const title = resource.metadata?.title || resource.title
-      insert.run(
-        resource.id,
+      passage(
         title,
         [
           resource.url,
@@ -386,8 +457,7 @@ export class LibraryStore {
           .join('\n'),
         null
       )
-      for (const cue of resource.transcript?.cues ?? [])
-        insert.run(resource.id, title, cue.text, cue.startMs)
+      for (const cue of resource.transcript?.cues ?? []) passage(title, cue.text, cue.startMs)
     })()
   }
   search(options: {
