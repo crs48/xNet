@@ -15,12 +15,13 @@ const value = (flag: string) => {
 }
 if (args.includes('--help')) {
   console.log(
-    'Read-only xNet seed preview: pnpm exec tsx scripts/inventory-personal-library.ts [--exports-dir .exports] [--garden-file garden.json] [--output report.json]'
+    'Read-only xNet seed preview: pnpm exec tsx scripts/inventory-personal-library.ts [--all-supported] [--exports-dir .exports] [--garden-file garden.json] [--output report.json]\n--all-supported includes social activity and AI conversations; excludes DMs, billing, and account/security metadata.'
   )
   process.exit(0)
 }
 const exportsDir = resolve(value('--exports-dir') ?? '.exports')
 const output = value('--output')
+const allSupported = args.includes('--all-supported')
 const sources = [
   {
     file: 'instagram.zip',
@@ -31,6 +32,16 @@ const sources = [
   { file: 'youtube.zip', adapterId: 'youtube', buckets: ['youtube.playlists'] },
   { file: 'github-stars.json', adapterId: 'github', buckets: ['github.stars'] }
 ]
+if (allSupported)
+  sources.push(
+    ...[
+      ['tiktok.zip', 'tiktok'],
+      ['reddit.zip', 'reddit'],
+      ['claude.zip', 'claude'],
+      ['chatgpt.zip', 'openai'],
+      ['grok.zip', 'grok']
+    ].map(([file, adapterId]) => ({ file, adapterId, buckets: [] }))
+  )
 const gardenFile = value('--garden-file')
 if (gardenFile)
   sources.push({ file: resolve(gardenFile), adapterId: 'garden', buckets: ['garden.entries'] })
@@ -42,6 +53,16 @@ for (const source of sources) {
     const adapter = builtInSocialImportAdapters.find((adapter) => adapter.id === source.adapterId)
     if (!adapter) throw new Error(`Missing adapter: ${source.adapterId}`)
     const probe = await adapter.probe({ manifest })
+    const buckets = allSupported
+      ? probe.buckets
+          .filter(
+            (bucket) =>
+              bucket.id === 'grok.conversations' ||
+              (['public', 'private'].includes(bucket.privacyClass) &&
+                !/(security|account-metadata)/.test(bucket.id))
+          )
+          .map((bucket) => bucket.id)
+      : source.buckets
     const counts: Record<string, number> = {}
     const unique = new Map<string, Set<string>>()
     const sourceRecords: Record<string, number> = {}
@@ -72,7 +93,7 @@ for (const source of sources) {
         readJsonEntry,
         readTextEntry
       },
-      { buckets: source.buckets, includeSensitive: true }
+      { buckets, includeSensitive: true }
     ))
       collect(record)
     results.push({
@@ -80,12 +101,12 @@ for (const source of sources) {
       status: 'previewed',
       archiveHash: manifest.archiveHash,
       adapterVersion: adapter.version,
-      selected: source.buckets,
+      selected: buckets,
       unclassifiedEntryCount: manifest.entries.filter(
         (entry) => !probe.buckets.some((bucket) => bucket.entryPaths.includes(entry.path))
       ).length,
       excludedBuckets: probe.buckets
-        .filter((bucket) => !source.buckets.includes(bucket.id))
+        .filter((bucket) => !buckets.includes(bucket.id))
         .map((bucket) => bucket.id),
       counts,
       unique: Object.fromEntries([...unique].map(([kind, ids]) => [kind, ids.size])),

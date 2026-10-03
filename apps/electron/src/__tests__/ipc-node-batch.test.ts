@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { NodeStore, PageSchema } from '@xnetjs/data'
+import { NodeStore, PageSchema, SQLiteNodeStorageAdapter } from '@xnetjs/data'
 import { identityFromPrivateKey } from '@xnetjs/identity'
 import Database from 'better-sqlite3'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -161,4 +161,31 @@ it('edits an imported record without losing its original signed change identity'
   expect(changes[1].parentHash).toBe(original?.hash)
   expect(changes[1].lamport).toBeGreaterThan(original!.lamport)
   expect((await service.getNode('imported'))?.properties.title).toBe('My title')
+})
+
+it('hydrates a query page in one batch while preserving order and document bytes', async () => {
+  for (const id of ['old', 'middle', 'new'])
+    await store.create({ id, schemaId: PageSchema._schemaId, properties: { title: id } })
+  const time = database.prepare('UPDATE nodes SET created_at=? WHERE id=?')
+  time.run(1, 'old')
+  time.run(2, 'middle')
+  time.run(3, 'new')
+  await service.setDocumentContent('middle', [0, 127, 255])
+  const expected = [await service.getNode('middle'), await service.getNode('old')]
+  const single = vi.spyOn(service, 'getNode')
+  const batch = vi.spyOn(SQLiteNodeStorageAdapter.prototype, 'getNodes')
+  try {
+    const rows = await service.listNodes({
+      schemaId: PageSchema._schemaId,
+      orderBy: { createdAt: 'desc' },
+      offset: 1,
+      limit: 2
+    })
+    expect(rows).toEqual(expected)
+    expect(single).not.toHaveBeenCalled()
+    expect(batch).toHaveBeenCalledExactlyOnceWith(['middle', 'old'])
+  } finally {
+    single.mockRestore()
+    batch.mockRestore()
+  }
 })

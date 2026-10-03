@@ -65,8 +65,11 @@ export class LibraryStore {
       CREATE INDEX IF NOT EXISTS resource_url ON resources(url);
       CREATE TABLE IF NOT EXISTS work(resource_id TEXT NOT NULL, capability TEXT NOT NULL, version TEXT NOT NULL, language TEXT NOT NULL, state TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, next_at INTEGER NOT NULL DEFAULT 0, reason TEXT, PRIMARY KEY(resource_id, capability, version, language));
       CREATE INDEX IF NOT EXISTS work_due ON work(state, next_at);
+      CREATE INDEX IF NOT EXISTS work_pending_capability ON work(version,capability,next_at) WHERE state IN ('queued','retry');
       CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS provider_pause(platform TEXT PRIMARY KEY, until_ms INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS resource_providers(resource_id TEXT PRIMARY KEY, platform TEXT NOT NULL);
+      INSERT OR IGNORE INTO resource_providers SELECT id,COALESCE(json_extract(payload,'$.networkPlatform'),platform) FROM resources;
       CREATE TABLE IF NOT EXISTS attempts(resource_id TEXT NOT NULL, capability TEXT NOT NULL, version TEXT NOT NULL, at_ms INTEGER NOT NULL, state TEXT NOT NULL, reason TEXT);
       CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5(resource_id UNINDEXED, title, body, start_ms UNINDEXED, tokenize='unicode61');
       PRAGMA user_version = 1;
@@ -187,15 +190,22 @@ export class LibraryStore {
   }
   put(resource: LibraryResource): void {
     resource = { ...resource, networkPlatform: queueProvider(resource) }
-    this.db
-      .prepare(
-        'INSERT INTO resources VALUES (@id,@url,@platform,@title,@payload,@addedAt) ON CONFLICT(id) DO UPDATE SET url=excluded.url, platform=excluded.platform, title=excluded.title, payload=excluded.payload'
-      )
-      .run({
-        ...resource,
-        title: resource.metadata?.title || resource.title,
-        payload: JSON.stringify(resource)
-      })
+    this.db.transaction(() => {
+      this.db
+        .prepare(
+          'INSERT INTO resources VALUES (@id,@url,@platform,@title,@payload,@addedAt) ON CONFLICT(id) DO UPDATE SET url=excluded.url, platform=excluded.platform, title=excluded.title, payload=excluded.payload'
+        )
+        .run({
+          ...resource,
+          title: resource.metadata?.title || resource.title,
+          payload: JSON.stringify(resource)
+        })
+      this.db
+        .prepare(
+          'INSERT INTO resource_providers VALUES (?,?) ON CONFLICT(resource_id) DO UPDATE SET platform=excluded.platform'
+        )
+        .run(resource.id, resource.networkPlatform)
+    })()
   }
   seed(resource: LibraryResource): void {
     this.db.transaction(() => {
@@ -257,9 +267,9 @@ export class LibraryStore {
   reindex(id: string): void {
     this.db
       .prepare(
-        "UPDATE work SET state='queued',next_at=0,reason=NULL WHERE resource_id=? AND capability='index' AND version=?"
+        "UPDATE work SET state='queued',next_at=?,reason=NULL WHERE resource_id=? AND capability='index' AND version=?"
       )
-      .run(id, LIBRARY_PROVIDER_VERSION)
+      .run(-Date.now(), id, LIBRARY_PROVIDER_VERSION)
   }
   next(now: number, capabilities: readonly Capability[] = CAPABILITIES): LibraryJob | null {
     if (!capabilities.length) return null
@@ -273,8 +283,9 @@ export class LibraryStore {
         : (this.db
             .prepare(
               `SELECT w.* FROM work w JOIN resources r ON r.id=w.resource_id
-      LEFT JOIN provider_pause p ON p.platform=COALESCE(json_extract(r.payload,'$.networkPlatform'),r.platform)
-      LEFT JOIN provider_pause lane ON lane.platform=COALESCE(json_extract(r.payload,'$.networkPlatform'),r.platform) || ':' || w.capability
+      LEFT JOIN resource_providers rp ON rp.resource_id=r.id
+      LEFT JOIN provider_pause p ON p.platform=COALESCE(rp.platform,r.platform)
+      LEFT JOIN provider_pause lane ON lane.platform=COALESCE(rp.platform,r.platform) || ':' || w.capability
       WHERE w.version=? AND w.capability IN (${capabilities.map(() => '?').join(',')}) AND w.state IN ('queued','retry') AND w.next_at<=? AND (p.until_ms IS NULL OR p.until_ms<=? OR w.capability='index') AND (lane.until_ms IS NULL OR lane.until_ms<=? OR w.capability='index')
       AND (w.capability IN ('metadata','index') OR NOT EXISTS (SELECT 1 FROM work m WHERE m.resource_id=w.resource_id AND m.capability='metadata' AND m.version=w.version AND m.state IN ('queued','running','retry')))
       ORDER BY CASE w.capability WHEN 'index' THEN 0 ELSE 1 END, MIN(w.next_at,0), r.added_at DESC, r.id, CASE w.capability WHEN 'metadata' THEN 0 WHEN 'thumbnail' THEN 1 ELSE 2 END LIMIT 1`
@@ -414,8 +425,9 @@ export class LibraryStore {
       .prepare(
         `SELECT MIN(MAX(w.next_at,COALESCE(p.until_ms,0),COALESCE(lane.until_ms,0))) AS at
       FROM work w JOIN resources r ON r.id=w.resource_id
-      LEFT JOIN provider_pause p ON p.platform=COALESCE(json_extract(r.payload,'$.networkPlatform'),r.platform)
-      LEFT JOIN provider_pause lane ON lane.platform=COALESCE(json_extract(r.payload,'$.networkPlatform'),r.platform) || ':' || w.capability
+      LEFT JOIN resource_providers rp ON rp.resource_id=r.id
+      LEFT JOIN provider_pause p ON p.platform=COALESCE(rp.platform,r.platform)
+      LEFT JOIN provider_pause lane ON lane.platform=COALESCE(rp.platform,r.platform) || ':' || w.capability
       WHERE w.version=? AND w.state IN ('queued','retry') AND w.capability!='index'
       AND (w.capability='metadata' OR NOT EXISTS (SELECT 1 FROM work m WHERE m.resource_id=w.resource_id AND m.capability='metadata' AND m.version=w.version AND m.state IN ('queued','running','retry')))`
       )

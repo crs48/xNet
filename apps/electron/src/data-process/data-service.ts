@@ -1630,14 +1630,12 @@ export function createDataService(config: DataServiceConfig): DataService {
         deleted_at: number | null
       }>(sql, params)
 
-      // Fetch full node state for each
-      const nodes: SerializedNodeState[] = []
-      for (const row of rows) {
-        const node = await this.getNode(row.id)
-        if (node) nodes.push(node)
-      }
-
-      return nodes
+      // One hydration read per page avoids a worker round-trip for every imported node.
+      const nodes = await requireNodeStorage().getNodes(rows.map((row) => row.id))
+      return nodes.map((node) => ({
+        ...node,
+        documentContent: node.documentContent ? Array.from(node.documentContent) : undefined
+      }))
     },
 
     async countNodes(options?: CountNodesOptions): Promise<number> {

@@ -321,3 +321,10 @@ it('prioritizes a selected old source without bypassing provider backoff', () =>
   expect(store.next(0, ['metadata'])).toBeNull()
   expect(store.next(60_000, ['metadata'])?.resourceId).toBe('old')
 })
+
+it('indexes freshly enriched passages ahead of a bulk import backlog', () => {
+  for (let i = 0; i < 200; i++) store.seed(resource(`bulk-${i}`))
+  store.seed(resource('fresh'))
+  store.reindex('fresh')
+  expect(store.next(Date.now(), ['index'])?.resourceId).toBe('fresh')
+})

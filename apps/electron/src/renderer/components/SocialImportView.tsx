@@ -484,7 +484,7 @@ export function SocialImportView({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto p-5">
+          <div className="min-h-0 flex-1 overflow-auto p-5 pb-28">
             <div className="space-y-5">
               {savedJobs.length > 0 && (
                 <section className="space-y-2 rounded-md border border-border p-3">

@@ -22,7 +22,7 @@ import {
 } from '../import/core'
 
 export const REDDIT_ADAPTER_ID = 'reddit'
-export const REDDIT_ADAPTER_VERSION = '0.1.0'
+export const REDDIT_ADAPTER_VERSION = '0.1.1'
 
 export type RedditCsvRow = Record<string, string>
 
@@ -133,6 +133,44 @@ export const redditAdapter: SocialImportAdapter = {
 }
 
 export async function* stageRedditArchive(
+  context: SocialImportContext,
+  selection: ImportSelection = {}
+): AsyncIterable<StagedSocialRecord> {
+  const content = new Map<string, StagedSocialRecord>()
+  for await (const record of readRedditArchive(context, selection)) {
+    if (record.kind !== 'content') {
+      yield record
+      continue
+    }
+    const previous = content.get(record.deterministicId)
+    if (!previous) {
+      content.set(record.deterministicId, record)
+      yield record
+      continue
+    }
+    // Votes and saves often contain only an ID. Keep the fuller observation from
+    // this same export, so a later reference cannot erase an authored body.
+    const strength = (value: StagedSocialRecord) => Number(value.properties.confidence ?? 0)
+    const bodyLength = (value: StagedSocialRecord) =>
+      typeof value.properties.searchText === 'string' ? value.properties.searchText.length : 0
+    const preferPrevious =
+      strength(previous) > strength(record) ||
+      (strength(previous) === strength(record) && bodyLength(previous) >= bodyLength(record))
+    const defined = (value: StagedSocialRecord) =>
+      Object.fromEntries(
+        Object.entries(value.properties).filter(
+          ([, value]) => value !== undefined && value !== null && value !== ''
+        )
+      )
+    const richer = preferPrevious ? previous : record
+    const poorer = preferPrevious ? record : previous
+    const merged = { ...record, properties: { ...defined(poorer), ...defined(richer) } }
+    content.set(record.deterministicId, merged)
+    yield merged
+  }
+}
+
+async function* readRedditArchive(
   context: SocialImportContext,
   selection: ImportSelection = {}
 ): AsyncIterable<StagedSocialRecord> {
