@@ -174,9 +174,9 @@ export async function spawnDataProcess(dbPath: string): Promise<void> {
         isReady = true
         log('Data process ready')
 
-        // Startup checks a disposable copy of the whole database before opening
-        // writers. A multi-gigabyte Library can exceed the usual 30-second RPC limit.
-        sendRequest('init', { dbPath }, 120_000)
+        // Startup inspects both databases and reconciles the Library search cache.
+        // Large libraries need minutes; ordinary requests keep their shorter deadline.
+        sendRequest('init', { dbPath }, 600_000)
           .then(() => {
             log('Data process initialized')
             resolve()

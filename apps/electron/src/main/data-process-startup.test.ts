@@ -45,7 +45,7 @@ it('waits for a large workspace inspection beyond the ordinary request deadline'
     }
   )
   ready()
-  await vi.advanceTimersByTimeAsync(45_000)
+  await vi.advanceTimersByTimeAsync(360_000)
   expect(state).toBe('waiting')
   respond()
   await opened
@@ -58,13 +58,13 @@ it('waits for a large workspace inspection beyond the ordinary request deadline'
   await request
 })
 
-it('still fails an initialization that never replies within two minutes', async () => {
+it('still fails an initialization that never replies within ten minutes', async () => {
   const manager = await import('./data-process-manager')
   const opened = expect(manager.spawnDataProcess('/test/data.db')).rejects.toThrow(
     'Request init timed out'
   )
   ready()
-  await vi.advanceTimersByTimeAsync(120_000)
+  await vi.advanceTimersByTimeAsync(600_000)
   await opened
 })
 
