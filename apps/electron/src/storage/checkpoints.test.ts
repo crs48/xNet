@@ -107,6 +107,46 @@ describe('complete native recovery copies', () => {
     }
   })
 
+  it('keeps WAL copies independent of live writes and later recovery points', async () => {
+    const source = join(dataPath, 'data.db')
+    const writer = new Database(source)
+    writer.pragma('journal_mode = WAL')
+    writer.pragma('wal_autocheckpoint = 0')
+    writer.exec("INSERT INTO content VALUES ('first saved value')")
+    try {
+      const before = await Promise.all([readFile(source), readFile(`${source}-wal`)])
+      const first = await create()
+      expect(await Promise.all([readFile(source), readFile(`${source}-wal`)])).toEqual(before)
+      expect(writer.pragma('journal_mode', { simple: true })).toBe('wal')
+
+      writer.exec("UPDATE content SET value = 'later live value' WHERE rowid = 2")
+      const second = await create()
+      const firstPath = join(recoveryPath, first.id)
+      const secondPath = join(recoveryPath, second.id)
+      const firstCopy = new Database(join(firstPath, 'workspace/data.db'), { readonly: true })
+      const secondCopy = new Database(join(secondPath, 'workspace/data.db'))
+      try {
+        expect(firstCopy.pragma('journal_mode', { simple: true })).toBe('delete')
+        expect(firstCopy.prepare('SELECT value FROM content WHERE rowid = 2').get()).toEqual({
+          value: 'first saved value'
+        })
+        expect(secondCopy.prepare('SELECT value FROM content WHERE rowid = 2').get()).toEqual({
+          value: 'later live value'
+        })
+        secondCopy.exec("UPDATE content SET value = 'edited restored copy' WHERE rowid = 2")
+        expect(writer.prepare('SELECT value FROM content WHERE rowid = 2').get()).toEqual({
+          value: 'later live value'
+        })
+      } finally {
+        firstCopy.close()
+        secondCopy.close()
+      }
+      await verifyCheckpoint(firstPath)
+    } finally {
+      writer.close()
+    }
+  })
+
   it('rejects an incomplete source and keeps the previous good copy', async () => {
     const good = await create()
     await rm(join(dataPath, 'identity-seed.json'))

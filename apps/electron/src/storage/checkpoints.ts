@@ -1,8 +1,10 @@
 import type { CheckpointManifest, CheckpointListing } from '../shared/recovery'
+import { execFile } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { createReadStream, constants } from 'node:fs'
 import { copyFile, lstat, mkdir, readdir, readFile, rename, rm, open } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
+import { promisify } from 'node:util'
 import Database from 'better-sqlite3'
 import { retainedCheckpointIds } from './checkpoint-policy'
 
@@ -10,6 +12,7 @@ const FORMAT = 'xnet-desktop-checkpoint/1'
 const DATABASES = ['data.db', 'xnet.db']
 const OPTIONAL_DATABASES = ['library.db']
 const REQUIRED = [...DATABASES, 'identity-seed.json']
+const runFile = promisify(execFile)
 
 export type { CheckpointManifest } from '../shared/recovery'
 
@@ -73,23 +76,28 @@ async function syncFile(path: string): Promise<void> {
   }
 }
 
+async function copyCheckpointFile(source: string, destination: string): Promise<void> {
+  if (process.platform === 'darwin') {
+    // Electron's Node 20/libuv cannot clone APFS files through copyFile. Native
+    // cp uses independent copy-on-write files, with a full-copy fallback off APFS.
+    await runFile('/bin/cp', ['-c', source, destination])
+  } else {
+    await copyFile(source, destination, constants.COPYFILE_FICLONE)
+  }
+}
+
 async function normalizeDatabase(path: string): Promise<void> {
-  const db = new Database(path, { readonly: true, fileMustExist: true })
-  const normalized = `${path}.snapshot`
+  const db = new Database(path, { fileMustExist: true })
   try {
     if (db.pragma('quick_check', { simple: true }) !== 'ok')
       throw new Error('Recovery database failed integrity verification')
-    await db.backup(normalized)
+    // This is the isolated copy, never the live database. Leaving WAL mode folds
+    // committed pages into it without rewriting every unchanged cloned page.
+    if (db.pragma('journal_mode = DELETE', { simple: true }) !== 'delete')
+      throw new Error('Recovery database could not become a standalone copy')
   } finally {
     db.close()
   }
-  const standalone = new Database(normalized)
-  try {
-    standalone.pragma('journal_mode = DELETE')
-  } finally {
-    standalone.close()
-  }
-  await rename(normalized, path)
   for (const suffix of ['-wal', '-shm']) await rm(path + suffix, { force: true })
 }
 
@@ -146,11 +154,7 @@ export async function createCheckpoint(options: {
     for (const entry of before) {
       const destination = safePath(payload, entry.path)
       await mkdir(dirname(destination), { recursive: true, mode: 0o700 })
-      await copyFile(
-        safePath(options.dataPath, entry.path),
-        destination,
-        constants.COPYFILE_FICLONE
-      )
+      await copyCheckpointFile(safePath(options.dataPath, entry.path), destination)
     }
     if (JSON.stringify(before) !== JSON.stringify(await inventory(options.dataPath))) {
       throw new Error(

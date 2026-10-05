@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-04-large-desktop-libraries-use-less-space-f",
+  "date": "October 4, 2026",
+  "title": "Large desktop libraries use less space for backups",
+  "summary": "Recovery copies on macOS share unchanged disk blocks while keeping saved content and backup retention intact.",
+  "highlights": [],
+  "tags": ["platform", "performance"],
+  "pr": 721
+}
