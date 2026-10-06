@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # Main-Thread SQLite And The Multiple-Reader Question
 
 ## Problem Statement

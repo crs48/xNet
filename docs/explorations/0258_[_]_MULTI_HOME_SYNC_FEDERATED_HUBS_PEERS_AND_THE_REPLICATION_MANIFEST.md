@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # Multi-Home Sync — Federated Hubs, Community Hubs, Peers, and the Replication Manifest
 
 ## Problem Statement

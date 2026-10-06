@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # The Cold-Open Stall, Take Six: Name the 15 s Query and Split the 9 s "Identity" Bucket
 
 ## Problem Statement

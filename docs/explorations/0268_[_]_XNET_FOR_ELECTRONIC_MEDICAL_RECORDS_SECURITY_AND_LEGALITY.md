@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # xNet For Electronic Medical Records — Security And Legality
 
 ## Problem Statement

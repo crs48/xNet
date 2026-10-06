@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # Compact The Change Log: The Durable Cold‑Open Fix — Snapshot The State, Keep The Tail
 
 ## Problem Statement

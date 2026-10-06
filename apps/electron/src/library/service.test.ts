@@ -135,7 +135,7 @@ it('retains both fetched captions and a thumbnail when their requests finish out
       new Response(
         url.endsWith('.png')
           ? Buffer.from(
-              'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jhZkAAAAASUVORK5CYII=',
+              'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADElEQVQImWP4//8/AAX+Av5Y8msOAAAAAElFTkSuQmCC',
               'base64'
             )
           : JSON.stringify({
