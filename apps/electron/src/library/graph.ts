@@ -9,6 +9,7 @@ import {
 
 export type GraphResource = {
   id: string
+  resourceKind?: string | null
   url: string
   title: string
   platform: string
@@ -42,7 +43,10 @@ export const hashtagsIn = (value: string): string[] => [
 ]
 
 /** Hubs preserve source relationships without expanding a playlist into a quadratic clique. */
-export function createGraphBuilder(resources: GraphResource[], resourceCount: number) {
+export function createGraphBuilder(allResources: GraphResource[], resourceCount: number) {
+  // A conversation can carry an HTTP source URL. A URL alone is not permission
+  // to include its title, hashtags or relationships in the saved-link projection.
+  const resources = allResources.filter((resource) => !resource.resourceKind)
   const graph: LibraryGraph = {
     nodes: resources.map((resource) => ({
       id: resource.id,

@@ -33,6 +33,11 @@ contextBridge.exposeInMainWorld('xnet', {
   getRecoveryStatus: () => ipcRenderer.invoke('xnet:recovery:status'),
   libraryStatus: () => ipcRenderer.invoke('xnet:library:status'),
   libraryCards: (ids: string[]) => ipcRenderer.invoke('xnet:library:cards', { ids }),
+  spatialStatus: () => ipcRenderer.invoke('xnet:spatial:status'),
+  spatialStart: (input: { origin: string; ids: string[] }) =>
+    ipcRenderer.invoke('xnet:spatial:start', input),
+  spatialStop: () => ipcRenderer.invoke('xnet:spatial:stop'),
+  spatialCopy: () => ipcRenderer.invoke('xnet:spatial:copy'),
   libraryGraph: () => ipcRenderer.invoke('xnet:library:graph'),
   libraryGraphDetail: (id: string) => ipcRenderer.invoke('xnet:library:graph-detail', { id }),
   libraryHelperStatus: () => ipcRenderer.invoke('xnet:library:helper-status'),
@@ -632,6 +637,13 @@ export interface XNetAPI {
   }): Promise<LibrarySearchResult[]>
   libraryGet(id: string): Promise<LibraryResource | null>
   libraryCards(ids: string[]): Promise<(LibrarySearchResult | null)[]>
+  spatialStatus(): Promise<{ url: string; expiresAt: number; count: number } | null>
+  spatialStart(input: {
+    origin: string
+    ids: string[]
+  }): Promise<{ url: string; expiresAt: number; count: number }>
+  spatialStop(): Promise<void>
+  spatialCopy(): Promise<void>
   libraryGraph(): Promise<string>
   libraryGraphDetail(id: string): Promise<LibraryGraphDetail>
   libraryScan(): Promise<number>

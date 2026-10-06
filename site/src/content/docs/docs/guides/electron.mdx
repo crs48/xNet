@@ -180,6 +180,36 @@ Enable verbose sync logging:
 localStorage.setItem('xnet:sync:debug', 'true')
 ```
 
+## Experimental spatial Library viewer
+
+The Library graph's **Spatial viewer** control shares the saved links in the current
+view with a separate, read-only browser viewer. Search and source/group filters
+remain available in its flat view. A supported headset can request a stationary
+WebXR overview with a selected-resource card, Home, Back and explicit travel.
+
+To connect a headset, put it and the Mac on a trusted private network. Provide the
+Mac's HTTPS address with a port above 1023, then select a valid certificate for that
+address and its private key. Establish certificate trust on both devices through
+their operating systems; do not bypass browser warnings. The key stays on the Mac.
+Open the copied pairing link within five minutes. It can be used once, expires
+within one hour, and loses its capability on reload. **Revoke access** or quitting
+the desktop app stops access. Previously viewed content cannot be recalled.
+
+The viewer exposes scoped graph data, saved details and thumbnails. It does not
+expose private conversation records, the development debugger or the general Local
+API. A preview or written caption remains distinct from a spoken transcript.
+
+Vision Pro and PlayStation VR2 Sense support, headset performance and comfort are
+**not yet physically verified**. Experimental flight requires observed tracked
+position, rotation and analog trigger range, explicit arming and trigger release.
+Full-pose flight is not enabled. Choose **Exit / search** to leave immersion and
+use normal browser text input; an immersive DOM overlay is not assumed.
+
+Developers can run the synthetic 1,000, 10,000 and 56,000-link fixtures with
+`pnpm --filter xnet-desktop spatial:dev`. The development server is loopback-only;
+use the paired HTTPS path for a headset. The device review procedure is in
+`apps/electron/src/spatial/README.md` in the repository.
+
 ## Building for production
 
 ```bash

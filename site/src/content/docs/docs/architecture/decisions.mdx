@@ -1471,3 +1471,37 @@ shutdown. The method covers watch-dispatched work, not independent explicit scan
 **Tripwire:** A caller needs bounded cancellation, parallel scans become necessary,
 or any consumer disposes storage before awaiting the drain. Revisit ownership and
 cancellation semantics before changing the shutdown guarantee.
+
+## ADR-47: Pair spatial Library viewers with an ephemeral read capability
+
+**Status:** Accepted · 2026-10-06 · exploration 0468
+
+**Context:** A headset browser cannot use Electron's preload. Exposing the general
+local API or development server would give the viewer capabilities it does not need.
+
+**Decision:** The owner starts a separate HTTPS listener from the desktop graph,
+explicitly choosing the visible saved links and a certificate already trusted by
+both devices. Only private-network clients are accepted. The listener serves a
+compiled browser viewer and a frozen, revision-matched graph/layout projection.
+A random 256-bit invitation in the URL fragment can be redeemed once within five
+minutes for an in-memory bearer capability. The capability expires one hour after
+creation or immediately when the owner revokes access, the app exits, or the
+listener stops. Credentials are never logged or persisted by the viewer.
+
+The only data routes are snapshot, bounded search, selected-resource details and
+thumbnails resolved through those resources. No arbitrary blob IDs, conversations,
+personal notes, identity material, SQL, writes or enrichment jobs are exposed.
+Details are a bounded projection; longer saved source text or transcript text is
+requested explicitly and limited to 100,000 characters. Reads check revocation
+again after asynchronous storage access. Exact host and origin checks, no CORS,
+no-store responses and a same-origin content policy constrain browser access.
+
+**Tradeoff:** This is an experimental, session-local transport, not an independent
+synced Library or a supported durable public protocol. Users must provision trust
+and address resolution on both devices. A copied capability authorizes its holder
+until expiry or revocation; it is not a hardware-bound device credential. Revocation
+stops future reads but cannot erase content already delivered to a device.
+
+**Tripwire:** We need internet access, persistent pairing, offline private content,
+multiple readers, or native clients consuming a stable protocol. Revisit the
+capability and ownership design before extending this experimental transport.
