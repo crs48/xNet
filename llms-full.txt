@@ -11213,7 +11213,7 @@ the tenant.
 
 - The hub's authorization model is rich and correct — grants, spaces, roles, the
   CRUD split. What was missing sat one layer above it: nothing decided which DIDs
-  *are* the tenant. Admission control and seat counting are the same missing
+  _are_ the tenant. Admission control and seat counting are the same missing
   concept wearing a security hat and a product hat.
 - Putting the roster in the control plane rather than in the hub's own grants
   keeps it readable during a support call and during a GDPR request, and lets a
@@ -11222,14 +11222,14 @@ the tenant.
   email an IdP vouches for and a member is a key on someone's device, and
   conflating them would put the billing identity provider in charge of the data
   identity — the arrangement the non-custodial claim flow exists to avoid.
-  `organizationId` is a pointer that decides who is *entitled* to join; each
+  `organizationId` is a pointer that decides who is _entitled_ to join; each
   human still binds their own key.
 
 **Tradeoff:** membership changes push a new revision, which on Cloud Run restarts
 the hub — invisible on scale-to-zero plans, a brief rolling drop on warm ones.
 Accepted: the alternative is a hub anyone on the internet can write to.
 
-**Tripwire:** the first proposal to authorize on the roster *instead of* the hub's
+**Tripwire:** the first proposal to authorize on the roster _instead of_ the hub's
 grant model — the roster decides admission, never permission — or the first hub
 shipped with `HUB_TRUSTED_DIDS` written as an empty string. Either re-opens this.
 
@@ -11333,6 +11333,346 @@ moderation path that writes to storage rather than to a policy list, or a
 retention job that treats suspension as a deletion trigger. Quota and dormancy
 reclamation are the honest place this sneaks in, because there the deletion has
 an operator's reason and no villain attached.
+
+## ADR-37: Native desktop recovery preserves whole workspace generations
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** A desktop upgrade can change storage while the same Mac holds the only
+copy of a workspace. A database dump alone omits blobs, imported source files, and
+the desktop identity needed to use the data.
+
+**Decision:** The local `xnet-desktop-checkpoint/1` format stores a manifest and a
+complete copy of `xnet-data`. Its manifest names the app version, profile, identity
+mode, and every file's size and SHA-256 hash. Both SQLite stores must pass an
+integrity check. Production copies require the stored identity seed. Test copies
+are explicitly marked and cannot restore a daily workspace.
+
+A copy becomes available only after verification and an atomic directory rename.
+Restore verifies it again, stages a new generation, and records a durable journal
+before renaming directories. Startup finishes that journal before opening any
+store. The replaced generation remains available separately from the last twenty
+recovery copies. An installer waits for saved text, closed stores, and a verified
+copy before running.
+
+**Tradeoff:** These are local recovery copies, not encrypted portable backups.
+They exclude Chromium settings and sign-in sessions. Platform-encrypted keys still
+need the same Mac's key store. Losing the disk loses these copies too. The product
+must state this scope until separate off-device and cross-Mac recovery are proven.
+
+**Tripwire:** A persistent file moves outside `xnet-data`, a database changes its
+storage format, or recovery must work on a different Mac. Any of these reopens the
+manifest scope and restore protocol before a broader protection claim ships.
+
+## ADR-38: Retain source evidence separately from imported social records
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** Social exports change shape. Parser fixes need the original evidence,
+and a file selected for preview may change before an import begins.
+
+**Decision:** Before its first node write, a desktop import retains the entire
+selected file under `xnet-data/import-sources/<sha256>/source.zip` or `source.json`.
+The copied bytes must match the preview fingerprint. Promotion is atomic and
+files are private to the local user. Reimports reuse verified bytes. Originals
+are never moved or deleted. The import screen states that unselected categories
+remain in this private source copy, though only selected categories become nodes.
+Native recovery includes this directory.
+
+GitHub captures use the JSON wrapper `xnet-github-stars/1`: account, capture start
+and finish, endpoint/media type/API version, coverage, and raw star rows. A finished
+paginated capture records `paginationCompleted: true` and `atomic: false`. Native
+repository IDs identify resources; native star times identify observed activity.
+Missing times stay missing. An absent repository never implies an unstar event.
+
+**Tradeoff:** Retaining raw exports costs disk space and keeps more private data
+than the selected graph alone. Credentials are not part of the GitHub snapshot.
+This format provides evidence for retries; it does not itself make a job resumable
+or turn local recovery into an off-device backup.
+
+**Tripwire:** A source cannot be represented as exact retained bytes, evidence
+needs selective deletion, or import resume requires a different source contract.
+Revisit custody and migration before changing the format or retention promise.
+
+## ADR-39: Validate desktop upgrades on a separate workspace generation
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** A known older database needs an upgrade path without making the only
+copy the migration's test subject. Recovery also needs to run while the app stays
+open for days.
+
+**Decision:** The desktop supports candidate migration from the oldest tested
+historical schema, currently version 8, through the current schema. Before any
+normal store opens, validate identity and pin a verified original checkpoint.
+Apply every registered SQL step to a separate copy. Validate the resulting column
+contract, existing row counts, foreign keys, and integrity before promotion
+through the durable restore journal. Keep the replaced generation. Unknown,
+earlier, future, or unreadable formats stop in recovery without writes to their
+database. A promoted workspace pauses automatic network services for review.
+
+The native checkpoint manifest gains optional `sourceFingerprint`, `storageVersion`,
+and `pinned` fields. `appVersion` names the app that made the copy, not a promise
+that every app with that version can open its contents. The scheduler checks once
+a minute, copying changed data when fifteen minutes overdue. This supersedes
+ADR-37's flat twenty-copy retention: keep one point per fifteen-minute bucket for
+a day, per day for a week, and per week for four weeks, plus the latest two.
+Pinned points and preserved originals are not pruned automatically. Pruning still
+requires a newly verified point, and copy failures remain visible in the app.
+
+**Tradeoff:** Backups can briefly delay editing, pinned originals consume space,
+and only tested historical versions migrate automatically. Native copies still
+exclude browser settings and need the same Mac key store. This decision adds no
+portable or off-device guarantee.
+
+**Tripwire:** A migration changes existing row contents, the oldest supported
+version changes, or checkpoint time/storage use disrupts daily work. Add the
+relevant historical fixture and data-preservation proof before widening support
+or changing the displayed recovery policy.
+
+## ADR-40: Portable desktop recovery carries encrypted identity and source bytes
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** Copying native recovery files to another disk does not make their
+Keychain-encrypted identity usable on another Mac. Losing the original machine
+must not make the only surviving backup useless.
+
+**Decision:** `xnet-desktop-portable/1` is a directory containing a small public
+header, an encrypted manifest, and encrypted file chunks. The password derives
+a 32-byte key with scrypt (N=131072, r=8, p=1, random 32-byte salt). Each object
+uses native AES-256-GCM with a fresh random 12-byte nonce, a 16-byte tag, and the
+format identifier as authenticated data. File chunks are at most four MiB.
+The authenticated manifest binds ordered ciphertext hashes to each original
+path, size, and plaintext SHA-256. It also carries the actual desktop signing
+seed and any stored recovery mnemonic, encrypted under the recovery password.
+The public header contains no filenames, identity, or password.
+
+Export starts from a verified native checkpoint and verifies the encrypted
+manifest and every object before atomically publishing the folder. Restore
+extracts only into a new private directory, verifies files and databases, and
+rewraps the same seed using the destination key store. A fresh native checkpoint
+records those changed key-file bytes. Only then may the existing restore journal
+replace the workspace, preserving its prior generation and pausing networking.
+The desktop currently accepts portable restores for the current storage version;
+an incompatible backup fails before changing live files.
+
+**Tradeoff:** Password loss is unrecoverable. This format has no password escrow,
+compression, or incremental deduplication. Browser settings and sign-in sessions
+remain excluded. The app verifies written bytes but cannot infer that a chosen
+folder is off-device. It must state that distinction. Tests with different mock
+key stores and a real desktop round trip do not prove a second physical Mac or
+signed installer continuity.
+
+**Tripwire:** A cryptographic parameter changes, a required key lives outside
+this manifest, a supported backup needs migration during restore, or large
+exports block normal desktop use. Reopen the format and recovery evidence before
+changing the reader or broadening the protection claim.
+
+## ADR-41: Resume archive imports from retained evidence and acknowledged batches
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** An in-memory progress bar cannot continue an import after a restart.
+Retaining an archive alone does not record which categories were reviewed or
+which writes completed.
+
+**Decision:** Desktop imports retain a version-1 journal under
+`xnet-data/import-jobs`. It records the reviewed stage, adapter version, source
+hash and extension, original import time, source-record policy, author DID, and
+acknowledged progress. Private signing keys are never written to this journal.
+Each journal update uses a private temporary file, fsync, and atomic rename.
+The cursor advances only after the database acknowledges the batch.
+
+An interrupted running job appears paused after startup. Resume requires the
+same workspace identity and importer version, verifies the retained source, and
+replays its stable stream through the last saved cursor. Previously acknowledged
+batches are skipped. A crash after a database commit but before the journal update
+may replay one batch using deterministic node IDs. This provides at-least-once
+writes, not an exactly-once claim. A changed importer requires fresh review.
+Native and encrypted recovery include the journal and source together; source
+paths are resolved against the restored workspace, not the original machine.
+
+**Tradeoff:** Resume reparses the earlier source records to reconstruct its
+position. A damaged journal fails visibly rather than appearing as an empty job
+list. Old adapter versions are not bundled indefinitely, and progress from older
+in-memory-only imports cannot be recovered automatically.
+
+**Tripwire:** An importer no longer emits a stable stream for identical bytes,
+an import gains non-idempotent effects, or its batch boundary changes. Version
+the journal or importer and prove replay safety before accepting old cursors.
+
+## ADR-42: Desktop enrichment keeps full evidence in a recoverable local store
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** Social card fields have size limits. Putting a video description or
+transcript only in those fields silently loses searchable text. A browser queue
+also cannot reliably survive a desktop restart or carry work into a recovery copy.
+
+**Decision:** `xnet-data/library.db`, SQLite user version 1, stores full metadata,
+caption cues, provider evidence, FTS search rows, and durable capability jobs.
+Job identity includes resource ID, capability, provider version, and language.
+Metadata, thumbnails, transcripts, and indexing have separate outcomes. Missing
+fields and failed discovery stay explicit. Interrupted work returns to the queue;
+provider backoff and pause state survive restart. Fetching starts only after the
+user enables enrichment and remains disabled during recovery review.
+
+Source resources stay in NodeStore. Bounded SocialEnrichment card projections and
+versioned transcript segments link back to those resources; they do not replace
+full evidence. Thumbnail bytes live in the existing managed blob store. The
+Library reads cached images, full descriptions, and caption matches offline.
+List responses exclude raw evidence and full transcripts; details load on demand.
+
+Native checkpoints freeze enrichment and include the library database with its
+committed WAL content. Portable recovery includes it through the same manifest.
+Library compatibility is checked before any startup migration or writable open.
+A damaged or unknown library format requires recovery rather than reconstruction.
+
+**Tradeoff:** The full-text store is device-local and is not yet synced between
+peers. Caption retrieval currently uses the explicitly tested local yt-dlp
+version; login-limited sources remain blocked. This decision does not claim local
+ASR, whole-corpus enrichment, or packaged helper installation. Full source evidence
+costs disk space, and schema upgrades need copied fixtures before support expands.
+
+**Tripwire:** Another device must receive full enriched text, provider evidence
+outgrows practical backups, or a library schema/provider upgrade invalidates
+stored work. Revisit the storage boundary and migration proof before changing it.
+
+## ADR-43: Captured notes are private Pages with explicit source relations
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** Saving a URL with an observation should create something editable.
+Importers and metadata refreshes must not own or replace the user's writing.
+A crash between creating a Page and saving its document must leave a recoverable
+intent rather than an unexplained empty note.
+
+**Decision:** Page gains the optional `sourceResources` relation. Capture reuses
+a matching social resource and creates a separate private Page with its own Yjs
+text, original URL, optional excerpt, and source relation. A second note is an
+explicit new capture. The relation grants no access to either endpoint and does
+not publish the resource or Page.
+
+The desktop writes a version-1 capture intent to `library.db` before creating
+nodes. Its stable request ID binds the exact input, author DID, resource ID,
+Page ID, and initial document bytes. Success requires acknowledged node and
+text writes plus local search indexing. Repeating a request resumes that intent;
+it never overwrites an existing document. Startup resumes incomplete intents
+under the workspace write barrier. The journal is included in native and portable
+recovery and contains no signing key.
+
+The shared workbench hosts the form through an optional host capability. Desktop
+provides the native save and URL lookup. A failed attempt keeps the original
+payload fixed for retry; successful saves unlock the normal Page editor. Desktop
+capture uses Command/Ctrl+Shift+L, reads clipboard text only when invoked, and
+returns to the prior foreground application on macOS when capture finishes.
+
+**Tradeoff:** Capture spans recoverable steps rather than one cross-database
+transaction. The intent retains a copy of the original writing. Unsaved form
+text lives in the browser profile until Save creates a native intent; it is not
+part of the portable-backup claim. Other hosts may implement the same optional
+capability later. Source relations must be reviewed by the separate publishing
+path before a guide is exported.
+
+**Tripwire:** Capture starts editing an existing Page, source relations imply
+sharing permissions, or a new document format changes replay. Revisit request
+identity, privacy checks, and interrupted-save tests before expanding the path.
+
+## ADR-44: Observe committed local writes without applying them twice
+
+**Status:** Accepted · 2026-09-29 · exploration 0466
+
+**Context:** The desktop utility process imports and enriches records while the
+renderer keeps a NodeStore open over the same database. The renderer previously
+ignored native change notifications and kept its startup change clock. A later
+title edit could receive an older timestamp and lose to an already-saved import.
+
+**Decision:** Every local change allocation advances from the persisted Lamport
+time as well as the instance's current time. An unreadable stored clock fails the
+write. `NodeStore.refreshPersistedNodes(ids)` reads committed records through the
+store's read boundary and notifies subscribers without writing them again. It
+rejects missing or unreadable records. Refresh events are marked remote so sync
+listeners do not rebroadcast them. Native notifications carry only IDs into this
+API; supplied notification properties are never used as authoritative content.
+
+Desktop subscribes to its existing native change channel, refreshes in bounded
+groups, and retains failed groups for another notification or the end of a write
+barrier. Refresh errors remain visible. A notification is not a save receipt; the
+native write acknowledgement remains the persistence boundary.
+
+**Tradeoff:** Clock allocation gains a storage read. This prevents sequential
+writers from using stale clocks; it does not serialize overlapping writes from
+two NodeStore instances. Native mutation barriers and stronger concurrent-writer
+validation remain separate work. The API requires all requested records to be
+readable, and is for stores sharing the same underlying committed state.
+
+**Tripwire:** Concurrent native and renderer mutations overwrite one another,
+clock reads measurably harm typing or imports, or a remote transport starts using
+this API. Revisit single-writer ownership or atomic allocation before widening
+the guarantee.
+
+## ADR-45: Recover desktop settings through an encrypted logical snapshot
+
+**Status:** Accepted · 2026-09-30 · exploration 0466
+
+**Context:** Native workspace copies omitted browser-held preferences, provider
+keys, and an unfinished capture draft. Copying Chromium directories would bind
+recovery to browser internals and device session keys.
+
+**Decision:** `desktop-settings.json` stores a version-1, bounded, explicit map
+of desktop setting names to strings or null. Main encrypts it with `safeStorage`
+and acknowledges a private atomic write only after file and directory fsync. The
+renderer save barrier includes this snapshot. Missing settings are distinct from
+unreadable settings, and unreadable prior copies cannot be overwritten.
+
+`xnet-desktop-portable/2` carries the logical snapshot inside its authenticated,
+password-encrypted manifest and rewraps the native file for the destination key
+store. The manifest and checkpoint inventory must agree about its presence. The
+reader still accepts version 1 with its original coverage. Older readers reject
+version 2. This extends the coverage limits recorded in ADR-40 and ADR-43; their
+original format and capture contracts remain historical decisions.
+
+Restore applies the map before importing settings consumers. A unique restore
+generation and browser receipt prevent normal restarts from replaying an older
+snapshot over newer edits. A failed application retries before app startup.
+Device-bound passkeys, session wrapping keys, cookies, test flags, temporary
+OAuth verifiers, and bridge authorization tokens are excluded. Desktop signing
+identity still comes from the native seed.
+
+**Tradeoff:** The explicit list needs maintenance as desktop settings grow. The
+copy protects values at a completed checkpoint, not every subsequent draft edit.
+Existing browser APIs still hold their normal values in Chromium; this decision
+encrypts the recovery copy rather than moving all live credentials into a vault.
+
+**Tripwire:** A new non-reconstructible desktop key or setting appears outside
+the list, an identity flow starts using IndexedDB as its authoritative store, or
+restore receipts can replay stale settings over later edits. Extend the versioned
+contract and failure tests before broadening the recovery claim.
+
+## ADR-46: Drain workspace watches before disposing their storage
+
+**Status:** Accepted · 2026-09-30 · exploration 0466 verification
+
+**Context:** Closing a workspace watch stopped future timers but left its current
+scan writing review files. The CLI could dispose storage while an asynchronous
+scan callback was still applying edits. Full-suite cleanup exposed this race.
+
+**Decision:** Keep the synchronous watch handle's `close()` contract and add
+`AiWorkspaceWatcher.waitForIdle()`. Callers close their handles, then await this
+method before disposing storage or removing the checkout. The drain includes
+both scans and their asynchronous callbacks. Each watch serializes scans.
+Background failures stop that watch, log the failure, and remain available as an
+`AggregateError` from the drain. The CLI follows this order on Ctrl-C and exits
+with failure when draining or disposal fails.
+
+**Tradeoff:** Closing alone does not wait. A callback that never settles can hold
+shutdown open; forcing process exit would abandon work and cannot claim a clean
+shutdown. The method covers watch-dispatched work, not independent explicit scans.
+
+**Tripwire:** A caller needs bounded cancellation, parallel scans become necessary,
+or any consumer disposes storage before awaiting the drain. Revisit ownership and
+cancellation semantics before changing the shutdown guarantee.
 
 ---
 

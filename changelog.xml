@@ -6,6 +6,193 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Library enrichment retries temporary video helper failures</title>
+      <link>https://xnet.fyi/changelog#2026-10-06-library-enrichment-retries-temporary-vid</link>
+      <guid isPermaLink="false">2026-10-06-library-enrichment-retries-temporary-vid</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Caption retrieval retries an empty helper version check while still requiring the supported helper version.</description>
+    </item>
+    <item>
+      <title>Large libraries have time to finish opening</title>
+      <link>https://xnet.fyi/changelog#2026-10-04-large-libraries-have-time-to-finish-open</link>
+      <guid isPermaLink="false">2026-10-04-large-libraries-have-time-to-finish-open</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Desktop startup waits for large workspace checks and search-cache reconciliation to finish before reporting a timeout.</description>
+    </item>
+    <item>
+      <title>Large desktop libraries use less space for backups</title>
+      <link>https://xnet.fyi/changelog#2026-10-04-large-desktop-libraries-use-less-space-f</link>
+      <guid isPermaLink="false">2026-10-04-large-desktop-libraries-use-less-space-f</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Recovery copies on macOS share unchanged disk blocks while keeping saved content and backup retention intact.</description>
+    </item>
+    <item>
+      <title>The Library stays responsive as saved content grows</title>
+      <link>https://xnet.fyi/changelog#2026-10-03-the-library-stays-responsive-as-saved-co</link>
+      <guid isPermaLink="false">2026-10-03-the-library-stays-responsive-as-saved-co</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Browsing large Libraries no longer holds up enrichment as more descriptions and transcripts are saved. Resource refreshes also avoid piling up during slower operations.</description>
+    </item>
+    <item>
+      <title>Library retries back off when sites stay rate limited</title>
+      <link>https://xnet.fyi/changelog#2026-10-03-library-retries-back-off-when-sites-stay</link>
+      <guid isPermaLink="false">2026-10-03-library-retries-back-off-when-sites-stay</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Repeated rate limits now increase the wait between enrichment attempts while honoring longer delays requested by the source.</description>
+    </item>
+    <item>
+      <title>Editing resumes after recovery copy timeouts</title>
+      <link>https://xnet.fyi/changelog#2026-10-03-editing-resumes-after-recovery-copy-time</link>
+      <guid isPermaLink="false">2026-10-03-editing-resumes-after-recovery-copy-time</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>The desktop restores editing if resuming Library enrichment times out after a recovery copy, keeps recovery errors visible, and gives large workspaces more time to resume.</description>
+    </item>
+    <item>
+      <title>YouTube imports now fill in titles and thumbnails</title>
+      <link>https://xnet.fyi/changelog#2026-10-02-youtube-imports-now-fill-in-titles-and-t</link>
+      <guid isPermaLink="false">2026-10-02-youtube-imports-now-fill-in-titles-and-t</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Enrichment starts while local indexing continues, saves YouTube details without installing a helper, shows live progress, and keeps restricted videos from holding up the rest.</description>
+    </item>
+    <item>
+      <title>More saved sources get details and available captions</title>
+      <link>https://xnet.fyi/changelog#2026-10-02-more-saved-sources-get-details-and-avail</link>
+      <guid isPermaLink="false">2026-10-02-more-saved-sources-get-details-and-avail</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Import more social exports, enrich TikTok and starred repositories, and retrieve YouTube captions through a fallback when direct tracks fail.
+- Repeated Reddit saves and votes preserve the richer imported post text.
+- Search saved AI conversations locally without shortening their full text.</description>
+    </item>
+    <item>
+      <title>Library enrichment makes steady progress across sources</title>
+      <link>https://xnet.fyi/changelog#2026-10-02-library-enrichment-makes-steady-progress</link>
+      <guid isPermaLink="false">2026-10-02-library-enrichment-makes-steady-progress</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Saved links get richer GitHub READMEs and repository details, visible article text, thumbnails, and available captions. Large imports spend less time waiting on the local queue, and unrelated websites no longer share an enrichment cooldown. A throttled image server no longer delays page text from another host.</description>
+    </item>
+    <item>
+      <title>Instagram saves gain captions and thumbnails</title>
+      <link>https://xnet.fyi/changelog#2026-10-02-instagram-saves-gain-captions-and-thumbn</link>
+      <guid isPermaLink="false">2026-10-02-instagram-saves-gain-captions-and-thumbn</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Imported Instagram posts now fetch public captions, authors, and cached thumbnails without an extra helper. Posts that need sign-in show a gap while enrichment continues.</description>
+    </item>
+    <item>
+      <title>Explore saved links in a 3D graph</title>
+      <link>https://xnet.fyi/changelog#2026-10-02-explore-saved-links-in-a-3d-graph</link>
+      <guid isPermaLink="false">2026-10-02-explore-saved-links-in-a-3d-graph</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Browse your saved links through playlists, tags, topics, categories, and creator names, with thumbnail previews and searchable neighborhoods.
+- Navigate with keyboard autocomplete for links, tags, categories, creators, and playlists.
+- Browse groups with link counts and combine filters to match any or all selected groups.
+- Large libraries have more time to finish startup integrity checks before recovery is requested.</description>
+    </item>
+    <item>
+      <title>Desktop record edits save together</title>
+      <link>https://xnet.fyi/changelog#2026-09-30-desktop-record-edits-save-together</link>
+      <guid isPermaLink="false">2026-09-30-desktop-record-edits-save-together</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Record edits and their history now commit together. If a write fails, the whole edit rolls back and can be retried. Imported history keeps its original change identity after restart.</description>
+    </item>
+    <item>
+      <title>Desktop backups include settings and unfinished captures</title>
+      <link>https://xnet.fyi/changelog#2026-09-30-desktop-backups-include-settings-and-unf</link>
+      <guid isPermaLink="false">2026-09-30-desktop-backups-include-settings-and-unf</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Recovery copies now include desktop preferences, your AI provider key, and an unfinished capture draft. Encrypted exports restore these settings before the app opens.</description>
+    </item>
+    <item>
+      <title>Browse imported playlists in Library</title>
+      <link>https://xnet.fyi/changelog#2026-09-30-browse-imported-playlists-in-library</link>
+      <guid isPermaLink="false">2026-09-30-browse-imported-playlists-in-library</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Open saved collections, page through their original entries, and view enriched source details while keeping repeated saves and missing items visible.</description>
+    </item>
+    <item>
+      <title>Save links with your own notes in Library</title>
+      <link>https://xnet.fyi/changelog#2026-09-29-save-links-with-your-own-notes-in-librar</link>
+      <guid isPermaLink="false">2026-09-29-save-links-with-your-own-notes-in-librar</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Capture a URL, a thought, and an optional excerpt into a private editable Page, then find the saved note offline.</description>
+    </item>
+    <item>
+      <title>Save an encrypted desktop backup</title>
+      <link>https://xnet.fyi/changelog#2026-09-29-save-an-encrypted-desktop-backup</link>
+      <guid isPermaLink="false">2026-09-29-save-an-encrypted-desktop-backup</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Export your workspace, retained source files, and recovery keys to a password-protected folder. Restore it through Settings while keeping your current workspace. Browser settings and sign-in sessions are not included.</description>
+    </item>
+    <item>
+      <title>Resume an archive import after restarting</title>
+      <link>https://xnet.fyi/changelog#2026-09-29-resume-an-archive-import-after-restartin</link>
+      <guid isPermaLink="false">2026-09-29-resume-an-archive-import-after-restartin</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Pause a desktop archive import and resume from its last saved batch after reopening xNet. Reviewed selections and original source bytes stay with the workspace, so the original export path is no longer required.</description>
+    </item>
+    <item>
+      <title>Recover an earlier desktop workspace</title>
+      <link>https://xnet.fyi/changelog#2026-09-29-recover-an-earlier-desktop-workspace</link>
+      <guid isPermaLink="false">2026-09-29-recover-an-earlier-desktop-workspace</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Create verified local recovery copies from Settings, restore without deleting newer work, and keep a restored workspace offline for review. Desktop quit and update installation now wait for text saves and a recovery copy.</description>
+    </item>
+    <item>
+      <title>Library shows video helper setup and download failures</title>
+      <link>https://xnet.fyi/changelog#2026-09-29-library-shows-video-helper-setup-and-dow</link>
+      <guid isPermaLink="false">2026-09-29-library-shows-video-helper-setup-and-dow</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Coverage &amp; gaps offers video-helper setup, cancellation, and repair, with checks for incomplete or altered downloads.</description>
+    </item>
+    <item>
+      <title>Keep saved collections and repeated playlist entries</title>
+      <link>https://xnet.fyi/changelog#2026-09-29-keep-saved-collections-and-repeated-play</link>
+      <guid isPermaLink="false">2026-09-29-keep-saved-collections-and-repeated-play</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Instagram imports now read named collections and liked comments, and share resources across likes and saves. YouTube imports retain repeated playlist entries and report ambiguous catalog matches. A read-only preview reports seed archive coverage before import.</description>
+    </item>
+    <item>
+      <title>Keep recovery copies while the desktop stays open</title>
+      <link>https://xnet.fyi/changelog#2026-09-29-keep-recovery-copies-while-the-desktop-s</link>
+      <guid isPermaLink="false">2026-09-29-keep-recovery-copies-while-the-desktop-s</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>The desktop now schedules copies of changed data, shows backup failures, and upgrades supported storage on a separate verified copy while retaining the original workspace.</description>
+    </item>
+    <item>
+      <title>Import GitHub stars and keep source exports for recovery</title>
+      <link>https://xnet.fyi/changelog#2026-09-29-import-github-stars-and-keep-source-expo</link>
+      <guid isPermaLink="false">2026-09-29-import-github-stars-and-keep-source-expo</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>The desktop import picker accepts GitHub stars snapshots, preserves native star dates, and keeps a verified private copy of imported exports for local recovery.</description>
+    </item>
+    <item>
+      <title>Find saved sources in the desktop Library</title>
+      <link>https://xnet.fyi/changelog#2026-09-29-find-saved-sources-in-the-desktop-librar</link>
+      <guid isPermaLink="false">2026-09-29-find-saved-sources-in-the-desktop-librar</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Browse imported links, cache source thumbnails, and search full fetched descriptions and available video captions offline. Pause enrichment and inspect missing details from the Library.</description>
+    </item>
+    <item>
+      <title>Desktop startup preserves workspaces that need recovery</title>
+      <link>https://xnet.fyi/changelog#2026-09-29-desktop-startup-preserves-workspaces-tha</link>
+      <guid isPermaLink="false">2026-09-29-desktop-startup-preserves-workspaces-tha</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Older or unreadable workspaces now stop with recovery guidance instead of being reset. Development launches use separate data folders.</description>
+    </item>
+    <item>
+      <title>Damaged older recovery points no longer block fresh copies</title>
+      <link>https://xnet.fyi/changelog#2026-09-29-damaged-older-recovery-points-no-longer-</link>
+      <guid isPermaLink="false">2026-09-29-damaged-older-recovery-points-no-longer-</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Unreadable recovery manifests stay on disk with a visible warning, while xNet can keep making verified copies and quit safely.</description>
+    </item>
+    <item>
+      <title>Bring garden notes into your Library</title>
+      <link>https://xnet.fyi/changelog#2026-09-29-bring-garden-notes-into-your-library</link>
+      <guid isPermaLink="false">2026-09-29-bring-garden-notes-into-your-library</guid>
+      <pubDate>Tue, 06 Oct 2026 20:09:25 GMT</pubDate>
+      <description>Import a garden JSON snapshot with its source links, authored notes, tags, and categories. Find resources by your own commentary and recover the original snapshot with your workspace.</description>
+    </item>
+    <item>
       <title>Shared blog links now show the essay's own artwork</title>
       <link>https://xnet.fyi/changelog#2026-09-25-shared-blog-links-now-show-the-essay-s-o</link>
       <guid isPermaLink="false">2026-09-25-shared-blog-links-now-show-the-essay-s-o</guid>

@@ -6,6 +6,594 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-10-06-library-enrichment-retries-temporary-vid",
+      "url": "https://xnet.fyi/changelog#2026-10-06-library-enrichment-retries-temporary-vid",
+      "title": "Library enrichment retries temporary video helper failures",
+      "content_text": "Caption retrieval retries an empty helper version check while still requiring the supported helper version.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "October 6, 2026",
+        "summary": "Caption retrieval retries an empty helper version check while still requiring the supported helper version.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-04-large-libraries-have-time-to-finish-open",
+      "url": "https://xnet.fyi/changelog#2026-10-04-large-libraries-have-time-to-finish-open",
+      "title": "Large libraries have time to finish opening",
+      "content_text": "Desktop startup waits for large workspace checks and search-cache reconciliation to finish before reporting a timeout.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app",
+        "performance"
+      ],
+      "_xnet": {
+        "date": "October 4, 2026",
+        "summary": "Desktop startup waits for large workspace checks and search-cache reconciliation to finish before reporting a timeout.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-04-large-desktop-libraries-use-less-space-f",
+      "url": "https://xnet.fyi/changelog#2026-10-04-large-desktop-libraries-use-less-space-f",
+      "title": "Large desktop libraries use less space for backups",
+      "content_text": "Recovery copies on macOS share unchanged disk blocks while keeping saved content and backup retention intact.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "platform",
+        "performance"
+      ],
+      "_xnet": {
+        "date": "October 4, 2026",
+        "summary": "Recovery copies on macOS share unchanged disk blocks while keeping saved content and backup retention intact.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-03-the-library-stays-responsive-as-saved-co",
+      "url": "https://xnet.fyi/changelog#2026-10-03-the-library-stays-responsive-as-saved-co",
+      "title": "The Library stays responsive as saved content grows",
+      "content_text": "Browsing large Libraries no longer holds up enrichment as more descriptions and transcripts are saved. Resource refreshes also avoid piling up during slower operations.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app",
+        "performance"
+      ],
+      "_xnet": {
+        "date": "October 3, 2026",
+        "summary": "Browsing large Libraries no longer holds up enrichment as more descriptions and transcripts are saved. Resource refreshes also avoid piling up during slower operations.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-03-library-retries-back-off-when-sites-stay",
+      "url": "https://xnet.fyi/changelog#2026-10-03-library-retries-back-off-when-sites-stay",
+      "title": "Library retries back off when sites stay rate limited",
+      "content_text": "Repeated rate limits now increase the wait between enrichment attempts while honoring longer delays requested by the source.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "October 3, 2026",
+        "summary": "Repeated rate limits now increase the wait between enrichment attempts while honoring longer delays requested by the source.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-03-editing-resumes-after-recovery-copy-time",
+      "url": "https://xnet.fyi/changelog#2026-10-03-editing-resumes-after-recovery-copy-time",
+      "title": "Editing resumes after recovery copy timeouts",
+      "content_text": "The desktop restores editing if resuming Library enrichment times out after a recovery copy, keeps recovery errors visible, and gives large workspaces more time to resume.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "October 3, 2026",
+        "summary": "The desktop restores editing if resuming Library enrichment times out after a recovery copy, keeps recovery errors visible, and gives large workspaces more time to resume.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-02-youtube-imports-now-fill-in-titles-and-t",
+      "url": "https://xnet.fyi/changelog#2026-10-02-youtube-imports-now-fill-in-titles-and-t",
+      "title": "YouTube imports now fill in titles and thumbnails",
+      "content_text": "Enrichment starts while local indexing continues, saves YouTube details without installing a helper, shows live progress, and keeps restricted videos from holding up the rest.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app",
+        "performance"
+      ],
+      "_xnet": {
+        "date": "October 2, 2026",
+        "summary": "Enrichment starts while local indexing continues, saves YouTube details without installing a helper, shows live progress, and keeps restricted videos from holding up the rest.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-02-more-saved-sources-get-details-and-avail",
+      "url": "https://xnet.fyi/changelog#2026-10-02-more-saved-sources-get-details-and-avail",
+      "title": "More saved sources get details and available captions",
+      "content_text": "Import more social exports, enrich TikTok and starred repositories, and retrieve YouTube captions through a fallback when direct tracks fail.\n\n• Repeated Reddit saves and votes preserve the richer imported post text.\n• Search saved AI conversations locally without shortening their full text.",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "October 2, 2026",
+        "summary": "Import more social exports, enrich TikTok and starred repositories, and retrieve YouTube captions through a fallback when direct tracks fail.",
+        "highlights": [
+          "Repeated Reddit saves and votes preserve the richer imported post text.",
+          "Search saved AI conversations locally without shortening their full text."
+        ],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-02-library-enrichment-makes-steady-progress",
+      "url": "https://xnet.fyi/changelog#2026-10-02-library-enrichment-makes-steady-progress",
+      "title": "Library enrichment makes steady progress across sources",
+      "content_text": "Saved links get richer GitHub READMEs and repository details, visible article text, thumbnails, and available captions. Large imports spend less time waiting on the local queue, and unrelated websites no longer share an enrichment cooldown. A throttled image server no longer delays page text from another host.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app",
+        "performance"
+      ],
+      "_xnet": {
+        "date": "October 2, 2026",
+        "summary": "Saved links get richer GitHub READMEs and repository details, visible article text, thumbnails, and available captions. Large imports spend less time waiting on the local queue, and unrelated websites no longer share an enrichment cooldown. A throttled image server no longer delays page text from another host.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-02-instagram-saves-gain-captions-and-thumbn",
+      "url": "https://xnet.fyi/changelog#2026-10-02-instagram-saves-gain-captions-and-thumbn",
+      "title": "Instagram saves gain captions and thumbnails",
+      "content_text": "Imported Instagram posts now fetch public captions, authors, and cached thumbnails without an extra helper. Posts that need sign-in show a gap while enrichment continues.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "October 2, 2026",
+        "summary": "Imported Instagram posts now fetch public captions, authors, and cached thumbnails without an extra helper. Posts that need sign-in show a gap while enrichment continues.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-10-02-explore-saved-links-in-a-3d-graph",
+      "url": "https://xnet.fyi/changelog#2026-10-02-explore-saved-links-in-a-3d-graph",
+      "title": "Explore saved links in a 3D graph",
+      "content_text": "Browse your saved links through playlists, tags, topics, categories, and creator names, with thumbnail previews and searchable neighborhoods.\n\n• Navigate with keyboard autocomplete for links, tags, categories, creators, and playlists.\n• Browse groups with link counts and combine filters to match any or all selected groups.\n• Large libraries have more time to finish startup integrity checks before recovery is requested.",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "October 2, 2026",
+        "summary": "Browse your saved links through playlists, tags, topics, categories, and creator names, with thumbnail previews and searchable neighborhoods.",
+        "highlights": [
+          "Navigate with keyboard autocomplete for links, tags, categories, creators, and playlists.",
+          "Browse groups with link counts and combine filters to match any or all selected groups.",
+          "Large libraries have more time to finish startup integrity checks before recovery is requested."
+        ],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-30-desktop-record-edits-save-together",
+      "url": "https://xnet.fyi/changelog#2026-09-30-desktop-record-edits-save-together",
+      "title": "Desktop record edits save together",
+      "content_text": "Record edits and their history now commit together. If a write fails, the whole edit rolls back and can be retried. Imported history keeps its original change identity after restart.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "September 30, 2026",
+        "summary": "Record edits and their history now commit together. If a write fails, the whole edit rolls back and can be retried. Imported history keeps its original change identity after restart.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-30-desktop-backups-include-settings-and-unf",
+      "url": "https://xnet.fyi/changelog#2026-09-30-desktop-backups-include-settings-and-unf",
+      "title": "Desktop backups include settings and unfinished captures",
+      "content_text": "Recovery copies now include desktop preferences, your AI provider key, and an unfinished capture draft. Encrypted exports restore these settings before the app opens.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app",
+        "identity"
+      ],
+      "_xnet": {
+        "date": "September 30, 2026",
+        "summary": "Recovery copies now include desktop preferences, your AI provider key, and an unfinished capture draft. Encrypted exports restore these settings before the app opens.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-30-browse-imported-playlists-in-library",
+      "url": "https://xnet.fyi/changelog#2026-09-30-browse-imported-playlists-in-library",
+      "title": "Browse imported playlists in Library",
+      "content_text": "Open saved collections, page through their original entries, and view enriched source details while keeping repeated saves and missing items visible.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "September 30, 2026",
+        "summary": "Open saved collections, page through their original entries, and view enriched source details while keeping repeated saves and missing items visible.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-29-save-links-with-your-own-notes-in-librar",
+      "url": "https://xnet.fyi/changelog#2026-09-29-save-links-with-your-own-notes-in-librar",
+      "title": "Save links with your own notes in Library",
+      "content_text": "Capture a URL, a thought, and an optional excerpt into a private editable Page, then find the saved note offline.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app",
+        "editor"
+      ],
+      "_xnet": {
+        "date": "September 29, 2026",
+        "summary": "Capture a URL, a thought, and an optional excerpt into a private editable Page, then find the saved note offline.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-29-save-an-encrypted-desktop-backup",
+      "url": "https://xnet.fyi/changelog#2026-09-29-save-an-encrypted-desktop-backup",
+      "title": "Save an encrypted desktop backup",
+      "content_text": "Export your workspace, retained source files, and recovery keys to a password-protected folder. Restore it through Settings while keeping your current workspace. Browser settings and sign-in sessions are not included.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app",
+        "identity"
+      ],
+      "_xnet": {
+        "date": "September 29, 2026",
+        "summary": "Export your workspace, retained source files, and recovery keys to a password-protected folder. Restore it through Settings while keeping your current workspace. Browser settings and sign-in sessions are not included.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-29-resume-an-archive-import-after-restartin",
+      "url": "https://xnet.fyi/changelog#2026-09-29-resume-an-archive-import-after-restartin",
+      "title": "Resume an archive import after restarting",
+      "content_text": "Pause a desktop archive import and resume from its last saved batch after reopening xNet. Reviewed selections and original source bytes stay with the workspace, so the original export path is no longer required.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "September 29, 2026",
+        "summary": "Pause a desktop archive import and resume from its last saved batch after reopening xNet. Reviewed selections and original source bytes stay with the workspace, so the original export path is no longer required.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-29-recover-an-earlier-desktop-workspace",
+      "url": "https://xnet.fyi/changelog#2026-09-29-recover-an-earlier-desktop-workspace",
+      "title": "Recover an earlier desktop workspace",
+      "content_text": "Create verified local recovery copies from Settings, restore without deleting newer work, and keep a restored workspace offline for review. Desktop quit and update installation now wait for text saves and a recovery copy.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "September 29, 2026",
+        "summary": "Create verified local recovery copies from Settings, restore without deleting newer work, and keep a restored workspace offline for review. Desktop quit and update installation now wait for text saves and a recovery copy.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-29-library-shows-video-helper-setup-and-dow",
+      "url": "https://xnet.fyi/changelog#2026-09-29-library-shows-video-helper-setup-and-dow",
+      "title": "Library shows video helper setup and download failures",
+      "content_text": "Coverage & gaps offers video-helper setup, cancellation, and repair, with checks for incomplete or altered downloads.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "September 29, 2026",
+        "summary": "Coverage & gaps offers video-helper setup, cancellation, and repair, with checks for incomplete or altered downloads.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-29-keep-saved-collections-and-repeated-play",
+      "url": "https://xnet.fyi/changelog#2026-09-29-keep-saved-collections-and-repeated-play",
+      "title": "Keep saved collections and repeated playlist entries",
+      "content_text": "Instagram imports now read named collections and liked comments, and share resources across likes and saves. YouTube imports retain repeated playlist entries and report ambiguous catalog matches. A read-only preview reports seed archive coverage before import.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "September 29, 2026",
+        "summary": "Instagram imports now read named collections and liked comments, and share resources across likes and saves. YouTube imports retain repeated playlist entries and report ambiguous catalog matches. A read-only preview reports seed archive coverage before import.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-29-keep-recovery-copies-while-the-desktop-s",
+      "url": "https://xnet.fyi/changelog#2026-09-29-keep-recovery-copies-while-the-desktop-s",
+      "title": "Keep recovery copies while the desktop stays open",
+      "content_text": "The desktop now schedules copies of changed data, shows backup failures, and upgrades supported storage on a separate verified copy while retaining the original workspace.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "September 29, 2026",
+        "summary": "The desktop now schedules copies of changed data, shows backup failures, and upgrades supported storage on a separate verified copy while retaining the original workspace.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-29-import-github-stars-and-keep-source-expo",
+      "url": "https://xnet.fyi/changelog#2026-09-29-import-github-stars-and-keep-source-expo",
+      "title": "Import GitHub stars and keep source exports for recovery",
+      "content_text": "The desktop import picker accepts GitHub stars snapshots, preserves native star dates, and keeps a verified private copy of imported exports for local recovery.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "September 29, 2026",
+        "summary": "The desktop import picker accepts GitHub stars snapshots, preserves native star dates, and keeps a verified private copy of imported exports for local recovery.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-29-find-saved-sources-in-the-desktop-librar",
+      "url": "https://xnet.fyi/changelog#2026-09-29-find-saved-sources-in-the-desktop-librar",
+      "title": "Find saved sources in the desktop Library",
+      "content_text": "Browse imported links, cache source thumbnails, and search full fetched descriptions and available video captions offline. Pause enrichment and inspect missing details from the Library.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "September 29, 2026",
+        "summary": "Browse imported links, cache source thumbnails, and search full fetched descriptions and available video captions offline. Pause enrichment and inspect missing details from the Library.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-29-desktop-startup-preserves-workspaces-tha",
+      "url": "https://xnet.fyi/changelog#2026-09-29-desktop-startup-preserves-workspaces-tha",
+      "title": "Desktop startup preserves workspaces that need recovery",
+      "content_text": "Older or unreadable workspaces now stop with recovery guidance instead of being reset. Development launches use separate data folders.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app",
+        "platform"
+      ],
+      "_xnet": {
+        "date": "September 29, 2026",
+        "summary": "Older or unreadable workspaces now stop with recovery guidance instead of being reset. Development launches use separate data folders.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-29-damaged-older-recovery-points-no-longer-",
+      "url": "https://xnet.fyi/changelog#2026-09-29-damaged-older-recovery-points-no-longer-",
+      "title": "Damaged older recovery points no longer block fresh copies",
+      "content_text": "Unreadable recovery manifests stay on disk with a visible warning, while xNet can keep making verified copies and quit safely.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "September 29, 2026",
+        "summary": "Unreadable recovery manifests stay on disk with a visible warning, while xNet can keep making verified copies and quit safely.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-09-29-bring-garden-notes-into-your-library",
+      "url": "https://xnet.fyi/changelog#2026-09-29-bring-garden-notes-into-your-library",
+      "title": "Bring garden notes into your Library",
+      "content_text": "Import a garden JSON snapshot with its source links, authored notes, tags, and categories. Find resources by your own commentary and recover the original snapshot with your workspace.\n",
+      "date_published": "2026-10-06T20:09:25Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "September 29, 2026",
+        "summary": "Import a garden JSON snapshot with its source links, authored notes, tags, and categories. Find resources by your own commentary and recover the original snapshot with your workspace.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:09:25Z",
+        "pr": 721,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-09-25-shared-blog-links-now-show-the-essay-s-o",
       "url": "https://xnet.fyi/changelog#2026-09-25-shared-blog-links-now-show-the-essay-s-o",
       "title": "Shared blog links now show the essay's own artwork",
