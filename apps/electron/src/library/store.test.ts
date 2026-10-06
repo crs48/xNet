@@ -20,6 +20,14 @@ const resource = (id = 'video-one'): LibraryResource => ({
   privacy: 'private',
   addedAt: 1
 })
+
+it('preserves text-resource kinds even when their source URL is HTTP', () => {
+  store.put({ ...resource('conversation'), kind: 'conversation', sourceText: 'private body' })
+  const row = store.graphResources().find((item) => item.id === 'conversation')
+  expect(row?.resourceKind).toBe('conversation')
+  expect(row).not.toHaveProperty('body')
+  expect(store.get('conversation')?.sourceText).toBe('private body')
+})
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), 'xnet-library-'))
   path = join(root, 'library.db')
@@ -384,6 +392,7 @@ it('projects every web link for the graph without source bodies or caption paylo
   expect(rows.find((row) => row.id === 'local')).toBeUndefined()
   expect(rows.find((row) => row.id === 'tagged')).toEqual({
     id: 'tagged',
+    resourceKind: null,
     title: 'Fetched title',
     url: resource().url,
     platform: 'youtube',

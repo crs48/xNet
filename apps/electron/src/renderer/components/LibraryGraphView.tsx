@@ -12,6 +12,7 @@ import { GraphGroups } from './library-graph/GraphGroups'
 import { GraphSearch } from './library-graph/GraphSearch'
 import { graphAdjacency, graphColor, relationKinds, selectGraph } from './library-graph/model'
 import { groupNames } from './library-graph/navigation'
+import { SpatialPairing } from './library-graph/SpatialPairing'
 import { LibraryThumbnail } from './LibraryResourceCard'
 
 const button =
@@ -386,6 +387,11 @@ export function LibraryGraphView({
           {showGroups ? 'Hide groups' : 'Browse groups'}
           {groups.length ? ` (${groups.length})` : ''}
         </button>
+        {visible && (
+          <SpatialPairing
+            ids={visible.nodes.filter((node) => node.kind === 'link').map((node) => node.id)}
+          />
+        )}
         <button
           className={button}
           disabled={loading}

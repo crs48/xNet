@@ -35,6 +35,7 @@ import { checkpointWorkspace, recoveryPath, recoveryIsBusy, setupRecovery } from
 import { flushRenderers, resumeRenderers, setupRendererFlush } from './renderer-flush'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
 import { setupSocialImportIPC, hasActiveSocialImports } from './social-import-ipc'
+import { setupSpatialLibraryIPC, stopSpatialLibrary } from './spatial-library-ipc'
 import { showStartupRecovery } from './startup-recovery'
 import { setupStorybookIPC, stopStorybook } from './storybook-ipc'
 import { hasDownloadedUpdate, initAutoUpdater, installDownloadedUpdate } from './updater'
@@ -77,6 +78,7 @@ let writersStopped = false
 async function stopWorkspaceWriters(): Promise<void> {
   await shutdownRecordingCapture()
   await stopAgentBridge()
+  await stopSpatialLibrary()
   await stopLocalAPI()
   await cleanupServices()
   await stopCloudflareTunnel()
@@ -486,6 +488,7 @@ app
     bootTrace('data process ready')
     await configureLibrary()
     setupLibraryIPC(() => mainWindow)
+    setupSpatialLibraryIPC()
 
     // Setup IPC handlers for main process operations
     setupIPC()

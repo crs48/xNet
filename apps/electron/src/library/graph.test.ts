@@ -13,6 +13,30 @@ const resource = (id: string, values: Partial<GraphResource> = {}): GraphResourc
   ...values
 })
 
+it('excludes conversations and archive text even when they have ordinary web URLs', () => {
+  const builder = createGraphBuilder(
+    [
+      resource('link'),
+      resource('private-conversation', {
+        resourceKind: 'conversation',
+        hashtags: ['private-topic'],
+        author: 'Private person'
+      }),
+      resource('archive-body', { resourceKind: 'archive-text' })
+    ],
+    3
+  )
+  builder.collection('private-list', { title: 'Private collection' })
+  builder.membership({ collection: 'private-list', item: 'private-conversation' })
+  builder.content('private-conversation', { metadataJson: JSON.stringify({ tags: ['secret'] }) })
+  expect(builder.finish()).toMatchObject({
+    nodes: [expect.objectContaining({ id: 'link' })],
+    edges: [],
+    linkCount: 1,
+    resourceCount: 3
+  })
+})
+
 it('keeps every link, including orphans, and deduplicates repeated memberships', () => {
   const builder = createGraphBuilder(
     Array.from({ length: 1200 }, (_, i) => resource(`${i}`)),

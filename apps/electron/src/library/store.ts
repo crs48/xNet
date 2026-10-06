@@ -243,7 +243,7 @@ export class LibraryStore {
     // source bodies or provider evidence with the overview's compact nodes.
     const rows = this.db
       .prepare(
-        `SELECT id,url,title,platform,
+        `SELECT id,url,title,platform,json_extract(payload,'$.kind') AS resourceKind,
       COALESCE(json_extract(payload,'$.networkPlatform'),platform) AS provider,
       COALESCE(NULLIF(json_extract(payload,'$.metadata.author'),''),json_extract(payload,'$.actor'),'') AS author,
       COALESCE(json_extract(payload,'$.sourceText'),'') || char(10) ||
