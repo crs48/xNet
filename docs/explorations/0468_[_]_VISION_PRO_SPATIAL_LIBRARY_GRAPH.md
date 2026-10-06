@@ -261,10 +261,10 @@ Use the existing desktop interface as the accessible fallback. In-headset contro
 
 ### 2. Make one small graph useful in the headset
 
-- [ ] Extract the graph data boundary and share model/layout logic without making the browser depend on Electron preload.
+- [x] Extract the graph data boundary and share model/layout logic without making the browser depend on Electron preload.
 - [ ] Add XR session lifecycle, metre scaling, a locomotion rig, and stable precomputed positions; restore desktop controls on exit.
 - [ ] Add stationary overview, selected-resource highlighting, spatial labels, one metadata card, and a home action.
-- [ ] Implement point-and-accelerate flight, configurable handedness, braking, and interruption handling as pure state transitions with tested math.
+- [x] Implement point-and-accelerate flight, configurable handedness, braking, and interruption handling as pure state transitions with tested math.
 - [ ] Add explicit search destination travel and a return trail before enabling long-distance free flight.
 - [ ] Prototype full-pose flight behind a separate opt-in only after the default flight interaction passes hardware review.
 
@@ -285,7 +285,7 @@ The named consumer of this validation is the **spatial Library release review**,
 - [ ] Demonstrate that trigger pressure changes acceleration, the speed cap holds, the head remains independent, and braking does not require a precise gesture.
 - [ ] Demonstrate full position/rotation input separately from ordinary gamepad button support; record which modes the tested platform supports.
 - [ ] Exercise tracking loss, invalid poses, controller disconnect, session suspension, and re-entry with a held trigger; all must stop motion until explicitly rearmed.
-- [ ] Verify deterministic flight integration with in-memory inputs at several frame rates, including large time gaps and non-finite input. If a new automated gate is added, include negative controls that make it fail when braking or limits are broken.
+- [x] Verify deterministic flight integration with in-memory inputs at several frame rates, including large time gaps and non-finite input. If a new automated gate is added, include negative controls that make it fail when braking or limits are broken.
 - [ ] Confirm selection and card inspection never cause unintended acceleration or automatic viewpoint jumps.
 - [ ] Complete a proposed 20-minute browsing trial, record Chris's comfort and task feedback, and verify the stationary mode remains useful. This is a product trial, not a universal comfort guarantee.
 - [ ] Meet the declared frame-time and memory budgets on the full-size fixture, including selection and filtering; retain every resource's searchability under level-of-detail reduction.
