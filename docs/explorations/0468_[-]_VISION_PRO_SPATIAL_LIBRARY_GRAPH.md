@@ -1,7 +1,7 @@
 ---
 title: Exploring the Library graph on Apple Vision Pro
-status: draft
-last_updated: 2026-10-03
+status: partially implemented
+last_updated: 2026-10-06
 review: 2026-10-24
 decider: Chris Smothers
 door: two-way
@@ -21,7 +21,21 @@ Useful moments include finding a saved video, seeing its title and thumbnail, fo
 
 This builds on the [personal Library](./0466_[-]_PERSONAL_LIBRARY_FOR_LEARNING_AND_SHARING.md), the [durable content proposal](./0467_[_]_DURABLE_LIBRARY_CONTENT_AS_XNET_NODES.md), and the earlier [immersive recommendation space exploration](./0151_[_]_SELF_ORGANIZING_SOCIAL_GRAPH_IMMERSIVE_RECOMMENDATION_SPACE.md). The earlier immersive proposal supplies product ideas; the code inventory below describes today's implementation.
 
-**Status: research and design only.** No XR renderer, headset connection, or controller implementation is added here. No physical Vision Pro test has been performed for this exploration.
+**Status: software experiment implemented; physical review pending.** The standalone browser viewer now shares graph filtering, search and initial layout with the desktop app. It includes a WebXR probe, stationary overview, explicit destination travel, guarded controller flight and an expiring read-only HTTPS pairing bridge. No physical Vision Pro or Sense controller result has been recorded. Full-pose flight, the native fallback decision and headset performance budgets remain gated on that review.
+
+The [runbook](../../apps/electron/src/spatial/README.md) explains how to build the viewer, establish trusted HTTPS and record device evidence. The implementation is stacked on the unfinished Library work in PR #721; it is not a production release claim.
+
+### Implementation evidence — 2026-10-06
+
+| Area                             | Evidence                                                                                                                                                                                                                 | Limit                                                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Pure logic and access boundaries | 66 focused tests pass: deterministic flight, matched snapshot revisions, filtering, graph privacy, capability scope, expiry/revocation and verified TLS transport. The full suite passes 12,749 tests with four skipped. | Synthetic inputs do not prove physical controller behavior.                                            |
+| Browser viewer                   | Drove 1,000 and 56,000 synthetic link fixtures; searched the last link, inspected evidence and coverage, and applied platform/group/neighborhood filters with visible counts. No browser errors observed.                | Desktop rendering does not establish stereo timing, readability or comfort.                            |
+| Native desktop entry             | Drove the real Electron Library graph and Spatial viewer control in an isolated profile; verified preload status and rejection of insecure HTTP.                                                                         | No personal identity was replaced, no test-auth bypass was enabled, and no real Library was exposed.   |
+| Build and types                  | Spatial production bundle and Electron main/spatial typechecks pass.                                                                                                                                                     | Five existing renderer type errors reproduce at the base commit; headset execution remains unverified. |
+| Rendering limits                 | One image/card, eight labels, 20,000 background edges, 200 selected edges; picking only on intentional selection.                                                                                                        | Provisional limits. Cluster summaries, picking acceleration and resolution tuning await measurements.  |
+
+Unchecked combined implementation/validation items below retain their physical-device requirements even where the software exists. The release review must decide whether the web path is viable before full-pose flight or a native client is implemented.
 
 The review date gives three weeks to decide whether the hardware experiment justifies further work. It is a decision checkpoint, not a delivery promise. The initial read-only viewer is reversible, so this exploration is `two-way`. A durable public pairing protocol or schema commitment would need an ADR with a `Tripwire:` in the [decision log](../../site/src/content/docs/docs/architecture/decisions.mdx) before implementation.
 
@@ -38,7 +52,7 @@ We already own a Three.js renderer. We are not using `3d-force-graph` or `react-
 | Graph data                | ✅ Reusable shape      | [library-graph.ts](../../apps/electron/src/shared/library-graph.ts) defines nodes, indexed edges, relationship evidence, counts, and warnings. Positions are not currently part of that snapshot.                      |
 | Data access               | 🚧 Electron dependency | The view calls `window.xnet.libraryGraph()` and related native APIs. [library-ipc.ts](../../apps/electron/src/main/library-ipc.ts) wires desktop access; Safari cannot use Electron's preload.                         |
 | Relationship construction | ✅ Source evidence     | [graph.ts](../../apps/electron/src/library/graph.ts) derives the graph from Library records. Preserve resource identities and evidence when presenting it elsewhere.                                                   |
-| XR input and presentation | ⬜ Proposed            | No headset session, spatial panels, controller flight, or native visionOS target is established by these files.                                                                                                        |
+| XR input and presentation | 🚧 Experimental        | A separate [browser scene](../../apps/electron/src/spatial/scene.ts) provides WebXR lifecycle, spatial panels and guarded flight. Hardware validation and a native visionOS target remain pending.                     |
 
 The desktop [package manifest](../../apps/electron/package.json) pins Three.js `0.186.1` and `d3-force-3d` `3.0.6`. Test changes against those versions before assuming an upgrade is necessary.
 
@@ -252,7 +266,7 @@ Use the existing desktop interface as the accessible fallback. In-headset contro
 
 ### 1. Establish the hardware facts
 
-- [ ] Build a minimal secure WebXR probe using synthetic geometry and explicit session entry/exit.
+- [x] Build a minimal secure WebXR probe using synthetic geometry and explicit session entry/exit.
 - [ ] Record actual device/software versions, `immersive-vr` support, granted features, and session cadence.
 - [ ] Pair PS VR2 Sense controllers through the system and inspect input-source profiles, handedness, ray mode, grip pose, and gamepad mapping.
 - [ ] Verify independent position and rotation tracking, analog trigger values across the squeeze range, and disconnect/reconnect behavior.
@@ -271,8 +285,8 @@ Use the existing desktop interface as the accessible fallback. In-headset contro
 ### 3. Connect the real Library and measure scale
 
 - [ ] Design and verify trusted, paired read-only access for snapshots, search, details, and thumbnails; keep private data off public hosting.
-- [ ] Use stable IDs and revision-matched positions; handle stale responses, disconnection, and missing enrichment explicitly.
-- [ ] Add playlist, platform, tag, and category filtering with visible counts and evidence labels.
+- [x] Use stable IDs and revision-matched positions; handle stale responses, disconnection, and missing enrichment explicitly.
+- [x] Add playlist, platform, tag, and category filtering with visible counts and evidence labels.
 - [ ] Measure 1,000-link, 10,000-link, and representative full-Library fixtures on the headset; document the chosen frame and memory budgets.
 - [ ] Add bounded labels, edge detail, thumbnail loading, and picking acceleration where measurements require them.
 - [ ] Decide whether native visionOS or Mac-assisted rendering is justified by an observed capability or performance gap.

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>xNet · Spatial Library</title>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <a class="brand" href="#">xNet <span>/ Spatial Library</span></a
+        ><span class="badge">EXPERIMENT 0468</span>
+      </header>
+      <main>
+        <aside class="sidebar">
+          <p class="eyebrow">YOUR LIBRARY, IN SPACE</p>
+          <h1>Follow a connection.</h1>
+          <p class="intro">
+            Find a saved link, inspect its neighborhood, and choose where to go next.
+          </p>
+          <label
+            >Library
+            <select id="fixture">
+              <option value="1000">Synthetic · 1,000 links</option>
+              <option value="10000">Synthetic · 10,000 links</option>
+              <option value="56000">Synthetic · 56,000 links</option>
+            </select></label
+          >
+          <p id="connection" class="muted">No personal data loaded.</p>
+          <label
+            >Find a resource
+            <input id="search" type="search" placeholder="Title, topic or URL…" maxlength="300"
+          /></label>
+          <p id="matches" class="muted"></p>
+          <div id="results" class="results" aria-label="Search results"></div>
+          <details>
+            <summary>Sources &amp; groups</summary>
+            <label
+              >Platform
+              <select id="platform">
+                <option value="">All platforms</option>
+              </select></label
+            ><label
+              >Find a group
+              <input id="group-search" placeholder="Playlist, tag, category, creator…"
+            /></label>
+            <div id="groups" class="results"></div>
+            <button id="clear">Clear filters</button>
+            <p id="filters" class="muted"></p>
+          </details>
+          <section class="session">
+            <h2>Enter the graph</h2>
+            <p class="muted">
+              Stationary by default. Search and filters are available here after choosing Exit /
+              search in the headset.
+            </p>
+            <label
+              >Flight hand
+              <select id="hand">
+                <option value="right">Right</option>
+                <option value="left">Left</option>
+              </select></label
+            ><button id="enter" class="primary" disabled>Checking WebXR…</button
+            ><button id="exit" hidden>Exit immersive view</button>
+            <p id="support" class="muted"></p>
+          </section>
+          <details>
+            <summary>Hardware observations</summary>
+            <p class="muted">
+              Move and rotate each controller, then slowly squeeze and release its trigger. Flight
+              appears only after tracked poses and analog values are observed. Full-pose flight
+              awaits hardware review.
+            </p>
+            <label
+              >Headset / OS / Safari / controller firmware
+              <textarea
+                id="versions"
+                placeholder="Enter the actual versions from your devices"
+              ></textarea></label
+            ><button id="report">Download probe report</button>
+            <p class="muted">
+              The report contains device observations and performance counts, not Library content.
+            </p>
+          </details>
+        </aside>
+        <section class="stage">
+          <div id="canvas"></div>
+          <div class="stage-heading">
+            <span class="live-dot"></span><span id="counts">Preparing graph…</span>
+          </div>
+          <p id="status" role="status">Loading the synthetic graph…</p>
+          <p id="error" role="alert" hidden></p>
+          <div class="legend">
+            Drag to orbit · Scroll to zoom · Select to inspect<br />Edges: imported membership,
+            metadata or hashtags. Proximity is not evidence.
+          </div>
+          <div class="toolbar">
+            <button id="home">Home</button><button id="back">Back</button
+            ><button id="travel" disabled>Travel there in headset</button
+            ><button id="brake">Brake / inspect</button>
+          </div>
+        </section>
+        <aside id="inspector" class="inspector">
+          <p class="eyebrow">SAVED DETAILS</p>
+          <h2 id="title">A place to start</h2>
+          <img id="thumbnail" alt="Saved resource thumbnail" hidden />
+          <p id="description">
+            Select a resource from search or the graph. Selection highlights it without moving your
+            viewpoint.
+          </p>
+          <p id="evidence" class="muted"></p>
+          <p id="coverage" class="muted"></p>
+          <button id="neighborhood" disabled>Show neighborhood</button
+          ><button id="text" disabled>Read saved text</button>
+          <pre id="saved-text" hidden></pre>
+        </aside>
+      </main>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

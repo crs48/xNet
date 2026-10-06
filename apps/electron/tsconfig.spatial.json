@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "types": ["webxr", "vite/client"], "noEmit": true },
+  "include": [
+    "src/spatial/**/*.ts",
+    "src/shared/spatial-library.ts",
+    "src/shared/library-flight.ts"
+  ]
+}
