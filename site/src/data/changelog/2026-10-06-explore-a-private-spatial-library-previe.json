@@ -4,5 +4,14 @@
   "title": "Explore a private spatial Library preview",
   "summary": "Pair selected saved links with an experimental read-only browser viewer, search their neighborhoods, and inspect saved details; Vision Pro controller support and comfort still need device testing.",
   "highlights": [],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 724,
+  "mergedAt": "2026-10-06T20:26:20Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
