@@ -12,6 +12,7 @@ import { XNetDevToolsProvider, useDevTools } from '@xnetjs/devtools'
 import { BlobProvider } from '@xnetjs/editor/react'
 import { identityFromPrivateKey } from '@xnetjs/identity'
 import { XNetProvider } from '@xnetjs/react'
+import { flushDocumentWrites } from '@xnetjs/react/internal'
 import { ChunkManager } from '@xnetjs/storage'
 import {
   ConsentManager,
@@ -24,6 +25,7 @@ import React, { useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
+import { captureDesktopSettings } from '../shared/desktop-settings'
 import { App } from './App'
 import { ShellErrorBoundary } from './components/ShellErrorBoundary'
 import { configuredHubUrl } from './lib/hub-url'
@@ -888,6 +890,22 @@ async function init() {
   const chunkManager = new ChunkManager(providerBlobStore)
   // Thumbnails are generated at attach time in the renderer (0385 W4).
   const blobService = new BlobService(chunkManager, { generateThumbnails: true })
+
+  const removeFlush = window.xnet.onFlushDocuments(async () => {
+    const root = document.getElementById('root')
+    if (root) root.inert = true
+    await flushDocumentWrites()
+    await ipcSyncManager.flushDocuments()
+    await window.xnet.saveDesktopSettings(captureDesktopSettings(localStorage))
+  })
+  const removeResume = window.xnet.onResumeEditing(() => {
+    const root = document.getElementById('root')
+    if (root) root.inert = false
+  })
+  import.meta.hot?.dispose(() => {
+    removeFlush()
+    removeResume()
+  })
 
   // Listen for devtools toggle from main process menu.
   // Keep only one active listener across HMR reloads.

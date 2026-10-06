@@ -1,0 +1,9 @@
+{
+  "id": "2026-09-29-damaged-older-recovery-points-no-longer-",
+  "date": "September 29, 2026",
+  "title": "Damaged older recovery points no longer block fresh copies",
+  "summary": "Unreadable recovery manifests stay on disk with a visible warning, while xNet can keep making verified copies and quit safely.",
+  "highlights": [],
+  "tags": ["app"],
+  "pr": 721
+}

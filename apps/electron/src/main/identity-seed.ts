@@ -17,8 +17,18 @@
  */
 
 import type { SafeStorageLike } from './secure-seed'
-import { randomBytes } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { randomBytes, randomUUID } from 'node:crypto'
+import {
+  closeSync,
+  fsyncSync,
+  linkSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { join } from 'node:path'
 
 export type IdentitySeedMode = 'secure' | 'plaintext' | 'test'
@@ -46,7 +56,8 @@ const isStoredIdentitySeed = (value: unknown): value is StoredIdentitySeed => {
   return (
     candidate.version === 1 &&
     typeof candidate.payload === 'string' &&
-    typeof candidate.updatedAt === 'number'
+    Number.isFinite(candidate.updatedAt) &&
+    (candidate.plaintext === undefined || typeof candidate.plaintext === 'boolean')
   )
 }
 
@@ -80,18 +91,43 @@ export function getOrCreateIdentitySeed(
   const filePath = join(dataDir, SEED_FILE_NAME)
   const encryptionAvailable = safeStorage.isEncryptionAvailable()
 
-  if (existsSync(filePath)) {
-    const parsed = JSON.parse(readFileSync(filePath, 'utf8')) as unknown
+  let stored: string | undefined
+  try {
+    stored = readFileSync(filePath, 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  }
+  if (stored !== undefined) {
+    const parsed = JSON.parse(stored) as unknown
     if (!isStoredIdentitySeed(parsed)) {
       throw new Error(`Stored identity seed at ${filePath} is invalid`)
     }
-    const bytes = parsed.plaintext
-      ? Buffer.from(parsed.payload, 'base64')
-      : Buffer.from(safeStorage.decryptString(Buffer.from(parsed.payload, 'base64')), 'base64')
+    if (!parsed.plaintext && !encryptionAvailable)
+      throw new Error(
+        'The platform key store is unavailable. Unlock it before opening this workspace.'
+      )
+    const encoded = parsed.plaintext
+      ? parsed.payload
+      : safeStorage.decryptString(Buffer.from(parsed.payload, 'base64'))
+    const bytes = Buffer.from(encoded, 'base64')
+    if (bytes.toString('base64') !== encoded)
+      throw new Error('Stored identity seed encoding is invalid')
     if (bytes.length !== 32) {
       throw new Error(`Stored identity seed at ${filePath} has length ${bytes.length}, expected 32`)
     }
     return { seed: new Uint8Array(bytes), mode: parsed.plaintext ? 'plaintext' : 'secure' }
+  }
+
+  for (const name of ['data.db', 'xnet.db']) {
+    try {
+      lstatSync(join(dataDir, name))
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue
+      throw error
+    }
+    throw new Error(
+      'The workspace identity is missing. Restore its identity and data together; a new identity was not created.'
+    )
   }
 
   const seed = randomBytes(32)
@@ -104,7 +140,7 @@ export function getOrCreateIdentitySeed(
       payload: safeStorage.encryptString(seedB64).toString('base64'),
       updatedAt: Date.now()
     }
-    writeFileSync(filePath, JSON.stringify(record), { encoding: 'utf8', mode: 0o600 })
+    persistNewIdentity(filePath, dataDir, record)
     return { seed: new Uint8Array(seed), mode: 'secure' }
   }
 
@@ -121,6 +157,29 @@ export function getOrCreateIdentitySeed(
     plaintext: true,
     updatedAt: Date.now()
   }
-  writeFileSync(filePath, JSON.stringify(record), { encoding: 'utf8', mode: 0o600 })
+  persistNewIdentity(filePath, dataDir, record)
   return { seed: new Uint8Array(seed), mode: 'plaintext' }
+}
+
+function persistNewIdentity(path: string, directory: string, record: StoredIdentitySeed): void {
+  const temporary = `${path}.incomplete-${randomUUID()}`
+  try {
+    const file = openSync(temporary, 'wx', 0o600)
+    try {
+      writeFileSync(file, JSON.stringify(record), 'utf8')
+      fsyncSync(file)
+    } finally {
+      closeSync(file)
+    }
+    // Exclusive promotion cannot replace a seed created by another writer.
+    linkSync(temporary, path)
+    const parent = openSync(directory, 'r')
+    try {
+      fsyncSync(parent)
+    } finally {
+      closeSync(parent)
+    }
+  } finally {
+    rmSync(temporary, { force: true })
+  }
 }

@@ -28,7 +28,9 @@
 import { spawn } from 'node:child_process'
 import { resolveDevScope, scopeEnv } from './dev-scope.mjs'
 
-const PROBE_TIMEOUT_MS = Number(process.env.XNET_DEV_PROBE_TIMEOUT_MS || 90_000)
+// Large libraries need several minutes for storage inspection before data-process
+// initialization. Keep the launcher from terminating those checks mid-startup.
+const PROBE_TIMEOUT_MS = Number(process.env.XNET_DEV_PROBE_TIMEOUT_MS || 900_000)
 const PROBE_INTERVAL_MS = 500
 
 const argv = process.argv.slice(2)

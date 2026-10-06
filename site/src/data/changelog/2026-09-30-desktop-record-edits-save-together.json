@@ -1,0 +1,9 @@
+{
+  "id": "2026-09-30-desktop-record-edits-save-together",
+  "date": "September 30, 2026",
+  "title": "Desktop record edits save together",
+  "summary": "Record edits and their history now commit together. If a write fails, the whole edit rolls back and can be retried. Imported history keeps its original change identity after restart.",
+  "highlights": [],
+  "tags": ["app"],
+  "pr": 721
+}

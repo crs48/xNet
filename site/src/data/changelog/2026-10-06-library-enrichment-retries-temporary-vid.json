@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-06-library-enrichment-retries-temporary-vid",
+  "date": "October 6, 2026",
+  "title": "Library enrichment retries temporary video helper failures",
+  "summary": "Caption retrieval retries an empty helper version check while still requiring the supported helper version.",
+  "highlights": [],
+  "tags": ["app"],
+  "pr": 721
+}

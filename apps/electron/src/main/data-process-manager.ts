@@ -90,6 +90,7 @@ export async function spawnDataProcess(dbPath: string): Promise<void> {
   }
 
   log('Spawning data process...')
+  isShuttingDown = false
 
   return new Promise((resolve, reject) => {
     try {
@@ -173,8 +174,9 @@ export async function spawnDataProcess(dbPath: string): Promise<void> {
         isReady = true
         log('Data process ready')
 
-        // Initialize with database path
-        sendRequest('init', { dbPath })
+        // Startup inspects both databases and reconciles the Library search cache.
+        // Large libraries need minutes; ordinary requests keep their shorter deadline.
+        sendRequest('init', { dbPath }, 600_000)
           .then(() => {
             log('Data process initialized')
             resolve()
@@ -201,17 +203,26 @@ export async function stopDataProcess(): Promise<void> {
 
   try {
     await sendRequest('shutdown', {}, 5000)
-  } catch {
-    log('Shutdown request failed, killing process')
+  } catch (error) {
+    isShuttingDown = false
+    throw error
   }
 
-  if (dataProcess) {
-    dataProcess.kill()
-    dataProcess = null
+  const stopping = dataProcess
+  if (stopping) {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(
+        () => reject(new Error('Data process did not exit after saving.')),
+        5000
+      )
+      stopping.once('exit', () => {
+        clearTimeout(timeout)
+        resolve()
+      })
+      stopping.kill()
+    })
   }
-
   isReady = false
-  isShuttingDown = false
 }
 
 /**
@@ -240,7 +251,8 @@ async function sendRequest(
       timeout: timeoutHandle
     })
 
-    dataProcess!.postMessage({ type, requestId, ...payload })
+    // Transport identity must remain authoritative even when a payload has its own retry key.
+    dataProcess!.postMessage({ ...payload, type, requestId })
   })
 }
 
@@ -510,6 +522,11 @@ export function setupDataProcessIPC(getMainWindow: () => BrowserWindow | null): 
   })
 
   // Change log operations
+  ipcMain.handle('xnet:nodes:applyNodeBatch', async (_event, opts: { input: unknown }) => {
+    const result = (await sendRequest('nodes:applyNodeBatch', opts)) as { result: unknown }
+    return result.result
+  })
+
   ipcMain.handle('xnet:nodes:appendChange', async (_event, opts: { change: unknown }) => {
     await sendRequest('nodes:appendChange', opts)
   })

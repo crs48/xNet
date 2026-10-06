@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-04-large-libraries-have-time-to-finish-open",
+  "date": "October 4, 2026",
+  "title": "Large libraries have time to finish opening",
+  "summary": "Desktop startup waits for large workspace checks and search-cache reconciliation to finish before reporting a timeout.",
+  "highlights": [],
+  "tags": ["app", "performance"],
+  "pr": 721
+}

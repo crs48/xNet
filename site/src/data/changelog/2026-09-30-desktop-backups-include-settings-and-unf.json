@@ -1,0 +1,9 @@
+{
+  "id": "2026-09-30-desktop-backups-include-settings-and-unf",
+  "date": "September 30, 2026",
+  "title": "Desktop backups include settings and unfinished captures",
+  "summary": "Recovery copies now include desktop preferences, your AI provider key, and an unfinished capture draft. Encrypted exports restore these settings before the app opens.",
+  "highlights": [],
+  "tags": ["app", "identity"],
+  "pr": 721
+}

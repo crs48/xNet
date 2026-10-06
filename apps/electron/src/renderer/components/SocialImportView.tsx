@@ -6,7 +6,7 @@ import type {
   SocialImportArchivePreview,
   SocialImportCommitJobSnapshot,
   SocialImportStageResult
-} from '../../main/social-import-ipc'
+} from '../../shared/social-import'
 import type { SocialImporterRegistryEntry } from '@xnetjs/social/importers'
 import { useMutate, useXNet } from '@xnetjs/react'
 import { useXNetInternal } from '@xnetjs/react/internal'
@@ -74,6 +74,7 @@ export function SocialImportView({
   const [commitSummary, setCommitSummary] = useState<CommitSummary | null>(null)
   const [commitProgress, setCommitProgress] = useState<CommitProgress | null>(null)
   const [commitJobId, setCommitJobId] = useState<string | null>(null)
+  const [savedJobs, setSavedJobs] = useState<SocialImportCommitJobSnapshot[]>([])
   const [workspaceSummary, setWorkspaceSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
   const [workspaceSeeding, setWorkspaceSeeding] = useState(false)
   const activeCommitJobIdRef = useRef<string | null>(null)
@@ -89,7 +90,7 @@ export function SocialImportView({
     return 2 + (includeSourceRecords ? stagedRecordCount : canonicalRecordCount)
   }, [canonicalRecordCount, includeSourceRecords, stageResult, stagedRecordCount])
 
-  const handlePickArchive = useCallback(async () => {
+  const handlePickArchive = useCallback(async (file?: File) => {
     setError(null)
     setCommitSummary(null)
     setCommitProgress(null)
@@ -98,7 +99,9 @@ export function SocialImportView({
     setWorkspaceSummary(null)
 
     try {
-      const preview = await window.xnetSocialImport.pickArchive()
+      const preview = file
+        ? await window.xnetSocialImport.previewArchiveFile(file)
+        : await window.xnetSocialImport.pickArchive()
       if (!preview) return
 
       setArchive(preview)
@@ -157,6 +160,7 @@ export function SocialImportView({
   }, [archive, includeSensitive, selectedBuckets])
 
   const applyCommitJobSnapshot = useCallback((job: SocialImportCommitJobSnapshot) => {
+    setSavedJobs((jobs) => [job, ...jobs.filter((item) => item.jobId !== job.jobId)])
     upsertSocialImportJobProgress(job)
     if (job.jobId !== activeCommitJobIdRef.current) return
 
@@ -183,12 +187,12 @@ export function SocialImportView({
       return
     }
 
-    if (job.status === 'cancelled') {
+    if (job.status === 'cancelled' || job.status === 'paused') {
       setStatus('staged')
       activeCommitJobIdRef.current = null
       setCommitJobId(null)
       setCommitProgress(null)
-      setError('Import cancelled.')
+      setError(job.error ?? 'Import paused. You can resume it below.')
     }
   }, [])
 
@@ -196,6 +200,36 @@ export function SocialImportView({
     () => window.xnetSocialImport.onCommitJob(applyCommitJobSnapshot),
     [applyCommitJobSnapshot]
   )
+  useEffect(() => {
+    void window.xnetSocialImport
+      .listCommitJobs()
+      .then(setSavedJobs)
+      .catch((error: unknown) => setError(toErrorMessage(error)))
+  }, [])
+
+  const handleResume = async (jobId: string) => {
+    if (!authorDID || !signingKey || !nodeStoreReady) return
+    setError(null)
+    setStatus('committing')
+    activeCommitJobIdRef.current = jobId
+    setCommitJobId(jobId)
+    try {
+      applyCommitJobSnapshot(
+        await window.xnetSocialImport.resumeCommitJob({
+          jobId,
+          authorDID,
+          signingKey: Array.from(signingKey)
+        })
+      )
+      const latest = await window.xnetSocialImport.getCommitJob(jobId)
+      if (latest) applyCommitJobSnapshot(latest)
+    } catch (error) {
+      activeCommitJobIdRef.current = null
+      setCommitJobId(null)
+      setStatus('idle')
+      setError(toErrorMessage(error))
+    }
+  }
 
   const handleCommit = useCallback(async () => {
     if (!stageResult || !nodeStoreReady || !authorDID || !signingKey) return
@@ -296,7 +330,15 @@ export function SocialImportView({
 
       <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)]">
         <aside className="flex min-h-0 flex-col border-r border-border">
-          <div className="border-b border-border p-4">
+          <div
+            className="border-b border-border p-4"
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault()
+              const file = event.dataTransfer.files[0]
+              if (file) void handlePickArchive(file)
+            }}
+          >
             <button
               type="button"
               onClick={() => void handlePickArchive()}
@@ -305,6 +347,20 @@ export function SocialImportView({
               <FileArchive size={15} />
               Choose Archive
             </button>
+            <label className="mt-2 block cursor-pointer text-center text-xs text-muted-foreground">
+              Or drop a ZIP or JSON export here
+              <input
+                type="file"
+                accept=".zip,.json"
+                aria-label="Import archive file"
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0]
+                  event.currentTarget.value = ''
+                  if (file) void handlePickArchive(file)
+                }}
+              />
+            </label>
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto p-4">
@@ -356,6 +412,10 @@ export function SocialImportView({
                   setCommitJobId(null)
                 }}
               />
+              <p className="text-xs text-muted-foreground">
+                Import keeps a private copy of the entire export for recovery, including categories
+                you leave unselected. Only selected categories become library records.
+              </p>
             </div>
           </div>
         </aside>
@@ -405,7 +465,7 @@ export function SocialImportView({
                   className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent"
                 >
                   <X size={14} />
-                  Cancel
+                  Pause
                 </button>
               ) : null}
               <button
@@ -424,8 +484,40 @@ export function SocialImportView({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto p-5">
+          <div className="min-h-0 flex-1 overflow-auto p-5 pb-28">
             <div className="space-y-5">
+              {savedJobs.length > 0 && (
+                <section className="space-y-2 rounded-md border border-border p-3">
+                  <h3 className="text-sm font-medium">Saved import progress</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Resume from retained source files, even after a restart. Completed batches stay
+                    in your library.
+                  </p>
+                  {savedJobs.map((job) => (
+                    <div
+                      key={job.jobId}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <div>
+                        <p>
+                          {job.archiveName} · {job.status} · {job.processedRecords.toLocaleString()}{' '}
+                          / {job.totalRecords?.toLocaleString() ?? '?'} records
+                        </p>
+                        {job.error && <p className="text-xs text-muted-foreground">{job.error}</p>}
+                      </div>
+                      {['paused', 'failed', 'cancelled'].includes(job.status) && (
+                        <button
+                          className="rounded-md border border-border px-3 py-1 disabled:opacity-50"
+                          disabled={status === 'committing' || !nodeStoreReady}
+                          onClick={() => void handleResume(job.jobId)}
+                        >
+                          Resume
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </section>
+              )}
               {error ? <StatusBanner tone="error" message={error} /> : null}
               {status === 'committed' && commitSummary ? (
                 <StatusBanner
@@ -582,7 +674,7 @@ function BucketReview({
       <SectionLabel label="Buckets" />
       <div className="divide-y divide-border rounded-md border border-border">
         {archive.probe.buckets.map((bucket) => {
-          const sensitive = bucket.privacyClass === 'private-message'
+          const sensitive = bucket.privacyClass !== 'public' && !bucket.defaultSelected
           const disabled = sensitive && !includeSensitive
           const checked = selectedBuckets.includes(bucket.id) && !disabled
 

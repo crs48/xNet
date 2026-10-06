@@ -4,6 +4,12 @@ Electron desktop app for macOS, Windows, and Linux -- the primary development ta
 
 ## Development
 
+Source launches use a `dev-` profile namespace, including the main checkout and
+direct Electron launches. For example, the requested `default` profile stores
+data in `xnet-desktop-dev-default`. Packaged apps keep their existing data path.
+Existing folders are preserved; development no longer opens a daily workspace
+implicitly. The app's runtime profile and window title show the resolved name.
+
 ```bash
 pnpm dev           # Start hub + app concurrently
 pnpm dev:both      # Two instances for sync testing

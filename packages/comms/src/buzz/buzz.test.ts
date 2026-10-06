@@ -82,7 +82,10 @@ describe('NIP-19 npub decoding (exploration 0416)', () => {
   it('rejects malformed, mis-prefixed, and mixed-case input', () => {
     expect(decodeNpub('not-an-npub')).toBeNull()
     expect(decodeNpub('')).toBeNull()
-    expect(decodeNpub(npub.slice(0, -1) + 'q')).toBeNull() // bad checksum
+    // The random valid checksum can already end in q; always change the symbol.
+    const malformed = npub.slice(0, -1) + (npub.endsWith('q') ? 'p' : 'q')
+    expect(malformed).not.toBe(npub)
+    expect(decodeNpub(malformed)).toBeNull()
     expect(decodeNpub(npub.toUpperCase().slice(0, 4) + npub.slice(4))).toBeNull() // mixed case
     expect(decodeBech32(npub.replace('npub', 'nsec'))).toBeNull() // checksum binds the hrp
   })

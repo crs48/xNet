@@ -12,3 +12,5 @@ export {
   type ZipArchiveManifestOptions,
   type ZipCentralDirectoryEntry
 } from './archive-reader'
+
+export { openSocialImportSource } from './source-reader'

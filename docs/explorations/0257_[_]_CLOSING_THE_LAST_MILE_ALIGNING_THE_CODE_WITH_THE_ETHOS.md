@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # Closing the Last Mile: Aligning the Code With the Ethos
 
 > A deep introspection into the gaps between what xNet's essays *say* it is

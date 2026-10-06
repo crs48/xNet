@@ -12,7 +12,7 @@
  * Events are sent to main process for relay to the appropriate window.
  */
 
-import type { DID } from '@xnetjs/core'
+import type { ContentId, DID } from '@xnetjs/core'
 import type {
   ApplyNodeBatchResult,
   DeterministicNodeImportDraft,
@@ -22,7 +22,6 @@ import type {
   NodeChange
 } from '@xnetjs/data'
 import type { ElectronSQLiteDiagnostics } from '@xnetjs/sqlite'
-import { existsSync, unlinkSync } from 'fs'
 import { hashContent, createContentId } from '@xnetjs/core'
 import { NodeStore, SQLiteNodeStorageAdapter } from '@xnetjs/data'
 import { createElectronSQLiteAdapter, ElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
@@ -38,6 +37,8 @@ import {
 } from '@xnetjs/sync'
 import WebSocket from 'ws'
 import * as Y from 'yjs'
+import { deserializeNodeBatch, type SerializedNodeBatch } from '../shared/node-batch'
+import { requireCompatibleDatabase } from '../storage/compatibility'
 import { sendEvent } from './events'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -183,6 +184,7 @@ export interface DataService {
   announceBlobs(cids: string[]): void
 
   // Node storage operations (for IPCNodeStorageAdapter)
+  applyNodeBatch(input: SerializedNodeBatch): Promise<ApplyNodeBatchResult>
   appendChange(change: SerializedNodeChange): Promise<void>
   getChanges(nodeId: string): Promise<SerializedNodeChange[]>
   getAllChanges(): Promise<SerializedNodeChange[]>
@@ -437,6 +439,11 @@ async function syncScalarRowsForNode(
 
 export function createDataService(config: DataServiceConfig): DataService {
   let adapter: ElectronSQLiteAdapter | null = null
+  let nodeStorage: SQLiteNodeStorageAdapter | null = null
+  function requireNodeStorage(): SQLiteNodeStorageAdapter {
+    if (!nodeStorage) throw new Error('Database not initialized')
+    return nodeStorage
+  }
   let ws: WebSocket | null = null
   let status: ConnectionStatus = 'disconnected'
   let signalingUrl = ''
@@ -579,6 +586,10 @@ export function createDataService(config: DataServiceConfig): DataService {
   }
 
   function connect(): void {
+    if (process.env.XNET_RECOVERY_OFFLINE === 'true') {
+      log('Recovery review: sync remains offline until explicitly resumed.')
+      return
+    }
     if (destroyed || !signalingUrl) return
     if (ws) return
 
@@ -1099,57 +1110,33 @@ export function createDataService(config: DataServiceConfig): DataService {
 
   // ─── Public API ─────────────────────────────────────────────────────────
 
+  async function flushPooledDocuments(): Promise<void> {
+    if (!adapter) return
+    for (const [nodeId, entry] of pool) {
+      if (!entry.dirty) continue
+      const stored = await adapter.queryOne<{ state: Buffer }>(
+        'SELECT state FROM yjs_state WHERE node_id = ?',
+        [nodeId]
+      )
+      const merged = new Y.Doc({ gc: false })
+      try {
+        if (stored) Y.applyUpdate(merged, stored.state)
+        Y.applyUpdate(merged, Y.encodeStateAsUpdate(entry.doc))
+        await adapter.run(
+          'INSERT OR REPLACE INTO yjs_state (node_id, state, updated_at) VALUES (?, ?, ?)',
+          [nodeId, Y.encodeStateAsUpdate(merged), Date.now()]
+        )
+      } finally {
+        merged.destroy()
+      }
+    }
+  }
+
   return {
     async initialize(): Promise<void> {
       log('Initializing database at:', config.dbPath)
 
-      // Check if database exists and has old schema (without version tracking)
-      if (existsSync(config.dbPath)) {
-        try {
-          const tempAdapter = new ElectronSQLiteAdapter()
-          await tempAdapter.open({ path: config.dbPath })
-          const version = await tempAdapter.getSchemaVersion()
-          await tempAdapter.close()
-
-          if (version === 0) {
-            // Old database without version tracking - delete it
-            log('Found old database without version tracking, removing...')
-            try {
-              unlinkSync(config.dbPath)
-            } catch {
-              // File may not exist, ignore
-            }
-            try {
-              unlinkSync(`${config.dbPath}-wal`)
-            } catch {
-              // File may not exist, ignore
-            }
-            try {
-              unlinkSync(`${config.dbPath}-shm`)
-            } catch {
-              // File may not exist, ignore
-            }
-          }
-        } catch {
-          // Corrupted database - delete it
-          log('Found corrupted database, removing...')
-          try {
-            unlinkSync(config.dbPath)
-          } catch {
-            // File may not exist, ignore
-          }
-          try {
-            unlinkSync(`${config.dbPath}-wal`)
-          } catch {
-            // File may not exist, ignore
-          }
-          try {
-            unlinkSync(`${config.dbPath}-shm`)
-          } catch {
-            // File may not exist, ignore
-          }
-        }
-      }
+      requireCompatibleDatabase(config.dbPath)
 
       // Create adapter with unified schema.
       //
@@ -1169,12 +1156,16 @@ export function createDataService(config: DataServiceConfig): DataService {
         readerPoolSize: 'auto'
       })
 
+      nodeStorage = new SQLiteNodeStorageAdapter(adapter)
+      await nodeStorage.open()
+
       log('Database initialized with schema version:', await adapter.getSchemaVersion())
     },
 
     async shutdown(): Promise<void> {
       log('Shutting down')
       disconnect()
+      await flushPooledDocuments()
 
       // Close all renderer ports
       for (const [, port] of rendererPorts) {
@@ -1189,6 +1180,9 @@ export function createDataService(config: DataServiceConfig): DataService {
       pool.clear()
       subscribedRooms.clear()
       tracked.clear()
+
+      await nodeStorage?.close()
+      nodeStorage = null
 
       // Close adapter (handles WAL checkpoint)
       if (adapter) {
@@ -1383,6 +1377,14 @@ export function createDataService(config: DataServiceConfig): DataService {
     // These methods implement the NodeStorageAdapter interface for the renderer.
     // Data is stored in SQLite and changes are emitted for real-time sync.
 
+    async applyNodeBatch(input: SerializedNodeBatch): Promise<ApplyNodeBatchResult> {
+      const batch = deserializeNodeBatch(input)
+      const result = await requireNodeStorage().applyNodeBatch(batch)
+      // Subscribers may read immediately; publish only after the whole commit succeeds.
+      sendEvent('nodes:change', { changes: batch.changes.map(serializeNodeChange) })
+      return result
+    },
+
     async appendChange(change: SerializedNodeChange): Promise<void> {
       if (!adapter) throw new Error('Database not initialized')
 
@@ -1434,156 +1436,35 @@ export function createDataService(config: DataServiceConfig): DataService {
     },
 
     async getChanges(nodeId: string): Promise<SerializedNodeChange[]> {
-      if (!adapter) return []
-
-      const rows = await adapter.query<{
-        hash: string
-        node_id: string
-        payload: string
-        lamport_time: number
-        lamport_peer: string
-        wall_time: number
-        author: string
-        parent_hash: string | null
-        batch_id: string | null
-        signature: Buffer
-      }>('SELECT * FROM changes WHERE node_id = ? ORDER BY lamport_time ASC', [nodeId])
-
-      return rows.map(rowToSerializedChange)
+      return (await requireNodeStorage().getChanges(nodeId)).map(serializeNodeChange)
     },
 
     async getAllChanges(): Promise<SerializedNodeChange[]> {
-      if (!adapter) return []
-
-      const rows = await adapter.query<{
-        hash: string
-        node_id: string
-        payload: string
-        lamport_time: number
-        lamport_peer: string
-        wall_time: number
-        author: string
-        parent_hash: string | null
-        batch_id: string | null
-        signature: Buffer
-      }>('SELECT * FROM changes ORDER BY lamport_time ASC', [])
-
-      return rows.map(rowToSerializedChange)
+      return (await requireNodeStorage().getAllChanges()).map(serializeNodeChange)
     },
 
     async getChangesSince(sinceLamport: number): Promise<SerializedNodeChange[]> {
-      if (!adapter) return []
-
-      const rows = await adapter.query<{
-        hash: string
-        node_id: string
-        payload: string
-        lamport_time: number
-        lamport_peer: string
-        wall_time: number
-        author: string
-        parent_hash: string | null
-        batch_id: string | null
-        signature: Buffer
-      }>('SELECT * FROM changes WHERE lamport_time > ? ORDER BY lamport_time ASC', [sinceLamport])
-
-      return rows.map(rowToSerializedChange)
+      return (await requireNodeStorage().getChangesSince(sinceLamport)).map(serializeNodeChange)
     },
 
     async getChangeByHash(hash: string): Promise<SerializedNodeChange | null> {
-      if (!adapter) return null
-
-      const row = await adapter.queryOne<{
-        hash: string
-        node_id: string
-        payload: string
-        lamport_time: number
-        lamport_peer: string
-        wall_time: number
-        author: string
-        parent_hash: string | null
-        batch_id: string | null
-        signature: Buffer
-      }>('SELECT * FROM changes WHERE hash = ?', [hash])
-
-      return row ? rowToSerializedChange(row) : null
+      const change = await requireNodeStorage().getChangeByHash(hash as ContentId)
+      return change ? serializeNodeChange(change) : null
     },
 
     async getLastChange(nodeId: string): Promise<SerializedNodeChange | null> {
-      if (!adapter) return null
-
-      const row = await adapter.queryOne<{
-        hash: string
-        node_id: string
-        payload: string
-        lamport_time: number
-        lamport_peer: string
-        wall_time: number
-        author: string
-        parent_hash: string | null
-        batch_id: string | null
-        signature: Buffer
-      }>('SELECT * FROM changes WHERE node_id = ? ORDER BY lamport_time DESC LIMIT 1', [nodeId])
-
-      return row ? rowToSerializedChange(row) : null
+      const change = await requireNodeStorage().getLastChange(nodeId)
+      return change ? serializeNodeChange(change) : null
     },
 
     async getNode(id: string): Promise<SerializedNodeState | null> {
-      if (!adapter) return null
-
-      const row = await adapter.queryOne<{
-        id: string
-        schema_id: string
-        created_at: number
-        updated_at: number
-        created_by: string
-        deleted_at: number | null
-      }>('SELECT * FROM nodes WHERE id = ?', [id])
-
-      if (!row) return null
-
-      // Get properties
-      const propRows = await adapter.query<{
-        property_key: string
-        value: string | null
-        lamport_time: number
-        updated_by: string
-        updated_at: number
-      }>('SELECT * FROM node_properties WHERE node_id = ?', [id])
-
-      const properties: Record<string, unknown> = {}
-      const timestamps: Record<string, SerializedPropertyTimestamp> = {}
-
-      for (const prop of propRows) {
-        properties[prop.property_key] = prop.value ? JSON.parse(prop.value) : null
-        timestamps[prop.property_key] = {
-          lamport: prop.lamport_time,
-          author: prop.updated_by,
-          wallTime: prop.updated_at
-        }
-      }
-
-      // Get document content if exists
-      const yjsRow = await adapter.queryOne<{ state: Buffer }>(
-        'SELECT state FROM yjs_state WHERE node_id = ?',
-        [id]
-      )
-
-      return {
-        id: row.id,
-        schemaId: row.schema_id,
-        properties,
-        timestamps,
-        deleted: row.deleted_at !== null,
-        deletedAt: row.deleted_at
-          ? { lamport: 0, author: row.created_by, wallTime: row.deleted_at }
-          : undefined,
-        createdAt: row.created_at,
-        createdBy: row.created_by,
-        updatedAt: row.updated_at,
-        updatedBy: row.created_by, // TODO: Track updatedBy separately
-        documentContent: yjsRow ? Array.from(yjsRow.state) : undefined
-      }
+      const node = await requireNodeStorage().getNode(id)
+      return node
+        ? {
+            ...node,
+            documentContent: node.documentContent ? Array.from(node.documentContent) : undefined
+          }
+        : null
     },
 
     async getExistingNodeIds(ids: string[]): Promise<string[]> {
@@ -1749,14 +1630,12 @@ export function createDataService(config: DataServiceConfig): DataService {
         deleted_at: number | null
       }>(sql, params)
 
-      // Fetch full node state for each
-      const nodes: SerializedNodeState[] = []
-      for (const row of rows) {
-        const node = await this.getNode(row.id)
-        if (node) nodes.push(node)
-      }
-
-      return nodes
+      // One hydration read per page avoids a worker round-trip for every imported node.
+      const nodes = await requireNodeStorage().getNodes(rows.map((row) => row.id))
+      return nodes.map((node) => ({
+        ...node,
+        documentContent: node.documentContent ? Array.from(node.documentContent) : undefined
+      }))
     },
 
     async countNodes(options?: CountNodesOptions): Promise<number> {
@@ -1849,39 +1728,6 @@ function serializeNodeChange(change: NodeChange): SerializedNodeChange {
     batchIndex: change.batchIndex,
     batchSize: change.batchSize,
     signature: Array.from(change.signature)
-  }
-}
-
-function rowToSerializedChange(row: {
-  hash: string
-  node_id: string
-  payload: string
-  lamport_time: number
-  lamport_peer: string
-  wall_time: number
-  author: string
-  parent_hash: string | null
-  batch_id: string | null
-  signature: Buffer
-}): SerializedNodeChange {
-  const payload = JSON.parse(row.payload) as {
-    nodeId: string
-    schemaId?: string
-    properties: Record<string, unknown>
-    deleted?: boolean
-  }
-
-  return {
-    id: row.hash, // Use hash as ID for now
-    type: 'node-change',
-    hash: row.hash,
-    payload,
-    lamport: row.lamport_time,
-    wallTime: row.wall_time,
-    authorDID: row.author,
-    parentHash: row.parent_hash,
-    batchId: row.batch_id ?? undefined,
-    signature: Array.from(row.signature)
   }
 }
 

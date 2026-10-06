@@ -1,0 +1,8 @@
+{
+  "id": "2026-09-29-desktop-startup-preserves-workspaces-tha",
+  "date": "September 29, 2026",
+  "title": "Desktop startup preserves workspaces that need recovery",
+  "summary": "Older or unreadable workspaces now stop with recovery guidance instead of being reset. Development launches use separate data folders.",
+  "highlights": [],
+  "tags": ["app", "platform"]
+}

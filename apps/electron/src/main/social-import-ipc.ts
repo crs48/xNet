@@ -1,3 +1,11 @@
+import type {
+  ElectronStagedSocialImport,
+  SocialImportArchivePreview,
+  SocialImportStageRequest,
+  SocialImportStageResult,
+  SocialImportCommitJobRequest,
+  SocialImportCommitJobSnapshot
+} from '../shared/social-import'
 /**
  * Main-process IPC for local social graph archive imports.
  */
@@ -8,16 +16,15 @@ import type {
   NodeBatchWriteTimings
 } from '@xnetjs/data'
 import type {
-  ArchiveManifest,
   SocialImportArchivePreview as SharedSocialImportArchivePreview,
   SocialImportNodeDraft as SharedSocialImportNodeDraft,
   SocialImportJobCheckpointSnapshot,
   SocialImportNodeDraftStreamResult,
   SocialImportJobMetrics,
-  SocialImportJobPhase,
-  SocialImportJobProgress
+  SocialImportJobPhase
 } from '@xnetjs/social/import/core'
 import type { BrowserWindow, OpenDialogOptions } from 'electron'
+import { extname } from 'node:path'
 import {
   createSocialImportJobCheckpointAccumulator,
   resolveSocialImportCommitPolicy,
@@ -26,66 +33,71 @@ import {
 } from '@xnetjs/social/import/core'
 import {
   createSocialArchivePreview,
-  createZipJsonEntryReader,
-  createZipTextEntryReader,
-  readZipArchiveManifest,
+  openSocialImportSource,
   streamSocialImportNodeDrafts
 } from '@xnetjs/social/import/node'
 import { builtInSocialImportAdapters } from '@xnetjs/social/importers'
 import { dialog, ipcMain } from 'electron'
+import {
+  loadImportJournals,
+  saveImportJournal,
+  retainedJournalSource,
+  type ImportJournal
+} from '../storage/import-journal'
+import { retainImportSource } from '../storage/import-sources'
 import { sendDataProcessRequest } from './data-process-manager'
+import { freezeLibrary, thawLibrary, refreshLibrarySources } from './library-ipc'
+import { dataPath } from './profile'
+import { recoveryIsBusy } from './recovery'
 
-export type SocialImportArchivePreview = Omit<SharedSocialImportArchivePreview, 'archivePath'> & {
-  archivePath: string
-}
-
-export type SocialImportNodeDraft = SharedSocialImportNodeDraft
-
-export type SocialImportStageRequest = {
-  archivePath: string
-  buckets?: string[]
-  includeSensitive?: boolean
-}
-
-export type SocialImportStageResult = Omit<SocialImportNodeDraftStreamResult, 'archive'> & {
-  archive: SocialImportArchivePreview
-  stageId: string
-}
-
-export type SocialImportCommitJobRequest = {
-  stageId: string
-  includeSourceRecords: boolean
-  authorDID: string
-  signingKey: number[]
-}
-
-export type SocialImportCommitJobSummary = {
-  created: number
-  updated: number
-  batches: number
-}
-
-export type SocialImportCommitJobSnapshot = SocialImportJobProgress & {
-  summary?: SocialImportCommitJobSummary
-}
+export type {
+  ElectronStagedSocialImport,
+  SocialImportArchivePreview,
+  SocialImportNodeDraft,
+  SocialImportStageRequest,
+  SocialImportStageResult,
+  SocialImportCommitJobRequest,
+  SocialImportCommitJobSummary,
+  SocialImportCommitJobSnapshot
+} from '../shared/social-import'
 
 const adapters = builtInSocialImportAdapters
 const approvedArchivePaths = new Set<string>()
 const stagedResults = new Map<string, ElectronStagedSocialImport>()
 const commitJobs = new Map<string, SocialImportCommitJobSnapshot>()
+const journals = new Map<string, ImportJournal>()
+let journalsLoaded = false
 const cancelledCommitJobIds = new Set<string>()
+
+function ensureCommitJobsLoaded(): void {
+  if (journalsLoaded) return
+  const saved = loadImportJournals(dataPath)
+  for (const journal of saved) {
+    journals.set(journal.job.jobId, journal)
+    commitJobs.set(journal.job.jobId, journal.job)
+  }
+  journalsLoaded = true
+}
 let queuedTestArchivePath: string | null = null
 const COMMIT_BATCH_SIZE = 2500
 
-type ElectronStagedSocialImport = Omit<SocialImportNodeDraftStreamResult, 'archive'> & {
-  archive: SocialImportArchivePreview
-  archivePath: string
-  manifest: ArchiveManifest
-  stageRequest: SocialImportStageRequest
-  importedAt: string
+export function hasActiveSocialImports(): boolean {
+  return [...commitJobs.values()].some((job) => job.status === 'queued' || job.status === 'running')
 }
 
 export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): void {
+  // The preload obtains this path from a disk-backed File selected or dropped
+  // by the user. Renderer-created File objects have no filesystem path.
+  ipcMain.handle('xnet:social-import:previewSelectedFile', async (_event, archivePath: string) => {
+    if (
+      typeof archivePath !== 'string' ||
+      !['.zip', '.json'].includes(extname(archivePath).toLowerCase())
+    )
+      throw new Error('Choose a ZIP or JSON archive.')
+    const preview = await createArchivePreview(archivePath)
+    approvedArchivePaths.add(archivePath)
+    return preview
+  })
   ipcMain.handle('xnet:social-import:pickArchive', async () => {
     if (process.env.XNET_TEST_BYPASS === 'true' && queuedTestArchivePath) {
       const archivePath = queuedTestArchivePath
@@ -137,14 +149,66 @@ export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): voi
   )
 
   ipcMain.handle(
+    'xnet:social-import:resumeCommitJob',
+    async (
+      _event,
+      request: {
+        jobId: string
+        authorDID: string
+        signingKey: number[]
+      }
+    ) => {
+      ensureCommitJobsLoaded()
+      if (recoveryIsBusy())
+        throw new Error('Wait for workspace recovery to finish before resuming.')
+      if (hasActiveSocialImports()) throw new Error('Finish or pause the current import first.')
+      const journal = journals.get(request.jobId)
+      const job = commitJobs.get(request.jobId)
+      if (!journal || !job || job.status === 'completed')
+        throw new Error('No unfinished import found.')
+      if (request.authorDID !== journal.authorDID || request.signingKey.length !== 32)
+        throw new Error('Resume with the same workspace identity that started this import.')
+      const adapter = journal.stage.archive.adapter
+      if (
+        !adapters.some(
+          (candidate) => candidate.id === adapter?.id && candidate.version === adapter.version
+        )
+      )
+        throw new Error(
+          'This importer changed. Review the retained source as a new import before continuing.'
+        )
+      const stagedResult = {
+        ...journal.stage,
+        archivePath: retainedJournalSource(dataPath, journal)
+      }
+      const next = updateCommitJob(
+        job.jobId,
+        { status: 'queued', error: null, completedAt: null },
+        getWindow
+      )
+      void runCommitJob({
+        jobId: job.jobId,
+        stagedResult,
+        request: { ...request, stageId: '', includeSourceRecords: journal.includeSourceRecords },
+        totalRecords: job.totalRecords ?? 0,
+        getWindow,
+        resume: job
+      })
+      return next
+    }
+  )
+
+  ipcMain.handle(
     'xnet:social-import:listCommitJobs',
     async (): Promise<SocialImportCommitJobSnapshot[]> => listCommitJobs()
   )
 
   ipcMain.handle(
     'xnet:social-import:getCommitJob',
-    async (_event, jobId: string): Promise<SocialImportCommitJobSnapshot | null> =>
-      commitJobs.get(jobId) ?? null
+    async (_event, jobId: string): Promise<SocialImportCommitJobSnapshot | null> => {
+      ensureCommitJobsLoaded()
+      return commitJobs.get(jobId) ?? null
+    }
   )
 
   ipcMain.handle(
@@ -157,18 +221,18 @@ export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): voi
 const archiveDialogOptions: OpenDialogOptions = {
   title: 'Select social archive',
   properties: ['openFile'],
-  filters: [{ name: 'ZIP archives', extensions: ['zip'] }]
+  filters: [{ name: 'Social exports, stars, and garden snapshots', extensions: ['zip', 'json'] }]
 }
 
 async function createArchivePreview(archivePath: string): Promise<SocialImportArchivePreview> {
-  const manifest = await readZipArchiveManifest(archivePath, { hashEntries: false })
+  const { manifest } = await openSocialImportSource(archivePath)
   return requireArchivePath(await createSocialArchivePreview({ adapters, manifest }), archivePath)
 }
 
 async function stageArchive(request: SocialImportStageRequest): Promise<SocialImportStageResult> {
-  const manifest = await readZipArchiveManifest(request.archivePath, { hashEntries: false })
-  const readJsonEntry = await createZipJsonEntryReader(request.archivePath)
-  const readTextEntry = await createZipTextEntryReader(request.archivePath)
+  const { manifest, readJsonEntry, readTextEntry } = await openSocialImportSource(
+    request.archivePath
+  )
   const importedAt = new Date().toISOString()
 
   const streamResults: SocialImportNodeDraftStreamResult[] = []
@@ -209,6 +273,8 @@ async function stageArchive(request: SocialImportStageRequest): Promise<SocialIm
     stageId,
     recordCount: result.recordCount,
     sourceRecordCount: result.sourceRecordCount,
+    sourceRecordMode: result.sourceRecordMode,
+    sidecarSourceRecordCount: result.sidecarSourceRecordCount,
     canonicalRecordCount: result.canonicalRecordCount
   }
 }
@@ -217,6 +283,9 @@ function startCommitJob(
   request: SocialImportCommitJobRequest,
   getWindow: () => BrowserWindow | null
 ): SocialImportCommitJobSnapshot {
+  ensureCommitJobsLoaded()
+  if (recoveryIsBusy()) throw new Error('Wait for workspace recovery to finish before importing.')
+  if (hasActiveSocialImports()) throw new Error('Finish or pause the current import first.')
   const stagedResult = stagedResults.get(request.stageId)
   if (!stagedResult) {
     throw new Error(`No staged social import found for ${request.stageId}`)
@@ -258,6 +327,7 @@ function startCommitJob(
 }
 
 function listCommitJobs(): SocialImportCommitJobSnapshot[] {
+  ensureCommitJobsLoaded()
   return [...commitJobs.values()].sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
@@ -269,8 +339,9 @@ function cancelCommitJob(
   if (!job || !isActiveJob(job)) return job ?? null
 
   cancelledCommitJobIds.add(jobId)
-  const next = updateCommitJob(jobId, { status: 'cancelled', updatedAt: Date.now() }, getWindow)
-  return next
+  // The current batch may still be writing. Keep quit/recovery blocked until it acknowledges.
+  publishCommitJob(job, getWindow)
+  return job
 }
 
 async function runCommitJob(input: {
@@ -279,6 +350,7 @@ async function runCommitJob(input: {
   request: SocialImportCommitJobRequest
   totalRecords: number
   getWindow: () => BrowserWindow | null
+  resume?: SocialImportCommitJobSnapshot
 }): Promise<void> {
   const startedAt = Date.now()
   const totalRecords = input.totalRecords
@@ -308,18 +380,41 @@ async function runCommitJob(input: {
     totalScalarRowsWritten: 0,
     totalFtsRowsWritten: 0
   }
-  let created = 0
-  let updated = 0
-  let processedRecords = 0
-  let currentChunk = 0
+  let created = input.resume?.created ?? 0
+  let updated = input.resume?.updated ?? 0
+  let processedRecords = input.resume?.processedRecords ?? 0
+  let currentChunk = input.resume?.currentChunk ?? 0
+  const resumeCursor = processedRecords
+  let streamedRecords = 0
+  let streamedChunks = 0
   let draftBatch: SharedSocialImportNodeDraft[] = []
   const checkpointAccumulator = createSocialImportJobCheckpointAccumulator()
 
   try {
+    await freezeLibrary()
     updateCommitJob(input.jobId, { status: 'running', phase: 'checking' }, input.getWindow)
 
-    const readJsonEntry = await createZipJsonEntryReader(input.stagedResult.archivePath)
-    const readTextEntry = await createZipTextEntryReader(input.stagedResult.archivePath)
+    const expectedHash = input.stagedResult.manifest.archiveHash
+    if (!expectedHash) throw new Error('Import preview has no source fingerprint. Review it again.')
+    const retainedPath = await retainImportSource({
+      dataPath,
+      sourcePath: input.stagedResult.archivePath,
+      expectedHash
+    })
+    const { manifest, readJsonEntry, readTextEntry } = await openSocialImportSource(retainedPath)
+    if (manifest.archiveHash !== expectedHash)
+      throw new Error('Retained archive fingerprint does not match the preview.')
+    const journal: ImportJournal = {
+      version: 1,
+      job: commitJobs.get(input.jobId)!,
+      stage: input.stagedResult,
+      authorDID: input.request.authorDID,
+      sourceHash: expectedHash,
+      sourceExtension: extname(retainedPath) as '.zip' | '.json',
+      includeSourceRecords: input.request.includeSourceRecords
+    }
+    saveImportJournal(dataPath, journal)
+    journals.set(input.jobId, journal)
 
     const flushDraftBatch = async (): Promise<void> => {
       if (draftBatch.length === 0) return
@@ -327,6 +422,19 @@ async function runCommitJob(input: {
       assertCommitJobNotCancelled(input.jobId)
       const draftChunk = draftBatch
       draftBatch = []
+      streamedRecords += draftChunk.length
+      streamedChunks += 1
+      if (streamedRecords <= resumeCursor) {
+        checkpointAccumulator.add(draftChunk, {
+          processedRecords: streamedRecords,
+          currentChunk: streamedChunks
+        })
+        return
+      }
+      if (streamedRecords - draftChunk.length < resumeCursor)
+        throw new Error(
+          'Import cursor does not align with the reviewed source. No batch was skipped.'
+        )
       const nextChunk = currentChunk + 1
 
       const checkStartedAt = performance.now()
@@ -377,8 +485,6 @@ async function runCommitJob(input: {
         processedRecords,
         currentChunk
       })
-      assertCommitJobNotCancelled(input.jobId)
-
       reportCommitJobProgress({
         jobId: input.jobId,
         phase: currentChunk >= totalChunks ? 'finalizing' : 'checking',
@@ -414,8 +520,10 @@ async function runCommitJob(input: {
     }
 
     await flushDraftBatch()
+    await thawLibrary()
+    await refreshLibrarySources()
 
-    if (processedRecords !== totalRecords) {
+    if (processedRecords !== totalRecords || streamedRecords !== totalRecords) {
       throw new Error(
         `Social import streamed ${processedRecords} records but expected ${totalRecords}`
       )
@@ -439,16 +547,29 @@ async function runCommitJob(input: {
     )
   } catch (error) {
     const cancelled = error instanceof SocialImportCommitCancelledError
-    updateCommitJob(
-      input.jobId,
-      {
-        status: cancelled ? 'cancelled' : 'failed',
-        completedAt: Date.now(),
-        error: cancelled ? null : error instanceof Error ? error.message : String(error)
-      },
-      input.getWindow
-    )
+    const failed: Partial<SocialImportCommitJobSnapshot> = {
+      status: cancelled ? 'paused' : 'failed',
+      completedAt: Date.now(),
+      error: cancelled
+        ? 'Paused after the last saved batch.'
+        : error instanceof Error
+          ? error.message
+          : String(error)
+    }
+    try {
+      updateCommitJob(input.jobId, failed, input.getWindow)
+    } catch (journalError) {
+      const current = commitJobs.get(input.jobId)!
+      const next = {
+        ...current,
+        ...failed,
+        error: `Import stopped; progress could not be saved: ${String(journalError)}`
+      }
+      commitJobs.set(input.jobId, next)
+      publishCommitJob(next, input.getWindow)
+    }
   } finally {
+    await thawLibrary()
     cancelledCommitJobIds.delete(input.jobId)
   }
 }
@@ -531,6 +652,12 @@ function updateCommitJob(
     ...current,
     ...patch,
     updatedAt: patch.updatedAt ?? Date.now()
+  }
+  const journal = journals.get(jobId)
+  if (journal) {
+    const saved = { ...journal, job: next }
+    saveImportJournal(dataPath, saved)
+    journals.set(jobId, saved)
   }
   commitJobs.set(jobId, next)
   publishCommitJob(next, getWindow)

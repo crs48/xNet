@@ -57,6 +57,14 @@ export type ClientKind = 'web' | 'electron'
 
 /** The browser-context shape the harness installs (see callers below). */
 interface SyncHarnessWindow {
+  __xnetNodeStore?: {
+    get: (id: string) => Promise<unknown>
+    create: (input: {
+      id: string
+      schemaId: string
+      properties: Record<string, string>
+    }) => Promise<unknown>
+  }
   __xnetSyncTestHarness?: {
     acquire: (docId: string) => Promise<void>
     type: (docId: string, text: string) => Promise<void>
@@ -154,7 +162,9 @@ function spawnAndWait(
         // Include stderr — native-module load failures (the most likely cause of
         // a hub that won't start) report the dlopen error there, not on stdout.
         reject(
-          new Error(`${opts.label}: exited with code ${code}\n--- stdout ---\n${stdout}\n--- stderr ---\n${stderr}`)
+          new Error(
+            `${opts.label}: exited with code ${code}\n--- stdout ---\n${stdout}\n--- stderr ---\n${stderr}`
+          )
         )
       }
     })
@@ -215,12 +225,16 @@ export async function startInProcessHub(): Promise<InProcessHub> {
           timeoutMs: 30_000
         }
       )
-    : await spawnAndWait('pnpm', ['--filter', '@xnetjs/hub', 'exec', 'tsx', 'src/cli.ts', ...cliArgs], {
-        cwd: ROOT,
-        readyText: `listening on port ${port}`,
-        label: 'hub',
-        timeoutMs: 30_000
-      })
+    : await spawnAndWait(
+        'pnpm',
+        ['--filter', '@xnetjs/hub', 'exec', 'tsx', 'src/cli.ts', ...cliArgs],
+        {
+          cwd: ROOT,
+          readyText: `listening on port ${port}`,
+          label: 'hub',
+          timeoutMs: 30_000
+        }
+      )
   return {
     port,
     wsUrl: `ws://localhost:${port}`,
@@ -358,7 +372,12 @@ export async function launchElectronApp(
   // electron-e2e job via XNET_ELECTRON_NO_SANDBOX.
   const ciArgs =
     process.env.XNET_ELECTRON_NO_SANDBOX === '1'
-      ? ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-software-rasterizer']
+      ? [
+          '--no-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--disable-software-rasterizer'
+        ]
       : []
   const extra = [...(opts.extraArgs ?? []), ...ciArgs]
   const app = await electron.launch({
@@ -428,7 +447,7 @@ async function openElectronClient(opts: OpenClientOptions): Promise<ElectronSync
   await win.waitForFunction(
     () => {
       const w = window as unknown as SyncHarnessWindow
-      return Boolean(w.__xnetSyncTestHarness && w.__xnetIpcSyncManager)
+      return Boolean(w.__xnetSyncTestHarness && w.__xnetIpcSyncManager && w.__xnetNodeStore)
     },
     undefined,
     { timeout: 90_000 }
@@ -449,10 +468,19 @@ async function openElectronClient(opts: OpenClientOptions): Promise<ElectronSync
     undefined,
     { timeout: 60_000 }
   )
-  await win.evaluate(
-    (id) => (window as unknown as SyncHarnessWindow).__xnetSyncTestHarness!.acquire(id),
-    opts.docId
-  )
+  await win.evaluate(async (id) => {
+    const harness = window as unknown as SyncHarnessWindow
+    if (!harness.__xnetNodeStore) throw new Error('Desktop node store is not ready')
+    // Durable Yjs state belongs to a materialized node. A bare test room can
+    // sync in memory but cannot pass the same save-on-quit barrier as real work.
+    if (!(await harness.__xnetNodeStore.get(id)))
+      await harness.__xnetNodeStore.create({
+        id,
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Sync matrix fixture' }
+      })
+    await harness.__xnetSyncTestHarness!.acquire(id)
+  }, opts.docId)
   return {
     kind: 'electron',
     app,

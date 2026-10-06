@@ -21,3 +21,4 @@ export {
 export { useDataBridge, useXNet, useXNetInternal } from './context'
 export type { XNetContextValue, XNetInternalContextValue } from './context'
 export type { XNetRuntimeStatus } from './runtime'
+export { flushDocumentWrites } from './hooks/document-writes'

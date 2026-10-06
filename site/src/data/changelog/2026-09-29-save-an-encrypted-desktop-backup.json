@@ -1,0 +1,8 @@
+{
+  "id": "2026-09-29-save-an-encrypted-desktop-backup",
+  "date": "September 29, 2026",
+  "title": "Save an encrypted desktop backup",
+  "summary": "Export your workspace, retained source files, and recovery keys to a password-protected folder. Restore it through Settings while keeping your current workspace. Browser settings and sign-in sessions are not included.",
+  "highlights": [],
+  "tags": ["app", "identity"]
+}
