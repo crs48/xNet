@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-10-06-explore-a-private-spatial-library-previe",
+      "url": "https://xnet.fyi/changelog#2026-10-06-explore-a-private-spatial-library-previe",
+      "title": "Explore a private spatial Library preview",
+      "content_text": "Pair selected saved links with an experimental read-only browser viewer, search their neighborhoods, and inspect saved details; Vision Pro controller support and comfort still need device testing.\n",
+      "date_published": "2026-10-06T20:26:20Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "October 6, 2026",
+        "summary": "Pair selected saved links with an experimental read-only browser viewer, search their neighborhoods, and inspect saved details; Vision Pro controller support and comfort still need device testing.",
+        "highlights": [],
+        "mergedAt": "2026-10-06T20:26:20Z",
+        "pr": 724,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-10-06-library-enrichment-retries-temporary-vid",
       "url": "https://xnet.fyi/changelog#2026-10-06-library-enrichment-retries-temporary-vid",
       "title": "Library enrichment retries temporary video helper failures",
