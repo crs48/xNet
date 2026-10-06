@@ -4,6 +4,15 @@
   "title": "Large libraries have time to finish opening",
   "summary": "Desktop startup waits for large workspace checks and search-cache reconciliation to finish before reporting a timeout.",
   "highlights": [],
-  "tags": ["app", "performance"],
-  "pr": 721
+  "tags": [
+    "app",
+    "performance"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

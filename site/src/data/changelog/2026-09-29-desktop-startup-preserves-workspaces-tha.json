@@ -4,5 +4,15 @@
   "title": "Desktop startup preserves workspaces that need recovery",
   "summary": "Older or unreadable workspaces now stop with recovery guidance instead of being reset. Development launches use separate data folders.",
   "highlights": [],
-  "tags": ["app", "platform"]
+  "tags": [
+    "app",
+    "platform"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

@@ -4,5 +4,14 @@
   "title": "Resume an archive import after restarting",
   "summary": "Pause a desktop archive import and resume from its last saved batch after reopening xNet. Reviewed selections and original source bytes stay with the workspace, so the original export path is no longer required.",
   "highlights": [],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

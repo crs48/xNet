@@ -4,6 +4,14 @@
   "title": "Instagram saves gain captions and thumbnails",
   "summary": "Imported Instagram posts now fetch public captions, authors, and cached thumbnails without an extra helper. Posts that need sign-in show a gap while enrichment continues.",
   "highlights": [],
-  "tags": ["app"],
-  "pr": 721
+  "tags": [
+    "app"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

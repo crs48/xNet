@@ -4,5 +4,14 @@
   "title": "Recover an earlier desktop workspace",
   "summary": "Create verified local recovery copies from Settings, restore without deleting newer work, and keep a restored workspace offline for review. Desktop quit and update installation now wait for text saves and a recovery copy.",
   "highlights": [],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

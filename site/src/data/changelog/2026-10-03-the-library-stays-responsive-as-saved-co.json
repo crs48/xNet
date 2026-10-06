@@ -4,6 +4,15 @@
   "title": "The Library stays responsive as saved content grows",
   "summary": "Browsing large Libraries no longer holds up enrichment as more descriptions and transcripts are saved. Resource refreshes also avoid piling up during slower operations.",
   "highlights": [],
-  "tags": ["app", "performance"],
-  "pr": 721
+  "tags": [
+    "app",
+    "performance"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

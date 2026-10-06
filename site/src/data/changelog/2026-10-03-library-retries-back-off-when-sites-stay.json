@@ -4,6 +4,14 @@
   "title": "Library retries back off when sites stay rate limited",
   "summary": "Repeated rate limits now increase the wait between enrichment attempts while honoring longer delays requested by the source.",
   "highlights": [],
-  "tags": ["app"],
-  "pr": 721
+  "tags": [
+    "app"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

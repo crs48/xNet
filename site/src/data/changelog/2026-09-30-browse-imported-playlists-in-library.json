@@ -4,6 +4,14 @@
   "title": "Browse imported playlists in Library",
   "summary": "Open saved collections, page through their original entries, and view enriched source details while keeping repeated saves and missing items visible.",
   "highlights": [],
-  "tags": ["app"],
-  "pr": 721
+  "tags": [
+    "app"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

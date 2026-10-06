@@ -4,5 +4,15 @@
   "title": "Save an encrypted desktop backup",
   "summary": "Export your workspace, retained source files, and recovery keys to a password-protected folder. Restore it through Settings while keeping your current workspace. Browser settings and sign-in sessions are not included.",
   "highlights": [],
-  "tags": ["app", "identity"]
+  "tags": [
+    "app",
+    "identity"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
