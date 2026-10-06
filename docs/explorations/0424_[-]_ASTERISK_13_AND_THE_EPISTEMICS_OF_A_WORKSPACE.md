@@ -2,7 +2,7 @@
 title: Asterisk 13 And The Epistemics Of A Workspace
 status: draft
 last_updated: 2026-08-01
-review: 2026-10-01 # short on purpose: the one code finding (F1) is small and rots into a shipped bug if it waits
+review: 2026-11-06
 decider: Chris Smothers
 door: two-way
 tags: [research, ai, epistemics, retrieval, process, strategy]

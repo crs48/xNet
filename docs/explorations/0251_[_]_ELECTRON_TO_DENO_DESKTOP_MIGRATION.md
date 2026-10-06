@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # Electron → Deno Desktop: Should We Switch?
 
 > Status: `[_]` exploration. Prompt: *"should we switch from electron to deno

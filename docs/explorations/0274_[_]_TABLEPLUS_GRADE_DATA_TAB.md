@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # TablePlus-Grade Data Tab: Bringing Desktop DB-GUI Ergonomics To Devtools And Databases
 
 ## Problem Statement

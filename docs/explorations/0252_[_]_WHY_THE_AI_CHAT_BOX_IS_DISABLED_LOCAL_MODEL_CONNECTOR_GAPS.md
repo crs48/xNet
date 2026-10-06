@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # Why The AI Chat Box Is Disabled — Local-Model Connector Gaps
 
 ## Problem Statement

@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # 0241 — Open Collective, Foundation, Or Company? A Practical Legal & Funding Structure For xNet
 
 > **Status:** Exploration

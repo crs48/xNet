@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # 0270 - Desktop Filesystem As A Governed Capability
 
 ## Problem Statement

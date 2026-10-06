@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # The Seventh Cold‑Open Migration: The Stall Left `execMs` — Bracket the Open/Dispatch Window
 
 ## Problem Statement

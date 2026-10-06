@@ -1,3 +1,7 @@
+---
+review: 2026-11-06
+---
+
 # The Everyperson Shell — A Claude-Desktop UI/UX for xNet (Desktop + Mobile)
 
 ## Problem Statement
