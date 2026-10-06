@@ -4,5 +4,14 @@
   "title": "Keep saved collections and repeated playlist entries",
   "summary": "Instagram imports now read named collections and liked comments, and share resources across likes and saves. YouTube imports retain repeated playlist entries and report ambiguous catalog matches. A read-only preview reports seed archive coverage before import.",
   "highlights": [],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

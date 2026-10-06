@@ -4,6 +4,14 @@
   "title": "Library shows video helper setup and download failures",
   "summary": "Coverage & gaps offers video-helper setup, cancellation, and repair, with checks for incomplete or altered downloads.",
   "highlights": [],
-  "tags": ["app"],
-  "pr": 721
+  "tags": [
+    "app"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

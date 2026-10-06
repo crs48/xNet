@@ -4,5 +4,14 @@
   "title": "Import GitHub stars and keep source exports for recovery",
   "summary": "The desktop import picker accepts GitHub stars snapshots, preserves native star dates, and keeps a verified private copy of imported exports for local recovery.",
   "highlights": [],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

@@ -4,6 +4,15 @@
   "title": "Large desktop libraries use less space for backups",
   "summary": "Recovery copies on macOS share unchanged disk blocks while keeping saved content and backup retention intact.",
   "highlights": [],
-  "tags": ["platform", "performance"],
-  "pr": 721
+  "tags": [
+    "platform",
+    "performance"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

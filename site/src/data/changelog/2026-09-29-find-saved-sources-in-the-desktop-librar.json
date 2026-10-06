@@ -4,5 +4,14 @@
   "title": "Find saved sources in the desktop Library",
   "summary": "Browse imported links, cache source thumbnails, and search full fetched descriptions and available video captions offline. Pause enrichment and inspect missing details from the Library.",
   "highlights": [],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

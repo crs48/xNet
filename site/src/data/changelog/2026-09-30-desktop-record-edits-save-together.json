@@ -4,6 +4,14 @@
   "title": "Desktop record edits save together",
   "summary": "Record edits and their history now commit together. If a write fails, the whole edit rolls back and can be retried. Imported history keeps its original change identity after restart.",
   "highlights": [],
-  "tags": ["app"],
-  "pr": 721
+  "tags": [
+    "app"
+  ],
+  "pr": 721,
+  "mergedAt": "2026-10-06T20:09:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
