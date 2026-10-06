@@ -3,7 +3,13 @@ import { mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/prom
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { inspectManagedHelper, installManagedHelper } from './managed-helper'
+import {
+  inspectManagedHelper,
+  installManagedHelper,
+  verifyHelperVersion,
+  LibraryHelperError,
+  LibraryHelperProbeError
+} from './managed-helper'
 
 const bytes = Buffer.from('a fixture helper executable')
 const artifact = {
@@ -127,3 +133,19 @@ it('rejects a helper directory symlink before downloading', async () => {
   await expect(install({ download })).rejects.toThrow('regular directory')
   expect(download).not.toHaveBeenCalled()
 })
+
+// A real child process distinguishes empty success output from a version mismatch.
+it.skipIf(process.platform === 'win32')(
+  'retries an empty helper probe without accepting it as a verified version',
+  async () => {
+    const path = join(root, 'probe')
+    await writeFile(path, '#!/bin/sh\nexit 0\n', { mode: 0o700 })
+    await expect(verifyHelperVersion(path, 'fixture')).rejects.toBeInstanceOf(
+      LibraryHelperProbeError
+    )
+    await writeFile(path, '#!/bin/sh\nprintf "wrong\\n"\n', { mode: 0o700 })
+    await expect(verifyHelperVersion(path, 'fixture')).rejects.toBeInstanceOf(LibraryHelperError)
+    await writeFile(path, '#!/bin/sh\nprintf "fixture\\n"\n', { mode: 0o700 })
+    await expect(verifyHelperVersion(path, 'fixture')).resolves.toBeUndefined()
+  }
+)

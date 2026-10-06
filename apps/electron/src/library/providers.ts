@@ -9,7 +9,12 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { assertPublicUrl } from '@xnetjs/core'
 import { parseInstagramPage } from './instagram'
-import { managedHelperPath, TESTED_EXTRACTOR_VERSION, verifyHelperVersion } from './managed-helper'
+import {
+  LibraryHelperProbeError,
+  managedHelperPath,
+  TESTED_EXTRACTOR_VERSION,
+  verifyHelperVersion
+} from './managed-helper'
 import { LibraryProviderError } from './provider-error'
 import { parsePostPreview, parsePublicPage, parseTikTokPage } from './public-pages'
 import { providerResource } from './source'
@@ -252,6 +257,7 @@ export async function findExtractor(directory?: string): Promise<string> {
     }
   }
   const failures: string[] = []
+  let probeFailure: LibraryHelperProbeError | undefined
   for (const path of [
     join(homedir(), '.local/bin/yt-dlp'),
     '/opt/homebrew/bin/yt-dlp',
@@ -266,9 +272,11 @@ export async function findExtractor(directory?: string): Promise<string> {
       await verifyHelperVersion(path)
       return path
     } catch (error) {
+      if (error instanceof LibraryHelperProbeError) probeFailure = error
       failures.push(error instanceof Error ? error.message : String(error))
     }
   }
+  if (probeFailure) throw new LibraryProviderError(probeFailure.message, 'retry')
   throw new LibraryProviderError(
     `Video extraction needs yt-dlp ${TESTED_EXTRACTOR_VERSION}. Open Library → Coverage & gaps to install the managed Mac helper.${failures.length ? ` ${failures.join(' ')}` : ''}`,
     'blocked'

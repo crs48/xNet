@@ -27,6 +27,9 @@ type HelperArtifact = {
 export class LibraryHelperError extends TaggedError {
   readonly _tag = 'LibraryHelperError'
 }
+export class LibraryHelperProbeError extends TaggedError {
+  readonly _tag = 'LibraryHelperProbeError'
+}
 const verified = new Map<string, string>()
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 const digest = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex')
@@ -84,6 +87,10 @@ export async function verifyHelperVersion(
     maxBuffer: 65536,
     signal
   })
+  if (!result.stdout.trim())
+    throw new LibraryHelperProbeError(
+      'The video helper returned no version output. Try again shortly.'
+    )
   if (result.stdout.trim() !== version)
     throw new LibraryHelperError(`Expected yt-dlp ${version}; found ${result.stdout.trim()}.`)
 }
