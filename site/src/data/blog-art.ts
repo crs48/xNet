@@ -1,71 +1,63 @@
-/**
- * Slug → hero art for every blog post.
- *
- * Each essay's art-directed hero is an inline SVG `*Art.astro` component. The
- * same component is rendered three ways, so the mapping lives here rather than
- * in any one consumer:
- *   - the post's own hero band (`*Hero.astro` imports its Art directly);
- *   - the blog-index preview card (`pages/blog/index.astro`);
- *   - the post's social-card PNG (`pages/blog/og/[slug].png.ts`), which
- *     rasterises the SVG at build time so link unfurls on Slack, X, iMessage
- *     and the rest — none of which accept SVG for `og:image` — show the
- *     essay's picture instead of the site-wide screenshot.
- *
- * Every post must have an entry: the OG endpoint fails the build for a slug
- * it cannot draw, rather than quietly falling back to the generic image.
- */
-import BallotArt from '../components/blog/BallotArt.astro'
-import BoardArt from '../components/blog/BoardArt.astro'
-import BrickArt from '../components/blog/BrickArt.astro'
-import DisguiseArt from '../components/blog/DisguiseArt.astro'
-import DoorHouseArt from '../components/blog/DoorHouseArt.astro'
-import DustArt from '../components/blog/DustArt.astro'
-import ForestArt from '../components/blog/ForestArt.astro'
-import HookArt from '../components/blog/HookArt.astro'
-import LeverArt from '../components/blog/LeverArt.astro'
-import MycelialArt from '../components/blog/MycelialArt.astro'
-import PirateArt from '../components/blog/PirateArt.astro'
-import StarArt from '../components/blog/StarArt.astro'
-import LoomArt from '../components/blog/LoomArt.astro'
-import TableWallArt from '../components/blog/TableWallArt.astro'
-import TillerArt from '../components/blog/TillerArt.astro'
-import TimeoutArt from '../components/blog/TimeoutArt.astro'
-import VaultArt from '../components/blog/VaultArt.astro'
-import WeightsArt from '../components/blog/WeightsArt.astro'
-import WorkshopArt from '../components/blog/WorkshopArt.astro'
-import RingsArt from '../components/blog/RingsArt.astro'
-import PalimpsestArt from '../components/blog/PalimpsestArt.astro'
-import RecordArt from '../components/blog/RecordArt.astro'
-import HarvestArt from '../components/blog/HarvestArt.astro'
-import MeterArt from '../components/blog/MeterArt.astro'
-import HundredYearArt from '../components/blog/HundredYearArt.astro'
+/** Generated cover artwork shared by post heroes, index cards and social images. */
+export interface BlogArt {
+  src: string
+  srcSet: string
+  alt: string
+  width: number
+  height: number
+}
 
-export type HeroArtComponent = typeof PirateArt
+const descriptions: Record<string, string> = {
+  'atoms-for-the-ballot': 'A hand places a folded paper ballot into a wooden ballot box.',
+  'the-hundred-year-machine': 'A well-used treadle sewing machine stands in a sunlit room.',
+  'the-door-inside-the-house':
+    'A person waits outside a closed door beside a window into their study.',
+  'the-table-and-the-wall':
+    'A carpenter works on a wooden table beside an opening onto a street market.',
+  'the-matchmaker-and-the-meter':
+    'A friend introduces two people in a lively neighborhood dance hall.',
+  'the-harvest-you-can-count':
+    'A measured sheaf of grain and a basket of varied produce share a garden table.',
+  'rig-the-game-or-play':
+    'An abandoned board game has most of its houses and coins piled in one corner.',
+  'the-worlds-greatest-record-store':
+    'People browse and share records in a warmly lit neighborhood record shop.',
+  palimpsest: 'Faint geometric drawings show through layers of an old parchment manuscript.',
+  'tree-rings': 'The growth rings of an old fallen tree are surrounded by moss and ferns.',
+  'people-in-disguise':
+    'Musicians play distinct acoustic instruments together in a warm wooden room.',
+  'clutch-power': 'Hands connect colorful construction bricks beside a small model bridge.',
+  'weights-you-can-hold':
+    'A hand rests on a portable drive beside a laptop, camera, book and record.',
+  timeout: 'A comfortable chair and blanket wait beside a window overlooking a quiet garden.',
+  'the-vault-and-the-view':
+    'Three open windows look onto one garden beside an archive of personal papers.',
+  'the-workshop-and-the-walled-garden':
+    'An open workshop with tools and a model on its workbench leads into a garden.',
+  'hand-on-the-tiller': 'A hand steers a wooden sailboat with its tiller over a calm blue sea.',
+  'the-tip-of-the-hook':
+    'A small iceberg peak reveals a much larger translucent body beneath the water.',
+  'a-great-pirate-age': 'A small sailing ship makes its way between sunlit islands.',
+  'data-should-work-like-soil': 'A thriving forest above a cutaway of soil, roots and mycelium.',
+  'the-gentlest-furnace': 'A luminous golden star against a deep blue field of stars.',
+  'the-right-to-say-no': 'A person carries a box through an open door into a sunlit meadow.',
+  'the-desert-that-feeds-the-forest':
+    'A plume of desert dust crosses the ocean toward a green rainforest.',
+  'the-forest-and-the-field': 'Orderly crop rows meet a diverse forest along a winding path.',
+  'the-loom-you-can-read':
+    'A wooden handloom exposes the threads and mechanism that weave its cloth.'
+}
 
-export const heroArt: Record<string, HeroArtComponent> = {
-  'atoms-for-the-ballot': BallotArt,
-  'the-hundred-year-machine': HundredYearArt,
-  'the-door-inside-the-house': DoorHouseArt,
-  'the-table-and-the-wall': TableWallArt,
-  'the-matchmaker-and-the-meter': MeterArt,
-  'the-harvest-you-can-count': HarvestArt,
-  'rig-the-game-or-play': BoardArt,
-  'the-worlds-greatest-record-store': RecordArt,
-  palimpsest: PalimpsestArt,
-  'tree-rings': RingsArt,
-  'people-in-disguise': DisguiseArt,
-  'clutch-power': BrickArt,
-  'weights-you-can-hold': WeightsArt,
-  timeout: TimeoutArt,
-  'the-vault-and-the-view': VaultArt,
-  'the-workshop-and-the-walled-garden': WorkshopArt,
-  'hand-on-the-tiller': TillerArt,
-  'the-tip-of-the-hook': HookArt,
-  'a-great-pirate-age': PirateArt,
-  'data-should-work-like-soil': MycelialArt,
-  'the-gentlest-furnace': StarArt,
-  'the-right-to-say-no': LeverArt,
-  'the-desert-that-feeds-the-forest': DustArt,
-  'the-forest-and-the-field': ForestArt,
-  'the-loom-you-can-read': LoomArt
+/** Fail the build when a post has no cover instead of silently hiding it. */
+export const blogArt = (slug: string): BlogArt => {
+  const alt = descriptions[slug]
+  if (!alt) throw new Error(`No blog cover registered for "${slug}"`)
+  const src = `/blog/covers/${slug}.webp`
+  return {
+    src,
+    srcSet: `/blog/covers/${slug}-800.webp 800w, ${src} 1600w`,
+    alt,
+    width: 1600,
+    height: 800
+  }
 }

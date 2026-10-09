@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro'
 import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
-import { heroArt } from '../../data/blog-art'
+import BlogArt from '../../components/blog/BlogArt.astro'
 import Byline from '../../components/blog/Byline.astro'
 import { publishedPosts, formatPostDate } from '../../data/blog'
 
@@ -45,18 +45,19 @@ const posts = publishedPosts()
       ) : (
         <ul class="space-y-4">
           {posts.map((post) => {
-            const Art = heroArt[post.slug]
             return (
               <li>
                 <a
                   href={`/blog/${post.slug}`}
                   class="group block overflow-hidden rounded-2xl border border-border bg-surface/20 transition-all hover:border-indigo-500/40 hover:bg-surface/40"
                 >
-                  {Art && (
-                    <div class="relative h-40 w-full overflow-hidden border-b border-border sm:h-48">
-                      <Art class="block h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.04]" />
-                    </div>
-                  )}
+                  <div class="relative aspect-[2/1] w-full overflow-hidden border-b border-border">
+                    <BlogArt
+                      slug={post.slug}
+                      sizes="(min-width: 768px) 720px, calc(100vw - 48px)"
+                      class="block h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                    />
+                  </div>
                   <div class="p-6 lg:p-8">
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400 dark:text-gray-500">
                       <time datetime={post.pubDate}>{formatPostDate(post.pubDate)}</time>
