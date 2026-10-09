@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-10-09-every-blog-essay-has-its-own-illustrated",
+      "url": "https://xnet.fyi/changelog#2026-10-09-every-blog-essay-has-its-own-illustrated",
+      "title": "Every blog essay has its own illustrated cover",
+      "content_text": "New artwork brings each essay to life on the blog, inside posts, and in shared links.\n",
+      "date_published": "2026-10-09T19:18:41Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "October 9, 2026",
+        "summary": "New artwork brings each essay to life on the blog, inside posts, and in shared links.",
+        "highlights": [],
+        "mergedAt": "2026-10-09T19:18:41Z",
+        "pr": 725,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-10-06-explore-a-private-spatial-library-previe",
       "url": "https://xnet.fyi/changelog#2026-10-06-explore-a-private-spatial-library-previe",
       "title": "Explore a private spatial Library preview",
