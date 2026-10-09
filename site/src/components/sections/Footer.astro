@@ -1,4 +1,6 @@
 ---
+import BrandWordmark from '../BrandWordmark.astro'
+
 const agentLinks = [
   { label: 'Connect your agent', href: '/agents' },
   { label: 'Use from Claude Code', href: '/docs/guides/coding-agents/' },
@@ -70,8 +72,8 @@ const legalLinks = [
     <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-8">
       <!-- Brand -->
       <div class="lg:col-span-2">
-        <a href="/" class="inline-flex items-center gap-2">
-          <span class="font-mono text-xl font-bold text-gray-800 dark:text-white">xNet</span>
+        <a href="/" aria-label="xNet" class="inline-flex items-center text-gray-800 dark:text-white">
+          <BrandWordmark />
         </a>
         <p class="mt-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
           Local-first apps that work offline, sync peer-to-peer, and keep your data under your control.
