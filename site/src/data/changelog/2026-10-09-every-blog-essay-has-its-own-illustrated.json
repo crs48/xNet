@@ -4,5 +4,14 @@
   "title": "Every blog essay has its own illustrated cover",
   "summary": "New artwork brings each essay to life on the blog, inside posts, and in shared links.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 725,
+  "mergedAt": "2026-10-09T19:18:41Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
