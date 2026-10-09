@@ -1,8 +1,5 @@
 ---
-// Hero band for blog post #9 (exploration 0256). The decorative art lives in
-// TillerArt.astro so the same inline SVG backs both this hero and the blog-index
-// preview card; this component layers the post's title/deck over it.
-import TillerArt from './TillerArt.astro'
+import BlogArt from './BlogArt.astro'
 
 interface Props {
   title: string
@@ -15,7 +12,11 @@ const { title, deck, date, readingMinutes, tags } = Astro.props
 ---
 
 <section class="relative overflow-hidden border-b border-border bg-surface/20 dark:bg-[#050f18]">
-  <TillerArt />
+  <BlogArt slug="hand-on-the-tiller" eager />
+  <div
+    class="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-black/70 to-black/95"
+    aria-hidden="true"
+  ></div>
 
   <div class="relative mx-auto max-w-3xl px-6 pb-14 pt-44 lg:pt-52">
     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-sky-200/80">

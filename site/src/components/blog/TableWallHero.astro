@@ -1,8 +1,5 @@
 ---
-// Hero band for "The Table and the Wall" (exploration 0443). The decorative art
-// lives in TableWallArt.astro so the same inline SVG backs both this hero and
-// the blog-index preview card.
-import TableWallArt from './TableWallArt.astro'
+import BlogArt from './BlogArt.astro'
 
 interface Props {
   title: string
@@ -15,15 +12,11 @@ const { title, deck, date, readingMinutes, tags } = Astro.props
 ---
 
 <section class="relative overflow-hidden border-b border-border bg-surface/20 dark:bg-[#161210]">
-  <TableWallArt />
-  {/* Scrim: the parlour glow is bright where the deck sits, so the copy gets its
-      own darkness to stand on. Kept here rather than in TableWallArt so the
-      index card renders the illustration undimmed. */}
+  <BlogArt slug="the-table-and-the-wall" eager />
   <div
-    class="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#161210]/85 via-[#161210]/70 to-[#161210]/40"
+    class="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-black/70 to-black/95"
     aria-hidden="true"
-  >
-  </div>
+  ></div>
 
   <div class="relative mx-auto max-w-3xl px-6 pb-14 pt-44 lg:pt-52">
     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-amber-200/80">

@@ -5,7 +5,7 @@ import Footer from '../../components/sections/Footer.astro'
 import SeriesNav from '../../components/blog/SeriesNav.astro'
 import HarvestHero from '../../components/blog/HarvestHero.astro'
 import Byline from '../../components/blog/Byline.astro'
-import HarvestArt from '../../components/blog/HarvestArt.astro'
+import BlogArt from '../../components/blog/BlogArt.astro'
 import HonestHarvest from '../../components/blog/HonestHarvest.astro'
 import Mermaid from '../../components/blog/Mermaid.astro'
 import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
@@ -358,7 +358,11 @@ const post = postBySlug('the-harvest-you-can-count')!
         love these systems most.</strong>
       </p>
 
-      <HarvestArt class="not-prose my-12 h-56 w-full rounded-2xl border border-border object-cover sm:h-72" />
+      <BlogArt
+        slug="the-harvest-you-can-count"
+        sizes="(min-width: 768px) 720px, calc(100vw - 48px)"
+        class="not-prose my-12 h-56 w-full rounded-2xl border border-border object-cover sm:h-72"
+      />
 
       <h2>It is still happening</h2>
       <p>

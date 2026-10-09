@@ -1,0 +1,31 @@
+---
+import { blogArt } from '../../data/blog-art'
+
+interface Props {
+  slug: string
+  class?: string
+  sizes?: string
+  eager?: boolean
+}
+
+const {
+  slug,
+  class: className = 'absolute inset-0 h-full w-full object-cover',
+  sizes = '100vw',
+  eager = false
+} = Astro.props
+const art = blogArt(slug)
+---
+
+<img
+  src={art.src}
+  srcset={art.srcSet}
+  sizes={sizes}
+  width={art.width}
+  height={art.height}
+  alt={art.alt}
+  class={className}
+  loading={eager ? 'eager' : 'lazy'}
+  fetchpriority={eager ? 'high' : undefined}
+  decoding="async"
+/>

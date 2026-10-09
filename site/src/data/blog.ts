@@ -96,7 +96,7 @@ export interface BlogPost {
   readingMinutes: number
   /**
    * Optional social-card image override (absolute site path or https URL).
-   * Unset means the post's hero art, rasterised at `/blog/og/<slug>.png`
+   * Unset means the post's cover art, resized at `/blog/og/<slug>.png`
    * (see `postSocialImage`).
    */
   hero?: { src: string; alt: string }
@@ -485,10 +485,9 @@ export function allPosts(): BlogPost[] {
 /**
  * The image a link unfurler should show for a post (`og:image` / `twitter:image`).
  *
- * Defaults to the post's own hero art, rasterised to PNG at build time by
- * `pages/blog/og/[slug].png.ts` — unfurlers do not render SVG, and before this
- * every essay shared the site-wide workbench screenshot. `hero` overrides it
- * for a post whose card should be a photograph or bespoke image instead.
+ * Defaults to the post's generated cover, resized to a social-card PNG at
+ * build time by `pages/blog/og/[slug].png.ts`. A `hero` override can supply
+ * a different image when needed.
  */
 export function postSocialImage(post: BlogPost): { src: string; alt: string } {
   return post.hero ?? { src: `/blog/og/${post.slug}.png`, alt: `Cover art for “${post.title}”` }
