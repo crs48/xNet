@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>A clearer xNet icon and wordmark</title>
+      <link>https://xnet.fyi/changelog#2026-10-09-a-clearer-xnet-app-icon</link>
+      <guid isPermaLink="false">2026-10-09-a-clearer-xnet-app-icon</guid>
+      <pubDate>Fri, 09 Oct 2026 21:59:06 GMT</pubDate>
+      <description>A white mesh cell on black makes xNet’s app icon and favicon easier to recognize, with a softer center and matching rounded lettering across the website.</description>
+    </item>
+    <item>
       <title>Every blog essay has its own illustrated cover</title>
       <link>https://xnet.fyi/changelog#2026-10-09-every-blog-essay-has-its-own-illustrated</link>
       <guid isPermaLink="false">2026-10-09-every-blog-essay-has-its-own-illustrated</guid>

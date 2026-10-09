@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-10-09-a-clearer-xnet-app-icon",
+      "url": "https://xnet.fyi/changelog#2026-10-09-a-clearer-xnet-app-icon",
+      "title": "A clearer xNet icon and wordmark",
+      "content_text": "A white mesh cell on black makes xNet’s app icon and favicon easier to recognize, with a softer center and matching rounded lettering across the website.\n",
+      "date_published": "2026-10-09T21:59:06Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "October 9, 2026",
+        "summary": "A white mesh cell on black makes xNet’s app icon and favicon easier to recognize, with a softer center and matching rounded lettering across the website.",
+        "highlights": [],
+        "mergedAt": "2026-10-09T21:59:06Z",
+        "pr": 726,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-10-09-every-blog-essay-has-its-own-illustrated",
       "url": "https://xnet.fyi/changelog#2026-10-09-every-blog-essay-has-its-own-illustrated",
       "title": "Every blog essay has its own illustrated cover",
