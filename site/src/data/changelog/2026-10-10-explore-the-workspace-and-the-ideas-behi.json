@@ -4,5 +4,14 @@
   "title": "Explore the workspace and the ideas behind xNet",
   "summary": "The website explains the shipping workspace, its open data layer, and the longer-term vision with clearer copy, compact sections, and a neutral white design.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 727,
+  "mergedAt": "2026-10-11T01:50:29Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
