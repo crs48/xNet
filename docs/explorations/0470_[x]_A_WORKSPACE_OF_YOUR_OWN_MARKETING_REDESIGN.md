@@ -1,6 +1,6 @@
 ---
 title: A workspace of your own — marketing redesign
-status: draft
+status: approved
 last_updated: 2026-10-10
 review: 2026-10-24
 decider: Chris Smothers
@@ -14,7 +14,7 @@ tags: [site, brand, product, vision]
 > Lead with the workspace people can use, then explain the larger world it could grow into. Use the new mesh mark as a visual anchor, and the essays as the source of the argument.
 
 > [!IMPORTANT]
-> This is a local design preview. Chris requested a review before publication. Do not push a preview deployment, merge, or publish this redesign until that review happens. The previous approval to publish the brand assets does not apply to this work.
+> Chris approved the revised white, compact direction and restored platform download icons on October 10, 2026, and explicitly requested that it be merged. The design review requirement is satisfied.
 
 ## Problem
 
@@ -34,7 +34,7 @@ The white foundation also leaves room for the app redesign Chris is considering.
 
 The supporting pages follow the same hierarchy. The blog index has small thumbnails and searchable rows; the vision and roadmap pages use compact grids. Practical nouns replace abstract headlines: “Download xNet,” “Plugins and extensions,” “AI and agent tools.” The longer arguments remain in the essays.
 
-The October 24 review date is a design checkpoint, not a release commitment. This revision still needs Chris’s review before publication.
+Chris approved this revision on October 10. The October 24 review date remains a follow-up design checkpoint, not a release commitment.
 
 ## What the repository actually supports
 
@@ -138,7 +138,7 @@ The primary voice and visual material come from xNet’s own essays and illustra
 - [x] Rework supporting marketing routes while retaining working data and controls.
 - [x] Preserve essay and legal prose, and make the previous privacy argument reachable.
 - [x] Provide a local browser preview for Chris.
-- [ ] Receive Chris’s approval of the revised preview before any publication.
+- [x] Receive Chris’s approval of the revised preview before any publication.
 
 ## Validation checklist
 
@@ -146,7 +146,7 @@ The primary voice and visual material come from xNet’s own essays and illustra
 - [x] Check desktop, tablet, and narrow phone layouts in light and dark themes.
 - [x] Check menu, theme toggle, journal search/topics, developer tabs, and links.
 - [x] Check internal route references and heading structure.
-- [x] Verify nothing was pushed, merged, or deployed for this redesign.
+- [x] Keep the redesign local until Chris completed the design review.
 
 ## First-preview verification notes
 
@@ -198,4 +198,4 @@ with no missing routes or fragment targets. Current screenshots are saved in
 `output/marketing-redesign-2026-10-10/revision-2/` in the primary checkout.
 The preview server remains available at `http://127.0.0.1:4330/`.
 
-The old preview is saved in local commit `c069c4fa1`. No revision is published.
+The first preview is saved in commit `c069c4fa1`. Chris approved the revised direction, including the restored platform icons and download colours, and requested a merge on October 10, 2026.
