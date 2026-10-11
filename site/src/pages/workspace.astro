@@ -6,19 +6,19 @@ import Closing from '../components/marketing/Closing.astro'
 import WorkspaceImage from '../components/marketing/WorkspaceImage.astro'
 const features = [
   [
-    'Write at your own pace.',
+    'Documents',
     'Documents hold your notes, drafts, and plans. The local copy lives on your device, so a lost connection doesn’t have to interrupt your train of thought.'
   ],
   [
-    'Give information a shape.',
+    'Databases and canvases',
     'Databases bring structure to projects and collections. Canvases give you room to arrange the pieces and work through how they fit together.'
   ],
   [
-    'Keep what you find.',
+    'Personal library · Desktop',
     'The desktop library brings saved links and imported sources into your workspace. Add your own context, search your collection, and explore connections between the things you saved.'
   ],
   [
-    'Carry a copy with you.',
+    'Export and backups',
     'Export your workspace in an open .xnetpack bundle. Keep your own backups while the alpha evolves, and choose whether to run a hub for sync.'
   ]
 ]
@@ -33,14 +33,10 @@ const features = [
     <header class="m-page-hero">
       <div class="m-wrap">
         <p class="m-eyebrow">The workspace · Available in alpha</p>
-        <h1 class="m-title">
-          A home for the things
-          <br />
-          you’re <em>working on.</em>
-        </h1>
+        <h1 class="m-title">The xNet workspace</h1>
         <p class="m-lede">
-          A thought, a project, a growing collection. xNet gives them a place on your own device,
-          with tools you can grow into.
+          Write documents, organise projects, and collect sources in one local-first workspace. The
+          desktop app and browser demo are available in alpha.
         </p>
         <div class="m-actions">
           <a class="m-button" href="/download">
@@ -55,7 +51,7 @@ const features = [
     <section class="m-section">
       <div class="m-wrap">
         <WorkspaceImage />
-        <div class="m-rows mt-16">
+        <div class="m-rows mt-8">
           {features.map(([title, body], i) => (
             <article class="m-row">
               <span class="number">0{i + 1}</span>
@@ -70,11 +66,7 @@ const features = [
       <div class="m-wrap m-grid-2">
         <div>
           <p class="m-eyebrow">Choose your starting point</p>
-          <h2 class="m-heading mt-6">
-            Start small.
-            <br />
-            <em>Keep a copy.</em>
-          </h2>
+          <h2 class="m-heading mt-6">Before you start</h2>
         </div>
         <div>
           <details class="m-faq" open>

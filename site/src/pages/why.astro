@@ -7,7 +7,7 @@ import BlogArt from '../components/blog/BlogArt.astro'
 const chapters = [
   {
     number: '01',
-    title: 'Own the ground beneath your feet.',
+    title: 'Keep your work',
     text: 'A notebook still opens when the shop that sold it closes. Software should offer that same ordinary kind of ownership. Keeping the master copy on your device is the beginning. Open formats, backups, and a usable way out are what make it meaningful.',
     slug: 'the-hundred-year-machine',
     essay: 'The Hundred-Year Machine',
@@ -15,7 +15,7 @@ const chapters = [
   },
   {
     number: '02',
-    title: 'Let different things grow together.',
+    title: 'Use the same data in different tools',
     text: 'A forest makes room for more than one species. We want the same of our tools: different views and different ways of working, growing around data people can share by choice. The open protocol is the common ground. A richer ecosystem is what we hope people will grow on it.',
     slug: 'data-should-work-like-soil',
     essay: 'Data Should Work Like Soil',
@@ -23,7 +23,7 @@ const chapters = [
   },
   {
     number: '03',
-    title: 'Keep the workshop open.',
+    title: 'Change the tools you use',
     text: 'Some of the most interesting things people make were never on the original product roadmap. A new view. A small tool. A way of working nobody thought to prescribe. xNet’s source, schemas, and plugin foundations are an invitation to change the tools you use.',
     slug: 'the-workshop-and-the-walled-garden',
     essay: 'The Workshop and the Walled Garden',
@@ -31,7 +31,7 @@ const chapters = [
   },
   {
     number: '04',
-    title: 'Keep a hand on the tiller.',
+    title: 'See and control what AI does',
     text: 'A useful tool lets you see what happened and change course. Our work on AI starts from that obligation: permission before action, changes with an author, and a record people can understand. The foundations exist. Making that feel natural in daily use is still ahead of us.',
     slug: 'hand-on-the-tiller',
     essay: 'Hand on the Tiller',
@@ -39,7 +39,7 @@ const chapters = [
   },
   {
     number: '05',
-    title: 'Let the scene outlive the server.',
+    title: 'Keep a community’s history',
     text: 'A community’s value lives in its people, their knowledge, and the things they make together. We want those things to survive a change of host. Portable identity, shared tools, and an open commons are part of the longer journey, built on a workspace people actually use.',
     slug: 'the-worlds-greatest-record-store',
     essay: 'The World’s Greatest Record Store',
@@ -47,7 +47,7 @@ const chapters = [
   },
   {
     number: '06',
-    title: 'Leave room to go quiet.',
+    title: 'Respect people’s attention',
     text: 'Software doesn’t need to turn every pause into a problem. The essays on calm, attention, and the right to leave shape the kind of product we want to make. Our charter puts those intentions on the record, alongside the code that backs them and the gaps that remain.',
     slug: 'timeout',
     essay: 'Timeout',
@@ -57,124 +57,86 @@ const chapters = [
 ---
 
 <Base
-  title="The vision — xNet"
-  description="Software you can keep. Tools you can reshape. Communities that outlive their servers. The ideas behind xNet, and the work still ahead."
+  title="Why xNet — An open workspace and an open web"
+  description="The ideas behind xNet: durable data, adaptable tools, consent, and communities that can keep their own history."
 >
   <Nav />
   <main id="main-content">
     <header class="m-page-hero">
       <div class="m-wrap">
         <p class="m-eyebrow">The vision</p>
-        <h1 class="m-title">
-          A more open web
-          <br />
-          starts <em>close to home.</em>
-        </h1>
+        <h1 class="m-title">Your data should outlast your apps.</h1>
         <p class="m-lede">
-          With the notes you write, the things you save, and the people you choose to work with. We
-          think that small corner of the internet should belong to you.
+          We’re building a workspace you can use today and a shared data layer for tools people can
+          make tomorrow. The essays explain why ownership, open systems, and consent matter to that
+          work.
         </p>
+        <div class="m-actions">
+          <a class="m-button" href="/workspace">
+            What you can use today →
+          </a>
+          <a class="m-button secondary" href="/roadmap">
+            Roadmap →
+          </a>
+        </div>
       </div>
     </header>
     <section class="m-section">
-      <div class="m-wrap m-grid-2">
-        <h2 class="m-heading">
-          The ground is yours.
-          <br />
-          <em>The possibilities grow.</em>
-        </h2>
-        <div class="m-copy">
-          <p>
-            The blog wanders through pirate ships, forest soil, open workshops, and stars.
-            Underneath those different stories is one question: how do we build useful things
-            without taking away the freedom of the people who use them?
-          </p>
-          <p>
-            xNet is our attempt at an answer. Today, it’s an early workspace and an open set of
-            building blocks. The larger vision is a network where your data, your tools, and your
-            communities can keep going on their own terms.
-          </p>
-          <p>
-            That future has to earn its way out of the essays. The starting point is software you
-            can use, inspect, and help improve.
-          </p>
-        </div>
-      </div>
-    </section>
-    {chapters.map((chapter) => (
-      <section class="m-section">
-        <div class="m-wrap vision-chapter">
-          <div class="chapter-art">
-            <BlogArt
-              slug={chapter.slug}
-              class="m-essay-image"
-              sizes="(max-width: 800px) 100vw, 45vw"
-            />
-            <p class="m-caption">
-              {chapter.number} / {chapter.theme}
+      <div class="m-wrap grid gap-5 md:grid-cols-2">
+        {chapters.map((chapter) => (
+          <article class="rounded-xl border border-border p-5">
+            <div class="flex items-center gap-4">
+              <a
+                class="block w-28 shrink-0 overflow-hidden rounded-lg"
+                href={`/blog/${chapter.slug}`}
+              >
+                <BlogArt
+                  slug={chapter.slug}
+                  class="aspect-[4/3] w-full object-cover"
+                  sizes="112px"
+                />
+              </a>
+              <div>
+                <p class="text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                  {chapter.theme}
+                </p>
+                <h2 class="mt-1 text-lg font-semibold leading-snug">{chapter.title}</h2>
+              </div>
+            </div>
+            <p class="mt-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+              {chapter.text}
             </p>
-          </div>
-          <div>
-            <h2 class="m-heading">{chapter.title}</h2>
-            <p class="m-copy mt-6">{chapter.text}</p>
-            <a class="m-text-link mt-7" href={`/blog/${chapter.slug}`}>
-              Read {chapter.essay} <span aria-hidden="true">↗</span>
+            <a
+              class="mt-4 inline-block text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+              href={`/blog/${chapter.slug}`}
+            >
+              {chapter.essay} →
             </a>
-          </div>
-        </div>
-      </section>
-    ))}
-    <section class="m-section">
+          </article>
+        ))}
+      </div>
+    </section>
+    <section class="m-section bg-surface/30">
       <div class="m-wrap">
-        <div class="m-banner">
-          <div>
-            <h2 class="text-2xl tracking-tight mb-3">
-              A promise should come with a way to check it.
-            </h2>
-            <p>
-              Our charter distinguishes what the code enforces, what the architecture makes
-              possible, and what we’re still building. The roadmap makes the same distinction about
-              the product.
-            </p>
-          </div>
-          <a class="m-button secondary shrink-0" href="/commitments">
-            Read the commitments →
-          </a>
-        </div>
+        <h2 class="text-2xl font-bold tracking-tight">Check the commitments</h2>
+        <p class="m-copy mt-3">
+          The charter records what the code enforces, what the architecture supports, and what
+          remains unfinished.
+        </p>
         <div class="m-actions">
-          <a href="/roadmap" class="m-text-link">
-            Where we go from here →
+          <a class="m-button secondary" href="/commitments">
+            Our commitments →
           </a>
-          <a href="/privacy-by-design" class="m-text-link">
-            The case for privacy →
+          <a class="m-text-link" href="/privacy-by-design">
+            Privacy by design →
+          </a>
+          <a class="m-text-link" href="/blog">
+            All essays →
           </a>
         </div>
       </div>
     </section>
-    <Closing title="Begin with your own small corner." />
+    <Closing />
   </main>
   <Footer />
 </Base>
-<style>
-  .vision-chapter {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: center;
-  }
-  .chapter-art .m-essay-image {
-    aspect-ratio: 1.35;
-  }
-  section:nth-of-type(even) .chapter-art {
-    order: 2;
-  }
-  @media (max-width: 800px) {
-    .vision-chapter {
-      grid-template-columns: 1fr;
-      gap: 32px;
-    }
-    section:nth-of-type(even) .chapter-art {
-      order: 0;
-    }
-  }
-</style>

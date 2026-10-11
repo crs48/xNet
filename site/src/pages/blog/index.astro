@@ -6,7 +6,6 @@ import BlogArt from '../../components/blog/BlogArt.astro'
 import Byline from '../../components/blog/Byline.astro'
 import { publishedPosts, formatPostDate } from '../../data/blog'
 const posts = publishedPosts()
-const [featured] = posts
 const tags = [
   'all',
   'philosophy',
@@ -20,66 +19,32 @@ const tags = [
 ---
 
 <Base
-  title="Field notes — xNet"
-  description="Essays about the kind of internet we want to inhabit: ownership, open tools, living networks, and the people beneath the data."
+  title="Blog — xNet"
+  description="Essays on owning your data, local-first software, and the open web."
 >
   <Nav />
   <main id="main-content">
     <header class="m-page-hero">
       <div class="m-wrap">
-        <p class="m-eyebrow">The xNet journal</p>
-        <h1 class="m-title">
-          Field notes from
-          <br />
-          <em>the open web.</em>
-        </h1>
-        <div class="m-section-top mb-0">
-          <p class="m-lede">
-            Pirate ships, forest floors, open workshops, and the things software can learn from
-            them. These are the ideas we’re building with.
-          </p>
-          <a class="m-text-link shrink-0" href="/blog/rss.xml">
-            Follow via RSS ↗
+        <div class="flex items-center justify-between gap-4">
+          <h1 class="m-title">Blog</h1>
+          <a class="m-button secondary" href="/blog/rss.xml">
+            RSS ↗
           </a>
         </div>
+        <p class="m-lede">
+          Field notes on owning your data, building open tools, and the kind of internet we want to
+          use.
+        </p>
       </div>
     </header>
     <section class="m-section">
       <div class="m-wrap">
-        {featured && (
-          <article class="featured-essay">
-            <a href={`/blog/${featured.slug}`}>
-              <BlogArt
-                slug={featured.slug}
-                class="m-essay-image"
-                sizes="(max-width: 800px) 100vw, 55vw"
-                eager
-              />
-            </a>
-            <div>
-              <p class="m-eyebrow">Latest essay · {featured.readingMinutes} min read</p>
-              <h2 class="m-heading mt-5">
-                <a href={`/blog/${featured.slug}`}>{featured.title}</a>
-              </h2>
-              <p class="m-copy mt-6">{featured.description}</p>
-              <div class="mt-6">
-                <Byline post={featured} />
-              </div>
-              <a class="m-text-link mt-6" href={`/blog/${featured.slug}`}>
-                Read the essay →
-              </a>
-            </div>
-          </article>
-        )}
-      </div>
-    </section>
-    <section class="m-section">
-      <div class="m-wrap">
         <div class="journal-controls">
-          <h2 class="m-eyebrow">The collection · {posts.length} essays</h2>
+          <h2 class="text-lg font-semibold">All {posts.length} essays</h2>
           <label class="m-note">
             Find an essay
-            <input id="essay-search" type="search" placeholder="Search the field notes" />
+            <input id="essay-search" type="search" placeholder="Search titles and descriptions" />
           </label>
         </div>
         <div class="journal-filters" aria-label="Filter essays by topic">
@@ -90,25 +55,45 @@ const tags = [
           ))}
         </div>
         <div class="journal-grid">
-          {posts.map((post) => (
+          {posts.map((post, i) => (
             <article
-              class="m-essay"
+              class="journal-entry"
               data-essay
               data-search={`${post.title} ${post.description}`.toLowerCase()}
               data-tags={post.tags.join(' ')}
             >
-              <a href={`/blog/${post.slug}`}>
+              <a class="journal-art" href={`/blog/${post.slug}`}>
                 <BlogArt
                   slug={post.slug}
-                  class="m-essay-image"
-                  sizes="(max-width: 800px) 100vw, 33vw"
+                  class="h-full w-full object-cover"
+                  sizes="(max-width: 500px) 80px, 120px"
                 />
-                <p class="m-note mt-4">
-                  {formatPostDate(post.pubDate)} · {post.readingMinutes} min read
-                </p>
-                <h3>{post.title}</h3>
-                <p>{post.tags.filter((t) => t !== 'essay').join(' / ')}</p>
               </a>
+              <div class="min-w-0">
+                <p class="text-xs text-gray-500">
+                  {i === 0 && (
+                    <span class="mr-2 font-semibold text-indigo-600 dark:text-indigo-400">
+                      Latest
+                    </span>
+                  )}
+                  <time datetime={post.pubDate}>{formatPostDate(post.pubDate)}</time> ·{' '}
+                  {post.readingMinutes} min
+                </p>
+                <h3 class="mt-2 text-lg font-semibold leading-snug">
+                  <a
+                    class="hover:text-indigo-600 dark:hover:text-indigo-400"
+                    href={`/blog/${post.slug}`}
+                  >
+                    {post.title}
+                  </a>
+                </h3>
+                <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                  {post.description}
+                </p>
+                <div class="mt-3 text-xs">
+                  <Byline post={post} compact />
+                </div>
+              </div>
             </article>
           ))}
         </div>
@@ -146,53 +131,56 @@ const tags = [
   )
 </script>
 <style>
-  .featured-essay {
-    display: grid;
-    grid-template-columns: 1.15fr 1fr;
-    gap: 64px;
-    align-items: center;
-  }
-  .featured-essay .m-essay-image {
-    aspect-ratio: 1.15;
-  }
-  .featured-essay .m-copy {
-    font-size: 16px;
-  }
   .journal-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 48px 28px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .journal-entry {
+    display: flex;
+    gap: 18px;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .journal-art {
+    width: 112px;
+    height: 112px;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 8px;
   }
   .journal-controls {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
+    gap: 16px;
   }
   .journal-controls label {
-    display: grid;
-    gap: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
   .journal-controls input {
-    background: transparent;
+    background: var(--paper);
     border: 1px solid var(--rule);
-    padding: 11px 14px;
-    border-radius: 7px;
+    padding: 9px 12px;
+    border-radius: 6px;
     color: var(--ink);
-    font-size: 14px;
-    width: 280px;
+    font-size: 13px;
+    width: 260px;
   }
   .journal-filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 9px;
-    margin: 30px 0 40px;
+    gap: 8px;
+    margin: 18px 0 24px;
   }
   .journal-filters button {
     font-size: 12px;
     border: 1px solid var(--rule);
-    padding: 7px 12px;
-    border-radius: 99px;
+    padding: 5px 10px;
+    border-radius: 6px;
     text-transform: capitalize;
   }
   .journal-filters [aria-pressed='true'] {
@@ -202,28 +190,31 @@ const tags = [
   [data-essay][hidden] {
     display: none;
   }
-  @media (max-width: 800px) {
-    .featured-essay {
-      grid-template-columns: 1fr;
-      gap: 30px;
-    }
-    .featured-essay .m-essay-image {
-      aspect-ratio: 2;
-    }
+  @media (max-width: 1000px) {
     .journal-grid {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
     }
+  }
+  @media (max-width: 600px) {
     .journal-controls {
       align-items: start;
       flex-direction: column;
     }
-  }
-  @media (max-width: 500px) {
-    .journal-grid {
-      grid-template-columns: 1fr;
+    .journal-controls label {
+      display: grid;
+      gap: 6px;
+      width: 100%;
     }
     .journal-controls input {
       width: 100%;
+    }
+    .journal-entry {
+      padding: 14px;
+      gap: 12px;
+    }
+    .journal-art {
+      width: 80px;
+      height: 80px;
     }
   }
 </style>

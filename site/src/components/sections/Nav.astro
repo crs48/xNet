@@ -2,10 +2,12 @@
 import BrandWordmark from '../BrandWordmark.astro'
 import ThemeToggle from '../ui/ThemeToggle.astro'
 const links = [
-  { href: '/workspace', label: 'The workspace' },
-  { href: '/why', label: 'The vision' },
-  { href: '/blog', label: 'Field notes' },
-  { href: '/build-with', label: 'For builders' }
+  { href: '/#app', label: 'App' },
+  { href: '/#developers', label: 'Developers' },
+  { href: '/why', label: 'Vision' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/agents', label: 'Agents' },
+  { href: '/docs/introduction/', label: 'Docs' }
 ]
 const active = (href: string) => Astro.url.pathname.replace(/\/$/, '') === href
 ---
@@ -41,13 +43,21 @@ const active = (href: string) => Astro.url.pathname.replace(/\/$/, '') === href
             </a>
           ))}
           <a href="/roadmap">Roadmap</a>
-          <a href="/docs/introduction/">Documentation</a>
+          <a href="/build-with">Build with xNet</a>
           <a href="/download">Get xNet</a>
         </div>
       </details>
     </div>
   </nav>
 </header>
+<script>
+  const menu = document.querySelector<HTMLDetailsElement>('.mobile-menu')
+  menu?.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => {
+      menu.open = false
+    })
+  })
+</script>
 <style>
   .site-nav {
     position: sticky;
@@ -57,7 +67,7 @@ const active = (href: string) => Astro.url.pathname.replace(/\/$/, '') === href
     border-bottom: 1px solid var(--rule);
   }
   .nav-inner {
-    height: 88px;
+    height: 68px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -68,11 +78,11 @@ const active = (href: string) => Astro.url.pathname.replace(/\/$/, '') === href
     flex-shrink: 0;
   }
   .nav-brand :global(.brand-wordmark) {
-    height: 33px;
+    height: 28px;
   }
   .nav-links {
     display: flex;
-    gap: 30px;
+    gap: 22px;
     margin-left: auto;
     font-size: 13px;
   }
@@ -100,7 +110,7 @@ const active = (href: string) => Astro.url.pathname.replace(/\/$/, '') === href
   }
   @media (max-width: 960px) {
     .nav-inner {
-      height: 74px;
+      height: 64px;
       gap: 14px;
     }
     .nav-links {
@@ -122,7 +132,7 @@ const active = (href: string) => Astro.url.pathname.replace(/\/$/, '') === href
     }
     .mobile-menu > div {
       position: absolute;
-      top: 74px;
+      top: 64px;
       left: 0;
       right: 0;
       padding: 24px;

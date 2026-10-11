@@ -2,7 +2,7 @@
 import BrandWordmark from '../BrandWordmark.astro'
 const groups = [
   {
-    title: 'Make yourself at home',
+    title: 'Workspace',
     links: [
       ['The workspace', '/workspace'],
       ['Download', '/download'],
@@ -13,10 +13,10 @@ const groups = [
     ]
   },
   {
-    title: 'The bigger picture',
+    title: 'Project',
     links: [
-      ['Our vision', '/why'],
-      ['Field notes', '/blog'],
+      ['Vision', '/why'],
+      ['Blog', '/blog'],
       ['Our commitments', '/commitments'],
       ['Open metrics', '/open'],
       ['Cloud & hosting', '/cloud'],
@@ -24,7 +24,7 @@ const groups = [
     ]
   },
   {
-    title: 'Build something',
+    title: 'Developers',
     links: [
       ['Developer overview', '/build-with'],
       ['Documentation', '/docs/introduction/'],
@@ -48,10 +48,11 @@ const groups = [
         </a>
         <p>
           A workspace of your own.
-          <br />A small beginning for a more open web.
+          <br />
+          Local-first. Open source.
         </p>
         <a class="m-text-link" href="https://github.com/crs48/xNet">
-          Open source, open doors <span aria-hidden="true">↗</span>
+          Source on GitHub <span aria-hidden="true">↗</span>
         </a>
       </div>
       {groups.map((group) => (
@@ -82,7 +83,7 @@ const groups = [
 </footer>
 <style>
   .site-footer {
-    padding: 70px 0 28px;
+    padding: 40px 0 24px;
     border-top: 1px solid var(--rule);
   }
   .footer-grid {
@@ -94,7 +95,7 @@ const groups = [
     display: inline-flex;
   }
   .footer-brand :global(.brand-wordmark) {
-    height: 40px;
+    height: 32px;
   }
   .footer-brand p {
     margin: 22px 0;
@@ -122,7 +123,7 @@ const groups = [
     flex-wrap: wrap;
     gap: 24px;
     border-top: 1px solid var(--rule);
-    margin-top: 64px;
+    margin-top: 36px;
     padding-top: 24px;
     font-size: 11px;
     color: var(--muted);

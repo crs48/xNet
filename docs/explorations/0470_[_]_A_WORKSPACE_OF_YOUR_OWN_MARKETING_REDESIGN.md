@@ -24,15 +24,17 @@ The site also has several competing visual treatments: gradient SaaS landing pag
 
 Chris selected **people who want a workspace they own** as the primary audience. Developers remain an important second route.
 
-## Recommendation
+## Recommendation after the first review
 
-A warm, editorial site, grounded in the app and linked to the essays. Paper and ink give the illustrations room to breathe. Deep green and a small amount of pale green connect to living systems without turning the project into an environmental claim. The mesh mark supplies the rounded geometry; large, plain headings and occasional serif emphasis provide a different rhythm from the old product grid.
+Chris found the first preview less scannable than the old website. The warm paper background, repeated serif headlines, large spacing, and abstract copy made it feel monotonous and harder to read. The revised direction keeps the copy corrections and returns to the old site’s section components, feature cards, code panels, and direct headings.
 
-The homepage’s main promise is “Your work. Your world. Yours to keep.” The next sentence names the actual category: an open workspace for notes, projects, and saved knowledge. It offers downloads first, then the vision. No command-line installation is required to understand the page.
+Use neutral white and zinc surfaces, black text, and distinct indigo, emerald, amber, and violet accents. The hero shows the app rather than a decorative mesh drawing. Its headline is “A workspace you own.” The core tools fit into a six-card grid. The builder section pairs nodes, schemas, and views with a short schema example. Three illustrated blog links explain the broader vision, followed by a compact current-release / in-progress / longer-term roadmap.
 
-The builders section explains the substrate through three reusable parts: nodes, schemas, and views. A compact diagram makes the building-brick idea tangible; a native disclosure adds local copies, signed changes, and the distinct document and structured-data merge rules. It links to “Clutch Power” and the data model, and distinguishes the alpha SDK from a future ecosystem of interchangeable tools.
+The white foundation also leaves room for the app redesign Chris is considering. This preview changes the website; it does not make that future app design decision.
 
-The October 24 review date is a two-week design decision checkpoint. It is not a release commitment.
+The supporting pages follow the same hierarchy. The blog index has small thumbnails and searchable rows; the vision and roadmap pages use compact grids. Practical nouns replace abstract headlines: “Download xNet,” “Plugins and extensions,” “AI and agent tools.” The longer arguments remain in the essays.
+
+The October 24 review date is a design checkpoint, not a release commitment. This revision still needs Chris’s review before publication.
 
 ## What the repository actually supports
 
@@ -57,14 +59,14 @@ The survey covered the headings, opening and closing arguments of all 25 publish
 | Thread                        | Essays                                                                                                         | Where it enters the redesign                                                   |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | Keep the thing you made       | The Hundred-Year Machine; Weights You Can Hold; The Door Inside the House; The Right to Say No                 | Ownership lead, downloads, backups, exit, hosting choices                      |
-| Data is common ground         | Data Should Work Like Soil; The Forest and the Field; The Desert That Feeds the Forest; The Vault and the View | Main vision section: data persists while tools change; mesh garden drawing     |
+| Data is common ground         | Data Should Work Like Soil; The Forest and the Field; The Desert That Feeds the Forest; The Vault and the View | Vision cards: data persists while tools change; links to the essays            |
 | An open workshop              | The Workshop and the Walled Garden; Clutch Power; The Tip of the Hook; The Loom You Can Read                   | Developer route, open schemas, extension foundations, inspectable machinery    |
 | Keep a legible history        | Tree Rings; Palimpsest; People in Disguise                                                                     | Provenance and agency, without promising a finished history-review UI          |
 | Choose and correct the course | Hand on the Tiller; The Gentlest Furnace; Atoms for the Ballot                                                 | Permission, feedback, limits, a direction that stays open to revision          |
 | A community can keep going    | A Great Pirate Age; The World’s Greatest Record Store; The Table and the Wall                                  | The commons horizon, voluntary connection, communities outlasting servers      |
 | Respect a person’s life       | Timeout; The Matchmaker and the Meter; Rig the Game or Play; The Harvest You Can Count                         | Calm presentation, no urgency tricks or invented growth metrics; charter links |
 
-The dedicated vision page walks through permanence, interdependence, creative agency, consent, the commons, and room to go quiet. Each chapter links to the essay behind it. The home page includes three selected essays. The journal preserves every published post and its metadata, adding topic and text filtering across all 25 essays, including the featured entry.
+The dedicated vision page walks through permanence, interdependence, creative agency, consent, the commons, and room to go quiet. Each compact card links to the essay behind it. The home page includes three selected essays. The journal preserves every published post and its metadata, adding topic and text filtering across all 25 essays, including the latest entry.
 
 ## Information architecture
 
@@ -82,22 +84,22 @@ flowchart TD
     Roadmap --> Hosting["Cloud, self-hosting, prices, status"]
 ```
 
-The header has four destinations and one product action. Mobile uses a native disclosure menu, retaining access to the destinations rather than hiding the navigation. The footer keeps the detailed paths available without making the first screen a directory.
+The header links to App, Developers, Vision, Blog, Agents, and Docs, with one product action. Mobile uses a native disclosure menu, retaining access to the destinations rather than hiding the navigation. The footer keeps the detailed paths available without making the first screen a directory.
 
 ## Scope and implementation map
 
 | Surface                                                                                                                   | Change                                                                                                                       |
 | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `/`                                                                                                                       | Complete new narrative and layout; mesh illustration; real workspace image; product, vision, maturity, essays, builders      |
+| `/`                                                                                                                       | Original section framework with corrected copy; app screenshot; six feature cards; substrate and code; blog vision; maturity |
 | `/workspace`                                                                                                              | New product tour, concrete features, alpha and platform questions                                                            |
 | `/why`                                                                                                                    | New illustrated vision, connected directly to six essay themes                                                               |
 | `/privacy-by-design`                                                                                                      | Preserves the former detailed privacy argument at a discoverable route                                                       |
 | `/roadmap`                                                                                                                | New reader-oriented sequence, with present capability separated from goals                                                   |
-| `/blog`                                                                                                                   | New editorial index, featured essay, collection grid and filters                                                             |
+| `/blog`                                                                                                                   | Compact searchable article rows with thumbnails, dates, authors, and topic filters                                           |
 | `/agents`                                                                                                                 | New honest introduction and setup framing; retains working setup tabs, permission details, and receipts                      |
 | `/download`                                                                                                               | Rebuilt platform chooser; preserves release asset discovery and describes unresolved lookup honestly                         |
 | `/cloud`                                                                                                                  | Rewritten hosting story and operator choice; marks easier onboarding as a goal                                               |
-| `/build-with`, `/devtool`                                                                                                 | New editorial introductions; existing technical examples and controls retained                                               |
+| `/build-with`, `/devtool`                                                                                                 | Direct introductions; existing technical examples and controls retained                                                      |
 | `/react`, `/mobile`, `/plugins`, `/cloud/pricing`, `/open`, `/compare`, `/commitments`, `/status`, `/changelog`, `/demos` | Shared visual overhaul and targeted copy/hierarchy corrections; underlying data, pricing, filters, and useful depth retained |
 | Individual essays and legal pages                                                                                         | New shared navigation, footer, and palette; article arguments, artwork, citations, and legal text preserved                  |
 | Documentation and application UI                                                                                          | Outside this redesign; existing destinations remain linked                                                                   |
@@ -116,18 +118,17 @@ Implementation lives in the real Astro pages and `site/src/components/marketing/
 
 [Ink & Switch’s local-first essay](https://www.inkandswitch.com/essay/local-first/) grounds ownership in practical properties: local copies, offline work, collaboration, and long-term access. This supports explaining mechanisms before making a broad claim about freedom.
 
-[Linear’s current site](https://linear.app/) is a useful reference for deliberate hierarchy and a legible product route. This redesign keeps its own editorial and organic identity; it does not adopt Linear’s agent-led positioning.
+[Linear’s current site](https://linear.app/) is a useful reference for deliberate hierarchy and a legible product route. The first preview’s editorial treatment was rejected in review. The revised design returns to xNet’s existing product-oriented section framework.
 
 The primary voice and visual material come from xNet’s own essays and illustrations, rather than a third-party template.
 
 ## Review questions and tradeoffs
 
-- Does the warm paper / green direction feel like the right extension of the black-and-white mark?
-- Is the ownership promise clear enough above the fold, or should the first sentence name documents and databases instead of broader uses?
-- The vision page is deliberately slower and more essay-like. Is that the right amount of depth before linking into the blog?
-- The public pricing catalog is retained. Operational readiness should be rechecked before publication; this preview does not certify the hosted signup experience.
-- The charter page currently summarises six commitments while the source charter has a seventh Floor section. Expanding the receipt inventory is separate factual work; the redesign does not invent its enforcement status.
-- This is alpha software. Marketing should continue to be reviewed against working user journeys, not just features found in source.
+- Is the revised density close to the old site’s useful level of detail?
+- The homepage keeps the ownership message, the builder explanation, and the blog-derived vision. Longer passages live on their dedicated pages.
+- White and zinc are the neutral base; accents distinguish tools and statuses. The brand assets stay unchanged.
+- The public pricing catalog is retained. Operational readiness should be rechecked before publication; this preview does not certify hosted signup.
+- The charter page summarises six commitments while the source charter has a seventh Floor section. The redesign does not invent its enforcement status.
 
 ## Implementation checklist
 
@@ -137,7 +138,7 @@ The primary voice and visual material come from xNet’s own essays and illustra
 - [x] Rework supporting marketing routes while retaining working data and controls.
 - [x] Preserve essay and legal prose, and make the previous privacy argument reachable.
 - [x] Provide a local browser preview for Chris.
-- [ ] Incorporate Chris’s design review before any publication.
+- [ ] Receive Chris’s approval of the revised preview before any publication.
 
 ## Validation checklist
 
@@ -147,7 +148,7 @@ The primary voice and visual material come from xNet’s own essays and illustra
 - [x] Check internal route references and heading structure.
 - [x] Verify nothing was pushed, merged, or deployed for this redesign.
 
-## Preview and verification notes
+## First-preview verification notes
 
 The local review runs at `http://127.0.0.1:4330/` from a production Astro build with
 `PUBLIC_DESIGN_PREVIEW=true`. That environment flag adds a review strip; it does
@@ -171,3 +172,30 @@ not change the production deployment configuration. The branch is
 - `apps/electron/src/renderer/App.tsx`, `apps/electron/src/library/`
 - `packages/cli/src/commands/connect.ts`
 - `site/src/styles/marketing.css`, `site/src/components/marketing/`, `site/src/layouts/Base.astro`
+
+## Revision 2 verification
+
+- [x] Production build and existing site validators.
+- [x] Desktop, tablet, and narrow-phone layouts in both themes.
+- [x] Mobile navigation, blog filters, code tabs, and mechanics disclosure.
+- [x] Internal routes and fragment targets.
+- [x] Updated local preview and screenshots available for review.
+
+The production build generated 136 pages and passed the output validator for
+52 static routes. The browser sweep covered 20 routes at four widths (1440,
+768, 375, and 320 pixels) in both themes, with no page exceptions. A long inline
+schema address overflowed on the narrowest blog layout; inline code now wraps,
+and that route passes the 320-pixel recheck in both themes.
+
+Mobile navigation closes after following a homepage anchor. Blog title search,
+empty results, topic selection, and the reset to all 25 essays work. Developer
+language selection persists after reload, and agent-client tabs switch. The
+theme also persists. The mobile menu and mechanics disclosure remain usable
+with JavaScript disabled.
+
+The static link audit checked 3,962 internal links across 71 marketing outputs,
+with no missing routes or fragment targets. Current screenshots are saved in
+`output/marketing-redesign-2026-10-10/revision-2/` in the primary checkout.
+The preview server remains available at `http://127.0.0.1:4330/`.
+
+The old preview is saved in local commit `c069c4fa1`. No revision is published.

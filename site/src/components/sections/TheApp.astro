@@ -1,130 +1,190 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
 
-// Six marquee surfaces only — the other eight are named in one line below.
-// The full pitch is the app itself (/app); this section teases, it doesn't
-// re-argue (exploration 0384).
 const tools = [
   {
     title: 'Documents',
-    description: 'Write together in real time. Slash commands, blocks, formatting — synced across devices.',
+    description: 'Notes, plans, and drafts with rich text, blocks, and collaborative editing.',
     icon: 'doc',
-    color: 'indigo',
+    color: 'indigo'
   },
   {
     title: 'Databases',
-    description: 'Track anything with 15 field types. Tables, boards, galleries, calendars.',
+    description:
+      'Structure projects and collections with typed fields, relations, and multiple views.',
     icon: 'db',
-    color: 'emerald',
+    color: 'emerald'
   },
   {
     title: 'Canvas',
-    description: 'An infinite whiteboard for visual thinking. Draw connections, embed documents.',
+    description: 'Arrange ideas, connect pieces, and work visually on an open canvas.',
     icon: 'canvas',
-    color: 'amber',
+    color: 'amber'
   },
   {
-    title: 'Tasks',
-    description: 'Projects with status, priority, assignees, and due dates — editable on any surface.',
+    title: 'Personal library',
+    description:
+      'Save links and import sources alongside your notes. Available in the desktop app.',
+    icon: 'doc',
+    color: 'violet'
+  },
+  {
+    title: 'Offline editing',
+    description: 'Work with a local copy. Sync changes when your devices reconnect.',
     icon: 'task',
-    color: 'pink',
+    color: 'pink'
   },
   {
-    title: 'Chat & Calls',
-    description: 'Channels, DMs, and peer-to-peer video calls on the same local-first sync.',
-    icon: 'chat',
-    color: 'violet',
-  },
-  {
-    title: 'AI assistant',
-    description: 'Answers grounded in your own knowledge graph, with optional on-device search. AI content is always badged, never passed off as yours.',
-    icon: 'spark',
-    color: 'violet',
-  },
+    title: 'Workspace export',
+    description: 'Keep your own backups in an open .xnetpack bundle while the alpha evolves.',
+    icon: 'db',
+    color: 'indigo'
+  }
 ]
 
-const colorMap: Record<string, { border: string, bg: string, text: string, iconBg: string }> = {
-  indigo: { border: 'border-indigo-500/20', bg: 'bg-indigo-500/[0.03]', text: 'text-indigo-400', iconBg: 'bg-indigo-500/10' },
-  emerald: { border: 'border-emerald-500/20', bg: 'bg-emerald-500/[0.03]', text: 'text-emerald-400', iconBg: 'bg-emerald-500/10' },
-  amber: { border: 'border-amber-500/20', bg: 'bg-amber-500/[0.03]', text: 'text-amber-400', iconBg: 'bg-amber-500/10' },
-  pink: { border: 'border-pink-500/20', bg: 'bg-pink-500/[0.03]', text: 'text-pink-400', iconBg: 'bg-pink-500/10' },
-  violet: { border: 'border-violet-500/20', bg: 'bg-violet-500/[0.03]', text: 'text-violet-400', iconBg: 'bg-violet-500/10' },
+const colorMap: Record<string, { border: string; bg: string; text: string; iconBg: string }> = {
+  indigo: {
+    border: 'border-indigo-500/20',
+    bg: 'bg-indigo-500/[0.03]',
+    text: 'text-indigo-600 dark:text-indigo-400',
+    iconBg: 'bg-indigo-500/10'
+  },
+  emerald: {
+    border: 'border-emerald-500/20',
+    bg: 'bg-emerald-500/[0.03]',
+    text: 'text-emerald-700 dark:text-emerald-400',
+    iconBg: 'bg-emerald-500/10'
+  },
+  amber: {
+    border: 'border-amber-500/20',
+    bg: 'bg-amber-500/[0.03]',
+    text: 'text-amber-700 dark:text-amber-400',
+    iconBg: 'bg-amber-500/10'
+  },
+  pink: {
+    border: 'border-pink-500/20',
+    bg: 'bg-pink-500/[0.03]',
+    text: 'text-pink-600 dark:text-pink-400',
+    iconBg: 'bg-pink-500/10'
+  },
+  violet: {
+    border: 'border-violet-500/20',
+    bg: 'bg-violet-500/[0.03]',
+    text: 'text-violet-600 dark:text-violet-400',
+    iconBg: 'bg-violet-500/10'
+  }
 }
 ---
 
-<section id="app" class="border-y border-border/50 bg-surface/10 dark:bg-surface/20 py-24 lg:py-32">
+<section id="app" class="border-y border-border/50 bg-surface/10 dark:bg-surface/20 py-12 lg:py-14">
   <span id="ai" class="sr-only" aria-hidden="true"></span>
   <div class="mx-auto max-w-6xl px-6">
     <SectionHeader
-      title="Your whole workspace. One app."
-      subtitle="A keyboard-first workbench that works offline, syncs across your devices, and keeps your data private. No account. Free forever."
+      title="What you can use today"
+      subtitle="Start with notes or a project. These are the core tools in the current alpha."
       align="center"
     />
 
     <!-- Tools grid: six marquee surfaces -->
-    <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {tools.map((tool) => {
         const c = colorMap[tool.color]
         return (
-          <div class={`animate-on-scroll rounded-xl border ${c.border} ${c.bg} p-6 transition-all duration-300 hover:border-opacity-60`}>
+          <div
+            class={`animate-on-scroll rounded-xl border ${c.border} ${c.bg} p-5 transition-all duration-300 hover:border-opacity-60`}
+          >
             <div class="flex items-center gap-3 mb-3">
-              <div class={`flex h-8 w-8 items-center justify-center rounded-lg ${c.iconBg} ${c.text}`}>
-                {tool.icon === 'doc' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>}
-                {tool.icon === 'db' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>}
-                {tool.icon === 'canvas' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z"/></svg>}
-                {tool.icon === 'task' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>}
-                {tool.icon === 'chat' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>}
-                {tool.icon === 'spark' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/></svg>}
+              <div
+                class={`flex h-8 w-8 items-center justify-center rounded-lg ${c.iconBg} ${c.text}`}
+              >
+                {tool.icon === 'doc' && (
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                )}
+                {tool.icon === 'db' && (
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
+                    />
+                  </svg>
+                )}
+                {tool.icon === 'canvas' && (
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z"
+                    />
+                  </svg>
+                )}
+                {tool.icon === 'task' && (
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                    />
+                  </svg>
+                )}
+                {tool.icon === 'chat' && (
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                )}
+                {tool.icon === 'spark' && (
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.6"
+                      d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"
+                    />
+                  </svg>
+                )}
               </div>
               <h3 class={`font-semibold ${c.text}`}>{tool.title}</h3>
             </div>
-            <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{tool.description}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+              {tool.description}
+            </p>
           </div>
         )
       })}
     </div>
 
-    <p class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 animate-on-scroll">
-      &hellip;and eight more surfaces — dashboards, notifications, instant search,
-      CRM, finance, experiments, maps, and labs.
-      <a href="/app?demo=1" class="text-indigo-600 dark:text-indigo-400 underline decoration-dotted underline-offset-2 hover:text-indigo-500">
-        All 14 in one workbench →
-      </a>
-    </p>
-
-    <!-- Platforms + CTA -->
-    <div class="mx-auto mt-12 max-w-3xl animate-on-scroll">
-      <div class="rounded-xl border border-border bg-code-bg p-6">
-        <div class="grid gap-6 sm:grid-cols-3">
-          <div class="text-center">
-            <svg class="mx-auto h-8 w-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" stroke-width="1.5"/><line x1="8" y1="21" x2="16" y2="21" stroke-width="1.5"/><line x1="12" y1="17" x2="12" y2="21" stroke-width="1.5"/></svg>
-            <strong class="text-sm text-gray-700 dark:text-gray-200">Desktop</strong>
-            <p class="text-xs text-gray-500 mt-1">Electron &mdash; full features, plugins</p>
-          </div>
-          <div class="text-center">
-            <svg class="mx-auto h-8 w-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke-width="1.5"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke-width="1.5"/></svg>
-            <strong class="text-sm text-gray-700 dark:text-gray-200">Web</strong>
-            <p class="text-xs text-gray-500 mt-1">PWA &mdash; any browser, installable</p>
-          </div>
-          <div class="text-center">
-            <svg class="mx-auto h-8 w-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" stroke-width="1.5"/><line x1="10" y1="18" x2="14" y2="18" stroke-width="1.5"/></svg>
-            <strong class="text-sm text-gray-700 dark:text-gray-200">Mobile</strong>
-            <p class="text-xs text-gray-500 mt-1">Expo &mdash; iOS and Android (coming soon)</p>
-          </div>
-        </div>
-      </div>
-      <div class="mt-8 text-center">
-        <a
-          href="/app?demo=1"
-          class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-500 transition-colors"
-        >
-          Try the App
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-          </svg>
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-500 dark:text-gray-400">
+      <p>
+        <a href="/download" class="font-medium text-gray-800 hover:underline dark:text-gray-200">
+          Desktop alpha
+        </a>{' '}
+        ·{' '}
+        <a href="https://xnet.fyi/app/" class="hover:underline">
+          Browser demo
+        </a>{' '}
+        ·{' '}
+        <a href="/mobile" class="hover:underline">
+          Mobile experiment
         </a>
-        <p class="mt-3 text-sm text-gray-500">Free forever. Self-hostable. Every feature is open source.</p>
-      </div>
+      </p>
+      <a href="/workspace" class="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+        Features & common questions →
+      </a>
     </div>
   </div>
 </section>

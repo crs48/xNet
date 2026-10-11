@@ -1,98 +1,29 @@
 ---
-import CodeBlock from '../ui/CodeBlock.astro'
 import SectionHeader from '../ui/SectionHeader.astro'
-
-// Syntax highlighting helpers
-const kw = (s: string) => `<span class="tok-keyword">${s}</span>`
-const fn = (s: string) => `<span class="tok-function">${s}</span>`
-const str = (s: string) => `<span class="tok-string">${s}</span>`
-const num = (s: string) => `<span class="tok-number">${s}</span>`
-const cm = (s: string) => `<span class="tok-comment">${s}</span>`
-
-const threeHooksCode = [
-  `${kw('import')} { defineSchema, text, person } ${kw('from')} ${str("'@xnetjs/data'")}`,
-  `${kw('import')} { allow, role } ${kw('from')} ${str("'@xnetjs/data/auth'")}`,
-  `${kw('import')} { useIdentity, useQuery, useMutate, useNode } ${kw('from')} ${str("'@xnetjs/react'")}`,
-  ``,
-  `${cm('// Schema with built-in authorization')}`,
-  `${kw('const')} TaskSchema = ${fn('defineSchema')}({`,
-  `  name: ${str("'Task'")},`,
-  `  namespace: ${str("'xnet://my-app/'")},`,
-  `  properties: {`,
-  `    title: ${fn('text')}({ required: ${num('true')} }),`,
-  `    assignee: ${fn('person')}()`,
-  `  },`,
-  `  authorization: {`,
-  `    roles: { owner: ${fn('role.creator')}() },`,
-  `    actions: { read: ${fn('allow')}(${str("'owner'")}, ${str("'assignee'")}), write: ${fn('allow')}(${str("'owner'")}) }`,
-  `  }`,
-  `})`,
-  ``,
-  `${cm('// 1. useQuery — read data')}`,
-  `${kw('const')} { did } = ${fn('useIdentity')}()`,
-  `${kw('const')} { data: tasks } = ${fn('useQuery')}(TaskSchema, {`,
-  `  where: { assignee: did }`,
-  `})`,
-  ``,
-  `${cm('// 2. useMutate — write data')}`,
-  `${kw('const')} { create, update, remove } = ${fn('useMutate')}()`,
-  `${fn('create')}(TaskSchema, { title: ${str("'New task'")} })`,
-  ``,
-  `${cm('// 3. useNode — real-time collaboration')}`,
-  `${kw('const')} { doc, peerCount } = ${fn('useNode')}(PageSchema, id)`,
-].join('\n')
-
-const whatYouGet = [
-  'Full TypeScript inference from schemas',
-  'Offline-first by default',
-  'P2P sync with no server code',
-  'No backend, auth service, or database to run',
-]
+import Substrate from '../marketing/Substrate.astro'
 ---
 
-<section id="developers" class="py-24 lg:py-32 border-t border-border/50">
+<section id="developers" class="border-b border-border py-12 lg:py-14">
   <div class="mx-auto max-w-6xl px-6">
     <SectionHeader
-      title="For Developers"
-      subtitle="Build local-first apps with three React hooks — storage, crypto, and networking handled for you."
-      align="center"
+      title="Build on the same data"
+      subtitle="xNet’s substrate is the data layer under the app. Like Lego pieces, its records share a common fit: you can combine them, extend them, and build a different tool around them."
     />
-
-    <!-- Three hooks code example -->
-    <div class="mt-12 max-w-2xl mx-auto">
-      <CodeBlock filename="App.tsx" code={threeHooksCode} />
-    </div>
-
-    <!-- What you get -->
-    <div class="mt-12 max-w-2xl mx-auto animate-on-scroll">
-      <ul class="grid gap-3 sm:grid-cols-2">
-        {whatYouGet.map((item) => (
-          <li class="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-            <svg class="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            {item}
-          </li>
-        ))}
-      </ul>
-      <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-        Sync peer-to-peer with no server at all, through a managed Hub, or against
-        your own backend — same hooks either way. Not on React?
-        <code class="font-mono text-xs">@xnetjs/runtime</code> drives the same client anywhere.
-      </p>
-    </div>
-
-    <!-- CTAs -->
-    <div class="mt-10 flex flex-wrap justify-center gap-4">
-      <a href="/docs/quickstart/" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors">
-        Read the Docs
+    <Substrate />
+    <div class="mt-5 flex flex-wrap gap-5 text-sm font-medium">
+      <a href="/docs/quickstart/" class="text-indigo-600 hover:underline dark:text-indigo-400">
+        Quickstart →
       </a>
-      <a href="/react" class="rounded-lg border border-indigo-500/50 bg-indigo-500/10 px-5 py-2.5 text-sm font-medium text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/20 transition-all">
-        xNet for React
+      <a href="/build-with" class="text-indigo-600 hover:underline dark:text-indigo-400">
+        SDKs & languages →
       </a>
-      <a href="/build-with" class="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-indigo-500/50 hover:bg-surface transition-all">
-        Any language
+      <a href="/blog/clutch-power" class="text-indigo-600 hover:underline dark:text-indigo-400">
+        Why the pieces fit: Clutch Power →
       </a>
     </div>
+    <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+      The alpha SDK is available today. A wider ecosystem of interchangeable tools is the
+      longer-term goal.
+    </p>
   </div>
 </section>
