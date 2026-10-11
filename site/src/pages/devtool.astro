@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro'
+import PageHero from '../components/marketing/PageHero.astro'
 import Nav from '../components/sections/Nav.astro'
 import Footer from '../components/sections/Footer.astro'
 import SectionHeader from '../components/ui/SectionHeader.astro'
@@ -25,31 +26,54 @@ const panels = [
     id: 'data',
     label: 'Data',
     blurb: 'Query and browse every node in the store on the same grid your app ships with.',
-    bullets: ['Live query-plan inspector', 'Inline editing with per-cell permissions', 'Sort, filter, hide columns per schema']
+    bullets: [
+      'Live query-plan inspector',
+      'Inline editing with per-cell permissions',
+      'Sort, filter, hide columns per schema'
+    ]
   },
   {
     id: 'changes',
     label: 'Changes',
-    blurb: 'A live, Lamport-ordered feed of the CRDT change log — every create, update, and delete.',
-    bullets: ['Filter by change type or node', 'Inspect the full change payload', 'Follow remote changes as they sync']
+    blurb:
+      'A live, Lamport-ordered feed of the CRDT change log — every create, update, and delete.',
+    bullets: [
+      'Filter by change type or node',
+      'Inspect the full change payload',
+      'Follow remote changes as they sync'
+    ]
   },
   {
     id: 'performance',
     label: 'Performance',
     blurb: 'Cold-start boot timeline, live FPS and heap, storage status, and active query counts.',
-    bullets: ['Boot waterfall by phase', 'Frame budget + heap sampling', 'Active useQuery / useMutate subscriptions']
+    bullets: [
+      'Boot waterfall by phase',
+      'Frame budget + heap sampling',
+      'Active useQuery / useMutate subscriptions'
+    ]
   },
   {
     id: 'logs',
     label: 'Logs',
-    blurb: 'Toggle debug channels (sync, sqlite, query, boot) and search the captured console buffer.',
-    bullets: ['Per-channel on/off, persisted', 'Level filter + full-text search', 'Pause, clear, copy']
+    blurb:
+      'Toggle debug channels (sync, sqlite, query, boot) and search the captured console buffer.',
+    bullets: [
+      'Per-channel on/off, persisted',
+      'Level filter + full-text search',
+      'Pause, clear, copy'
+    ]
   },
   {
     id: 'seed',
     label: 'Seed',
-    blurb: 'Populate a realistic demo workspace across every content type — idempotent and scalable.',
-    bullets: ['Converge / accrete / reseed modes', 'Small → large volume knob', 'Per-domain toggles (CRM, docs, …)']
+    blurb:
+      'Populate a realistic demo workspace across every content type — idempotent and scalable.',
+    bullets: [
+      'Converge / accrete / reseed modes',
+      'Small → large volume knob',
+      'Per-domain toggles (CRM, docs, …)'
+    ]
   }
 ]
 
@@ -67,27 +91,22 @@ const moreGroups = [
   description="A 20-panel in-browser debug suite for xNet apps: browse the database, watch the CRDT change log, inspect query plans, profile boot, and seed demo data. Built on the same React hooks; zero bytes in production."
 >
   <Nav />
-  <main>
+  <main id="main-content">
     <!-- Hero -->
-    <section class="border-b border-border/50 py-20 lg:py-28">
-      <div class="mx-auto max-w-4xl px-6 text-center">
-        <h1 class="text-4xl font-bold tracking-tight sm:text-5xl">
-          <span class="bg-gradient-to-br from-gray-900 to-gray-500 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
-            DevTools
-          </span>
-        </h1>
-        <p class="mx-auto mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
-          See your whole database, watch every change, inspect query plans, and profile boot —
-          in the browser. Built on the same hooks your app uses, and it tree-shakes to
-          <strong class="text-gray-700 dark:text-gray-200">zero bytes</strong> in production.
-        </p>
-        <div class="mt-6 flex flex-wrap justify-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-          <span class="rounded-full border border-border bg-surface/30 px-3 py-1">⌘⇧D to toggle</span>
-          <span class="rounded-full border border-border bg-surface/30 px-3 py-1">⌘⇧P command palette</span>
-          <span class="rounded-full border border-border bg-surface/30 px-3 py-1">20 panels</span>
-        </div>
+    <PageHero
+      eyebrow="Inside the workshop"
+      title="Open the hood. Follow the thread."
+      description="Inspect stored data, signed changes, query plans, and performance inside your app. Tools for understanding what your local-first software is actually doing."
+    >
+      <div class="m-actions">
+        <a class="m-button" href="/docs/quickstart/">
+          Start with the docs ↗
+        </a>
+        <a class="m-text-link" href="https://github.com/crs48/xNet">
+          Read the source ↗
+        </a>
       </div>
-    </section>
+    </PageHero>
 
     <!-- Panel switcher -->
     <section class="py-20 lg:py-28">
@@ -112,7 +131,11 @@ const moreGroups = [
         <!-- Panels -->
         <div class="mt-8">
           {panels.map((p, i) => (
-            <div class="dt-panel grid items-center gap-8 lg:grid-cols-2" data-dtpanel={i} hidden={i !== 0}>
+            <div
+              class="dt-panel grid items-center gap-8 lg:grid-cols-2"
+              data-dtpanel={i}
+              hidden={i !== 0}
+            >
               <!-- Real screenshot of the actual DevTools panel (dark mode) -->
               <img
                 src={`/images/devtools-${p.id}.png`}
@@ -131,7 +154,15 @@ const moreGroups = [
                 <ul class="mt-4 space-y-2">
                   {p.bullets.map((b) => (
                     <li class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
-                      <svg class="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      <svg
+                        class="mt-0.5 h-4 w-4 shrink-0 text-indigo-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        stroke-width="2"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
                       {b}
                     </li>
                   ))}
@@ -148,8 +179,8 @@ const moreGroups = [
       <div class="mx-auto max-w-3xl px-6 text-center">
         <p class="text-lg text-gray-600 dark:text-gray-300">
           The Data panel is the same <code class="font-mono text-sm">GridSurface</code> +
-          <code class="font-mono text-sm">useQuery</code> your app ships with — so what you debug
-          is exactly what you build.
+          <code class="font-mono text-sm">useQuery</code> your app ships with — so what you debug is
+          exactly what you build.
         </p>
       </div>
     </section>
@@ -157,7 +188,11 @@ const moreGroups = [
     <!-- Enable -->
     <section class="py-20 lg:py-28">
       <div class="mx-auto max-w-2xl px-6">
-        <SectionHeader title="Turn it on" subtitle="One provider. Dev-only by default." align="center" />
+        <SectionHeader
+          title="Turn it on"
+          subtitle="One provider. Dev-only by default."
+          align="center"
+        />
         <div class="mt-8">
           <CodeBlock filename="main.tsx" code={enableCode} />
         </div>
@@ -167,13 +202,21 @@ const moreGroups = [
     <!-- All panels -->
     <section class="border-t border-border/50 py-20 lg:py-28">
       <div class="mx-auto max-w-5xl px-6">
-        <SectionHeader title="Twenty panels" subtitle="Hero panels stay visible; the rest are a fuzzy ⌘⇧P palette away." align="center" />
+        <SectionHeader
+          title="Twenty panels"
+          subtitle="Hero panels stay visible; the rest are a fuzzy ⌘⇧P palette away."
+          align="center"
+        />
         <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
           {moreGroups.map((g) => (
             <div class="rounded-xl border border-border bg-surface/30 p-5 dark:bg-surface/50">
-              <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{g.group}</h3>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                {g.group}
+              </h3>
               <ul class="mt-3 space-y-1.5">
-                {g.items.map((i) => <li class="text-sm text-gray-600 dark:text-gray-300">{i}</li>)}
+                {g.items.map((i) => (
+                  <li class="text-sm text-gray-600 dark:text-gray-300">{i}</li>
+                ))}
               </ul>
             </div>
           ))}
@@ -189,10 +232,16 @@ const moreGroups = [
           DevTools ships with xNet React. Start with the hooks and open it with ⌘⇧D.
         </p>
         <div class="mt-6 flex flex-wrap justify-center gap-4">
-          <a href="/react" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors">
+          <a
+            href="/react"
+            class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+          >
             xNet for React →
           </a>
-          <a href="/docs/guides/devtools/" class="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-indigo-500/50 hover:bg-surface transition-all">
+          <a
+            href="/docs/guides/devtools/"
+            class="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-indigo-500/50 hover:bg-surface transition-all"
+          >
             DevTools guide
           </a>
         </div>

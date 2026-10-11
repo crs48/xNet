@@ -2,44 +2,179 @@
 import Base from '../layouts/Base.astro'
 import Nav from '../components/sections/Nav.astro'
 import Footer from '../components/sections/Footer.astro'
-import FollowedHero from '../components/followed/FollowedHero.astro'
-import PhysicalAct from '../components/followed/PhysicalAct.astro'
-import RevealHinge from '../components/followed/RevealHinge.astro'
-import MechanismGrid from '../components/followed/MechanismGrid.astro'
-import TheTurn from '../components/followed/TheTurn.astro'
-import TheVisionEssay from '../components/followed/TheVisionEssay.astro'
-import HonestyBox from '../components/followed/HonestyBox.astro'
-import SelfAudit from '../components/followed/SelfAudit.astro'
-import { CLAIMS, alarmClaims } from '../data/surveillance'
+import Closing from '../components/marketing/Closing.astro'
+import BlogArt from '../components/blog/BlogArt.astro'
+const chapters = [
+  {
+    number: '01',
+    title: 'Own the ground beneath your feet.',
+    text: 'A notebook still opens when the shop that sold it closes. Software should offer that same ordinary kind of ownership. Keeping the master copy on your device is the beginning. Open formats, backups, and a usable way out are what make it meaningful.',
+    slug: 'the-hundred-year-machine',
+    essay: 'The Hundred-Year Machine',
+    theme: 'Permanence'
+  },
+  {
+    number: '02',
+    title: 'Let different things grow together.',
+    text: 'A forest makes room for more than one species. We want the same of our tools: different views and different ways of working, growing around data people can share by choice. The open protocol is the common ground. A richer ecosystem is what we hope people will grow on it.',
+    slug: 'data-should-work-like-soil',
+    essay: 'Data Should Work Like Soil',
+    theme: 'Interdependence'
+  },
+  {
+    number: '03',
+    title: 'Keep the workshop open.',
+    text: 'Some of the most interesting things people make were never on the original product roadmap. A new view. A small tool. A way of working nobody thought to prescribe. xNet’s source, schemas, and plugin foundations are an invitation to change the tools you use.',
+    slug: 'the-workshop-and-the-walled-garden',
+    essay: 'The Workshop and the Walled Garden',
+    theme: 'Creative agency'
+  },
+  {
+    number: '04',
+    title: 'Keep a hand on the tiller.',
+    text: 'A useful tool lets you see what happened and change course. Our work on AI starts from that obligation: permission before action, changes with an author, and a record people can understand. The foundations exist. Making that feel natural in daily use is still ahead of us.',
+    slug: 'hand-on-the-tiller',
+    essay: 'Hand on the Tiller',
+    theme: 'Consent & control'
+  },
+  {
+    number: '05',
+    title: 'Let the scene outlive the server.',
+    text: 'A community’s value lives in its people, their knowledge, and the things they make together. We want those things to survive a change of host. Portable identity, shared tools, and an open commons are part of the longer journey, built on a workspace people actually use.',
+    slug: 'the-worlds-greatest-record-store',
+    essay: 'The World’s Greatest Record Store',
+    theme: 'The commons'
+  },
+  {
+    number: '06',
+    title: 'Leave room to go quiet.',
+    text: 'Software doesn’t need to turn every pause into a problem. The essays on calm, attention, and the right to leave shape the kind of product we want to make. Our charter puts those intentions on the record, alongside the code that backs them and the gaps that remain.',
+    slug: 'timeout',
+    essay: 'Timeout',
+    theme: 'A more humane web'
+  }
+]
 ---
 
 <Base
-  title="Why xNet — you’d never allow this in the real world"
-  description="The tracking we accept online would feel dystopian if it were physical. Here is exactly how it works, every claim cited — and how xNet is built so there’s nothing to traffic."
+  title="The vision — xNet"
+  description="Software you can keep. Tools you can reshape. Communities that outlive their servers. The ideas behind xNet, and the work still ahead."
 >
-  <!-- Without JS the IntersectionObserver never adds .visible, so reveal-on-scroll
-       content would stay at opacity:0. Keep the page fully readable with JS off. -->
-  <noscript>
-    <style>
-      .animate-on-scroll {
-        opacity: 1 !important;
-        transform: none !important;
-      }
-    </style>
-  </noscript>
-
   <Nav />
-
-  <main>
-    <FollowedHero />
-    <PhysicalAct claims={alarmClaims} />
-    <RevealHinge />
-    <MechanismGrid claims={CLAIMS} />
-    <TheTurn />
-    <TheVisionEssay />
-    <HonestyBox />
-    <SelfAudit />
+  <main id="main-content">
+    <header class="m-page-hero">
+      <div class="m-wrap">
+        <p class="m-eyebrow">The vision</p>
+        <h1 class="m-title">
+          A more open web
+          <br />
+          starts <em>close to home.</em>
+        </h1>
+        <p class="m-lede">
+          With the notes you write, the things you save, and the people you choose to work with. We
+          think that small corner of the internet should belong to you.
+        </p>
+      </div>
+    </header>
+    <section class="m-section">
+      <div class="m-wrap m-grid-2">
+        <h2 class="m-heading">
+          The ground is yours.
+          <br />
+          <em>The possibilities grow.</em>
+        </h2>
+        <div class="m-copy">
+          <p>
+            The blog wanders through pirate ships, forest soil, open workshops, and stars.
+            Underneath those different stories is one question: how do we build useful things
+            without taking away the freedom of the people who use them?
+          </p>
+          <p>
+            xNet is our attempt at an answer. Today, it’s an early workspace and an open set of
+            building blocks. The larger vision is a network where your data, your tools, and your
+            communities can keep going on their own terms.
+          </p>
+          <p>
+            That future has to earn its way out of the essays. The starting point is software you
+            can use, inspect, and help improve.
+          </p>
+        </div>
+      </div>
+    </section>
+    {chapters.map((chapter) => (
+      <section class="m-section">
+        <div class="m-wrap vision-chapter">
+          <div class="chapter-art">
+            <BlogArt
+              slug={chapter.slug}
+              class="m-essay-image"
+              sizes="(max-width: 800px) 100vw, 45vw"
+            />
+            <p class="m-caption">
+              {chapter.number} / {chapter.theme}
+            </p>
+          </div>
+          <div>
+            <h2 class="m-heading">{chapter.title}</h2>
+            <p class="m-copy mt-6">{chapter.text}</p>
+            <a class="m-text-link mt-7" href={`/blog/${chapter.slug}`}>
+              Read {chapter.essay} <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </div>
+      </section>
+    ))}
+    <section class="m-section">
+      <div class="m-wrap">
+        <div class="m-banner">
+          <div>
+            <h2 class="text-2xl tracking-tight mb-3">
+              A promise should come with a way to check it.
+            </h2>
+            <p>
+              Our charter distinguishes what the code enforces, what the architecture makes
+              possible, and what we’re still building. The roadmap makes the same distinction about
+              the product.
+            </p>
+          </div>
+          <a class="m-button secondary shrink-0" href="/commitments">
+            Read the commitments →
+          </a>
+        </div>
+        <div class="m-actions">
+          <a href="/roadmap" class="m-text-link">
+            Where we go from here →
+          </a>
+          <a href="/privacy-by-design" class="m-text-link">
+            The case for privacy →
+          </a>
+        </div>
+      </div>
+    </section>
+    <Closing title="Begin with your own small corner." />
   </main>
-
   <Footer />
 </Base>
+<style>
+  .vision-chapter {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+  .chapter-art .m-essay-image {
+    aspect-ratio: 1.35;
+  }
+  section:nth-of-type(even) .chapter-art {
+    order: 2;
+  }
+  @media (max-width: 800px) {
+    .vision-chapter {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    section:nth-of-type(even) .chapter-art {
+      order: 0;
+    }
+  }
+</style>

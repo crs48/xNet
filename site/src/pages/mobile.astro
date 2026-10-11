@@ -59,7 +59,7 @@ const buildingBlocks = [
   },
   {
     title: 'Real identity, on device',
-    body: 'A signing key is generated and held in the secure enclave (expo-secure-store); every change is signed and hash-chained.'
+    body: 'A signing key is generated on the device and stored with expo-secure-store; every change is signed and hash-chained.'
   },
   {
     title: 'Native-fast reads',
@@ -69,12 +69,12 @@ const buildingBlocks = [
 ---
 
 <Base
-  title="Run xNet on your phone — the mobile demo, via Expo Go"
-  description="Scan a QR code and run the xNet mobile demo on your device through Expo Go. No App Store, no sideloading — see the local-first building blocks (on-device SQLite, signed changes, native-fast reads) in seconds."
+  title="The mobile experiment — xNet"
+  description="Explore the xNet mobile developer demo. A source-based experiment with local storage and identity, not full desktop parity."
 >
   <Nav />
 
-  <main class="relative min-h-screen pt-32 pb-24">
+  <main id="main-content" class="m-detail relative min-h-screen pt-32 pb-24">
     <!-- Subtle gradient background -->
     <div class="absolute inset-0 bg-gradient-to-b from-indigo-500/[0.04] via-transparent to-transparent"></div>
     <div class="absolute left-1/2 top-0 -translate-x-1/2 h-[400px] w-[600px] rounded-full bg-indigo-500/[0.06] blur-[100px]"></div>
@@ -87,13 +87,13 @@ const buildingBlocks = [
         </span>
         <h1 class="mt-5 mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
           <span class="bg-gradient-to-br from-gray-900 via-gray-700 to-indigo-600 dark:from-white dark:via-gray-100 dark:to-indigo-400 bg-clip-text text-transparent">
-            Run xNet on your phone
+            The mobile experiment
           </span>
         </h1>
         <p class="mx-auto max-w-2xl text-lg text-gray-500 dark:text-gray-400">
           A tiny mobile demo of the xNet building blocks — on-device SQLite, signed
           local-first changes, native-fast reads — running inside <strong class="text-gray-700 dark:text-gray-200">Expo Go</strong>.
-          No App Store, no sideloading. Scan and see how little it takes.
+          It is a developer demo, not the full workspace on your phone.
         </p>
       </div>
 
@@ -113,14 +113,14 @@ const buildingBlocks = [
           </a>
           {!hostedConfigured && (
             <p class="mt-2 max-w-[13rem] text-center text-xs text-gray-400 dark:text-gray-500">
-              Hosted one-scan launch lands when a published Expo Go build is wired up. Until then, run it yourself below — it takes about a minute.
+              This QR code opens the source repository. Follow the steps below to run the demo and generate a launch code.
             </p>
           )}
         </div>
 
         <!-- Steps -->
         <ol class="space-y-4">
-          {runSteps.map((step) => (
+          {(hostedConfigured ? runSteps : [{ n: 1, title: 'Get the source', body: 'Clone the repository and install its dependencies.' }, { n: 2, title: 'Start the demo locally', body: 'Run the Expo command below to produce a launch QR code.' }, { n: 3, title: 'Open with Expo Go', body: 'Scan the locally generated code on your phone.' }]).map((step) => (
             <li class="flex gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white/40 dark:bg-gray-900/40 p-5">
               <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 font-mono text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                 {step.n}

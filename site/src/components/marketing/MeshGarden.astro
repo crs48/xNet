@@ -1,0 +1,76 @@
+---
+import markSource from '../../../public/mark.svg?raw'
+const mark = markSource.match(/<path[^>]*d="([^"]+)"/)?.[1]
+if (!mark) throw new Error('Mesh garden needs the brand mark')
+---
+
+<div class="mesh-garden" aria-hidden="true">
+  <svg viewBox="0 0 560 500" fill="none">
+    <defs>
+      <pattern id="garden-dots" width="24" height="24" patternUnits="userSpaceOnUse">
+        <circle cx="1" cy="1" r=".8" fill="currentColor" opacity=".18" />
+      </pattern>
+    </defs>
+    <rect width="560" height="500" fill="url(#garden-dots)" />
+    <g stroke="currentColor" stroke-width="1" opacity=".28">
+      <path d="M105 115C210 115 178 250 280 250S350 380 465 380M85 360C180 360 168 250 280 250S368 112 468 112M280 250V50M280 250V450M52 250H512" />
+      <circle cx="280" cy="250" r="160" stroke-dasharray="3 8" />
+    </g>
+    <g transform="translate(173 143) scale(2.14)">
+      <path d={mark} fill="currentColor" fill-rule="evenodd" />
+    </g>
+    <g fill="var(--paper)" stroke="currentColor">
+      <rect x="55" y="78" width="94" height="74" rx="22" />
+      <rect x="418" y="74" width="94" height="74" rx="22" />
+      <rect x="34" y="324" width="102" height="74" rx="22" />
+      <rect x="417" y="344" width="102" height="74" rx="22" />
+    </g>
+    <g stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+      <path d="M82 99h36v32H82zM89 108h22M89 116h15M89 123h18M446 100h35v26h-35zM446 108h35M457 100v26M468 100v26M65 345h38v34H65zM71 356h26M71 365h20M441 381l10-17 14 26 14-21 16 17" />
+    </g>
+    <g fill="currentColor" font-family="ui-monospace,monospace" font-size="10" letter-spacing="1">
+      <text x="78" y="174">
+        NOTES
+      </text>
+      <text x="435" y="171">
+        PROJECTS
+      </text>
+      <text x="45" y="420">
+        YOUR LIBRARY
+      </text>
+      <text x="438" y="440">
+        IDEAS
+      </text>
+    </g>
+    <g fill="currentColor">
+      <circle cx="280" cy="50" r="4" />
+      <circle cx="280" cy="450" r="4" />
+      <circle cx="52" cy="250" r="4" />
+      <circle cx="512" cy="250" r="4" />
+    </g>
+  </svg>
+  <div class="garden-caption">
+    <span>ONE WORKSPACE. ROOM TO GROW.</span>
+    <span>FIG. 01</span>
+  </div>
+</div>
+<style>
+  .mesh-garden {
+    color: var(--forest);
+  }
+  svg {
+    width: 100%;
+    height: auto;
+  }
+  .garden-caption {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 22px;
+    font:
+      9px ui-monospace,
+      monospace;
+    letter-spacing: 0.06em;
+    border-top: 1px solid var(--rule);
+    color: var(--muted);
+  }
+</style>

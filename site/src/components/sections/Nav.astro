@@ -1,60 +1,143 @@
 ---
 import BrandWordmark from '../BrandWordmark.astro'
 import ThemeToggle from '../ui/ThemeToggle.astro'
-
-// The header stays deliberately short. Links are grouped: in-page sections first
-// (in the order they appear as you scroll the home page), then standalone
-// destination pages. Everything else — Cloud, Plugins, React, Commitments,
-// Changelog, the SDK docs — lives in the footer.
-const homeLinks = [
-  { href: '/#app', label: 'App' },
-  { href: '/#developers', label: 'Developers' },
-  { href: '/#open', label: 'Open' },
+const links = [
+  { href: '/workspace', label: 'The workspace' },
+  { href: '/why', label: 'The vision' },
+  { href: '/blog', label: 'Field notes' },
+  { href: '/build-with', label: 'For builders' }
 ]
-const pageLinks = [
-  { href: '/agents', label: 'Agents' },
-  { href: '/why', label: 'Why' },
-  { href: '/build-with', label: 'Build' },
-  { href: '/demos/', label: 'Demos' },
-  { href: '/blog', label: 'Blog' },
-]
+const active = (href: string) => Astro.url.pathname.replace(/\/$/, '') === href
 ---
 
-<header class="sticky top-0 z-50 border-b border-border/50 bg-white/80 dark:bg-[#0a0a0f]/80 backdrop-blur-xl">
-  <nav class="mx-auto flex max-w-6xl items-center justify-between gap-1.5 px-4 py-4 sm:gap-3 sm:px-6">
-    <a href="/" aria-label="xNet" class="inline-flex shrink-0 items-center text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+<a href="#main-content" class="skip-link">
+  Skip to content
+</a>
+<header class="site-nav">
+  <nav class="m-wrap nav-inner" aria-label="Main navigation">
+    <a href="/" aria-label="xNet home" class="nav-brand">
       <BrandWordmark />
     </a>
-    <div class="flex shrink-0 items-center gap-2 text-sm sm:gap-4 lg:gap-5">
-      {homeLinks.map(link => (
-        <a href={link.href} class="hidden lg:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+    <div class="nav-links">
+      {links.map((link) => (
+        <a href={link.href} aria-current={active(link.href) ? 'page' : undefined}>
           {link.label}
         </a>
       ))}
-      <span class="hidden lg:inline h-4 w-px bg-border" aria-hidden="true"></span>
-      {pageLinks.map(link => (
-        <a href={link.href} class="hidden lg:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
-          {link.label}
-        </a>
-      ))}
-      <a href="/docs/introduction/" class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all">
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-        </svg>
-        Docs
-      </a>
-      <a href="/agents" aria-label="Connect your agent" class="whitespace-nowrap rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 transition-all">
-        <span class="sm:hidden">Connect</span>
-        <span class="hidden sm:inline">Connect your agent</span>
-      </a>
+    </div>
+    <div class="nav-tools">
       <ThemeToggle />
-      <a
-        href="https://github.com/crs48/xNet"
-        aria-label="xNet on GitHub"
-        class="hidden lg:flex items-center rounded-lg border border-border p-1.5 text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all"
-      >
-        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+      <a class="m-button nav-try" href="/download">
+        Try xNet <span aria-hidden="true">↗</span>
       </a>
+      <details class="mobile-menu">
+        <summary aria-label="Open navigation">
+          Menu <span aria-hidden="true">+</span>
+        </summary>
+        <div>
+          {links.map((link) => (
+            <a href={link.href} aria-current={active(link.href) ? 'page' : undefined}>
+              {link.label}
+            </a>
+          ))}
+          <a href="/roadmap">Roadmap</a>
+          <a href="/docs/introduction/">Documentation</a>
+          <a href="/download">Get xNet</a>
+        </div>
+      </details>
     </div>
   </nav>
 </header>
+<style>
+  .site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule);
+  }
+  .nav-inner {
+    height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+  }
+  .nav-brand {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+  .nav-brand :global(.brand-wordmark) {
+    height: 33px;
+  }
+  .nav-links {
+    display: flex;
+    gap: 30px;
+    margin-left: auto;
+    font-size: 13px;
+  }
+  .nav-links a {
+    padding-block: 10px;
+    color: var(--muted);
+  }
+  .nav-links a:hover,
+  .nav-links [aria-current] {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 6px;
+  }
+  .nav-tools {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .nav-try {
+    padding: 10px 15px;
+    font-size: 12px;
+  }
+  .mobile-menu {
+    display: none;
+  }
+  @media (max-width: 960px) {
+    .nav-inner {
+      height: 74px;
+      gap: 14px;
+    }
+    .nav-links {
+      display: none;
+    }
+    .mobile-menu {
+      display: block;
+    }
+    .mobile-menu summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 13px;
+      display: flex;
+      gap: 12px;
+      padding-block: 12px;
+    }
+    .mobile-menu summary::-webkit-details-marker {
+      display: none;
+    }
+    .mobile-menu > div {
+      position: absolute;
+      top: 74px;
+      left: 0;
+      right: 0;
+      padding: 24px;
+      border-bottom: 1px solid var(--rule);
+      background: var(--paper);
+      display: grid;
+      gap: 18px;
+    }
+    .nav-tools {
+      gap: 14px;
+    }
+  }
+  @media (max-width: 420px) {
+    .nav-try {
+      display: none;
+    }
+  }
+</style>

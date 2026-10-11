@@ -2,161 +2,131 @@
 import Base from '../../layouts/Base.astro'
 import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
-import { PRICING, ONBOARDING_STEPS, startUrl } from '../../data/pricing'
-
-const whatYouGet = [
-  {
-    title: 'A hub that is yours alone',
-    body: 'No shared tenancy. We provision a dedicated, isolated hub per account — encrypted backup, relay, and full-text search, managed and upgraded for you.',
-    color: 'indigo'
-  },
-  {
-    title: 'Local-first, never locked in',
-    body: 'Your data lives on your devices first and syncs to your hub. Move between self-hosted and managed any time — the app never calls home to a control plane.',
-    color: 'emerald'
-  },
-  {
-    title: 'You hold the keys',
-    body: 'Your data identity is a passkey on your device, separate from billing — recover your account by email and it restores access, not your data. On a managed hub we run the software that stores and indexes your content, so we will not claim we cannot read it. We claim we do not.',
-    color: 'purple'
-  }
-]
-
-const colors: Record<string, { border: string; bg: string; text: string }> = {
-  indigo: { border: 'border-indigo-500/20', bg: 'bg-indigo-500/[0.03]', text: 'text-indigo-500 dark:text-indigo-400' },
-  emerald: { border: 'border-emerald-500/20', bg: 'bg-emerald-500/[0.03]', text: 'text-emerald-500 dark:text-emerald-400' },
-  purple: { border: 'border-purple-500/20', bg: 'bg-purple-500/[0.03]', text: 'text-purple-500 dark:text-purple-400' }
-}
-
-const featured = PRICING.find((t) => t.featured) ?? PRICING[1]
+import PageHero from '../../components/marketing/PageHero.astro'
 ---
 
 <Base
-  title="xNet Cloud — A managed hub that is yours alone"
-  description="xNet Cloud runs your hub for you: dedicated, isolated, encrypted backup and sync — local-first and never locked in. Sign in with WorkOS, pick a plan, and connect your app in minutes."
+  title="Cloud & hosting — xNet"
+  description="How hubs extend a local-first workspace, the choice between managed hosting and your own server, and the work toward simpler setup."
 >
   <Nav />
-
-  <main>
-    <!-- Hero -->
-    <section class="relative overflow-hidden border-b border-border/50 py-24 lg:py-32">
-      <div class="absolute left-1/2 top-0 -translate-x-1/2 h-[420px] w-[680px] rounded-full bg-indigo-500/[0.06] blur-[130px]"></div>
-      <div class="relative mx-auto max-w-4xl px-6 text-center">
-        <p class="mb-4 text-sm font-semibold uppercase tracking-widest text-indigo-500 dark:text-indigo-400">xNet Cloud</p>
-        <h1 class="mb-6 text-4xl font-bold text-gray-800 dark:text-white sm:text-5xl lg:text-6xl">
-          A managed hub that is <span class="text-indigo-500 dark:text-indigo-400">yours alone</span>
-        </h1>
-        <p class="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-gray-500 dark:text-gray-400">
-          xNet is local-first and self-hostable. xNet Cloud runs your hub for you —
-          dedicated, isolated, backed up, and always reachable — so your data syncs
-          everywhere without you babysitting a server.
-        </p>
-        <div class="flex flex-wrap justify-center gap-4">
-          <a
-            href={startUrl('demo')}
-            class="rounded-lg bg-indigo-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
-          >
-            Start free
-          </a>
-          <a
-            href="/cloud/pricing"
-            class="rounded-lg border border-indigo-500/50 bg-indigo-500/10 px-6 py-3 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-500/20 dark:text-indigo-300"
-          >
-            See pricing
-          </a>
-        </div>
-        <p class="mt-4 text-xs text-gray-500">No card for the free tier. Cancel any time.</p>
+  <main id="main-content">
+    <PageHero
+      eyebrow="Cloud & hosting"
+      title="A wider reach. Your own ground."
+      description="Your device holds the working copy. A hub helps your workspace stay reachable, backed up, and connected when your other devices are offline."
+    >
+      <div class="m-actions">
+        <a class="m-button" href="/cloud/pricing">
+          Explore hosting plans →
+        </a>
+        <a class="m-text-link" href="/docs/guides/server/">
+          Run your own hub ↗
+        </a>
       </div>
-    </section>
-
-    <!-- What you get -->
-    <section class="py-20 lg:py-28">
-      <div class="mx-auto max-w-6xl px-6">
-        <h2 class="mb-3 text-center text-2xl font-bold text-gray-800 dark:text-white sm:text-3xl">
-          What you get
-        </h2>
-        <p class="mx-auto mb-12 max-w-2xl text-center text-gray-500 dark:text-gray-400">
-          The convenience of managed hosting, without giving up the things local-first is for.
-        </p>
-        <div class="grid gap-6 lg:grid-cols-3">
-          {
-            whatYouGet.map((f) => {
-              const c = colors[f.color]
-              return (
-                <div class={`rounded-xl border ${c.border} ${c.bg} p-7`}>
-                  <h3 class={`mb-3 text-lg font-semibold ${c.text}`}>{f.title}</h3>
-                  <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{f.body}</p>
-                </div>
-              )
-            })
-          }
+    </PageHero>
+    <section class="m-section">
+      <div class="m-wrap m-grid-2">
+        <div>
+          <p class="m-eyebrow">A post office for your workspace</p>
+          <h2 class="m-heading mt-6">
+            The cloud helps.
+            <br />
+            <em>You keep the copy.</em>
+          </h2>
+        </div>
+        <div class="m-copy">
+          <p>
+            Local-first doesn’t mean living on an island. A hub can relay changes and keep backups
+            while your devices come and go. Core editing stays on your device.
+          </p>
+          <p>
+            You can run the open-source hub yourself or choose managed hosting. Those choices have
+            different trust boundaries: a managed operator runs the software that stores and indexes
+            your content. Hosting is a service you choose, with responsibilities worth
+            understanding.
+          </p>
+          <a class="m-text-link mt-7" href="/privacy">
+            Read the privacy details →
+          </a>
         </div>
       </div>
     </section>
-
-    <!-- How it works -->
-    <section class="border-y border-border/50 bg-surface/10 py-20 dark:bg-surface/20 lg:py-28">
-      <div class="mx-auto max-w-5xl px-6">
-        <h2 class="mb-3 text-center text-2xl font-bold text-gray-800 dark:text-white sm:text-3xl">
-          How onboarding works
-        </h2>
-        <p class="mx-auto mb-12 max-w-2xl text-center text-gray-500 dark:text-gray-400">
-          From "never heard of it" to "syncing across all my devices" in four steps.
-        </p>
-        <ol class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {
-            ONBOARDING_STEPS.map((step) => (
-              <li class="rounded-xl border border-border bg-surface/30 p-6">
-                <div class="mb-4 flex h-9 w-9 items-center justify-center rounded-full bg-indigo-500/10 text-sm font-bold text-indigo-500 dark:text-indigo-400">
-                  {step.n}
-                </div>
-                <h3 class="mb-2 text-base font-semibold text-gray-800 dark:text-white">{step.title}</h3>
-                <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{step.body}</p>
-              </li>
-            ))
-          }
-        </ol>
+    <section class="m-section">
+      <div class="m-wrap">
+        <div class="m-grid-3">
+          <article class="m-step">
+            <span class="m-status now">Available foundations</span>
+            <h3>Run a hub.</h3>
+            <p>
+              The hub software and deployment guides are available now. Self-hosting gives you
+              control of the operator, and also the work of maintaining it.
+            </p>
+            <a href="/docs/guides/server/" class="m-text-link">
+              Server guide ↗
+            </a>
+          </article>
+          <article class="m-step">
+            <span class="m-status">Hosting option</span>
+            <h3>Choose an operator.</h3>
+            <p>
+              Managed plans package hosting and operations. Check the plan details and current
+              service status before choosing the setup for your work.
+            </p>
+            <a href="/cloud/pricing" class="m-text-link">
+              Plans and limits →
+            </a>
+          </article>
+          <article class="m-step">
+            <span class="m-status">Being improved</span>
+            <h3>Make it feel simple.</h3>
+            <p>
+              Easy onboarding, recovery, and cross-device setup are part of the roadmap. The goal is
+              a private connected workspace without a lesson in server administration.
+            </p>
+            <a href="/roadmap" class="m-text-link">
+              The road ahead →
+            </a>
+          </article>
+        </div>
       </div>
     </section>
-
-    <!-- Pricing teaser -->
-    <section class="py-20 lg:py-28">
-      <div class="mx-auto max-w-3xl px-6 text-center">
-        <h2 class="mb-3 text-2xl font-bold text-gray-800 dark:text-white sm:text-3xl">Simple, honest pricing</h2>
-        <p class="mb-8 text-gray-500 dark:text-gray-400">
-          Start free, then {featured.name} from
-          {typeof featured.price === 'object' ? ` $${featured.price.amount}${featured.price.unit}` : ''}.
-          Every paid plan is a dedicated hub with managed AI.
+    <section class="m-section">
+      <div class="m-wrap m-banner">
+        <p>
+          <strong>The post office should never become the landlord.</strong> That idea runs through
+          our essays on ownership, exit, and the open commons. Hosting should make the workspace
+          more useful while leaving a real route to running it yourself.
         </p>
-        <a
-          href="/cloud/pricing"
-          class="inline-block rounded-lg bg-indigo-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
-        >
-          Compare plans
+        <a class="m-text-link shrink-0" href="/blog/the-loom-you-can-read">
+          Follow the thread ↗
         </a>
       </div>
     </section>
-
-    <!-- Enterprise -->
-    <section id="enterprise" class="scroll-mt-24 border-t border-border/50 py-20 lg:py-28">
-      <div class="mx-auto max-w-4xl px-6">
-        <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.03] p-8 sm:p-10">
-          <h2 class="mb-4 text-2xl font-bold text-gray-800 dark:text-white">Enterprise</h2>
-          <p class="mb-6 max-w-2xl leading-relaxed text-gray-500 dark:text-gray-400">
-            Region-pinned deployments, SSO and SCIM via WorkOS, a custom SLA, audit
-            logging, and admin controls. Bring your own identity provider and keep
-            your data where your compliance team needs it.
+    <section id="enterprise" class="m-section">
+      <div class="m-wrap m-grid-2">
+        <div>
+          <p class="m-eyebrow">Enterprise hosting</p>
+          <h2 class="m-heading mt-6">
+            Talk through
+            <br />
+            <em>your requirements.</em>
+          </h2>
+        </div>
+        <div class="m-copy">
+          <p>
+            For region-pinned hosting, an identity provider, or a custom support agreement, get in
+            touch to discuss what your organisation needs and what we can support.
           </p>
           <a
+            class="m-button secondary mt-6"
             href="mailto:hello@xnet.fyi?subject=xNet%20Cloud%20Enterprise"
-            class="inline-block rounded-lg border border-indigo-500/50 bg-indigo-500/10 px-6 py-3 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-500/20 dark:text-indigo-300"
           >
-            Contact sales
+            Contact sales ↗
           </a>
         </div>
       </div>
     </section>
   </main>
-
   <Footer />
 </Base>

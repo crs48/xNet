@@ -1,0 +1,171 @@
+---
+const pieces = [
+  {
+    name: 'Nodes',
+    caption: 'The pieces',
+    example: 'A task · A contact · A page',
+    description:
+      'Each record has an identity of its own. Link pieces together without copying them into a new silo.'
+  },
+  {
+    name: 'Schemas',
+    caption: 'The common fit',
+    example: 'Title + status + project',
+    description:
+      'Shared definitions describe the fields and relations. Builders can add their own fields or make a new kind of piece.'
+  },
+  {
+    name: 'Views',
+    caption: 'What you make with them',
+    example: 'A table · A board · Your tool',
+    description:
+      'Different interfaces can use the same records. A new way to work doesn’t have to mean starting your data over.'
+  }
+]
+---
+
+<div class="substrate">
+  <ol class="pieces" aria-label="Three parts of the xNet substrate">
+    {pieces.map((piece, index) => (
+      <li>
+        <div class="piece-label">
+          <span>0{index + 1}</span>
+          <span>{piece.caption}</span>
+        </div>
+        <h3>{piece.name}</h3>
+        <p class="piece-example">{piece.example}</p>
+        <p class="piece-description">{piece.description}</p>
+      </li>
+    ))}
+  </ol>
+  <details class="mechanics">
+    <summary>Under the hood: local copies, signed changes, shared rules</summary>
+    <div class="m-grid-3">
+      <p>
+        <strong>Local first.</strong> The workspace stores a copy on your device. You can work
+        offline and sync changes when connected.
+      </p>
+      <p>
+        <strong>A record of change.</strong> Structured edits are signed and hash-linked. Peers can
+        verify who signed an edit and detect changes to it.
+      </p>
+      <p>
+        <strong>Built to merge.</strong> Yjs merges document edits. Structured fields use
+        deterministic last-writer-wins rules. Sharing is governed by grants and permissions.
+      </p>
+    </div>
+    <a class="m-text-link" href="/docs/concepts/data-model/">
+      Explore the data model <span aria-hidden="true">↗</span>
+    </a>
+  </details>
+</div>
+
+<style>
+  .substrate {
+    margin-top: 48px;
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  .pieces {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .pieces li {
+    padding: 30px;
+    position: relative;
+  }
+  .pieces li + li {
+    border-left: 1px solid var(--rule);
+  }
+  .pieces li + li::before {
+    content: '+';
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: 76px;
+    left: -14px;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    background: var(--paper);
+    color: var(--forest);
+  }
+  .piece-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    font:
+      10px/1.5 ui-monospace,
+      monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .piece-label > span:first-child {
+    color: var(--forest);
+  }
+  h3 {
+    margin-top: 24px;
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+  }
+  .piece-example {
+    margin-block: 18px;
+    padding-block: 12px;
+    border-block: 1px solid var(--rule);
+    font:
+      11px/1.6 ui-monospace,
+      monospace;
+    color: var(--forest);
+  }
+  .piece-description,
+  .mechanics p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .mechanics {
+    border-top: 1px solid var(--rule);
+    padding: 22px 30px;
+    background: var(--wash);
+  }
+  summary {
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .mechanics :global(.m-grid-3) {
+    margin-block: 24px;
+    gap: 32px;
+  }
+  .mechanics strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  @media (max-width: 800px) {
+    .pieces {
+      grid-template-columns: 1fr;
+    }
+    .pieces li {
+      padding: 26px;
+    }
+    .pieces li + li {
+      border-left: 0;
+      border-top: 1px solid var(--rule);
+    }
+    .pieces li + li::before {
+      left: auto;
+      right: 26px;
+      top: -14px;
+    }
+    .mechanics {
+      padding: 22px 26px;
+    }
+  }
+</style>

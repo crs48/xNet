@@ -1,0 +1,120 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Footer from '../components/sections/Footer.astro'
+import Closing from '../components/marketing/Closing.astro'
+import WorkspaceImage from '../components/marketing/WorkspaceImage.astro'
+const features = [
+  [
+    'Write at your own pace.',
+    'Documents hold your notes, drafts, and plans. The local copy lives on your device, so a lost connection doesn’t have to interrupt your train of thought.'
+  ],
+  [
+    'Give information a shape.',
+    'Databases bring structure to projects and collections. Canvases give you room to arrange the pieces and work through how they fit together.'
+  ],
+  [
+    'Keep what you find.',
+    'The desktop library brings saved links and imported sources into your workspace. Add your own context, search your collection, and explore connections between the things you saved.'
+  ],
+  [
+    'Carry a copy with you.',
+    'Export your workspace in an open .xnetpack bundle. Keep your own backups while the alpha evolves, and choose whether to run a hub for sync.'
+  ]
+]
+---
+
+<Base
+  title="The workspace — xNet"
+  description="Write notes, organise projects, and collect saved knowledge in an open workspace on your device. See what the xNet alpha offers today."
+>
+  <Nav />
+  <main id="main-content">
+    <header class="m-page-hero">
+      <div class="m-wrap">
+        <p class="m-eyebrow">The workspace · Available in alpha</p>
+        <h1 class="m-title">
+          A home for the things
+          <br />
+          you’re <em>working on.</em>
+        </h1>
+        <p class="m-lede">
+          A thought, a project, a growing collection. xNet gives them a place on your own device,
+          with tools you can grow into.
+        </p>
+        <div class="m-actions">
+          <a class="m-button" href="/download">
+            Get the desktop app ↗
+          </a>
+          <a class="m-button secondary" href="https://xnet.fyi/app/">
+            Try the browser demo ↗
+          </a>
+        </div>
+      </div>
+    </header>
+    <section class="m-section">
+      <div class="m-wrap">
+        <WorkspaceImage />
+        <div class="m-rows mt-16">
+          {features.map(([title, body], i) => (
+            <article class="m-row">
+              <span class="number">0{i + 1}</span>
+              <h3>{title}</h3>
+              <p>{body}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+    <section class="m-section">
+      <div class="m-wrap m-grid-2">
+        <div>
+          <p class="m-eyebrow">Choose your starting point</p>
+          <h2 class="m-heading mt-6">
+            Start small.
+            <br />
+            <em>Keep a copy.</em>
+          </h2>
+        </div>
+        <div>
+          <details class="m-faq" open>
+            <summary>Desktop or browser?</summary>
+            <p>
+              The desktop app is the fuller experience, including the personal library. The browser
+              demo lets you try the workspace with a passkey. Its hosted demo backups are limited to
+              10 MB and expire after 24 hours of inactivity; keep an export of anything you want to
+              save.
+            </p>
+          </details>
+          <details class="m-faq">
+            <summary>How finished is it?</summary>
+            <p>
+              xNet is alpha software. The app and packages ship today, but interfaces and data
+              formats can change. It’s a good time to explore and give feedback. Keep backups you
+              control.
+            </p>
+          </details>
+          <details class="m-faq">
+            <summary>Do I need AI or a cloud account?</summary>
+            <p>
+              No. Core editing works locally. Agent tools and hosting are separate options; the more
+              integrated AI experience is still being developed.
+            </p>
+          </details>
+          <details class="m-faq">
+            <summary>What about my phone?</summary>
+            <p>
+              There is an Expo-based developer demo. It does not yet offer the full desktop
+              experience.{' '}
+              <a href="/mobile" class="underline">
+                See the mobile demo.
+              </a>
+            </p>
+          </details>
+        </div>
+      </div>
+    </section>
+    <Closing />
+  </main>
+  <Footer />
+</Base>

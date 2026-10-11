@@ -1,0 +1,18 @@
+---
+const {
+  title = 'Start with something that’s yours.',
+  body = 'Write a note. Save a thought. See what an open workspace can become.'
+} = Astro.props
+---
+
+<section class="m-cta">
+  <div class="m-wrap">
+    <div>
+      <h2 class="m-heading">{title}</h2>
+      <p class="m-copy mt-5">{body}</p>
+    </div>
+    <a href="/download" class="m-button">
+      Try xNet <span aria-hidden="true">↗</span>
+    </a>
+  </div>
+</section>
