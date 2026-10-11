@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-10-10-explore-the-workspace-and-the-ideas-behi",
+      "url": "https://xnet.fyi/changelog#2026-10-10-explore-the-workspace-and-the-ideas-behi",
+      "title": "Explore the workspace and the ideas behind xNet",
+      "content_text": "The website explains the shipping workspace, its open data layer, and the longer-term vision with clearer copy, compact sections, and a neutral white design.\n",
+      "date_published": "2026-10-11T01:50:29Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "October 10, 2026",
+        "summary": "The website explains the shipping workspace, its open data layer, and the longer-term vision with clearer copy, compact sections, and a neutral white design.",
+        "highlights": [],
+        "mergedAt": "2026-10-11T01:50:29Z",
+        "pr": 727,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-10-09-a-clearer-xnet-app-icon",
       "url": "https://xnet.fyi/changelog#2026-10-09-a-clearer-xnet-app-icon",
       "title": "A clearer xNet icon and wordmark",
