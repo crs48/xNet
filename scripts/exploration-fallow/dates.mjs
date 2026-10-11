@@ -1,5 +1,5 @@
 /**
- * Date arithmetic for the exploration fallow ratchet.
+ * Date arithmetic for the exploration age report.
  *
  * Split out of `check-exploration-fallow.mjs` so it can be tested without
  * shelling out to git or rewriting `STALE.md`.

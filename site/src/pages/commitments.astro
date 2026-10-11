@@ -42,12 +42,12 @@ const badgeClass: Record<Backing, string> = {
             class="rounded-2xl border border-border bg-surface p-6 sm:p-8"
           >
             <div class="flex flex-wrap items-baseline justify-between gap-3">
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
                 <span class="mr-2 font-mono text-sm text-gray-400">
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 {c.name}
-              </h3>
+              </h2>
               <span
                 class={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${badgeClass[c.backing]}`}
               >
