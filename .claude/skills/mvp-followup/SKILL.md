@@ -27,13 +27,12 @@ something genuinely blocks the current work from being used.
 
 ## Choosing among stale explorations
 
-`docs/explorations/STALE.md` lists every document past its `review:` date, and
-opens with the backlog's **retirement curve** (exploration 0430). Read the curve
-before the list: it does not fall, so an old `[_]` is not work in progress — it
-is a decision already made by inaction. Withdrawing one (`status: withdrawn`) is
-a legitimate closeout and often the honest answer; renewing it (`review:`) is the
-other. Neither renames the file. Proposing to _start_ a 120-day-old document is
-new scope, not follow-up.
+`docs/explorations/STALE.md` reports drafts past their `review:` date or the
+default 90-day window, alongside age-cohort statistics (exploration 0430).
+Staleness is informational: age alone does not require action, fail CI, or mean
+the work has been rejected. Do not renew dates or withdraw drafts merely to
+clear the report. Choose follow-up by its relevance to the current task;
+starting an unrelated old draft is new scope.
 
 ## Output shape
 

@@ -13,19 +13,18 @@ const editUrl = 'https://github.com/crs48/xNet/blob/main/site/src/data/pricing.t
 >
   <Nav />
 
-  <main class="py-24 lg:py-32">
+  <main id="main-content" class="m-detail py-24 lg:py-32">
     <div class="mx-auto max-w-7xl px-6">
       <!-- Hero -->
       <div class="mb-14 text-center">
-        <h1 class="mb-6 text-4xl font-bold text-gray-800 dark:text-white sm:text-5xl">Pricing</h1>
+        <h1 class="mb-6 text-4xl font-bold text-gray-800 dark:text-white sm:text-5xl">Hosting plans</h1>
         <p class="mx-auto max-w-2xl text-lg leading-relaxed text-gray-500 dark:text-gray-400">
-          Start free on a shared hub. Upgrade to a dedicated hub when you want it always
-          on. Your data moves with you — and you can self-host at any time.
+          The app is open source. These plans cover managed hosting, with limits and operating responsibilities set out below. You can also run your own hub.
         </p>
       </div>
 
       <!-- Tier grid -->
-      <div class="grid gap-6 lg:grid-cols-5 sm:grid-cols-2">
+      <div class="grid gap-6 lg:grid-cols-3 sm:grid-cols-2">
         {
           PRICING.map((tier) => (
             <div

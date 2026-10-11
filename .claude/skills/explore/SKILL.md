@@ -123,9 +123,10 @@ one (exploration 0421).
   `two-way` means just do it.
 
 Past its `review` date a doc is listed in `docs/explorations/STALE.md` by
-`pnpm check:exploration-fallow`. Being listed is not a failure; it means
-the claim on future attention has lapsed. Renew it (`review: <later>`) or
-release it (`status: withdrawn`) — both are one-line frontmatter edits.
+`pnpm check:exploration-fallow`. With no date, the default window is 90 days.
+Stale is an informational age classification, not a CI failure or a requirement
+to renew, withdraw, or implement the draft. Leave dates and status unchanged
+unless an actual decision about the work calls for an update.
 
 > [!IMPORTANT]
 > Never signal any of this by renaming the file. Status in the filename

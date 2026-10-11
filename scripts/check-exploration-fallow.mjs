@@ -1,54 +1,31 @@
 #!/usr/bin/env node
 /**
- * Ratchet the exploration backlog (exploration 0421).
+ * Report exploration age (exploration 0421).
  *
- * xNet's build loop is already fast — median PR cycle time under an hour, CI at
- * eight minutes. What has no clock at all is *deciding what to build*: 259
- * explorations sit at `[_]`, the backlog grows ~85 documents a month, and
- * nothing ever closes one. A document written in February and never started is
- * indistinguishable from one written yesterday.
+ * Drafts become stale after their explicit review date, or 90 days after
+ * first appearing in git. Age is informational: stale drafts can remain open
+ * without blocking CI or requiring a new date. This report never rewrites,
+ * renames, or withdraws the source documents.
  *
- * This gives the backlog the two things every fast project on Collison's list
- * had and this one lacks: a decider and an expiry.
- *
- *   review:  <YYYY-MM-DD>   when to RE-DECIDE — not when to ship
- *   decider: <name>         who closes it; a single name, never a list
- *
- * Absent `review:`, a document is due 90 days after it first appeared. 90 is
- * measured, not guessed: it marks 41 of 276 undecided documents stale (15%),
- * where 180 marks *zero* today and ~200 in three months as the June/July bulge
- * crosses at once. A gate that cannot fire is not lenient, it is absent.
- *
- * Expiry never moves, renames or deletes anything. Status in the *filename* is
- * a proven link-rot generator (see check-exploration-links.mjs); `review:` and
- * `status: withdrawn` live in frontmatter precisely because changing them
- * renames nothing. Withdrawing is a legitimate, encouraged outcome — recording
- * that a decision was *made* is the point.
- *
- * Named consumer: `docs/explorations/STALE.md`, which `/mvp-followup` reads to
- * answer "what's next" — today it has no principled way to choose among 259
- * identical-looking candidates.
- *
- * Pass condition: the stale count must not EXCEED the committed baseline in
- * `.fallow-baseline.json`. A ratchet, never an absolute — per AGENTS.md, and
- * per fallow.yml's own postmortem, where gating the absolute made every Monday
- * a guaranteed red nobody consumed.
+ * Consumers: `docs/explorations/STALE.md`, `/mvp-followup`, and the CI job
+ * summary. Generation succeeds when the report can be read and written;
+ * the number of stale drafts does not affect the exit status.
  *
  * Run: `node scripts/check-exploration-fallow.mjs` (or `pnpm check:exploration-fallow`).
- *      `--write-baseline` reseeds the baseline to today's count.
  */
-import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { join, resolve } from 'node:path'
 import { dayDiff, dueDay, formatDay, isOverdue, overdueDays } from './exploration-fallow/dates.mjs'
 
 const root = resolve(process.cwd())
 const DIR = join(root, 'docs/explorations')
-const BASELINE = join(DIR, '.fallow-baseline.json')
 const STALE_INDEX = join(DIR, 'STALE.md')
 const DEFAULT_WINDOW_DAYS = 90
 
-const writeBaseline = process.argv.includes('--write-baseline')
+if (process.argv.includes('--write-baseline')) {
+  throw new Error('Exploration age is report-only; --write-baseline is no longer supported.')
+}
 
 /**
  * Git hooks export GIT_DIR / GIT_WORK_TREE, which hijack any `git` subprocess
@@ -306,17 +283,9 @@ const index = [
   '',
   '# Stale explorations',
   '',
-  'Explorations past their `review:` date (or 90 days old with none). Being',
-  'listed here is not a failure — it means the claim this document makes on',
-  'future attention has lapsed and needs renewing or releasing.',
-  '',
-  'Two fixes, both one-line frontmatter edits. Neither renames the file, so',
-  'neither breaks an inbound reference:',
-  '',
-  '```yaml',
-  'review: 2027-02-01 # renew the claim',
-  'status: withdrawn # release it; the document stays exactly where it is',
-  '```',
+  'Drafts are classified as stale after their `review:` date, or after the',
+  'default 90-day window. This is an age report, not a CI failure or a deadline',
+  'to build, renew, or close anything. Stale drafts can remain open until useful.',
   '',
   `**${stale.length}** stale of ${considered} undecided.`,
   '',
@@ -334,11 +303,9 @@ const index = [
   '',
   ...(shape
     ? [
-        `The curve does not fall: ${shape.first}% of documents at least a day old are`,
-        `unshipped, and ${shape.last}% at ${shape.lastDay} days. An exploration is checked off`,
-        'within days of being written, or never — so an old `[_]` is not a pending',
-        'decision, it is a decision already made by inaction. Renew it deliberately,',
-        'or withdraw it; both are one line and neither renames the file.',
+        `${shape.first}% of documents at least a day old remain unshipped,`,
+        `compared with ${shape.last}% of those at least ${shape.lastDay} days old.`,
+        'These are age cohorts, not requirements to retire drafts.',
         ''
       ]
     : []),
@@ -368,38 +335,5 @@ const index = [
 
 writeFileSync(STALE_INDEX, index)
 
-if (writeBaseline) {
-  writeFileSync(BASELINE, `${JSON.stringify({ count: stale.length }, null, 2)}\n`)
-  console.log(`✓ baseline seeded at ${stale.length}`)
-  process.exit(0)
-}
-
-const baseline = existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, 'utf8')).count : 0
-
-// Printed on green runs too: the number should be familiar long before it is
-// ever binding (0283 — a gate whose first appearance is a failure gets ignored).
-console.log(`explorations past review date: ${stale.length} (baseline ${baseline})`)
-
-if (stale.length > baseline) {
-  // Least-overdue first: whatever just crossed the line is what this change
-  // most likely introduced, and it is buried if the list is alphabetical.
-  const newest = [...stale].sort((a, b) => a.days - b.days)
-  console.error(
-    `\n✗ stale explorations increased: ${stale.length} > ${baseline}\n\n` +
-      '  Most recently gone stale — start here:\n' +
-      newest
-        .slice(0, 10)
-        .map((s) => `    ${s.file}  (${s.days}d overdue${s.decider ? `, ${s.decider}` : ''})`)
-        .join('\n') +
-      (stale.length > 10 ? `\n    … and ${stale.length - 10} more` : '') +
-      '\n\n  Both fixes are one-line frontmatter edits — no rename, so no\n' +
-      '  inbound reference breaks:\n' +
-      '    review: 2027-02-01     # renew the claim\n' +
-      '    status: withdrawn      # release it; the document stays put\n\n' +
-      `  Full list: docs/explorations/STALE.md\n`
-  )
-  process.exit(1)
-}
-
-console.log(`✓ exploration backlog OK (${considered} undecided, ${stale.length} stale)`)
-process.exit(0)
+console.log(`Exploration age report: ${stale.length} stale of ${considered} undecided.`)
+console.log('Staleness is informational and does not block CI. See docs/explorations/STALE.md.')

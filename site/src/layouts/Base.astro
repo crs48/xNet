@@ -1,5 +1,6 @@
 ---
 import '../styles/tailwind.css'
+import '../styles/marketing.css'
 
 interface Props {
   title: string
@@ -52,8 +53,8 @@ const ogImageAlt = imageAlt ?? (image ? undefined : 'The xNet workbench')
     <style>
       /* Landing page theme variables */
       :root {
-        --lp-surface: #f5f5f7;
-        --lp-border: #e0e0e6;
+        --lp-surface: #f4f4f5;
+        --lp-border: #e4e4e7;
         --lp-code-bg: #fafafa;
         --lp-code-fg: #383a42;
         --lp-code-comment: #a0a1a7;
@@ -64,8 +65,8 @@ const ogImageAlt = imageAlt ?? (image ? undefined : 'The xNet workbench')
         --lp-code-type: #c18401;
       }
       .dark {
-        --lp-surface: #12121a;
-        --lp-border: #161622;
+        --lp-surface: #18181b;
+        --lp-border: #3f3f46;
         --lp-code-bg: #282c34;
         --lp-code-fg: #abb2bf;
         --lp-code-comment: #5c6370;
@@ -102,7 +103,9 @@ const ogImageAlt = imageAlt ?? (image ? undefined : 'The xNet workbench')
       .animate-on-scroll {
         opacity: 0;
         transform: translateY(20px);
-        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        transition:
+          opacity 0.6s ease-out,
+          transform 0.6s ease-out;
       }
       .animate-on-scroll.visible {
         opacity: 1;
@@ -110,11 +113,21 @@ const ogImageAlt = imageAlt ?? (image ? undefined : 'The xNet workbench')
       }
 
       /* Stagger children */
-      .animate-on-scroll:nth-child(2) { transition-delay: 0.1s; }
-      .animate-on-scroll:nth-child(3) { transition-delay: 0.2s; }
-      .animate-on-scroll:nth-child(4) { transition-delay: 0.3s; }
-      .animate-on-scroll:nth-child(5) { transition-delay: 0.35s; }
-      .animate-on-scroll:nth-child(6) { transition-delay: 0.4s; }
+      .animate-on-scroll:nth-child(2) {
+        transition-delay: 0.1s;
+      }
+      .animate-on-scroll:nth-child(3) {
+        transition-delay: 0.2s;
+      }
+      .animate-on-scroll:nth-child(4) {
+        transition-delay: 0.3s;
+      }
+      .animate-on-scroll:nth-child(5) {
+        transition-delay: 0.35s;
+      }
+      .animate-on-scroll:nth-child(6) {
+        transition-delay: 0.4s;
+      }
 
       /* Copy button feedback */
       .copy-btn.copied {
@@ -123,21 +136,24 @@ const ogImageAlt = imageAlt ?? (image ? undefined : 'The xNet workbench')
     </style>
     <!-- Inline script to prevent flash: read localStorage, fallback to system preference -->
     <script is:inline>
-      (function() {
+      ;(function () {
         var storedTheme = localStorage.getItem('xnet-lp-theme')
-        var theme = storedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        var theme =
+          storedTheme ||
+          (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
         if (theme === 'light') {
           document.documentElement.classList.remove('dark')
         }
       })()
     </script>
-    {
-      analyticsDomain && (
-        <script is:inline defer data-domain={analyticsDomain} src={analyticsSrc} />
-      )
-    }
+    {analyticsDomain && <script is:inline defer data-domain={analyticsDomain} src={analyticsSrc} />}
   </head>
-  <body class="bg-white dark:bg-[#0a0a0f] text-gray-800 dark:text-gray-200 antialiased font-sans leading-relaxed">
+  <body class="marketing-site antialiased font-sans leading-relaxed">
+    {import.meta.env.PUBLIC_DESIGN_PREVIEW === 'true' && (
+      <aside class="design-preview-note">
+        Design preview · October 2026 <span>Local review only</span>
+      </aside>
+    )}
     <slot />
     <script>
       // Intersection Observer for scroll animations
@@ -157,9 +173,10 @@ const ogImageAlt = imageAlt ?? (image ? undefined : 'The xNet workbench')
       // Copy buttons
       document.querySelectorAll('.copy-btn').forEach((btn) => {
         btn.addEventListener('click', async () => {
-          const code = (btn as HTMLElement).dataset.copy
-            || btn.closest('.relative')?.querySelector('code')?.textContent
-            || ''
+          const code =
+            (btn as HTMLElement).dataset.copy ||
+            btn.closest('.relative')?.querySelector('code')?.textContent ||
+            ''
           await navigator.clipboard.writeText(code.trim())
           btn.textContent = 'Copied!'
           btn.classList.add('copied')

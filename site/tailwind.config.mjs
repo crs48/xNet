@@ -1,3 +1,4 @@
+import colors from 'tailwindcss/colors'
 import typography from '@tailwindcss/typography'
 
 /** @type {import('tailwindcss').Config} */
@@ -10,6 +11,7 @@ export default {
         mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace']
       },
       colors: {
+        gray: colors.zinc,
         surface: 'var(--lp-surface)',
         border: 'var(--lp-border)',
         'code-bg': 'var(--lp-code-bg)'

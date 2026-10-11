@@ -5,101 +5,216 @@ import Footer from '../../components/sections/Footer.astro'
 import BlogArt from '../../components/blog/BlogArt.astro'
 import Byline from '../../components/blog/Byline.astro'
 import { publishedPosts, formatPostDate } from '../../data/blog'
-
 const posts = publishedPosts()
+const tags = [
+  'all',
+  'philosophy',
+  'privacy',
+  'decentralization',
+  'protocol',
+  'nature',
+  'economics',
+  'personal'
+]
 ---
 
 <Base
   title="Blog — xNet"
-  description="Essays on local-first software, data ownership, and the open web."
+  description="Essays on owning your data, local-first software, and the open web."
 >
   <Nav />
-
-  <main class="mx-auto max-w-3xl px-6 py-20 lg:py-28">
-    <header class="mb-12">
-      <div class="flex items-center justify-between gap-4">
-        <h1 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-white lg:text-5xl">
-          Blog
-        </h1>
-        <a
-          href="/blog/rss.xml"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-gray-500 hover:border-indigo-500/50 hover:text-gray-900 dark:hover:text-white transition-all"
-        >
-          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20S4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 4.95a10.61 10.61 0 0 1 10.61 10.61h-2.83A7.78 7.78 0 0 0 4 12.22V9.39Z" />
-          </svg>
-          RSS
-        </a>
-      </div>
-      <p class="mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400 leading-relaxed">
-        Field notes from the open web: on owning your data, local-first software,
-        and the kind of internet worth building.
-      </p>
-    </header>
-
-    {
-      posts.length === 0 ? (
-        <p class="rounded-2xl border border-border bg-surface/30 p-8 text-gray-500 dark:bg-surface/40 dark:text-gray-400">
-          The log is being written. First dispatch soon.
+  <main id="main-content">
+    <header class="m-page-hero">
+      <div class="m-wrap">
+        <div class="flex items-center justify-between gap-4">
+          <h1 class="m-title">Blog</h1>
+          <a class="m-button secondary" href="/blog/rss.xml">
+            RSS ↗
+          </a>
+        </div>
+        <p class="m-lede">
+          Field notes on owning your data, building open tools, and the kind of internet we want to
+          use.
         </p>
-      ) : (
-        <ul class="space-y-4">
-          {posts.map((post) => {
-            return (
-              <li>
-                <a
-                  href={`/blog/${post.slug}`}
-                  class="group block overflow-hidden rounded-2xl border border-border bg-surface/20 transition-all hover:border-indigo-500/40 hover:bg-surface/40"
-                >
-                  <div class="relative aspect-[2/1] w-full overflow-hidden border-b border-border">
-                    <BlogArt
-                      slug={post.slug}
-                      sizes="(min-width: 768px) 720px, calc(100vw - 48px)"
-                      class="block h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-                    />
-                  </div>
-                  <div class="p-6 lg:p-8">
-                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400 dark:text-gray-500">
-                      <time datetime={post.pubDate}>{formatPostDate(post.pubDate)}</time>
-                      <span aria-hidden="true">·</span>
-                      <span>{post.readingMinutes} min read</span>
-                      {post.tags.map((tag) => (
-                        <span class="rounded-full border border-border px-2 py-0.5 font-mono lowercase">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <h2 class="mt-3 text-2xl font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                      {post.title}
-                    </h2>
-                    <p class="mt-2 text-gray-600 dark:text-gray-300 leading-relaxed">
-                      {post.description}
-                    </p>
-                    <div class="mt-4 text-gray-500 dark:text-gray-400">
-                      <Byline post={post} compact />
-                    </div>
-                    <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                      Read
-                      <svg
-                        class="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        stroke-width="2"
-                        aria-hidden="true"
-                      >
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                      </svg>
+      </div>
+    </header>
+    <section class="m-section">
+      <div class="m-wrap">
+        <div class="journal-controls">
+          <h2 class="text-lg font-semibold">All {posts.length} essays</h2>
+          <label class="m-note">
+            Find an essay
+            <input id="essay-search" type="search" placeholder="Search titles and descriptions" />
+          </label>
+        </div>
+        <div class="journal-filters" aria-label="Filter essays by topic">
+          {tags.map((tag) => (
+            <button data-topic={tag} aria-pressed={tag === 'all'}>
+              {tag === 'all' ? 'All subjects' : tag}
+            </button>
+          ))}
+        </div>
+        <div class="journal-grid">
+          {posts.map((post, i) => (
+            <article
+              class="journal-entry"
+              data-essay
+              data-search={`${post.title} ${post.description}`.toLowerCase()}
+              data-tags={post.tags.join(' ')}
+            >
+              <a class="journal-art" href={`/blog/${post.slug}`}>
+                <BlogArt
+                  slug={post.slug}
+                  class="h-full w-full object-cover"
+                  sizes="(max-width: 500px) 80px, 120px"
+                />
+              </a>
+              <div class="min-w-0">
+                <p class="text-xs text-gray-500">
+                  {i === 0 && (
+                    <span class="mr-2 font-semibold text-indigo-600 dark:text-indigo-400">
+                      Latest
                     </span>
-                  </div>
-                </a>
-              </li>
-            )
-          })}
-        </ul>
-      )
-    }
+                  )}
+                  <time datetime={post.pubDate}>{formatPostDate(post.pubDate)}</time> ·{' '}
+                  {post.readingMinutes} min
+                </p>
+                <h3 class="mt-2 text-lg font-semibold leading-snug">
+                  <a
+                    class="hover:text-indigo-600 dark:hover:text-indigo-400"
+                    href={`/blog/${post.slug}`}
+                  >
+                    {post.title}
+                  </a>
+                </h3>
+                <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                  {post.description}
+                </p>
+                <div class="mt-3 text-xs">
+                  <Byline post={post} compact />
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+        <p id="essay-empty" class="m-copy mt-8" role="status" hidden>
+          No essays match that search. Try another word or subject.
+        </p>
+      </div>
+    </section>
   </main>
-
   <Footer />
 </Base>
+<script>
+  const input = document.querySelector<HTMLInputElement>('#essay-search')
+  const filters = [...document.querySelectorAll<HTMLButtonElement>('[data-topic]')]
+  const essays = [...document.querySelectorAll<HTMLElement>('[data-essay]')]
+  let topic = 'all'
+  const filter = () => {
+    const query = input?.value.trim().toLowerCase() ?? ''
+    essays.forEach((essay) => {
+      essay.hidden = !(
+        essay.dataset.search?.includes(query) &&
+        (topic === 'all' || essay.dataset.tags?.split(' ').includes(topic))
+      )
+    })
+    const empty = document.getElementById('essay-empty')
+    if (empty) empty.hidden = essays.some((essay) => !essay.hidden)
+  }
+  input?.addEventListener('input', filter)
+  filters.forEach((button) =>
+    button.addEventListener('click', () => {
+      topic = button.dataset.topic ?? 'all'
+      filters.forEach((item) => item.setAttribute('aria-pressed', String(item === button)))
+      filter()
+    })
+  )
+</script>
+<style>
+  .journal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .journal-entry {
+    display: flex;
+    gap: 18px;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .journal-art {
+    width: 112px;
+    height: 112px;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+  .journal-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .journal-controls label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .journal-controls input {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 9px 12px;
+    border-radius: 6px;
+    color: var(--ink);
+    font-size: 13px;
+    width: 260px;
+  }
+  .journal-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 18px 0 24px;
+  }
+  .journal-filters button {
+    font-size: 12px;
+    border: 1px solid var(--rule);
+    padding: 5px 10px;
+    border-radius: 6px;
+    text-transform: capitalize;
+  }
+  .journal-filters [aria-pressed='true'] {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  [data-essay][hidden] {
+    display: none;
+  }
+  @media (max-width: 1000px) {
+    .journal-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 600px) {
+    .journal-controls {
+      align-items: start;
+      flex-direction: column;
+    }
+    .journal-controls label {
+      display: grid;
+      gap: 6px;
+      width: 100%;
+    }
+    .journal-controls input {
+      width: 100%;
+    }
+    .journal-entry {
+      padding: 14px;
+      gap: 12px;
+    }
+    .journal-art {
+      width: 80px;
+      height: 80px;
+    }
+  }
+</style>

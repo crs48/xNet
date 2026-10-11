@@ -2,44 +2,141 @@
 import Base from '../layouts/Base.astro'
 import Nav from '../components/sections/Nav.astro'
 import Footer from '../components/sections/Footer.astro'
-import FollowedHero from '../components/followed/FollowedHero.astro'
-import PhysicalAct from '../components/followed/PhysicalAct.astro'
-import RevealHinge from '../components/followed/RevealHinge.astro'
-import MechanismGrid from '../components/followed/MechanismGrid.astro'
-import TheTurn from '../components/followed/TheTurn.astro'
-import TheVisionEssay from '../components/followed/TheVisionEssay.astro'
-import HonestyBox from '../components/followed/HonestyBox.astro'
-import SelfAudit from '../components/followed/SelfAudit.astro'
-import { CLAIMS, alarmClaims } from '../data/surveillance'
+import Closing from '../components/marketing/Closing.astro'
+import BlogArt from '../components/blog/BlogArt.astro'
+const chapters = [
+  {
+    number: '01',
+    title: 'Keep your work',
+    text: 'A notebook still opens when the shop that sold it closes. Software should offer that same ordinary kind of ownership. Keeping the master copy on your device is the beginning. Open formats, backups, and a usable way out are what make it meaningful.',
+    slug: 'the-hundred-year-machine',
+    essay: 'The Hundred-Year Machine',
+    theme: 'Permanence'
+  },
+  {
+    number: '02',
+    title: 'Use the same data in different tools',
+    text: 'A forest makes room for more than one species. We want the same of our tools: different views and different ways of working, growing around data people can share by choice. The open protocol is the common ground. A richer ecosystem is what we hope people will grow on it.',
+    slug: 'data-should-work-like-soil',
+    essay: 'Data Should Work Like Soil',
+    theme: 'Interdependence'
+  },
+  {
+    number: '03',
+    title: 'Change the tools you use',
+    text: 'Some of the most interesting things people make were never on the original product roadmap. A new view. A small tool. A way of working nobody thought to prescribe. xNet’s source, schemas, and plugin foundations are an invitation to change the tools you use.',
+    slug: 'the-workshop-and-the-walled-garden',
+    essay: 'The Workshop and the Walled Garden',
+    theme: 'Creative agency'
+  },
+  {
+    number: '04',
+    title: 'See and control what AI does',
+    text: 'A useful tool lets you see what happened and change course. Our work on AI starts from that obligation: permission before action, changes with an author, and a record people can understand. The foundations exist. Making that feel natural in daily use is still ahead of us.',
+    slug: 'hand-on-the-tiller',
+    essay: 'Hand on the Tiller',
+    theme: 'Consent & control'
+  },
+  {
+    number: '05',
+    title: 'Keep a community’s history',
+    text: 'A community’s value lives in its people, their knowledge, and the things they make together. We want those things to survive a change of host. Portable identity, shared tools, and an open commons are part of the longer journey, built on a workspace people actually use.',
+    slug: 'the-worlds-greatest-record-store',
+    essay: 'The World’s Greatest Record Store',
+    theme: 'The commons'
+  },
+  {
+    number: '06',
+    title: 'Respect people’s attention',
+    text: 'Software doesn’t need to turn every pause into a problem. The essays on calm, attention, and the right to leave shape the kind of product we want to make. Our charter puts those intentions on the record, alongside the code that backs them and the gaps that remain.',
+    slug: 'timeout',
+    essay: 'Timeout',
+    theme: 'A more humane web'
+  }
+]
 ---
 
 <Base
-  title="Why xNet — you’d never allow this in the real world"
-  description="The tracking we accept online would feel dystopian if it were physical. Here is exactly how it works, every claim cited — and how xNet is built so there’s nothing to traffic."
+  title="Why xNet — An open workspace and an open web"
+  description="The ideas behind xNet: durable data, adaptable tools, consent, and communities that can keep their own history."
 >
-  <!-- Without JS the IntersectionObserver never adds .visible, so reveal-on-scroll
-       content would stay at opacity:0. Keep the page fully readable with JS off. -->
-  <noscript>
-    <style>
-      .animate-on-scroll {
-        opacity: 1 !important;
-        transform: none !important;
-      }
-    </style>
-  </noscript>
-
   <Nav />
-
-  <main>
-    <FollowedHero />
-    <PhysicalAct claims={alarmClaims} />
-    <RevealHinge />
-    <MechanismGrid claims={CLAIMS} />
-    <TheTurn />
-    <TheVisionEssay />
-    <HonestyBox />
-    <SelfAudit />
+  <main id="main-content">
+    <header class="m-page-hero">
+      <div class="m-wrap">
+        <p class="m-eyebrow">The vision</p>
+        <h1 class="m-title">Your data should outlast your apps.</h1>
+        <p class="m-lede">
+          We’re building a workspace you can use today and a shared data layer for tools people can
+          make tomorrow. The essays explain why ownership, open systems, and consent matter to that
+          work.
+        </p>
+        <div class="m-actions">
+          <a class="m-button" href="/workspace">
+            What you can use today →
+          </a>
+          <a class="m-button secondary" href="/roadmap">
+            Roadmap →
+          </a>
+        </div>
+      </div>
+    </header>
+    <section class="m-section">
+      <div class="m-wrap grid gap-5 md:grid-cols-2">
+        {chapters.map((chapter) => (
+          <article class="rounded-xl border border-border p-5">
+            <div class="flex items-center gap-4">
+              <a
+                class="block w-28 shrink-0 overflow-hidden rounded-lg"
+                href={`/blog/${chapter.slug}`}
+              >
+                <BlogArt
+                  slug={chapter.slug}
+                  class="aspect-[4/3] w-full object-cover"
+                  sizes="112px"
+                />
+              </a>
+              <div>
+                <p class="text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                  {chapter.theme}
+                </p>
+                <h2 class="mt-1 text-lg font-semibold leading-snug">{chapter.title}</h2>
+              </div>
+            </div>
+            <p class="mt-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+              {chapter.text}
+            </p>
+            <a
+              class="mt-4 inline-block text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+              href={`/blog/${chapter.slug}`}
+            >
+              {chapter.essay} →
+            </a>
+          </article>
+        ))}
+      </div>
+    </section>
+    <section class="m-section bg-surface/30">
+      <div class="m-wrap">
+        <h2 class="text-2xl font-bold tracking-tight">Check the commitments</h2>
+        <p class="m-copy mt-3">
+          The charter records what the code enforces, what the architecture supports, and what
+          remains unfinished.
+        </p>
+        <div class="m-actions">
+          <a class="m-button secondary" href="/commitments">
+            Our commitments →
+          </a>
+          <a class="m-text-link" href="/privacy-by-design">
+            Privacy by design →
+          </a>
+          <a class="m-text-link" href="/blog">
+            All essays →
+          </a>
+        </div>
+      </div>
+    </section>
+    <Closing />
   </main>
-
   <Footer />
 </Base>

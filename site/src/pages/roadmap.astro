@@ -1,60 +1,110 @@
 ---
 import Base from '../layouts/Base.astro'
 import Nav from '../components/sections/Nav.astro'
-import Roadmap from '../components/sections/Roadmap.astro'
 import Footer from '../components/sections/Footer.astro'
+import Closing from '../components/marketing/Closing.astro'
+const tones = [
+  'border-emerald-500/25 bg-emerald-500/[0.04]',
+  'border-amber-500/25 bg-amber-500/[0.04]',
+  'border-indigo-500/25 bg-indigo-500/[0.04]',
+  'border-violet-500/25 bg-violet-500/[0.04]'
+]
+const stages = [
+  {
+    state: 'Available now · Alpha',
+    title: 'Workspace and developer foundations',
+    body: 'The desktop and browser workspace already bring documents, databases, and canvases together. The desktop library collects saved sources. Underneath are local storage, signed changes, sync, and an open protocol.',
+    points: [
+      'Desktop releases and a browser demo',
+      'Documents, databases, canvases, and a desktop library',
+      'Published developer packages and self-hostable hub software'
+    ],
+    href: '/workspace',
+    link: 'Explore what you can use'
+  },
+  {
+    state: 'Current focus',
+    title: 'Everyday reliability and AI review',
+    body: 'The next measure is ordinary use: can someone write, plan, collect, and organise here day after day? Reliability, recovery, and the small points of friction matter as much as new features.',
+    points: [
+      'Keep improving startup, recovery, and everyday editing',
+      'Make agent work useful and its effects easy to review',
+      'Move from technical setup toward an integrated experience'
+    ],
+    href: '/changelog',
+    link: 'Follow what is actually shipping'
+  },
+  {
+    state: 'Next horizon',
+    title: 'Simpler hosting and recovery',
+    body: 'Hub and hosting foundations exist. The goal is to make a private, durable, connected workspace straightforward for someone who doesn’t want to operate a server.',
+    points: [
+      'Simpler onboarding and cross-device setup',
+      'Clear recovery and portable identity',
+      'Hosted convenience alongside a real self-hosting option'
+    ],
+    href: '/cloud',
+    link: 'Understand the hosting direction'
+  },
+  {
+    state: 'Longer-term vision',
+    title: 'Shared tools and knowledge',
+    body: 'Build a place where people can discover, share, and adapt what others make. Publishing and identity work provide some foundations; the broader discovery and circulation experience remains a direction, not a finished network.',
+    points: [
+      'Useful tools and knowledge shared with provenance',
+      'A commons that grows from real communities',
+      'Connections to the wider decentralised web'
+    ],
+    href: '/blog/the-worlds-greatest-record-store',
+    link: 'Read the idea behind the commons'
+  }
+]
 ---
 
 <Base
-  title="xNet Roadmap — from local-first primitives to a decentralized data layer"
-  description="What's built, what's in flight, and where xNet is going: the full phased roadmap, from the shipped foundation to federation and the decentralized data layer."
+  title="Roadmap — xNet"
+  description="What ships in xNet today, what is being built, and the longer-term vision."
 >
   <Nav />
-
-  <main>
-    <Roadmap />
-
-    <!-- Contributor asks, moved from the former landing Community section -->
-    <section class="pb-24">
-      <div class="mx-auto max-w-3xl px-6">
-        <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.03] p-6 sm:p-8">
-          <h2 class="font-semibold text-indigo-400 mb-4">Help us get there</h2>
-          <div class="space-y-3">
-            <div class="flex items-start gap-3 text-sm text-gray-500 dark:text-gray-400">
-              <span class="text-indigo-400 mt-0.5 shrink-0">&#10140;</span>
-              <span><strong class="text-gray-700 dark:text-gray-300">Shape the API</strong> before it's set in stone &mdash; your feedback directly impacts the design</span>
-            </div>
-            <div class="flex items-start gap-3 text-sm text-gray-500 dark:text-gray-400">
-              <span class="text-indigo-400 mt-0.5 shrink-0">&#10140;</span>
-              <span><strong class="text-gray-700 dark:text-gray-300">Build plugins</strong> for an extensible ecosystem &mdash; custom views, schemas, and integrations</span>
-            </div>
-            <div class="flex items-start gap-3 text-sm text-gray-500 dark:text-gray-400">
-              <span class="text-indigo-400 mt-0.5 shrink-0">&#10140;</span>
-              <span><strong class="text-gray-700 dark:text-gray-300">Contribute to core</strong> &mdash; sync engine, query system, canvas, editor, devtools</span>
-            </div>
-            <div class="flex items-start gap-3 text-sm text-gray-500 dark:text-gray-400">
-              <span class="text-indigo-400 mt-0.5 shrink-0">&#10140;</span>
-              <span><strong class="text-gray-700 dark:text-gray-300">Build apps</strong> on xNet and push the boundaries of local-first software</span>
-            </div>
-          </div>
-          <div class="mt-6 flex flex-wrap gap-4">
-            <a
-              href="https://github.com/crs48/xNet"
-              class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
-            >
-              Browse on GitHub
+  <main id="main-content">
+    <header class="m-page-hero">
+      <div class="m-wrap">
+        <h1 class="m-title">Roadmap</h1>
+        <p class="m-lede">
+          The current alpha, the next practical improvements, and the longer-term goals.
+        </p>
+        <p class="m-note mt-3">
+          Product snapshot: October 2026 · These are priorities, not delivery dates.
+        </p>
+      </div>
+    </header>
+    <section class="m-section">
+      <div class="m-wrap grid gap-5 md:grid-cols-2">
+        {stages.map((stage, i) => (
+          <article class={`rounded-xl border p-6 ${tones[i]}`}>
+            <span class="m-status">{stage.state}</span>
+            <h2 class="mt-4 text-xl font-semibold">{stage.title}</h2>
+            <p class="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+              {stage.body}
+            </p>
+            <ul class="mt-4 space-y-2 text-sm">
+              {stage.points.map((point) => (
+                <li class="flex gap-2">
+                  <span aria-hidden="true" class="text-indigo-500">
+                    ·
+                  </span>
+                  {point}
+                </li>
+              ))}
+            </ul>
+            <a class="m-text-link mt-5" href={stage.href}>
+              {stage.link} →
             </a>
-            <a
-              href="https://github.com/crs48/xNet/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22"
-              class="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-indigo-500/50 hover:bg-surface transition-all"
-            >
-              Good First Issues
-            </a>
-          </div>
-        </div>
+          </article>
+        ))}
       </div>
     </section>
+    <Closing />
   </main>
-
   <Footer />
 </Base>

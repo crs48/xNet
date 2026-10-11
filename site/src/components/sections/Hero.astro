@@ -1,133 +1,80 @@
 ---
 import Badge from '../ui/Badge.astro'
-import CodeTabs from '../ui/CodeTabs.astro'
-import { AGENT_CLIENTS } from '../../data/agents'
-
-// The hero converts one door (exploration 0457): the agent connection. One
-// claim, one copyable command, two CTAs. The app, the SDK, and the protocol
-// stay one rank down — each still routes to depth, and the page below only
-// teases, it never re-argues (exploration 0384).
-
-const cm = (s: string) => `<span class="tok-comment">${s}</span>`
-const escapeHtml = (s: string) =>
-  s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-
-const connectTabs = AGENT_CLIENTS.map((client) => ({
-  label: client.label,
-  filename: client.configJson ? 'mcp config' : 'terminal',
-  code: client.command
-    .map((line) => (line.startsWith('{') ? escapeHtml(line) : `${cm('$')} ${escapeHtml(line)}`))
-    .join('\n')
-}))
 ---
 
-<section class="relative overflow-hidden">
-  <!-- Grid background -->
-  <div class="absolute inset-0 bg-[linear-gradient(rgba(79,70,229,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(79,70,229,0.03)_1px,transparent_1px)] bg-[size:64px_64px]"></div>
-  <!-- Radial glow -->
-  <div class="absolute left-1/2 top-0 -translate-x-1/2 h-[600px] w-[800px] rounded-full bg-indigo-500/[0.07] blur-[120px]"></div>
-
+<section class="border-b border-border">
   <span id="what-is-xnet" class="sr-only" aria-hidden="true"></span>
-
-  <div class="relative mx-auto max-w-6xl px-6 py-24 lg:py-32">
-    <div class="text-center">
-      <div class="flex justify-center mb-8">
-        <Badge>
-          <span class="relative flex h-2 w-2">
-            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
-            <span class="relative inline-flex h-2 w-2 rounded-full bg-indigo-500"></span>
-          </span>
-          Alpha &mdash; shipping, and still moving fast
-        </Badge>
-      </div>
-
-      <h1 class="text-5xl font-extrabold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
-        <span class="bg-gradient-to-br from-gray-900 via-gray-700 to-indigo-600 dark:from-white dark:via-gray-100 dark:to-indigo-400 bg-clip-text text-transparent">
-          Give your coding agent<br />a workspace you own.
-        </span>
+  <div class="mx-auto grid max-w-6xl items-center gap-8 px-6 py-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-10 lg:py-16">
+    <div>
+      <Badge>
+        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>Open alpha · Desktop & web
+      </Badge>
+      <h1 class="mt-5 text-4xl font-bold leading-[1.08] tracking-tight text-gray-950 dark:text-white sm:text-5xl lg:text-6xl">
+        A workspace
+        <br />
+        you own.
       </h1>
-      <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-500 dark:text-gray-400 sm:text-xl">
-        Documents, databases, and canvases your agent can read, query, and
-        edit &mdash; local-first, synced everywhere, every change signed.
-        <!-- Nominative fair use: a comparative simile, word-only (no logo or
-             trade dress); the linked essay carries the trademark disclaimer. -->
-        <a
-          href="/blog/clutch-power"
-          class="text-inherit underline decoration-dotted decoration-gray-400/40 underline-offset-4 transition-colors hover:text-gray-700 hover:decoration-gray-500/70 dark:decoration-gray-500/40 dark:hover:text-gray-200 dark:hover:decoration-gray-400/70"
-          >It&rsquo;s like Lego for the web.</a
-        >
+      <p class="mt-5 max-w-lg text-lg leading-relaxed text-gray-600 dark:text-gray-300">
+        Documents, databases, canvases, and a personal library. Your work lives on your device, with
+        an open data layer you can build on.
       </p>
-
-      <!-- The one action, per client -->
-      <div class="mx-auto mt-8 max-w-xl text-left">
-        <CodeTabs tabs={connectTabs} group="agent-client" />
-      </div>
-
-      <!-- One primary goal, one secondary (explorations 0384, 0457) -->
-      <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
-        <a
-          href="/agents"
-          class="rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white shadow-lg shadow-indigo-500/25 hover:bg-indigo-500 transition-all"
-        >
-          What your agent gets &rarr;
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a href="/download" class="m-button">
+          Download xNet <span aria-hidden="true">↓</span>
         </a>
-        <a
-          href="/app?demo=1"
-          class="rounded-lg border border-border px-6 py-3 font-medium text-gray-700 dark:text-gray-200 hover:border-indigo-500/50 hover:bg-surface transition-all"
-        >
-          Try the app &mdash; free, no account
+        <a href="https://xnet.fyi/app/" class="m-button secondary">
+          Try the browser demo <span aria-hidden="true">→</span>
         </a>
       </div>
-
-      <p class="mt-6 text-sm text-gray-500 dark:text-gray-400">
-        <a href="/docs/guides/agent-interfaces/#benchmark-methodology" class="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
-          ~9x cheaper than MCP toolsets<span class="align-super text-[0.65em]">*</span>
-        </a>
-        &nbsp;&middot;&nbsp; read-only until you say so
-        &nbsp;&middot;&nbsp; works offline
-        &nbsp;&middot;&nbsp; MIT
-      </p>
-
-      <!-- The workspace behind the door, above the fold -->
-      <div class="mx-auto mt-12 max-w-4xl">
-        <div class="rounded-xl border border-border overflow-hidden bg-gradient-to-b from-surface/50 to-surface/30 dark:from-surface/80 dark:to-surface/50 shadow-2xl shadow-indigo-500/5">
-          <div class="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-surface/50">
-            <div class="flex gap-1.5">
-              <span class="w-3 h-3 rounded-full bg-red-500/60"></span>
-              <span class="w-3 h-3 rounded-full bg-yellow-500/60"></span>
-              <span class="w-3 h-3 rounded-full bg-green-500/60"></span>
-            </div>
-            <span class="text-xs text-gray-500 ml-2">xNet</span>
-          </div>
-          <!-- Workbench screenshot (light/dark follow the page theme). The light
-               variant is the usual LCP element, so it loads eagerly; the dark
-               variant stays lazy and swaps in on theme toggle. -->
-          <img
-            src="/images/workbench-light.png"
-            alt="The xNet workbench in light mode: a Q3 Launch Plan document with a launch checklist, tabbed pages, and the Explorer sidebar showing spaces, folders, and tags"
-            class="block w-full dark:hidden"
-            width="1600"
-            height="1000"
-            loading="eager"
-            fetchpriority="high"
-          />
-          <img
-            src="/images/workbench-dark.png"
-            alt="The xNet workbench in dark mode: a Q3 Launch Plan document with a launch checklist, tabbed pages, and the Explorer sidebar showing spaces, folders, and tags"
-            class="hidden w-full dark:block"
-            width="1600"
-            height="1000"
-            loading="lazy"
-          />
-        </div>
-      </div>
-
-      <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-        There&rsquo;s a full workspace behind this &mdash; and an SDK under both.
-        <a href="/app" class="text-emerald-600 dark:text-emerald-400 hover:underline">The app</a> &middot;
-        <a href="#developers" class="text-indigo-600 dark:text-indigo-400 hover:underline">The SDK</a> &middot;
-        <a href="/why" class="text-purple-600 dark:text-purple-400 hover:underline">The protocol</a>
-      </p>
+      <ul
+        class="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-500 dark:text-gray-400"
+        aria-label="Workspace principles"
+      >
+        <li>
+          <span class="mr-1 text-emerald-600 dark:text-emerald-400">✓</span>Works offline
+        </li>
+        <li>
+          <span class="mr-1 text-emerald-600 dark:text-emerald-400">✓</span>Open source
+        </li>
+        <li>
+          <span class="mr-1 text-emerald-600 dark:text-emerald-400">✓</span>Export your data
+        </li>
+      </ul>
     </div>
+    <figure class="min-w-0">
+      <div class="overflow-hidden rounded-xl border border-border bg-surface shadow-lg shadow-gray-950/5">
+        <div class="flex items-center gap-2 border-b border-border px-3 py-2">
+          <div class="flex gap-1.5" aria-hidden="true">
+            <span class="h-2 w-2 rounded-full bg-red-400"></span>
+            <span class="h-2 w-2 rounded-full bg-amber-400"></span>
+            <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+          </div>
+          <span class="ml-2 text-xs text-gray-500">xNet workspace</span>
+        </div>
+        <img
+          src="/images/workbench-light.png"
+          width="1600"
+          height="1000"
+          class="block w-full dark:hidden"
+          alt="The xNet workspace with an example project document open beside the explorer."
+          loading="eager"
+          fetchpriority="high"
+        />
+        <img
+          src="/images/workbench-dark.png"
+          width="1600"
+          height="1000"
+          class="hidden w-full dark:block"
+          alt="The xNet workspace in dark mode with an example project document."
+          loading="eager"
+        />
+      </div>
+      <figcaption class="mt-3 flex justify-between gap-3 text-xs text-gray-500">
+        <span>Desktop alpha · Example content</span>
+        <a href="/workspace" class="text-indigo-600 hover:underline dark:text-indigo-400">
+          Explore the app →
+        </a>
+      </figcaption>
+    </figure>
   </div>
 </section>

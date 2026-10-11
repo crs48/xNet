@@ -1,0 +1,18 @@
+---
+const {
+  title = 'Try the xNet alpha',
+  body = 'Download the desktop app or open the browser demo.'
+} = Astro.props
+---
+
+<section class="m-cta">
+  <div class="m-wrap">
+    <div>
+      <h2 class="m-heading">{title}</h2>
+      <p class="m-copy mt-5">{body}</p>
+    </div>
+    <a href="/download" class="m-button">
+      Try xNet <span aria-hidden="true">↗</span>
+    </a>
+  </div>
+</section>

@@ -17,14 +17,14 @@ const uid = `ct-${Math.random().toString(36).slice(2, 9)}`
 ---
 
 <div class="code-tabs min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg" data-group={group} data-uid={uid}>
-  <div class="flex items-center gap-1 border-b border-border bg-surface/50 px-2 py-1.5" role="tablist">
+  <div class="flex flex-wrap items-center gap-1 border-b border-border bg-surface/50 px-2 py-1.5" role="tablist">
     {tabs.map((tab, i) => (
       <button
         type="button"
         role="tab"
         data-tab={i}
         aria-selected={i === 0 ? 'true' : 'false'}
-        class="code-tab rounded-md px-3 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700 dark:hover:text-gray-300 aria-selected:bg-surface aria-selected:text-gray-900 dark:aria-selected:text-white"
+        class="code-tab whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700 dark:hover:text-gray-300 aria-selected:bg-surface aria-selected:text-gray-900 dark:aria-selected:text-white"
       >
         {tab.label}
       </button>

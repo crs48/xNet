@@ -10,6 +10,12 @@ tags: [process, velocity, explorations, ci, decision-making]
 
 # Fast — What Collison's List Measures, And What xNet Actually Lacks
 
+> **Policy update — October 10, 2026:** Drafts still become stale after their
+> review date or the default 90-day window, but age is informational. Chris
+> removed the CI stale-count gate; drafts can stay open without renewing
+> dates. `STALE.md` and the CI job summary report their age. The ratchet
+> proposal and baseline below are historical.
+
 > [!TIP]
 > **TL;DR** — Collison's list measures **build time**, and xNet already clears
 > that bar: median PR cycle time is under an hour, CI is 8 minutes. The slow
@@ -31,7 +37,7 @@ counterexample — San Francisco's Van Ness bus lane, ~7,600 days at $110,000 pe
 metre, versus the Alaska Highway's 1,700 miles at $793 per metre. A 139×
 cost-per-metre gap between two road projects.
 
-The obvious question for a codebase is: *are we the P-80 or Van Ness?*
+The obvious question for a codebase is: _are we the P-80 or Van Ness?_
 
 That framing is a trap. It assumes velocity is one number. It is not, and the
 list itself is quietly evidence for that: every project on it was **already
@@ -46,15 +52,15 @@ actually slow, and is the slowness buying anything?**
 
 Measured against this repository's own git history:
 
-| Phase | Measured | Verdict |
-| --- | --- | --- |
-| PR build → merge | median **< 1h**, p90 **2h**, 54/60 under 8h | ✅ Already fast |
-| CI wall-clock | median **8 min**, p90 11 min, max 12 | ✅ Already fast |
-| CI reliability | **6 of 25** recent runs red (24%) | 🚧 Real tax, small |
-| Exploration → shipped | **210 `[x]` / 485 files** (43%) | ❌ The bottleneck |
-| Backlog growth | ~**+85 `[_]` per month**, net | ❌ Unbounded |
-| Inbound link integrity | **31 stale refs** (25 names, 28 files) of 381 | ❌ Undetected defect |
-| Stranded work | 1 PR at **592h** (24.7 days); 7 stranded branches (0410) | 🚧 Tail risk |
+| Phase                  | Measured                                                 | Verdict              |
+| ---------------------- | -------------------------------------------------------- | -------------------- |
+| PR build → merge       | median **< 1h**, p90 **2h**, 54/60 under 8h              | ✅ Already fast      |
+| CI wall-clock          | median **8 min**, p90 11 min, max 12                     | ✅ Already fast      |
+| CI reliability         | **6 of 25** recent runs red (24%)                        | 🚧 Real tax, small   |
+| Exploration → shipped  | **210 `[x]` / 485 files** (43%)                          | ❌ The bottleneck    |
+| Backlog growth         | ~**+85 `[_]` per month**, net                            | ❌ Unbounded         |
+| Inbound link integrity | **31 stale refs** (25 names, 28 files) of 381            | ❌ Undetected defect |
+| Stranded work          | 1 PR at **592h** (24.7 days); 7 stranded branches (0410) | 🚧 Tail risk         |
 
 The build phase is Collison-fast. The **decide** phase has no clock at all — no
 owner, no deadline, no expiry, no withdrawal state. An exploration written in
@@ -96,12 +102,12 @@ reform — "cut the CI gates" — targets the one phase that is already fine.
 
 ### The ceremony surface is large but cheap
 
-| Surface | Count | Cost |
-| --- | --- | --- |
-| Workflow files | 25 (`.github/workflows/`) | 3,363 lines YAML |
-| `check:*` scripts | 16 (root `package.json`) | Nested inside lint/typecheck jobs |
-| Root scripts | 52 | — |
-| Git hooks | 5 (`.husky/`) | pre-push runs `typecheck` + `test` |
+| Surface           | Count                     | Cost                               |
+| ----------------- | ------------------------- | ---------------------------------- |
+| Workflow files    | 25 (`.github/workflows/`) | 3,363 lines YAML                   |
+| `check:*` scripts | 16 (root `package.json`)  | Nested inside lint/typecheck jobs  |
+| Root scripts      | 52                        | —                                  |
+| Git hooks         | 5 (`.husky/`)             | pre-push runs `typecheck` + `test` |
 
 This looks like vetocracy. It mostly is not, for a specific structural reason:
 these gates are **ratchets and closures**, not approvals. `check:publish-closure`
@@ -116,8 +122,8 @@ and `check:api-report` assert a property of the diff; nobody has to say yes. The
 > the scheduled run used to gate on 1,136 standing findings, so "every Monday
 > was a guaranteed red ✗ … nobody consumed." It was cut back to a **dead-code
 > regression ratchet**: the only decidable, consumed gate. This is `AGENTS.md`'s
-> rule made concrete — *ratchet against a committed baseline instead of gating
-> absolutes.*
+> rule made concrete — _ratchet against a committed baseline instead of gating
+> absolutes._
 
 ### The decide loop has no clock
 
@@ -133,16 +139,16 @@ and `check:api-report` assert a property of the diff; nobody has to say yes. The
 
 Split by number band, the shape of the graveyard is clear:
 
-| Band | `[x]` | `[-]` | `[_]` | Conversion |
-| --- | --- | --- | --- | --- |
-| 0xx | 49 | 3 | 47 | 🚧 49% |
-| 1xx | 51 | 3 | **96** | ❌ 34% — the graveyard |
-| 2xx | 69 | 1 | 54 | 🚧 56% |
-| 3xx | 37 | 2 | 58 | ❌ 38% |
-| 4xx | 4 | 7 | 4 | ✅ 27% `[x]` but **73% touched** |
+| Band | `[x]` | `[-]` | `[_]`  | Conversion                       |
+| ---- | ----- | ----- | ------ | -------------------------------- |
+| 0xx  | 49    | 3     | 47     | 🚧 49%                           |
+| 1xx  | 51    | 3     | **96** | ❌ 34% — the graveyard           |
+| 2xx  | 69    | 1     | 54     | 🚧 56%                           |
+| 3xx  | 37    | 2     | 58     | ❌ 38%                           |
+| 4xx  | 4     | 7     | 4      | ✅ 27% `[x]` but **73% touched** |
 
 The 4xx band is healthiest not because recent explorations are better, but
-because `/implement` now runs *immediately* after `/explore` while the context
+because `/implement` now runs _immediately_ after `/explore` while the context
 is still loaded. Proximity, not quality, is doing the work — which is the
 Skunk Works finding restated: co-location beats process.
 
@@ -216,17 +222,17 @@ The mechanism, confirmed case by case:
 
 <!-- exploration-link-ignore: the left column quotes stale names on purpose -->
 
-| Linked as (stale) | Actual file today | Broke because |
-| --- | --- | --- |
-| `0403_[_]_MDX_VISUAL…` | `0403_[x]_MDX_VISUAL…` | `/implement` checked it off |
-| `0391_[_]_XNET_AS_THE_DAILY_DRIVER…` | `0391_[x]_…` | same |
-| `0416_[_]_AGENT_HARNESS…` | `0416_[-]_…` | partial check-off |
-| `0328_[_]_TLDRAW_CANVAS_ALTERNATIVE` | `0328_[_]_TLDRAW_CANVAS_REPLACEMENT_OR_ALTERNATIVE_SURFACE` | title edited |
+| Linked as (stale)                    | Actual file today                                           | Broke because               |
+| ------------------------------------ | ----------------------------------------------------------- | --------------------------- |
+| `0403_[_]_MDX_VISUAL…`               | `0403_[x]_MDX_VISUAL…`                                      | `/implement` checked it off |
+| `0391_[_]_XNET_AS_THE_DAILY_DRIVER…` | `0391_[x]_…`                                                | same                        |
+| `0416_[_]_AGENT_HARNESS…`            | `0416_[-]_…`                                                | partial check-off           |
+| `0328_[_]_TLDRAW_CANVAS_ALTERNATIVE` | `0328_[_]_TLDRAW_CANVAS_REPLACEMENT_OR_ALTERNATIVE_SURFACE` | title edited                |
 
 > [!NOTE]
 > Names in that table are elided (`…`) rather than spelled in full. Writing a
-> stale filename verbatim in a document that lives *in the repository being
-> checked* makes the document itself a source of broken references — a lesson
+> stale filename verbatim in a document that lives _in the repository being
+> checked_ makes the document itself a source of broken references — a lesson
 > learned by breaking this very table during implementation.
 
 The casualties are not confined to scratch docs. They include
@@ -251,13 +257,13 @@ The casualties are not confined to scratch docs. They include
 Reading the entries for common mechanism rather than common vibe, five
 properties recur, and none of them is "worked harder":
 
-| Mechanism | Evidence from the list |
-| --- | --- |
-| **Decision made once, at the top** | Apollo 8: 134 days green-light → launch. The 134 days contain no re-litigation. |
-| **A real, external deadline** | Marinship: 197 days telegram → first ship. Tegel: 92 days, because the Berlin Airlift did not pause. |
-| **Frozen — often *cut* — scope** | Spirit of St. Louis, 60 days: Lindbergh removed the radio, the parachute, the fuel gauge, and the front windscreen to hit the date. |
-| **Small, co-located team** | Unix, 3 weeks, one person. Xerox Alto, ~4 months, from a bet. |
-| **Permission pre-granted** | BankAmericard: 90 days to 100,000+ customers because nobody had to ask. |
+| Mechanism                          | Evidence from the list                                                                                                              |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Decision made once, at the top** | Apollo 8: 134 days green-light → launch. The 134 days contain no re-litigation.                                                     |
+| **A real, external deadline**      | Marinship: 197 days telegram → first ship. Tegel: 92 days, because the Berlin Airlift did not pause.                                |
+| **Frozen — often _cut_ — scope**   | Spirit of St. Louis, 60 days: Lindbergh removed the radio, the parachute, the fuel gauge, and the front windscreen to hit the date. |
+| **Small, co-located team**         | Unix, 3 weeks, one person. Xerox Alto, ~4 months, from a bet.                                                                       |
+| **Permission pre-granted**         | BankAmericard: 90 days to 100,000+ customers because nobody had to ask.                                                             |
 
 Scope-cutting is the underrated one. Lindbergh did not go faster; he built
 **less**. Nothing in xNet's process makes cutting scope easier than adding it —
@@ -288,8 +294,8 @@ treated as a one-way door. Both failure modes are real, and they are opposites.
 ### The slowdown literature
 
 The page's own concluding argument cites Kaufman (bureau proliferation), Howard
-(*The Death of Common Sense*), Fukuyama (vetocracy), and Olson (*The Rise and
-Decline of Nations*, on interest-group accumulation). The shared claim: costs
+(_The Death of Common Sense_), Fukuyama (vetocracy), and Olson (_The Rise and
+Decline of Nations_, on interest-group accumulation). The shared claim: costs
 accrete because each individual veto point is locally reasonable and nobody is
 accountable for the sum.
 
@@ -314,7 +320,7 @@ accountable for the sum.
    explorations per month. Writing one costs ~20 minutes of agent time;
    implementing one costs days. The economics guarantee divergence.
 4. **The exploration lifecycle has no terminal failure state.** `[_]` → `[-]` →
-   `[x]` is a one-way ladder with no rung for *decided against* or *expired*.
+   `[x]` is a one-way ladder with no rung for _decided against_ or _expired_.
    A rejected idea and an untouched idea are indistinguishable on disk.
 5. **Proximity beats process.** The 4xx band's 73% touch rate comes from
    `/implement` running while context is warm — the Skunk Works result.
@@ -336,17 +342,17 @@ accountable for the sum.
 > improvement / BATNA / vanish tests do not apply. It is purely internal
 > process. Flagging this explicitly rather than omitting it silently.
 
-| Option | Targets | Cost | Verdict |
-| --- | --- | --- | --- |
-| **A** — Status quo | nothing | 0 | ❌ Backlog compounds |
-| **B** — Fallow ratchet on `[_]` | decide phase | ~150 LOC + baseline | ✅ Recommended |
-| **C** — Decider + expiry in frontmatter | decide phase | `/explore` change | ✅ Recommended |
-| **D** — Ceremony tiered by reversibility | both | doc + skill change | ✅ Recommended |
-| **G** — Link-integrity check | correctness | ~80 LOC | ✅ Recommended — **ship first** |
-| **E** — Cut CI gates | build phase | high risk | 🛑 Rejected — measured non-bottleneck |
-| **F** — Hard "ship within N days" mandate | decide phase | — | 🛑 Rejected — manufactures fake deadlines |
-| **H** — `[~]` withdrawn state in the filename | decide phase | mass rename | 🛑 Rejected — multiplies the 25-link rot defect |
-| **I** — Move expired docs to `expired/` | decide phase | mass `git mv` | 🛑 Rejected — same defect at 10× scale, and irreversible |
+| Option                                        | Targets      | Cost                | Verdict                                                  |
+| --------------------------------------------- | ------------ | ------------------- | -------------------------------------------------------- |
+| **A** — Status quo                            | nothing      | 0                   | ❌ Backlog compounds                                     |
+| **B** — Fallow ratchet on `[_]`               | decide phase | ~150 LOC + baseline | ✅ Recommended                                           |
+| **C** — Decider + expiry in frontmatter       | decide phase | `/explore` change   | ✅ Recommended                                           |
+| **D** — Ceremony tiered by reversibility      | both         | doc + skill change  | ✅ Recommended                                           |
+| **G** — Link-integrity check                  | correctness  | ~80 LOC             | ✅ Recommended — **ship first**                          |
+| **E** — Cut CI gates                          | build phase  | high risk           | 🛑 Rejected — measured non-bottleneck                    |
+| **F** — Hard "ship within N days" mandate     | decide phase | —                   | 🛑 Rejected — manufactures fake deadlines                |
+| **H** — `[~]` withdrawn state in the filename | decide phase | mass rename         | 🛑 Rejected — multiplies the 25-link rot defect          |
+| **I** — Move expired docs to `expired/`       | decide phase | mass `git mv`       | 🛑 Rejected — same defect at 10× scale, and irreversible |
 
 <details>
 <summary>Why E is rejected, in detail</summary>
@@ -361,7 +367,7 @@ records that `check:publish-closure` exists because a published package
 depending on a private one broke `npm install` for every consumer.
 
 More precisely: the gates are **not veto points**. Fukuyama's vetocracy requires
-an *actor* who can say no for reasons of their own. A script asserting that the
+an _actor_ who can say no for reasons of their own. A script asserting that the
 API report matches the source has no interests. Conflating the two is the exact
 error that makes "cut red tape" campaigns remove the load-bearing parts.
 
@@ -383,7 +389,7 @@ which makes it a suggestion with extra steps, and the first time it is missed it
 teaches that the rule is ignorable.
 
 Worse, it inverts the actual value: some explorations are deliberately
-*speculative research* (0396 on freenet-core, 0412 on the fellowship landscape,
+_speculative research_ (0396 on freenet-core, 0412 on the fellowship landscape,
 explicitly marked "revisit Nov 2026"). Those should stay `[_]` for a year.
 Expiry must mean **re-decide**, not **implement**.
 
@@ -420,9 +426,9 @@ still undecided and load-bearing" (not fine).
 The missing states are the whole point:
 
 The original sin is that one field answers two unrelated questions. **Split the
-axes**: the filename keeps answering *"is it built?"* (owned by `/implement`,
-unchanged, no new values), and frontmatter answers *"is this still a live
-claim?"* — a field no link ever spells, so changing it renames nothing.
+axes**: the filename keeps answering _"is it built?"_ (owned by `/implement`,
+unchanged, no new values), and frontmatter answers _"is this still a live
+claim?"_ — a field no link ever spells, so changing it renames nothing.
 
 ```mermaid
 stateDiagram-v2
@@ -460,7 +466,7 @@ stateDiagram-v2
 ```
 
 The two axes are genuinely independent — an exploration can be `[-]` partially
-built *and* withdrawn (we built some of it, then decided against the rest), a
+built _and_ withdrawn (we built some of it, then decided against the rest), a
 state today's single field cannot represent at all.
 
 ---
@@ -477,27 +483,27 @@ state today's single field cannot represent at all.
 ### How long until an exploration expires? **90 days.**
 
 Not a guess — the age distribution of the 260 `[_]` explorations picks the
-number, against the criterion that today's stale set must be a *meaningful
-minority* rather than either a rounding error or the whole corpus:
+number, against the criterion that today's stale set must be a _meaningful
+minority_ rather than either a rounding error or the whole corpus:
 
 Of 276 undecided explorations, 234 have a creation date in this checkout and 42
 do not (they predate the shallow graft). Undated documents are reported
 separately and never counted as stale — unknown age and not-yet-due are
 different facts:
 
-| Window | Stale today | % of undecided | Verdict |
-| --- | --- | --- | --- |
-| 30d | 152 | 55% | ❌ Catches most of the corpus; meaningless |
-| 60d | 53 | 19% | 🚧 Defensible |
-| **90d** | **41** | **15%** | ✅ **Recommended** |
-| 120d | 30 | 11% | 🚧 Defensible |
-| 150d | 17 | 6% | 🚧 Thin |
-| 180d | **0** | 0% | 🛑 **Vacuous today, a cliff tomorrow** |
-| 240d | 0 | 0% | 🛑 Vacuous |
+| Window  | Stale today | % of undecided | Verdict                                    |
+| ------- | ----------- | -------------- | ------------------------------------------ |
+| 30d     | 152         | 55%            | ❌ Catches most of the corpus; meaningless |
+| 60d     | 53          | 19%            | 🚧 Defensible                              |
+| **90d** | **41**      | **15%**        | ✅ **Recommended**                         |
+| 120d    | 30          | 11%            | 🚧 Defensible                              |
+| 150d    | 17          | 6%             | 🚧 Thin                                    |
+| 180d    | **0**       | 0%             | 🛑 **Vacuous today, a cliff tomorrow**     |
+| 240d    | 0           | 0%             | 🛑 Vacuous                                 |
 
 > [!NOTE]
 > An earlier draft of this table (181/82/70/59/47/14) was measured per-file with
-> `git log --follow` and a fallback that dated *undated* files to the earliest
+> `git log --follow` and a fallback that dated _undated_ files to the earliest
 > commit touching them — so 42 documents of unknown age were silently counted as
 > ancient. The table above uses the same method the shipped script does:
 > identity is the 4-digit **number** (filenames rename on every check-off, which
@@ -512,7 +518,7 @@ different facts:
 > written) crosses the line at once. A gate that cannot fire is not a lenient
 > gate; it is an absent one, and its first appearance would be a 200-item wall
 > long after the author has forgotten the rule. 90 days is a meaningful minority
-> now *and* stable as the corpus ages.
+> now _and_ stable as the corpus ages.
 
 The window is a **default, not a policy**: it applies only when a document
 declines to name its own date. Deliberately long-horizon research says so
@@ -521,12 +527,12 @@ explicitly — 0412 already carries "revisit Nov 2026" in prose — and a
 
 ### What happens to an expired exploration? **Nothing moves. Nothing is deleted.**
 
-| Option | Verdict | Why |
-| --- | --- | --- |
-| Delete the file | 🛑 Rejected | git retains the bytes but kills discoverability; breaks all 426 inbound references; an idea rejected once is the cheapest thing to re-derive *only if you can still find why* |
-| `git mv` to `docs/explorations/expired/` | 🛑 Rejected | Path-based links break en masse — this is the 25-broken-links defect at 10× scale, and the move is the *only* irreversible option here |
-| Add `[~]` to the filename | 🛑 Rejected | Same rot mechanism; a mass rename of ~70 documents would break more of the 192 filename-spelling links than every transition to date combined |
-| **Leave it exactly where it is** | ✅ **Recommended** | Expiry is a property of the *decision*, not of the *document* |
+| Option                                   | Verdict            | Why                                                                                                                                                                           |
+| ---------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Delete the file                          | 🛑 Rejected        | git retains the bytes but kills discoverability; breaks all 426 inbound references; an idea rejected once is the cheapest thing to re-derive _only if you can still find why_ |
+| `git mv` to `docs/explorations/expired/` | 🛑 Rejected        | Path-based links break en masse — this is the 25-broken-links defect at 10× scale, and the move is the _only_ irreversible option here                                        |
+| Add `[~]` to the filename                | 🛑 Rejected        | Same rot mechanism; a mass rename of ~70 documents would break more of the 192 filename-spelling links than every transition to date combined                                 |
+| **Leave it exactly where it is**         | ✅ **Recommended** | Expiry is a property of the _decision_, not of the _document_                                                                                                                 |
 
 > [!IMPORTANT]
 > Expiry does not mean "this document is worthless." It means **the claim it
@@ -554,7 +560,7 @@ Three signals, in ascending order of intrusiveness:
    `graphify`, and to agents doing retrieval. Costs nothing.
 2. **In a generated index** — `docs/explorations/STALE.md`, rebuilt by the
    check, listing every lapsed document with its `decider` and age. This is the
-   *named consumer* `AGENTS.md` requires: `/mvp-followup` reads it to answer
+   _named consumer_ `AGENTS.md` requires: `/mvp-followup` reads it to answer
    "what's next," which today it cannot do against 259 identical-looking
    candidates.
 3. **In CI** — the lint job prints the count on every run, green or red, and
@@ -563,7 +569,7 @@ Three signals, in ascending order of intrusiveness:
 
 `decider` as a single name is deliberate: Kelly Johnson, not a committee.
 Renewing is a one-line diff (`review: 2027-02-01`) and needs no ceremony —
-the point is to force a *conscious* renewal, not to make renewal expensive.
+the point is to force a _conscious_ renewal, not to make renewal expensive.
 
 ### The higher-value gate found along the way
 
@@ -574,7 +580,7 @@ the defect is **already present** (25 broken, including four public-facing
 is the safety net that makes any future rename survivable. It should land
 **first**.
 
-### What this does *not* change
+### What this does _not_ change
 
 - CI stays at 7 jobs and 8 minutes.
 - All 16 `check:*` gates stay.
@@ -649,7 +655,7 @@ if (stale.length > baseline.count) {
       `\n\n  Both fixes are one-line frontmatter edits — NO rename, so no\n` +
       `  inbound link breaks:\n` +
       `    review: 2027-02-01     # renew the claim\n` +
-      `    status: withdrawn      # release it; the document stays put\n`,
+      `    status: withdrawn      # release it; the document stays put\n`
   )
   process.exit(1)
 }
@@ -695,14 +701,14 @@ git commit -m "chore(explorations): seed fallow ratchet baseline"
 > all reversible by deletion, none renaming a file. That is the door test
 > applied to this document's own recommendation.
 
-| Risk | Likelihood | Mitigation |
-| --- | --- | --- |
-| Shallow CI checkout makes every file look new | High | `fetch-depth: 0` on the lint job; **assert non-shallow and exit 1** rather than silently treating all 485 as fresh |
-| `review:` becomes cargo-cult boilerplate | Medium | `/explore` must ask for a *reason*, not just a date; a date with no rationale is worse than no date |
-| Baseline gets bumped instead of fixed | Medium | Require the bump in its own commit with a reason; it is a visible one-line diff in review |
-| `STALE.md` regenerates noisily on every run | Medium | Sort deterministically; commit it, so the diff is empty unless the set genuinely changed |
-| Ratchet adds a 17th gate — the thing we criticised | Low | Mechanically decidable, named consumer, always greenable by a one-line frontmatter edit — per `AGENTS.md` |
-| `check:exploration-links` finds far more than 25 once it covers relative links inside `docs/explorations/` too | Medium | Seed it as a ratchet as well, then burn the baseline down |
+| Risk                                                                                                           | Likelihood | Mitigation                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
+| Shallow CI checkout makes every file look new                                                                  | High       | `fetch-depth: 0` on the lint job; **assert non-shallow and exit 1** rather than silently treating all 485 as fresh |
+| `review:` becomes cargo-cult boilerplate                                                                       | Medium     | `/explore` must ask for a _reason_, not just a date; a date with no rationale is worse than no date                |
+| Baseline gets bumped instead of fixed                                                                          | Medium     | Require the bump in its own commit with a reason; it is a visible one-line diff in review                          |
+| `STALE.md` regenerates noisily on every run                                                                    | Medium     | Sort deterministically; commit it, so the diff is empty unless the set genuinely changed                           |
+| Ratchet adds a 17th gate — the thing we criticised                                                             | Low        | Mechanically decidable, named consumer, always greenable by a one-line frontmatter edit — per `AGENTS.md`          |
+| `check:exploration-links` finds far more than 25 once it covers relative links inside `docs/explorations/` too | Medium     | Seed it as a ratchet as well, then burn the baseline down                                                          |
 
 **Open questions:**
 
@@ -743,7 +749,7 @@ _Phase 1 — stop the bleeding (independently valuable; ship even if the rest is
 _Phase 2 — give the backlog a clock_
 
 - [x] Add `review:`, `decider:`, `door:` to the `/explore` frontmatter template;
-      require a one-line *reason* alongside the date
+      require a one-line _reason_ alongside the date
 - [x] Write `scripts/check-exploration-fallow.mjs` with a **90-day** default
       window; scrub `GIT_*` before any `git` subprocess (0413 hazard)
 - [x] Make the script exit 1 on a shallow checkout rather than treating every
@@ -809,10 +815,10 @@ _Phase 3 — make it consumed_
 
 **Slowdown literature cited by the page**
 
-- Herbert Kaufman, *Are Government Organizations Immortal?*
-- Philip K. Howard, *The Death of Common Sense*
+- Herbert Kaufman, _Are Government Organizations Immortal?_
+- Philip K. Howard, _The Death of Common Sense_
 - Francis Fukuyama, on vetocracy
-- Mancur Olson, *The Rise and Decline of Nations*
+- Mancur Olson, _The Rise and Decline of Nations_
 - [Survivorship bias — Wikipedia](https://en.wikipedia.org/wiki/Survivorship_bias)
 
 **This repository**

@@ -4,28 +4,24 @@ import Nav from '../components/sections/Nav.astro'
 import Hero from '../components/sections/Hero.astro'
 import TheApp from '../components/sections/TheApp.astro'
 import ForDevelopers from '../components/sections/ForDevelopers.astro'
-import BuiltForAgents from '../components/sections/BuiltForAgents.astro'
-import NoBlackBoxes from '../components/sections/NoBlackBoxes.astro'
 import HumaneByDesign from '../components/sections/HumaneByDesign.astro'
+import Roadmap from '../components/sections/Roadmap.astro'
 import GetStarted from '../components/sections/GetStarted.astro'
 import Footer from '../components/sections/Footer.astro'
 ---
 
 <Base
-  title="xNet — Give your coding agent a workspace you own"
-  description="Connect Claude Code, Codex, or any MCP client to a local-first workspace: documents, databases, and canvases your agent can read, query, and edit — every change signed, synced, and yours."
+  title="xNet — A workspace you own"
+  description="Documents, databases, canvases, and a personal library. A local-first workspace with open building blocks for your own tools."
 >
   <Nav />
-
-  <main>
+  <main id="main-content">
     <Hero />
     <TheApp />
     <ForDevelopers />
-    <BuiltForAgents />
-    <NoBlackBoxes />
     <HumaneByDesign />
+    <Roadmap />
     <GetStarted />
   </main>
-
   <Footer />
 </Base>
