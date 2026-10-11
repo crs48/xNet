@@ -1,5 +1,12 @@
 # @xnetjs/crypto
 
+## 4.0.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/core@4.0.0
+
 ## 3.0.0
 
 ### Minor Changes

@@ -1,5 +1,45 @@
 # @xnetjs/sqlite
 
+## 4.0.0
+
+### Minor Changes
+
+- [#629](https://github.com/crs48/xNet/pull/629) [`8f46d59`](https://github.com/crs48/xNet/commit/8f46d59e4bf00629803a56a86407c977a7a7162d) Thanks [@crs48](https://github.com/crs48)! - Schema-scoped AI search now returns a full page of results. `searchNodes` and
+  `NodeStore.searchText` accept an optional `schemaId` that is pushed into the
+  FTS5 query (joining `nodes`, excluding soft-deleted rows) instead of being
+  applied to a cross-schema BM25 window afterwards — previously a scoped search
+  could come back nearly empty whenever that schema's matches ranked below the
+  window.
+
+  The AI `search` tool also reports how it matched: results carry `index`
+  (`'fts5'` or `'scan'`), `degraded`, and a `notice` when the full-text index was
+  unavailable, so an agent can tell a substring scan over a truncated window from
+  an exhaustive search rather than concluding a node does not exist.
+
+- [#674](https://github.com/crs48/xNet/pull/674) [`7111047`](https://github.com/crs48/xNet/commit/71110478d908ffdbdadad0ecf1f4090acc231171) Thanks [@crs48](https://github.com/crs48)! - Imported social content is now actually in the full-text index, and a saved
+  lens can be projected onto a canvas with its relationships.
+
+  `extractSearchableContent` read `content`, `description`, `body`, `name` and
+  `note` — but not `searchText`, the property imported social records
+  denormalize their full text into precisely so it can be searched. Every
+  imported post, comment and video transcript was therefore absent from
+  `nodes_fts` while the pipeline reported it as indexed: search returned a clean
+  empty result rather than an error. `searchText` is now indexed, with
+  `textPreview` as the fallback for records that carry no full text. **Existing
+  databases need `rebuildFTS()` to pick up already-imported rows** — new writes
+  are indexed correctly from here on.
+
+  `SavedViewVisualCanvasProjectionRequest` gains an `edges` array (filtered to
+  relationships whose endpoints both survived the projection cap), and the new
+  `SavedViewCanvasProjectionEdge` type is exported. This is what lets a consumer
+  lay a saved view out as a graph rather than an unconnected grid of cards.
+
+### Patch Changes
+
+- [#721](https://github.com/crs48/xNet/pull/721) [`e96e3d7`](https://github.com/crs48/xNet/commit/e96e3d75f1c2b7ffd4ce99cdc2ffde0172f4747d) Thanks [@crs48](https://github.com/crs48)! - Serialize document saves and retain failed writes for retry when closing a desktop workspace. Keep newer edits dirty until their write finishes. Electron SQLite now syncs the WAL on commit before acknowledging writes.
+
+- [#721](https://github.com/crs48/xNet/pull/721) [`e293dd9`](https://github.com/crs48/xNet/commit/e293dd973417209ece176e31a21148b770a382a4) Thanks [@crs48](https://github.com/crs48)! - Report Electron schema inspection failures instead of treating unreadable version records as a new database.
+
 ## 3.0.0
 
 ### Patch Changes
