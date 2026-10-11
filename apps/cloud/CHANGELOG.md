@@ -1,5 +1,16 @@
 # xnet-cloud
 
+## 0.0.25
+
+### Patch Changes
+
+- Updated dependencies [[`0a0dff5`](https://github.com/crs48/xNet/commit/0a0dff533b209f533aa104de0cea731fd707aab9), [`a8318a6`](https://github.com/crs48/xNet/commit/a8318a691bd0501006b9fba5e94fea19eadefd0b)]:
+  - @xnetjs/entitlements@1.0.0
+  - @xnetjs/telemetry@0.0.1
+  - @xnetjs/cloud@0.0.1
+  - @xnetjs/crypto@4.0.0
+  - @xnetjs/core@4.0.0
+
 ## 0.0.24
 
 ### Patch Changes
