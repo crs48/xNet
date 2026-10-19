@@ -14,7 +14,7 @@ tags: [agents, chat, codex, claude-code, plugins, sandboxing, local-first]
 > **TL;DR:** Give your installed Codex a conversation in xNet, then let a community invite a scoped agent into its conversations. Extend that same interaction into **ask → build a private preview → try it → publish a version**, using the plugin and history machinery already in the repository.
 
 > [!NOTE]
-> **Local follow-up, October 19:** Commit `406e95e04` adds real `useQuery`, selected xNet schemas and UI primitives, explicit record/conversation grants, live updates, and revocation to the read-only preview. Extension requests now work through ordinary conversation without the earlier mode dropdown. These changes remain local and have not been pushed to PR 728. The snapshot and dropdown descriptions below record the earlier prototype. [0481: The full xNet API inside scoped extensions](./0481_[_]_THE_FULL_XNET_API_INSIDE_SCOPED_EXTENSIONS.md) explores the next boundary: interactive hooks, writes, documents, and broader capabilities.
+> **Local follow-up, October 19:** Commit `406e95e04` adds real `useQuery`, selected xNet schemas and UI primitives, explicit record/conversation grants, live updates, and revocation to the read-only preview. Extension requests now work through ordinary conversation without the earlier mode dropdown. These changes remain local and have not been pushed to PR 728. The snapshot and dropdown descriptions below record the earlier prototype. [0481: The full xNet API inside scoped extensions](./0481_[-]_THE_FULL_XNET_API_INSIDE_SCOPED_EXTENSIONS.md) explores the next boundary: interactive hooks, writes, documents, and broader capabilities.
 
 ## Prototype in PR 728 — 2026-10-19
 

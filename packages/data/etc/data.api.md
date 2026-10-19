@@ -49,7 +49,7 @@ export const AbuseReportSchema: DefinedSchema<{
     target: PropertyBuilder<string>;
     targetSchema: PropertyBuilder<string>;
     reporter: PropertyBuilder<`did:key:${string}`>;
-    category: PropertyBuilder<"spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "unsupported" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe">;
+    category: PropertyBuilder<"unsupported" | "spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe">;
     reason: PropertyBuilder<string>;
     evidenceRefs: PropertyBuilder<string>;
     observedAt: PropertyBuilder<number>;
@@ -622,6 +622,10 @@ export interface ApplyNodeBatchInput extends SetNodeOptions {
     affectedSchemaIds: readonly SchemaIRI[];
     batchId: string;
     changes: readonly NodeChange[];
+    // Warning: (ae-forgotten-export) The symbol "TransactionConditions" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    conditions?: TransactionConditions;
     indexMode: NodeBatchIndexMode;
     lastLamportTime: number;
     nodes: readonly NodeState[];
@@ -1835,7 +1839,7 @@ export const builtInSchemas: {
         target: PropertyBuilder<string>;
         targetSchema: PropertyBuilder<string>;
         reporter: PropertyBuilder<`did:key:${string}`>;
-        category: PropertyBuilder<"spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "unsupported" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe">;
+        category: PropertyBuilder<"unsupported" | "spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe">;
         reason: PropertyBuilder<string>;
         evidenceRefs: PropertyBuilder<string>;
         observedAt: PropertyBuilder<number>;
@@ -1852,7 +1856,7 @@ export const builtInSchemas: {
         updatedAt: PropertyBuilder<number>;
         target: PropertyBuilder<string>;
         targetSchema: PropertyBuilder<string>;
-        value: PropertyBuilder<"spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "unsupported" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe">;
+        value: PropertyBuilder<"unsupported" | "spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe">;
         sourceDID: PropertyBuilder<`did:key:${string}`>;
         sourceType: PropertyBuilder<"user" | "hub" | "labeler" | "local-ai" | "cloud-ai" | "community-note" | "policy-list" | "crawler">;
         confidence: PropertyBuilder<number>;
@@ -1933,7 +1937,7 @@ export const builtInSchemas: {
         requiresVerifiedIdentity: PropertyBuilder<boolean>;
         acceptsPolicySubscriptions: PropertyBuilder<boolean>;
         policyLists: PropertyBuilder<string[]>;
-        activeLabels: PropertyBuilder<("spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "unsupported" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe")[]>;
+        activeLabels: PropertyBuilder<("unsupported" | "spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe")[]>;
         maintainers: PropertyBuilder<`did:key:${string}`[]>;
         moderators: PropertyBuilder<`did:key:${string}`[]>;
         policyPublishers: PropertyBuilder<`did:key:${string}`[]>;
@@ -3134,7 +3138,7 @@ export const builtInSchemas: {
         target: PropertyBuilder<string>;
         targetSchema: PropertyBuilder<string>;
         reporter: PropertyBuilder<`did:key:${string}`>;
-        category: PropertyBuilder<"spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "unsupported" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe">;
+        category: PropertyBuilder<"unsupported" | "spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe">;
         reason: PropertyBuilder<string>;
         evidenceRefs: PropertyBuilder<string>;
         observedAt: PropertyBuilder<number>;
@@ -3151,7 +3155,7 @@ export const builtInSchemas: {
         updatedAt: PropertyBuilder<number>;
         target: PropertyBuilder<string>;
         targetSchema: PropertyBuilder<string>;
-        value: PropertyBuilder<"spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "unsupported" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe">;
+        value: PropertyBuilder<"unsupported" | "spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe">;
         sourceDID: PropertyBuilder<`did:key:${string}`>;
         sourceType: PropertyBuilder<"user" | "hub" | "labeler" | "local-ai" | "cloud-ai" | "community-note" | "policy-list" | "crawler">;
         confidence: PropertyBuilder<number>;
@@ -3232,7 +3236,7 @@ export const builtInSchemas: {
         requiresVerifiedIdentity: PropertyBuilder<boolean>;
         acceptsPolicySubscriptions: PropertyBuilder<boolean>;
         policyLists: PropertyBuilder<string[]>;
-        activeLabels: PropertyBuilder<("spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "unsupported" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe")[]>;
+        activeLabels: PropertyBuilder<("unsupported" | "spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe")[]>;
         maintainers: PropertyBuilder<`did:key:${string}`[]>;
         moderators: PropertyBuilder<`did:key:${string}`[]>;
         policyPublishers: PropertyBuilder<`did:key:${string}`[]>;
@@ -7357,6 +7361,8 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     // (undocumented)
     getAllChanges(): Promise<NodeChange[]>;
     // (undocumented)
+    getAppState(key: string): Promise<string | null>;
+    // (undocumented)
     getBatchPreflight(ids: readonly NodeId[]): Promise<NodeBatchPreflightResult>;
     // (undocumented)
     getChangeByHash(hash: ContentId): Promise<NodeChange | null>;
@@ -7407,6 +7413,8 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
         byteSize: number;
     }): Promise<void>;
     // (undocumented)
+    setAppState(key: string, value: string): Promise<void>;
+    // (undocumented)
     setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void>;
     // (undocumented)
     setLastLamportTime(time: number): Promise<void>;
@@ -7414,6 +7422,10 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     setNode(node: NodeState): Promise<void>;
     // (undocumented)
     setSyncCursor(room: string, lamport: number): Promise<void>;
+    // (undocumented)
+    readonly supportsConditionalBatches = true;
+    // (undocumented)
+    readonly supportsLocalStateTransactions = true;
     // (undocumented)
     withTransaction<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T>;
 }
@@ -7621,7 +7633,7 @@ export const ModerationLabelSchema: DefinedSchema<{
     updatedAt: PropertyBuilder<number>;
     target: PropertyBuilder<string>;
     targetSchema: PropertyBuilder<string>;
-    value: PropertyBuilder<"spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "unsupported" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe">;
+    value: PropertyBuilder<"unsupported" | "spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe">;
     sourceDID: PropertyBuilder<`did:key:${string}`>;
     sourceType: PropertyBuilder<"user" | "hub" | "labeler" | "local-ai" | "cloud-ai" | "community-note" | "policy-list" | "crawler">;
     confidence: PropertyBuilder<number>;
@@ -8095,6 +8107,7 @@ export interface NodeStorageAdapter {
     // (undocumented)
     appendChange(change: NodeChange): Promise<void>;
     appendChanges?(changes: readonly NodeChange[]): Promise<void>;
+    // (undocumented)
     applyNodeBatch?(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult>;
     close?(): Promise<void>;
     // (undocumented)
@@ -8149,6 +8162,9 @@ export interface NodeStorageAdapter {
     setNodeReadAuthorizer?(authorizer: NodeReadAuthorizer | undefined): void;
     // (undocumented)
     setSyncCursor?(room: string, lamport: number): Promise<void>;
+    readonly supportsConditionalBatches?: boolean;
+    // (undocumented)
+    readonly supportsLocalStateTransactions?: boolean;
     withTransaction?<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T>;
 }
 
@@ -8177,6 +8193,7 @@ export class NodeStore {
     getCurrentLamportTime(): number;
     getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null>;
     getExistingNodeIds(ids: readonly NodeId[]): Promise<NodeId[]>;
+    getLocalState(key: string): Promise<string | null>;
     getRaw(id: NodeId): Promise<NodeState | null>;
     getRecentConflicts(): MergeConflict[];
     getStorageAdapter(): NodeStorageAdapter;
@@ -8205,7 +8222,8 @@ export class NodeStore {
     subscribeToBatchChanges(listener: NodeBatchChangeListener): () => void;
     subscribeToDraftOverlay(listener: () => void): () => void;
     subscribeToNode(nodeId: NodeId, listener: NodeChangeListener): () => void;
-    transaction(operations: TransactionOperation[]): Promise<TransactionResult>;
+    // (undocumented)
+    transaction(operations: TransactionOperation[], conditions?: TransactionConditions): Promise<TransactionResult>;
     // (undocumented)
     unmarkDraftPrivate(ids: readonly NodeId[]): void;
     update(id: NodeId, options: UpdateNodeOptions): Promise<NodeState>;
@@ -9114,7 +9132,7 @@ export const PublicInteractionPolicySchema: DefinedSchema<{
     requiresVerifiedIdentity: PropertyBuilder<boolean>;
     acceptsPolicySubscriptions: PropertyBuilder<boolean>;
     policyLists: PropertyBuilder<string[]>;
-    activeLabels: PropertyBuilder<("spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "unsupported" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe")[]>;
+    activeLabels: PropertyBuilder<("unsupported" | "spam" | "scam" | "malware" | "impersonation" | "harassment" | "slop" | "inaccurate" | "stale" | "synthetic" | "sexual" | "nudity" | "porn" | "graphic-media" | "safe")[]>;
     maintainers: PropertyBuilder<`did:key:${string}`[]>;
     moderators: PropertyBuilder<`did:key:${string}`[]>;
     policyPublishers: PropertyBuilder<`did:key:${string}`[]>;
@@ -10537,6 +10555,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     // (undocumented)
     setSyncCursor(room: string, lamport: number): Promise<void>;
     // (undocumented)
+    get supportsConditionalBatches(): boolean;
+    // (undocumented)
+    get supportsLocalStateTransactions(): boolean;
+    // (undocumented)
     withTransaction<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T>;
 }
 
@@ -11073,6 +11095,7 @@ export type TransactionOperation = {
 export interface TransactionResult {
     batchId: string;
     changes: NodeChange[];
+    heads?: Record<string, string>;
     results: (NodeState | null)[];
     tempIds: Record<string, NodeId>;
 }
@@ -11514,7 +11537,7 @@ export { YXmlText }
 
 // Warnings were encountered during analysis:
 //
-// dist/types-CjDvN0zw.d.ts:444:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
+// dist/types-BXEhGs_l.d.ts:444:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

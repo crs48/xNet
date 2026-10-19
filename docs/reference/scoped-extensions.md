@@ -1,7 +1,7 @@
 # Scoped chat extensions
 
 The local prototype supports interactive React views over explicitly selected xNet
-records. It is an experimental subset of [exploration 0481](../explorations/0481_[_]_THE_FULL_XNET_API_INSIDE_SCOPED_EXTENSIONS.md).
+records. It is an experimental subset of [exploration 0481](../explorations/0481_[-]_THE_FULL_XNET_API_INSIDE_SCOPED_EXTENSIONS.md).
 The complete API design is not implemented or independently reviewed.
 
 ## Available imports
@@ -11,6 +11,8 @@ The complete API design is not implemented or independently reviewed.
 | `react`, `react/jsx-runtime`             | Pinned React 18 runtime                                          | Worker state, effects, context, JSX                           |
 | `@xnetjs/react`, `@xnetjs/react/queries` | `useQuery`, `useMutate`                                          | Scoped DataBridge; no host provider/context                   |
 | `@xnetjs/data`                           | `ChannelSchema`, `ChatMessageSchema`, `TaskSchema`, `PageSchema` | Schema definitions only                                       |
+| `@xnetjs/extensions/react`               | `useQuery`, `useMutate`, `useDocument`                           | Runtime-only scoped hooks; not a published package            |
+| `@xnetjs/extensions/ui`                  | `DocumentView`                                                   | Host-rendered read-only view through a session handle         |
 | `@xnetjs/ui`                             | `Badge`, `Button`                                                | Closed host-rendered controls; Button is a restricted adapter |
 
 Other imports fail. New host exports do not automatically become extension APIs.
@@ -36,8 +38,7 @@ filter/sort. It receives only these property fields:
 | ChatMessage | `channel`, `content`, `author`, `createdAt`           |
 
 System IDs, schema IDs, creator, and creation/update times accompany these fields.
-Document bodies, relation targets, attachments, raw timestamps, and store handles
-are excluded. The host refuses oversized selections rather than silently truncating
+Relation targets, attachments, raw timestamps, and store handles are excluded. Page text requires a separate document grant described below. The host refuses oversized selections rather than silently truncating
 them. This is a bounded live snapshot, not the planned cursor/pagination API.
 
 `useMutate` uses the real hook implementation. The host supports:
@@ -59,9 +60,38 @@ The storage owner compares the approved structured snapshots and deadline inside
 the committing transaction. Document-byte guards and databases with active spatial indexes
 are refused until they have a compatible conditional path. Undo also checks committed change heads and refuses
 to overwrite a later edit. Undo that deletes or restores a task requires the same
-explicit delete/restore permission as a direct command. Tasks created by an extension persist, but their automatic scope inclusion currently
-lasts only for that session; select them explicitly when reopening. Receipts and replay IDs live for this runtime session;
-they do not supply durable exactly-once execution across restarts.
+explicit delete/restore permission as a direct command.
+
+Approvals now live in device-local storage, bound to owner, conversation, artifact,
+and a fresh epoch. Every mutation compares the stored approval in the same atomic
+transaction as its record guards. The transaction also writes a receipt containing
+host attribution, before/after states, changed fields, and signed change heads.
+Retries use an installation/epoch/request identifier and must supply the same
+payload. A lost committed response can be recovered without repeating the effect.
+Created tasks remain in scope and the last receipt remains available after reopening.
+A grant supports up to 1,000 committed commands, then needs a fresh approval.
+
+Revocation persists an inactive approval. Old code and old sessions cannot revive
+it. Legacy localStorage grants require fresh approval. Missing policy means no
+permission; unreadable or unavailable storage is an error, never an empty grant.
+These are device-local guarantees. They do not provide cross-device revocation or
+protection against a device owner restoring an old database backup.
+
+## Document access
+
+Select pages and separately approve **reading selected page text**. Up to ten pages
+can supply live visible text through `useDocument(pageId)` in
+`@xnetjs/extensions/react`. It returns `{nodeId, handle, text, revision, editable:false}`.
+The host acquires and observes the real xNet document. It checks page ownership,
+current grants, and deletion before delivery. Each document is limited to 64 KiB
+of visible text, 2,000 visited nodes and 32 levels; the overall dataset limit still
+applies. Oversized or unavailable documents fail explicitly.
+
+`<DocumentView handle={document.handle} />` from `@xnetjs/extensions/ui` renders a
+host-owned read-only view. Handles are random and session-bound. Embedded records
+become a marker; their content is not resolved. URLs, resource attributes, deleted
+history, Y.Doc, awareness, editor contexts and persistence methods are not exposed.
+Document editing requires further integration with the document commit authority.
 
 ```mermaid
 sequenceDiagram
@@ -95,12 +125,12 @@ components have not been verified for this runtime.
 Limits: 24,000 source characters, 100,000 compiled characters, 200 records per
 selection, 500 total records, 256,000 UTF-8 input bytes, 300 rendered nodes,
 12 levels, and 32,000 text characters. Requests are bounded to 16 KiB, 20 operations,
-and 200 unique commands per session. A foreground heartbeat terminates an
+and 200 unique commands per session, with 1,000 committed commands per approval. A foreground heartbeat terminates an
 unresponsive worker. Chromium background throttling is not reported as an agent
 failure. Workers do not provide a hard heap quota or an OS process boundary.
 
 Revoking access stops admission and data delivery immediately, destroys the worker,
-and drains already accepted commits before reporting completion. It does not undo
+persists revocation, and drains already accepted commits before reporting completion. Inactive windows poll authority every 500 ms; data delivery and commands also recheck authority. It does not undo
 committed work. It cannot recall bytes already observed. Closing the panel or
 changing source destroys the runtime. New permission approvals never happen in
 guest UI, and the worker has no access to the host's saved grants.

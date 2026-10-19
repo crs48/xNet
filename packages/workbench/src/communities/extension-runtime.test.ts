@@ -40,13 +40,22 @@ const compile = (source: string) =>
 
 describe('isolated xNet React extension runtime', () => {
   it('keeps the legacy read-only examples compatible with static rendering', () => {
-    for (const [index, text] of ['Arrival', 'Film club'].entries()) {
-      const tree = renderExtension(compile(extensionExamples[index].source), dataset, 'chat')
+    for (const [title, text] of [
+      ['Our watchlist', 'Arrival'],
+      ['Conversation index', 'Film club']
+    ]) {
+      const tree = renderExtension(
+        compile(extensionExamples.find((example) => example.title === title)!.source),
+        dataset,
+        'chat'
+      )
       expect(JSON.stringify(tree)).toContain(text)
     }
   })
   it('reflects record edits and deletion in subsequent renders', () => {
-    const code = compile(extensionExamples[0].source)
+    const code = compile(
+      extensionExamples.find((example) => example.title === 'Our watchlist')!.source
+    )
     expect(
       JSON.stringify(
         renderExtension(

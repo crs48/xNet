@@ -36,16 +36,36 @@ export function keys(value: Record<string, unknown>, allowed: string[]): void {
 }
 const identifier = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-zA-Z0-9:_-]{1,160}$/.test(value)
+function properties(value: unknown): void {
+  const fields = object(value)
+  if (Object.keys(fields).length > 16)
+    throw new ExtensionAccessError('quota', 'Too many mutation fields.')
+  for (const item of Object.values(fields)) {
+    if (typeof item === 'string' && item.length > 16_384)
+      throw new ExtensionAccessError('quota', 'Request exceeds 16 KiB.')
+    if (
+      item !== null &&
+      typeof item !== 'string' &&
+      typeof item !== 'boolean' &&
+      !(typeof item === 'number' && Number.isFinite(item))
+    )
+      throw new ExtensionAccessError('invalid', 'Mutation fields must be finite JSON scalars.')
+  }
+}
+function boundedRequest(value: Record<string, unknown>, maxBytes: number): ExtensionRequest {
+  // Only validated, shallow JSON reaches serialization; cycles/deep guest objects cannot recurse here.
+  if (new TextEncoder().encode(JSON.stringify(value)).length > maxBytes)
+    throw new ExtensionAccessError('quota', 'Request exceeds its byte limit.')
+  return value as ExtensionRequest
+}
 export function decodeExtensionRequest(input: unknown): ExtensionRequest {
-  if (new TextEncoder().encode(JSON.stringify(input)).length > 16_384)
-    throw new ExtensionAccessError('quota', 'Request exceeds 16 KiB.')
   const value = object(input)
   if (value.version !== 1 || !identifier(value.id))
     throw new ExtensionAccessError('invalid', 'Unsupported request version or identifier.')
   if (value.operation === 'data.undo') {
     keys(value, ['version', 'id', 'operation', 'receipt'])
     if (!identifier(value.receipt)) throw new ExtensionAccessError('invalid', 'Invalid receipt.')
-    return value as ExtensionRequest
+    return boundedRequest(value, EXTENSION_OPERATIONS['data.undo'].maxBytes)
   }
   if (value.operation !== 'data.mutate')
     throw new ExtensionAccessError('unsupported', 'This operation is not available to extensions.')
@@ -56,21 +76,25 @@ export function decodeExtensionRequest(input: unknown): ExtensionRequest {
     const op = object(raw)
     if (op.type === 'create') {
       keys(op, ['type', 'schemaId', 'id', 'properties'])
-      if (typeof op.schemaId !== 'string' || (op.id !== undefined && !identifier(op.id)))
+      if (
+        typeof op.schemaId !== 'string' ||
+        op.schemaId.length > 512 ||
+        (op.id !== undefined && !identifier(op.id))
+      )
         throw new ExtensionAccessError('invalid', 'Invalid schema or identifier.')
-      object(op.properties)
+      properties(op.properties)
     } else if (op.type === 'update') {
       keys(op, ['type', 'nodeId', 'properties'])
       if (!identifier(op.nodeId))
         throw new ExtensionAccessError('invalid', 'Invalid record identifier.')
-      object(op.properties)
+      properties(op.properties)
     } else if (op.type === 'delete' || op.type === 'restore') {
       keys(op, ['type', 'nodeId'])
       if (!identifier(op.nodeId))
         throw new ExtensionAccessError('invalid', 'Invalid record identifier.')
     } else throw new ExtensionAccessError('unsupported', 'Unsupported mutation.')
   }
-  return value as ExtensionRequest
+  return boundedRequest(value, EXTENSION_OPERATIONS['data.mutate'].maxBytes)
 }
 
 /** Coverage is explicit. Unknown imports/exports never fall back to host modules. */
@@ -83,7 +107,8 @@ export const EXTENSION_API_COVERAGE = {
   useXNet: 'denied: raw host context',
   useNodeStore: 'denied: raw storage',
   useDataBridge: 'denied: internal capability',
-  documents: 'unsupported: scoped editor not implemented',
+  documents: 'exact-page text projections and read-only host views',
+  documentEditing: 'unsupported: requires authority-aware document commits',
   canvas: 'unsupported: scoped canvas not implemented',
   database: 'unsupported: scoped database not implemented',
   assets: 'unsupported: asset broker not implemented',

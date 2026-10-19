@@ -1584,3 +1584,45 @@ remote installations, raw document updates, or arbitrary third-party code, move
 all relevant grant/dependency state to the authoritative commit boundary and
 obtain an independent review. Do not extrapolate the private-task checks to
 community permissions or claim the entire 0481 security model is implemented.
+
+## ADR-50: Couple local extension grants and receipts to conditional commits
+
+**Status:** Accepted · 2026-10-19 · local prototype; extension SDK remains experimental
+
+**Context:** ADR-49's session approvals and receipts could not survive a restart or
+prevent another session from committing against a revoked approval. Documents
+also need a separate read boundary from page properties.
+
+**Decision:** Extend conditional transactions with bounded compare-and-swap
+entries in device-local app state and an optional absent-key durable receipt.
+The storage owner records the result and change heads alongside node writes in
+one atomic commit. Adapters opt into this feature explicitly. Empty node batches
+still execute their local-state checks and writes. Neither grants nor receipts
+are synced as ordinary records, and the untrusted bridge exposes no local-state
+reader or writer.
+
+An extension approval binds owner, conversation, artifact hash, and a fresh epoch.
+Revocation persists an inactive record; reopening or reverting source cannot
+reactivate that epoch. Commands bind their identifier and payload to that approval;
+a lost response can be recovered without repeating the effect. Created task scope
+and the last receipt persist. A new approval creates a new epoch. Host permission
+reads distinguish absence from unavailable or corrupt storage. Previous localStorage
+approvals are not imported automatically.
+
+Document text has a separate exact-page read grant, with opaque session handles.
+The host projects current visible text from acquired documents, omitting resource
+attributes, nested embeds, and deleted history. The extension receives no Y.Doc,
+awareness object, editor plugin context, or document persistence method. Raw updates
+and document editing require a further authority-aware commit path.
+
+**Tradeoff:** This establishes device-local authority, not cross-device revocation
+or independent security certification. Foreground sessions recheck before data
+and results are delivered and poll for idle cross-window revocation. Revocation
+cannot erase already observed text. Browser workers still lack hard heap isolation.
+A grant permits at most 1,000 committed commands before a new approval; old receipt
+keys remain bound to their retired epoch. Storage rollback by a device owner is
+outside this model.
+
+**Tripwire:** Before document writes, shared destinations, background jobs, or remote
+delegation, extend the same commit boundary to document versions and every relevant
+membership/disclosure dependency. A public stable SDK requires an independent review.

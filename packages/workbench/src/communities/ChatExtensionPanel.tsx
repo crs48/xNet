@@ -11,14 +11,23 @@ import {
   extensionExamples,
   type ChatPreviewNode
 } from './agent-extension'
+import {
+  openExtensionAuthority,
+  observeExtensionAuthority,
+  type ExtensionAuthority
+} from './extension-authority'
 import { createExtensionBroker } from './extension-broker'
 import {
-  grantKey,
   readExtensionGrant,
   subscribeExtensionData,
-  type ExtensionGrant
+  type ExtensionGrant,
+  type ExtensionDataset
 } from './extension-data'
 import { readableNode } from './extension-data'
+import {
+  subscribeExtensionDocuments,
+  type ExtensionDocumentProjection
+} from './extension-documents'
 import {
   compileChatExtension,
   startChatExtension,
@@ -42,10 +51,12 @@ interface Revision {
 }
 function PreviewTree({
   node,
-  session
+  session,
+  documents
 }: {
   node: ChatPreviewNode
   session: ExtensionSession | null
+  documents: readonly ExtensionDocumentProjection[]
 }) {
   const styles = {
     stack: 'flex flex-col gap-3',
@@ -54,7 +65,19 @@ function PreviewTree({
     text: 'whitespace-pre-wrap text-sm leading-6',
     badge: 'inline-block self-start rounded-full bg-muted px-3 py-1 text-xs',
     button: secondaryButton,
-    input: inputClass
+    input: inputClass,
+    document: ''
+  }
+  if (node.type === 'document') {
+    const document = documents.find((item) => item.handle === node.handle)
+    return (
+      <section className="rounded-lg border border-border p-3" aria-label="Approved document">
+        <p className="mb-2 text-xs text-muted-foreground">Document · read-only</p>
+        <div className="whitespace-pre-wrap text-sm">
+          {document?.text ?? 'Document access is unavailable.'}
+        </div>
+      </section>
+    )
   }
   if (node.type === 'button')
     return (
@@ -66,7 +89,7 @@ function PreviewTree({
       >
         {node.text}
         {node.children?.map((child, index) => (
-          <PreviewTree key={index} node={child} session={session} />
+          <PreviewTree key={index} node={child} session={session} documents={documents} />
         ))}
       </button>
     )
@@ -86,7 +109,7 @@ function PreviewTree({
     <div className={styles[node.type]}>
       {node.text}
       {node.children?.map((child, index) => (
-        <PreviewTree key={index} node={child} session={session} />
+        <PreviewTree key={index} node={child} session={session} documents={documents} />
       ))}
     </div>
   )
@@ -114,6 +137,7 @@ export function ChatExtensionPanel({
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [documents, setDocuments] = useState<ExtensionDocumentProjection[]>([])
   const [tree, setTree] = useState<ChatPreviewNode | null>(null)
   const [revision, setRevision] = useState<Revision | null>(null)
   const [installed, setInstalled] = useState<string | null>(null)
@@ -122,6 +146,8 @@ export function ChatExtensionPanel({
     channelIds: [channelId],
     records: []
   })
+  const [authority, setAuthority] = useState<ExtensionAuthority | null>(null)
+  const createdRecords = useRef<string[]>([])
   const [grant, setGrant] = useState<ExtensionGrant | null>(null)
   const [build, setBuild] = useState<{ code: string; hash: string } | null>(null)
   const liveSession = useRef<ExtensionSession | null>(null)
@@ -263,23 +289,31 @@ export function ChatExtensionPanel({
         controller.signal.throwIfAborted()
         setBuild(build)
         if (!data.did) throw new Error('Your identity is unavailable.')
-        const key = grantKey(data.did, channelId, build.hash)
-        const saved = localStorage.getItem(key)
         const approved = allow
           ? readExtensionGrant(
               JSON.stringify({ version: 1, owner: data.did, hash: build.hash, ...selection }),
               data.did,
               build.hash
             )
-          : saved
-            ? readExtensionGrant(saved, data.did, build.hash)
-            : null
-        if (approved) {
-          localStorage.setItem(key, JSON.stringify(approved))
+          : undefined
+        const saved = await openExtensionAuthority(
+          data.bridge,
+          data.did,
+          channelId,
+          build.hash,
+          approved
+        )
+        if (controller.signal.aborted && allow) await saved?.authority.revoke()
+        controller.signal.throwIfAborted()
+        setAuthority(saved?.authority ?? null)
+        createdRecords.current = saved?.approval.created ?? []
+        if (saved) {
+          const approved = saved.approval.grant
           setSelection({
             channelIds: approved.channelIds,
             records: approved.records,
-            taskWrites: approved.taskWrites
+            taskWrites: approved.taskWrites,
+            documents: approved.documents
           })
           setGrant(approved)
         }
@@ -288,7 +322,7 @@ export function ChatExtensionPanel({
         setTitle(next.title)
         setSummary(next.summary)
         setStatus(
-          approved
+          saved
             ? 'Loading approved xNet data…'
             : 'Select data below, then allow access to preview this version.'
         )
@@ -322,6 +356,7 @@ export function ChatExtensionPanel({
     liveSession.current?.stop()
     liveSession.current = null
     setLastReceipt(null)
+    setDocuments([])
     operation.current?.abort()
     liveOperation.current?.abort()
     setGrant(null)
@@ -329,28 +364,33 @@ export function ChatExtensionPanel({
     setBusy(false)
     setError('')
     setStatus('Stopping extension access…')
-    void Promise.resolve(draining).then(() => {
-      if (operation.current === retiringOperation && !liveSession.current)
-        setStatus(
-          'Access revoked. The extension has stopped. Previously accepted edits have finished.'
-        )
-    })
-    if (data.did && build) {
-      try {
-        localStorage.removeItem(grantKey(data.did, channelId, build.hash))
-      } catch {
+    const durableRevoke = authority?.revoke()
+    void Promise.all([draining, durableRevoke])
+      .then(() => {
+        if (operation.current === retiringOperation && !liveSession.current)
+          setStatus(
+            'Access revoked on this device. Reopening or rolling back code will require approval.'
+          )
+      })
+      .catch(() => {
         setError(
-          'Access stopped, but the saved grant could not be removed. Clear this device’s site data before reopening it.'
+          'The extension stopped, but permission revocation could not be saved. Retry revocation before reopening it.'
         )
-      }
-    }
+      })
   }
   const permissions = JSON.stringify([data.did, data.channels, data.spaces, data.members])
   useEffect(() => {
-    if (!grant || !build || !data.bridge) return
+    if (!grant || !build || !data.bridge || !authority) return
     setTree(null)
     let stopped = false
-    setLastReceipt(null)
+    void authority
+      .read()
+      .then(({ approval }) => {
+        if (!stopped) setLastReceipt(approval.lastReceipt)
+      })
+      .catch(() => {
+        if (!stopped) setLastReceipt(null)
+      })
     const controller = new AbortController()
     liveOperation.current = controller
     const broker = createExtensionBroker(
@@ -359,31 +399,55 @@ export function ChatExtensionPanel({
       () =>
         !stopped &&
         currentData.current.did === grant.owner &&
-        grant.channelIds.every((id) => canReadExtensionChannel(currentData.current, id))
+        grant.channelIds.every((id) => canReadExtensionChannel(currentData.current, id)),
+      authority,
+      createdRecords.current
     )
     brokerRef.current = broker
     let unsubscribe = () => {}
     let session: ExtensionSession | null = null
-    const subscribe = () => {
+    let delivery = 0
+    let documentData: ExtensionDocumentProjection[] | null = grant.documents?.read.length
+      ? null
+      : []
+    let latestDataset: { data: ExtensionDataset | null; error: Error | null } | null = null
+    let stopDocuments = () => {}
+
+    const stopForAuthority = (cause: unknown) => {
+      if (stopped) return
+      stopped = true
       unsubscribe()
-      const records = [
-        ...grant.records,
-        ...broker
-          .createdRecords()
-          .filter((record) => !grant.records.some((existing) => existing.id === record.id))
-      ]
-      unsubscribe = subscribeExtensionData(
-        data.bridge!,
-        { ...grant, records },
-        (id) => canReadExtensionChannel(currentData.current, id),
-        (result) => {
-          if (stopped) return
+      void broker.revoke()
+      session?.stop()
+      controller.abort()
+      setDocuments([])
+      setLastReceipt(null)
+      setTree(null)
+      setBusy(false)
+      setGrant(null)
+      setError(cause instanceof Error ? cause.message : 'Extension permission is unavailable.')
+    }
+    let checkingAuthority = false
+    const checkAuthority = () => {
+      if (checkingAuthority || stopped) return
+      checkingAuthority = true
+      void authority
+        .read()
+        .catch(stopForAuthority)
+        .finally(() => {
+          checkingAuthority = false
+        })
+    }
+    const unobserve = observeExtensionAuthority(authority.key, checkAuthority)
+    const authorityTimer = setInterval(checkAuthority, 500)
+    const deliver = (result: { data: ExtensionDataset | null; error: Error | null }) => {
+      const serial = ++delivery
+      void authority
+        .read()
+        .then(() => {
+          if (stopped || serial !== delivery) return
           if (result.error) {
-            void broker.revoke()
-            session?.stop()
-            setTree(null)
-            setError(result.error.message)
-            setBusy(false)
+            stopForAuthority(result.error)
             return
           }
           if (!result.data) return
@@ -401,14 +465,7 @@ export function ChatExtensionPanel({
                     setError('')
                   }
                 },
-                error: (error) => {
-                  void broker.revoke()
-                  if (!stopped) {
-                    setTree(null)
-                    setError(error.message)
-                    setBusy(false)
-                  }
-                },
+                error: stopForAuthority,
                 request: async (request) => {
                   const result = await broker.request(request)
                   if (!broker.active) throw new Error('Extension access stopped.')
@@ -431,10 +488,53 @@ export function ChatExtensionPanel({
           setStatus(
             `Live xNet data · ${result.data.nodes.length} approved records${grant.taskWrites ? ' · private task editing enabled' : ' · read-only'}`
           )
+        })
+        .catch(stopForAuthority)
+    }
+    const deliverLatest = () => {
+      if (!latestDataset || documentData === null) return
+      deliver({
+        ...latestDataset,
+        data: latestDataset.data ? { ...latestDataset.data, documents: documentData } : null
+      })
+    }
+    const subscribe = () => {
+      unsubscribe()
+      const records = [
+        ...grant.records,
+        ...broker
+          .createdRecords()
+          .filter((record) => !grant.records.some((existing) => existing.id === record.id))
+      ]
+      unsubscribe = subscribeExtensionData(
+        data.bridge!,
+        { ...grant, records },
+        (id) => canReadExtensionChannel(currentData.current, id),
+        (result) => {
+          latestDataset = result
+          deliverLatest()
         }
       )
     }
     subscribe()
+    void subscribeExtensionDocuments(
+      data.bridge,
+      grant,
+      authority,
+      (next) => {
+        if (stopped) return
+        documentData = next
+        setDocuments(next)
+        deliverLatest()
+      },
+      stopForAuthority,
+      controller.signal
+    )
+      .then((cleanup) => {
+        if (stopped) cleanup()
+        else stopDocuments = cleanup
+      })
+      .catch(stopForAuthority)
     // An expiring membership can revoke access without a store change.
     let expiryTimer: ReturnType<typeof setTimeout> | undefined
     const checkMembership = () => {
@@ -460,13 +560,16 @@ export function ChatExtensionPanel({
     return () => {
       stopped = true
       clearTimeout(expiryTimer)
+      clearInterval(authorityTimer)
+      unobserve()
+      stopDocuments()
       unsubscribe()
       void broker.revoke()
       session?.stop()
       controller.abort()
       if (brokerRef.current === broker) brokerRef.current = null
     }
-  }, [grant, build, data.bridge, channelId, permissions])
+  }, [grant, build, data.bridge, channelId, permissions, authority])
   useEffect(() => {
     const pinned = history.find((entry) => entry.id === installed)
     if (
@@ -547,7 +650,7 @@ export function ChatExtensionPanel({
             <Code size={14} />
             {editing ? 'Hide source' : 'Edit TypeScript'}
           </button>
-          {grant && (
+          {authority && (
             <button className={secondaryButton} onClick={revoke}>
               Revoke data access
             </button>
@@ -622,7 +725,7 @@ export function ChatExtensionPanel({
         )}
         {tree && (
           <div className="rounded-xl border border-border p-4">
-            <PreviewTree node={tree} session={liveSession.current} />
+            <PreviewTree node={tree} session={liveSession.current} documents={documents} />
           </div>
         )}
         {revision && (

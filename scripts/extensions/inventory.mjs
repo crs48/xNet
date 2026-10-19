@@ -71,6 +71,14 @@ const output =
       description:
         'Generated public runtime exports. Unlisted/new imports also fail closed; unavailable entries require an explicit scoped implementation before exposure.',
       modules: ledger,
+      virtualModules: {
+        '@xnetjs/extensions/react': {
+          useQuery: 'scoped adapter',
+          useMutate: 'scoped adapter',
+          useDocument: 'exact-page text projection'
+        },
+        '@xnetjs/extensions/ui': { DocumentView: 'host-rendered read-only document handle' }
+      },
       resources: Object.fromEntries(
         entrypoints
           .filter((entry) => !entry.code)

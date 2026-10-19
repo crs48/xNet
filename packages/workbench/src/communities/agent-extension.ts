@@ -4,7 +4,8 @@ export interface ChatExtensionProposal {
   source: string
 }
 export interface ChatPreviewNode {
-  type: 'stack' | 'grid' | 'card' | 'text' | 'badge' | 'button' | 'input'
+  type: 'stack' | 'grid' | 'card' | 'text' | 'badge' | 'button' | 'input' | 'document'
+  handle?: string
   text?: string
   id?: string
   label?: string
@@ -19,7 +20,7 @@ export interface ChatPreviewMessage {
   content: string
 }
 export const CHAT_PREVIEW_POLICY =
-  'chat-preview-v3: scoped live React hooks; approved private task commands; no network or host APIs'
+  'chat-preview-v4: durable grants and document projections; scoped live React hooks; approved private task commands; no network or host APIs'
 export function readExtensionProposal(text: string): ChatExtensionProposal {
   if (text.length > 128000) throw new Error('The proposal is too large.')
   const parsed: unknown = JSON.parse(text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, ''))
@@ -49,7 +50,9 @@ export function readPreviewTree(value: unknown): ChatPreviewNode {
       throw new Error('Invalid or oversized extension view.')
     const node = value as Record<string, unknown>
     if (
-      !['stack', 'grid', 'card', 'text', 'badge', 'button', 'input'].includes(String(node.type)) ||
+      !['stack', 'grid', 'card', 'text', 'badge', 'button', 'input', 'document'].includes(
+        String(node.type)
+      ) ||
       Object.keys(node).some(
         (key) =>
           ![
@@ -61,11 +64,17 @@ export function readPreviewTree(value: unknown): ChatPreviewNode {
             'disabled',
             'value',
             'placeholder',
-            'maxLength'
+            'maxLength',
+            'handle'
           ].includes(key)
       )
     )
       throw new Error('Extension views may only contain supported text, layout, and controls.')
+    if (
+      node.type === 'document' &&
+      (typeof node.handle !== 'string' || !/^[a-f0-9-]{36}$/.test(node.handle))
+    )
+      throw new Error('Invalid document handle.')
     for (const key of ['id', 'label', 'value', 'placeholder'])
       if (
         node[key] !== undefined &&
@@ -94,7 +103,7 @@ export function readPreviewTree(value: unknown): ChatPreviewNode {
     return {
       type: node.type as ChatPreviewNode['type'],
       ...Object.fromEntries(
-        ['id', 'label', 'disabled', 'value', 'placeholder', 'maxLength']
+        ['id', 'label', 'disabled', 'value', 'placeholder', 'maxLength', 'handle']
           .filter((key) => node[key] !== undefined)
           .map((key) => [key, node[key]])
       ),
@@ -121,6 +130,25 @@ export default function Watchlist({ channelId }: { channelId: string }) {
   </section>
 }`
 export const extensionExamples = [
+  {
+    title: 'Selected documents',
+    summary:
+      'Live text from pages you explicitly approve, without attachments or embedded records.',
+    source: `import { useQuery } from '@xnetjs/react'
+import { useDocument } from '@xnetjs/extensions/react'
+import { DocumentView } from '@xnetjs/extensions/ui'
+import { PageSchema } from '@xnetjs/data'
+function Page({ id }) {
+  const document = useDocument(id)
+  return <DocumentView handle={document.handle} />
+}
+export default function Documents() {
+  const { data: pages } = useQuery(PageSchema)
+  return <section><h2>Selected documents</h2>{pages.map(page => <article key={page.id}>
+    <h3>{page.title}</h3><Page id={page.id} />
+  </article>)}</section>
+}`
+  },
   {
     title: 'Our watchlist',
     summary:

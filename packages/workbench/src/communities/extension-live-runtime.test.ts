@@ -1,5 +1,6 @@
 // @vitest-environment node
 import type { ChatPreviewNode } from './agent-extension'
+import type { ExtensionDataset } from './extension-data'
 import { resolve } from 'node:path'
 import { Worker } from 'node:worker_threads'
 import { TaskSchema } from '@xnetjs/data'
@@ -29,9 +30,9 @@ beforeAll(async () => {
 afterAll(async () => {
   await Promise.all(workers.map((worker) => worker.terminate()))
 })
-function start(source: string) {
+function start(source: string, initial?: ExtensionDataset) {
   const worker = new Worker(
-    `const {parentPort} = require('node:worker_threads'); globalThis.self = globalThis; self.postMessage = value => parentPort.postMessage(value); self.addEventListener = () => {}; parentPort.on('message', data => self.onmessage({data})); ${runtime}`,
+    `const {parentPort} = require('node:worker_threads'); globalThis.self = globalThis; Object.defineProperty(crypto, 'randomUUID', {value: undefined}); self.postMessage = value => parentPort.postMessage(value); self.addEventListener = () => {}; parentPort.on('message', data => self.onmessage({data})); ${runtime}`,
     { eval: true }
   )
   workers.push(worker)
@@ -39,7 +40,7 @@ function start(source: string) {
   const errors: Error[] = []
   worker.on('message', (message) => messages.push(message))
   worker.on('error', (error) => errors.push(error))
-  const dataset = {
+  const dataset: ExtensionDataset = initial ?? {
     grant: {
       version: 1,
       owner: 'did:key:owner',
@@ -105,7 +106,9 @@ describe('persistent React extension runtime', () => {
     expect(messages.some((message) => message.type === 'view')).toBe(false)
   })
   it('keeps actual useQuery live and sends actual useMutate commands through the closed protocol', async () => {
-    const { worker, wait, dataset } = start(extensionExamples[2].source)
+    const { worker, wait, dataset } = start(
+      extensionExamples.find((example) => example.title === 'Selected tasks')!.source
+    )
     const first = await wait(
       (m) => m.type === 'view' && JSON.stringify(m.tree).includes('Actual task')
     )
@@ -138,4 +141,37 @@ describe('persistent React extension runtime', () => {
     })
     await wait((m) => m.type === 'view' && JSON.stringify(m.tree).includes('Changed elsewhere'))
   })
+})
+
+it('keeps document projections live without exposing Yjs or host handles', async () => {
+  const id = 'page',
+    handle = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+  const dataset: ExtensionDataset = {
+    grant: {
+      version: 1,
+      owner: 'did:key:owner',
+      hash: 'build',
+      channelIds: [],
+      records: [],
+      documents: { read: [id] }
+    },
+    nodes: [],
+    documents: [{ nodeId: id, handle, text: 'Approved document', revision: 1, editable: false }]
+  }
+  const { worker, wait } = start(
+    `import { useDocument } from '@xnetjs/extensions/react'; import { DocumentView } from '@xnetjs/extensions/ui'; export default function Test(){ const doc = useDocument('page'); return <section><p>{doc.text}</p><DocumentView handle={doc.handle} /></section> }`,
+    dataset
+  )
+  const first = await wait(
+    (m) => m.type === 'view' && JSON.stringify(m.tree).includes('Approved document')
+  )
+  expect(find(first.tree as ChatPreviewNode, 'document')?.handle).toBe(handle)
+  worker.postMessage({
+    type: 'update',
+    dataset: {
+      ...dataset,
+      documents: [{ ...dataset.documents![0], text: 'Live document', revision: 2 }]
+    }
+  })
+  await wait((m) => m.type === 'view' && JSON.stringify(m.tree).includes('Live document'))
 })

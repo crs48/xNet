@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-19-extension-permissions-survive-restarts",
+  "date": "October 19, 2026",
+  "title": "Extension permissions survive restarts",
+  "summary": "Chat extensions remember approved tasks and can read the text of pages you select separately.",
+  "highlights": [],
+  "tags": ["app", "plugins"],
+  "pr": 728
+}

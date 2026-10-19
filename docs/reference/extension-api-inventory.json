@@ -2606,6 +2606,16 @@
       "default": "unavailable in untrusted extensions"
     }
   },
+  "virtualModules": {
+    "@xnetjs/extensions/react": {
+      "useQuery": "scoped adapter",
+      "useMutate": "scoped adapter",
+      "useDocument": "exact-page text projection"
+    },
+    "@xnetjs/extensions/ui": {
+      "DocumentView": "host-rendered read-only document handle"
+    }
+  },
   "resources": {
     "@xnetjs/ui/tokens.css": "unavailable in untrusted extensions",
     "@xnetjs/ui/motion.css": "unavailable in untrusted extensions",

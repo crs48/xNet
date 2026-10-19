@@ -11,3 +11,6 @@ pnpm-lock.yaml
 registry/registry.json
 site/public/registry.json
 site/public/revoked.json
+
+# API Extractor owns report formatting; the API drift gate compares its exact output.
+packages/*/etc/*.api.md

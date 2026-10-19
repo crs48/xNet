@@ -1,3 +1,4 @@
+import type { ExtensionDocumentProjection } from './extension-documents'
 import type { NodeState, PropertyBuilder } from '@xnetjs/data'
 import type { DataBridge, QueryMetadata, QuerySubscription } from '@xnetjs/data-bridge'
 import { ChannelSchema, ChatMessageSchema, PageSchema, TaskSchema } from '@xnetjs/data'
@@ -6,6 +7,7 @@ import { applyQueryDescriptor, createQueryDescriptor } from '@xnetjs/data-bridge
 export const extensionSchemas = [ChannelSchema, ChatMessageSchema, PageSchema, TaskSchema]
 export const EXTENSION_DATA_LIMIT = 200
 export interface ExtensionGrant {
+  documents?: { read: string[] }
   taskWrites?: { ids: string[]; create: boolean; remove: boolean }
   version: 1
   owner: string
@@ -16,6 +18,7 @@ export interface ExtensionGrant {
 export interface ExtensionDataset {
   grant: ExtensionGrant
   nodes: NodeState[]
+  documents?: ExtensionDocumentProjection[]
 }
 export const grantKey = (owner: string, channelId: string, hash: string) =>
   `xnet:extension-access:v1:${owner}:${channelId}:${hash}`
@@ -26,7 +29,10 @@ export function readExtensionGrant(text: string, owner: string, hash: string): E
   const grant = value as ExtensionGrant
   if (
     Object.keys(grant).some(
-      (key) => !['version', 'owner', 'hash', 'channelIds', 'records', 'taskWrites'].includes(key)
+      (key) =>
+        !['version', 'owner', 'hash', 'channelIds', 'records', 'taskWrites', 'documents'].includes(
+          key
+        )
     ) ||
     grant.version !== 1 ||
     grant.owner !== owner ||
@@ -58,6 +64,20 @@ export function readExtensionGrant(text: string, owner: string, hash: string): E
       Object.keys(grant.taskWrites).some((key) => !['ids', 'create', 'remove'].includes(key)))
   )
     throw new Error('Invalid task editing grant.')
+  if (
+    grant.documents &&
+    (Object.keys(grant.documents).some((key) => key !== 'read') ||
+      !Array.isArray(grant.documents.read) ||
+      grant.documents.read.length > 10 ||
+      new Set(grant.documents.read).size !== grant.documents.read.length ||
+      grant.documents.read.some(
+        (id) =>
+          !grant.records.some(
+            (record) => record.id === id && record.schemaId === PageSchema._schemaId
+          )
+      ))
+  )
+    throw new Error('Document access must name at most ten selected pages.')
   return grant
 }
 

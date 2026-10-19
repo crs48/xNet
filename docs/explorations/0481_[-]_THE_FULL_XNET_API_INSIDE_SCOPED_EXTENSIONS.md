@@ -13,25 +13,31 @@ tags: [extensions, permissions, sandboxing, react, agents, local-first]
 > [!TIP]
 > Give extensions the functionality of xNet through a **scoped client SDK**, backed by a host-owned capability broker. Keep real React hooks and xNet primitives wherever their contracts fit. Keep stores, credentials, sync transports, and permission administration behind the broker. The next useful milestone is an interactive task extension with scoped reads, writes, and undo.
 
-This proposal was grounded in local commit `406e95e04` on `codex/chat-first-redesign`. The October 19 local implementation now supports an interactive private-task prototype; the full API design remains **partially implemented**. Publishing a stable extension SDK still requires the broader authority model and an independent review. The filename is preserved so existing links remain valid.
+This proposal was grounded in local commit `406e95e04` on `codex/chat-first-redesign`. The October 19 local implementation now supports an interactive private-task prototype; the full API design remains **partially implemented**. Publishing a stable extension SDK still requires the broader authority model and an independent review. The filename marks this as partially implemented; references point to the updated name.
 
 ## Local implementation evidence — October 19
 
-The host now mounts real React in an isolated worker and reuses `useQuery` and `useMutate` through a restricted DataBridge. A closed command broker supports selected private-task fields, separately approved creation and deletion/restoration, session replay receipts, and undo that refuses later edits. Memory and supported SQLite paths check structured snapshots, optional change heads, and deadlines within the committing batch. Unsupported adapter/index/document guards fail explicitly. ADR-49 records this conditional-write primitive without accepting the complete extension protocol.
+The host now mounts real React in an isolated worker and reuses `useQuery` and `useMutate` through a restricted DataBridge. A closed command broker supports selected private-task fields, separately approved creation and deletion/restoration, durable replay receipts, and undo that refuses later edits. Memory and supported SQLite paths check structured snapshots, optional change heads, and deadlines within the committing batch. Unsupported adapter/index/document guards fail explicitly. ADR-49 records this conditional-write primitive without accepting the complete extension protocol.
 
 The export inventory covers every declared entrypoint of the five SDK packages below, including legacy plugin services. Unapproved modules and named exports fail explicitly. [Scoped extension reference](../reference/scoped-extensions.md) records the working imports, limits, and remaining boundaries.
 
 Verified in the real apps:
 
+- Electron document follow-up: approve selected Page text, observe a live Yjs edit, install, restart the complete app, recover approval and content, revoke, reload, and verify no document view or active grant remains.
 - Electron: approve one task, edit it, undo, create a task, receive an outside edit live, and revoke (the iframe is removed).
 - Local Codex: generate **Friday Tasks** conversationally, approve it, edit and create through the generated controls, and install that version locally.
+- Web document follow-up: approve one Page separately from conversation data, install the real hook/view example, reload with browser storage, recover the approval and text, revoke, and reload with access still denied.
 - Web: start with creation permission and no selected records, create/edit/undo a task through browser storage, revoke, reload, select the persisted task with read-only access, and verify a further edit is denied.
 - Unit/integration coverage: conditional native IPC commits and complete rollback on stale snapshots; missing/expired guards; temporary-ID rejection; index limitations; out-of-scope and mixed commands; protected fields; revoke during validation and drain during commit; undo permission and conflict checks; field masks; actual worker React lifecycles and hooks; unavailable named exports.
 - Inventory verification: `node scripts/extensions/inventory.mjs --check` and its in-memory export negative control (`--selftest`).
 
-Verification also passed all 102 affected build/typecheck tasks and all 65 tests in the app commit’s changed-file run. A broader related-test run hit the existing fresh-profile demo-seed timeout; the same timeout reproduced on unchanged commit `3e13d3711`. The focused extension, bridge, and conditional-storage checks passed. This does not establish a fully green repository-wide test suite.
+The durable-authority core commit passed all 102 affected build/typecheck tasks and 3,334 tests (one skipped) in its hook run. The earlier interactive app commit passed 65 changed-file tests. A broader related-test run hit the existing fresh-profile demo-seed timeout; the same timeout reproduced on unchanged commit `3e13d3711`. The focused extension, bridge, and conditional-storage checks passed. This does not establish a fully green repository-wide test suite.
 
-This is not the final grant authority. Grants are host-owned local approvals; there is no storage-coupled installation epoch, durable command/receipt ledger, cross-device revocation, or general destination/disclosure proof yet. Accepted commits drain before local revocation is reported complete. Created tasks persist as xNet data, but their automatic scope inclusion lasts only for that runtime session; select them explicitly for subsequent sessions. The runtime uses bounded snapshots, not authority-bound cursors. Documents, richer components, schemas, assets, external effects, and background jobs remain unavailable. These gaps keep the corresponding items below unchecked.
+The local authority now persists an installation epoch, approved scope, created-record IDs, and command/undo receipts in device-local storage. A conditional commit compares the current approval and writes its receipt in the same database transaction as the record edits. Reopening recovers created-record scope and the last undo receipt; changing an artifact or reapproving creates a separate epoch. Revocation rejects later commits and drops pending deliveries. Memory, browser SQLite, and native IPC tests cover rollback, lost responses, restart recovery, and revocation at the commit boundary. ADR-50 records this local primitive.
+
+Selected Page text now has a separate read permission. The real extension React runtime exposes `useDocument` and a host-rendered `DocumentView` with opaque session handles. The projection omits attributes, embedded resource contents, and deleted Yjs history, and observes live document changes. It does not expose raw Yjs, awareness, or document writes. Shared document acquisition is reference-counted in Electron; the main-thread bridge loads persisted content and releases failed acquisitions.
+
+This is still not the final grant authority. Cross-device revocation, additional container policies, and a general destination/disclosure proof remain open. Queries use bounded snapshots rather than authority-bound cursors. Editable document handles need commits coordinated with the document persistence owner; writing a renderer snapshot beside a grant check could race live edits or an older background flush. Richer components, schemas, assets, external effects, and background jobs also remain unavailable. These gaps keep the corresponding items below unchecked.
 
 ## Problem and intended experience
 
@@ -416,18 +422,20 @@ Measure cold startup, transferred bytes, query count, host-thread stalls, and me
 
 - [x] Inventory public SDK exports and existing plugin entrypoints; create the coverage ledger and reject unclassified exports in the untrusted loader.
 - [ ] Define a versioned operation registry, codecs, structured `TaggedError` failures, caller binding, quotas, cancellation, and grant epochs.
-- [ ] Add an authoritative grant store and host permission sheet for exact records and selected containers; fail closed on unavailable policy state.
+- [x] Persist authoritative device-local grants and a host permission sheet for exact own records and selected conversations; fail closed on unavailable policy state.
+- [ ] Extend container permissions beyond selected conversations, including nested membership and reparenting checks.
 - [ ] Implement a scoped DataBridge client with live query cache, honest pagination, field-aware filtering, and authority-partitioned cursors.
 - [x] Refactor bridge-only hook dependencies; reuse actual `useQuery` and `useMutate` through the extension provider.
 - [x] Prototype Remote DOM with a closed xNet component/event receiver; verify React compatibility before committing to it as a public API.
-- [ ] Add create and field-limited update commands, authority checks at commit, idempotent receipts, and conservative destination policy.
-- [ ] Add scoped delete/restore and receipt-based undo with conflict handling once create/update meet the same checks.
+- [x] Add create and field-limited update commands, authority checks at commit, idempotent receipts, and conservative destination policy.
+- [x] Add scoped delete/restore and receipt-based undo with conflict handling once create/update meet the same checks.
 - [x] Convert the task example to interactive controls and have Codex generate an equivalent extension without a mode dropdown.
 
 ### Phase 2: documents and application features
 
 - [ ] Add host-rendered editor, database, and canvas components whose entire internal behavior uses scoped authority.
-- [ ] Add document projections and explicit editor handles; specify whole-document Yjs capabilities separately before exposing raw updates.
+- [x] Add bounded document projections and explicit read-only host view handles with separate permission and revocation.
+- [ ] Add editable document handles with authority-aware document commits; specify whole-document Yjs capabilities separately before exposing raw updates.
 - [ ] Add asset handles, upload/export controls, private storage restrictions, and sanitized debugging feedback.
 - [ ] Add declarative custom schemas, namespace ownership, and separately approved migration previews.
 - [ ] Migrate the workspace-plugin RPC onto the same policy service; keep trusted legacy contexts unavailable to sandboxed code.
@@ -470,7 +478,7 @@ Keep implementation items unchecked until fresh evidence establishes them. Core 
 - [ ] Drive actual Electron and web flows: approve, interact, update data elsewhere, revoke, restart, edit source, and decline a permission expansion.
 - [ ] Benchmark 100,000 records with small authorized subsets; verify scoped queries and pagination before judging throughput.
 - [ ] Test offline publication and revocation windows with two devices; document precisely which actions require connectivity.
-- [ ] Record unsupported hooks/components and runtime limits in generated SDK documentation; do not make unavailable features look successful.
+- [x] Record unsupported hooks/components and runtime limits in generated SDK documentation; do not make unavailable features look successful.
 
 If a CI gate is introduced, the named consumer is the extension-runtime release decision, its pass condition is the policy suite plus its negative controls, and it must have a documented invocation. Do not add an advisory gate that cannot go red.
 

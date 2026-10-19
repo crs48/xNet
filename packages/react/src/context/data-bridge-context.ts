@@ -4,6 +4,7 @@ import { createContext, createElement, useContext } from 'react'
 
 export const DataBridgeContext = createContext<DataBridge | null>(null)
 
+/** @internal Host bridge access; excluded from the untrusted extension import map. */
 export function useDataBridge(): DataBridge | null {
   return useContext(DataBridgeContext)
 }

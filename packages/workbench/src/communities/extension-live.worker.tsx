@@ -13,11 +13,20 @@ import { createRoot } from 'react-dom/client'
 import { readPreviewTree, type ChatPreviewNode } from './agent-extension'
 import { createLiveExtensionBridge } from './extension-live-client'
 
+function useDocument(nodeId: string) {
+  if (!live) throw new Error('Extension document client is unavailable.')
+  const client = live.documents
+  return React.useSyncExternalStore(client.subscribe, () => client.get(nodeId))
+}
 const modules: Record<string, unknown> = {
   react: React,
   'react/jsx-runtime': jsxRuntime,
   '@xnetjs/react': { useQuery, useMutate },
   '@xnetjs/react/queries': { useQuery, useMutate },
+  '@xnetjs/extensions/react': { useQuery, useMutate, useDocument },
+  '@xnetjs/extensions/ui': {
+    DocumentView: ({ handle }: { handle: string }) => <div data-xnet-document={handle} />
+  },
   '@xnetjs/data': { ChannelSchema, ChatMessageSchema, PageSchema, TaskSchema },
   '@xnetjs/ui': {
     Badge,
@@ -77,13 +86,18 @@ function tree(): ChatPreviewNode {
             'value',
             'disabled',
             'placeholder',
-            'maxlength'
+            'maxlength',
+            'data-xnet-document'
           ].includes(attribute.name)
       )
     )
       throw new Error(
         'Unsupported element or property. Use text, layout, Button, or text input controls.'
       )
+    if (element.hasAttribute('data-xnet-document')) {
+      if (tag !== 'div' || node.childNodes.length) throw new Error('Invalid document control.')
+      return { type: 'document', handle: element.getAttribute('data-xnet-document')! }
+    }
     const type = tags[tag]
     let id = ids.get(node)
     if (!id) {

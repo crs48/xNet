@@ -3,7 +3,10 @@ import type { CommunityData } from './use-community-data'
 import { PageSchema, TaskSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 
-export type ExtensionSelection = Pick<ExtensionGrant, 'channelIds' | 'records' | 'taskWrites'>
+export type ExtensionSelection = Pick<
+  ExtensionGrant,
+  'channelIds' | 'records' | 'taskWrites' | 'documents'
+>
 
 export function canReadExtensionChannel(data: CommunityData, id: string): boolean {
   const channel = data.channels.find((channel) => channel.id === id)
@@ -82,6 +85,7 @@ export function ExtensionDataPicker({
                   onChange({
                     ...selection,
                     taskWrites: undefined,
+                    documents: undefined,
                     records: event.target.checked
                       ? [...selection.records, { id: record.id, schemaId: record.schemaId }]
                       : selection.records.filter((item) => item.id !== record.id)
@@ -96,10 +100,29 @@ export function ExtensionDataPicker({
           )}
         </div>
         <p className="mt-2 text-muted-foreground">
-          Showing up to 100 recent tasks and 100 recent pages. Page text documents and attachments
-          are not shared.
+          Showing up to 100 recent tasks and 100 recent pages. Document text needs separate
+          approval; attachments are excluded.
         </p>
       </details>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={!!selection.documents}
+          onChange={(event) =>
+            onChange({
+              ...selection,
+              documents: event.target.checked
+                ? {
+                    read: selection.records
+                      .filter((record) => record.schemaId === PageSchema._schemaId)
+                      .map((record) => record.id)
+                  }
+                : undefined
+            })
+          }
+        />
+        Allow reading selected page text (up to ten pages)
+      </label>
       <label className="flex items-center gap-2">
         <input
           type="checkbox"

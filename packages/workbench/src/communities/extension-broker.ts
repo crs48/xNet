@@ -1,3 +1,4 @@
+import type { ExtensionAuthority } from './extension-authority'
 import type { ExtensionGrant } from './extension-data'
 import type { ExtensionOperation } from './extension-protocol'
 import type { NodeState, TransactionOperation } from '@xnetjs/data'
@@ -66,18 +67,20 @@ export type ExtensionMutationResult = BridgeTransactionResult & { receipt: strin
 export function createExtensionBroker(
   bridge: DataBridge,
   grant: ExtensionGrant,
-  current: () => boolean
+  current: () => boolean,
+  authority: ExtensionAuthority,
+  initialCreated: readonly string[] = []
 ) {
   let active = true
   let queue: Promise<unknown> = Promise.resolve()
   let accepted = 0
-  const created = new Set<string>()
+  const created = new Set<string>(initialCreated)
   const receipts = new Map<string, ExtensionReceipt>()
   const replays = new Map<string, { input: string; result: Promise<ExtensionMutationResult> }>()
   const check = () => {
     if (!active || !current())
       throw new ExtensionAccessError('revoked', 'Extension access has stopped.')
-    if (!bridge.transaction || !bridge.get)
+    if (!bridge.transaction || !bridge.get || !bridge.getLocalState)
       throw new ExtensionAccessError(
         'unsupported',
         'Conditional writes are unavailable on this host.'
@@ -87,12 +90,60 @@ export function createExtensionBroker(
     ops: TransactionOperation[],
     before: (NodeState | null)[],
     ids: string[],
-    heads?: Record<string, string>
+    heads: Record<string, string> | undefined,
+    requestId: string,
+    requestInput: string,
+    newIds: string[] = [],
+    undoId?: string
   ) => {
     check()
+    const state = await authority.read()
+    if (JSON.stringify(state.approval.grant) !== JSON.stringify(grant))
+      throw new ExtensionAccessError('revoked', 'The permission scope changed.')
+    if (state.approval.commands >= 1000)
+      throw new ExtensionAccessError(
+        'quota',
+        'This approval reached its 1,000-command limit. Review permissions to continue.'
+      )
+    if (grant.records.length + state.approval.created.length + newIds.length > 100)
+      throw new ExtensionAccessError('quota', 'This extension has reached its 100-record limit.')
+    check()
+    const fields = ops.map((op) => (op.type === 'update' ? Object.keys(op.options.properties) : []))
+    const context = JSON.stringify({
+      input: requestInput,
+      before,
+      fields,
+      epoch: authority.epoch,
+      owner: grant.owner,
+      artifact: grant.hash,
+      installation: authority.key
+    })
+    const receipt = requestId
     const result = await bridge.transaction!(ops, {
       nodes: ids.map((id, index) => ({ id, expected: before[index], head: heads?.[id] })),
-      deadline: Date.now() + 5000
+      deadline: Date.now() + 5000,
+      localState: [
+        {
+          key: authority.key,
+          expected: state.raw,
+          value: JSON.stringify({
+            ...state.approval,
+            created: [...state.approval.created, ...newIds],
+            commands: state.approval.commands + 1,
+            lastReceipt: requestId
+          })
+        },
+        ...(undoId
+          ? [
+              {
+                key: `${authority.key}:${authority.epoch}:undo:${undoId}`,
+                expected: null,
+                value: requestId
+              }
+            ]
+          : [])
+      ],
+      receipt: { key: receiptKey(requestId), context }
     })
     // This is the linearized accepted command. Revocation drains it before reporting completion.
     const after = result.results.filter((node): node is NodeState => node !== null)
@@ -101,18 +152,23 @@ export function createExtensionBroker(
         'conflict',
         'The host returned an incomplete transaction receipt.'
       )
-    const receipt = crypto.randomUUID()
     receipts.set(receipt, {
       id: receipt,
       before,
       after,
       heads: result.heads!,
-      fields: ops.map((op) => (op.type === 'update' ? Object.keys(op.options.properties) : [])),
+      fields,
       undone: false
     })
+    await authority.read()
+    check()
     return { ...result, receipt }
   }
-  const mutate = async (operations: ExtensionOperation[]): Promise<ExtensionMutationResult> => {
+  const mutate = async (
+    operations: ExtensionOperation[],
+    requestId: string,
+    input: string
+  ): Promise<ExtensionMutationResult> => {
     check()
     if (!grant.taskWrites)
       throw new ExtensionAccessError('denied', 'Editing tasks has not been approved.')
@@ -175,14 +231,27 @@ export function createExtensionBroker(
         )
       return { type: op.type, nodeId: id }
     })
-    const result = await commit(ops, before, ids)
+    const result = await commit(
+      ops,
+      before,
+      ids,
+      undefined,
+      requestId,
+      input,
+      operations.flatMap((op, index) => (op.type === 'create' ? [ids[index]] : []))
+    )
     operations.forEach((op, index) => {
       if (op.type === 'create') created.add(ids[index])
     })
     return result
   }
-  const undo = async (id: string): Promise<ExtensionMutationResult> => {
+  const undo = async (
+    id: string,
+    requestId: string,
+    input: string
+  ): Promise<ExtensionMutationResult> => {
     check()
+    await recover(id)
     const receipt = receipts.get(id)
     if (!receipt || receipt.undone)
       throw new ExtensionAccessError('conflict', 'This receipt cannot be undone.')
@@ -209,10 +278,70 @@ export function createExtensionBroker(
       ops,
       receipt.after,
       receipt.after.map((node) => node.id),
-      receipt.heads
+      receipt.heads,
+      requestId,
+      input,
+      [],
+      id
     )
     receipt.undone = true
     return result
+  }
+  const receiptKey = (id: string) => `${authority.key}:${authority.epoch}:request:${id}`
+  const recover = async (id: string, input?: string): Promise<ExtensionMutationResult | null> => {
+    const raw = await bridge.getLocalState!(receiptKey(id))
+    if (raw === null) return null
+    const result = JSON.parse(raw) as {
+      version: number
+      context: string
+      batchId: string
+      results: NodeState[]
+      heads: Record<string, string>
+    }
+    const context = JSON.parse(result.context) as {
+      input: string
+      before: (NodeState | null)[]
+      fields: string[][]
+      epoch: string
+      owner: string
+      artifact: string
+      installation: string
+    }
+    if (
+      result.version !== 1 ||
+      context.epoch !== authority.epoch ||
+      context.owner !== grant.owner ||
+      context.artifact !== grant.hash ||
+      context.installation !== authority.key ||
+      !Array.isArray(result.results) ||
+      !Array.isArray(context.before) ||
+      !Array.isArray(context.fields)
+    )
+      throw new ExtensionAccessError('invalid', 'The durable action receipt is unreadable.')
+    if (input !== undefined && context.input !== input)
+      throw new ExtensionAccessError(
+        'invalid',
+        'A request identifier cannot be reused for different commands.'
+      )
+    const undone =
+      (await bridge.getLocalState!(`${authority.key}:${authority.epoch}:undo:${id}`)) !== null
+    receipts.set(id, {
+      id,
+      before: context.before,
+      after: result.results,
+      fields: context.fields,
+      heads: result.heads,
+      undone
+    })
+    await authority.read()
+    check()
+    return {
+      batchId: result.batchId,
+      results: result.results,
+      heads: result.heads,
+      tempIds: {},
+      receipt: id
+    }
   }
   return {
     async request(input: unknown): Promise<ExtensionMutationResult> {
@@ -226,6 +355,8 @@ export function createExtensionBroker(
             'invalid',
             'A request identifier cannot be reused for different commands.'
           )
+        await authority.read()
+        check()
         return replay.result
       }
       if (++accepted > 200)
@@ -233,9 +364,23 @@ export function createExtensionBroker(
           'quota',
           'This extension session reached its command limit. Reopen it to continue.'
         )
-      const result = queue.then(() =>
-        request.operation === 'data.mutate' ? mutate(request.operations) : undo(request.receipt)
-      )
+      const result = queue.then(async () => {
+        const state = await authority.read()
+        state.approval.created.forEach((id) => created.add(id))
+        check()
+        const saved = await recover(request.id, serialized)
+        if (saved) return saved
+        try {
+          return await (request.operation === 'data.mutate'
+            ? mutate(request.operations, request.id, serialized)
+            : undo(request.receipt, request.id, serialized))
+        } catch (cause) {
+          // A response can be lost after commit. Recover only this exact command, never issue it twice.
+          const committed = await recover(request.id, serialized)
+          if (committed) return committed
+          throw cause
+        }
+      })
       queue = result.catch(() => undefined)
       replays.set(request.id, { input: serialized, result })
       return result

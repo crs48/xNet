@@ -13,6 +13,9 @@ export function createLiveExtensionBridge(
   let dataset = initial
   let snapshotBridge = createExtensionDataBridge(dataset)
   const observers = new Set<() => void>()
+  const sessionId = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+    byte.toString(16).padStart(2, '0')
+  ).join('')
   let sequence = 0
   const update = (next: ExtensionDataset) => {
     dataset = next
@@ -22,7 +25,7 @@ export function createLiveExtensionBridge(
   const mutate = async (operations: ExtensionOperation[]) => {
     const result = await request({
       version: 1,
-      id: `command-${++sequence}`,
+      id: `${sessionId}-${++sequence}`,
       operation: 'data.mutate',
       operations
     })
@@ -37,6 +40,7 @@ export function createLiveExtensionBridge(
         : []
     )
     update({
+      documents: dataset.documents,
       grant: { ...dataset.grant, records: [...dataset.grant.records, ...created] },
       nodes: [...nodes.values()]
     })
@@ -98,5 +102,23 @@ export function createLiveExtensionBridge(
     },
     destroy: () => observers.clear()
   }
-  return { bridge, update }
+  return {
+    bridge,
+    update,
+    documents: {
+      subscribe(listener: () => void) {
+        observers.add(listener)
+        return () => {
+          observers.delete(listener)
+        }
+      },
+      get(nodeId: string) {
+        if (!dataset.grant.documents?.read.includes(nodeId))
+          throw new ExtensionAccessError('denied', 'Document access has not been approved.')
+        const document = dataset.documents?.find((item) => item.nodeId === nodeId)
+        if (!document) throw new ExtensionAccessError('denied', 'This document is unavailable.')
+        return document
+      }
+    }
+  }
 }

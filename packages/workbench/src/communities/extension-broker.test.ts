@@ -5,9 +5,14 @@ import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { MemoryNodeStorageAdapter, NodeStore, TaskSchema } from '@xnetjs/data'
 import { createDID } from '@xnetjs/identity'
 import { describe, expect, it, vi } from 'vitest'
+import { openExtensionAuthority } from './extension-authority'
 import { createExtensionBroker } from './extension-broker'
+async function approvedBroker(bridge: DataBridge, grant: ExtensionGrant, current: () => boolean) {
+  const saved = await openExtensionAuthority(bridge, grant.owner, 'test-channel', grant.hash, grant)
+  return createExtensionBroker(bridge, grant, current, saved!.authority, saved!.approval.created)
+}
 import { createExtensionDataBridge } from './extension-data'
-import { decodeExtensionRequest } from './extension-protocol'
+import { decodeExtensionRequest, ExtensionAccessError } from './extension-protocol'
 async function setup() {
   const pair = generateSigningKeyPair(),
     owner = createDID(pair.publicKey)
@@ -38,9 +43,10 @@ async function setup() {
   const bridge: DataBridge = {
     ...createExtensionDataBridge({ grant, nodes: [] }),
     get: (id) => store.get(id),
+    getLocalState: (key) => store.getLocalState(key),
     transaction: (ops, conditions) => store.transaction(ops, conditions)
   }
-  return { store, bridge, grant, broker: createExtensionBroker(bridge, grant, () => true) }
+  return { store, bridge, grant, broker: await approvedBroker(bridge, grant, () => true) }
 }
 const command = (operations: unknown[], id = crypto.randomUUID()) => ({
   version: 1,
@@ -127,7 +133,7 @@ describe('host extension command broker', () => {
     const wait = new Promise<void>((resolve) => {
       release = resolve
     })
-    const broker = createExtensionBroker(
+    const broker = await approvedBroker(
       {
         ...bridge,
         get: async (id) => {
@@ -156,10 +162,11 @@ describe('host extension command broker', () => {
     const held = new Promise<void>((resolve) => {
       releaseCommit = resolve
     })
-    const next = createExtensionBroker(
+    const next = await approvedBroker(
       {
         ...bridge,
         transaction: async (ops, conditions) => {
+          if (!ops.length) return store.transaction(ops, conditions)
           commitEntered()
           await held
           return store.transaction(ops, conditions)
@@ -177,7 +184,7 @@ describe('host extension command broker', () => {
     await Promise.resolve()
     expect(completed).toBe(false)
     releaseCommit()
-    await accepted
+    await expect(accepted).rejects.toThrow('stopped')
     await revoke
     expect((await store.get('allowed'))?.deleted).toBe(true)
     await expect(next.request(command([{ type: 'restore', nodeId: 'allowed' }]))).rejects.toThrow(
@@ -186,7 +193,7 @@ describe('host extension command broker', () => {
   })
   it('does not turn creation permission into deletion permission through undo', async () => {
     const { store, bridge, grant } = await setup()
-    const broker = createExtensionBroker(
+    const broker = await approvedBroker(
       bridge,
       { ...grant, taskWrites: { ids: ['allowed'], create: true, remove: false } },
       () => true
@@ -208,7 +215,7 @@ describe('host extension command broker', () => {
   it('rejects guessed record IDs and chosen creation IDs before reading host data', async () => {
     const { bridge, grant } = await setup()
     const get = vi.fn(bridge.get!)
-    const broker = createExtensionBroker({ ...bridge, get }, grant, () => true)
+    const broker = await approvedBroker({ ...bridge, get }, grant, () => true)
     await expect(broker.request(command([{ type: 'delete', nodeId: 'other' }]))).rejects.toThrow(
       'approved'
     )
@@ -229,7 +236,7 @@ describe('host extension command broker', () => {
   it('reducing write authority cannot enable an effect', async () => {
     const { bridge, grant } = await setup()
     for (const taskWrites of [undefined, { ids: [], create: false, remove: false }]) {
-      const broker = createExtensionBroker(bridge, { ...grant, taskWrites }, () => true)
+      const broker = await approvedBroker(bridge, { ...grant, taskWrites }, () => true)
       await expect(
         broker.request(
           command([{ type: 'update', nodeId: 'allowed', properties: { status: 'done' } }])
@@ -251,4 +258,101 @@ describe('host extension command broker', () => {
     ])
       expect(() => decodeExtensionRequest(value)).toThrow()
   })
+})
+
+it('recovers a lost committed response and preserves created scope and undo across sessions', async () => {
+  const { store, bridge, grant } = await setup()
+  const opened = (await openExtensionAuthority(bridge, grant.owner, 'durable', grant.hash, grant))!
+  const unreliable = {
+    ...bridge,
+    transaction: async (...args: Parameters<NonNullable<DataBridge['transaction']>>) => {
+      const result = await bridge.transaction!(...args)
+      if (args[0].length) throw new Error('Response lost after commit')
+      return result
+    }
+  }
+  const first = createExtensionBroker(unreliable, grant, () => true, opened.authority)
+  const request = command(
+    [{ type: 'create', schemaId: TaskSchema._schemaId, properties: { title: 'Once' } }],
+    'durable-create'
+  )
+  const result = await first.request(request)
+  const reopened = (await openExtensionAuthority(bridge, grant.owner, 'durable', grant.hash))!
+  expect(reopened.approval.created).toEqual([result.results[0]!.id])
+  expect(reopened.approval.lastReceipt).toBe(request.id)
+  const next = createExtensionBroker(
+    bridge,
+    grant,
+    () => true,
+    reopened.authority,
+    reopened.approval.created
+  )
+  expect(await next.request(request)).toEqual(result)
+  expect(
+    (await store.list({ schemaId: TaskSchema._schemaId })).filter(
+      (node) => node.properties.title === 'Once'
+    )
+  ).toHaveLength(1)
+  await next.request({
+    version: 1,
+    id: 'durable-undo',
+    operation: 'data.undo',
+    receipt: result.receipt
+  })
+  expect((await store.get(result.results[0]!.id))?.deleted).toBe(true)
+  await expect(
+    next.request({ version: 1, id: 'second-undo', operation: 'data.undo', receipt: result.receipt })
+  ).rejects.toThrow('cannot be undone')
+  await expect(
+    next.request(command([{ type: 'delete', nodeId: 'allowed' }], request.id))
+  ).rejects.toThrow('different commands')
+})
+
+it('checks the durable epoch at commit, rejects old sessions after restart and fails closed on unreadable policy', async () => {
+  const { store, bridge, grant } = await setup()
+  const opened = (await openExtensionAuthority(bridge, grant.owner, 'race', grant.hash, grant))!
+  const racing: DataBridge = {
+    ...bridge,
+    transaction: async (ops, conditions) => {
+      if (ops.length) await opened.authority.revoke()
+      return bridge.transaction!(ops, conditions)
+    }
+  }
+  const broker = createExtensionBroker(racing, grant, () => true, opened.authority)
+  await expect(broker.request(command([{ type: 'delete', nodeId: 'allowed' }]))).rejects.toThrow()
+  expect((await store.get('allowed'))?.deleted).toBe(false)
+  expect(await openExtensionAuthority(bridge, grant.owner, 'race', grant.hash)).toBeNull()
+  await openExtensionAuthority(bridge, grant.owner, 'race', grant.hash, grant)
+  await expect(opened.authority.read()).rejects.toThrow('replaced')
+  await expect(
+    openExtensionAuthority(
+      {
+        ...bridge,
+        getLocalState: async () => {
+          throw new Error('storage failed')
+        }
+      },
+      grant.owner,
+      'race',
+      grant.hash
+    )
+  ).rejects.toThrow('storage failed')
+})
+
+it('rejects cyclic, deep, non-JSON and oversized requests with a bounded protocol failure', () => {
+  const cyclic: Record<string, unknown> = {}
+  cyclic.title = cyclic
+  let deep: unknown = 'text'
+  for (let i = 0; i < 10000; i++) deep = { nested: deep }
+  for (const properties of [
+    cyclic,
+    { title: deep },
+    { title: BigInt(1) },
+    { title: NaN },
+    { title: '界'.repeat(6000) }
+  ]) {
+    expect(() =>
+      decodeExtensionRequest(command([{ type: 'update', nodeId: 'allowed', properties }]))
+    ).toThrow(ExtensionAccessError)
+  }
 })
