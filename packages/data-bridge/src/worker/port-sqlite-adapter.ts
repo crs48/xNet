@@ -32,6 +32,7 @@ import { wrap, type Remote } from 'comlink'
 
 export class PortSQLiteAdapter implements SQLiteAdapter {
   readonly supportsConditionalBatches = true
+  readonly supportsLocalStateTransactions = true
   private port: MessagePort | null
   private proxy: Remote<SQLiteWorkerHandler> | null
   private inTransaction = false

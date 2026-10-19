@@ -201,6 +201,7 @@ export interface DataService {
   deleteNode(id: string): Promise<void>
   listNodes(options?: ListNodesOptions): Promise<SerializedNodeState[]>
   countNodes(options?: CountNodesOptions): Promise<number>
+  getAppState(key: string): Promise<string | null>
   getLastLamportTime(): Promise<number>
   setLastLamportTime(time: number): Promise<void>
   getDocumentContent(nodeId: string): Promise<number[] | null>
@@ -1491,6 +1492,17 @@ export function createDataService(config: DataServiceConfig): DataService {
 
       const row = await adapter.queryOne<{ count: number }>(sql, params)
       return row?.count ?? 0
+    },
+
+    async getAppState(key: string): Promise<string | null> {
+      if (!adapter) throw new Error('Database not initialized')
+      if (typeof key !== 'string' || !key || key.length > 512)
+        throw new Error('Invalid local state key')
+      const row = await adapter.queryOne<{ value: string }>(
+        'SELECT value FROM sync_state WHERE key = ?',
+        [`app:${key}`]
+      )
+      return row?.value ?? null
     },
 
     async getLastLamportTime(): Promise<number> {

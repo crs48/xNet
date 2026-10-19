@@ -460,6 +460,9 @@ export interface DataBridge {
     conditions?: TransactionConditions
   ): Promise<BridgeTransactionResult>
 
+  /** Host-only local policy/receipt storage; never expose on an extension client. */
+  getLocalState?(key: string): Promise<string | null>
+
   // ─── Documents ──────────────────────────────────────────
 
   /**

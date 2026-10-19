@@ -30,6 +30,7 @@ import type {
 } from './types'
 import type { SchemaIRI } from '../schema/node'
 import { createNodeId } from '../schema/node'
+import { validateLocalConditions } from './transaction-conditions'
 
 /** One executed operation, queued for post-commit listener dispatch. */
 export type PendingTransactionEvent = {
@@ -300,8 +301,31 @@ export async function executeTransactionOperationsFast(
   }
 
   const touchedIds = Array.from(new Set(planned.map((entry) => entry.id)))
+  const conditions = input.conditions?.receipt
+    ? {
+        ...input.conditions,
+        receipt: undefined,
+        localState: [
+          ...(input.conditions.localState ?? []),
+          {
+            key: input.conditions.receipt.key,
+            expected: null,
+            value: JSON.stringify({
+              version: 1,
+              context: input.conditions.receipt.context,
+              batchId: input.batchId,
+              results,
+              heads: Object.fromEntries(
+                changes.map((change) => [change.payload.nodeId, change.hash])
+              )
+            })
+          }
+        ]
+      }
+    : input.conditions
+  if (conditions) validateLocalConditions(conditions)
   await host.storage.applyNodeBatch!({
-    conditions: input.conditions,
+    conditions,
     batchId: input.batchId,
     nodes: touchedIds.flatMap((id) => {
       const node = nodesById.get(id)

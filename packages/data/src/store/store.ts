@@ -95,7 +95,7 @@ import {
   type NodeQueryResult
 } from './query'
 import { resolveTempIds, type SchemaLookup } from './tempids'
-import { TransactionConflictError } from './transaction-conditions'
+import { TransactionConflictError, validateLocalConditions } from './transaction-conditions'
 import {
   executeTransactionOperations,
   executeTransactionOperationsFast,
@@ -1243,11 +1243,30 @@ export class NodeStore {
    * console.log(`Batch ${result.batchId} applied ${result.changes.length} changes`)
    * ```
    */
+  /** Host-only device state. Guest bridges must not expose this method. */
+  async getLocalState(key: string): Promise<string | null> {
+    if (!this.storage.supportsLocalStateTransactions || !this.storage.getAppState)
+      throw new TransactionConflictError(
+        'unsupported',
+        'Durable local policy storage is unavailable.'
+      )
+    return this.storage.getAppState(key)
+  }
+
   async transaction(
     operations: TransactionOperation[],
     conditions?: TransactionConditions
   ): Promise<TransactionResult> {
     if (conditions) {
+      validateLocalConditions(conditions)
+      if (
+        (conditions.localState?.length || conditions.receipt) &&
+        !this.storage.supportsLocalStateTransactions
+      )
+        throw new TransactionConflictError(
+          'unsupported',
+          'Atomic local policy state is unavailable on this storage.'
+        )
       if (!this.canUseSingleWriteFastPath() || !this.storage.supportsConditionalBatches)
         throw new TransactionConflictError(
           'unsupported',
@@ -1283,7 +1302,7 @@ export class NodeStore {
           'Every written record needs an explicit precondition.'
         )
     }
-    if (operations.length === 0) {
+    if (operations.length === 0 && !conditions) {
       return { batchId: '', results: [], changes: [], tempIds: {} }
     }
 

@@ -23,6 +23,29 @@ export function snapshotKey(value: unknown): string {
   return JSON.stringify(value) ?? 'null'
 }
 
+export function validateLocalConditions(conditions: TransactionConditions): void {
+  const entries = conditions.localState ?? []
+  const allKeys = [
+    ...entries.map((entry) => entry.key),
+    ...(conditions.receipt ? [conditions.receipt.key] : [])
+  ]
+  if (
+    entries.length > 100 ||
+    new Set(allKeys).size !== allKeys.length ||
+    allKeys.some((key) => !key || key.length > 512) ||
+    entries.some(
+      (entry) =>
+        (entry.expected !== null && typeof entry.expected !== 'string') ||
+        (entry.value !== undefined && entry.value !== null && typeof entry.value !== 'string')
+    ) ||
+    new TextEncoder().encode(JSON.stringify(conditions)).length > 1_048_576
+  )
+    throw new TransactionConflictError(
+      'unsupported',
+      'Invalid or oversized local transaction state.'
+    )
+}
+
 export function assertTransactionConditions(
   conditions: TransactionConditions,
   get: (id: string) => NodeState | null,

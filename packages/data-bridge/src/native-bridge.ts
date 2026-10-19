@@ -269,6 +269,10 @@ export class NativeBridge implements DataBridge {
     return this.store.batchWrite(input)
   }
 
+  async getLocalState(key: string): Promise<string | null> {
+    return this.store.getLocalState(key)
+  }
+
   async transaction(
     operations: TransactionOperation[],
     conditions?: TransactionConditions

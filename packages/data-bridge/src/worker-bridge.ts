@@ -334,6 +334,11 @@ export class WorkerBridge implements DataBridge {
     return this.remote.bulkWrite(input)
   }
 
+  async getLocalState(key: string): Promise<string | null> {
+    if (!this.remote) throw new Error('Data worker unavailable')
+    return this.remote.getLocalState(key)
+  }
+
   async transaction(
     operations: TransactionOperation[],
     conditions?: TransactionConditions

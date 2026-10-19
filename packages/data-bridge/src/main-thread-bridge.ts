@@ -44,7 +44,7 @@ import type {
 } from '@xnetjs/data'
 import type { TransactionConditions } from '@xnetjs/data/store'
 import type { Awareness } from 'y-protocols/awareness'
-import type { Doc as YDoc } from 'yjs'
+import { applyUpdate, type Doc as YDoc } from 'yjs'
 import { QueryCache } from './query-cache'
 import {
   applyNodeChangeToBoundedQueryResult,
@@ -1295,6 +1295,10 @@ export class MainThreadBridge implements DataBridge {
     return this.store.batchWrite(input)
   }
 
+  async getLocalState(key: string): Promise<string | null> {
+    return this.store.getLocalState(key)
+  }
+
   async transaction(
     operations: TransactionOperation[],
     conditions?: TransactionConditions
@@ -1324,14 +1328,20 @@ export class MainThreadBridge implements DataBridge {
       )
     }
 
-    const doc = await this._syncManager.acquire(nodeId)
-    const awareness = this._syncManager.getAwareness(nodeId)
-
-    if (!awareness) {
-      throw new Error(`Failed to get awareness for node ${nodeId}`)
+    const manager = this._syncManager
+    const doc = await manager.acquire(nodeId)
+    try {
+      // Sync acquisition can return an empty mirror. All bridge consumers need persisted content,
+      // including projections that do not mount useNode's editor persistence effect.
+      const stored = await this.store.getDocumentContent(nodeId)
+      if (stored?.length) applyUpdate(doc, stored, 'storage')
+      const awareness = manager.getAwareness(nodeId)
+      if (!awareness) throw new Error(`Failed to get awareness for node ${nodeId}`)
+      return { doc, awareness }
+    } catch (error) {
+      manager.release(nodeId)
+      throw error
     }
-
-    return { doc, awareness }
   }
 
   /**

@@ -208,6 +208,7 @@ export interface NodeStorageAdapter {
   importNodes?(nodes: readonly NodeState[], options?: ImportNodesOptions): Promise<void>
   /** Apply materialized nodes, signed changes, sync state, and batch indexes in one write. */
   readonly supportsConditionalBatches?: boolean
+  readonly supportsLocalStateTransactions?: boolean
   applyNodeBatch?(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult>
   /** Rebuild secondary node indexes after an import that deferred index maintenance. */
   rebuildIndexesForSchemas?(
@@ -399,6 +400,11 @@ export interface NodeBatchPreflightResult {
 
 /** Preconditions are compared in the same storage transaction as the write. */
 export interface TransactionConditions {
+  /** Device-local policy/receipt state, compared atomically with node writes. Never replicated. */
+  localState?: readonly { key: string; expected: string | null; value?: string | null }[]
+  /** Persist the committed result with host attribution in the same batch. The key must be absent. */
+  receipt?: { key: string; context: string }
+
   /** Structured state only; document bytes require a separate guard. Include every touched record and authority dependency. */
   nodes: readonly { id: NodeId; expected: NodeState | null; head?: string }[]
   deadline: number

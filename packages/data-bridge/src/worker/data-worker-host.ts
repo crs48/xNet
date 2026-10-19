@@ -349,6 +349,11 @@ export class DataWorker implements DataWorkerAPI {
     return this.store.batchWrite(input)
   }
 
+  async getLocalState(key: string): Promise<string | null> {
+    if (!this.store) throw new Error('DataWorker not initialized')
+    return this.store.getLocalState(key)
+  }
+
   async transaction(
     operations: TransactionOperation[],
     conditions?: TransactionConditions

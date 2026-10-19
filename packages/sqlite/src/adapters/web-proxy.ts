@@ -92,6 +92,7 @@ type RemoteHandler = Comlink.Remote<SQLiteWorkerHandler>
  */
 export class WebSQLiteProxy implements SQLiteAdapter {
   readonly supportsConditionalBatches = true
+  readonly supportsLocalStateTransactions = true
   private worker: Worker | null = null
   private proxy: RemoteHandler | null = null
   private _config: SQLiteConfig | null = null

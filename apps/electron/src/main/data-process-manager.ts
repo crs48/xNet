@@ -596,6 +596,21 @@ export function setupDataProcessIPC(getMainWindow: () => BrowserWindow | null): 
     return result.count
   })
 
+  ipcMain.handle('xnet:nodes:getAppState', async (event, opts: { key: string }) => {
+    const win = getMainWindow()
+    if (
+      !win ||
+      win.isDestroyed() ||
+      event.sender !== win.webContents ||
+      event.senderFrame !== win.webContents.mainFrame
+    )
+      throw new Error('Untrusted local state caller')
+    if (typeof opts?.key !== 'string' || !opts.key || opts.key.length > 512)
+      throw new Error('Invalid local state key')
+    const result = (await sendRequest('nodes:getAppState', opts)) as { value: string | null }
+    return result.value
+  })
+
   // Sync state operations
   ipcMain.handle('xnet:nodes:getLastLamportTime', async () => {
     const result = (await sendRequest('nodes:getLastLamportTime', {})) as { time: number }

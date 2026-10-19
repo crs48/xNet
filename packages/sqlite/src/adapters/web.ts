@@ -170,6 +170,7 @@ export async function resetWebSQLiteOpfsStorage(config: SQLiteConfig): Promise<v
  */
 export class WebSQLiteAdapter implements SQLiteAdapter {
   readonly supportsConditionalBatches = true
+  readonly supportsLocalStateTransactions = true
   private sqlite3: any = null
   private db: any = null
   private poolUtil: any = null
@@ -615,6 +616,15 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     await this.transaction(async () => {
       if (input.conditions) {
         assertBatchDeadline(input.conditions)
+        for (const entry of input.conditions.localState ?? [])
+          if (
+            ((
+              await this.queryOne('SELECT value FROM sync_state WHERE key = ?', [
+                `app:${entry.key}`
+              ])
+            )?.value ?? null) !== entry.expected
+          )
+            throw new Error('Conditional transaction conflict: local policy or receipt changed.')
         for (const record of input.conditions.records)
           assertBatchRecord(
             record,
@@ -623,6 +633,15 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
             record.head === undefined
               ? undefined
               : ((await this.queryOne(conditionHeadSql, [record.id]))?.hash as string | undefined)
+          )
+      }
+      for (const entry of input.conditions?.localState ?? []) {
+        if (entry.value === null)
+          await this.run('DELETE FROM sync_state WHERE key = ?', [`app:${entry.key}`])
+        else if (entry.value !== undefined)
+          await this.run(
+            'INSERT INTO sync_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+            [`app:${entry.key}`, entry.value]
           )
       }
       for (const node of input.nodes) {

@@ -25,6 +25,8 @@ import {
 } from '@xnetjs/data'
 import { createDID } from '@xnetjs/identity'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { Awareness } from 'y-protocols/awareness'
+import * as Y from 'yjs'
 import { MainThreadBridge, createMainThreadBridge } from '../main-thread-bridge'
 
 // ─── Test Schema ─────────────────────────────────────────────────────────────
@@ -1676,5 +1678,44 @@ describe('MainThreadBridge', () => {
       const stats = bridge.getQueryCacheStats()
       expect(stats.hitRate).toBeGreaterThan(0.8)
     })
+  })
+})
+
+describe('document acquisition', () => {
+  it('merges persisted content without losing current mirror edits', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+    const persisted = new Y.Doc()
+    persisted.getText('body').insert(0, 'saved ')
+    await store.setDocumentContent('page', Y.encodeStateAsUpdate(persisted))
+    const doc = new Y.Doc()
+    Y.applyUpdate(doc, Y.encodeStateAsUpdate(persisted))
+    doc.getText('body').insert(6, 'live')
+    const awareness = new Awareness(doc)
+    const bridge = new MainThreadBridge(store)
+    bridge.setSyncManager({
+      acquire: async () => doc,
+      release: vi.fn(),
+      getAwareness: () => awareness
+    })
+    expect((await bridge.acquireDoc('page')).doc.getText('body').toString()).toBe('saved live')
+    awareness.destroy()
+    doc.destroy()
+    persisted.destroy()
+    bridge.destroy()
+  })
+
+  it('releases acquisition and reports an unreadable document instead of an empty one', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+    const doc = new Y.Doc()
+    const release = vi.fn()
+    const bridge = new MainThreadBridge(store)
+    bridge.setSyncManager({ acquire: async () => doc, release, getAwareness: () => null })
+    vi.spyOn(store, 'getDocumentContent').mockRejectedValue(new Error('storage failed'))
+    await expect(bridge.acquireDoc('page')).rejects.toThrow('storage failed')
+    expect(release).toHaveBeenCalledWith('page')
+    doc.destroy()
+    bridge.destroy()
   })
 })

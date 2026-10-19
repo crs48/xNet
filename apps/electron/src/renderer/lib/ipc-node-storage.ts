@@ -38,6 +38,7 @@ function log(...args: unknown[]): void {
  */
 export class IPCNodeStorageAdapter implements NodeStorageAdapter {
   readonly supportsConditionalBatches = true
+  readonly supportsLocalStateTransactions = true
   // ==========================================================================
   // Lifecycle (optional)
   // ==========================================================================
@@ -134,6 +135,10 @@ export class IPCNodeStorageAdapter implements NodeStorageAdapter {
   // ==========================================================================
   // Sync State
   // ==========================================================================
+
+  async getAppState(key: string): Promise<string | null> {
+    return window.xnetNodes.getAppState(key)
+  }
 
   async getLastLamportTime(): Promise<number> {
     log('getLastLamportTime()')
@@ -354,6 +359,7 @@ export interface XNetNodesAPI {
   countNodes(options?: unknown): Promise<number>
 
   // Sync state
+  getAppState(key: string): Promise<string | null>
   getLastLamportTime(): Promise<number>
   setLastLamportTime(time: number): Promise<void>
 

@@ -77,6 +77,8 @@ export interface IPCSyncManager extends SyncManager {
 export function createIPCSyncManager(): IPCSyncManager {
   // Renderer-side Y.Doc mirrors (one per acquired node)
   const docs = new Map<string, Y.Doc>()
+  const documentRefs = new Map<string, number>()
+  let documentGeneration = 0
   // Awareness instances per node (for cursor presence, etc.)
   const awarenessMap = new Map<string, Awareness>()
   const awarenessSnapshots = new Map<string, AwarenessSnapshotUsers>()
@@ -431,6 +433,11 @@ export function createIPCSyncManager(): IPCSyncManager {
         replaying: false
       })
 
+      // Let pending acquisitions observe shutdown before removing their resources.
+      documentGeneration++
+      await Promise.allSettled([...pendingAcquires.values()])
+      documentRefs.clear()
+
       // Clean up all nodes
       for (const [nodeId] of docs) {
         const cleanup = cleanups.get(nodeId)
@@ -449,6 +456,10 @@ export function createIPCSyncManager(): IPCSyncManager {
         doc.destroy()
       }
       docs.clear()
+      for (const awareness of awarenessMap.values()) awareness.destroy()
+      awarenessMap.clear()
+      awarenessSnapshots.clear()
+      awarenessSnapshotListeners.clear()
 
       if (statusCleanup) {
         statusCleanup()
@@ -479,13 +490,20 @@ export function createIPCSyncManager(): IPCSyncManager {
     },
 
     async acquire(nodeId: string): Promise<Y.Doc> {
-      // Reuse existing mirror if already fully acquired
+      const generation = documentGeneration
+      const retain = (doc: Y.Doc) => {
+        if (generation !== documentGeneration)
+          throw new Error('Document acquisition stopped with the sync manager.')
+        documentRefs.set(nodeId, (documentRefs.get(nodeId) ?? 0) + 1)
+        return doc
+      }
+      // Each caller owns a reference, including callers sharing a pending acquisition.
       const existing = docs.get(nodeId)
-      if (existing) return existing
+      if (existing) return retain(existing)
 
       // If there's already a pending acquire for this node, wait for it
       const pending = pendingAcquires.get(nodeId)
-      if (pending) return pending
+      if (pending) return retain(await pending)
 
       // Create the acquire promise and store it BEFORE starting async work
       const acquirePromise = (async () => {
@@ -523,7 +541,18 @@ export function createIPCSyncManager(): IPCSyncManager {
         })
 
         // Register before acquiring: the initial document/presence response can arrive immediately.
-        await window.xnetBSM.acquire(nodeId, '')
+        try {
+          await window.xnetBSM.acquire(nodeId, '')
+          if (generation !== documentGeneration)
+            throw new Error('Document acquisition stopped with the sync manager.')
+        } catch (error) {
+          messageCleanup()
+          awareness.destroy()
+          awarenessMap.delete(nodeId)
+          doc.destroy()
+          window.xnetBSM.release(nodeId)
+          throw error
+        }
 
         // Forward local edits to main process (via preload)
         // Note: We skip 'remote' origin to avoid echo, but we DO forward 'storage'
@@ -559,17 +588,27 @@ export function createIPCSyncManager(): IPCSyncManager {
         // Store doc only after fully set up, then clean up pending
         docs.set(nodeId, doc)
         setupWebRTCProvider(nodeId, doc)
-        pendingAcquires.delete(nodeId)
 
         return doc
       })()
 
       // Store pending promise synchronously before any await
       pendingAcquires.set(nodeId, acquirePromise)
-      return acquirePromise
+      try {
+        return retain(await acquirePromise)
+      } finally {
+        if (pendingAcquires.get(nodeId) === acquirePromise) pendingAcquires.delete(nodeId)
+      }
     },
 
     release(nodeId: string) {
+      const refs = documentRefs.get(nodeId) ?? 0
+      if (refs === 0) return
+      if (refs > 1) {
+        documentRefs.set(nodeId, refs - 1)
+        return
+      }
+      documentRefs.delete(nodeId)
       // Cleanup update listener and message handler
       const cleanup = cleanups.get(nodeId)
       if (cleanup) {

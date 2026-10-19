@@ -257,3 +257,72 @@ describe('createWebSQLiteAdapter (schema factory)', () => {
     }
   })
 })
+
+it('checks local authority and rolls back local state with a failed web batch', async () => {
+  const db = await createWebSQLiteAdapter({ path: '/local-policy.db' })
+  const empty = {
+    nodes: [],
+    properties: [],
+    changes: [],
+    scalarIndexRows: [],
+    ftsNodeIds: [],
+    ftsRows: [],
+    affectedSchemaIds: [],
+    lastLamportTime: 1,
+    indexMode: 'full' as const
+  }
+  try {
+    await db.applyNodeBatch({
+      ...empty,
+      conditions: {
+        records: [],
+        deadline: Date.now() + 5000,
+        localState: [{ key: 'grant', expected: null, value: 'approved' }]
+      }
+    })
+    await expect(
+      db.applyNodeBatch({
+        ...empty,
+        nodes: [
+          {
+            id: 'bad',
+            schemaId: 'xnet://Test',
+            createdAt: 1,
+            updatedAt: 1,
+            createdBy: null as unknown as string,
+            deletedAt: null,
+            propertyKeys: []
+          }
+        ],
+        conditions: {
+          records: [],
+          deadline: Date.now() + 5000,
+          localState: [{ key: 'grant', expected: 'approved', value: 'partial' }]
+        }
+      })
+    ).rejects.toThrow()
+    expect(
+      (await db.queryOne('SELECT value FROM sync_state WHERE key = ?', ['app:grant']))?.value
+    ).toBe('approved')
+    await db.applyNodeBatch({
+      ...empty,
+      conditions: {
+        records: [],
+        deadline: Date.now() + 5000,
+        localState: [{ key: 'grant', expected: 'approved', value: 'revoked' }]
+      }
+    })
+    await expect(
+      db.applyNodeBatch({
+        ...empty,
+        conditions: {
+          records: [],
+          deadline: Date.now() + 5000,
+          localState: [{ key: 'grant', expected: 'approved', value: 'resurrected' }]
+        }
+      })
+    ).rejects.toThrow('policy')
+  } finally {
+    await db.close()
+  }
+})

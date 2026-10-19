@@ -19,7 +19,7 @@ import type {
   PinRegistry
 } from './types'
 import type { ContentId } from '@xnetjs/core'
-import { assertTransactionConditions } from './transaction-conditions'
+import { assertTransactionConditions, TransactionConflictError } from './transaction-conditions'
 
 type MemoryNodeStorageSnapshot = {
   changes: Map<NodeId, NodeChange[]>
@@ -35,6 +35,7 @@ type MemoryNodeStorageSnapshot = {
   }[]
   pinStore: Map<string, Map<string, PinEntry>>
   lastLamportTime: number
+  appState: Map<string, string>
 }
 
 /**
@@ -42,6 +43,14 @@ type MemoryNodeStorageSnapshot = {
  */
 export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   readonly supportsConditionalBatches = true
+  readonly supportsLocalStateTransactions = true
+  private appState = new Map<string, string>()
+  async getAppState(key: string): Promise<string | null> {
+    return this.appState.get(key) ?? null
+  }
+  async setAppState(key: string, value: string): Promise<void> {
+    this.appState.set(key, value)
+  }
   private changes = new Map<NodeId, NodeChange[]>()
   private changesByHash = new Map<ContentId, NodeChange>()
   private nodes = new Map<NodeId, NodeState>()
@@ -191,6 +200,16 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
         (id) => this.nodes.get(id) ?? null,
         (id) => this.changes.get(id)?.at(-1)?.hash
       )
+    for (const entry of input.conditions?.localState ?? [])
+      if ((this.appState.get(entry.key) ?? null) !== entry.expected)
+        throw new TransactionConflictError(
+          'conflict',
+          'Local policy or receipt changed before commit.'
+        )
+    for (const entry of input.conditions?.localState ?? []) {
+      if (entry.value === null) this.appState.delete(entry.key)
+      else if (entry.value !== undefined) this.appState.set(entry.key, entry.value)
+    }
     input.nodes.forEach((node) => this.nodes.set(node.id, node))
     await this.appendChanges(input.changes)
     this.lastLamportTime = input.lastLamportTime
@@ -388,6 +407,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     this.pinStore.clear()
     this.lastLamportTime = 0
     this.syncCursors.clear()
+    this.appState.clear()
   }
 
   /**
@@ -431,6 +451,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
       pinStore: new Map(
         Array.from(this.pinStore.entries(), ([key, owners]) => [key, new Map(owners)])
       ),
+      appState: new Map(this.appState),
       lastLamportTime: this.lastLamportTime
     }
   }
@@ -442,6 +463,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     this.documentContentStore = snapshot.documentContentStore
     this.yjsSnapshotStore = snapshot.yjsSnapshotStore
     this.pinStore = snapshot.pinStore
+    this.appState = snapshot.appState
     this.lastLamportTime = snapshot.lastLamportTime
   }
 }

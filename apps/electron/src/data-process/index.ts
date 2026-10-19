@@ -556,6 +556,13 @@ process.parentPort?.on('message', async (event) => {
         break
       }
 
+      case 'nodes:getAppState': {
+        if (!dataService) throw new Error('Database not initialized')
+        const { key } = payload as { key: string }
+        sendResponse(requestId, { value: await dataService.getAppState(key) })
+        break
+      }
+
       case 'nodes:getLastLamportTime': {
         if (dataService) {
           const time = await dataService.getLastLamportTime()

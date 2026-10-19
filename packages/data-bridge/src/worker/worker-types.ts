@@ -184,6 +184,8 @@ export interface DataWorkerAPI {
    * Execute an atomic multi-operation transaction in the worker.
    * Returns a structured-clone-safe result (no signed change list).
    */
+  getLocalState(key: string): Promise<string | null>
+
   transaction(
     operations: TransactionOperation[],
     conditions?: TransactionConditions

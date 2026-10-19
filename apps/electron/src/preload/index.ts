@@ -588,6 +588,7 @@ contextBridge.exposeInMainWorld('xnetNodes', {
   countNodes: (options?: unknown) => ipcRenderer.invoke('xnet:nodes:countNodes', options ?? {}),
 
   // Sync state
+  getAppState: (key: string) => ipcRenderer.invoke('xnet:nodes:getAppState', { key }),
   getLastLamportTime: () => ipcRenderer.invoke('xnet:nodes:getLastLamportTime'),
   setLastLamportTime: (time: number) =>
     ipcRenderer.invoke('xnet:nodes:setLastLamportTime', { time }),
@@ -836,6 +837,7 @@ export interface XNetNodesAPI {
   countNodes(options?: unknown): Promise<number>
 
   // Sync state
+  getAppState(key: string): Promise<string | null>
   getLastLamportTime(): Promise<number>
   setLastLamportTime(time: number): Promise<void>
 

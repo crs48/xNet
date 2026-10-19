@@ -70,6 +70,7 @@ async function getBetterSqlite3(): Promise<typeof Database> {
  */
 export class ElectronSQLiteAdapter implements SQLiteAdapter {
   readonly supportsConditionalBatches = true
+  readonly supportsLocalStateTransactions = true
   private db: Database.Database | null = null
   /** Optional read-only secondary connection (exploration 0230, Phase 0.5). */
   private readDb: Database.Database | null = null
@@ -735,6 +736,14 @@ export class ElectronSQLiteAdapter implements SQLiteAdapter {
           input.conditions!,
           (sql, params) => this.getOrPrepare(sql).all(...params) as SQLRow[]
         )
+        for (const entry of input.conditions?.localState ?? []) {
+          if (entry.value === null)
+            this.getOrPrepare('DELETE FROM sync_state WHERE key = ?').run(`app:${entry.key}`)
+          else if (entry.value !== undefined)
+            this.getOrPrepare(
+              'INSERT INTO sync_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+            ).run(`app:${entry.key}`, entry.value)
+        }
         for (const op of ops) op()
       }
       if (this.inTransaction) apply()

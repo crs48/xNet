@@ -1423,17 +1423,26 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     })
   }
 
+  get supportsLocalStateTransactions(): boolean {
+    return this.db.supportsLocalStateTransactions === true
+  }
+
   get supportsConditionalBatches(): boolean {
     return this.db.supportsConditionalBatches === true
   }
 
   async applyNodeBatch(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    if (input.conditions?.localState?.length && !this.supportsLocalStateTransactions)
+      throw new TransactionConflictError(
+        'unsupported',
+        'Atomic local policy state is unavailable on this storage.'
+      )
     if (input.conditions && !this.supportsConditionalBatches)
       throw new TransactionConflictError(
         'unsupported',
         'This SQLite adapter cannot commit conditional transactions.'
       )
-    if (input.nodes.length === 0 && input.changes.length === 0) {
+    if (input.nodes.length === 0 && input.changes.length === 0 && !input.conditions) {
       return {
         nodeRowsWritten: 0,
         propertyRowsWritten: 0,
@@ -1592,6 +1601,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         input.conditions && conditionRows
           ? {
               deadline: input.conditions.deadline,
+              localState: input.conditions.localState,
               records: input.conditions.nodes.map(({ id, head }) => {
                 const row = conditionRows.nodes.find((node) => node.id === id)
                 const node = row

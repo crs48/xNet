@@ -166,6 +166,59 @@ describe('createIPCSyncManager', () => {
     remote.destroy()
   })
 
+  it('keeps a shared document alive until the final concurrent consumer releases it', async () => {
+    const manager = createIPCSyncManager()
+    const [editor, extension] = await Promise.all([
+      manager.acquire('shared-page'),
+      manager.acquire('shared-page')
+    ])
+    expect(editor).toBe(extension)
+    expect(mockBSM.api.acquire).toHaveBeenCalledTimes(1)
+    manager.release('shared-page')
+    expect(mockBSM.api.release).not.toHaveBeenCalled()
+    extension.getText('content').insert(0, 'still subscribed')
+    expect(mockBSM.api.postMessage).toHaveBeenCalledWith(
+      'shared-page',
+      expect.objectContaining({ type: 'update' })
+    )
+    expect(await manager.acquire('shared-page')).toBe(extension)
+    manager.release('shared-page')
+    expect(mockBSM.api.release).not.toHaveBeenCalled()
+    manager.release('shared-page')
+    expect(mockBSM.api.release).toHaveBeenCalledTimes(1)
+    manager.release('shared-page')
+    expect(mockBSM.api.release).toHaveBeenCalledTimes(1)
+  })
+
+  it('cleans failed acquisitions and permits a later retry', async () => {
+    const manager = createIPCSyncManager()
+    mockBSM.api.acquire.mockRejectedValueOnce(new Error('connection lost'))
+    await expect(manager.acquire('retry-page')).rejects.toThrow('connection lost')
+    expect(manager.getAwareness('retry-page')).toBeNull()
+    const doc = await manager.acquire('retry-page')
+    expect(doc).toBeInstanceOf(Y.Doc)
+    manager.release('retry-page')
+  })
+
+  it('does not resurrect a document acquired during shutdown', async () => {
+    const manager = createIPCSyncManager()
+    let finish!: () => void
+    mockBSM.api.acquire.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve
+        })
+    )
+    const acquisition = manager.acquire('closing-page')
+    const assertion = expect(acquisition).rejects.toThrow('stopped')
+    const stopped = manager.stop()
+    finish()
+    await assertion
+    await stopped
+    expect(manager.getAwareness('closing-page')).toBeNull()
+    expect(mockBSM.api.release).toHaveBeenCalledTimes(1)
+  })
+
   it('applies remote updates and clears remote presence after disconnect', async () => {
     const manager = createIPCSyncManager()
     await manager.start()

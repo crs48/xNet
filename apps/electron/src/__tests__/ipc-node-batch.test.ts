@@ -23,6 +23,7 @@ async function open(): Promise<void> {
   await service.initialize()
   const api = {
     applyNodeBatch: vi.fn(service.applyNodeBatch.bind(service)),
+    getAppState: service.getAppState.bind(service),
     appendChange: service.appendChange.bind(service),
     setNode: service.setNode.bind(service),
     setLastLamportTime: service.setLastLamportTime.bind(service),
@@ -274,4 +275,51 @@ it('checks conditional records inside the native commit and preserves the whole 
     deadline: Date.now() + 5000
   })
   expect(removed.results[0]?.deleted).toBe(true)
+})
+
+it('persists local policy and atomic receipts through a native database restart', async () => {
+  const deadline = Date.now() + 5000
+  await store.transaction([], {
+    nodes: [],
+    deadline,
+    localState: [{ key: 'extension:grant', expected: null, value: 'epoch1' }]
+  })
+  const created = await store.transaction(
+    [
+      {
+        type: 'create',
+        options: {
+          id: 'durable-task',
+          schemaId: PageSchema._schemaId,
+          properties: { title: 'Once' }
+        }
+      }
+    ],
+    {
+      nodes: [{ id: 'durable-task', expected: null }],
+      deadline,
+      localState: [{ key: 'extension:grant', expected: 'epoch1' }],
+      receipt: { key: 'extension:request', context: 'approved installation' }
+    }
+  )
+  await service.shutdown()
+  database.close()
+  await open()
+  expect(await store.getLocalState('extension:grant')).toBe('epoch1')
+  expect(JSON.parse((await store.getLocalState('extension:request'))!).heads).toEqual(created.heads)
+  await store.transaction([], {
+    nodes: [],
+    deadline: Date.now() + 5000,
+    localState: [{ key: 'extension:grant', expected: 'epoch1', value: 'revoked' }]
+  })
+  await expect(
+    store.transaction([{ type: 'delete', nodeId: 'durable-task' }], {
+      nodes: [{ id: 'durable-task', expected: (await store.get('durable-task'))! }],
+      deadline: Date.now() + 5000,
+      localState: [{ key: 'extension:grant', expected: 'epoch1' }],
+      receipt: { key: 'denied-receipt', context: '' }
+    })
+  ).rejects.toThrow('policy')
+  expect(await store.getLocalState('denied-receipt')).toBeNull()
+  expect((await store.get('durable-task'))?.deleted).toBe(false)
 })

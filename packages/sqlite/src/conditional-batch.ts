@@ -45,6 +45,12 @@ export function assertBatchConditions(
   read: Read
 ): void {
   assertBatchDeadline(conditions)
+  for (const entry of conditions.localState ?? [])
+    if (
+      (read('SELECT value FROM sync_state WHERE key = ?', [`app:${entry.key}`])[0]?.value ??
+        null) !== entry.expected
+    )
+      throw new Error('Conditional transaction conflict: local policy or receipt changed.')
   for (const record of conditions.records)
     assertBatchRecord(
       record,

@@ -126,3 +126,65 @@ describe('conditional NodeStore transactions', () => {
     expect((await store.get(node.id))?.deleted).toBe(false)
   })
 })
+
+describe('device-local authority and receipts', () => {
+  it('atomically persists policy and receipts, rejects revocation races, and survives a new store', async () => {
+    const { store, storage, node } = await setup()
+    const deadline = Date.now() + 5000
+    await store.transaction([], {
+      nodes: [],
+      deadline,
+      localState: [{ key: 'grant', expected: null, value: 'epoch-1' }]
+    })
+    const write = [
+      { type: 'update' as const, nodeId: node.id, options: { properties: { title: 'After' } } }
+    ]
+    const conditions = {
+      nodes: [{ id: node.id, expected: node }],
+      deadline,
+      localState: [{ key: 'grant', expected: 'epoch-1' }],
+      receipt: { key: 'request-1', context: 'host attribution' }
+    }
+    const result = await store.transaction(write, conditions)
+    const receipt = JSON.parse((await store.getLocalState('request-1'))!)
+    expect(receipt.results).toEqual(result.results)
+    expect(receipt.heads).toEqual(result.heads)
+    expect(receipt.context).toBe('host attribution')
+    await store.transaction([], {
+      nodes: [],
+      deadline,
+      localState: [{ key: 'grant', expected: 'epoch-1', value: 'revoked' }]
+    })
+    const current = await store.get(node.id)
+    await expect(
+      store.transaction(write, {
+        ...conditions,
+        nodes: [{ id: node.id, expected: current }],
+        receipt: { key: 'request-2', context: '' }
+      })
+    ).rejects.toThrow('policy')
+    expect(await store.getLocalState('request-2')).toBeNull()
+    await expect(
+      store.transaction([], {
+        nodes: [],
+        deadline,
+        localState: [{ key: 'grant', expected: null, value: 'resurrected' }]
+      })
+    ).rejects.toThrow('policy')
+    expect(await storage.getAppState('grant')).toBe('revoked')
+  })
+  it('rolls local state back with a failing outer memory transaction', async () => {
+    const { store, storage } = await setup()
+    await expect(
+      storage.withTransaction(async () => {
+        await store.transaction([], {
+          nodes: [],
+          deadline: Date.now() + 5000,
+          localState: [{ key: 'grant', expected: null, value: 'approved' }]
+        })
+        throw new Error('rollback')
+      })
+    ).rejects.toThrow('rollback')
+    expect(await store.getLocalState('grant')).toBeNull()
+  })
+})

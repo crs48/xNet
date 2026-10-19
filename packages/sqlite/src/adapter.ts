@@ -129,6 +129,7 @@ export interface SQLiteAdapter {
    * array of repeated SQL strings over Comlink.
    */
   readonly supportsConditionalBatches?: boolean
+  readonly supportsLocalStateTransactions?: boolean
   applyNodeBatch?(input: SQLiteNodeBatchApplyInput): Promise<SQLiteNodeBatchApplyResult>
 
   /**

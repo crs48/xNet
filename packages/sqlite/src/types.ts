@@ -228,6 +228,7 @@ export interface SQLiteNodeBatchFtsRow {
 
 export interface SQLiteNodeBatchApplyInput {
   conditions?: {
+    localState?: readonly { key: string; expected: string | null; value?: string | null }[]
     deadline: number
     records: {
       id: string
