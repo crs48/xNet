@@ -3,7 +3,7 @@ import type { CommunityData } from './use-community-data'
 import { PageSchema, TaskSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 
-export type ExtensionSelection = Pick<ExtensionGrant, 'channelIds' | 'records'>
+export type ExtensionSelection = Pick<ExtensionGrant, 'channelIds' | 'records' | 'taskWrites'>
 
 export function canReadExtensionChannel(data: CommunityData, id: string): boolean {
   const channel = data.channels.find((channel) => channel.id === id)
@@ -81,6 +81,7 @@ export function ExtensionDataPicker({
                 onChange={(event) =>
                   onChange({
                     ...selection,
+                    taskWrites: undefined,
                     records: event.target.checked
                       ? [...selection.records, { id: record.id, schemaId: record.schemaId }]
                       : selection.records.filter((item) => item.id !== record.id)
@@ -99,6 +100,61 @@ export function ExtensionDataPicker({
           are not shared.
         </p>
       </details>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={!!selection.taskWrites}
+          onChange={(event) =>
+            onChange({
+              ...selection,
+              taskWrites: event.target.checked
+                ? {
+                    ids: selection.records
+                      .filter((record) => record.schemaId === TaskSchema._schemaId)
+                      .map((record) => record.id),
+                    create: false,
+                    remove: false
+                  }
+                : undefined
+            })
+          }
+        />
+        Allow editing selected private tasks
+      </label>
+      {selection.taskWrites && (
+        <div className="space-y-2 border-l border-border pl-3">
+          <p className="text-muted-foreground">
+            Title, status, completion, priority, and due date only. Tasks in shared spaces or
+            containers cannot be edited.
+          </p>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={selection.taskWrites.create}
+              onChange={(event) =>
+                onChange({
+                  ...selection,
+                  taskWrites: { ...selection.taskWrites!, create: event.target.checked }
+                })
+              }
+            />
+            Allow creating private tasks
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={selection.taskWrites.remove}
+              onChange={(event) =>
+                onChange({
+                  ...selection,
+                  taskWrites: { ...selection.taskWrites!, remove: event.target.checked }
+                })
+              }
+            />
+            Allow deleting and restoring these tasks
+          </label>
+        </div>
+      )}
     </fieldset>
   )
 }

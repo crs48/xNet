@@ -11,13 +11,19 @@ import {
   extensionExamples,
   type ChatPreviewNode
 } from './agent-extension'
+import { createExtensionBroker } from './extension-broker'
 import {
   grantKey,
   readExtensionGrant,
   subscribeExtensionData,
   type ExtensionGrant
 } from './extension-data'
-import { compileChatExtension, runChatExtension } from './extension-sandbox'
+import { readableNode } from './extension-data'
+import {
+  compileChatExtension,
+  startChatExtension,
+  type ExtensionSession
+} from './extension-sandbox'
 import {
   ExtensionDataPicker,
   canReadExtensionChannel,
@@ -34,19 +40,53 @@ interface Revision {
   createdAt: number
   base?: string
 }
-function PreviewTree({ node }: { node: ChatPreviewNode }) {
+function PreviewTree({
+  node,
+  session
+}: {
+  node: ChatPreviewNode
+  session: ExtensionSession | null
+}) {
   const styles = {
     stack: 'flex flex-col gap-3',
     grid: 'grid grid-cols-1 gap-3 sm:grid-cols-2',
     card: 'rounded-xl border border-border p-4',
     text: 'whitespace-pre-wrap text-sm leading-6',
-    badge: 'inline-block self-start rounded-full bg-muted px-3 py-1 text-xs'
+    badge: 'inline-block self-start rounded-full bg-muted px-3 py-1 text-xs',
+    button: secondaryButton,
+    input: inputClass
   }
+  if (node.type === 'button')
+    return (
+      <button
+        className={secondaryButton}
+        disabled={node.disabled}
+        aria-label={node.label}
+        onClick={() => session?.event(node.id!, 'click')}
+      >
+        {node.text}
+        {node.children?.map((child, index) => (
+          <PreviewTree key={index} node={child} session={session} />
+        ))}
+      </button>
+    )
+  if (node.type === 'input')
+    return (
+      <input
+        className={inputClass}
+        aria-label={node.label ?? 'Extension input'}
+        disabled={node.disabled}
+        value={node.value ?? ''}
+        placeholder={node.placeholder}
+        maxLength={node.maxLength ?? 2000}
+        onChange={(event) => session?.event(node.id!, 'input', event.target.value)}
+      />
+    )
   return (
     <div className={styles[node.type]}>
       {node.text}
       {node.children?.map((child, index) => (
-        <PreviewTree key={index} node={child} />
+        <PreviewTree key={index} node={child} session={session} />
       ))}
     </div>
   )
@@ -84,6 +124,9 @@ export function ChatExtensionPanel({
   })
   const [grant, setGrant] = useState<ExtensionGrant | null>(null)
   const [build, setBuild] = useState<{ code: string; hash: string } | null>(null)
+  const liveSession = useRef<ExtensionSession | null>(null)
+  const brokerRef = useRef<ReturnType<typeof createExtensionBroker> | null>(null)
+  const [lastReceipt, setLastReceipt] = useState<string | null>(null)
   const liveOperation = useRef<AbortController | null>(null)
   const currentData = useRef(data)
   currentData.current = data
@@ -233,7 +276,11 @@ export function ChatExtensionPanel({
             : null
         if (approved) {
           localStorage.setItem(key, JSON.stringify(approved))
-          setSelection({ channelIds: approved.channelIds, records: approved.records })
+          setSelection({
+            channelIds: approved.channelIds,
+            records: approved.records,
+            taskWrites: approved.taskWrites
+          })
           setGrant(approved)
         }
         setRevision(next)
@@ -269,13 +316,25 @@ export function ChatExtensionPanel({
     ]
   )
   const revoke = () => {
+    const retiringOperation = operation.current
+    const draining = brokerRef.current?.revoke()
+    brokerRef.current = null
+    liveSession.current?.stop()
+    liveSession.current = null
+    setLastReceipt(null)
     operation.current?.abort()
     liveOperation.current?.abort()
     setGrant(null)
     setTree(null)
     setBusy(false)
     setError('')
-    setStatus('Access revoked. The extension has stopped and its view is cleared.')
+    setStatus('Stopping extension access…')
+    void Promise.resolve(draining).then(() => {
+      if (operation.current === retiringOperation && !liveSession.current)
+        setStatus(
+          'Access revoked. The extension has stopped. Previously accepted edits have finished.'
+        )
+    })
     if (data.did && build) {
       try {
         localStorage.removeItem(grantKey(data.did, channelId, build.hash))
@@ -291,47 +350,91 @@ export function ChatExtensionPanel({
     if (!grant || !build || !data.bridge) return
     setTree(null)
     let stopped = false
-    let timer: ReturnType<typeof setTimeout> | undefined
-    const render = (dataset: Parameters<typeof runChatExtension>[1]) => {
-      liveOperation.current?.abort()
-      const controller = new AbortController()
-      liveOperation.current = controller
-      setBusy(true)
-      void runChatExtension(build.code, dataset, channelId, controller.signal)
-        .then((result) => {
-          if (stopped || controller.signal.aborted) return
-          setTree(result)
-          setError('')
-          setStatus(`Live xNet data · ${dataset.nodes.length} approved records · read-only`)
-        })
-        .catch((cause) => {
-          if (stopped || controller.signal.aborted) return
-          setTree(null)
-          setError(String(cause))
-        })
-        .finally(() => {
-          if (!stopped && !controller.signal.aborted) setBusy(false)
-        })
-    }
-    const unsubscribe = subscribeExtensionData(
+    setLastReceipt(null)
+    const controller = new AbortController()
+    liveOperation.current = controller
+    const broker = createExtensionBroker(
       data.bridge,
       grant,
-      (id) => canReadExtensionChannel(currentData.current, id),
-      (result) => {
-        clearTimeout(timer)
-        liveOperation.current?.abort()
-        setTree(null)
-        if (result.error) {
-          setError(result.error.message)
-          setBusy(false)
-          return
-        }
-        if (result.data) {
-          const dataset = result.data
-          timer = setTimeout(() => render(dataset), 100)
-        }
-      }
+      () =>
+        !stopped &&
+        currentData.current.did === grant.owner &&
+        grant.channelIds.every((id) => canReadExtensionChannel(currentData.current, id))
     )
+    brokerRef.current = broker
+    let unsubscribe = () => {}
+    let session: ExtensionSession | null = null
+    const subscribe = () => {
+      unsubscribe()
+      const records = [
+        ...grant.records,
+        ...broker
+          .createdRecords()
+          .filter((record) => !grant.records.some((existing) => existing.id === record.id))
+      ]
+      unsubscribe = subscribeExtensionData(
+        data.bridge!,
+        { ...grant, records },
+        (id) => canReadExtensionChannel(currentData.current, id),
+        (result) => {
+          if (stopped) return
+          if (result.error) {
+            void broker.revoke()
+            session?.stop()
+            setTree(null)
+            setError(result.error.message)
+            setBusy(false)
+            return
+          }
+          if (!result.data) return
+          if (session) session.update(result.data)
+          else {
+            session = startChatExtension(
+              build.code,
+              result.data,
+              channelId,
+              {
+                view: (view) => {
+                  if (!stopped) {
+                    setTree(view)
+                    setBusy(false)
+                    setError('')
+                  }
+                },
+                error: (error) => {
+                  void broker.revoke()
+                  if (!stopped) {
+                    setTree(null)
+                    setError(error.message)
+                    setBusy(false)
+                  }
+                },
+                request: async (request) => {
+                  const result = await broker.request(request)
+                  if (!broker.active) throw new Error('Extension access stopped.')
+                  setLastReceipt(result.receipt)
+                  subscribe()
+                  return {
+                    batchId: result.batchId,
+                    receipt: result.receipt,
+                    tempIds: {},
+                    results: result.results.map((node) =>
+                      node ? { ...readableNode(node), deleted: node.deleted } : null
+                    )
+                  }
+                }
+              },
+              controller.signal
+            )
+            liveSession.current = session
+          }
+          setStatus(
+            `Live xNet data · ${result.data.nodes.length} approved records${grant.taskWrites ? ' · private task editing enabled' : ' · read-only'}`
+          )
+        }
+      )
+    }
+    subscribe()
     // An expiring membership can revoke access without a store change.
     let expiryTimer: ReturnType<typeof setTimeout> | undefined
     const checkMembership = () => {
@@ -356,10 +459,12 @@ export function ChatExtensionPanel({
     checkMembership()
     return () => {
       stopped = true
-      clearTimeout(timer)
       clearTimeout(expiryTimer)
       unsubscribe()
-      liveOperation.current?.abort()
+      void broker.revoke()
+      session?.stop()
+      controller.abort()
+      if (brokerRef.current === broker) brokerRef.current = null
     }
   }, [grant, build, data.bridge, channelId, permissions])
   useEffect(() => {
@@ -395,7 +500,7 @@ export function ChatExtensionPanel({
         <p className="text-xs leading-5 text-muted-foreground">{summary}</p>
         <div className="rounded-lg bg-muted p-3 text-xs leading-5">
           Uses real xNet React hooks with the data you select. Each version needs your approval.
-          Read-only views run in an isolated worker with no network or device access.
+          Views run in an isolated worker. You can also allow edits to selected private tasks.
         </div>
         <details className="text-xs">
           <summary className="cursor-pointer">Try a data-driven example</summary>
@@ -490,9 +595,34 @@ export function ChatExtensionPanel({
             {error}
           </p>
         )}
+        {lastReceipt && (
+          <button
+            className={secondaryButton}
+            onClick={() => {
+              const broker = brokerRef.current
+              if (!broker) return
+              void broker
+                .request({
+                  version: 1,
+                  id: crypto.randomUUID(),
+                  operation: 'data.undo',
+                  receipt: lastReceipt
+                })
+                .then(() => {
+                  setLastReceipt(null)
+                  setStatus('Extension edit undone.')
+                })
+                .catch((error: unknown) =>
+                  setError(error instanceof Error ? error.message : 'Undo failed.')
+                )
+            }}
+          >
+            Undo last extension edit
+          </button>
+        )}
         {tree && (
           <div className="rounded-xl border border-border p-4">
-            <PreviewTree node={tree} />
+            <PreviewTree node={tree} session={liveSession.current} />
           </div>
         )}
         {revision && (
@@ -502,7 +632,7 @@ export function ChatExtensionPanel({
             </p>
             <p>
               {grant
-                ? `${grant.channelIds.length} conversations · ${grant.records.length} individual records · read-only`
+                ? `${grant.channelIds.length} conversations · ${grant.records.length} individual records · ${grant.taskWrites ? 'private task editing' : 'read-only'}`
                 : 'No data access granted.'}
             </p>
             <p className="break-all text-[10px] text-muted-foreground">

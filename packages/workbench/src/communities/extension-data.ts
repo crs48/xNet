@@ -1,11 +1,12 @@
 import type { NodeState, PropertyBuilder } from '@xnetjs/data'
-import type { DataBridge, QuerySubscription } from '@xnetjs/data-bridge'
+import type { DataBridge, QueryMetadata, QuerySubscription } from '@xnetjs/data-bridge'
 import { ChannelSchema, ChatMessageSchema, PageSchema, TaskSchema } from '@xnetjs/data'
 import { applyQueryDescriptor, createQueryDescriptor } from '@xnetjs/data-bridge'
 
 export const extensionSchemas = [ChannelSchema, ChatMessageSchema, PageSchema, TaskSchema]
 export const EXTENSION_DATA_LIMIT = 200
 export interface ExtensionGrant {
+  taskWrites?: { ids: string[]; create: boolean; remove: boolean }
   version: 1
   owner: string
   hash: string
@@ -24,6 +25,9 @@ export function readExtensionGrant(text: string, owner: string, hash: string): E
   if (!value || typeof value !== 'object') throw new Error('Extension access is unreadable.')
   const grant = value as ExtensionGrant
   if (
+    Object.keys(grant).some(
+      (key) => !['version', 'owner', 'hash', 'channelIds', 'records', 'taskWrites'].includes(key)
+    ) ||
     grant.version !== 1 ||
     grant.owner !== owner ||
     grant.hash !== hash ||
@@ -43,14 +47,33 @@ export function readExtensionGrant(text: string, owner: string, hash: string): E
     )
   )
     throw new Error('Extension access does not match this user, version, or supported data scope.')
+  if (
+    grant.taskWrites &&
+    (!Array.isArray(grant.taskWrites.ids) ||
+      grant.taskWrites.ids.some(
+        (id) => !grant.records.some((r) => r.id === id && r.schemaId === TaskSchema._schemaId)
+      ) ||
+      typeof grant.taskWrites.create !== 'boolean' ||
+      typeof grant.taskWrites.remove !== 'boolean' ||
+      Object.keys(grant.taskWrites).some((key) => !['ids', 'create', 'remove'].includes(key)))
+  )
+    throw new Error('Invalid task editing grant.')
   return grant
 }
 
-function readableNode(node: NodeState): NodeState {
+const visibleFields: Record<string, readonly string[]> = {
+  [TaskSchema._schemaId]: ['title', 'status', 'completed', 'priority', 'dueDate'],
+  [PageSchema._schemaId]: ['title', 'icon'],
+  [ChannelSchema._schemaId]: ['name', 'description'],
+  [ChatMessageSchema._schemaId]: ['channel', 'content', 'author', 'createdAt']
+}
+export function readableNode(node: NodeState): NodeState {
   return {
     id: node.id,
     schemaId: node.schemaId,
-    properties: node.properties,
+    properties: Object.fromEntries(
+      Object.entries(node.properties).filter(([key]) => visibleFields[node.schemaId]?.includes(key))
+    ),
     timestamps: {},
     createdAt: node.createdAt,
     createdBy: node.createdBy,
@@ -108,7 +131,10 @@ export function subscribeExtensionData(
         }
       }
       const dataset = { grant, nodes: [...nodes.values()] }
-      if (dataset.nodes.length > 500 || JSON.stringify(dataset).length > 256_000)
+      if (
+        dataset.nodes.length > 500 ||
+        new TextEncoder().encode(JSON.stringify(dataset)).length > 256_000
+      )
         throw new Error('The selected data exceeds the preview limit. Choose fewer records.')
       receive({ data: dataset, error: null })
     } catch (cause) {
@@ -168,6 +194,7 @@ export function createExtensionDataBridge(dataset: ExtensionDataset): DataBridge
   const { grant } = dataset
   const allowedSchemas = new Set([
     ...(grant.channelIds.length ? [ChannelSchema._schemaId, ChatMessageSchema._schemaId] : []),
+    ...(grant.taskWrites?.create ? [TaskSchema._schemaId] : []),
     ...grant.records.map((record) => record.schemaId)
   ])
   const allowed = (node: NodeState) =>
@@ -183,6 +210,9 @@ export function createExtensionDataBridge(dataset: ExtensionDataset): DataBridge
   const deny = () => {
     throw new Error('Extension access denied: this version has read-only access to selected data.')
   }
+  const denyQuery = () => {
+    throw new Error('Extension access denied: this query is outside the approved data scope.')
+  }
   return {
     query(schema, options = {}) {
       if (
@@ -191,7 +221,7 @@ export function createExtensionDataBridge(dataset: ExtensionDataset): DataBridge
         (options.source && options.source !== 'local' && options.source !== 'auto') ||
         (options.mode && options.mode !== 'local')
       )
-        return deny()
+        return denyQuery()
       if (
         options.nodeId &&
         !nodes.some((node) => node.id === options.nodeId && node.schemaId === schema._schemaId) &&
@@ -200,17 +230,64 @@ export function createExtensionDataBridge(dataset: ExtensionDataset): DataBridge
         ) &&
         !(schema._schemaId === ChannelSchema._schemaId && grant.channelIds.includes(options.nodeId))
       )
-        return deny()
+        return denyQuery()
       const channel = (options.where as Record<string, unknown> | undefined)?.channel
       if (
         schema._schemaId === ChatMessageSchema._schemaId &&
         channel !== undefined &&
         !grant.channelIds.includes(String(channel))
       )
-        return deny()
+        return denyQuery()
+      const fields = visibleFields[schema._schemaId] ?? []
+      if (
+        Object.keys(options).some(
+          (key) =>
+            ![
+              'nodeId',
+              'where',
+              'orderBy',
+              'limit',
+              'offset',
+              'includeDeleted',
+              'source',
+              'mode'
+            ].includes(key)
+        ) ||
+        Object.keys(options.where ?? {}).some((key) => !fields.includes(key)) ||
+        Object.keys(options.orderBy ?? {}).some(
+          (key) => !fields.includes(key) && !['createdAt', 'updatedAt'].includes(key)
+        ) ||
+        [options.limit, options.offset].some(
+          (value) =>
+            value !== undefined && (!Number.isSafeInteger(value) || value < 0 || value > 500)
+        )
+      )
+        throw new Error('Extension query uses an unavailable field or option.')
       const descriptor = createQueryDescriptor(schema._schemaId, options)
       const data = applyQueryDescriptor(nodes, descriptor)
-      return { getSnapshot: () => data, subscribe: () => () => {} }
+      const total = applyQueryDescriptor(nodes, {
+        ...descriptor,
+        limit: undefined,
+        offset: undefined
+      }).length
+      const hasMore = total > (options.offset ?? 0) + data.length
+      const metadata: QueryMetadata = {
+        source: 'memory',
+        updatedAt: Date.now(),
+        pageInfo: {
+          totalCount: total,
+          countMode: 'exact',
+          hasMore,
+          hasNextPage: hasMore,
+          hasPreviousPage: (options.offset ?? 0) > 0,
+          loadedCount: data.length
+        },
+        completeness: {
+          level: hasMore ? 'partial' : 'complete',
+          ...(hasMore ? { reason: 'page-limited' as const } : {})
+        }
+      }
+      return { getSnapshot: () => data, getMetadata: () => metadata, subscribe: () => () => {} }
     },
     create: deny,
     update: deny,

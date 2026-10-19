@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-19-chat-extensions-can-edit-selected-tasks",
+  "date": "October 19, 2026",
+  "title": "Chat extensions can edit selected tasks",
+  "summary": "Interactive chat extensions use real xNet hooks to create and edit approved private tasks, with live updates, revocation, and undo.",
+  "highlights": [],
+  "tags": ["app", "ai", "plugins", "tasks"],
+  "pr": 728
+}

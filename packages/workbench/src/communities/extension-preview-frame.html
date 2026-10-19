@@ -10,29 +10,31 @@
       if (event.source !== parent || event.data !== 'xnet-preview-connect' || !event.ports[0])
         return
       const port = event.ports[0]
-      let started = false
-      port.onmessage = ({ data }) => {
-        if (started) return
-        started = true
-        const url = URL.createObjectURL(new Blob([data.runtimeSource], { type: 'text/javascript' }))
-        const worker = new Worker(url)
-        const stop = () => {
-          worker.terminate()
-          URL.revokeObjectURL(url)
-        }
-        worker.onmessage = (event) => {
-          port.postMessage(event.data)
-          stop()
-        }
-        worker.onerror = (event) => {
-          port.postMessage({
-            ok: false,
-            error: event.message || 'The extension runtime failed to load.'
-          })
-          stop()
-        }
-        worker.postMessage({ code: data.code, dataset: data.dataset, channelId: data.channelId })
+      let worker, url
+      const stop = () => {
+        worker?.terminate()
+        if (url) URL.revokeObjectURL(url)
+        port.close()
       }
+      port.onmessage = ({ data }) => {
+        if (data.type === 'stop') {
+          stop()
+          return
+        }
+        if (!worker) {
+          if (data.type !== 'start' || typeof data.runtimeSource !== 'string') return
+          url = URL.createObjectURL(new Blob([data.runtimeSource], { type: 'text/javascript' }))
+          worker = new Worker(url)
+          worker.onmessage = (event) => port.postMessage(event.data)
+          worker.onerror = () => {
+            port.postMessage({ type: 'error', message: 'The extension runtime failed.' })
+            stop()
+          }
+        }
+        const { runtimeSource, ...message } = data
+        worker.postMessage(message)
+      }
+      window.addEventListener('pagehide', stop, { once: true })
       port.start()
       port.postMessage({ ready: true })
     },

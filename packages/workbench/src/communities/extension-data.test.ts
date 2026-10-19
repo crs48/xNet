@@ -108,6 +108,28 @@ describe('extension data grants', () => {
       createExtensionDataBridge({ grant, nodes: [node('secret', TaskSchema._schemaId, {})] })
     ).toThrow('outside')
   })
+  it('allows an empty task view for creation without exposing existing unselected tasks', () => {
+    const creation = {
+      ...grant,
+      channelIds: [],
+      records: [],
+      taskWrites: { ids: [], create: true, remove: false }
+    }
+    const bridge = createExtensionDataBridge({ grant: creation, nodes: [] })
+    expect(bridge.query(TaskSchema).getSnapshot()).toEqual([])
+    expect(() => bridge.query(TaskSchema, { nodeId: 'task-a' })).toThrow('denied')
+    expect(() => createExtensionDataBridge({ grant: creation, nodes: [task] })).toThrow('outside')
+  })
+  it('rejects hidden-field queries and reports counts only within the approved subset', () => {
+    const bridge = createExtensionDataBridge(dataset)
+    expect(() => bridge.query(TaskSchema, { where: { visibility: 'private' } })).toThrow()
+    expect(() => bridge.query(TaskSchema, { orderBy: { space: 'asc' } })).toThrow()
+    expect(() => bridge.query(TaskSchema, { limit: -1 })).toThrow()
+    expect(() => bridge.query(TaskSchema, { offset: 1.5 })).toThrow()
+    const query = bridge.query(TaskSchema, { limit: 0 })
+    expect(query.getSnapshot()).toEqual([])
+    expect(query.getMetadata?.()?.pageInfo?.totalCount).toBe(1)
+  })
   it('subscribes only to approved selections, forwards updates, and stops on revocation', () => {
     const store = host([
       ...dataset.nodes,

@@ -39,8 +39,8 @@ const compile = (source: string) =>
   transformSync(source, { loader: 'tsx', format: 'cjs', jsx: 'automatic' }).code
 
 describe('isolated xNet React extension runtime', () => {
-  it('renders every example through real useQuery and real xNet primitives', () => {
-    for (const [index, text] of ['Arrival', 'Film club', 'Choose a film'].entries()) {
+  it('keeps the legacy read-only examples compatible with static rendering', () => {
+    for (const [index, text] of ['Arrival', 'Film club'].entries()) {
       const tree = renderExtension(compile(extensionExamples[index].source), dataset, 'chat')
       expect(JSON.stringify(tree)).toContain(text)
     }

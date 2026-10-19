@@ -1,6 +1,7 @@
 import type { ExtensionDataset } from './extension-data'
 import runtimeSource from 'virtual:xnet-extension-runtime?raw'
 import { readPreviewTree, type ChatPreviewNode } from './agent-extension'
+import { ExtensionAccessError } from './extension-protocol'
 
 /** Untrusted code runs only in a terminable worker inside an opaque-origin frame. */
 export async function compileChatExtension(
@@ -48,67 +49,139 @@ export async function compileChatExtension(
     hash: [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
   }
 }
-export function runChatExtension(
+export interface ExtensionSession {
+  update(dataset: ExtensionDataset): void
+  event(id: string, event: 'click' | 'input', value?: string): void
+  stop(): void
+}
+export function startChatExtension(
   code: string,
   dataset: ExtensionDataset,
   channelId: string,
+  callbacks: {
+    view: (tree: ChatPreviewNode) => void
+    error: (error: Error) => void
+    request: (input: unknown) => Promise<unknown>
+  },
   signal?: AbortSignal
-): Promise<ChatPreviewNode> {
+): ExtensionSession {
   signal?.throwIfAborted()
-  if (dataset.nodes.length > 500 || JSON.stringify(dataset).length > 256000 || code.length > 100000)
-    return Promise.reject(new Error('Preview input exceeds its limits.'))
-  return new Promise((resolve, reject) => {
-    const frame = document.createElement('iframe')
-    frame.setAttribute('sandbox', 'allow-scripts')
-    frame.setAttribute('aria-hidden', 'true')
-    frame.hidden = true
-    const channel = new MessageChannel()
-    let settled = false
-    let started = false
-    let received = 0
-    const finish = (tree?: ChatPreviewNode, error?: Error) => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      signal?.removeEventListener('abort', cancel)
-      channel.port1.close()
-      channel.port2.close()
-      frame.remove()
-      if (error) reject(error)
-      else if (tree) resolve(tree)
-      else reject(new Error('The preview returned no view.'))
+  const frame = document.createElement('iframe')
+  frame.setAttribute('sandbox', 'allow-scripts')
+  frame.setAttribute('aria-hidden', 'true')
+  frame.hidden = true
+  const channel = new MessageChannel()
+  let stopped = false,
+    started = false,
+    revision = 0,
+    pong = Date.now(),
+    count = 0,
+    windowStart = Date.now()
+  let current = dataset
+  const send = (message: unknown) => {
+    if (!stopped && started) channel.port1.postMessage(message)
+  }
+  const stop = () => {
+    if (stopped) return
+    send({ type: 'stop' })
+    stopped = true
+    clearInterval(heartbeat)
+    signal?.removeEventListener('abort', stop)
+    channel.port1.close()
+    channel.port2.close()
+    frame.remove()
+  }
+  const fail = (cause: unknown) => {
+    stop()
+    callbacks.error(cause instanceof Error ? cause : new Error(String(cause)))
+  }
+  const checkDataset = (value: ExtensionDataset) => {
+    if (value.nodes.length > 500 || new TextEncoder().encode(JSON.stringify(value)).length > 256000)
+      throw new Error('Extension data exceeds its limit.')
+  }
+  let wasHidden = document.visibilityState === 'hidden'
+  const heartbeat = setInterval(() => {
+    // Chromium throttles workers when an Electron window is occluded. A delayed
+    // background heartbeat is not proof of a hung extension.
+    const hidden = document.visibilityState === 'hidden'
+    if (hidden || wasHidden) {
+      pong = Date.now()
+      wasHidden = hidden
+      return
     }
-    const cancel = () => finish(undefined, new Error('Preview stopped.'))
-    const timer = setTimeout(
-      () => finish(undefined, new Error('Preview exceeded two seconds and was stopped.')),
-      2000
-    )
-    signal?.addEventListener('abort', cancel, { once: true })
-    channel.port1.onmessage = ({ data }: MessageEvent<unknown>) => {
-      try {
-        if (++received > 4) throw new Error('Too many preview messages.')
-        if (!data || typeof data !== 'object' || JSON.stringify(data).length > 66000)
-          throw new Error('Malformed or oversized preview response.')
-        const result = data as Record<string, unknown>
-        if (result.ready === true) {
-          if (started) throw new Error('Unexpected preview handshake.')
-          started = true
-          channel.port1.postMessage({ runtimeSource, code, dataset, channelId })
-          return
-        }
-        if (result.ok !== true)
-          throw new Error(
-            typeof result.error === 'string' ? result.error.slice(0, 1000) : 'The extension failed.'
-          )
-        finish(readPreviewTree(result.tree))
-      } catch (cause) {
-        finish(undefined, cause instanceof Error ? cause : new Error(String(cause)))
+    if (Date.now() - pong > 2500)
+      fail(new Error('The extension stopped responding and was terminated.'))
+    else send({ type: 'ping' })
+  }, 500)
+  signal?.addEventListener('abort', stop, { once: true })
+  channel.port1.onmessage = ({ data }: MessageEvent<unknown>) => {
+    if (stopped) return
+    try {
+      if (Date.now() - windowStart > 1000) {
+        count = 0
+        windowStart = Date.now()
       }
+      if (
+        ++count > 100 ||
+        !data ||
+        typeof data !== 'object' ||
+        new TextEncoder().encode(JSON.stringify(data)).length > 66000
+      )
+        throw new Error('Malformed or excessive extension messages.')
+      const value = data as Record<string, unknown>
+      if (value.ready === true) {
+        if (started) throw new Error('Duplicate extension handshake.')
+        checkDataset(current)
+        started = true
+        send({ type: 'start', runtimeSource, code, dataset: current, channelId })
+      } else if (value.type === 'pong') pong = Date.now()
+      else if (value.type === 'view') {
+        if (!Number.isSafeInteger(value.revision) || Number(value.revision) <= revision)
+          throw new Error('Invalid view revision.')
+        revision = Number(value.revision)
+        callbacks.view(readPreviewTree(value.tree))
+      } else if (value.type === 'request') {
+        const request = value.request
+        // Policy errors are returned to the calling hook; host internals never cross the port.
+        void callbacks.request(request).then(
+          (result) => send({ type: 'result', id: (request as { id?: unknown })?.id, result }),
+          (error: unknown) =>
+            send({
+              type: 'result',
+              id: (request as { id?: unknown })?.id,
+              error:
+                error instanceof ExtensionAccessError
+                  ? error.message.slice(0, 300)
+                  : 'The edit could not be committed. Refresh the preview and try again.'
+            })
+        )
+      } else if (value.type === 'error')
+        throw new Error(
+          typeof value.message === 'string' ? value.message.slice(0, 1000) : 'The extension failed.'
+        )
+      else throw new Error('Unknown extension message.')
+    } catch (cause) {
+      fail(cause)
     }
-    channel.port1.onmessageerror = () => finish(undefined, new Error('Invalid preview message.'))
-    frame.onload = () =>
-      frame.contentWindow?.postMessage('xnet-preview-connect', '*', [channel.port2])
-    frame.src = new URL('./extension-preview-frame.html', import.meta.url).href
-    document.body.append(frame)
-  })
+  }
+  channel.port1.onmessageerror = () => fail(new Error('Invalid extension message.'))
+  frame.onload = () =>
+    frame.contentWindow?.postMessage('xnet-preview-connect', '*', [channel.port2])
+  frame.src = new URL('./extension-preview-frame.html', import.meta.url).href
+  document.body.append(frame)
+  return {
+    update(next) {
+      try {
+        checkDataset(next)
+        current = next
+        send({ type: 'update', dataset: next })
+      } catch (cause) {
+        fail(cause)
+      }
+    },
+    event(id, event, value) {
+      send({ type: 'event', id, event, value, revision })
+    },
+    stop
+  }
 }

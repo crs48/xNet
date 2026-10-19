@@ -4,8 +4,14 @@ export interface ChatExtensionProposal {
   source: string
 }
 export interface ChatPreviewNode {
-  type: 'stack' | 'grid' | 'card' | 'text' | 'badge'
+  type: 'stack' | 'grid' | 'card' | 'text' | 'badge' | 'button' | 'input'
   text?: string
+  id?: string
+  label?: string
+  disabled?: boolean
+  value?: string
+  placeholder?: string
+  maxLength?: number
   children?: ChatPreviewNode[]
 }
 export interface ChatPreviewMessage {
@@ -13,7 +19,7 @@ export interface ChatPreviewMessage {
   content: string
 }
 export const CHAT_PREVIEW_POLICY =
-  'chat-preview-v2: approved live records; React useQuery; read-only; no network or host APIs'
+  'chat-preview-v3: scoped live React hooks; approved private task commands; no network or host APIs'
 export function readExtensionProposal(text: string): ChatExtensionProposal {
   if (text.length > 128000) throw new Error('The proposal is too large.')
   const parsed: unknown = JSON.parse(text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, ''))
@@ -43,10 +49,43 @@ export function readPreviewTree(value: unknown): ChatPreviewNode {
       throw new Error('Invalid or oversized extension view.')
     const node = value as Record<string, unknown>
     if (
-      !['stack', 'grid', 'card', 'text', 'badge'].includes(String(node.type)) ||
-      Object.keys(node).some((key) => !['type', 'text', 'children'].includes(key))
+      !['stack', 'grid', 'card', 'text', 'badge', 'button', 'input'].includes(String(node.type)) ||
+      Object.keys(node).some(
+        (key) =>
+          ![
+            'type',
+            'text',
+            'children',
+            'id',
+            'label',
+            'disabled',
+            'value',
+            'placeholder',
+            'maxLength'
+          ].includes(key)
+      )
     )
-      throw new Error('Extension views may only contain text and layout nodes.')
+      throw new Error('Extension views may only contain supported text, layout, and controls.')
+    for (const key of ['id', 'label', 'value', 'placeholder'])
+      if (
+        node[key] !== undefined &&
+        (typeof node[key] !== 'string' || (node[key] as string).length > 2000)
+      )
+        throw new Error('Invalid control property.')
+    if (
+      node.maxLength !== undefined &&
+      (!Number.isSafeInteger(node.maxLength) ||
+        Number(node.maxLength) < 0 ||
+        Number(node.maxLength) > 2000)
+    )
+      throw new Error('Invalid input length limit.')
+    if (node.disabled !== undefined && typeof node.disabled !== 'boolean')
+      throw new Error('Invalid disabled state.')
+    if (
+      ['button', 'input'].includes(String(node.type)) &&
+      (typeof node.id !== 'string' || !/^element-[0-9]+$/.test(node.id))
+    )
+      throw new Error('Invalid control identifier.')
     if (node.text !== undefined && typeof node.text !== 'string')
       throw new Error('Extension text must be a string.')
     textSize += typeof node.text === 'string' ? node.text.length : 0
@@ -54,6 +93,11 @@ export function readPreviewTree(value: unknown): ChatPreviewNode {
       throw new Error('Extension view exceeds its text or child limits.')
     return {
       type: node.type as ChatPreviewNode['type'],
+      ...Object.fromEntries(
+        ['id', 'label', 'disabled', 'value', 'placeholder', 'maxLength']
+          .filter((key) => node[key] !== undefined)
+          .map((key) => [key, node[key]])
+      ),
       ...(node.text !== undefined ? { text: node.text as string } : {}),
       ...(Array.isArray(node.children)
         ? { children: node.children.map((child) => visit(child, depth + 1)) }
@@ -100,14 +144,24 @@ export default function Conversations() {
   },
   {
     title: 'Selected tasks',
-    summary: 'A task list using useQuery(TaskSchema). Choose individual tasks below.',
-    source: `import { useQuery } from '@xnetjs/react'
+    summary:
+      'Interactive tasks using real useQuery and useMutate hooks. Select tasks and allow editing below.',
+    source: `import { useState } from 'react'
+import { useQuery, useMutate } from '@xnetjs/react'
 import { TaskSchema } from '@xnetjs/data'
-import { Badge } from '@xnetjs/ui'
+import { Badge, Button } from '@xnetjs/ui'
 export default function Tasks() {
+  const { update, create, isPending } = useMutate()
+  const [error, setError] = useState('')
+  const [title, setTitle] = useState('')
   const { data: tasks } = useQuery(TaskSchema, { orderBy: { updatedAt: 'desc' } })
   return <section><h2>My selected tasks</h2><Badge>{tasks.length} tasks</Badge>
-    {tasks.map(task => <article key={task.id}><p>{task.title}</p><Badge>{task.status}</Badge></article>)}
+    {tasks.map(task => <article key={task.id}><p>{task.title}</p><Badge>{task.status}</Badge>
+      <Button disabled={isPending} onClick={async () => { try { setError(''); await update(TaskSchema, task.id, { status: task.status === 'done' ? 'todo' : 'done', completed: task.status !== 'done' }) } catch (error) { setError(String(error)) } }}>{task.status === 'done' ? 'Reopen task' : 'Complete task'}</Button>
+    </article>)}
+    <input aria-label="New task title" value={title} onInput={event => setTitle(event.currentTarget.value)} />
+    <Button disabled={isPending || !title.trim()} onClick={async () => { try { setError(''); await create(TaskSchema, { title: title.trim(), status: 'todo' }); setTitle('') } catch (error) { setError(String(error)) } }}>Add private task</Button>
+    {error && <p>{error}</p>}
   </section>
 }`
   }

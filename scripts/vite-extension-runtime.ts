@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
-const entry = `${root}packages/workbench/src/communities/extension-runtime.worker.tsx`
+const entry = `${root}packages/workbench/src/communities/extension-live.worker.tsx`
 
 /** One self-contained program: the opaque worker cannot fetch modules from the host. */
 export function extensionRuntimePlugin() {

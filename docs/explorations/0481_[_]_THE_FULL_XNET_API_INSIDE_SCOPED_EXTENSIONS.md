@@ -1,6 +1,6 @@
 ---
 title: The full xNet API inside scoped extensions
-status: draft
+status: partially implemented
 last_updated: 2026-10-19
 review: 2026-11-02
 decider: Chris
@@ -13,7 +13,23 @@ tags: [extensions, permissions, sandboxing, react, agents, local-first]
 > [!TIP]
 > Give extensions the functionality of xNet through a **scoped client SDK**, backed by a host-owned capability broker. Keep real React hooks and xNet primitives wherever their contracts fit. Keep stores, credentials, sync transports, and permission administration behind the broker. The next useful milestone is an interactive task extension with scoped reads, writes, and undo.
 
-This is a design proposal, grounded in local commit `406e95e04` on `codex/chat-first-redesign`. It does not implement or approve the expanded permissions described below. The current chat prototype remains read-only. Revisit this proposal on November 2 after a small interactive prototype can establish the compatibility and authorization costs. The experiment is reversible; publishing a stable SDK or capability protocol will need a separate ADR with a tripwire.
+This proposal was grounded in local commit `406e95e04` on `codex/chat-first-redesign`. The October 19 local implementation now supports an interactive private-task prototype; the full API design remains **partially implemented**. Publishing a stable extension SDK still requires the broader authority model and an independent review. The filename is preserved so existing links remain valid.
+
+## Local implementation evidence — October 19
+
+The host now mounts real React in an isolated worker and reuses `useQuery` and `useMutate` through a restricted DataBridge. A closed command broker supports selected private-task fields, separately approved creation and deletion/restoration, session replay receipts, and undo that refuses later edits. Memory and supported SQLite paths check structured snapshots, optional change heads, and deadlines within the committing batch. Unsupported adapter/index/document guards fail explicitly. ADR-49 records this conditional-write primitive without accepting the complete extension protocol.
+
+The export inventory covers every declared entrypoint of the five SDK packages below, including legacy plugin services. Unapproved modules and named exports fail explicitly. [Scoped extension reference](../reference/scoped-extensions.md) records the working imports, limits, and remaining boundaries.
+
+Verified in the real apps:
+
+- Electron: approve one task, edit it, undo, create a task, receive an outside edit live, and revoke (the iframe is removed).
+- Local Codex: generate **Friday Tasks** conversationally, approve it, edit and create through the generated controls, and install that version locally.
+- Web: start with creation permission and no selected records, create/edit/undo a task through browser storage, revoke, reload, select the persisted task with read-only access, and verify a further edit is denied.
+- Unit/integration coverage: conditional native IPC commits and complete rollback on stale snapshots; missing/expired guards; temporary-ID rejection; index limitations; out-of-scope and mixed commands; protected fields; revoke during validation and drain during commit; undo permission and conflict checks; field masks; actual worker React lifecycles and hooks; unavailable named exports.
+- Inventory verification: `node scripts/extensions/inventory.mjs --check` and its in-memory export negative control (`--selftest`).
+
+This is not the final grant authority. Grants are host-owned local approvals; there is no storage-coupled installation epoch, durable command/receipt ledger, cross-device revocation, or general destination/disclosure proof yet. Accepted commits drain before local revocation is reported complete. Created tasks persist as xNet data, but their automatic scope inclusion lasts only for that runtime session; select them explicitly for subsequent sessions. The runtime uses bounded snapshots, not authority-bound cursors. Documents, richer components, schemas, assets, external effects, and background jobs remain unavailable. These gaps keep the corresponding items below unchecked.
 
 ## Problem and intended experience
 
@@ -392,19 +408,19 @@ Provisional budgets for the first spike—not measured performance claims:
 
 Measure cold startup, transferred bytes, query count, host-thread stalls, and memory with one and several concurrent extensions. The warm targets are design acceptance criteria to revisit with evidence. Browser workers provide a deadline/termination mechanism, not a hard heap limit; a memory stress test may still expose an app-wide denial of service. If that is unacceptable for a target audience, use a runtime with enforceable memory accounting and a suitable process/OS boundary before enabling that workload. An unsandboxed Node utility process alone is not the answer.
 
-## Implementation path
+## Implementation checklist
 
 ### Phase 1: interactive, scoped task application
 
-- [ ] Inventory public SDK exports and existing plugin entrypoints; create the coverage ledger and reject unclassified exports in the untrusted loader.
+- [x] Inventory public SDK exports and existing plugin entrypoints; create the coverage ledger and reject unclassified exports in the untrusted loader.
 - [ ] Define a versioned operation registry, codecs, structured `TaggedError` failures, caller binding, quotas, cancellation, and grant epochs.
 - [ ] Add an authoritative grant store and host permission sheet for exact records and selected containers; fail closed on unavailable policy state.
 - [ ] Implement a scoped DataBridge client with live query cache, honest pagination, field-aware filtering, and authority-partitioned cursors.
-- [ ] Refactor bridge-only hook dependencies; reuse actual `useQuery` and `useMutate` through the extension provider.
-- [ ] Prototype Remote DOM with a closed xNet component/event receiver; verify React compatibility before committing to it as a public API.
+- [x] Refactor bridge-only hook dependencies; reuse actual `useQuery` and `useMutate` through the extension provider.
+- [x] Prototype Remote DOM with a closed xNet component/event receiver; verify React compatibility before committing to it as a public API.
 - [ ] Add create and field-limited update commands, authority checks at commit, idempotent receipts, and conservative destination policy.
 - [ ] Add scoped delete/restore and receipt-based undo with conflict handling once create/update meet the same checks.
-- [ ] Convert the task example to interactive controls and have Codex generate an equivalent extension without a mode dropdown.
+- [x] Convert the task example to interactive controls and have Codex generate an equivalent extension without a mode dropdown.
 
 ### Phase 2: documents and application features
 
@@ -422,7 +438,7 @@ Measure cold startup, transferred bytes, query count, host-thread stalls, and me
 - [ ] Run an independent security review of the expanded boundary before describing it as suitable for sensitive third-party code.
 - [ ] Accept the stable public contract in a new ADR with a tripwire; keep ADR-48 as the historical read-only decision.
 
-## Validation and negative controls
+## Validation checklist and negative controls
 
 Keep implementation items unchecked until fresh evidence establishes them. Core policy/protocol tests belong in unit/integration suites; UI behavior is verified by driving the real Electron/web app, following repository guidance.
 
