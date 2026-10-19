@@ -1,4 +1,4 @@
-/** Read hooks for hosts that own their data bridge and its authorization policy. */
+/** Bridge hooks for hosts that own their data bridge and its authorization policy. */
 export { DataBridgeProvider, useDataBridge } from './context/data-bridge-context'
 export {
   useQuery,
@@ -6,3 +6,5 @@ export {
   type QueryListResult,
   type QuerySingleResult
 } from './hooks/useQuery'
+
+export { useMutate } from './hooks/useMutate'

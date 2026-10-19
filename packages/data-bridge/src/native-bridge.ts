@@ -37,6 +37,7 @@ import type {
   NodeBatchWriteResult,
   TransactionOperation
 } from '@xnetjs/data'
+import type { TransactionConditions } from '@xnetjs/data/store'
 import { QueryCache } from './query-cache'
 import {
   applyNodeChangeToQueryResult,
@@ -268,12 +269,20 @@ export class NativeBridge implements DataBridge {
     return this.store.batchWrite(input)
   }
 
-  async transaction(operations: TransactionOperation[]): Promise<BridgeTransactionResult> {
+  async transaction(
+    operations: TransactionOperation[],
+    conditions?: TransactionConditions
+  ): Promise<BridgeTransactionResult> {
     if (this.destroyed) {
       throw new Error('NativeBridge has been destroyed')
     }
-    const tx = await this.store.transaction(operations)
-    return { batchId: tx.batchId, results: tx.results, tempIds: tx.tempIds }
+    const tx = await this.store.transaction(operations, conditions)
+    return {
+      batchId: tx.batchId,
+      results: tx.results,
+      tempIds: tx.tempIds,
+      ...(tx.heads ? { heads: tx.heads } : {})
+    }
   }
 
   // ─── Documents ─────────────────────────────────────────

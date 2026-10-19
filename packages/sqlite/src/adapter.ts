@@ -128,6 +128,7 @@ export interface SQLiteAdapter {
    * Worker-backed adapters can use this to avoid transferring a very large
    * array of repeated SQL strings over Comlink.
    */
+  readonly supportsConditionalBatches?: boolean
   applyNodeBatch?(input: SQLiteNodeBatchApplyInput): Promise<SQLiteNodeBatchApplyResult>
 
   /**

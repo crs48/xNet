@@ -42,6 +42,7 @@ import type {
   NodeBatchWriteResult,
   TransactionOperation
 } from '@xnetjs/data'
+import type { TransactionConditions } from '@xnetjs/data/store'
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
 import { QueryCache } from './query-cache'
@@ -1294,9 +1295,17 @@ export class MainThreadBridge implements DataBridge {
     return this.store.batchWrite(input)
   }
 
-  async transaction(operations: TransactionOperation[]): Promise<BridgeTransactionResult> {
-    const tx = await this.store.transaction(operations)
-    return { batchId: tx.batchId, results: tx.results, tempIds: tx.tempIds }
+  async transaction(
+    operations: TransactionOperation[],
+    conditions?: TransactionConditions
+  ): Promise<BridgeTransactionResult> {
+    const tx = await this.store.transaction(operations, conditions)
+    return {
+      batchId: tx.batchId,
+      results: tx.results,
+      tempIds: tx.tempIds,
+      ...(tx.heads ? { heads: tx.heads } : {})
+    }
   }
 
   // ─── Documents ─────────────────────────────────────────

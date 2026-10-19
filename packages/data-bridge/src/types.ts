@@ -20,6 +20,7 @@ import type {
   NodeBatchWriteResult,
   TransactionOperation
 } from '@xnetjs/data'
+import type { TransactionConditions } from '@xnetjs/data/store'
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
 
@@ -326,9 +327,11 @@ export interface UpdateResult {
  * materialized results and temp ID mapping.
  */
 export interface BridgeTransactionResult {
+  /** Committed change heads for receipt preconditions. */
+  heads?: Record<string, string>
   /** The batch ID shared by all changes */
   batchId: string
-  /** Results for each operation (NodeState or null for delete) */
+  /** Results for each operation (null for unguarded delete; guarded deletes return a tombstone) */
   results: (NodeState | null)[]
   /** Map from temp ID → generated real ID (empty if no temp IDs were used) */
   tempIds: Record<string, string>
@@ -452,7 +455,10 @@ export interface DataBridge {
    * that owns (or proxies to) a transaction-capable NodeStore; consumers
    * should feature-detect rather than reaching for `bridge.nodeStore`.
    */
-  transaction?(operations: TransactionOperation[]): Promise<BridgeTransactionResult>
+  transaction?(
+    operations: TransactionOperation[],
+    conditions?: TransactionConditions
+  ): Promise<BridgeTransactionResult>
 
   // ─── Documents ──────────────────────────────────────────
 

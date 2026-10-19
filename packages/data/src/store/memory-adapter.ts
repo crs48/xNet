@@ -19,6 +19,7 @@ import type {
   PinRegistry
 } from './types'
 import type { ContentId } from '@xnetjs/core'
+import { assertTransactionConditions } from './transaction-conditions'
 
 type MemoryNodeStorageSnapshot = {
   changes: Map<NodeId, NodeChange[]>
@@ -40,6 +41,7 @@ type MemoryNodeStorageSnapshot = {
  * In-memory implementation of NodeStorageAdapter.
  */
 export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
+  readonly supportsConditionalBatches = true
   private changes = new Map<NodeId, NodeChange[]>()
   private changesByHash = new Map<ContentId, NodeChange>()
   private nodes = new Map<NodeId, NodeState>()
@@ -183,6 +185,12 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async applyNodeBatch(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    if (input.conditions)
+      assertTransactionConditions(
+        input.conditions,
+        (id) => this.nodes.get(id) ?? null,
+        (id) => this.changes.get(id)?.at(-1)?.hash
+      )
     input.nodes.forEach((node) => this.nodes.set(node.id, node))
     await this.appendChanges(input.changes)
     this.lastLamportTime = input.lastLamportTime

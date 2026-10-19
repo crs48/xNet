@@ -89,6 +89,7 @@ import {
   chunkItems,
   padToArityBucket
 } from './sql-batching'
+import { TransactionConflictError } from './transaction-conditions'
 
 /**
  * The shared LWW upsert guard for `node_properties` (protocol §L1.7 via
@@ -1422,7 +1423,16 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     })
   }
 
+  get supportsConditionalBatches(): boolean {
+    return this.db.supportsConditionalBatches === true
+  }
+
   async applyNodeBatch(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    if (input.conditions && !this.supportsConditionalBatches)
+      throw new TransactionConflictError(
+        'unsupported',
+        'This SQLite adapter cannot commit conditional transactions.'
+      )
     if (input.nodes.length === 0 && input.changes.length === 0) {
       return {
         nodeRowsWritten: 0,
@@ -1436,6 +1446,14 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return this.enqueueWrite(async () => {
       const effectiveInput = await this.resolveApplyNodeBatchInput(input)
 
+      if (effectiveInput.conditions) {
+        if (!(await this.canApplyNodeBatchWithTypedAdapterCommand(effectiveInput)))
+          throw new TransactionConflictError(
+            'unsupported',
+            'Conditional writes are unavailable for this index configuration.'
+          )
+        return this.applyNodeBatchWithTypedAdapterCommand(effectiveInput)
+      }
       if (await this.canApplyNodeBatchWithTypedAdapterCommand(effectiveInput)) {
         return this.applyNodeBatchWithTypedAdapterCommand(effectiveInput)
       }
@@ -1512,6 +1530,16 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private async createSQLiteNodeBatchApplyInput(
     input: ApplyNodeBatchInput
   ): Promise<SQLiteNodeBatchApplyInput> {
+    const conditionRows = input.conditions
+      ? await this.createSQLiteNodeBatchApplyInput({
+          ...input,
+          conditions: undefined,
+          nodes: input.conditions.nodes.flatMap(({ expected }) => (expected ? [expected] : [])),
+          changes: [],
+          indexMode: 'defer-schema',
+          indexProperties: false
+        })
+      : undefined
     const indexProperties = input.indexProperties ?? true
     const hasFullTextSearch =
       input.indexMode !== 'defer-schema' && (await this.fullTextIndexing.hasTable())
@@ -1560,6 +1588,31 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
 
     return {
+      conditions:
+        input.conditions && conditionRows
+          ? {
+              deadline: input.conditions.deadline,
+              records: input.conditions.nodes.map(({ id, head }) => {
+                const row = conditionRows.nodes.find((node) => node.id === id)
+                const node = row
+                  ? {
+                      id: row.id,
+                      schemaId: row.schemaId,
+                      createdAt: row.createdAt,
+                      updatedAt: row.updatedAt,
+                      createdBy: row.createdBy,
+                      deletedAt: row.deletedAt
+                    }
+                  : null
+                return {
+                  id,
+                  head,
+                  node,
+                  properties: conditionRows.properties.filter((property) => property.nodeId === id)
+                }
+              })
+            }
+          : undefined,
       nodes: input.nodes.map((node) => ({
         id: node.id,
         schemaId: node.schemaId,

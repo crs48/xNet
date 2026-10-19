@@ -15,6 +15,13 @@ import type {
   SQLiteNodeBatchApplyInput,
   SQLiteNodeBatchApplyResult
 } from '../types'
+import {
+  assertBatchDeadline,
+  assertBatchRecord,
+  conditionHeadSql,
+  conditionNodeSql,
+  conditionPropertiesSql
+} from '../conditional-batch'
 import { isSQLiteCorruptionError } from '../errors'
 import { SCHEMA_DDL, SCHEMA_VERSION } from '../schema'
 import { detectOpfsCapability } from './opfs-capability'
@@ -162,6 +169,7 @@ export async function resetWebSQLiteOpfsStorage(config: SQLiteConfig): Promise<v
  * ```
  */
 export class WebSQLiteAdapter implements SQLiteAdapter {
+  readonly supportsConditionalBatches = true
   private sqlite3: any = null
   private db: any = null
   private poolUtil: any = null
@@ -605,6 +613,18 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
 
   async applyNodeBatch(input: SQLiteNodeBatchApplyInput): Promise<SQLiteNodeBatchApplyResult> {
     await this.transaction(async () => {
+      if (input.conditions) {
+        assertBatchDeadline(input.conditions)
+        for (const record of input.conditions.records)
+          assertBatchRecord(
+            record,
+            (await this.queryOne(conditionNodeSql, [record.id])) ?? null,
+            await this.query(conditionPropertiesSql, [record.id]),
+            record.head === undefined
+              ? undefined
+              : ((await this.queryOne(conditionHeadSql, [record.id]))?.hash as string | undefined)
+          )
+      }
       for (const node of input.nodes) {
         await this.run(
           `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)

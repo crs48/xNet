@@ -19,6 +19,7 @@ import type {
   SchemaIRI,
   TransactionOperation
 } from '@xnetjs/data'
+import type { TransactionConditions } from '@xnetjs/data/store'
 
 // ─── Document Types ──────────────────────────────────────────────────────────
 
@@ -183,7 +184,10 @@ export interface DataWorkerAPI {
    * Execute an atomic multi-operation transaction in the worker.
    * Returns a structured-clone-safe result (no signed change list).
    */
-  transaction(operations: TransactionOperation[]): Promise<BridgeTransactionResult>
+  transaction(
+    operations: TransactionOperation[],
+    conditions?: TransactionConditions
+  ): Promise<BridgeTransactionResult>
 
   /**
    * Get a single node by ID.

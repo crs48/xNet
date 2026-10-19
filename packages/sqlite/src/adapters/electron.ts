@@ -16,6 +16,7 @@ import type {
   ElectronSQLiteDiagnostics
 } from '../types'
 import type Database from 'better-sqlite3'
+import { assertBatchConditions } from '../conditional-batch'
 import { isSQLiteCorruptionError } from '../errors'
 import { SCHEMA_DDL, SCHEMA_VERSION } from '../schema'
 import { ReaderPool, isHeavyRead, resolveReaderPoolSize, workerThreadsFactory } from './reader-pool'
@@ -68,6 +69,7 @@ async function getBetterSqlite3(): Promise<typeof Database> {
  * ```
  */
 export class ElectronSQLiteAdapter implements SQLiteAdapter {
+  readonly supportsConditionalBatches = true
   private db: Database.Database | null = null
   /** Optional read-only secondary connection (exploration 0230, Phase 0.5). */
   private readDb: Database.Database | null = null
@@ -727,7 +729,17 @@ export class ElectronSQLiteAdapter implements SQLiteAdapter {
     // owns atomicity). Otherwise drain in chunks — each its own atomic
     // transaction — yielding to the event loop in between so a queued
     // interactive read (or a reader-pool read) interleaves mid-import.
-    if (this.inTransaction) {
+    if (input.conditions) {
+      const apply = () => {
+        assertBatchConditions(
+          input.conditions!,
+          (sql, params) => this.getOrPrepare(sql).all(...params) as SQLRow[]
+        )
+        for (const op of ops) op()
+      }
+      if (this.inTransaction) apply()
+      else await this.runChunkTransaction(apply)
+    } else if (this.inTransaction) {
       for (const op of ops) op()
     } else {
       for (let i = 0; i < ops.length; i += APPLY_NODE_BATCH_CHUNK_ROWS) {

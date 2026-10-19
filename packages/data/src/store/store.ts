@@ -27,6 +27,7 @@ import type {
   ListNodesOptions,
   TransactionOperation,
   TransactionResult,
+  TransactionConditions,
   NodeChangeListener,
   NodeBatchChangeListener,
   NodeBatchChangeEvent,
@@ -94,6 +95,7 @@ import {
   type NodeQueryResult
 } from './query'
 import { resolveTempIds, type SchemaLookup } from './tempids'
+import { TransactionConflictError } from './transaction-conditions'
 import {
   executeTransactionOperations,
   executeTransactionOperationsFast,
@@ -1241,13 +1243,57 @@ export class NodeStore {
    * console.log(`Batch ${result.batchId} applied ${result.changes.length} changes`)
    * ```
    */
-  async transaction(operations: TransactionOperation[]): Promise<TransactionResult> {
+  async transaction(
+    operations: TransactionOperation[],
+    conditions?: TransactionConditions
+  ): Promise<TransactionResult> {
+    if (conditions) {
+      if (!this.canUseSingleWriteFastPath() || !this.storage.supportsConditionalBatches)
+        throw new TransactionConflictError(
+          'unsupported',
+          'This storage cannot commit conditional transactions.'
+        )
+      if (
+        operations.length > 100 ||
+        conditions.nodes.length > 200 ||
+        !Number.isFinite(conditions.deadline)
+      )
+        throw new TransactionConflictError(
+          'unsupported',
+          'Conditional transaction limits exceeded.'
+        )
+      if (conditions.nodes.some(({ expected }) => expected?.documentContent !== undefined))
+        throw new TransactionConflictError(
+          'unsupported',
+          'Document bytes need a separate document revision guard.'
+        )
+      if (conditions.nodes.some(({ id, expected }) => expected !== null && expected.id !== id))
+        throw new TransactionConflictError(
+          'unsupported',
+          'A snapshot must match its record identifier.'
+        )
+      const covered = new Set(conditions.nodes.map(({ id }) => id))
+      if (
+        operations.some(
+          (op) => !covered.has(op.type === 'create' ? (op.options.id ?? '') : op.nodeId)
+        )
+      )
+        throw new TransactionConflictError(
+          'unsupported',
+          'Every written record needs an explicit precondition.'
+        )
+    }
     if (operations.length === 0) {
       return { batchId: '', results: [], changes: [], tempIds: {} }
     }
 
     // ─── Resolve temp IDs before processing ────────────────────────────────
     const { operations: resolvedOps, tempIds } = resolveTempIds(operations, this.schemaLookup)
+    if (conditions && Object.keys(tempIds).length)
+      throw new TransactionConflictError(
+        'unsupported',
+        'Temporary identifiers are unavailable in conditional transactions.'
+      )
 
     await this.assertAuthorizedBatch(resolvedOps)
 
@@ -1262,6 +1308,7 @@ export class NodeStore {
     try {
       const result = await this.runTransactionOperationsBatch({
         operations: resolvedOps,
+        conditions,
         lamport,
         now,
         batchId,
@@ -1273,7 +1320,19 @@ export class NodeStore {
         this.authEvaluator?.invalidate(event.change.payload.nodeId)
       }
 
-      return { batchId, results: result.results, changes: result.changes, tempIds }
+      return {
+        batchId,
+        results: result.results,
+        changes: result.changes,
+        tempIds,
+        ...(conditions
+          ? {
+              heads: Object.fromEntries(
+                result.changes.map((change) => [change.payload.nodeId, change.hash])
+              )
+            }
+          : {})
+      }
     } catch (err) {
       this.clock = previousClock
       throw err
@@ -1287,6 +1346,7 @@ export class NodeStore {
    */
   private async runTransactionOperationsBatch(input: {
     operations: TransactionOperation[]
+    conditions?: TransactionConditions
     lamport: number
     now: number
     batchId: string
@@ -1857,6 +1917,7 @@ export class NodeStore {
    */
   private async executeTransactionOperationsFast(input: {
     operations: TransactionOperation[]
+    conditions?: TransactionConditions
     lamport: number
     now: number
     batchId: string

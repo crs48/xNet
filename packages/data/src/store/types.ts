@@ -207,6 +207,7 @@ export interface NodeStorageAdapter {
   /** Import multiple materialized nodes in one storage-owned write when supported. */
   importNodes?(nodes: readonly NodeState[], options?: ImportNodesOptions): Promise<void>
   /** Apply materialized nodes, signed changes, sync state, and batch indexes in one write. */
+  readonly supportsConditionalBatches?: boolean
   applyNodeBatch?(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult>
   /** Rebuild secondary node indexes after an import that deferred index maintenance. */
   rebuildIndexesForSchemas?(
@@ -396,7 +397,15 @@ export interface NodeBatchPreflightResult {
   lastChangesByNodeId: Map<NodeId, NodeChange>
 }
 
+/** Preconditions are compared in the same storage transaction as the write. */
+export interface TransactionConditions {
+  /** Structured state only; document bytes require a separate guard. Include every touched record and authority dependency. */
+  nodes: readonly { id: NodeId; expected: NodeState | null; head?: string }[]
+  deadline: number
+}
+
 export interface ApplyNodeBatchInput extends SetNodeOptions {
+  conditions?: TransactionConditions
   /** Batch ID shared by all supplied changes. */
   batchId: string
   /** Final materialized state for changed nodes. */
@@ -817,9 +826,11 @@ export type TransactionOperation =
  * Returns the affected nodes in the same order as operations.
  */
 export interface TransactionResult {
+  /** Committed change heads, returned for conditional transactions. */
+  heads?: Record<string, string>
   /** The batch ID shared by all changes */
   batchId: string
-  /** Results for each operation (NodeState or null for delete) */
+  /** Results in operation order. Guarded deletes return tombstones; unguarded deletes return null. */
   results: (NodeState | null)[]
   /** All changes created in this transaction */
   changes: NodeChange[]

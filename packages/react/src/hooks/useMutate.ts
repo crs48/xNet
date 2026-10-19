@@ -43,7 +43,7 @@ import type {
 } from '@xnetjs/data'
 import { isTempId } from '@xnetjs/data'
 import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react'
-import { useDataBridge } from '../context'
+import { useDataBridge } from '../context/data-bridge-context'
 import { useTelemetryReporter } from '../context/telemetry-context'
 import { useTracingReporter, TRACE_STAGES } from '../context/tracing-context'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'

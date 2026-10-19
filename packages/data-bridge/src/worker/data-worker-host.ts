@@ -29,6 +29,7 @@ import type {
 } from './worker-types'
 import type { BridgeTransactionResult, QueryDescriptor, SyncStatus } from '../types'
 import type { DID } from '@xnetjs/core'
+import type { TransactionConditions } from '@xnetjs/data/store'
 import {
   NodeStore,
   MemoryNodeStorageAdapter,
@@ -348,15 +349,23 @@ export class DataWorker implements DataWorkerAPI {
     return this.store.batchWrite(input)
   }
 
-  async transaction(operations: TransactionOperation[]): Promise<BridgeTransactionResult> {
+  async transaction(
+    operations: TransactionOperation[],
+    conditions?: TransactionConditions
+  ): Promise<BridgeTransactionResult> {
     if (!this.store) {
       throw new Error('DataWorker not initialized')
     }
 
-    const tx = await this.store.transaction(operations)
+    const tx = await this.store.transaction(operations, conditions)
     // Strip the signed change list: it is not needed on the main thread and
     // would otherwise be structured-cloned on every transaction.
-    return { batchId: tx.batchId, results: tx.results, tempIds: tx.tempIds }
+    return {
+      batchId: tx.batchId,
+      results: tx.results,
+      tempIds: tx.tempIds,
+      ...(tx.heads ? { heads: tx.heads } : {})
+    }
   }
 
   async get(nodeId: string): Promise<NodeState | null> {

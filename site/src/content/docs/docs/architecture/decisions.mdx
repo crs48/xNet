@@ -1543,3 +1543,44 @@ Revocation stops future delivery but cannot erase previously observed content.
 **Tripwire:** An extension needs mutations, interactive state, custom schemas, larger
 collections, network access, or shared installations. Revisit the capability protocol
 and runtime before expanding privileges or relaxing isolation and resource limits.
+
+## ADR-49: Guard extension edits at the storage boundary
+
+**Status:** Accepted · 2026-10-19 · local chat prototype; extension protocol experimental
+
+**Context:** ADR-48's tripwire was reached: extensions need real React state,
+events, and mutation hooks. Checking a grant in the renderer does not protect
+against a record being changed while a write is awaiting storage.
+
+**Decision:** Add optional snapshot preconditions and an absolute deadline to
+NodeStore and DataBridge transactions. Every touched ID must have a condition;
+callers also include records on which their authorization decision depends.
+An adapter must explicitly support conditional batches. Unsupported adapters,
+including encrypted paths without atomic support, reject the command. Memory
+and native Electron compare snapshots before applying changes; SQLite compares
+fixed record/property rows inside the write transaction. Electron conditional
+batches never use the chunked bulk-import path. Ordinary transactions retain
+their existing behavior. Guarded deletes return committed tombstones.
+
+The local chat prototype uses a persistent React worker, Remote DOM's polyfill,
+and a closed text/layout/button/text-input receiver. It reuses actual `useQuery`
+and `useMutate` through a narrow DataBridge. The host binds a command channel to
+the current owner, artifact grant, and runtime session. Requests cannot choose
+these values. Private task writes require separate approval; editable fields
+are title, status, completion, priority, and due date. No relation, ownership,
+visibility, or shared-container changes are permitted. New tasks are private.
+Undo compares the committed receipt snapshot and fails on later edits.
+
+**Tradeoff:** This is not the full API contract proposed in exploration 0481.
+Receipts and replay protection are session-local. Revocation immediately stops
+admitting commands and delivering data, then drains previously accepted commits
+before reporting completion. It cannot recall committed edits or previously
+observed data. Grants remain local device preferences; no remote delegation is
+implemented. A worker can be terminated but has no hard heap isolation.
+Documents, network, agents, schemas, files, and native access remain unavailable.
+
+**Tripwire:** Before permitting shared destinations, durable background execution,
+remote installations, raw document updates, or arbitrary third-party code, move
+all relevant grant/dependency state to the authoritative commit boundary and
+obtain an independent review. Do not extrapolate the private-task checks to
+community permissions or claim the entire 0481 security model is implemented.

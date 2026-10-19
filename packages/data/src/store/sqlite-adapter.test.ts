@@ -740,6 +740,25 @@ describe('SQLiteNodeStorageAdapter', () => {
       ])
     })
 
+    it('refuses guarded batches when the typed path cannot preserve eager indexes', async () => {
+      Object.defineProperty(db, 'supportsConditionalBatches', { value: true, configurable: true })
+      const apply = vi.fn()
+      db.applyNodeBatch = apply
+      const node = createTestNode({ id: 'guarded-index', properties: { title: 'No' } })
+      await expect(
+        adapter.applyNodeBatch({
+          batchId: 'guarded-index',
+          nodes: [node],
+          changes: [],
+          lastLamportTime: 1,
+          affectedSchemaIds: [testSchemaId],
+          indexMode: 'eager',
+          conditions: { nodes: [{ id: node.id, expected: null }], deadline: Date.now() + 5000 }
+        })
+      ).rejects.toThrow('index configuration')
+      expect(apply).not.toHaveBeenCalled()
+      expect(await adapter.getNode(node.id)).toBeNull()
+    })
     it('uses typed SQLite node batch apply when available', async () => {
       const batchDb = db as SQLiteAdapter & {
         typedBatchInput: SQLiteNodeBatchApplyInput | null

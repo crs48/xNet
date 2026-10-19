@@ -221,3 +221,57 @@ it('replays a remote change without losing its signed envelope or announcing inc
     await rm(targetRoot, { recursive: true, force: true })
   }
 })
+
+it('checks conditional records inside the native commit and preserves the whole batch on conflict', async () => {
+  const initial = await store.create({
+    id: 'guarded',
+    schemaId: PageSchema._schemaId,
+    properties: { title: 'Before' }
+  })
+  const snapshot = (await store.get(initial.id))!
+  const first = await store.transaction(
+    [{ type: 'update', nodeId: snapshot.id, options: { properties: { title: 'After' } } }],
+    { nodes: [{ id: snapshot.id, expected: snapshot }], deadline: Date.now() + 5000 }
+  )
+  expect(first.heads?.[snapshot.id]).toBeTruthy()
+  const clock = await service.getLastLamportTime()
+  const changes = await service.getAllChanges()
+  await expect(
+    store.transaction(
+      [
+        {
+          type: 'create',
+          options: {
+            id: 'never-created',
+            schemaId: PageSchema._schemaId,
+            properties: { title: 'No' }
+          }
+        },
+        { type: 'delete', nodeId: snapshot.id }
+      ],
+      {
+        nodes: [
+          { id: 'never-created', expected: null },
+          { id: snapshot.id, expected: snapshot }
+        ],
+        deadline: Date.now() + 5000
+      }
+    )
+  ).rejects.toThrow('conflict')
+  expect(await service.getNode('never-created')).toBeNull()
+  expect((await service.getNode(snapshot.id))?.properties.title).toBe('After')
+  expect(await service.getAllChanges()).toEqual(changes)
+  expect(await service.getLastLamportTime()).toBe(clock)
+  const current = (await store.get(snapshot.id))!
+  await expect(
+    store.transaction([{ type: 'delete', nodeId: snapshot.id }], {
+      nodes: [{ id: snapshot.id, expected: current, head: 'not-the-current-head' }],
+      deadline: Date.now() + 5000
+    })
+  ).rejects.toThrow('conflict')
+  const removed = await store.transaction([{ type: 'delete', nodeId: snapshot.id }], {
+    nodes: [{ id: snapshot.id, expected: current, head: first.heads![snapshot.id] }],
+    deadline: Date.now() + 5000
+  })
+  expect(removed.results[0]?.deleted).toBe(true)
+})

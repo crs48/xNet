@@ -28,6 +28,8 @@
  * ```
  */
 
+export { TransactionConflictError } from './transaction-conditions'
+
 // Types
 export type {
   NodeId,
@@ -67,6 +69,7 @@ export type {
   DeterministicNodeImportDraft,
   ImportDeterministicNodesOptions,
   ImportDeterministicNodesResult,
+  TransactionConditions,
   TransactionOperation,
   TransactionResult,
   NodeChangeEvent,

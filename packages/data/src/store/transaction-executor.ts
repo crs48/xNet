@@ -18,7 +18,6 @@
  * behavior cannot drift between strategies.
  */
 
-import type { SchemaIRI } from '../schema/node'
 import type {
   NodeBatchPreflightResult,
   NodeChange,
@@ -26,8 +25,10 @@ import type {
   NodePayload,
   NodeState,
   NodeStorageAdapter,
-  TransactionOperation
+  TransactionOperation,
+  TransactionConditions
 } from './types'
+import type { SchemaIRI } from '../schema/node'
 import { createNodeId } from '../schema/node'
 
 /** One executed operation, queued for post-commit listener dispatch. */
@@ -89,6 +90,7 @@ export interface WriteExecutionHost {
 }
 
 export type TransactionExecutionInput = {
+  conditions?: TransactionConditions
   operations: TransactionOperation[]
   lamport: number
   now: number
@@ -292,12 +294,14 @@ export async function executeTransactionOperationsFast(
     affectedSchemaIds.add(schemaId)
     changes.push(change)
     const result = op.type === 'delete' ? null : node
-    results.push(result)
+    // Guarded callers need the committed tombstone for conflict-safe receipts.
+    results.push(input.conditions ? node : result)
     events.push({ change, result, previousNode: existing })
   }
 
   const touchedIds = Array.from(new Set(planned.map((entry) => entry.id)))
   await host.storage.applyNodeBatch!({
+    conditions: input.conditions,
     batchId: input.batchId,
     nodes: touchedIds.flatMap((id) => {
       const node = nodesById.get(id)

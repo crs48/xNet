@@ -37,6 +37,7 @@ function log(...args: unknown[]): void {
  * This adapter is used in the Electron renderer to persist nodes.
  */
 export class IPCNodeStorageAdapter implements NodeStorageAdapter {
+  readonly supportsConditionalBatches = true
   // ==========================================================================
   // Lifecycle (optional)
   // ==========================================================================

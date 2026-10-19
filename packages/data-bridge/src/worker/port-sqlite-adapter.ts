@@ -31,6 +31,7 @@ import type { SQLiteWorkerHandler } from '@xnetjs/sqlite/web-worker'
 import { wrap, type Remote } from 'comlink'
 
 export class PortSQLiteAdapter implements SQLiteAdapter {
+  readonly supportsConditionalBatches = true
   private port: MessagePort | null
   private proxy: Remote<SQLiteWorkerHandler> | null
   private inTransaction = false

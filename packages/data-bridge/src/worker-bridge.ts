@@ -32,6 +32,7 @@ import type {
   NodeChangeEvent,
   TransactionOperation
 } from '@xnetjs/data'
+import type { TransactionConditions } from '@xnetjs/data/store'
 import { wrap, proxy, transfer, type Remote } from 'comlink'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
@@ -333,12 +334,17 @@ export class WorkerBridge implements DataBridge {
     return this.remote.bulkWrite(input)
   }
 
-  async transaction(operations: TransactionOperation[]): Promise<BridgeTransactionResult> {
+  async transaction(
+    operations: TransactionOperation[],
+    conditions?: TransactionConditions
+  ): Promise<BridgeTransactionResult> {
     if (!this.initialized) {
       throw new Error('WorkerBridge not initialized')
     }
 
-    return this.remote.transaction(operations)
+    return conditions
+      ? this.remote.transaction(operations, conditions)
+      : this.remote.transaction(operations)
   }
 
   // ─── Change Feed ─────────────────────────────────────────────────────────────

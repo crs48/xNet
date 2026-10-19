@@ -1431,6 +1431,25 @@ describe('MainThreadBridge', () => {
   })
 
   describe('transaction', () => {
+    it('preserves atomic guards and change heads through the bridge', async () => {
+      const initial = await bridge.create(TestTaskSchema, { title: 'Guarded' })
+      const conditions = {
+        nodes: [{ id: initial.id, expected: initial }],
+        deadline: Date.now() + 5000
+      }
+      const operations = [
+        {
+          type: 'update' as const,
+          nodeId: initial.id,
+          options: { properties: { title: 'Committed' } }
+        }
+      ]
+      const result = await bridge.transaction(operations, conditions)
+      expect(result.heads?.[initial.id]).toBeTruthy()
+      expect('changes' in result).toBe(false)
+      await expect(bridge.transaction(operations, conditions)).rejects.toThrow('changed')
+      expect((await bridge.get!(initial.id))?.properties.title).toBe('Committed')
+    })
     it('should execute operations atomically and resolve temp IDs', async () => {
       const existing = await bridge.create(TestTaskSchema, { title: 'Existing' })
 

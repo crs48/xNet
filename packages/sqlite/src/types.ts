@@ -227,6 +227,15 @@ export interface SQLiteNodeBatchFtsRow {
 }
 
 export interface SQLiteNodeBatchApplyInput {
+  conditions?: {
+    deadline: number
+    records: {
+      id: string
+      node: Omit<SQLiteNodeBatchNodeRow, 'propertyKeys'> | null
+      head?: string
+      properties: SQLiteNodeBatchPropertyRow[]
+    }[]
+  }
   nodes: SQLiteNodeBatchNodeRow[]
   properties: SQLiteNodeBatchPropertyRow[]
   changes: SQLiteNodeBatchChangeRow[]
