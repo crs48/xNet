@@ -1,7 +1,7 @@
 import type { CommunityData, Conversation } from './use-community-data'
 import { createCallManager, type CallPeerSnapshot, type PeerConnectionLike } from '@xnetjs/comms'
 import { useXNet } from '@xnetjs/react'
-import { Mic, MicOff, PhoneOff, Video, VideoOff, Phone } from 'lucide-react'
+import { Mic, MicOff, PhoneOff, Video, VideoOff, Phone, ChevronDown, ChevronUp } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createAwarenessCallTransport } from './call-transport'
 import { Avatar, IconButton, Modal, primaryButton, secondaryButton } from './primitives'
@@ -77,6 +77,7 @@ export function CallPanel({
   const [peers, setPeers] = useState<CallPeerSnapshot[]>([])
   const [muted, setMuted] = useState(false)
   const [camera, setCamera] = useState(video)
+  const [collapsed, setCollapsed] = useState(false)
   const cleanup = useRef<() => void>(() => {})
   const alive = useRef(true)
   useEffect(() => {
@@ -197,7 +198,7 @@ export function CallPanel({
   return (
     <aside
       aria-label="Active call"
-      className="fixed bottom-5 right-5 z-40 w-[340px] max-w-[calc(100vw-40px)] rounded-2xl border border-border bg-background p-4 shadow-xl"
+      className="fixed right-5 top-40 z-40 max-h-[calc(100dvh-320px)] w-[340px] overflow-y-auto max-w-[calc(100vw-40px)] rounded-2xl border border-border bg-background p-4 shadow-xl"
     >
       <div className="mb-3 flex items-center justify-between">
         <div>
@@ -208,9 +209,14 @@ export function CallPanel({
               : 'Waiting for others to join'}
           </p>
         </div>
-        <span className="text-xs text-muted-foreground">Live room</span>
+        <IconButton
+          label={collapsed ? 'Expand call' : 'Minimize call'}
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          {collapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+        </IconButton>
       </div>
-      <div className="grid gap-2">
+      <div className={collapsed ? 'hidden' : 'grid gap-2'}>
         {stream && <Stream stream={stream} muted label="You" video={camera} />}{' '}
         {peers.map((peer) =>
           peer.stream instanceof MediaStream ? (

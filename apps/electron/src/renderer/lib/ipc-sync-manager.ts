@@ -496,9 +496,6 @@ export function createIPCSyncManager(): IPCSyncManager {
         const awareness = new Awareness(doc)
         awarenessMap.set(nodeId, awareness)
 
-        // Request port from main process (preload manages the actual MessagePort)
-        await window.xnetBSM.acquire(nodeId, '')
-
         // Set up message handler for remote updates (via preload)
         const messageCleanup = window.xnetBSM.onMessage(nodeId, (data: unknown) => {
           const { type, update, users } = data as {
@@ -525,6 +522,9 @@ export function createIPCSyncManager(): IPCSyncManager {
           }
         })
 
+        // Register before acquiring: the initial document/presence response can arrive immediately.
+        await window.xnetBSM.acquire(nodeId, '')
+
         // Forward local edits to main process (via preload)
         // Note: We skip 'remote' origin to avoid echo, but we DO forward 'storage'
         // origin updates so the main process gets the initial content loaded from local SQLite storage
@@ -546,11 +546,13 @@ export function createIPCSyncManager(): IPCSyncManager {
             window.xnetBSM.postMessage(nodeId, { type: 'awareness', update: Array.from(update) })
           }
         }
-        awareness.on('change', awarenessHandler)
+        // Heartbeats use `update` even when the state is unchanged. Forward them
+        // so remote peers do not expire an otherwise healthy call after 30 seconds.
+        awareness.on('update', awarenessHandler)
 
         cleanups.set(nodeId, () => {
           doc.off('update', updateHandler)
-          awareness.off('change', awarenessHandler)
+          awareness.off('update', awarenessHandler)
           messageCleanup()
         })
 

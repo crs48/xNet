@@ -24,7 +24,11 @@ import type { DeterministicNodeImportDraft, NodeBatchWritePolicy } from '@xnetjs
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { dirname } from 'node:path'
 import { LibraryService } from '../library/service'
-import { createDataService, type DataService } from './data-service'
+import {
+  createDataService,
+  setDebug as setDataServiceDebug,
+  type DataService
+} from './data-service'
 
 // Debug logging - controllable via message from main process
 let debugEnabled = false
@@ -378,6 +382,7 @@ process.parentPort?.on('message', async (event) => {
       case 'debug:set': {
         const { enabled } = payload as { enabled: boolean }
         debugEnabled = enabled
+        setDataServiceDebug(enabled)
         console.log(`[DataProcess] Debug logging ${enabled ? 'enabled' : 'disabled'}`)
         sendResponse(requestId, { success: true })
         break

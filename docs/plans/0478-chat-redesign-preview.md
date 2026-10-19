@@ -61,7 +61,7 @@ development hub or this preview for sensitive community data.
 
 Fresh focused verification on 2026-10-18:
 
-- 29 focused tests: conversation plans and profile URL validation, awareness
+- 31 focused tests: conversation plans and profile URL validation, awareness
   signaling, desktop sync lifecycle, bounded peer-attachment waits, and call
   negotiation (including early ICE and duplicate greetings).
 - Seven native desktop storage tests under Electron's Node runtime, including
@@ -72,8 +72,11 @@ Fresh focused verification on 2026-10-18:
   loaded shared history, and transferred an attachment. A reload retained the
   received conversation. This is a transport test, not a private-access audit.
 - Two-profile video calling established live remote audio/video tracks. Mute,
-  camera toggle, navigation to People, and leave were exercised; retained track
-  references reported `ended` after leaving. Media devices were synthetic.
+  camera toggle, navigation to People, and leave were exercised. A fresh test
+  reloaded both windows, connected synthetic camera/microphone streams, sent
+  a message during the call, and remained connected beyond the 30-second
+  presence timeout. Retained track references reported `ended` after leaving;
+  no JavaScript errors were captured. The call panel can be minimized.
 
 The complete renderer-only TypeScript command also exposes pre-existing errors
 in DatabaseView, DocumentHeader, and PluginManager; the normal desktop check
