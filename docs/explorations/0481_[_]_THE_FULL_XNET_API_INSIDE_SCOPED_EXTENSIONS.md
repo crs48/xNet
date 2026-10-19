@@ -29,6 +29,8 @@ Verified in the real apps:
 - Unit/integration coverage: conditional native IPC commits and complete rollback on stale snapshots; missing/expired guards; temporary-ID rejection; index limitations; out-of-scope and mixed commands; protected fields; revoke during validation and drain during commit; undo permission and conflict checks; field masks; actual worker React lifecycles and hooks; unavailable named exports.
 - Inventory verification: `node scripts/extensions/inventory.mjs --check` and its in-memory export negative control (`--selftest`).
 
+Verification also passed all 102 affected build/typecheck tasks and all 65 tests in the app commit’s changed-file run. A broader related-test run hit the existing fresh-profile demo-seed timeout; the same timeout reproduced on unchanged commit `3e13d3711`. The focused extension, bridge, and conditional-storage checks passed. This does not establish a fully green repository-wide test suite.
+
 This is not the final grant authority. Grants are host-owned local approvals; there is no storage-coupled installation epoch, durable command/receipt ledger, cross-device revocation, or general destination/disclosure proof yet. Accepted commits drain before local revocation is reported complete. Created tasks persist as xNet data, but their automatic scope inclusion lasts only for that runtime session; select them explicitly for subsequent sessions. The runtime uses bounded snapshots, not authority-bound cursors. Documents, richer components, schemas, assets, external effects, and background jobs remain unavailable. These gaps keep the corresponding items below unchecked.
 
 ## Problem and intended experience
@@ -56,9 +58,9 @@ The host turns that into specific, reviewable authority. Once approved, ordinary
 | Privacy                  | Treat synced writes, AI requests, logs, and exports as possible disclosure channels             |
 | Evolution                | Add capability families behind one policy model; unknown operations remain denied               |
 
-## What exists now
+## Baseline before this implementation
 
-These are source-level observations, not a completed security audit. The older prototype description in [0480](./0480_[_]_AGENTS_IN_CHAT_AND_CONVERSATIONAL_EXTENSIONS.md) predates the scoped React implementation; [ADR-48](../../site/src/content/docs/docs/architecture/decisions.mdx#adr-48-render-chat-extensions-against-explicitly-granted-xnet-records) records the current boundary.
+This section records the read-only prototype at `406e95e04`; the local implementation evidence above supersedes its runtime and mutation limitations. These are source-level observations, not a completed security audit. The older prototype description in [0480](./0480_[_]_AGENTS_IN_CHAT_AND_CONVERSATIONAL_EXTENSIONS.md) predates the scoped React implementation; [ADR-48](../../site/src/content/docs/docs/architecture/decisions.mdx#adr-48-render-chat-extensions-against-explicitly-granted-xnet-records) records the current boundary.
 
 | Surface                    | Status                        | Relevant code and implication                                                                                                                                                                                                                                                                                                           |
 | -------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
