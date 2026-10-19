@@ -127,6 +127,10 @@ export function openAiChatAgent(options: OpenAiChatAgentOptions): ChatAgent {
 /** One planned agent turn: the prompt to send, and the session to continue. */
 export interface StreamTurnRequest {
   prompt: string
+  /** Abort an in-flight turn (supported by the Codex app-server adapter). */
+  signal?: AbortSignal
+  /** Optional structured response schema (Codex app-server). */
+  outputSchema?: Record<string, unknown>
   /** Continue this stored CLI session (`--resume`) instead of starting fresh. */
   resumeSessionId?: string
 }
