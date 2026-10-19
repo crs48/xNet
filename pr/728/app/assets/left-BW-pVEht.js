@@ -1,4 +1,4 @@
-import{r as x,j as t}from"./editor-vendor-C4t2zari.js";import{Q as y,R as v,U as w,Y as T,J as S,Z as P,u as D,a as d,_ as b,c as j,s as A,L as h,e as E,f as _,$ as R,a0 as C,a1 as L,A as m}from"./index-DNkFlS_q.js";import{useSavedViews as U}from"./tray-DTXF8a8U.js";import"./katex-pkypoH0j.js";/**
+import{r as x,j as t}from"./editor-vendor-C4t2zari.js";import{Q as y,R as v,U as w,Y as T,J as S,Z as P,u as D,a as d,_ as b,c as j,s as A,L as h,e as E,f as _,$ as R,a0 as C,a1 as L,A as m}from"./index-Cc7eu6o7.js";import{useSavedViews as U}from"./tray-Bk5z4Mbn.js";import"./katex-pkypoH0j.js";/**
  * @license lucide-react v0.453.0 - ISC
  *
  * This source code is licensed under the ISC license.
