@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-19-agent-activity-stays-out-of-your-convers",
+  "date": "October 19, 2026",
+  "title": "Agent activity stays out of your conversations",
+  "summary": "Completed runs and retried failures no longer crowd chats. Past requests and diagnostics are available in Agent activity, with generated drafts and versions in the extension panel.",
+  "highlights": [],
+  "tags": ["ai", "app"],
+  "pr": 728
+}

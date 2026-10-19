@@ -45,12 +45,16 @@ export function ChatExtensionPanel({
   data,
   messages,
   run,
+  proposals,
+  onReview,
   onClose
 }: {
   channelId: string
   data: CommunityData
   messages: ChatPreviewMessage[]
   run?: CommunityAgentRun
+  proposals: CommunityAgentRun[]
+  onReview: (id: string) => void
   onClose: () => void
 }) {
   const [source, setSource] = useState(watchlistSource)
@@ -111,6 +115,7 @@ export function ChatExtensionPanel({
       setSummary(proposal.summary)
       setBaseRevision(undefined)
       setRevision(null)
+      setTree(null)
       setManualEdit(false)
       setStatus('Review this proposal, then build a private preview.')
       setError('')
@@ -318,6 +323,34 @@ export function ChatExtensionPanel({
               Install this version locally
             </button>
           </div>
+        )}
+        {proposals.length > 0 && (
+          <details className="border-t border-border pt-4 text-xs">
+            <summary className="cursor-pointer font-semibold">
+              Agent drafts ({proposals.length})
+            </summary>
+            <div className="mt-2 space-y-2">
+              {[...proposals].reverse().map((proposal) => (
+                <button
+                  key={proposal.id}
+                  disabled={busy}
+                  onClick={() => onReview(proposal.id)}
+                  className="flex w-full items-center justify-between gap-2 rounded-lg border border-border p-3 text-left hover:bg-muted disabled:opacity-40"
+                >
+                  <span>
+                    {proposal.provider === 'codex' ? 'Codex' : 'Claude'} draft
+                    <time
+                      className="mt-1 block text-[10px] text-muted-foreground"
+                      dateTime={new Date(proposal.startedAt).toISOString()}
+                    >
+                      {new Date(proposal.startedAt).toLocaleString()}
+                    </time>
+                  </span>
+                  Review
+                </button>
+              ))}
+            </div>
+          </details>
         )}
         <div className="border-t border-border pt-4">
           <h3 className="mb-2 text-xs font-semibold">Version history</h3>

@@ -25,7 +25,7 @@ import {
   X
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AgentRunCards } from './AgentRunCards'
+import { AgentRunCards, AgentRunHistory } from './AgentRunCards'
 import { ChatExtensionPanel } from './ChatExtensionPanel'
 import { audienceLabel, bytesLabel, type Audience } from './model'
 import { Avatar, EmptyState, IconButton, inputClass, secondaryButton } from './primitives'
@@ -233,7 +233,7 @@ export function ConversationPane({
   const agentBusy = agents.snapshot.runs.some(
     (run) => run.channelId === channel.id && run.status === 'running'
   )
-  const [tab, setTab] = useState<'conversation' | 'media'>('conversation')
+  const [tab, setTab] = useState<'conversation' | 'media' | 'activity'>('conversation')
   const [searching, setSearching] = useState(false)
   const [search, setSearch] = useState('')
   const [limit, setLimit] = useState(100)
@@ -277,9 +277,9 @@ export function ConversationPane({
     }
   }, [draftKey])
   useEffect(() => {
-    if (nearBottom.current && !search)
+    if (nearBottom.current && !search && tab === 'conversation')
       scroller.current?.scrollTo({ top: scroller.current.scrollHeight })
-  }, [messages, search])
+  }, [messages, search, tab, agents.snapshot.runs])
   const setDraftAndPersist = (value: string) => {
     setDraft(value)
     setSaved(false)
@@ -409,24 +409,31 @@ export function ConversationPane({
           </IconButton>
         </header>
         <div
-          className="flex h-11 shrink-0 items-center gap-6 border-b border-border px-6"
+          className="flex h-11 shrink-0 items-center gap-4 overflow-x-auto border-b border-border px-6"
           role="tablist"
           aria-label="Conversation views"
         >
-          {(['conversation', 'media'] as const).map((value) => (
-            <button
-              key={value}
-              role="tab"
-              aria-selected={tab === value}
-              onClick={() => setTab(value)}
-              className={`h-full border-b-2 text-xs font-medium ${tab === value ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground'}`}
-            >
-              {value === 'conversation' ? 'Conversation' : 'Shared media'}
-            </button>
-          ))}
-          <span className="ml-auto hidden text-[11px] text-muted-foreground sm:block">
-            Your space. Your conversation.
-          </span>
+          {(['conversation', 'media', ...(agents.port ? ['activity' as const] : [])] as const).map(
+            (value) => (
+              <button
+                key={value}
+                role="tab"
+                aria-selected={tab === value}
+                onClick={() => {
+                  setTab(value)
+                  scroller.current?.scrollTo({ top: 0 })
+                  nearBottom.current = true
+                }}
+                className={`h-full shrink-0 border-b-2 text-xs font-medium ${tab === value ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground'}`}
+              >
+                {value === 'conversation'
+                  ? 'Conversation'
+                  : value === 'media'
+                    ? 'Shared media'
+                    : 'Agent activity'}
+              </button>
+            )
+          )}
         </div>
         {binding && (
           <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/30 px-6 py-2 text-[11px] text-muted-foreground">
@@ -495,14 +502,14 @@ export function ConversationPane({
               Loading messages…
             </p>
           )}
-          {messages.length >= limit && (
+          {tab !== 'activity' && messages.length >= limit && (
             <div className="p-4 text-center">
               <button onClick={() => setLimit((value) => value + 100)} className={secondaryButton}>
                 Load earlier messages
               </button>
             </div>
           )}
-          {!loading && !queryError && !messages.length && (
+          {tab !== 'activity' && !loading && !queryError && !messages.length && (
             <EmptyState
               icon={<span className="text-2xl">#</span>}
               title={search ? 'No matching messages' : `This is the start of ${title}`}
@@ -550,7 +557,7 @@ export function ConversationPane({
                 />
               </div>
             ))
-          ) : (
+          ) : tab === 'media' ? (
             <div className="grid grid-cols-1 gap-4 p-6 lg:grid-cols-2">
               {messages.flatMap((message) =>
                 message.redacted
@@ -570,15 +577,17 @@ export function ConversationPane({
                   </p>
                 )}
             </div>
+          ) : (
+            <AgentRunHistory
+              agents={agents}
+              channelId={channel.id}
+              onPreview={(id) => {
+                setExtensionRunId(id)
+                setExtensionOpen(true)
+              }}
+            />
           )}
-          <AgentRunCards
-            agents={agents}
-            channelId={channel.id}
-            onPreview={(id) => {
-              setExtensionRunId(id)
-              setExtensionOpen(true)
-            }}
-          />
+          {tab === 'conversation' && <AgentRunCards agents={agents} channelId={channel.id} />}
         </div>
         {deleteId && (
           <div className="flex items-center justify-between gap-2 border-t border-border bg-muted px-6 py-3 text-sm">
@@ -797,6 +806,13 @@ export function ConversationPane({
           data={data}
           messages={extensionMessages}
           run={agents.snapshot.runs.find((run) => run.id === extensionRunId)}
+          proposals={agents.snapshot.runs.filter(
+            (run) =>
+              run.channelId === channel.id &&
+              run.purpose === 'extension' &&
+              run.status === 'completed'
+          )}
+          onReview={setExtensionRunId}
           onClose={() => setExtensionOpen(false)}
         />
       )}
