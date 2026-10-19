@@ -10,8 +10,12 @@
  */
 
 import type { ConnectHubRequest } from './components/ConnectHubDialog'
+import { useBlobService, useBlobTransfers } from '@xnetjs/editor/react'
 import { getCommandRegistry } from '@xnetjs/plugins'
+import { useXNet } from '@xnetjs/react'
+import { useNodeStore } from '@xnetjs/react/internal'
 import { PlatformProvider, setWorkbenchHost, Workbench } from '@xnetjs/workbench'
+import { CommunityApp } from '@xnetjs/workbench/communities'
 import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { ActionDock } from './components/ActionDock'
 import { AddSharedDialog } from './components/AddSharedDialog'
@@ -52,7 +56,13 @@ const StorybookView = lazy(() =>
   import('./components/StorybookView').then((m) => ({ default: m.StorybookView }))
 )
 
-export function App(): React.ReactElement {
+export function LegacyWorkspace({
+  initialShare = '',
+  initialCapture
+}: {
+  initialShare?: string
+  initialCapture?: string
+}): React.ReactElement {
   const {
     shellState,
     homeCanvasId,
@@ -79,12 +89,18 @@ export function App(): React.ReactElement {
     handleOpenAssistant,
     handleOpenSocialImport
   } = useDocumentShell()
-  const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
-  const [prefilledShareValue, setPrefilledShareValue] = useState('')
+  const [showAddSharedDialog, setShowAddSharedDialog] = useState(Boolean(initialShare))
+  const [prefilledShareValue, setPrefilledShareValue] = useState(initialShare)
   const [connectRequest, setConnectRequest] = useState<ConnectHubRequest | null>(null)
   const [recoveryNotice, setRecoveryNotice] = useState<string | null>(null)
   const [recoveryError, setRecoveryError] = useState<string | null>(null)
   const nativeChangeError = useNativeNodeChanges()
+  useEffect(() => {
+    if (initialCapture && !isLoading && homeCanvasId)
+      window.dispatchEvent(
+        new CustomEvent('xnet:open-library-capture', { detail: { url: initialCapture } })
+      )
+  }, [initialCapture, isLoading, homeCanvasId])
 
   useEffect(
     () =>
@@ -355,5 +371,116 @@ export function App(): React.ReactElement {
         <BundledPluginInstaller />
       </div>
     </PlatformProvider>
+  )
+}
+
+/** Chat is the default; the previous workspace remains an explicit secondary surface. */
+export function App(): React.ReactElement {
+  const { store, isReady } = useNodeStore()
+  const { getHubAuthToken } = useXNet()
+  useEffect(() => {
+    if (!store || !isReady || !getHubAuthToken) return
+    return window.__xnetIpcSyncManager?.attachNodeStore(store, getHubAuthToken)
+  }, [store, isReady, getHubAuthToken])
+  const blobs = useBlobService()
+  const transfers = useBlobTransfers()
+  const [workspace, setWorkspace] = useState(false)
+  const [settings, setSettings] = useState(false)
+  const nativeChangeError = useNativeNodeChanges(!workspace)
+  const [sharePayload, setSharePayload] = useState('')
+  const [captureUrl, setCaptureUrl] = useState<string>()
+  const [connectRequest, setConnectRequest] = useState<ConnectHubRequest | null>(null)
+  const [recovery, setRecovery] = useState<string | null>(null)
+  useEffect(() => {
+    if (workspace) return
+    let active = true
+    void window.xnet.getRecoveryStatus().then(
+      (status) => {
+        if (active)
+          setRecovery(
+            status.error
+              ? `Recovery copy failed: ${status.error}`
+              : status.networkPaused
+                ? 'Restored workspace: sync is paused while you review your data.'
+                : null
+          )
+      },
+      (cause: unknown) => {
+        if (active) setRecovery(`Could not read recovery status: ${String(cause)}`)
+      }
+    )
+    const cleanups = [
+      window.xnet.onRecoveryError((message) =>
+        setRecovery(message ? `Recovery copy failed: ${message}` : null)
+      ),
+      window.xnet.onCloudConnect(setConnectRequest),
+      window.xnet.onSharePayload((payload) => {
+        setSharePayload(payload)
+        setWorkspace(true)
+      }),
+      window.xnet.onLibraryCapture((url) => {
+        setCaptureUrl(url)
+        setWorkspace(true)
+      })
+    ]
+    return () => {
+      active = false
+      cleanups.forEach((cleanup) => cleanup())
+    }
+  }, [workspace])
+  if (workspace)
+    return (
+      <div className="h-screen">
+        <button
+          type="button"
+          onClick={() => {
+            setWorkspace(false)
+            setSharePayload('')
+            setCaptureUrl(undefined)
+          }}
+          className="fixed right-5 top-1 z-50 rounded bg-background px-3 py-1 text-xs text-foreground titlebar-no-drag"
+        >
+          Back to messages
+        </button>
+        <LegacyWorkspace initialShare={sharePayload} initialCapture={captureUrl} />
+      </div>
+    )
+  return (
+    <>
+      <CommunityApp
+        desktop
+        blobs={blobs}
+        transfers={transfers}
+        onOpenWorkspace={() => setWorkspace(true)}
+        onOpenSettings={() => setSettings(true)}
+        banner={
+          nativeChangeError || recovery ? (
+            <p role="alert" className="p-3 text-sm">
+              {nativeChangeError || recovery}
+              {recovery && (
+                <button className="ml-3 underline" onClick={() => setSettings(true)}>
+                  Open recovery settings
+                </button>
+              )}
+            </p>
+          ) : undefined
+        }
+      />
+      <ConnectHubDialog
+        request={connectRequest}
+        onCancel={() => setConnectRequest(null)}
+        onConfirm={async (request) => {
+          await window.__xnetIpcSyncManager?.configureShareSession({ signalingUrl: request.hub })
+          setPersistedHubUrl(request.hub)
+        }}
+      />
+      {settings && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <Suspense fallback={<p className="p-6">Loading settings…</p>}>
+            <SettingsView onClose={() => setSettings(false)} />
+          </Suspense>
+        </div>
+      )}
+    </>
   )
 }

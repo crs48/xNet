@@ -944,6 +944,7 @@ async function init() {
           <XNetProvider
             config={{
               nodeStorage,
+              hubUrl: configuredHubUrl(),
               authorDID: AUTHOR_DID,
               signingKey: SIGNING_KEY,
               blobStore: providerBlobStore,

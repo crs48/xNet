@@ -1,0 +1,35 @@
+/* This shell intentionally ignores the legacy cozy palette. */
+.community-app,
+.community-modal {
+  color-scheme: light;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 8%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 42%;
+  --border: 0 0% 90%;
+  --ring: 0 0% 35%;
+  --destructive: 0 0% 20%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.community-app button:focus-visible,
+.community-modal button:focus-visible,
+.community-app a:focus-visible,
+.community-modal a:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 3px;
+}
+.community-modal::backdrop {
+  background: rgb(0 0 0 / 28%);
+}
+.community-app .titlebar-drag {
+  -webkit-app-region: drag;
+}
+@media (prefers-reduced-motion: reduce) {
+  .community-app *,
+  .community-modal * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

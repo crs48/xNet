@@ -19,7 +19,8 @@ import type {
   ImportDeterministicNodesResult,
   NodeBatchWritePolicy,
   NodeBatchWriteTimings,
-  NodeChange
+  NodeChange,
+  NodeState
 } from '@xnetjs/data'
 import type { ElectronSQLiteDiagnostics } from '@xnetjs/sqlite'
 import { hashContent, createContentId } from '@xnetjs/core'
@@ -307,67 +308,6 @@ const PEER_TIMEOUT_MS = 4444
 const PEER_CHECK_INTERVAL_MS = 1111
 const HEARTBEAT_INTERVAL_MS = 1111
 
-type ScalarIndexValue = {
-  valueType: 'text' | 'number' | 'boolean' | 'null'
-  valueText: string | null
-  valueNumber: number | null
-  valueBoolean: number | null
-  valueHash: string
-}
-
-function hashScalarValue(value: string): string {
-  let hash = 2166136261
-  for (let i = 0; i < value.length; i++) {
-    hash ^= value.charCodeAt(i)
-    hash = Math.imul(hash, 16777619)
-  }
-  return (hash >>> 0).toString(16).padStart(8, '0')
-}
-
-function toScalarIndexValue(value: unknown): ScalarIndexValue | null {
-  if (value === null) {
-    return {
-      valueType: 'null',
-      valueText: null,
-      valueNumber: null,
-      valueBoolean: null,
-      valueHash: 'null'
-    }
-  }
-
-  if (typeof value === 'string') {
-    return {
-      valueType: 'text',
-      valueText: value,
-      valueNumber: null,
-      valueBoolean: null,
-      valueHash: hashScalarValue(value)
-    }
-  }
-
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return {
-      valueType: 'number',
-      valueText: null,
-      valueNumber: value,
-      valueBoolean: null,
-      valueHash: hashScalarValue(String(value))
-    }
-  }
-
-  if (typeof value === 'boolean') {
-    return {
-      valueType: 'boolean',
-      valueText: null,
-      valueNumber: null,
-      valueBoolean: value ? 1 : 0,
-      valueHash: value ? 'true' : 'false'
-    }
-  }
-
-  return null
-}
-
 function buildNodeListOrderBy(
   orderBy?: Partial<Record<'createdAt' | 'updatedAt', 'asc' | 'desc'>>
 ): string {
@@ -388,56 +328,8 @@ function buildNodeListOrderBy(
     .join(', ')
 }
 
-async function syncScalarRowsForNode(
-  adapter: ElectronSQLiteAdapter,
-  node: SerializedNodeState,
-  indexProperties: boolean
-): Promise<void> {
-  await adapter.run('DELETE FROM node_property_scalars WHERE node_id = ?', [node.id])
-
-  if (!indexProperties) {
-    return
-  }
-
-  for (const [key, value] of Object.entries(node.properties)) {
-    const timestamp = node.timestamps[key]
-    const scalar = toScalarIndexValue(value)
-    if (!timestamp || !scalar) continue
-
-    await adapter.run(
-      `INSERT INTO node_property_scalars
-        (
-          node_id,
-          schema_id,
-          property_key,
-          value_type,
-          value_text,
-          value_number,
-          value_boolean,
-          value_hash,
-          updated_at,
-          lamport_time
-        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        node.id,
-        node.schemaId,
-        key,
-        scalar.valueType,
-        scalar.valueText,
-        scalar.valueNumber,
-        scalar.valueBoolean,
-        scalar.valueHash,
-        timestamp.wallTime,
-        timestamp.lamport
-      ]
-    )
-  }
-}
-
-// ─── Data Service Factory ───────────────────────────────────────────────────
-
 export function createDataService(config: DataServiceConfig): DataService {
+  const pendingNodeChanges = new Map<string, SerializedNodeChange[]>()
   let adapter: ElectronSQLiteAdapter | null = null
   let nodeStorage: SQLiteNodeStorageAdapter | null = null
   function requireNodeStorage(): SQLiteNodeStorageAdapter {
@@ -1031,8 +923,8 @@ export function createDataService(config: DataServiceConfig): DataService {
 
   async function hasBlobInDb(cid: string): Promise<boolean> {
     if (!adapter) return false
-    const row = await adapter.queryOne<{ exists: number }>(
-      'SELECT 1 as exists FROM blobs WHERE cid = ?',
+    const row = await adapter.queryOne<{ present: number }>(
+      'SELECT 1 AS present FROM blobs WHERE cid = ?',
       [cid]
     )
     return !!row
@@ -1404,33 +1296,16 @@ export function createDataService(config: DataServiceConfig): DataService {
         )
       }
 
-      await adapter.run(
-        `INSERT OR REPLACE INTO changes (
-          hash, node_id, payload, lamport_time, lamport_peer, wall_time,
-          author, parent_hash, batch_id, signature
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          change.hash,
-          change.payload.nodeId,
-          JSON.stringify(change.payload),
-          change.lamport,
-          change.authorDID,
-          change.wallTime,
-          change.authorDID,
-          change.parentHash,
-          change.batchId ?? null,
-          Buffer.from(change.signature)
-        ]
-      )
-
-      // Update sync state with latest Lamport time
-      await adapter.run(
-        `INSERT OR REPLACE INTO sync_state (key, value) VALUES ('lastLamportTime', ?)`,
-        [String(Math.max(change.lamport, await this.getLastLamportTime()))]
-      )
-
-      // Emit change event for real-time sync to other windows
-      sendEvent('nodes:change', { changes: [change] })
+      // Keep signed change identities and the canonical binary storage format.
+      await requireNodeStorage().appendChange({
+        ...change,
+        signature: new Uint8Array(change.signature)
+      } as NodeChange)
+      await this.setLastLamportTime(Math.max(change.lamport, await this.getLastLamportTime()))
+      // Remote replay appends before materializing. Readers must wait for setNode.
+      const pending = pendingNodeChanges.get(change.payload.nodeId) ?? []
+      pending.push(change)
+      pendingNodeChanges.set(change.payload.nodeId, pending)
 
       log('appendChange:', change.hash, 'node:', change.payload.nodeId)
     },
@@ -1488,57 +1363,18 @@ export function createDataService(config: DataServiceConfig): DataService {
     async setNode(node: SerializedNodeState, options?: SetNodeOptions): Promise<void> {
       if (!adapter) throw new Error('Database not initialized')
 
-      // Upsert node
-      await adapter.run(
-        `INSERT OR REPLACE INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          node.id,
-          node.schemaId,
-          node.createdAt,
-          node.updatedAt,
-          node.createdBy,
-          node.deleted ? (node.deletedAt?.wallTime ?? Date.now()) : null
-        ]
+      await requireNodeStorage().setNode(
+        {
+          ...node,
+          documentContent: node.documentContent ? new Uint8Array(node.documentContent) : undefined
+        } as NodeState,
+        options
       )
-
-      const propertyKeys = Object.keys(node.properties)
-      if (propertyKeys.length === 0) {
-        await adapter.run('DELETE FROM node_properties WHERE node_id = ?', [node.id])
-      } else {
-        const placeholders = propertyKeys.map(() => '?').join(', ')
-        await adapter.run(
-          `DELETE FROM node_properties WHERE node_id = ? AND property_key NOT IN (${placeholders})`,
-          [node.id, ...propertyKeys]
-        )
-      }
-
-      // Upsert properties
-      for (const [key, value] of Object.entries(node.properties)) {
-        const ts = node.timestamps[key]
-        await adapter.run(
-          `INSERT OR REPLACE INTO node_properties (node_id, property_key, value, lamport_time, updated_by, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [
-            node.id,
-            key,
-            value !== undefined ? JSON.stringify(value) : null,
-            ts?.lamport ?? 0,
-            ts?.author ?? node.createdBy,
-            ts?.wallTime ?? node.updatedAt
-          ]
-        )
-      }
-
-      await syncScalarRowsForNode(adapter, node, options?.indexProperties ?? true)
-
-      // Store document content if present
-      if (node.documentContent) {
-        await adapter.run(
-          `INSERT OR REPLACE INTO yjs_state (node_id, state, updated_at)
-           VALUES (?, ?, ?)`,
-          [node.id, Buffer.from(node.documentContent), Date.now()]
-        )
+      if (node.documentContent) await this.setDocumentContent(node.id, node.documentContent)
+      const changes = pendingNodeChanges.get(node.id)
+      if (changes) {
+        pendingNodeChanges.delete(node.id)
+        sendEvent('nodes:change', { changes })
       }
 
       log('setNode:', node.id, 'schema:', node.schemaId)

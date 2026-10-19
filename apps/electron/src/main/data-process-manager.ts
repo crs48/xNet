@@ -348,6 +348,8 @@ export function onEvent(eventType: string, listener: (data: unknown) => void): (
 /**
  * Set up MessagePort channel between a window and the data process
  */
+const channelCleanupWindows = new WeakSet<BrowserWindow>()
+
 export function setupWindowChannel(window: BrowserWindow): void {
   const windowId = window.id
 
@@ -369,8 +371,10 @@ export function setupWindowChannel(window: BrowserWindow): void {
   // Send port2 to the renderer
   window.webContents.postMessage('data-channel', { windowId }, [port2])
 
-  // Clean up when window is closed
-  window.on('closed', () => {
+  // Reload replaces ports, but a window only needs one lifetime cleanup listener.
+  if (channelCleanupWindows.has(window)) return
+  channelCleanupWindows.add(window)
+  window.once('closed', () => {
     const port = windowPorts.get(windowId)
     if (port) {
       port.close()

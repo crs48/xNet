@@ -2,11 +2,11 @@ import { useNodeStore } from '@xnetjs/react/internal'
 import { useEffect, useState } from 'react'
 
 /** Native import/enrichment writes share storage with the renderer's live store. */
-export function useNativeNodeChanges(): string | null {
+export function useNativeNodeChanges(enabled = true): string | null {
   const { store, isReady } = useNodeStore()
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
-    if (!store || !isReady) return
+    if (!enabled || !store || !isReady) return
     const pending = new Set<string>()
     let active = true
     let running = false
@@ -48,6 +48,6 @@ export function useNativeNodeChanges(): string | null {
       unsubscribe()
       retryAfterBarrier()
     }
-  }, [store, isReady])
+  }, [store, isReady, enabled])
   return error
 }

@@ -13,6 +13,10 @@
     "./ai": {
       "import": "./src/views/ai.ts",
       "types": "./src/views/ai.ts"
+    },
+    "./communities": {
+      "import": "./src/communities/index.ts",
+      "types": "./src/communities/index.ts"
     }
   },
   "scripts": {

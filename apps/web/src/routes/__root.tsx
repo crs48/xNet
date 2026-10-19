@@ -7,8 +7,11 @@
  * active call survives navigation; RoomSection and the status items
  * publish into shell contribution points.
  */
-import { createRootRoute, Outlet } from '@tanstack/react-router'
+import { createRootRoute, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
+import { useBlobService, useBlobTransfers } from '@xnetjs/editor/react'
 import { Workbench } from '@xnetjs/workbench'
+import { CommunityApp } from '@xnetjs/workbench/communities'
+import { useState } from 'react'
 import { CallProvider, CommsDock } from '../comms/CallDock'
 import { CommsProvider } from '../comms/CommsContext'
 import { useSharedRoomBootSync } from '../comms/hooks'
@@ -42,7 +45,12 @@ function SharedRoomBootSync(): null {
 function RootLayout() {
   // The shell reaches the router only through this port (exploration 0406) —
   // the same components will mount on desktop over a ShellState-backed port.
+  const location = useLocation()
+  const navigate = useNavigate()
   const platform = useWebPlatformPort()
+  const blobs = useBlobService()
+  const transfers = useBlobTransfers()
+  const [workspace, setWorkspace] = useState(false)
   return (
     <PlatformProvider value={platform}>
       <CommsProvider>
@@ -53,9 +61,30 @@ function RootLayout() {
             <InboxBellItem />
             <PresenceStatusItem />
             <FormInboxItem />
-            <Workbench>
-              <Outlet />
-            </Workbench>
+            {workspace || location.pathname !== '/' ? (
+              <>
+                <button
+                  onClick={() => {
+                    setWorkspace(false)
+                    void navigate({ to: '/' })
+                  }}
+                  className="fixed right-4 top-2 z-50 rounded bg-background px-3 py-2 text-xs text-foreground"
+                >
+                  Back to messages
+                </button>
+                <Workbench>
+                  <Outlet />
+                </Workbench>
+              </>
+            ) : (
+              <div className="mt-[var(--storage-banner-height,0px)] h-[calc(100dvh-var(--storage-banner-height,0px))]">
+                <CommunityApp
+                  blobs={blobs}
+                  transfers={transfers}
+                  onOpenWorkspace={() => setWorkspace(true)}
+                />
+              </div>
+            )}
             <CommsDock />
           </AppLinkUpres>
         </CallProvider>

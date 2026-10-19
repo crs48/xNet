@@ -23,6 +23,9 @@ async function open(): Promise<void> {
   await service.initialize()
   const api = {
     applyNodeBatch: vi.fn(service.applyNodeBatch.bind(service)),
+    appendChange: service.appendChange.bind(service),
+    setNode: service.setNode.bind(service),
+    setLastLamportTime: service.setLastLamportTime.bind(service),
     getNode: service.getNode.bind(service),
     getLastChange: service.getLastChange.bind(service),
     getChanges: service.getChanges.bind(service),
@@ -187,5 +190,34 @@ it('hydrates a query page in one batch while preserving order and document bytes
   } finally {
     single.mockRestore()
     batch.mockRestore()
+  }
+})
+
+it('replays a remote change without losing its signed envelope or announcing incomplete state', async () => {
+  await store.create({
+    id: 'source',
+    schemaId: PageSchema._schemaId,
+    properties: { title: 'Shared' }
+  })
+  const change = (await service.getChanges('source'))[0]
+  const targetRoot = await mkdtemp(join(tmpdir(), 'xnet-ipc-remote-'))
+  const target = createDataService({ dbPath: join(targetRoot, 'data.db') })
+  try {
+    await target.initialize()
+    sendEvent.mockClear()
+    await target.appendChange(change)
+    expect(sendEvent).not.toHaveBeenCalled()
+    const source = await service.getNode('source')
+    await target.setNode(source!)
+    expect(sendEvent).toHaveBeenCalledExactlyOnceWith('nodes:change', { changes: [change] })
+    expect(await target.getChanges('source')).toEqual([change])
+    expect(await target.getNode('source')).toEqual(source)
+    await target.shutdown()
+    await target.initialize()
+    expect(await target.getLastChange('source')).toEqual(change)
+    expect((await target.getNode('source'))?.properties.title).toBe('Shared')
+  } finally {
+    await target.shutdown()
+    await rm(targetRoot, { recursive: true, force: true })
   }
 })
