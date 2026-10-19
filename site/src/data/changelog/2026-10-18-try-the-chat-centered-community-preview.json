@@ -3,6 +3,6 @@
   "date": "October 18, 2026",
   "title": "Try the chat-centered community preview",
   "summary": "A minimal black-and-white interface brings messages, people, communities, attachments, and small calls together; private-community encryption remains in development.",
-  "highlights": [],
+  "highlights": ["The messaging navigation uses the new xNet mark and matching logotype."],
   "tags": ["app", "sync"]
 }

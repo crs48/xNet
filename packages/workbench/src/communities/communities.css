@@ -25,6 +25,22 @@
 .community-app .titlebar-drag {
   -webkit-app-region: drag;
 }
+/* Reuse the SVG masters so the desktop and web shells match the site. */
+.community-brand-mark,
+.community-brand-wordmark {
+  display: block;
+  flex-shrink: 0;
+  background-color: currentColor;
+}
+.community-brand-mark {
+  -webkit-mask: url('../../../../site/public/mark.svg') center / contain no-repeat;
+  mask: url('../../../../site/public/mark.svg') center / contain no-repeat;
+}
+.community-brand-wordmark {
+  aspect-ratio: 226.147927 / 86;
+  -webkit-mask: url('../../../../site/public/wordmark.svg') center / contain no-repeat;
+  mask: url('../../../../site/public/wordmark.svg') center / contain no-repeat;
+}
 @media (prefers-reduced-motion: reduce) {
   .community-app *,
   .community-modal * {

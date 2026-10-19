@@ -367,7 +367,7 @@ export function CommunityApp({
     <div className="community-app flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
       {desktop && (
         <header className="titlebar-drag flex h-[38px] shrink-0 items-center justify-center border-b border-border text-[10px] font-medium tracking-[0.12em] text-muted-foreground">
-          xNet · community preview
+          Community preview
         </header>
       )}
       {banner}
@@ -383,9 +383,9 @@ export function CommunityApp({
               setSpaceFilter(null)
               setMobileOpen(false)
             }}
-            className="mb-9 flex h-10 w-10 items-center justify-center rounded-xl bg-foreground text-xl font-semibold tracking-tighter text-background"
+            className="mb-9 flex h-10 w-10 items-center justify-center rounded-xl bg-foreground text-background"
           >
-            x.
+            <span aria-hidden="true" className="community-brand-mark h-7 w-7" />
           </button>
           {(
             [
@@ -426,10 +426,13 @@ export function CommunityApp({
           className={`${mobileOpen ? 'hidden md:flex' : 'flex'} min-w-0 flex-1 flex-col border-r border-border bg-background md:w-[300px] md:flex-none`}
         >
           <header className="flex h-[78px] shrink-0 items-center justify-between px-5">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {community?.name ||
-                { messages: 'Messages', people: 'People', communities: 'Communities' }[section]}
-            </h1>
+            <div className="min-w-0">
+              <span role="img" aria-label="xNet" className="community-brand-wordmark h-6" />
+              <h1 className="mt-1 truncate text-sm font-semibold tracking-tight">
+                {community?.name ||
+                  { messages: 'Messages', people: 'People', communities: 'Communities' }[section]}
+              </h1>
+            </div>
             <IconButton
               label={section === 'communities' ? 'New community' : 'New conversation'}
               onClick={() => create(section === 'communities' ? 'community' : 'group')}
