@@ -4125,6 +4125,41 @@ devices.
 - What the hub adds (signaling relay, mention validation)
   
 
+## Community redesign preview (0478)
+
+The experimental chat-centered interface opens first on desktop and at the web
+app's home route. Messages, people, groups, communities, and organizations share
+one monochrome shell. Workspace tools remain accessible from Settings.
+
+Create a conversation, give it a name, and add people's xNet identities. Drafts
+stay on the current device; sending creates a persistent `ChatMessage`. Search
+covers locally stored messages. The history starts with the latest 100 messages
+and offers **Load older messages**. Attachments are capped at eight files per
+message and 100 MB per file; opening one explicitly requests its bytes if needed.
+
+Voice and video calls ask before enabling devices. Their floating panel stays
+open while moving among conversations, and leaving stops the media tracks. The
+preview uses small peer-to-peer calls, with no TURN relay configured in this UI;
+restricted networks may not connect. Leaving the community interface for the
+older workspace ends the call.
+
+Profile settings can store links to Bluesky and X accounts. These links are
+**self-declared and unverified**. They do not implement OAuth, import messages,
+or establish control of those accounts. The existing web identity onboarding is
+separate from this profile editor.
+
+**Use non-sensitive demo content**
+This PR is a UX preview of exploration 0478. It does not complete encrypted group
+membership, encrypted attachments, device admission, revocation, or community
+recovery. Audience settings express intended access using existing Space and
+membership records; they are not evidence that the full privacy model is ready.
+The development hub disables authentication. A conversation ID is not an access
+grant, and the preview has no new production invitation delivery service.
+
+The sections below describe the existing communications infrastructure and
+workspace views. Some controls, including mentions, read state, notifications,
+and screen sharing, have not been connected to the new community shell yet.
+
 ## Overview
 
 `@xnetjs/comms` brings real-time communication to the workspace using the same

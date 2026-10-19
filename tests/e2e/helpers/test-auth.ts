@@ -67,3 +67,11 @@ export async function setupTestAuth(
   }
   await waitForAuthenticated(page)
 }
+
+/** Existing workspace gates enter through the chat shell's public navigation. */
+export async function openWorkspaceToolsIfVisible(page: Page): Promise<void> {
+  const navigation = page.getByRole('navigation', { name: 'Main navigation', exact: true })
+  if (!(await navigation.isVisible())) return
+  await navigation.getByRole('button', { name: 'Settings', exact: true }).click()
+  await page.getByRole('button', { name: 'Open workspace tools', exact: true }).click()
+}

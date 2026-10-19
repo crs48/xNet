@@ -6,7 +6,7 @@
  * and the onboarding flow are reachable and render.
  */
 import { expect, test, type Page } from '@playwright/test'
-import { setupTestAuth } from '../helpers/test-auth'
+import { setupTestAuth, openWorkspaceToolsIfVisible } from '../helpers/test-auth'
 
 const BASE = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:5173'
 
@@ -56,6 +56,7 @@ async function advanceOnboarding(page: Page): Promise<void> {
   // gate matches either.
   const ready = page.getByRole('heading', { name: /all documents|everything/i })
   for (let i = 0; i < 10; i++) {
+    await openWorkspaceToolsIfVisible(page)
     if ((await ready.count()) > 0) return
     const start = page.getByRole('button', { name: /Get started/i })
     if ((await start.count()) > 0 && (await start.first().isVisible())) {

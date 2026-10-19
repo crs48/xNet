@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { setupTestAuth } from '../helpers/test-auth'
+import { setupTestAuth, openWorkspaceToolsIfVisible } from '../helpers/test-auth'
 
 async function advanceOnboarding(page: import('@playwright/test').Page): Promise<void> {
   for (let i = 0; i < 6; i++) {
@@ -30,6 +30,7 @@ async function advanceOnboarding(page: import('@playwright/test').Page): Promise
 
     break
   }
+  await openWorkspaceToolsIfVisible(page)
 }
 
 test.describe('Editor UX mobile', () => {
