@@ -72,7 +72,7 @@ flowchart LR
   treats transport EOF or partial output as successful completion.
 - Context is same-channel text, at most 30 messages / 24,000 serialized characters;
   attachments are excluded. Audience/policy changes cancel active work, deny
-  publication, and rotate provider context. The local owner is derived from the
+  publication, and rotate provider context. The guard includes community membership edges and expiry; nested communities and more than 2,000 local membership edges are explicitly unsupported in this preview. The local owner is derived from the
   desktop identity, not supplied by an approval card.
 - Extension proposals remain in the private local journal. Successful builds save
   a new personal `PluginSource` node with source, actor/run, compiler, build hash,
@@ -98,7 +98,7 @@ In an owner-created group, a plain quoted `@Codex` did not invoke the agent; sel
 Hostile preview inputs exercised an infinite loop, network fetch, unsafe output
 fields, and broken TypeScript; each failed without removing the last working
 view. The web production build includes the compiler worker, WASM asset, and
-isolated preview document. Adapter, policy, service-lifecycle, and render-tree
+isolated preview document. The built renderer also ran the preview inside Electron with its production CSP enabled, and removed the frame when finished. Adapter, policy, service-lifecycle, and render-tree
 validation tests provide separate regression coverage.
 
 Claude discovery and a constrained adapter are wired, but the installed Claude
@@ -609,11 +609,11 @@ These are future acceptance tests, not results of this research. Follow the repo
 
 ## References
 
-Repository predecessors are context, not proof that their proposals shipped:
+Repository predecessors are context, not proof that their proposals shipped. The 0474, 0478, and 0479 research documents remain on the separate local `codex/personal-data-foundation` branch and are not included in this PR:
 
 - [0194 — agent bridge](./0194_[_]_AGENT_BRIDGE_CLAUDE_CODE_CODEX_AND_ANY_AGENT_IN_XNET.md): the earlier installed-agent direction; provider-policy claims require current verification.
-- [0474 — personal data foundation](https://github.com/crs48/xNet/blob/58042ff2c/docs/explorations/0474_%5B_%5D_PERSONAL_DATA_FOUNDATION_FOR_AGENT_BUILT_APPS.md): shared data across small agent-built applications.
-- [0478 — private communities](https://github.com/crs48/xNet/blob/58042ff2c/docs/explorations/0478_%5B_%5D_PRIVATE_COMMUNITIES_ON_XNET.md): audiences, hosts, and private sharing.
-- [0479 — social sign-in and SSO](https://github.com/crs48/xNet/blob/58042ff2c/docs/explorations/0479_%5B_%5D_SOCIAL_SIGN_IN_SSO_AND_LINKED_IDENTITIES.md): separate public identity links from data ownership and authority.
+- `0474 — personal data foundation`: shared data across small agent-built applications.
+- `0478 — private communities`: audiences, hosts, and private sharing.
+- `0479 — social sign-in and SSO`: separate public identity links from data ownership and authority.
 
 Official external sources are linked beside the claims they support. Provider capabilities and account policies should be rechecked at implementation time; the local schema and help observations above are a dated compatibility snapshot.

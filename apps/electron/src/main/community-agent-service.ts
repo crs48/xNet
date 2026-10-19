@@ -9,7 +9,7 @@ import type {
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { spaceMembershipId } from '@xnetjs/data'
+import { SPACE_MEMBERSHIP_SCHEMA_IRI } from '@xnetjs/data'
 import { identityFromPrivateKey } from '@xnetjs/identity'
 import { BrowserWindow, ipcMain, safeStorage, type IpcMainInvokeEvent } from 'electron'
 import {
@@ -109,16 +109,30 @@ async function boundary(binding: CommunityAgentBinding) {
     (!Array.isArray(space.properties.owners) || !space.properties.owners.includes(current.owner))
   )
     throw new Error('Only community owners can enable a local agent in this preview.')
-  const membershipIds =
-    space && Array.isArray(channel.properties.members)
-      ? channel.properties.members
-          .filter(
-            (member): member is `did:key:${string}` =>
-              typeof member === 'string' && member.startsWith('did:key:')
-          )
-          .map((member) => spaceMembershipId(space.id, member))
-      : []
-  const memberships = await Promise.all(membershipIds.map(getNode))
+  if (space?.properties.parent)
+    throw new Error('Local agents currently support top-level communities only.')
+  // Membership edges can change without changing the channel or Space node.
+  // Refuse a truncated audience rather than silently omitting a new recipient.
+  const membershipWindow = space
+    ? await sendStoreRequest<AgentContextNode[]>('list', {
+        schemaId: SPACE_MEMBERSHIP_SCHEMA_IRI,
+        limit: 2001,
+        offset: 0
+      })
+    : []
+  if (membershipWindow.length > 2000)
+    throw new Error('This agent preview supports at most 2,000 local community memberships.')
+  const memberships = membershipWindow
+    .filter(
+      (member) =>
+        member.schemaId === SPACE_MEMBERSHIP_SCHEMA_IRI &&
+        !member.deleted &&
+        member.properties.space === space?.id &&
+        (member.properties.expiresAt === undefined ||
+          (typeof member.properties.expiresAt === 'number' &&
+            member.properties.expiresAt > Date.now()))
+    )
+    .sort((a, b) => a.id.localeCompare(b.id))
   if (
     space &&
     !memberships.some(
@@ -133,7 +147,13 @@ async function boundary(binding: CommunityAgentBinding) {
   return (
     audienceKey(channel, space, binding) +
     JSON.stringify(
-      memberships.map((member) => (member ? [member.id, member.updatedAt, member.deleted] : null))
+      memberships.map((member) => [
+        member.id,
+        member.updatedAt,
+        member.properties.member,
+        member.properties.role,
+        member.properties.expiresAt
+      ])
     )
   )
 }

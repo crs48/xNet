@@ -30,8 +30,12 @@ vi.mock('./identity-seed', () => ({
 vi.mock('@xnetjs/identity', () => ({ identityFromPrivateKey: () => ({ did: 'did:key:owner' }) }))
 vi.mock('./renderer-store-proxy', () => ({
   setupStoreResponseHandler: () => {},
-  sendStoreRequest: async (_operation: string, params: { id: string }) =>
-    fixture.nodes.get(params.id) ?? null
+  sendStoreRequest: async (operation: string, params: { id: string; schemaId?: string }) =>
+    operation === 'list'
+      ? [...fixture.nodes.values()].filter(
+          (node) => (node as { schemaId: string }).schemaId === params.schemaId
+        )
+      : (fixture.nodes.get(params.id) ?? null)
 }))
 vi.mock('./community-agent-runtime', () => {
   const runtime = {
@@ -159,6 +163,54 @@ describe('desktop community agent lifecycle', () => {
     const channel = fixture.nodes.get('chat') as { properties: Record<string, unknown> }
     channel.properties.members = ['did:key:owner', 'did:key:new-audience']
     await expect(invoke('authorizePublication', id)).rejects.toThrow('Audience changed')
+  })
+  it('denies publication when a Space gains a member absent from the channel list', async () => {
+    const channel = fixture.nodes.get('chat') as { properties: Record<string, unknown> }
+    channel.properties.space = 'community'
+    fixture.nodes.set('community', {
+      id: 'community',
+      properties: { owners: ['did:key:owner'] },
+      updatedAt: 1
+    })
+    const member = (id: string, did: string, role: string) => ({
+      id,
+      schemaId: 'xnet://xnet.fyi/SpaceMembership@1.0.0',
+      updatedAt: 1,
+      properties: { space: 'community', member: did, role }
+    })
+    fixture.nodes.set('owner-member', member('owner-member', 'did:key:owner', 'owner'))
+    const id = await invoke<string>('start', input)
+    fixture.nodes.set('new-member', member('new-member', 'did:key:new', 'viewer'))
+    fixture.complete!()
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('failed')
+    )
+    await expect(invoke('authorizePublication', id)).rejects.toThrow('No completed run')
+  })
+  it('rejects expired membership and unsupported inherited community audiences', async () => {
+    const channel = fixture.nodes.get('chat') as { properties: Record<string, unknown> }
+    channel.properties.space = 'community'
+    const space = {
+      id: 'community',
+      properties: { owners: ['did:key:owner'], parent: '' },
+      updatedAt: 1
+    }
+    fixture.nodes.set('community', space)
+    fixture.nodes.set('owner-member', {
+      id: 'owner-member',
+      schemaId: 'xnet://xnet.fyi/SpaceMembership@1.0.0',
+      updatedAt: 1,
+      properties: {
+        space: 'community',
+        member: 'did:key:owner',
+        role: 'owner',
+        expiresAt: Date.now() - 1
+      }
+    })
+    await expect(invoke('start', input)).rejects.toThrow('no longer active')
+    space.properties.parent = 'ancestor'
+    await expect(invoke('start', input)).rejects.toThrow('top-level communities')
+    expect(fixture.turns).toHaveLength(0)
   })
   it('reconciles a crash journal to interrupted without silently restarting computation', async () => {
     await invoke('start', input)
