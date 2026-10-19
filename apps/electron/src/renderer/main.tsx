@@ -36,6 +36,7 @@ import './styles.css'
 
 type LocalAPIStoreNode = {
   id: string
+  createdBy: string
   schemaId: string
   properties: Record<string, unknown>
   deleted: boolean
@@ -758,6 +759,7 @@ function LocalAPIStoreHandler() {
             properties: node.properties,
             deleted: node.deleted,
             createdAt: node.createdAt,
+            createdBy: node.createdBy,
             updatedAt: node.updatedAt
           }
         }
@@ -774,6 +776,7 @@ function LocalAPIStoreHandler() {
             properties: n.properties,
             deleted: n.deleted,
             createdAt: n.createdAt,
+            createdBy: n.createdBy,
             updatedAt: n.updatedAt
           }))
         }
@@ -789,6 +792,7 @@ function LocalAPIStoreHandler() {
             properties: node.properties,
             deleted: node.deleted,
             createdAt: node.createdAt,
+            createdBy: node.createdBy,
             updatedAt: node.updatedAt
           }
         }
@@ -803,6 +807,7 @@ function LocalAPIStoreHandler() {
             properties: node.properties,
             deleted: node.deleted,
             createdAt: node.createdAt,
+            createdBy: node.createdBy,
             updatedAt: node.updatedAt
           }
         }

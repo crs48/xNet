@@ -2454,6 +2454,9 @@ importers:
 
   packages/workbench:
     dependencies:
+      '@swc/wasm-web':
+        specifier: 1.15.41
+        version: 1.15.41
       '@mlc-ai/web-llm':
         specifier: ^0.2.84
         version: 0.2.84

@@ -1,6 +1,8 @@
+import type { CommunityAgentPort } from './agent-contract'
 import { ChatMessageSchema } from '@xnetjs/data'
 import { useQuery, useXNet } from '@xnetjs/react'
 import {
+  Bot,
   ArrowLeft,
   ArrowUpRight,
   BellOff,
@@ -19,6 +21,7 @@ import {
   X
 } from 'lucide-react'
 import { useDeferredValue, useEffect, useRef, useState, type ReactNode } from 'react'
+import { AgentSettings } from './AgentSettings'
 import { CallPanel } from './CallPanel'
 import { ConversationPane, type AttachmentServices } from './ConversationPane'
 import { CreateConversation, InviteDialog, ProfileDialog } from './dialogs'
@@ -33,10 +36,12 @@ import {
   primaryButton,
   secondaryButton
 } from './primitives'
+import { useCommunityAgents } from './use-community-agents'
 import { useCommunityData, type CommunityData, type Conversation } from './use-community-data'
 import './communities.css'
 
 export interface CommunityAppProps extends AttachmentServices {
+  agents?: CommunityAgentPort
   desktop?: boolean
   onOpenWorkspace?: () => void
   onOpenSettings?: () => void
@@ -282,6 +287,7 @@ function GlobalSearch({
   )
 }
 export function CommunityApp({
+  agents: agentPort,
   desktop,
   blobs,
   transfers,
@@ -291,6 +297,8 @@ export function CommunityApp({
   banner
 }: CommunityAppProps) {
   const data = useCommunityData()
+  const agents = useCommunityAgents(agentPort, data, { blobs, transfers })
+  const [agentSettings, setAgentSettings] = useState<Conversation | true | null>(null)
   const { syncManager } = useXNet()
   const [section, setSection] = useState<Section>('messages')
   const [selected, setSelected] = useState<string | null>(null)
@@ -371,6 +379,31 @@ export function CommunityApp({
         </header>
       )}
       {banner}
+      {agents.error && (
+        <div
+          role="alert"
+          className="flex items-center gap-3 border-b border-border px-5 py-2 text-xs"
+        >
+          <span className="flex-1">{agents.error}</span>
+          <button
+            onClick={() => {
+              agents.setError('')
+              agents.retryPublication()
+            }}
+          >
+            Retry saving
+          </button>
+        </div>
+      )}
+      {agentSettings && (
+        <AgentSettings
+          agents={agents}
+          data={data}
+          channel={agentSettings === true ? undefined : agentSettings}
+          onOpen={open}
+          onClose={() => setAgentSettings(null)}
+        />
+      )}
       <div className="relative flex min-h-0 flex-1">
         <nav
           aria-label="Main navigation"
@@ -441,6 +474,13 @@ export function CommunityApp({
             </IconButton>
           </header>
           <div className="px-4">
+            <button
+              onClick={() => setAgentSettings(true)}
+              className="mb-3 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs hover:bg-muted"
+            >
+              <Bot size={16} />
+              Your agents<span className="ml-auto text-muted-foreground">Connect</span>
+            </button>
             <button
               onClick={() => setDialog('search')}
               className="mb-4 flex w-full items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
@@ -617,6 +657,8 @@ export function CommunityApp({
         >
           {channel ? (
             <ConversationPane
+              agents={agents}
+              onAgentSettings={() => setAgentSettings(channel!)}
               key={channel.id}
               channel={channel}
               data={data}

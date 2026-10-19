@@ -448,6 +448,7 @@ export function App(): React.ReactElement {
   return (
     <>
       <CommunityApp
+        agents={window.xnetCommunityAgents}
         desktop
         blobs={blobs}
         transfers={transfers}

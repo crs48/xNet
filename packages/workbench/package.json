@@ -17,6 +17,10 @@
     "./communities": {
       "import": "./src/communities/index.ts",
       "types": "./src/communities/index.ts"
+    },
+    "./community-agents": {
+      "types": "./src/communities/agent-contract.ts",
+      "import": "./src/communities/agent-contract.ts"
     }
   },
   "scripts": {
@@ -27,6 +31,7 @@
   },
   "dependencies": {
     "@mlc-ai/web-llm": "^0.2.84",
+    "@swc/wasm-web": "1.15.41",
     "@tanstack/react-virtual": "^3.14.2",
     "@xnetjs/brain": "workspace:*",
     "@xnetjs/canvas": "workspace:*",

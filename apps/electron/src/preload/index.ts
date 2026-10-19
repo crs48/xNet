@@ -23,6 +23,7 @@ import type {
 } from '../shared/social-import'
 import type { ApplyNodeBatchResult } from '@xnetjs/data'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
+import type { CommunityAgentPort } from '@xnetjs/workbench/community-agents'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // Expose xNet API to renderer
@@ -890,6 +891,7 @@ if (process.env.NODE_ENV === 'development') {
 
 declare global {
   interface Window {
+    xnetCommunityAgents: CommunityAgentPort
     xnet: XNetAPI
     xnetStorybook?: XNetStorybookAPI
     xnetBSM: XNetBSMAPI
@@ -900,3 +902,22 @@ declare global {
     xnetNodes: XNetNodesAPI
   }
 }
+
+const communityAgents: CommunityAgentPort = {
+  snapshot: () => ipcRenderer.invoke('xnet:community-agents:snapshot'),
+  discover: () => ipcRenderer.invoke('xnet:community-agents:discover'),
+  connect: (id) => ipcRenderer.invoke('xnet:community-agents:connect', id),
+  bind: (input) => ipcRenderer.invoke('xnet:community-agents:bind', input),
+  start: (input) => ipcRenderer.invoke('xnet:community-agents:start', input),
+  cancel: (id) => ipcRenderer.invoke('xnet:community-agents:cancel', id),
+  retry: (id) => ipcRenderer.invoke('xnet:community-agents:retry', id),
+  authorizePublication: (id) =>
+    ipcRenderer.invoke('xnet:community-agents:authorizePublication', id),
+  acknowledge: (id) => ipcRenderer.invoke('xnet:community-agents:acknowledge', id),
+  reset: (id) => ipcRenderer.invoke('xnet:community-agents:reset', id),
+  subscribe: (listener) => {
+    ipcRenderer.on('xnet:community-agents:changed', listener)
+    return () => ipcRenderer.removeListener('xnet:community-agents:changed', listener)
+  }
+}
+contextBridge.exposeInMainWorld('xnetCommunityAgents', communityAgents)

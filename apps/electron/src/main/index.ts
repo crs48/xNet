@@ -12,6 +12,7 @@ import { prepareWorkspaceUpgrade } from '../storage/migrations'
 import { recoverPendingRestore, restoreCheckpoint } from '../storage/restore'
 import { setupAgentBridgeIPC, startAgentBridge, stopAgentBridge } from './agent-bridge-manager'
 import { setupCloudflareTunnelIPC, stopCloudflareTunnel } from './cloudflare-tunnel-ipc'
+import { setupCommunityAgentIPC, stopCommunityAgents } from './community-agent-service'
 import { installMainCrashLog } from './crash-log'
 import {
   spawnDataProcess,
@@ -77,6 +78,7 @@ let writersStopped = false
 
 async function stopWorkspaceWriters(): Promise<void> {
   await shutdownRecordingCapture()
+  stopCommunityAgents()
   await stopAgentBridge()
   await stopSpatialLibrary()
   await stopLocalAPI()
@@ -519,6 +521,7 @@ app
 
     // Setup agent bridge IPC handlers (drives the user's claude/codex CLI)
     setupAgentBridgeIPC()
+    setupCommunityAgentIPC(() => mainWindow)
 
     // Setup dev-only Storybook IPC handlers
     if (process.env.NODE_ENV === 'development') {
