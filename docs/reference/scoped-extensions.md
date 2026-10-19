@@ -118,7 +118,18 @@ HTML, URL, callback, or arbitrary component property is executed in the host.
 
 Use `<Button onClick={...}>` or `<input value={value}
 onInput={event => setValue(event.currentTarget.value)} />`. Catch mutation errors
-and display them. Hooks can keep state and effects; effects do not confer new
+and display them. The isolated runtime preserves `ExtensionAccessError` with a
+machine-readable `code`: `denied`, `invalid`, `revoked`, `quota`, `conflict`,
+`unsupported`, `cancelled`, `timeout`, or `unavailable`. Unknown host errors are
+sanitized; stacks, causes, and host paths never enter this error response.
+
+The host permits 20 outstanding calls per port. Every operation has a five-second
+deadline, including time queued behind an earlier command. Closing the runtime
+cancels pending validation, rejects queued work, and drops late results. A timeout
+or cancellation cannot roll back an edit already accepted by storage; its durable
+receipt remains recoverable. Refresh before issuing a different request ID.
+
+Hooks can keep state and effects; effects do not confer new
 permissions. Complex editors, portals, rich focus behavior, and arbitrary xNet
 components have not been verified for this runtime.
 

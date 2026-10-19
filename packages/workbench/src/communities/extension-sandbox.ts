@@ -1,7 +1,8 @@
 import type { ExtensionDataset } from './extension-data'
 import runtimeSource from 'virtual:xnet-extension-runtime?raw'
 import { readPreviewTree, type ChatPreviewNode } from './agent-extension'
-import { ExtensionAccessError } from './extension-protocol'
+import { createExtensionDispatcher } from './extension-dispatcher'
+import { assertExtensionMessage } from './extension-protocol'
 
 /** Untrusted code runs only in a terminable worker inside an opaque-origin frame. */
 export async function compileChatExtension(
@@ -61,7 +62,7 @@ export function startChatExtension(
   callbacks: {
     view: (tree: ChatPreviewNode) => void
     error: (error: Error) => void
-    request: (input: unknown) => Promise<unknown>
+    request: (input: unknown, signal: AbortSignal) => Promise<unknown>
   },
   signal?: AbortSignal
 ): ExtensionSession {
@@ -81,10 +82,12 @@ export function startChatExtension(
   const send = (message: unknown) => {
     if (!stopped && started) channel.port1.postMessage(message)
   }
+  const dispatcher = createExtensionDispatcher(callbacks.request, send)
   const stop = () => {
     if (stopped) return
     send({ type: 'stop' })
     stopped = true
+    dispatcher.stop()
     clearInterval(heartbeat)
     signal?.removeEventListener('abort', stop)
     channel.port1.close()
@@ -121,12 +124,8 @@ export function startChatExtension(
         count = 0
         windowStart = Date.now()
       }
-      if (
-        ++count > 100 ||
-        !data ||
-        typeof data !== 'object' ||
-        new TextEncoder().encode(JSON.stringify(data)).length > 66000
-      )
+      assertExtensionMessage(data)
+      if (++count > 100 || !data || typeof data !== 'object')
         throw new Error('Malformed or excessive extension messages.')
       const value = data as Record<string, unknown>
       if (value.ready === true) {
@@ -141,20 +140,7 @@ export function startChatExtension(
         revision = Number(value.revision)
         callbacks.view(readPreviewTree(value.tree))
       } else if (value.type === 'request') {
-        const request = value.request
-        // Policy errors are returned to the calling hook; host internals never cross the port.
-        void callbacks.request(request).then(
-          (result) => send({ type: 'result', id: (request as { id?: unknown })?.id, result }),
-          (error: unknown) =>
-            send({
-              type: 'result',
-              id: (request as { id?: unknown })?.id,
-              error:
-                error instanceof ExtensionAccessError
-                  ? error.message.slice(0, 300)
-                  : 'The edit could not be committed. Refresh the preview and try again.'
-            })
-        )
+        dispatcher.dispatch(value.request)
       } else if (value.type === 'error')
         throw new Error(
           typeof value.message === 'string' ? value.message.slice(0, 1000) : 'The extension failed.'

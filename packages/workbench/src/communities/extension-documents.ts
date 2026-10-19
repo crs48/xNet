@@ -35,6 +35,8 @@ export function projectExtensionDocument(doc: Y.Doc): string {
     if (++visited > 2000 || depth > 32)
       throw new ExtensionAccessError('quota', 'This document exceeds the structure limit.')
     if (node instanceof Y.XmlText) {
+      if (node.length > 64_000)
+        throw new ExtensionAccessError('quota', 'This document exceeds the 64 KiB text limit.')
       for (const part of node.toDelta() as { insert?: unknown }[])
         if (typeof part.insert === 'string') append(part.insert)
       return

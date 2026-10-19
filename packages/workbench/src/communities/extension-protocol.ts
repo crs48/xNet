@@ -3,15 +3,106 @@ import { TaggedError } from '@xnetjs/core'
 export class ExtensionAccessError extends TaggedError<'ExtensionAccessError'> {
   readonly _tag = 'ExtensionAccessError' as const
   constructor(
-    readonly code: 'denied' | 'invalid' | 'revoked' | 'quota' | 'conflict' | 'unsupported',
+    readonly code: ExtensionErrorCode,
     message: string
   ) {
     super(message)
   }
 }
+export const EXTENSION_ERROR_CODES = [
+  'denied',
+  'invalid',
+  'revoked',
+  'quota',
+  'conflict',
+  'unsupported',
+  'cancelled',
+  'timeout',
+  'unavailable'
+] as const
+export type ExtensionErrorCode = (typeof EXTENSION_ERROR_CODES)[number]
+export interface ExtensionFailure {
+  version: 1
+  _tag: 'ExtensionAccessError'
+  code: ExtensionErrorCode
+  message: string
+}
+/** Only deliberate public errors cross the port. Never serialize a host stack or cause. */
+export function encodeExtensionFailure(error: unknown): ExtensionFailure {
+  return {
+    version: 1,
+    _tag: 'ExtensionAccessError',
+    code: error instanceof ExtensionAccessError ? error.code : 'unavailable',
+    message:
+      error instanceof ExtensionAccessError
+        ? error.message.slice(0, 300)
+        : 'The operation could not be completed. Refresh the preview before retrying.'
+  }
+}
+export function decodeExtensionFailure(input: unknown): ExtensionAccessError {
+  const value = object(input)
+  keys(value, ['version', '_tag', 'code', 'message'])
+  if (
+    value.version !== 1 ||
+    value._tag !== 'ExtensionAccessError' ||
+    !EXTENSION_ERROR_CODES.includes(value.code as ExtensionErrorCode) ||
+    typeof value.message !== 'string' ||
+    value.message.length > 300
+  )
+    throw new ExtensionAccessError('invalid', 'Invalid failure response.')
+  return new ExtensionAccessError(value.code as ExtensionErrorCode, value.message)
+}
+
+/** Bound work before JSON serialization; structured-clone accepts cycles, BigInts and typed arrays. */
+export function assertExtensionMessage(input: unknown, maxBytes = 66_000): void {
+  const stack: { value: unknown; depth: number }[] = [{ value: input, depth: 0 }]
+  const seen = new Set<object>()
+  let count = 0,
+    characters = 0
+  const consume = (size: number) => {
+    characters += size
+    if (characters > maxBytes)
+      throw new ExtensionAccessError('quota', 'Extension message exceeds its byte limit.')
+  }
+  while (stack.length) {
+    const { value, depth } = stack.pop()!
+    if (++count > 4096 || depth > 16)
+      throw new ExtensionAccessError('quota', 'Extension message exceeds its structure limit.')
+    if (value === undefined || value === null || typeof value === 'boolean') continue
+    if (typeof value === 'number' && Number.isFinite(value)) continue
+    if (typeof value === 'string') {
+      consume(value.length)
+      continue
+    }
+    if (typeof value !== 'object' || seen.has(value))
+      throw new ExtensionAccessError('invalid', 'Extension messages must be finite JSON values.')
+    seen.add(value)
+    if (Array.isArray(value)) {
+      if (value.length + stack.length + count > 4096)
+        throw new ExtensionAccessError('quota', 'Extension message exceeds its structure limit.')
+      for (let index = 0; index < value.length; index++)
+        stack.push({ value: value[index], depth: depth + 1 })
+    } else {
+      object(value)
+      for (const key in value) {
+        if (!Object.hasOwn(value, key)) continue
+        consume(key.length)
+        if (stack.length + count >= 4096)
+          throw new ExtensionAccessError('quota', 'Extension message exceeds its structure limit.')
+        const descriptor = Object.getOwnPropertyDescriptor(value, key)!
+        if (!('value' in descriptor))
+          throw new ExtensionAccessError('invalid', 'Extension messages cannot contain accessors.')
+        stack.push({ value: descriptor.value, depth: depth + 1 })
+      }
+    }
+  }
+  if (new TextEncoder().encode(JSON.stringify(input)).length > maxBytes)
+    throw new ExtensionAccessError('quota', 'Extension message exceeds its byte limit.')
+}
+
 export const EXTENSION_OPERATIONS = {
-  'data.mutate': { version: 1, maxBytes: 16_384, maxOperations: 20 },
-  'data.undo': { version: 1, maxBytes: 1024, maxOperations: 1 }
+  'data.mutate': { version: 1, maxBytes: 16_384, maxOperations: 20, deadlineMs: 5000 },
+  'data.undo': { version: 1, maxBytes: 1024, maxOperations: 1, deadlineMs: 5000 }
 } as const
 export type ExtensionOperation =
   | { type: 'create'; schemaId: string; id?: string; properties: Record<string, unknown> }

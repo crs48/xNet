@@ -19,6 +19,14 @@ This proposal was grounded in local commit `406e95e04` on `codex/chat-first-rede
 
 The host now mounts real React in an isolated worker and reuses `useQuery` and `useMutate` through a restricted DataBridge. A closed command broker supports selected private-task fields, separately approved creation and deletion/restoration, durable replay receipts, and undo that refuses later edits. Memory and supported SQLite paths check structured snapshots, optional change heads, and deadlines within the committing batch. Unsupported adapter/index/document guards fail explicitly. ADR-49 records this conditional-write primitive without accepting the complete extension protocol.
 
+The closed mutation/undo registry now carries operation deadlines, strict decoders,
+and structured errors across the worker boundary. Each host-bound port limits
+outstanding work, aborts pending validation on teardown, and drops late responses.
+Cancellation does not undo an already accepted storage transaction; receipts let a
+new session recover that outcome. Regression tests cover cancellation before and
+after commit, queue deadlines, caller forgery, deeply nested messages, UTF-8 limits,
+and error tags through the real React hook in a mounted worker.
+
 The export inventory covers every declared entrypoint of the five SDK packages below, including legacy plugin services. Unapproved modules and named exports fail explicitly. [Scoped extension reference](../reference/scoped-extensions.md) records the working imports, limits, and remaining boundaries.
 
 Verified in the real apps:
@@ -421,7 +429,7 @@ Measure cold startup, transferred bytes, query count, host-thread stalls, and me
 ### Phase 1: interactive, scoped task application
 
 - [x] Inventory public SDK exports and existing plugin entrypoints; create the coverage ledger and reject unclassified exports in the untrusted loader.
-- [ ] Define a versioned operation registry, codecs, structured `TaggedError` failures, caller binding, quotas, cancellation, and grant epochs.
+- [x] Define a versioned operation registry, codecs, structured `TaggedError` failures, caller binding, quotas, cancellation, and grant epochs.
 - [x] Persist authoritative device-local grants and a host permission sheet for exact own records and selected conversations; fail closed on unavailable policy state.
 - [ ] Extend container permissions beyond selected conversations, including nested membership and reparenting checks.
 - [ ] Implement a scoped DataBridge client with live query cache, honest pagination, field-aware filtering, and authority-partitioned cursors.

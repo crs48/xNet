@@ -466,9 +466,9 @@ export function ChatExtensionPanel({
                   }
                 },
                 error: stopForAuthority,
-                request: async (request) => {
-                  const result = await broker.request(request)
-                  if (!broker.active) throw new Error('Extension access stopped.')
+                request: async (request, signal) => {
+                  const result = await broker.request(request, signal)
+                  if (!broker.active || signal.aborted) throw new Error('Extension access stopped.')
                   setLastReceipt(result.receipt)
                   subscribe()
                   return {

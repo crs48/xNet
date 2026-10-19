@@ -12,6 +12,7 @@ import * as jsxRuntime from 'react/jsx-runtime'
 import { createRoot } from 'react-dom/client'
 import { readPreviewTree, type ChatPreviewNode } from './agent-extension'
 import { createLiveExtensionBridge } from './extension-live-client'
+import { decodeExtensionFailure, ExtensionAccessError } from './extension-protocol'
 
 function useDocument(nodeId: string) {
   if (!live) throw new Error('Extension document client is unavailable.')
@@ -161,7 +162,7 @@ const pending = new Map<
 const request = (value: ExtensionRequest) =>
   new Promise<ExtensionMutationResult>((resolve, reject) => {
     if (pending.size >= 20) {
-      reject(new Error('Too many pending requests.'))
+      reject(new ExtensionAccessError('quota', 'Too many pending requests.'))
       return
     }
     pending.set(value.id, { resolve, reject })
@@ -189,7 +190,7 @@ self.onmessage = ({ data }) => {
     if (data.type === 'result') {
       const item = pending.get(data.id)
       pending.delete(data.id)
-      if (data.error) item?.reject(new Error(data.error))
+      if (data.error) item?.reject(decodeExtensionFailure(data.error))
       else item?.resolve(data.result)
       return
     }

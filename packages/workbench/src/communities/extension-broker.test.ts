@@ -300,6 +300,7 @@ it('recovers a lost committed response and preserves created scope and undo acro
     receipt: result.receipt
   })
   expect((await store.get(result.results[0]!.id))?.deleted).toBe(true)
+  expect((await reopened.authority.read()).approval.lastReceipt).toBeNull()
   await expect(
     next.request({ version: 1, id: 'second-undo', operation: 'data.undo', receipt: result.receipt })
   ).rejects.toThrow('cannot be undone')
@@ -354,5 +355,92 @@ it('rejects cyclic, deep, non-JSON and oversized requests with a bounded protoco
     expect(() =>
       decodeExtensionRequest(command([{ type: 'update', nodeId: 'allowed', properties }]))
     ).toThrow(ExtensionAccessError)
+  }
+})
+
+it('cancels queued and validating requests without reaching storage, and keeps accepted edits recoverable', async () => {
+  const { bridge, grant, store } = await setup()
+  const signal = new AbortController()
+  const write = vi.fn(bridge.transaction!)
+  const cancelling = await approvedBroker(
+    {
+      ...bridge,
+      transaction: write,
+      get: async (id) => {
+        const value = await bridge.get!(id)
+        signal.abort()
+        return value
+      }
+    },
+    grant,
+    () => true
+  )
+  write.mockClear()
+  await expect(
+    cancelling.request(
+      command([{ type: 'update', nodeId: 'allowed', properties: { title: 'Cancelled' } }]),
+      signal.signal
+    )
+  ).rejects.toMatchObject({ _tag: 'ExtensionAccessError', code: 'cancelled' })
+  expect(write).not.toHaveBeenCalled()
+  expect((await store.get('allowed'))?.properties.title).toBe('Allowed')
+
+  const accepted = new AbortController()
+  const saved = (await openExtensionAuthority(bridge, grant.owner, 'accepted', grant.hash, grant))!
+  const afterCommit = createExtensionBroker(
+    {
+      ...bridge,
+      transaction: async (...args: Parameters<NonNullable<DataBridge['transaction']>>) => {
+        const result = await bridge.transaction!(...args)
+        accepted.abort()
+        return result
+      }
+    },
+    grant,
+    () => true,
+    saved.authority
+  )
+  const request = command(
+    [{ type: 'update', nodeId: 'allowed', properties: { title: 'Committed once' } }],
+    'accepted-before-cancellation'
+  )
+  await expect(afterCommit.request(request, accepted.signal)).rejects.toMatchObject({
+    code: 'cancelled'
+  })
+  expect((await store.get('allowed'))?.properties.title).toBe('Committed once')
+  const restarted = createExtensionBroker(bridge, grant, () => true, saved.authority)
+  expect((await restarted.request(request)).results[0]?.properties.title).toBe('Committed once')
+  expect((await saved.authority.read()).approval.commands).toBe(1)
+})
+
+it('includes queue time in the storage deadline', async () => {
+  const { bridge, grant, store } = await setup()
+  const now = Date.now()
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(now)
+  try {
+    const write = vi.fn(bridge.transaction!)
+    const delayed = await approvedBroker(
+      {
+        ...bridge,
+        transaction: write,
+        get: async (id) => {
+          const value = await bridge.get!(id)
+          clock.mockReturnValue(now + 5001)
+          return value
+        }
+      },
+      grant,
+      () => true
+    )
+    write.mockClear()
+    await expect(
+      delayed.request(
+        command([{ type: 'update', nodeId: 'allowed', properties: { title: 'Late' } }])
+      )
+    ).rejects.toMatchObject({ code: 'timeout' })
+    expect(write).not.toHaveBeenCalled()
+    expect((await store.get('allowed'))?.properties.title).toBe('Allowed')
+  } finally {
+    clock.mockRestore()
   }
 })

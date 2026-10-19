@@ -100,8 +100,11 @@ describe('scoped document projections', () => {
         grant.hash
       )
     ).toThrow('selected pages')
-    doc.getXmlFragment('content-v4').insert(1, [paragraph('x'.repeat(64001))])
+    const oversized = paragraph('x'.repeat(64001))
+    doc.getXmlFragment('content-v4').insert(1, [oversized])
+    const delta = vi.spyOn(oversized.get(0) as Y.XmlText, 'toDelta')
     expect(() => projectExtensionDocument(doc)).toThrow('64 KiB')
+    expect(delta).not.toHaveBeenCalled()
     doc.destroy()
   })
 })

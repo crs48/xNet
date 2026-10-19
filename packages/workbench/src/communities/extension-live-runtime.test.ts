@@ -175,3 +175,30 @@ it('keeps document projections live without exposing Yjs or host handles', async
   })
   await wait((m) => m.type === 'view' && JSON.stringify(m.tree).includes('Live document'))
 })
+
+it('preserves structured broker failures through the actual React mutation hook', async () => {
+  const { worker, wait } = start(
+    `import {useState} from 'react'; import {useMutate} from '@xnetjs/extensions/react'; import {TaskSchema} from '@xnetjs/data'; export default function Test(){const [failure,setFailure]=useState(''); const {update}=useMutate(); return <section><button onClick={()=>update(TaskSchema,'task',{status:'done'}).catch(error=>setFailure(error._tag+':'+error.code))}>Try edit</button><p>{failure}</p></section>}`
+  )
+  const first = await wait((m) => m.type === 'view' && JSON.stringify(m.tree).includes('Try edit'))
+  worker.postMessage({
+    type: 'event',
+    event: 'click',
+    id: find(first.tree as ChatPreviewNode, 'button')!.id,
+    revision: first.revision
+  })
+  const message = await wait((m) => m.type === 'request')
+  worker.postMessage({
+    type: 'result',
+    id: (message.request as { id: string }).id,
+    error: {
+      version: 1,
+      _tag: 'ExtensionAccessError',
+      code: 'denied',
+      message: 'No editing permission.'
+    }
+  })
+  await wait(
+    (m) => m.type === 'view' && JSON.stringify(m.tree).includes('ExtensionAccessError:denied')
+  )
+})
