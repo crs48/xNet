@@ -83,6 +83,9 @@ importers:
       changeset-conventional-commits:
         specifier: ^1.0.4
         version: 1.0.4
+      esbuild:
+        specifier: 0.27.2
+        version: 0.27.2
       eslint:
         specifier: ^8.57.0
         version: 8.57.1
@@ -2475,6 +2478,9 @@ importers:
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
+      '@xnetjs/data-bridge':
+        specifier: workspace:*
+        version: link:../data-bridge
       '@xnetjs/devtools':
         specifier: workspace:*
         version: link:../devtools
@@ -2511,6 +2517,9 @@ importers:
       motion:
         specifier: ^12.43.0
         version: 12.43.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      parse5:
+        specifier: 7.3.0
+        version: 7.3.0
       react-resizable-panels:
         specifier: ^4.4.1
         version: 4.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2534,7 +2543,7 @@ importers:
         specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.3.1
+        specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
       tsup:
         specifier: ^8.0.0

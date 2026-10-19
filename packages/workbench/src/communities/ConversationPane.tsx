@@ -254,16 +254,6 @@ export function ConversationPane({
   const [saved, setSaved] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const { messages, loading, error: queryError, reload } = useMessages(channel.id, limit, search)
-  const extensionMessages = useMemo(() => {
-    const selected: { id: string; content: string }[] = []
-    for (const message of [...messages].reverse()) {
-      if (message.redacted || typeof message.content !== 'string') continue
-      const candidate = { id: message.id, content: message.content }
-      if (selected.length >= 30 || JSON.stringify([...selected, candidate]).length > 24000) break
-      selected.push(candidate)
-    }
-    return selected.reverse()
-  }, [messages])
   const scroller = useRef<HTMLDivElement>(null)
   const composer = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -797,9 +787,9 @@ export function ConversationPane({
       </section>
       {extensionOpen && (
         <ChatExtensionPanel
+          key={`${channel.id}:${data.did}`}
           channelId={channel.id}
           data={data}
-          messages={extensionMessages}
           run={agents.snapshot.runs.find((run) => run.id === extensionRunId)}
           proposals={agents.snapshot.runs.filter(
             (run) =>

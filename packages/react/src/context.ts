@@ -21,6 +21,7 @@ import {
 import { UndoManager } from '@xnetjs/history'
 import { PluginRegistry, type Platform } from '@xnetjs/plugins'
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { DataBridgeContext } from './context/data-bridge-context'
 import { SecurityProvider } from './context/security-context'
 import { TelemetryContext, type TelemetryReporter } from './context/telemetry-context'
 import { TracingContext, type TracingReporter } from './context/tracing-context'
@@ -36,6 +37,8 @@ import {
   useSyncManagerLifecycle
 } from './provider/use-sync-manager'
 import { resolveRuntimeConfig } from './runtime'
+
+export { DataBridgeContext, useDataBridge } from './context/data-bridge-context'
 
 function resolveConfiguredSignalingUrls(
   hubUrl: string | null,
@@ -293,23 +296,6 @@ const XNetInternalContext = createContext<XNetInternalContextValue>({
   signingKey: null,
   sync: undefined
 })
-
-/**
- * DataBridge context for runtime-backed data access.
- *
- * @internal
- */
-export const DataBridgeContext = createContext<DataBridge | null>(null)
-
-/**
- * Hook to access the DataBridge.
- * Returns null while the bridge is initializing.
- *
- * @internal Used by useQuery/useMutate hooks - not part of public API yet.
- */
-export function useDataBridge(): DataBridge | null {
-  return useContext(DataBridgeContext)
-}
 
 /**
  * xNet provider props

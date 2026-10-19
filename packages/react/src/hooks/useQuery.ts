@@ -53,7 +53,7 @@ import {
   serializeQueryDescriptor
 } from '@xnetjs/data-bridge'
 import { useSyncExternalStore, useMemo, useCallback, useEffect, useRef } from 'react'
-import { useDataBridge } from '../context'
+import { useDataBridge } from '../context/data-bridge-context'
 import { useTelemetryReporter } from '../context/telemetry-context'
 import { useTracingReporter, TRACE_STAGES, type TracingHandle } from '../context/tracing-context'
 import { useInstrumentation } from '../instrumentation'

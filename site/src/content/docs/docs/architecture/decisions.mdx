@@ -1505,3 +1505,41 @@ stops future reads but cannot erase content already delivered to a device.
 **Tripwire:** We need internet access, persistent pairing, offline private content,
 multiple readers, or native clients consuming a stable protocol. Revisit the
 capability and ownership design before extending this experimental transport.
+
+## ADR-48: Render chat extensions against explicitly granted xNet records
+
+**Status:** Accepted · 2026-10-19 · chat prototype
+
+**Context:** The chat extension prototype accepted message strings and returned a
+layout tree. Extensions need real xNet hooks without inheriting the host's entire
+store, identity, or network access.
+
+**Decision:** Add `@xnetjs/react/queries`, exposing the existing `useQuery` and a
+`DataBridgeProvider` for hosts that already own their bridge. This provider is a
+context boundary, not an authorization mechanism. Existing `XNetProvider` consumers
+continue to use the same context.
+
+Chat extensions run pinned React, xNet schemas, `useQuery`, and selected UI primitives
+in a terminable worker inside an opaque-origin iframe. The host resolves explicit
+read grants before sending bounded record snapshots. Grants are local to the owner,
+conversation, and source/compiler/runtime hash. Selected conversations include future
+messages; personal tasks and pages require individual record selection. Relations
+never confer access to their targets. The first implementation permits Channel,
+ChatMessage, Task, and Page properties, with no document bodies, writes, identity
+APIs, arbitrary imports, or network. Updates rerender the view; revocation cancels
+rendering, unsubscribes, clears the view, and removes the saved grant.
+
+The worker uses React server rendering and converts inert markup into a validated
+text/layout tree. The host never evaluates extension code or inserts its HTML.
+CSP denies network in the opaque frame and worker. Runtime compilation requires
+eval only inside that isolated worker, never in the host renderer.
+
+**Tradeoff:** These are read-only views, not interactive React applications: effects,
+event handlers, document editors, custom schemas, and mutation hooks are not supported.
+Limits fail explicitly instead of presenting truncated data as complete: 200 records
+per selection, 500 total, 256 KB of input, and a two-second rendering deadline.
+Revocation stops future delivery but cannot erase previously observed content.
+
+**Tripwire:** An extension needs mutations, interactive state, custom schemas, larger
+collections, network access, or shared installations. Revisit the capability protocol
+and runtime before expanding privileges or relaxing isolation and resource limits.

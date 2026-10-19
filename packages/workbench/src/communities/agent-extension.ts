@@ -13,7 +13,7 @@ export interface ChatPreviewMessage {
   content: string
 }
 export const CHAT_PREVIEW_POLICY =
-  'chat-preview-v1: selected-message-snapshot; no writes, network, imports, or host APIs'
+  'chat-preview-v2: approved live records; React useQuery; read-only; no network or host APIs'
 export function readExtensionProposal(text: string): ChatExtensionProposal {
   if (text.length > 128000) throw new Error('The proposal is too large.')
   const parsed: unknown = JSON.parse(text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, ''))
@@ -62,12 +62,53 @@ export function readPreviewTree(value: unknown): ChatPreviewNode {
   }
   return visit(value, 0)
 }
-export const watchlistSource = `type Message = { id: string; content: string }
-export default function preview({ messages }: { messages: Message[] }) {
-  const items = messages.filter((message) => /watch|film|movie|https?:/i.test(message.content))
-  return { type: 'stack', children: [
-    { type: 'text', text: 'Our watchlist' },
-    ...items.map((message) => ({ type: 'card', text: message.content })),
-    ...(items.length ? [] : [{ type: 'text', text: 'Share a film or a link in the conversation to add it here.' }])
-  ] }
+export const watchlistSource = `import { useQuery } from '@xnetjs/react'
+import { ChatMessageSchema } from '@xnetjs/data'
+import { Badge } from '@xnetjs/ui'
+
+export default function Watchlist({ channelId }: { channelId: string }) {
+  const { data: messages } = useQuery(ChatMessageSchema, { where: { channel: channelId } })
+  const films = messages.filter(message => /^watch:/i.test(message.content ?? ''))
+  return <section>
+    <h2>Our watchlist</h2>
+    <Badge>{films.length} films</Badge>
+    {films.map(film => <article key={film.id}>{film.content?.replace(/^watch:\\s*/i, '')}</article>)}
+    {!films.length && <p>Send “Watch: a film title” in the conversation to add it here.</p>}
+  </section>
 }`
+export const extensionExamples = [
+  {
+    title: 'Our watchlist',
+    summary:
+      'Films from real messages starting with “Watch:”. Updates as the conversation changes.',
+    source: watchlistSource
+  },
+  {
+    title: 'Conversation index',
+    summary: 'Names and message counts from the conversations you allow.',
+    source: `import { useQuery } from '@xnetjs/react'
+import { ChannelSchema, ChatMessageSchema } from '@xnetjs/data'
+import { Badge } from '@xnetjs/ui'
+export default function Conversations() {
+  const { data: channels } = useQuery(ChannelSchema)
+  const { data: messages } = useQuery(ChatMessageSchema)
+  return <section>{channels.map(channel => <article key={channel.id}>
+    <h2>{channel.name}</h2>
+    <Badge>{messages.filter(message => message.channel === channel.id).length} messages</Badge>
+  </article>)}</section>
+}`
+  },
+  {
+    title: 'Selected tasks',
+    summary: 'A task list using useQuery(TaskSchema). Choose individual tasks below.',
+    source: `import { useQuery } from '@xnetjs/react'
+import { TaskSchema } from '@xnetjs/data'
+import { Badge } from '@xnetjs/ui'
+export default function Tasks() {
+  const { data: tasks } = useQuery(TaskSchema, { orderBy: { updatedAt: 'desc' } })
+  return <section><h2>My selected tasks</h2><Badge>{tasks.length} tasks</Badge>
+    {tasks.map(task => <article key={task.id}><p>{task.title}</p><Badge>{task.status}</Badge></article>)}
+  </section>
+}`
+  }
+]

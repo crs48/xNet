@@ -2,6 +2,7 @@ import type { StorybookConfig } from '@storybook/react-vite'
 import { fileURLToPath } from 'node:url'
 import autoprefixer from 'autoprefixer'
 import tailwindcss from 'tailwindcss'
+import { extensionRuntimePlugin } from '../scripts/vite-extension-runtime'
 import { workspaceAliases } from './workspace-aliases.ts'
 
 const config: StorybookConfig = {
@@ -35,6 +36,7 @@ const config: StorybookConfig = {
   ],
   viteFinal: async (viteConfig) => ({
     ...viteConfig,
+    plugins: [...(viteConfig.plugins ?? []), extensionRuntimePlugin()],
     build: {
       ...viteConfig.build,
       rollupOptions: {

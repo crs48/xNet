@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-19-choose-which-data-your-chat-extensions-c",
+  "date": "October 19, 2026",
+  "title": "Choose which data your chat extensions can read",
+  "summary": "Chat extensions use real xNet React hooks with selected conversations, tasks, and pages. Approve access per version, see live updates, and revoke access whenever you choose.",
+  "highlights": [],
+  "tags": ["app", "plugins", "ai"],
+  "pr": 728
+}

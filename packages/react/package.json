@@ -29,6 +29,10 @@
     "./internal": {
       "types": "./dist/internal.d.ts",
       "import": "./dist/internal.js"
+    },
+    "./queries": {
+      "types": "./dist/queries.d.ts",
+      "import": "./dist/queries.js"
     }
   },
   "files": [
@@ -41,7 +45,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsup src/index.ts src/core.ts src/database.ts src/experimental.ts src/internal.ts --format esm --dts --external react",
+    "build": "tsup src/index.ts src/core.ts src/database.ts src/experimental.ts src/internal.ts src/queries.ts --format esm --dts --external react",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",

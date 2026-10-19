@@ -5,6 +5,7 @@ import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { extensionRuntimePlugin } from '../../scripts/vite-extension-runtime'
 import { coopCoepHeaders } from './vite-plugins/coop-coep-headers'
 import { JSX_IMPORT_SOURCE, sourceStampPlugin } from './vite-plugins/source-stamp'
 
@@ -119,6 +120,7 @@ export default defineConfig(({ command }) => ({
   },
   plugins: [
     coopCoepHeaders(),
+    extensionRuntimePlugin(),
     TanStackRouterVite(),
     // Dev only: route JSX through the stamping shim so the DOM knows which
     // source produced it. In a build this is plain `react` and no attribute

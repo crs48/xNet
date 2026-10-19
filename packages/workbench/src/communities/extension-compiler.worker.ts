@@ -6,8 +6,12 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
       throw new Error('Source exceeds the preview limit.')
     await init({ module_or_path: wasmUrl })
     const code = transformSync(event.data, {
-      jsc: { parser: { syntax: 'typescript', tsx: false }, target: 'es2022' },
-      module: { type: 'es6' }
+      jsc: {
+        parser: { syntax: 'typescript', tsx: true },
+        target: 'es2022',
+        transform: { react: { runtime: 'automatic' } }
+      },
+      module: { type: 'commonjs' }
     }).code
     if (code.length > 100000) throw new Error('Compiled source exceeds the preview limit.')
     self.postMessage({ code })

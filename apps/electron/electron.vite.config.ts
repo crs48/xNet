@@ -2,6 +2,7 @@ import type { Plugin } from 'vite'
 import { resolve } from 'path'
 import react from '@vitejs/plugin-react'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+import { extensionRuntimePlugin } from '../../scripts/vite-extension-runtime'
 
 /**
  * Vite plugin to strip CSP meta tag in dev mode for browser testing.
@@ -123,6 +124,6 @@ export default defineConfig({
     worker: {
       format: 'es' // Required for code-splitting in workers
     },
-    plugins: [react(), stripCspInDev()]
+    plugins: [react(), stripCspInDev(), extensionRuntimePlugin()]
   }
 })

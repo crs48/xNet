@@ -1,4 +1,6 @@
-import { readPreviewTree, type ChatPreviewMessage, type ChatPreviewNode } from './agent-extension'
+import type { ExtensionDataset } from './extension-data'
+import runtimeSource from 'virtual:xnet-extension-runtime?raw'
+import { readPreviewTree, type ChatPreviewNode } from './agent-extension'
 
 /** Untrusted code runs only in a terminable worker inside an opaque-origin frame. */
 export async function compileChatExtension(
@@ -37,7 +39,7 @@ export async function compileChatExtension(
         source,
         code,
         compiler: '@swc/wasm-web@1.15.41',
-        runtime: 'chat-preview-v1'
+        runtime: runtimeSource
       })
     )
   )
@@ -48,11 +50,12 @@ export async function compileChatExtension(
 }
 export function runChatExtension(
   code: string,
-  messages: ChatPreviewMessage[],
+  dataset: ExtensionDataset,
+  channelId: string,
   signal?: AbortSignal
 ): Promise<ChatPreviewNode> {
   signal?.throwIfAborted()
-  if (messages.length > 30 || JSON.stringify(messages).length > 24000 || code.length > 100000)
+  if (dataset.nodes.length > 500 || JSON.stringify(dataset).length > 256000 || code.length > 100000)
     return Promise.reject(new Error('Preview input exceeds its limits.'))
   return new Promise((resolve, reject) => {
     const frame = document.createElement('iframe')
@@ -90,7 +93,7 @@ export function runChatExtension(
         if (result.ready === true) {
           if (started) throw new Error('Unexpected preview handshake.')
           started = true
-          channel.port1.postMessage({ code, input: { messages } })
+          channel.port1.postMessage({ runtimeSource, code, dataset, channelId })
           return
         }
         if (result.ok !== true)
