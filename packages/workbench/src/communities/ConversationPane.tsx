@@ -111,7 +111,8 @@ function MessageRow({
   data,
   services,
   onReply,
-  onDelete
+  onDelete,
+  onReviewExtension
 }: {
   message: Message
   agentRun?: CommunityAgentRun
@@ -120,6 +121,7 @@ function MessageRow({
   services: AttachmentServices
   onReply: () => void
   onDelete: () => void
+  onReviewExtension: (id: string) => void
 }) {
   const own = message.createdBy === data.did
   const grouped =
@@ -176,6 +178,14 @@ function MessageRow({
         >
           {message.redacted ? 'Message removed' : message.content}
         </p>
+        {!message.redacted && agentRun?.extension && (
+          <button
+            className={`${secondaryButton} mt-2`}
+            onClick={() => onReviewExtension(agentRun.id)}
+          >
+            <Blocks size={14} /> Preview {agentRun.extension.title}
+          </button>
+        )}
         {!message.redacted &&
           message.attachments?.map((file) => (
             <Attachment key={file.cid} file={file} services={services} />
@@ -225,7 +235,6 @@ export function ConversationPane({
   const [extensionRunId, setExtensionRunId] = useState<string | undefined>()
   const [mention, setMention] = useState(false)
   const [mentionPicker, setMentionPicker] = useState(false)
-  const [purpose, setPurpose] = useState<'reply' | 'extension'>('reply')
   const [pendingRequest, setPendingRequest] = useState<
     Parameters<NonNullable<typeof agents.port>['start']>[0] | null
   >(null)
@@ -323,7 +332,7 @@ export function ConversationPane({
           .filter((message) => !message.redacted)
           .slice(-30)
           .map((message) => message.id)
-        const request = { channelId: channel.id, messageId: sent.id, contextIds, purpose }
+        const request = { channelId: channel.id, messageId: sent.id, contextIds }
         setPendingRequest(request)
         await agents.port.start(request)
         setPendingRequest(null)
@@ -440,7 +449,9 @@ export function ConversationPane({
             <Bot size={13} />
             <span>
               {agentName} · your login ·{' '}
-              {binding.context === 'question' ? 'this message only' : 'recent text + agent memory'}{' '}
+              {binding.context === 'question'
+                ? 'this message only'
+                : 'recent text, drafts + agent memory'}{' '}
               · attachments excluded
             </span>
             <button className="ml-auto underline" onClick={onAgentSettings}>
@@ -554,6 +565,10 @@ export function ConversationPane({
                     composer.current?.focus()
                   }}
                   onDelete={() => setDeleteId(message.id)}
+                  onReviewExtension={(id) => {
+                    setExtensionRunId(id)
+                    setExtensionOpen(true)
+                  }}
                 />
               </div>
             ))
@@ -642,15 +657,6 @@ export function ConversationPane({
                     </button>
                   )}
                 </span>
-                <select
-                  aria-label="Agent task"
-                  value={purpose}
-                  onChange={(event) => setPurpose(event.target.value as 'reply' | 'extension')}
-                  className="rounded-md bg-muted px-2 py-1"
-                >
-                  <option value="reply">Reply</option>
-                  <option value="extension">Build an extension</option>
-                </select>
                 <span className="text-muted-foreground">Only you can invoke this agent</span>
               </div>
             )}
@@ -728,17 +734,6 @@ export function ConversationPane({
                   <AtSign size={18} />
                 </IconButton>
                 <IconButton
-                  label="Build an extension"
-                  disabled={busy || !binding}
-                  onClick={() => {
-                    setMention(true)
-                    setPurpose('extension')
-                    composer.current?.focus()
-                  }}
-                >
-                  <Blocks size={18} />
-                </IconButton>
-                <IconButton
                   label="Attach files"
                   disabled={busy}
                   onClick={() => fileInput.current?.click()}
@@ -809,7 +804,7 @@ export function ConversationPane({
           proposals={agents.snapshot.runs.filter(
             (run) =>
               run.channelId === channel.id &&
-              run.purpose === 'extension' &&
+              (run.purpose === 'extension' || !!run.extension) &&
               run.status === 'completed'
           )}
           onReview={setExtensionRunId}

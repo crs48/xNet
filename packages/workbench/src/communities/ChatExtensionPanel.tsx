@@ -104,7 +104,7 @@ export function ChatExtensionPanel({
     }
     return () => operation.current?.abort()
   }, [installKey])
-  const proposalText = run?.text
+  const proposalText = run?.extension ? JSON.stringify(run.extension) : run?.text
   const proposalId = run?.id
   useEffect(() => {
     if (!proposalText) return

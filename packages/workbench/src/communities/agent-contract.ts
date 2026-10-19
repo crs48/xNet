@@ -1,6 +1,11 @@
 /** Desktop IPC contract. Provider session IDs and credentials never cross this boundary. */
 export type CommunityAgentProvider = 'codex' | 'claude'
 export type AgentContextMode = 'question' | 'recent'
+export interface CommunityAgentExtension {
+  title: string
+  summary: string
+  source: string
+}
 export interface CommunityAgentRuntime {
   id: string
   provider: CommunityAgentProvider
@@ -29,6 +34,7 @@ export interface CommunityAgentRun {
   owner: string
   status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
   text: string
+  extension?: CommunityAgentExtension
   error?: string
   startedAt: number
   finishedAt?: number
@@ -46,12 +52,7 @@ export interface CommunityAgentPort {
   discover(): Promise<CommunityAgentRuntime[]>
   connect(runtimeId: string): Promise<CommunityAgentRuntime>
   bind(input: CommunityAgentBinding): Promise<void>
-  start(input: {
-    channelId: string
-    messageId: string
-    contextIds: string[]
-    purpose: 'reply' | 'extension'
-  }): Promise<string>
+  start(input: { channelId: string; messageId: string; contextIds: string[] }): Promise<string>
   cancel(runId: string): Promise<void>
   retry(runId: string): Promise<string>
   authorizePublication(runId: string): Promise<void>

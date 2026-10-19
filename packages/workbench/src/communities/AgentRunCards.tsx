@@ -38,11 +38,13 @@ function RunActions({
           <RotateCcw size={12} /> Retry
         </button>
       )}
-      {onPreview && run.status === 'completed' && run.purpose === 'extension' && (
-        <button className={actionClass} onClick={() => onPreview(run.id)}>
-          Review extension
-        </button>
-      )}
+      {onPreview &&
+        run.status === 'completed' &&
+        (run.purpose === 'extension' || run.extension) && (
+          <button className={actionClass} onClick={() => onPreview(run.id)}>
+            Review extension
+          </button>
+        )}
     </>
   )
 }
@@ -122,7 +124,7 @@ export function AgentRunHistory({
           <li key={run.id} className="space-y-1 py-3">
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="font-medium">{providerName(run)}</span>
-              <span>{run.purpose === 'extension' ? 'Extension' : 'Reply'}</span>
+              <span>{run.purpose === 'extension' || run.extension ? 'Extension' : 'Reply'}</span>
               <span className="text-muted-foreground">
                 {run.status}
                 {!latestIds.has(run.id) ? ' · retried' : ''}

@@ -9,7 +9,7 @@ const fixture = vi.hoisted(() => ({
   handlers: new Map<string, (event: unknown, input?: unknown) => Promise<unknown>>(),
   nodes: new Map<string, unknown>(),
   turns: [] as StreamTurnRequest[],
-  complete: undefined as (() => void) | undefined
+  complete: undefined as ((text?: string) => void) | undefined
 }))
 vi.mock('electron', () => ({
   ipcMain: {
@@ -55,10 +55,11 @@ vi.mock('./community-agent-runtime', () => {
       ): Promise<StreamTurnResult> => {
         fixture.turns.push(turn)
         emit({ type: 'session', sessionId: 'private-provider-session' })
-        emit({ type: 'delta', text: 'partial' })
+        emit({ type: 'delta', text: '{"reply":"partial' })
         return new Promise((resolve, reject) => {
-          fixture.complete = () =>
-            resolve({ text: 'complete answer', sessionId: 'private-provider-session' })
+          fixture.complete = (
+            text = JSON.stringify({ reply: 'complete answer', extension: null })
+          ) => resolve({ text, sessionId: 'private-provider-session' })
           turn.signal?.addEventListener('abort', () => reject(turn.signal?.reason), { once: true })
         })
       }
@@ -120,7 +121,7 @@ afterEach(async () => {
   rmSync(fixture.dir, { recursive: true, force: true })
 })
 describe('desktop community agent lifecycle', () => {
-  const input = { channelId: 'chat', messageId: 'message', contextIds: [], purpose: 'reply' }
+  const input = { channelId: 'chat', messageId: 'message', contextIds: [] }
   it('rejects subframes and another window before reading or mutating state', () => {
     const handler = fixture.handlers.get('xnet:community-agents:start')!
     expect(() => handler({ sender, senderFrame: {} }, input)).toThrow('main xNet window')
@@ -132,6 +133,8 @@ describe('desktop community agent lifecycle', () => {
     const ids = await Promise.all([invoke<string>('start', input), invoke<string>('start', input)])
     expect(ids[0]).toBe(ids[1])
     expect(fixture.turns).toHaveLength(1)
+    expect(fixture.turns[0].outputSchema).toHaveProperty('properties.extension')
+    expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].text).toBe('partial')
     expect(JSON.stringify(await invoke('snapshot'))).not.toContain('private-provider-session')
     fixture.complete!()
     await vi.waitFor(async () =>
@@ -142,6 +145,139 @@ describe('desktop community agent lifecycle', () => {
     fixture.nodes.set(replyId, message(replyId))
     await invoke('acknowledge', ids[0])
     expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].published).toBe(true)
+  })
+  it('returns an extension alongside a reply and carries it into a normal follow-up', async () => {
+    const extension = {
+      title: 'Films',
+      summary: 'A watchlist',
+      source: 'export default () => ({type:"text",text:"Films"})'
+    }
+    await invoke('start', input)
+    fixture.complete!(JSON.stringify({ reply: 'Preview this watchlist.', extension }))
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('completed')
+    )
+    const run = (await invoke<CommunityAgentSnapshot>('snapshot')).runs[0]
+    expect(run.text).toBe('Preview this watchlist.')
+    expect(run.extension).toEqual(extension)
+    expect(run.purpose).toBe('reply')
+    fixture.nodes.set('follow-up', {
+      ...message('follow-up'),
+      properties: { channel: 'chat', content: 'Show a count above it.' }
+    })
+    await invoke('start', { ...input, messageId: 'follow-up', contextIds: ['message'] })
+    expect(fixture.turns[1].resumeSessionId).toBe('private-provider-session')
+    expect(fixture.turns[1].prompt).toContain(JSON.stringify(extension))
+    const revised = { ...extension, source: 'export default () => ({type:"badge",text:"3 films"})' }
+    fixture.complete!(JSON.stringify({ reply: 'Added a count to the draft.', extension: revised }))
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[1].extension).toEqual(revised)
+    )
+  })
+  it('fails an invalid response without publishing it and discards its provider session', async () => {
+    const id = await invoke('start', input)
+    fixture.complete!('{"reply":"not complete')
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('failed')
+    )
+    await expect(invoke('authorizePublication', id)).rejects.toThrow('No completed run')
+    await invoke('retry', id)
+    expect(fixture.turns[1].resumeSessionId).toBeUndefined()
+    expect(fixture.turns[1].outputSchema).toEqual(fixture.turns[0].outputSchema)
+  })
+  it('honors message-only context for drafts as well as provider memory', async () => {
+    await invoke('start', input)
+    fixture.complete!(
+      JSON.stringify({
+        reply: 'Draft ready.',
+        extension: { title: 'Private draft', summary: '', source: 'DRAFT_CANARY' }
+      })
+    )
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('completed')
+    )
+    await invoke('bind', {
+      channelId: 'chat',
+      runtimeId: 'installed',
+      provider: 'codex',
+      context: 'question',
+      mode: 'direct',
+      enabled: true
+    })
+    fixture.nodes.set('next', message('next'))
+    await invoke('start', { ...input, messageId: 'next', contextIds: ['message'] })
+    expect(fixture.turns[1].resumeSessionId).toBeUndefined()
+    expect(fixture.turns[1].prompt).not.toContain('DRAFT_CANARY')
+  })
+  it('resets the unified conversation session', async () => {
+    await invoke('start', input)
+    fixture.complete!()
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('completed')
+    )
+    await invoke('reset', 'chat')
+    fixture.nodes.set('next', message('next'))
+    await invoke('start', { ...input, messageId: 'next' })
+    expect(fixture.turns[1].resumeSessionId).toBeUndefined()
+  })
+  it('does not attach drafts outside selected history or a changed audience', async () => {
+    await invoke('start', input)
+    fixture.complete!(
+      JSON.stringify({
+        reply: 'Ready.',
+        extension: { title: 'Draft', summary: '', source: 'DRAFT_CANARY' }
+      })
+    )
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('completed')
+    )
+    await invoke('reset', 'chat')
+    fixture.nodes.set('next', message('next'))
+    await invoke('start', { ...input, messageId: 'next' })
+    expect(fixture.turns[1].prompt).not.toContain('DRAFT_CANARY')
+    fixture.complete!()
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[1].status).toBe('completed')
+    )
+    const channel = fixture.nodes.get('chat') as { properties: Record<string, unknown> }
+    channel.properties.members = ['did:key:owner', 'did:key:new-audience']
+    fixture.nodes.set('changed-audience', message('changed-audience'))
+    await invoke('start', { ...input, messageId: 'changed-audience', contextIds: ['message'] })
+    expect(fixture.turns[2].prompt).not.toContain('DRAFT_CANARY')
+    expect(fixture.turns[2].resumeSessionId).toBeUndefined()
+  })
+  it('preserves the response format when retrying a draft from the old journal', async () => {
+    await invoke('start', input)
+    stop()
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('cancelled')
+    )
+    const path = join(fixture.dir, 'community-agents', 'state.json')
+    const journal = JSON.parse(readFileSync(path, 'utf8'))
+    journal.runs[0].purpose = 'extension'
+    journal.runs[0].prompt = 'Original extension request'
+    delete journal.runs[0].responseFormat
+    writeFileSync(path, JSON.stringify(journal))
+    vi.resetModules()
+    const restarted = await import('./community-agent-service')
+    stop = restarted.stopCommunityAgents
+    restarted.setupCommunityAgentIPC(
+      () => ({ webContents: sender, isDestroyed: () => false }) as never
+    )
+    await invoke('retry', journal.runs[0].id)
+    await vi.waitFor(() => expect(fixture.turns).toHaveLength(2))
+    expect(fixture.turns[1].prompt).toBe('Original extension request')
+    expect(fixture.turns[1].outputSchema).toHaveProperty('properties.source')
+    const proposal = JSON.stringify({
+      title: 'Legacy draft',
+      summary: '',
+      source: 'export default () => ({type:"text",text:"hi"})'
+    })
+    fixture.complete!(proposal)
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[1].status).toBe('completed')
+    )
+    expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[1].text).toBe(proposal)
   })
   it('cancels without publishing partial output and retries as a distinct explicit attempt', async () => {
     const id = await invoke<string>('start', input)
