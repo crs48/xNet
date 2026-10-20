@@ -1,3 +1,4 @@
+import type { ExtensionContainer } from './extension-containers'
 import type { ExtensionDocumentProjection } from './extension-documents'
 import type { NodeState } from '@xnetjs/data'
 import type { DataBridge, QueryMetadata } from '@xnetjs/data-bridge'
@@ -6,7 +7,8 @@ import { applyQueryDescriptor, createQueryDescriptor } from '@xnetjs/data-bridge
 
 export const extensionSchemas = [ChannelSchema, ChatMessageSchema, PageSchema, TaskSchema]
 export interface ExtensionGrant {
-  documents?: { read: string[] }
+  containers?: ExtensionContainer[]
+  documents?: { read: string[]; write?: string[] }
   taskWrites?: { ids: string[]; create: boolean; remove: boolean }
   version: 1
   owner: string
@@ -30,9 +32,16 @@ export function readExtensionGrant(text: string, owner: string, hash: string): E
   if (
     Object.keys(grant).some(
       (key) =>
-        !['version', 'owner', 'hash', 'channelIds', 'records', 'taskWrites', 'documents'].includes(
-          key
-        )
+        ![
+          'version',
+          'owner',
+          'hash',
+          'channelIds',
+          'records',
+          'taskWrites',
+          'documents',
+          'containers'
+        ].includes(key)
     ) ||
     grant.version !== 1 ||
     grant.owner !== owner ||
@@ -71,8 +80,12 @@ export function readExtensionGrant(text: string, owner: string, hash: string): E
     throw new Error('Invalid task editing grant.')
   if (
     grant.documents &&
-    (Object.keys(grant.documents).some((key) => key !== 'read') ||
-      !Array.isArray(grant.documents.read) ||
+    (!Array.isArray(grant.documents.read) ||
+      Object.keys(grant.documents).some((key) => !['read', 'write'].includes(key)) ||
+      (grant.documents.write !== undefined &&
+        (!Array.isArray(grant.documents.write) ||
+          new Set(grant.documents.write).size !== grant.documents.write.length ||
+          grant.documents.write.some((id) => !grant.documents!.read.includes(id)))) ||
       grant.documents.read.length > 10 ||
       new Set(grant.documents.read).size !== grant.documents.read.length ||
       grant.documents.read.some(
@@ -83,6 +96,24 @@ export function readExtensionGrant(text: string, owner: string, hash: string): E
       ))
   )
     throw new Error('Document access must name at most ten selected pages.')
+  if (
+    grant.containers !== undefined &&
+    (!Array.isArray(grant.containers) ||
+      grant.containers.length > 10 ||
+      grant.containers.some(
+        (item) =>
+          !item ||
+          !['folder', 'space'].includes(item.kind) ||
+          typeof item.id !== 'string' ||
+          !item.id ||
+          item.id.length > 200 ||
+          typeof item.descendants !== 'boolean' ||
+          Object.keys(item).some((key) => !['kind', 'id', 'descendants'].includes(key))
+      ) ||
+      new Set(grant.containers.map((item) => `${item.kind}:${item.id}`)).size !==
+        grant.containers.length)
+  )
+    throw new Error('Invalid container permission.')
   return grant
 }
 
@@ -116,6 +147,7 @@ export function createExtensionDataBridge(dataset: ExtensionDataset): DataBridge
   const allowedSchemas = new Set([
     ...(grant.channelIds.length ? [ChannelSchema._schemaId, ChatMessageSchema._schemaId] : []),
     ...(grant.taskWrites?.create ? [TaskSchema._schemaId] : []),
+    ...(grant.containers?.length ? [TaskSchema._schemaId, PageSchema._schemaId] : []),
     ...grant.records.map((record) => record.schemaId)
   ])
   const allowed = (node: NodeState) =>

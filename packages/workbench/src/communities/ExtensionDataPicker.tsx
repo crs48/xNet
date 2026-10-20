@@ -1,11 +1,11 @@
 import type { ExtensionGrant } from './extension-data'
 import type { CommunityData } from './use-community-data'
-import { PageSchema, TaskSchema } from '@xnetjs/data'
+import { PageSchema, TaskSchema, FolderSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 
 export type ExtensionSelection = Pick<
   ExtensionGrant,
-  'channelIds' | 'records' | 'taskWrites' | 'documents'
+  'channelIds' | 'records' | 'taskWrites' | 'documents' | 'containers'
 >
 
 export function canReadExtensionChannel(data: CommunityData, id: string): boolean {
@@ -36,6 +36,7 @@ export function ExtensionDataPicker({
   selection: ExtensionSelection
   onChange: (selection: ExtensionSelection) => void
 }) {
+  const folders = useQuery(FolderSchema, { limit: 100, orderBy: { updatedAt: 'desc' } })
   const tasks = useQuery(TaskSchema, { limit: 100, orderBy: { updatedAt: 'desc' } })
   const pages = useQuery(PageSchema, { limit: 100, orderBy: { updatedAt: 'desc' } })
   const records = [
@@ -70,6 +71,58 @@ export function ExtensionDataPicker({
             </label>
           ))}
       </div>
+      <details>
+        <summary className="cursor-pointer">
+          Choose folders and spaces ({selection.containers?.length ?? 0} selected)
+        </summary>
+        <p className="mt-2 text-muted-foreground">
+          Allows task and page properties in these containers, including future records and nested
+          containers. Page text and editing still need separate approval. Space access never exceeds
+          your current membership.
+        </p>
+        {folders.error && <p role="alert">Could not load folders.</p>}
+        <div className="mt-2 max-h-44 space-y-2 overflow-auto">
+          {[
+            ...folders.data
+              .filter((folder) => folder.createdBy === data.did)
+              .map((folder) => ({ id: folder.id, name: folder.name, kind: 'folder' as const })),
+            ...data.spaces.map((space) => ({
+              id: space.id,
+              name: space.name,
+              kind: 'space' as const
+            }))
+          ].map((container) => (
+            <label key={container.id} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={
+                  !!selection.containers?.some(
+                    (item) => item.id === container.id && item.kind === container.kind
+                  )
+                }
+                onChange={(event) =>
+                  onChange({
+                    ...selection,
+                    containers: event.target.checked
+                      ? [
+                          ...(selection.containers ?? []),
+                          { id: container.id, kind: container.kind, descendants: true }
+                        ]
+                      : selection.containers?.filter(
+                          (item) => item.id !== container.id || item.kind !== container.kind
+                        )
+                  })
+                }
+              />
+              {container.name || 'Untitled'} · {container.kind} and descendants
+            </label>
+          ))}
+        </div>
+        <p className="mt-2 text-muted-foreground">
+          Showing up to 100 recent folders. Up to ten selections and one hundred nested containers
+          per extension.
+        </p>
+      </details>
       <details>
         <summary className="cursor-pointer">
           Choose your tasks and pages ({selection.records.length} selected)
@@ -123,6 +176,24 @@ export function ExtensionDataPicker({
         />
         Allow reading selected page text (up to ten pages)
       </label>
+      {selection.documents && (
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={!!selection.documents.write?.length}
+            onChange={(event) =>
+              onChange({
+                ...selection,
+                documents: {
+                  ...selection.documents!,
+                  write: event.target.checked ? [...selection.documents!.read] : undefined
+                }
+              })
+            }
+          />
+          Allow editing selected private page text
+        </label>
+      )}
       <label className="flex items-center gap-2">
         <input
           type="checkbox"
@@ -147,8 +218,8 @@ export function ExtensionDataPicker({
       {selection.taskWrites && (
         <div className="space-y-2 border-l border-border pl-3">
           <p className="text-muted-foreground">
-            Title, status, completion, priority, and due date only. Tasks in shared spaces or
-            containers cannot be edited.
+            Title, status, completion, priority, and due date only. Shared-space tasks cannot be
+            edited. Private folder tasks need their folder selected above.
           </p>
           <label className="flex items-center gap-2">
             <input

@@ -11,8 +11,8 @@ The complete API design is not implemented or independently reviewed.
 | `react`, `react/jsx-runtime`             | Pinned React 18 runtime                                          | Worker state, effects, context, JSX                           |
 | `@xnetjs/react`, `@xnetjs/react/queries` | `useQuery`, `useMutate`                                          | Scoped DataBridge; no host provider/context                   |
 | `@xnetjs/data`                           | `ChannelSchema`, `ChatMessageSchema`, `TaskSchema`, `PageSchema` | Schema definitions only                                       |
-| `@xnetjs/extensions/react`               | `useQuery`, `useMutate`, `useDocument`                           | Runtime-only scoped hooks; not a published package            |
-| `@xnetjs/extensions/ui`                  | `DocumentView`                                                   | Host-rendered read-only view through a session handle         |
+| `@xnetjs/extensions/react`               | `useQuery`, `useMutate`, `useDocument`, `useDocumentIds`         | Runtime-only scoped hooks; not a published package            |
+| `@xnetjs/extensions/ui`                  | `DocumentView`, `DocumentEditor`                                 | Host-rendered views and separately approved plain-text edits  |
 | `@xnetjs/ui`                             | `Badge`, `Button`                                                | Closed host-rendered controls; Button is a restricted adapter |
 
 Other imports fail. New host exports do not automatically become extension APIs.
@@ -27,7 +27,7 @@ not a new CI job or a claim that the listed APIs have all been implemented.
 ## Data and writes
 
 `useQuery` sees approved conversations and their messages, plus individually
-selected personal tasks/pages. Authorization precedes projection and the guest's
+selected personal tasks/pages and approved folders/spaces. Authorization precedes projection and the guest's
 filter/sort. It receives only these property fields:
 
 | Schema      | Properties                                            |
@@ -69,12 +69,14 @@ exceeds that budget.
   custom/temporary IDs and bulk import are not supported.
 
 Tasks must belong to the current owner and have no space, project, page, canvas,
-folder, or parent. Public/unlisted destinations are refused. These checks deliberately
+or parent. A task in a folder also requires approval of that private folder or an
+approved ancestor with descendants enabled. Every folder ancestor must remain
+private and belong to the current owner. Public/unlisted destinations are refused. These checks deliberately
 avoid shared-destination writes; they are not a general audience or E2E-encryption
 proof. Community authorization/encryption remains a separate prerequisite.
 
 The storage owner compares the approved structured snapshots and deadline inside
-the committing transaction. Document-byte guards and databases with active spatial indexes
+the committing transaction. Raw document-byte guards and databases with active spatial indexes
 are refused until they have a compatible conditional path. Undo also checks committed change heads and refuses
 to overwrite a later edit. Undo that deletes or restores a task requires the same
 explicit delete/restore permission as a direct command.
@@ -98,7 +100,9 @@ protection against a device owner restoring an old database backup.
 
 Select pages and separately approve **reading selected page text**. Up to ten pages
 can supply live visible text through `useDocument(pageId)` in
-`@xnetjs/extensions/react`. It returns `{nodeId, handle, text, revision, editable:false}`.
+`@xnetjs/extensions/react`. It returns `{nodeId, handle, text, revision, editable, editorText?}`.
+Use `useDocumentIds()` to enumerate these exact IDs; a container property query
+can return other pages whose text has not been approved.
 The host acquires and observes the real xNet document. It checks page ownership,
 current grants, and deletion before delivery. Each document is limited to 64 KiB
 of visible text, 2,000 visited nodes and 32 levels; the overall dataset limit still
@@ -108,7 +112,55 @@ applies. Oversized or unavailable documents fail explicitly.
 host-owned read-only view. Handles are random and session-bound. Embedded records
 become a marker; their content is not resolved. URLs, resource attributes, deleted
 history, Y.Doc, awareness, editor contexts and persistence methods are not exposed.
-Document editing requires further integration with the document commit authority.
+
+### Private page editing
+
+Separately approve **editing selected private page text**, then place
+`<DocumentEditor handle={document.handle} />` in the extension layout. The host
+owns the textarea, revision check, and Save control. There is no guest document
+mutation RPC. Only plain paragraphs are editable: 500 paragraphs and 64,000 UTF-8
+bytes. Formatting, attributes, embeds, and other rich structures remain read-only.
+A page in a folder also needs that private folder approved; shared and published
+destinations are refused.
+
+The save path edits a host-owned clone, then atomically checks the current page,
+folder ancestry, approval epoch and local document overlay. It commits a bounded
+Yjs overlay, increments the command count, and records attribution in one
+conditional transaction. Only an accepted delta reaches the live document.
+Concurrent CRDT edits merge; a draft whose live revision changed must reload
+before saving. A rejected commit never changes the host document.
+
+Storage merges the durable overlay into reads and subsequent snapshots, so an
+older renderer flush cannot erase an accepted edit or bring deleted text back.
+The Electron data owner hydrates and broadcasts accepted updates to acquired
+views. Closing a view after commit does not undo the save. The device-local overlay
+is limited to 128,000 bytes of full Yjs state, including history; exceeding this
+budget fails explicitly. Compaction, rich-text editing, shared document writes,
+raw update replication and document undo are not implemented. Receipts provide
+local attribution, not cryptographic Yjs authorship or remote revocation.
+
+### Folder and space scope
+
+The permission picker supports up to ten folder/space roots and their descendants,
+with at most 100 resolved containers, 180 evidence records and 32 ancestor levels.
+Queries include future Task/Page records inside those containers and still mask
+fields. Page text and all writes require separate exact-record approval.
+
+Private folders require owned, private ancestry. Shared-space reads require a
+current role in the selected space or an ancestor. This prototype accepts only
+deterministic membership records issued by a space creator or listed owner; it
+checks expiry and treats a missing, deleted or invalid edge as no membership.
+Space creators can select their own spaces, but another person's records still
+require membership. Private records belonging to someone else are excluded.
+
+The broker refreshes membership and ancestry, rechecks records before delivery,
+and rejects cached descendants that moved outside the selected root. Its cursors
+include selected-container evidence. Changes invalidate affected views; foreground
+expiry checks stop the session within the normal 500 ms authority poll. Background
+timers may be throttled, and every delivery rechecks expiry. These checks narrow
+the existing space policy; they do not broaden core authorization. Private writes
+include all relevant container snapshots in the atomic commit. Shared destinations
+remain unavailable.
 
 ```mermaid
 sequenceDiagram
@@ -167,7 +219,7 @@ guest UI, and the worker has no access to the host's saved grants.
 ## Still unavailable
 
 Raw `useXNet`, `useNodeStore`, host DataBridge, signing keys, Electron IPC, SQL,
-filesystem, and sync administration remain host-only. `useNode`, document editing,
+filesystem, and sync administration remain host-only. `useNode`, rich document editing,
 raw Yjs, assets, database/canvas components, custom schemas/migrations, connectors,
 AI calls, durable background jobs, and cross-device delegation still need scoped
 implementations. Existing trusted workspace plugin contexts have not been migrated

@@ -28,7 +28,7 @@
  * ```
  */
 
-export { TransactionConflictError } from './transaction-conditions'
+export { TransactionConflictError, snapshotKey } from './transaction-conditions'
 
 // Types
 export type {
@@ -225,3 +225,10 @@ export {
   type SQLiteQueryVerificationOptions,
   type SQLiteNodeStorageAdapterOptions
 } from './sqlite-adapter'
+
+export {
+  documentOverlayKey,
+  documentOverlayNodeId,
+  encodeDocumentOverlay,
+  mergeDocumentOverlay
+} from './document-overlay'

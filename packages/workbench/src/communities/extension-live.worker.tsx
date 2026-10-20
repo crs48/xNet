@@ -20,13 +20,18 @@ function useDocument(nodeId: string) {
   const client = live.documents
   return React.useSyncExternalStore(client.subscribe, () => client.get(nodeId))
 }
+function useDocumentIds() {
+  if (!live) throw new Error('Extension document client is unavailable.')
+  return React.useSyncExternalStore(live.documents.subscribe, live.documents.ids)
+}
 const modules: Record<string, unknown> = {
   react: React,
   'react/jsx-runtime': jsxRuntime,
   '@xnetjs/react': { useQuery, useMutate },
   '@xnetjs/react/queries': { useQuery, useMutate },
-  '@xnetjs/extensions/react': { useQuery, useMutate, useDocument },
+  '@xnetjs/extensions/react': { useQuery, useMutate, useDocument, useDocumentIds },
   '@xnetjs/extensions/ui': {
+    DocumentEditor: ({ handle }: { handle: string }) => <div data-xnet-document-editor={handle} />,
     DocumentView: ({ handle }: { handle: string }) => <div data-xnet-document={handle} />
   },
   '@xnetjs/data': { ChannelSchema, ChatMessageSchema, PageSchema, TaskSchema },
@@ -89,13 +94,18 @@ function tree(): ChatPreviewNode {
             'disabled',
             'placeholder',
             'maxlength',
-            'data-xnet-document'
+            'data-xnet-document',
+            'data-xnet-document-editor'
           ].includes(attribute.name)
       )
     )
       throw new Error(
         'Unsupported element or property. Use text, layout, Button, or text input controls.'
       )
+    if (element.hasAttribute('data-xnet-document-editor')) {
+      if (tag !== 'div' || node.childNodes.length) throw new Error('Invalid document control.')
+      return { type: 'document-editor', handle: element.getAttribute('data-xnet-document-editor')! }
+    }
     if (element.hasAttribute('data-xnet-document')) {
       if (tag !== 'div' || node.childNodes.length) throw new Error('Invalid document control.')
       return { type: 'document', handle: element.getAttribute('data-xnet-document')! }

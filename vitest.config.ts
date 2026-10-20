@@ -36,6 +36,7 @@ const workspaceAliases = {
   // dist/ and only works after a build.
   '@xnetjs/data/database': new URL('./packages/data/src/database/index.ts', import.meta.url)
     .pathname,
+  '@xnetjs/data/store': new URL('./packages/data/src/store/index.ts', import.meta.url).pathname,
   '@xnetjs/data': new URL('./packages/data/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data-bridge': new URL('./packages/data-bridge/src/index.ts', import.meta.url).pathname,
   // Subpath export: MUST precede the bare '@xnetjs/devkit' (Vite uses first match).

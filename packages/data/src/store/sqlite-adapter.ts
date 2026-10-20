@@ -47,6 +47,11 @@ import {
 } from '@xnetjs/sqlite'
 import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import {
+  documentOverlayKey,
+  mergeDocumentOverlay,
+  preserveDocumentOverlay
+} from './document-overlay'
+import {
   hydrateAggregatedRows,
   hydrateJoinedRows,
   hydrateNodesByIds,
@@ -934,6 +939,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     // Delete from FTS index first (no-op if FTS5 is not supported)
     await this.fullTextIndexing.deleteNode(id)
     await this.spatialIndexing.deleteNode(id)
+    await this.db.run('DELETE FROM sync_state WHERE key = ?', [`app:${documentOverlayKey(id)}`])
     // Delete node (cascades to properties via FK)
     await this.db.run(`DELETE FROM nodes WHERE id = ?`, [id])
     if (existing) {
@@ -1270,7 +1276,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       [nodeId]
     )
 
-    return row?.state ?? null
+    return mergeDocumentOverlay(
+      row?.state ?? null,
+      await this.getAppState(documentOverlayKey(nodeId))
+    )
   }
 
   async setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void> {
@@ -1278,6 +1287,14 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   private async setDocumentContentInternal(nodeId: NodeId, content: Uint8Array): Promise<void> {
+    const overlay = await this.getAppState(documentOverlayKey(nodeId))
+    if (overlay !== null) {
+      const previous = await this.db.queryOne<{ state: Uint8Array }>(
+        'SELECT state FROM yjs_state WHERE node_id = ?',
+        [nodeId]
+      )
+      content = preserveDocumentOverlay(previous?.state ?? null, content, overlay)
+    }
     await this.db.run(
       `INSERT INTO yjs_state (node_id, state, updated_at)
        VALUES (?, ?, ?)

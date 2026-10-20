@@ -1626,3 +1626,46 @@ outside this model.
 **Tripwire:** Before document writes, shared destinations, background jobs, or remote
 delegation, extend the same commit boundary to document versions and every relevant
 membership/disclosure dependency. A public stable SDK requires an independent review.
+
+## ADR-51: Commit scoped document edits through a durable local overlay
+
+**Status:** Accepted · 2026-10-20 · local prototype; extension SDK remains experimental
+
+**Context:** Checking a grant and then saving a renderer Yjs snapshot leaves a gap
+between authority and persistence. An older background snapshot can also replace
+accepted content. ADR-50's document-write tripwire requires a shared commit boundary.
+
+**Decision:** The first editable document handle renders a host-owned plain-paragraph
+editor. The guest receives an opaque handle and a current text projection, never a
+Y.Doc or arbitrary update RPC. Saving prepares a clone and atomically compares the
+exact page, private folder ancestry, active approval and current local overlay.
+The same transaction commits the overlay, command count and attributed receipt.
+Only accepted deltas enter the live document. A changed draft revision is a conflict;
+concurrent CRDT changes merge without treating client IDs as authenticated authorship.
+
+The versioned `document-overlay:v1:<encoded-node-id>` device-local record stores a
+bounded full Yjs state. Memory and SQLite reads merge it with the base snapshot;
+marked document writes merge prior, incoming and overlay state. The Electron data
+owner hydrates acquired documents from this path and forwards accepted changes to
+open renderers. Physical deletion removes the overlay. The data store subpath
+exports the bounded encoding/merge/key helpers and structural snapshot comparator;
+the untrusted extension loader does not expose those exports.
+
+Folder/space grants select at most ten roots and 100 nested containers. Fresh
+ancestry and deterministic owner-issued membership evidence constrain queries;
+expiry and reparenting invalidate authority. Page text and private writes still need
+exact-record grants. Private folder edits compare all ancestry evidence in the
+committing transaction. Shared destinations remain denied.
+
+**Tradeoff:** This is a conservative editor, not the general xNet editor contract.
+Formatting and embeds remain read-only. Overlays retain CRDT history and stop at
+128,000 bytes; there is no automatic compaction or document undo yet. Authority and
+receipts are device-local. This adds neither remote revocation nor cryptographic
+attribution of Yjs clients. Membership validation intentionally accepts fewer edges
+than the core resolver, including an additional expiry check.
+
+**Tripwire:** Before rich editor commands, shared document writes, raw updates,
+overlay compaction, or a stable public SDK, prove the same atomic authority boundary,
+concurrent-edit preservation and restart behavior for that path, and independently
+review disclosure and resource limits. Revisit the overlay design when measured
+history size blocks ordinary approved editing.

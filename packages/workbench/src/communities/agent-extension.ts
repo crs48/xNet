@@ -4,7 +4,16 @@ export interface ChatExtensionProposal {
   source: string
 }
 export interface ChatPreviewNode {
-  type: 'stack' | 'grid' | 'card' | 'text' | 'badge' | 'button' | 'input' | 'document'
+  type:
+    | 'stack'
+    | 'grid'
+    | 'card'
+    | 'text'
+    | 'badge'
+    | 'button'
+    | 'input'
+    | 'document'
+    | 'document-editor'
   handle?: string
   text?: string
   id?: string
@@ -50,9 +59,17 @@ export function readPreviewTree(value: unknown): ChatPreviewNode {
       throw new Error('Invalid or oversized extension view.')
     const node = value as Record<string, unknown>
     if (
-      !['stack', 'grid', 'card', 'text', 'badge', 'button', 'input', 'document'].includes(
-        String(node.type)
-      ) ||
+      ![
+        'stack',
+        'grid',
+        'card',
+        'text',
+        'badge',
+        'button',
+        'input',
+        'document',
+        'document-editor'
+      ].includes(String(node.type)) ||
       Object.keys(node).some(
         (key) =>
           ![
@@ -71,7 +88,7 @@ export function readPreviewTree(value: unknown): ChatPreviewNode {
     )
       throw new Error('Extension views may only contain supported text, layout, and controls.')
     if (
-      node.type === 'document' &&
+      ['document', 'document-editor'].includes(String(node.type)) &&
       (typeof node.handle !== 'string' || !/^[a-f0-9-]{36}$/.test(node.handle))
     )
       throw new Error('Invalid document handle.')
@@ -133,22 +150,38 @@ export default function Watchlist({ channelId }: { channelId: string }) {
 }`
 export const extensionExamples = [
   {
+    title: 'Edit selected pages',
+    summary: 'Edit approved private pages through the host-owned document editor.',
+    source: `import { useQuery, useDocument, useDocumentIds } from '@xnetjs/extensions/react'
+import { PageSchema } from '@xnetjs/data'
+import { DocumentEditor } from '@xnetjs/extensions/ui'
+function PageEditor({ id }: { id: string }) {
+  const { data: page } = useQuery(PageSchema, id)
+  const document = useDocument(id)
+  return <article><h3>{page?.title ?? 'Page'}</h3><DocumentEditor handle={document.handle} /></article>
+}
+export default function Editor() {
+  const ids = useDocumentIds()
+  return <section><h2>Edit selected pages</h2>{ids.map(id => <PageEditor key={id} id={id} />)}
+    {!ids.length && <p>Choose pages and approve document editing in Data access.</p>}
+  </section>
+}`
+  },
+  {
     title: 'Selected documents',
     summary:
       'Live text from pages you explicitly approve, without attachments or embedded records.',
-    source: `import { useQuery } from '@xnetjs/react'
-import { useDocument } from '@xnetjs/extensions/react'
+    source: `import { useQuery, useDocument, useDocumentIds } from '@xnetjs/extensions/react'
 import { DocumentView } from '@xnetjs/extensions/ui'
 import { PageSchema } from '@xnetjs/data'
-function Page({ id }) {
+function Page({ id }: { id: string }) {
+  const { data: page } = useQuery(PageSchema, id)
   const document = useDocument(id)
-  return <DocumentView handle={document.handle} />
+  return <article><h3>{page?.title ?? 'Page'}</h3><DocumentView handle={document.handle} /></article>
 }
 export default function Documents() {
-  const { data: pages } = useQuery(PageSchema)
-  return <section><h2>Selected documents</h2>{pages.map(page => <article key={page.id}>
-    <h3>{page.title}</h3><Page id={page.id} />
-  </article>)}</section>
+  const ids = useDocumentIds()
+  return <section><h2>Selected documents</h2>{ids.map(id => <Page key={id} id={id} />)}</section>
 }`
   },
   {

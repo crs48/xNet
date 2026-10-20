@@ -21,6 +21,7 @@ export default defineConfig({
         '../../packages/editor/node_modules/@testing-library/react'
       ),
       '@xnetjs/canvas': resolve(__dirname, '../../packages/canvas/src/index.ts'),
+      '@xnetjs/data/store': resolve(__dirname, '../../packages/data/src/store/index.ts'),
       '@xnetjs/data': resolve(__dirname, '../../packages/data/src/index.ts'),
       '@xnetjs/devtools': resolve(__dirname, '../../packages/devtools/src/index.ts'),
       '@xnetjs/identity': resolve(__dirname, '../../packages/identity/src/index.ts'),

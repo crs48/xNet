@@ -25,6 +25,7 @@ import type {
 import type { ElectronSQLiteDiagnostics } from '@xnetjs/sqlite'
 import { hashContent, createContentId } from '@xnetjs/core'
 import { NodeStore, SQLiteNodeStorageAdapter } from '@xnetjs/data'
+import { documentOverlayKey, documentOverlayNodeId } from '@xnetjs/data/store'
 import { createElectronSQLiteAdapter, ElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 import {
   signYjsUpdate,
@@ -974,7 +975,7 @@ export function createDataService(config: DataServiceConfig): DataService {
 
     // Broadcast local edits to network
     doc.on('update', (update: Uint8Array, origin: unknown) => {
-      if (origin === 'remote' || origin === 'renderer') return
+      if (origin === 'remote' || origin === 'renderer' || origin === 'storage') return
       if (status === 'connected') {
         const room = `xnet-doc-${nodeId}`
         const updateData = createOutgoingUpdate(update, doc)
@@ -1007,21 +1008,12 @@ export function createDataService(config: DataServiceConfig): DataService {
     if (!adapter) return
     for (const [nodeId, entry] of pool) {
       if (!entry.dirty) continue
-      const stored = await adapter.queryOne<{ state: Buffer }>(
-        'SELECT state FROM yjs_state WHERE node_id = ?',
-        [nodeId]
-      )
-      const merged = new Y.Doc({ gc: false })
-      try {
-        if (stored) Y.applyUpdate(merged, stored.state)
-        Y.applyUpdate(merged, Y.encodeStateAsUpdate(entry.doc))
-        await adapter.run(
-          'INSERT OR REPLACE INTO yjs_state (node_id, state, updated_at) VALUES (?, ?, ?)',
-          [nodeId, Y.encodeStateAsUpdate(merged), Date.now()]
-        )
-      } finally {
-        merged.destroy()
-      }
+      const stored = await requireNodeStorage().getDocumentContent(nodeId)
+      const merged = Y.mergeUpdates([
+        ...(stored?.length ? [stored] : []),
+        Y.encodeStateAsUpdate(entry.doc)
+      ])
+      await requireNodeStorage().setDocumentContent(nodeId, merged)
     }
   }
 
@@ -1199,8 +1191,23 @@ export function createDataService(config: DataServiceConfig): DataService {
 
     async acquireDoc(nodeId: string, schemaId: string, windowId: string): Promise<void> {
       tracked.set(nodeId, { nodeId, schemaId, lastOpened: Date.now() })
-      getOrCreateDoc(nodeId, windowId)
-      joinRoom(nodeId)
+      const doc = getOrCreateDoc(nodeId, windowId)
+      try {
+        const stored = await requireNodeStorage().getDocumentContent(nodeId)
+        if (stored?.length) {
+          Y.applyUpdate(doc, stored, 'storage')
+          forwardToRenderer(nodeId, stored)
+        }
+        joinRoom(nodeId)
+      } catch (error) {
+        releaseDocFromPool(nodeId, windowId)
+        if (!pool.get(nodeId)?.refCount) {
+          doc.destroy()
+          pool.delete(nodeId)
+          tracked.delete(nodeId)
+        }
+        throw error
+      }
     },
 
     releaseDoc(nodeId: string, windowId: string): void {
@@ -1273,6 +1280,17 @@ export function createDataService(config: DataServiceConfig): DataService {
     async applyNodeBatch(input: SerializedNodeBatch): Promise<ApplyNodeBatchResult> {
       const batch = deserializeNodeBatch(input)
       const result = await requireNodeStorage().applyNodeBatch(batch)
+      for (const condition of batch.conditions?.localState ?? []) {
+        const nodeId = documentOverlayNodeId(condition.key)
+        if (!nodeId || condition.value === undefined) continue
+        const stored = await requireNodeStorage().getDocumentContent(nodeId)
+        const entry = pool.get(nodeId)
+        if (stored?.length && entry) {
+          Y.applyUpdate(entry.doc, stored, 'committed')
+          entry.dirty = true
+          forwardToRenderer(nodeId, stored)
+        }
+      }
       // Subscribers may read immediately; publish only after the whole commit succeeds.
       sendEvent('nodes:change', { changes: batch.changes.map(serializeNodeChange) })
       return result
@@ -1418,12 +1436,17 @@ export function createDataService(config: DataServiceConfig): DataService {
     async deleteNode(id: string): Promise<void> {
       if (!adapter) throw new Error('Database not initialized')
 
+      await adapter.run('DELETE FROM sync_state WHERE key = ?', [`app:${documentOverlayKey(id)}`])
       // Delete in order to respect foreign keys
       await adapter.run('DELETE FROM node_property_scalars WHERE node_id = ?', [id])
       await adapter.run('DELETE FROM node_properties WHERE node_id = ?', [id])
       await adapter.run('DELETE FROM yjs_state WHERE node_id = ?', [id])
       await adapter.run('DELETE FROM changes WHERE node_id = ?', [id])
       await adapter.run('DELETE FROM nodes WHERE id = ?', [id])
+      leaveRoom(id)
+      pool.get(id)?.doc.destroy()
+      pool.delete(id)
+      tracked.delete(id)
 
       log('deleteNode:', id)
     },
@@ -1525,26 +1548,12 @@ export function createDataService(config: DataServiceConfig): DataService {
     },
 
     async getDocumentContent(nodeId: string): Promise<number[] | null> {
-      if (!adapter) return null
-
-      const row = await adapter.queryOne<{ state: Buffer }>(
-        'SELECT state FROM yjs_state WHERE node_id = ?',
-        [nodeId]
-      )
-
-      return row ? Array.from(row.state) : null
+      const bytes = await requireNodeStorage().getDocumentContent(nodeId)
+      return bytes ? Array.from(bytes) : null
     },
 
     async setDocumentContent(nodeId: string, content: number[]): Promise<void> {
-      if (!adapter) throw new Error('Database not initialized')
-
-      await adapter.run(
-        `INSERT OR REPLACE INTO yjs_state (node_id, state, updated_at)
-         VALUES (?, ?, ?)`,
-        [nodeId, Buffer.from(content), Date.now()]
-      )
-
-      log('setDocumentContent:', nodeId, 'size:', content.length)
+      await requireNodeStorage().setDocumentContent(nodeId, new Uint8Array(content))
     },
 
     async getSqliteDiagnostics(): Promise<ElectronSQLiteDiagnostics | null> {

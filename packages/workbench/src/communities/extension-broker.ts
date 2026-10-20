@@ -4,6 +4,7 @@ import type { ExtensionOperation } from './extension-protocol'
 import type { NodeState, TransactionOperation } from '@xnetjs/data'
 import type { BridgeTransactionResult, DataBridge } from '@xnetjs/data-bridge'
 import { TaskSchema } from '@xnetjs/data'
+import { privateExtensionDestination } from './extension-containers'
 import {
   decodeExtensionRequest,
   ExtensionAccessError,
@@ -19,7 +20,6 @@ export function isPrivateExtensionTask(node: NodeState, owner: string): boolean 
     !node.properties.project &&
     !node.properties.page &&
     !node.properties.canvas &&
-    !node.properties.folder &&
     !node.properties.parent &&
     (!node.properties.visibility ||
       ['private', 'inherit'].includes(String(node.properties.visibility)))
@@ -123,6 +123,20 @@ export function createExtensionBroker(
     if (grant.records.length + state.approval.created.length + newIds.length > 100)
       throw new ExtensionAccessError('quota', 'This extension has reached its 100-record limit.')
     checkExecution()
+    const dependencyGuards = new Map<string, NodeState | null>()
+    let deadline = execution!.deadline
+    for (const node of before)
+      if (node) {
+        const scope = await privateExtensionDestination(
+          bridge,
+          grant,
+          node,
+          execution?.signal ?? new AbortController().signal
+        )
+        for (const [id, expected] of scope.guards) dependencyGuards.set(id, expected)
+        deadline = Math.min(deadline, scope.deadline())
+      }
+    checkExecution()
     const fields = ops.map((op) => (op.type === 'update' ? Object.keys(op.options.properties) : []))
     const context = JSON.stringify({
       input: requestInput,
@@ -135,8 +149,13 @@ export function createExtensionBroker(
     })
     const receipt = requestId
     const result = await bridge.transaction!(ops, {
-      nodes: ids.map((id, index) => ({ id, expected: before[index], head: heads?.[id] })),
-      deadline: execution!.deadline,
+      nodes: [
+        ...ids.map((id, index) => ({ id, expected: before[index], head: heads?.[id] })),
+        ...[...dependencyGuards]
+          .filter(([id]) => !ids.includes(id))
+          .map(([id, expected]) => ({ id, expected }))
+      ],
+      deadline,
       localState: [
         {
           key: authority.key,

@@ -3,14 +3,17 @@ import type { ExtensionGrant } from './extension-data'
 import type { DataBridge } from '@xnetjs/data-bridge'
 import { PageSchema } from '@xnetjs/data'
 import * as Y from 'yjs'
+import { editableDocumentText, saveExtensionDocument } from './extension-document-editing'
 import { ExtensionAccessError } from './extension-protocol'
 
 export interface ExtensionDocumentProjection {
   nodeId: string
+  title?: string
   handle: string
   text: string
   revision: number
-  editable: false
+  editable: boolean
+  editorText?: string
 }
 
 /** Plain text only. Embedded resources, attributes, URLs and deleted Yjs history never cross. */
@@ -77,13 +80,21 @@ export async function subscribeExtensionDocuments(
   authority: ExtensionAuthority,
   receive: (documents: ExtensionDocumentProjection[]) => void,
   fail: (error: unknown) => void,
-  signal: AbortSignal
+  signal: AbortSignal,
+  editor?: {
+    register(handle: string, save: (revision: number, text: string) => Promise<void>): void
+    unregister(handle: string): void
+    current(): boolean
+  }
 ): Promise<() => void> {
   const ids = grant.documents?.read ?? []
   const cleanups: (() => void)[] = []
   let stopped = false
   let generation = 0
-  const entries = new Map<string, { doc: Y.Doc; handle: string; revision: number }>()
+  const entries = new Map<
+    string,
+    { nodeId: string; doc: Y.Doc; handle: string; revision: number }
+  >()
   const stop = () => {
     stopped = true
     cleanups.splice(0).forEach((fn) => fn())
@@ -102,21 +113,26 @@ export async function subscribeExtensionDocuments(
       node.schemaId !== PageSchema._schemaId
     )
       throw new ExtensionAccessError('denied', 'The selected document is no longer available.')
+    return node
   }
   const publish = async () => {
     const serial = ++generation
     try {
       await authority.read()
-      await Promise.all(ids.map(validate))
+      const records = await Promise.all(ids.map(validate))
       await authority.read()
       if (stopped || serial !== generation || entries.size !== ids.length) return
       receive(
         [...entries].map(([nodeId, entry]) => ({
           nodeId,
+          title: String(
+            records.find((record) => record.id === nodeId)?.properties.title ?? 'Untitled page'
+          ),
           handle: entry.handle,
           revision: entry.revision,
           text: projectExtensionDocument(entry.doc),
-          editable: false
+          editable: !!grant.documents?.write?.includes(nodeId) && !!editableDocumentText(entry.doc),
+          editorText: editableDocumentText(entry.doc)?.text
         }))
       )
     } catch (error) {
@@ -142,8 +158,21 @@ export async function subscribeExtensionDocuments(
         bridge.releaseDoc!(id)
         return stop
       }
-      const entry = { doc: acquired.doc, handle: crypto.randomUUID(), revision: 0 }
+      const entry = { nodeId: id, doc: acquired.doc, handle: crypto.randomUUID(), revision: 0 }
       entries.set(id, entry)
+      editor?.register(entry.handle, (revision, text) =>
+        saveExtensionDocument(
+          bridge,
+          grant,
+          authority,
+          entry,
+          revision,
+          text,
+          signal,
+          () => !stopped && editor.current()
+        )
+      )
+      cleanups.push(() => editor?.unregister(entry.handle))
       const changed = () => {
         entry.revision++
         void publish()

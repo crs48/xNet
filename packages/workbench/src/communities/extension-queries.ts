@@ -1,68 +1,18 @@
 import type { ExtensionAuthority } from './extension-authority'
 import type { ExtensionGrant } from './extension-data'
 import type { ExtensionQueryRequest } from './extension-protocol'
-import type { DefinedSchema, NodeState, PropertyBuilder } from '@xnetjs/data'
-import type { DataBridge, QueryMetadata, QueryOptions } from '@xnetjs/data-bridge'
+import type { NodeState } from '@xnetjs/data'
+import type { DataBridge, QueryMetadata } from '@xnetjs/data-bridge'
 import { ChannelSchema, ChatMessageSchema, TaskSchema } from '@xnetjs/data'
 import { applyQueryDescriptor, createQueryDescriptor, encodeQueryCursor } from '@xnetjs/data-bridge'
+import { resolveExtensionContainers } from './extension-containers'
 import { extensionSchemas, readableNode, visibleExtensionFields } from './extension-data'
 import { ExtensionAccessError } from './extension-protocol'
+import { readPage } from './extension-read-page'
 
 export interface ExtensionQueryResult {
   nodes: NodeState[]
   metadata: QueryMetadata
-}
-
-/** A bounded host subscription is acquired only for the requested page, then released. */
-function readPage(
-  bridge: DataBridge,
-  schema: DefinedSchema<Record<string, PropertyBuilder>>,
-  options: QueryOptions,
-  signal: AbortSignal
-): Promise<NodeState[]> {
-  if (signal.aborted) throw new ExtensionAccessError('cancelled', 'The query was cancelled.')
-  return new Promise((resolve, reject) => {
-    let done = false
-    let cleanup = () => {}
-    const finish = (nodes: NodeState[] | null, error?: unknown) => {
-      if (done || (!error && nodes === null)) return
-      done = true
-      cleanup()
-      signal.removeEventListener('abort', cancel)
-      if (error) reject(error)
-      else resolve(nodes!)
-    }
-    const cancel = () =>
-      finish(null, new ExtensionAccessError('cancelled', 'The query was cancelled.'))
-    signal.addEventListener('abort', cancel, { once: true })
-    try {
-      const subscription = bridge.query(schema, options)
-      let ready = !bridge.reloadQuery
-      const changed = () => {
-        if (!ready) return
-        const metadata = subscription.getMetadata?.()
-        if (metadata?.error)
-          finish(
-            null,
-            new ExtensionAccessError('unavailable', 'The selected data could not be read.')
-          )
-        else finish(subscription.getSnapshot())
-      }
-      cleanup = subscription.subscribe(changed)
-      if (done) cleanup()
-      else if (bridge.reloadQuery) {
-        void bridge.reloadQuery(createQueryDescriptor(schema._schemaId, options)).then(
-          () => {
-            ready = true
-            changed()
-          },
-          (error) => finish(null, error)
-        )
-      } else changed()
-    } catch (error) {
-      finish(null, error)
-    }
-  })
 }
 
 /** Cursors and policy state stay in this installation's host closure; raw storage cursors never cross. */
@@ -72,6 +22,9 @@ export function createExtensionQueryBroker(
   authority: ExtensionAuthority,
   canReadChannel: (id: string) => boolean
 ) {
+  let expiresAt = Infinity
+  const watched = new Set<string>()
+  const containerIds = new Set<string>()
   const cursors = new Map<string, { raw: string; shape: string; expires: number }>()
   const check = async (signal: AbortSignal) => {
     if (signal.aborted) throw new ExtensionAccessError('cancelled', 'The query was cancelled.')
@@ -83,11 +36,29 @@ export function createExtensionQueryBroker(
     return state.approval
   }
   return {
+    checkExpiry() {
+      if (Date.now() >= expiresAt)
+        throw new ExtensionAccessError(
+          'revoked',
+          'Container membership expired. Review permissions again.'
+        )
+    },
+    affects(node: NodeState) {
+      return (
+        watched.has(node.id) ||
+        containerIds.has(String(node.properties.parent)) ||
+        containerIds.has(String(node.properties.folder)) ||
+        containerIds.has(String(node.properties.space))
+      )
+    },
     async query(
       request: ExtensionQueryRequest,
       signal: AbortSignal
     ): Promise<ExtensionQueryResult> {
       const approval = await check(signal)
+      const scope = await resolveExtensionContainers(bridge, grant, signal)
+      for (const id of scope.guards.keys()) watched.add(id)
+      for (const id of [...scope.folders, ...scope.spaces]) containerIds.add(id)
       const schema = extensionSchemas.find((item) => item._schemaId === request.schemaId)
       if (!schema || !bridge.get)
         throw new ExtensionAccessError('unsupported', 'This query is unavailable.')
@@ -117,22 +88,30 @@ export function createExtensionQueryBroker(
         isMessages || isChannels
           ? !grant.channelIds.length
           : !selected.length &&
+            !grant.containers?.length &&
             !(schema._schemaId === TaskSchema._schemaId && grant.taskWrites?.create)
       )
         throw new ExtensionAccessError('denied', 'This schema is outside the read grant.')
       const selectedIds = isChannels ? grant.channelIds : selected.map((record) => record.id)
-      if (options.nodeId && !isMessages && !selectedIds.includes(options.nodeId))
+      if (
+        options.nodeId &&
+        !isMessages &&
+        !selectedIds.includes(options.nodeId) &&
+        (isChannels || !grant.containers?.length)
+      )
         throw new ExtensionAccessError('denied', 'This record is outside the read grant.')
       // Guessed message IDs must still be constrained by a channel predicate in storage.
       const size = options.page?.first ?? options.limit ?? 50
       const orderBy = options.orderBy ?? { createdAt: 'desc' as const }
-      const shape = JSON.stringify(
-        createQueryDescriptor(schema._schemaId, {
-          nodeId: options.nodeId,
-          where: options.where,
-          orderBy
-        })
-      )
+      const shape =
+        scope.fingerprint() +
+        JSON.stringify(
+          createQueryDescriptor(schema._schemaId, {
+            nodeId: options.nodeId,
+            where: options.where,
+            orderBy
+          })
+        )
       let after: string | undefined
       if (options.page?.after) {
         const cursor = cursors.get(options.page.after)
@@ -197,7 +176,7 @@ export function createExtensionQueryBroker(
         )
         candidates = pages.flat()
       } else {
-        const ids = options.nodeId ? [options.nodeId] : selectedIds
+        const ids = options.nodeId ? selectedIds.filter((id) => id === options.nodeId) : selectedIds
         const rows = await Promise.all(ids.map((id) => bridge.get!(id)))
         if (
           rows.some(
@@ -212,11 +191,69 @@ export function createExtensionQueryBroker(
         candidates = rows.filter(
           (node): node is NodeState => !!node && !node.deleted && node.properties.redacted !== true
         )
+        if (!isChannels) {
+          for (const [field, values] of [
+            ['folder', scope.folders],
+            ['space', scope.spaces]
+          ] as const) {
+            for (const id of values) {
+              let cursor = after
+              let exhausted = false,
+                visible = 0
+              for (let scanned = 0; scanned < 1000; scanned += size + 1) {
+                const page = await readPage(
+                  bridge,
+                  schema,
+                  {
+                    ...options,
+                    where: { ...options.where, [field]: id },
+                    orderBy,
+                    limit: size + 1,
+                    page: { first: size + 1, after: cursor, count: 'none' },
+                    source: 'local',
+                    mode: 'local'
+                  },
+                  signal
+                )
+                if (
+                  page.length > size + 1 ||
+                  page.some(
+                    (node) =>
+                      node.schemaId !== schema._schemaId ||
+                      node.properties[field] !== id ||
+                      (options.nodeId && node.id !== options.nodeId)
+                  )
+                )
+                  throw new ExtensionAccessError('denied', 'A container query escaped its scope.')
+                for (const node of page)
+                  if (
+                    !node.deleted &&
+                    node.properties.redacted !== true &&
+                    (await scope.canRead(node))
+                  ) {
+                    candidates.push(node)
+                    visible++
+                  }
+                if (visible > size || page.length < size + 1) {
+                  exhausted = true
+                  break
+                }
+                cursor = encodeQueryCursor(descriptor, page[page.length - 1])
+              }
+              if (!exhausted)
+                throw new ExtensionAccessError(
+                  'quota',
+                  'The container query exceeded its scan budget.'
+                )
+            }
+          }
+        }
+        candidates = [...new Map(candidates.map((node) => [node.id, node])).values()]
       }
       const ordered = applyQueryDescriptor(candidates, descriptor)
       // Query caches may revalidate asynchronously. Recheck the bounded visible window
       // against current records before disclosing old content or a reparented message.
-      if (isMessages) {
+      if (isMessages || grant.containers?.length) {
         const current = await Promise.all(ordered.map((node) => bridge.get!(node.id)))
         if (
           ordered.some((node, index) => {
@@ -225,7 +262,9 @@ export function createExtensionQueryBroker(
               !latest ||
               latest.deleted ||
               latest.properties.redacted === true ||
-              JSON.stringify(readableNode(latest)) !== JSON.stringify(readableNode(node))
+              JSON.stringify(readableNode(latest)) !== JSON.stringify(readableNode(node)) ||
+              latest.properties.folder !== node.properties.folder ||
+              latest.properties.space !== node.properties.space
             )
           })
         )
@@ -272,7 +311,16 @@ export function createExtensionQueryBroker(
           'quota',
           'The query page exceeds 256 KiB. Request fewer records.'
         )
+      await scope.verify()
+      expiresAt = Math.min(expiresAt, scope.expiresAt())
+      for (const id of scope.guards.keys()) watched.add(id)
+      if (watched.size > 2000 || containerIds.size > 1000)
+        throw new ExtensionAccessError(
+          'quota',
+          'Reload this extension to refresh its container watch budget.'
+        )
       await check(signal)
+      scope.assertActive()
       return result
     }
   }

@@ -36,6 +36,7 @@ import {
   canReadExtensionChannel,
   type ExtensionSelection
 } from './ExtensionDataPicker'
+import { ExtensionDocumentEditor, type DocumentSave } from './ExtensionDocumentEditor'
 import { IconButton, inputClass, primaryButton, secondaryButton } from './primitives'
 interface Revision {
   id: string
@@ -47,14 +48,24 @@ interface Revision {
   createdAt: number
   base?: string
 }
+function writeAccessLabel(grant: ExtensionGrant): string {
+  const access = [
+    ...(grant.taskWrites ? ['private task editing'] : []),
+    ...(grant.documents?.write?.length ? ['private page editing'] : [])
+  ]
+  return access.join(' and ') || 'read-only'
+}
+
 function PreviewTree({
   node,
   session,
-  documents
+  documents,
+  editors
 }: {
   node: ChatPreviewNode
   session: ExtensionSession | null
   documents: readonly ExtensionDocumentProjection[]
+  editors: ReadonlyMap<string, DocumentSave>
 }) {
   const styles = {
     stack: 'flex flex-col gap-3',
@@ -64,10 +75,19 @@ function PreviewTree({
     badge: 'inline-block self-start rounded-full bg-muted px-3 py-1 text-xs',
     button: secondaryButton,
     input: inputClass,
-    document: ''
+    document: '',
+    'document-editor': ''
   }
   if (node.type === 'text' && !node.children?.length)
     return <span className={styles.text}>{node.text}</span>
+  if (node.type === 'document-editor') {
+    const document = documents.find((item) => item.handle === node.handle)
+    return document ? (
+      <ExtensionDocumentEditor document={document} save={editors.get(document.handle)} />
+    ) : (
+      <p>Document access is unavailable.</p>
+    )
+  }
   if (node.type === 'document') {
     const document = documents.find((item) => item.handle === node.handle)
     return (
@@ -89,7 +109,13 @@ function PreviewTree({
       >
         {node.text}
         {node.children?.map((child, index) => (
-          <PreviewTree key={index} node={child} session={session} documents={documents} />
+          <PreviewTree
+            key={index}
+            node={child}
+            session={session}
+            documents={documents}
+            editors={editors}
+          />
         ))}
       </button>
     )
@@ -109,7 +135,13 @@ function PreviewTree({
     <div className={styles[node.type]}>
       {node.text}
       {node.children?.map((child, index) => (
-        <PreviewTree key={index} node={child} session={session} documents={documents} />
+        <PreviewTree
+          key={index}
+          node={child}
+          session={session}
+          documents={documents}
+          editors={editors}
+        />
       ))}
     </div>
   )
@@ -137,6 +169,7 @@ export function ChatExtensionPanel({
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const documentEditors = useRef(new Map<string, DocumentSave>())
   const [documents, setDocuments] = useState<ExtensionDocumentProjection[]>([])
   const [tree, setTree] = useState<ChatPreviewNode | null>(null)
   const [revision, setRevision] = useState<Revision | null>(null)
@@ -313,7 +346,8 @@ export function ChatExtensionPanel({
             channelIds: approved.channelIds,
             records: approved.records,
             taskWrites: approved.taskWrites,
-            documents: approved.documents
+            documents: approved.documents,
+            containers: approved.containers
           })
           setGrant(approved)
         }
@@ -436,6 +470,7 @@ export function ChatExtensionPanel({
       checkingAuthority = true
       void authority
         .read()
+        .then(() => queries.checkExpiry())
         .catch(stopForAuthority)
         .finally(() => {
           checkingAuthority = false
@@ -491,7 +526,7 @@ export function ChatExtensionPanel({
             liveSession.current = session
           }
           setStatus(
-            `Live xNet data · ${result.data.grant.records.length} selected records${grant.taskWrites ? ' · private task editing enabled' : ' · read-only'}`
+            `Live xNet data · ${result.data.grant.records.length} selected records · ${grant.containers?.length ?? 0} containers · ${writeAccessLabel(grant)}`
           )
         })
         .catch(stopForAuthority)
@@ -526,7 +561,8 @@ export function ChatExtensionPanel({
         const affected = [event.node, event.previousNode].some(
           (node) =>
             node &&
-            (records.has(node.id) ||
+            (queries.affects(node) ||
+              records.has(node.id) ||
               (node.schemaId === ChannelSchema._schemaId && grant.channelIds.includes(node.id)) ||
               (node.schemaId === ChatMessageSchema._schemaId &&
                 grant.channelIds.includes(String(node.properties.channel))))
@@ -550,7 +586,14 @@ export function ChatExtensionPanel({
         deliverLatest()
       },
       stopForAuthority,
-      controller.signal
+      controller.signal,
+      {
+        register: (handle, save) => documentEditors.current.set(handle, save),
+        unregister: (handle) => {
+          documentEditors.current.delete(handle)
+        },
+        current: () => !stopped && currentData.current.did === grant.owner
+      }
     )
       .then((cleanup) => {
         if (stopped) cleanup()
@@ -748,7 +791,12 @@ export function ChatExtensionPanel({
         )}
         {tree && (
           <div className="rounded-xl border border-border p-4">
-            <PreviewTree node={tree} session={liveSession.current} documents={documents} />
+            <PreviewTree
+              node={tree}
+              session={liveSession.current}
+              documents={documents}
+              editors={documentEditors.current}
+            />
           </div>
         )}
         {revision && (
@@ -758,7 +806,7 @@ export function ChatExtensionPanel({
             </p>
             <p>
               {grant
-                ? `${grant.channelIds.length} conversations · ${grant.records.length} individual records · ${grant.taskWrites ? 'private task editing' : 'read-only'}`
+                ? `${grant.channelIds.length} conversations · ${grant.records.length} individual records · ${grant.containers?.length ?? 0} containers · ${writeAccessLabel(grant)}`
                 : 'No data access granted.'}
             </p>
             <p className="break-all text-[10px] text-muted-foreground">

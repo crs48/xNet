@@ -19,6 +19,11 @@ import type {
   PinRegistry
 } from './types'
 import type { ContentId } from '@xnetjs/core'
+import {
+  documentOverlayKey,
+  mergeDocumentOverlay,
+  preserveDocumentOverlay
+} from './document-overlay'
 import { assertTransactionConditions, TransactionConflictError } from './transaction-conditions'
 
 type MemoryNodeStorageSnapshot = {
@@ -232,6 +237,8 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   async deleteNode(id: NodeId): Promise<void> {
     this.nodes.delete(id)
     this.changes.delete(id)
+    this.documentContentStore.delete(id)
+    this.appState.delete(documentOverlayKey(id))
   }
 
   async listNodes(options?: ListNodesOptions): Promise<NodeState[]> {
@@ -314,11 +321,21 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   // ==========================================================================
 
   async getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null> {
-    return this.documentContentStore.get(nodeId) ?? null
+    return mergeDocumentOverlay(
+      this.documentContentStore.get(nodeId) ?? null,
+      this.appState.get(documentOverlayKey(nodeId)) ?? null
+    )
   }
 
   async setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void> {
-    this.documentContentStore.set(nodeId, content)
+    this.documentContentStore.set(
+      nodeId,
+      preserveDocumentOverlay(
+        this.documentContentStore.get(nodeId) ?? null,
+        content,
+        this.appState.get(documentOverlayKey(nodeId)) ?? null
+      )
+    )
   }
 
   // ==========================================================================

@@ -1162,6 +1162,9 @@
       "defineNodeQueryAST": "unavailable in untrusted extensions",
       "defineQuerySetAST": "unavailable in untrusted extensions",
       "defineSavedViewDescriptor": "unavailable in untrusted extensions",
+      "documentOverlayKey": "unavailable in untrusted extensions",
+      "documentOverlayNodeId": "unavailable in untrusted extensions",
+      "encodeDocumentOverlay": "unavailable in untrusted extensions",
       "encodeNodeQueryCursor": "unavailable in untrusted extensions",
       "eq": "unavailable in untrusted extensions",
       "evaluateQueryASTPlannerGate": "unavailable in untrusted extensions",
@@ -1185,6 +1188,7 @@
       "matchesNodeQueryDescriptor": "unavailable in untrusted extensions",
       "matchesQueryASTLoadedRow": "unavailable in untrusted extensions",
       "max": "unavailable in untrusted extensions",
+      "mergeDocumentOverlay": "unavailable in untrusted extensions",
       "min": "unavailable in untrusted extensions",
       "neq": "unavailable in untrusted extensions",
       "nodeQueryDescriptorNeedsBoundedReload": "unavailable in untrusted extensions",
@@ -1196,6 +1200,7 @@
       "querySetCount": "unavailable in untrusted extensions",
       "resolveTempIds": "unavailable in untrusted extensions",
       "serializeNodeQueryDescriptor": "unavailable in untrusted extensions",
+      "snapshotKey": "unavailable in untrusted extensions",
       "sortNodeQueryResults": "unavailable in untrusted extensions",
       "startsWith": "unavailable in untrusted extensions",
       "sum": "unavailable in untrusted extensions",
@@ -2610,10 +2615,12 @@
     "@xnetjs/extensions/react": {
       "useQuery": "scoped adapter",
       "useMutate": "scoped adapter",
-      "useDocument": "exact-page text projection"
+      "useDocument": "exact-page text projection",
+      "useDocumentIds": "separately approved document IDs"
     },
     "@xnetjs/extensions/ui": {
-      "DocumentView": "host-rendered read-only document handle"
+      "DocumentView": "host-rendered read-only document handle",
+      "DocumentEditor": "host-owned plain-paragraph editor with guarded commits"
     }
   },
   "resources": {

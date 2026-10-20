@@ -75,9 +75,13 @@ const output =
         '@xnetjs/extensions/react': {
           useQuery: 'scoped adapter',
           useMutate: 'scoped adapter',
-          useDocument: 'exact-page text projection'
+          useDocument: 'exact-page text projection',
+          useDocumentIds: 'separately approved document IDs'
         },
-        '@xnetjs/extensions/ui': { DocumentView: 'host-rendered read-only document handle' }
+        '@xnetjs/extensions/ui': {
+          DocumentView: 'host-rendered read-only document handle',
+          DocumentEditor: 'host-owned plain-paragraph editor with guarded commits'
+        }
       },
       resources: Object.fromEntries(
         entrypoints

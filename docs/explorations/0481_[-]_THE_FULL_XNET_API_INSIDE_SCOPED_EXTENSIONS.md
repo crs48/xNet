@@ -1,7 +1,7 @@
 ---
 title: The full xNet API inside scoped extensions
 status: partially implemented
-last_updated: 2026-10-19
+last_updated: 2026-10-20
 review: 2026-11-02
 decider: Chris
 door: two-way
@@ -11,9 +11,9 @@ tags: [extensions, permissions, sandboxing, react, agents, local-first]
 # The full xNet API inside scoped extensions
 
 > [!TIP]
-> Give extensions the functionality of xNet through a **scoped client SDK**, backed by a host-owned capability broker. Keep real React hooks and xNet primitives wherever their contracts fit. Keep stores, credentials, sync transports, and permission administration behind the broker. The next useful milestone is an interactive task extension with scoped reads, writes, and undo.
+> Give extensions the functionality of xNet through a **scoped client SDK**, backed by a host-owned capability broker. Keep real React hooks and xNet primitives wherever their contracts fit. Keep stores, credentials, sync transports, and permission administration behind the broker. Interactive tasks and private page editing now work locally; richer components still need scoped authority.
 
-This proposal was grounded in local commit `406e95e04` on `codex/chat-first-redesign`. The October 19 local implementation now supports interactive private tasks, durable local approvals, scoped conversation queries, and read-only documents; the full API design remains **partially implemented**. Publishing a stable extension SDK still requires the broader authority model and an independent review. The filename marks this as partially implemented; references point to the updated name.
+This proposal was grounded in local commit `406e95e04` on `codex/chat-first-redesign`. The October 20 local implementation supports interactive private tasks, durable local approvals, scoped conversation/container queries, and separately approved plain-paragraph page editing; the full API design remains **partially implemented**. Publishing a stable extension SDK still requires the broader authority model and an independent review. The filename marks this as partially implemented; references point to the updated name.
 
 ## Local implementation evidence — October 19
 
@@ -67,7 +67,55 @@ measurements exclude IPC, worker startup, React and encrypted storage; they do
 not establish end-to-end UI latency. The reproducible manual check is
 `scripts/benchmark-extension-queries.ts`.
 
-This is still not the final grant authority. Cross-device revocation, additional container policies, and a general destination/disclosure proof remain open. Editable document handles need commits coordinated with the document persistence owner; writing a renderer snapshot beside a grant check could race live edits or an older background flush. Richer components, schemas, assets, external effects, and background jobs also remain unavailable. These gaps keep the corresponding items below unchecked.
+## Local implementation evidence — October 20
+
+The permission picker now accepts private folder and space roots, including nested
+containers and future Task/Page records. Reads mask properties and recheck fresh
+ancestry, owner-issued deterministic membership, expiry and current records before
+delivery. Cached descendants moved outside a selected root are rejected. Opaque
+cursors include container evidence; changes and foreground expiry invalidate views.
+Private writes guard folder ancestry in the same transaction as the exact record
+and approval. Shared destinations remain denied.
+
+The real extension runtime now exposes `useDocumentIds()` and `DocumentEditor`.
+The document examples enumerate only exact text-approved IDs, even when a broader
+container query can return other pages. The host editor shows the actual page title
+and owns the text input and Save action. Write approval is separate from both page
+properties and text reading. Plain paragraphs are editable; formatting, attributes,
+embeds, and shared/published destinations are refused. There is no guest document
+mutation RPC or raw Yjs capability.
+
+An edit prepares a clone, then atomically checks the page, container evidence,
+approval and existing device-local overlay. The transaction writes the new overlay,
+command count and attributed receipt before the live document changes. Memory and
+SQLite merge accepted overlays into reads and later snapshots; stale snapshots
+cannot erase committed edits. The Electron data owner hydrates acquired documents
+and forwards accepted updates. ADR-51 records the format, limits and tripwire.
+
+Verified in this pass:
+
+- Actual Electron: approve an exact page in a nested private folder, save two
+  paragraphs with the host control, and read back the new text from native storage.
+- Actual Electron: an outside Yjs edit disables saving a dirty draft; reloading the
+  text preserves the outside change. Install the current runtime, restart the whole
+  app, and recover both its approval and the merged text. Revocation removes the
+  editor and worker; another reload exposes no editor, worker or active grant.
+- Actual Electron: approve a folder with no individually selected tasks, observe a
+  newly created task live, then move its nested folder outside the selected root
+  and observe both records disappear. Restore the fixture's parent after revoking.
+- Policy tests cover inherited/expired/forged memberships, missing/deleted ancestry,
+  cycles, cached moves, authority-bound cursors, forbidden fields, stale drafts,
+  cancellation, rich-text refusal, and revocation/reparenting at the commit boundary.
+- Native SQLite tests reopen accepted overlays, reject revoked edits atomically,
+  preserve later edits after stale saves, and remove overlay content on physical
+  deletion. Data-owner tests exercise renderer forwarding, hydration and restart.
+
+This is still not the full API design. Rich editor behavior, database/canvas
+components, assets, custom schemas, external effects, background jobs, a general
+disclosure proof and cross-device authority remain open. The overlay retains history
+and stops at 128,000 bytes; compaction and document undo need further work. Raw Yjs
+replication remains a separate proposed capability. No independent security review
+or complete multi-device validation is claimed.
 
 ## Problem and intended experience
 
@@ -453,7 +501,7 @@ Measure cold startup, transferred bytes, query count, host-thread stalls, and me
 - [x] Inventory public SDK exports and existing plugin entrypoints; create the coverage ledger and reject unclassified exports in the untrusted loader.
 - [x] Define a versioned operation registry, codecs, structured `TaggedError` failures, caller binding, quotas, cancellation, and grant epochs.
 - [x] Persist authoritative device-local grants and a host permission sheet for exact own records and selected conversations; fail closed on unavailable policy state.
-- [ ] Extend container permissions beyond selected conversations, including nested membership and reparenting checks.
+- [x] Extend container permissions beyond selected conversations, including nested membership and reparenting checks. The local implementation covers private folders and membership-checked spaces.
 - [x] Implement a scoped DataBridge client with live query cache, honest pagination, field-aware filtering, and authority-partitioned cursors.
 - [x] Refactor bridge-only hook dependencies; reuse actual `useQuery` and `useMutate` through the extension provider.
 - [x] Prototype Remote DOM with a closed xNet component/event receiver; verify React compatibility before committing to it as a public API.
@@ -465,7 +513,7 @@ Measure cold startup, transferred bytes, query count, host-thread stalls, and me
 
 - [ ] Add host-rendered editor, database, and canvas components whose entire internal behavior uses scoped authority.
 - [x] Add bounded document projections and explicit read-only host view handles with separate permission and revocation.
-- [ ] Add editable document handles with authority-aware document commits; specify whole-document Yjs capabilities separately before exposing raw updates.
+- [x] Add editable document handles with authority-aware document commits; specify whole-document Yjs capabilities separately before exposing raw updates. The implemented handle edits plain paragraphs through host controls; raw updates remain unavailable.
 - [ ] Add asset handles, upload/export controls, private storage restrictions, and sanitized debugging feedback.
 - [ ] Add declarative custom schemas, namespace ownership, and separately approved migration previews.
 - [ ] Migrate the workspace-plugin RPC onto the same policy service; keep trusted legacy contexts unavailable to sandboxed code.

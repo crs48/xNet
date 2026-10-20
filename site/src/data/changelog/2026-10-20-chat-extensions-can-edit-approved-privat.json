@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-20-chat-extensions-can-edit-approved-privat",
+  "date": "October 20, 2026",
+  "title": "Chat extensions can edit approved private pages",
+  "summary": "The local prototype adds a separately approved plain-text page editor and nested folder or space access. Page saves recheck permissions and preserve accepted text across restarts.",
+  "highlights": [],
+  "tags": ["app", "plugins", "editor"],
+  "pr": 728
+}

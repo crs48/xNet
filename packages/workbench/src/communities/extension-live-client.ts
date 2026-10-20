@@ -17,6 +17,7 @@ export function createLiveExtensionBridge(
   request: (request: ExtensionMutationRequest) => Promise<ExtensionMutationResult>,
   query?: (request: ExtensionQueryRequest) => Promise<ExtensionQueryResult>
 ) {
+  const noDocuments: string[] = []
   let dataset = initial
   let snapshotBridge = createExtensionDataBridge(dataset)
   const observers = new Set<() => void>()
@@ -125,6 +126,7 @@ export function createLiveExtensionBridge(
     update,
     invalidate: () => queries?.invalidate(),
     documents: {
+      ids: () => dataset.grant.documents?.read ?? noDocuments,
       subscribe(listener: () => void) {
         observers.add(listener)
         return () => {

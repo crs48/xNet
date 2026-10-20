@@ -3,7 +3,7 @@ import type { ChatPreviewNode } from './agent-extension'
 import type { ExtensionDataset } from './extension-data'
 import { resolve } from 'node:path'
 import { Worker } from 'node:worker_threads'
-import { TaskSchema } from '@xnetjs/data'
+import { TaskSchema, PageSchema } from '@xnetjs/data'
 import { build, transformSync } from 'esbuild'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { extensionExamples } from './agent-extension'
@@ -255,4 +255,42 @@ it('requests bounded host pages through real useQuery and follows opaque continu
       (message.request as { options?: { page?: { after?: string } } }).options?.page?.after ===
         cursor
   )
+})
+
+it('renders the editor example using only separately approved document IDs and opaque handles', async () => {
+  const handle = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+  const dataset: ExtensionDataset = {
+    grant: {
+      version: 1,
+      owner: 'did:key:owner',
+      hash: 'editor',
+      channelIds: [],
+      records: [{ id: 'page', schemaId: PageSchema._schemaId }],
+      containers: [{ kind: 'folder', id: 'folder', descendants: true }],
+      documents: { read: ['page'], write: ['page'] }
+    },
+    nodes: [
+      {
+        id: 'page',
+        schemaId: PageSchema._schemaId,
+        properties: { title: 'Actual notes' },
+        createdBy: 'did:key:owner',
+        updatedBy: 'did:key:owner',
+        createdAt: 1,
+        updatedAt: 1,
+        timestamps: {},
+        deleted: false
+      }
+    ],
+    documents: [
+      { nodeId: 'page', handle, text: 'Notes', editorText: 'Notes', revision: 1, editable: true }
+    ]
+  }
+  const example = extensionExamples.find((item) => item.title === 'Edit selected pages')!
+  const { wait, messages } = start(example.source, dataset)
+  const result = await wait(
+    (message) => message.type === 'view' && JSON.stringify(message.tree).includes('Actual notes')
+  )
+  expect(find(result.tree as ChatPreviewNode, 'document-editor')?.handle).toBe(handle)
+  expect(messages.some((message) => message.type === 'request')).toBe(false)
 })
