@@ -22,7 +22,7 @@ import {
   conversationInstructions,
   conversationResponseSchema,
   readConversationResponse,
-  streamedConversationReply
+  streamedConversationProgress
 } from './community-agent-response'
 import { discoverCommunityRuntimes, prepareCodex, prepareClaude } from './community-agent-runtime'
 import { getOrCreateIdentitySeed } from './identity-seed'
@@ -215,6 +215,12 @@ async function execute(run: LocalRun, binding: CommunityAgentBinding) {
   const controller = new AbortController()
   const key = `${run.channelId}:${run.responseFormat ?? run.purpose}`
   let streamed = ''
+  const progress = (phase: NonNullable<CommunityAgentRun['activity']>[number]['phase']) => {
+    // A phase is recorded once, so streaming chunks cannot grow the journal or flicker the UI.
+    if (run.activity?.some((entry) => entry.phase === phase)) return
+    run.activity = [...(run.activity ?? []), { phase, at: Date.now() }]
+    broadcast()
+  }
   controllers.set(run.id, controller)
   const timeout = setTimeout(
     () => controller.abort(new Error('Run exceeded the five-minute limit.')),
@@ -235,6 +241,7 @@ async function execute(run: LocalRun, binding: CommunityAgentBinding) {
       })
   }, 2000)
   try {
+    progress('connecting')
     let adapter = adapters.get(run.runtimeId)
     if (!adapter) {
       const runtime = await connect(run.runtimeId)
@@ -260,6 +267,7 @@ async function execute(run: LocalRun, binding: CommunityAgentBinding) {
       (frame) => {
         if (controller.signal.aborted) return
         if (frame.type === 'session') {
+          progress('waiting')
           current.sessions[key] = { audience: run.audience, sessionId: frame.sessionId }
           save()
         }
@@ -271,8 +279,14 @@ async function execute(run: LocalRun, binding: CommunityAgentBinding) {
             )
             return
           }
-          run.text =
-            run.responseFormat === 'conversation' ? streamedConversationReply(streamed) : streamed
+          if (run.responseFormat === 'conversation') {
+            const partial = streamedConversationProgress(streamed)
+            run.text = partial.reply
+            if (partial.phase) progress(partial.phase)
+          } else {
+            run.text = streamed
+            progress(run.purpose === 'extension' ? 'drafting' : 'replying')
+          }
           broadcast()
         }
         if (frame.type === 'tool_call' || frame.type === 'permission_request')
@@ -284,6 +298,7 @@ async function execute(run: LocalRun, binding: CommunityAgentBinding) {
       }
     )
     controller.signal.throwIfAborted()
+    progress('checking')
     if ((await boundary(binding)) !== run.audience || !binding.enabled)
       throw new Error('Audience changed; this result cannot be published.')
     if (result.text.length > 128_000) throw new Error('Answer exceeds the saved-answer limit.')

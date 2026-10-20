@@ -1,4 +1,4 @@
-import type { CommunityAgentPort } from './agent-contract'
+import type { CommunityAgentPort, CommunityAgentRun } from './agent-contract'
 import { ChatMessageSchema } from '@xnetjs/data'
 import { useQuery, useXNet } from '@xnetjs/react'
 import {
@@ -21,6 +21,7 @@ import {
   X
 } from 'lucide-react'
 import { useDeferredValue, useEffect, useRef, useState, type ReactNode } from 'react'
+import { agentReplyContent } from './agent-activity'
 import { AgentSettings } from './AgentSettings'
 import { CallPanel } from './CallPanel'
 import { ConversationPane, type AttachmentServices } from './ConversationPane'
@@ -48,19 +49,22 @@ export interface CommunityAppProps extends AttachmentServices {
   onAddShared?: () => void
   banner?: ReactNode
 }
-function Preview({ channelId }: { channelId: string }) {
+function Preview({ channelId, runs }: { channelId: string; runs: CommunityAgentRun[] }) {
   const { data } = useQuery(ChatMessageSchema, {
     where: { channel: channelId },
     orderBy: { createdAt: 'desc' },
     limit: 1
   })
   const message = data[0]
+  const run = runs.find((entry) => entry.replyId === message?.id)
   return (
     <p className="mt-1 truncate text-xs text-muted-foreground">
       {message
         ? message.redacted
           ? 'Message removed'
-          : message.content
+          : run && message.content
+            ? `${run.provider === 'codex' ? 'Codex' : 'Claude'}: ${agentReplyContent(message.content, run)}`
+            : message.content
         : 'Start the conversation'}
     </p>
   )
@@ -372,7 +376,7 @@ export function CommunityApp({
     setDialog('create')
   }
   return (
-    <div className="community-app flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
+    <div className="community-app flex h-full min-h-0 flex-col overflow-clip bg-background text-foreground">
       {desktop && (
         <header className="titlebar-drag flex h-[38px] shrink-0 items-center justify-center border-b border-border text-[10px] font-medium tracking-[0.12em] text-muted-foreground">
           Community preview
@@ -541,7 +545,7 @@ export function CommunityApp({
                           {entry.name || 'Conversation'}
                         </span>
                       </div>
-                      <Preview channelId={entry.id} />
+                      <Preview channelId={entry.id} runs={agents.snapshot.runs} />
                     </div>
                   </button>
                 ))}

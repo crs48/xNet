@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { readConversationResponse, streamedConversationReply } from './community-agent-response'
+import {
+  readConversationResponse,
+  streamedConversationReply,
+  streamedConversationProgress
+} from './community-agent-response'
 
 const extension = {
   title: 'Watchlist',
@@ -55,5 +59,25 @@ describe('conversational agent output', () => {
     expect(readConversationResponse(JSON.stringify({ extension, reply: 'Ready' })).reply).toBe(
       'Ready'
     )
+  })
+})
+
+describe('observed response phases', () => {
+  it('changes to extension generation only when the actual extension object starts', () => {
+    const reply = 'Quoted field: "extension": { and escaped \\" text'
+    const text = JSON.stringify({ reply, extension })
+    const start = text.indexOf(',"extension":{') + ',"extension":{'.length
+    for (let index = 0; index <= text.length; index++) {
+      const progress = streamedConversationProgress(text.slice(0, index))
+      expect(progress.phase === 'drafting').toBe(index >= start)
+      expect(reply.startsWith(progress.reply)).toBe(true)
+      expect(progress.reply).not.toContain('export default')
+    }
+  })
+  it('does not invent extension work for ordinary answers or reordered output', () => {
+    expect(streamedConversationProgress('{"reply":"Hi", "extension": null}').phase).toBe('replying')
+    expect(streamedConversationProgress(JSON.stringify({ extension, reply: 'Ready' }))).toEqual({
+      reply: ''
+    })
   })
 })

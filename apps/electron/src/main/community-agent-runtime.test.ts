@@ -17,6 +17,8 @@ describe('installed agent reply policy', () => {
   it('rejects the unrelated PATH codex and untested versions', () => {
     expect(isSupportedCodex('0.2.3')).toBe(false)
     expect(isSupportedCodex('codex-cli 0.162.0-alpha.17.2')).toBe(true)
+    expect(isSupportedCodex('codex-cli 0.163.0-alpha.10.2')).toBe(true)
+    expect(isSupportedCodex('codex-cli 0.163.0-alpha.10.3')).toBe(false)
     expect(isSupportedCodex('codex-cli 0.163.0')).toBe(false)
   })
   it('removes native model tools instead of relying on read-only or a prompt', () => {

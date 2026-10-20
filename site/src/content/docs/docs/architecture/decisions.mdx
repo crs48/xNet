@@ -1669,3 +1669,29 @@ overlay compaction, or a stable public SDK, prove the same atomic authority boun
 concurrent-edit preservation and restart behavior for that path, and independently
 review disclosure and resource limits. Revisit the overlay design when measured
 history size blocks ordinary approved editing.
+
+## ADR-52: Report observed agent phases in the local chat journal
+
+**Status:** Accepted · 2026-10-20 · local prototype
+
+**Context:** A streamed conversational reply can finish before the provider emits
+its extension source. A generic “replying” label hides that work, while generated
+progress prose could claim actions the host has never observed.
+
+**Decision:** Add optional timestamped `activity` entries to the desktop
+`CommunityAgentRun` contract. The host records connection, provider waiting,
+reply streaming, extension generation and response validation once per phase.
+Terminal state and publication remain authoritative. Old journals without this
+metadata show their existing status without inventing a historical timeline.
+The metadata remains device-local and carries no reasoning, source, tool payloads,
+provider session IDs or credentials. The chat uses one compact current status
+and optional details; completion leaves a receipt on the existing answer.
+
+**Tradeoff:** This is a coarse timeline, not a measure of percent complete. Buffered
+provider responses can omit intermediate phases. Validation does not imply an
+extension has been compiled, tested, installed or granted data access.
+
+**Tripwire:** Revisit the vocabulary and retention bounds before adding executable
+tools, concurrent tasks, remote agent activity or a stable external activity API.
+Every new reported action must have an observable host event and a tested terminal
+state; provider-generated progress text alone is insufficient evidence.

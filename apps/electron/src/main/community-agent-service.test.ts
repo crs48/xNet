@@ -9,6 +9,7 @@ const fixture = vi.hoisted(() => ({
   handlers: new Map<string, (event: unknown, input?: unknown) => Promise<unknown>>(),
   nodes: new Map<string, unknown>(),
   turns: [] as StreamTurnRequest[],
+  emit: undefined as ((frame: AgentFrame) => void) | undefined,
   complete: undefined as ((text?: string) => void) | undefined
 }))
 vi.mock('electron', () => ({
@@ -53,6 +54,7 @@ vi.mock('./community-agent-runtime', () => {
         turn: StreamTurnRequest,
         emit: (frame: AgentFrame) => void
       ): Promise<StreamTurnResult> => {
+        fixture.emit = emit
         fixture.turns.push(turn)
         emit({ type: 'session', sessionId: 'private-provider-session' })
         emit({ type: 'delta', text: '{"reply":"partial' })
@@ -92,6 +94,7 @@ beforeEach(async () => {
   fixture.nodes.clear()
   fixture.turns.length = 0
   fixture.complete = undefined
+  fixture.emit = undefined
   fixture.nodes.set('chat', {
     id: 'chat',
     schemaId: 'xnet://xnet.fyi/Channel@1.0.0',
@@ -122,12 +125,63 @@ afterEach(async () => {
 })
 describe('desktop community agent lifecycle', () => {
   const input = { channelId: 'chat', messageId: 'message', contextIds: [] }
+  it('records observed phases once without exposing generated source or provider sessions', async () => {
+    await invoke('start', input)
+    fixture.emit!({ type: 'delta', text: ' reply", "extension": {' })
+    fixture.emit!({ type: 'delta', text: '"title":"Draft", "source":"SECRET_SOURCE' })
+    const active = (await invoke<CommunityAgentSnapshot>('snapshot')).runs[0]
+    expect(active.activity?.map((entry) => entry.phase)).toEqual([
+      'connecting',
+      'waiting',
+      'replying',
+      'drafting'
+    ])
+    expect(active.text).toBe('partial reply')
+    expect(JSON.stringify(active)).not.toContain('SECRET_SOURCE')
+    expect(JSON.stringify(active)).not.toContain('private-provider-session')
+    fixture.complete!(
+      JSON.stringify({
+        reply: 'Ready',
+        extension: {
+          title: 'Draft',
+          summary: '',
+          source: 'export default () => null'
+        }
+      })
+    )
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('completed')
+    )
+    const completed = (await invoke<CommunityAgentSnapshot>('snapshot')).runs[0]
+    expect(completed.activity?.map((entry) => entry.phase)).toEqual([
+      'connecting',
+      'waiting',
+      'replying',
+      'drafting',
+      'checking'
+    ])
+    const journal = JSON.parse(
+      readFileSync(join(fixture.dir, 'community-agents', 'state.json'), 'utf8')
+    )
+    expect(journal.runs[0].activity).toEqual(completed.activity)
+  })
   it('rejects subframes and another window before reading or mutating state', () => {
     const handler = fixture.handlers.get('xnet:community-agents:start')!
     expect(() => handler({ sender, senderFrame: {} }, input)).toThrow('main xNet window')
     expect(() => handler({ sender: { mainFrame }, senderFrame: mainFrame }, input)).toThrow(
       'main xNet window'
     )
+  })
+  it('stops an unexpected tool frame and never publishes it as completed work', async () => {
+    const id = await invoke<string>('start', input)
+    fixture.emit!({ type: 'tool_call', id: 'unexpected', name: 'commandExecution' })
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('cancelled')
+    )
+    const stopped = (await invoke<CommunityAgentSnapshot>('snapshot')).runs[0]
+    expect(stopped.error).toContain('unsupported tool call')
+    expect(stopped.activity?.some((entry) => entry.phase === 'checking')).toBe(false)
+    await expect(invoke('authorizePublication', id)).rejects.toThrow('No completed run')
   })
   it('deduplicates requests, keeps session IDs private, and requires a saved reply before acknowledgment', async () => {
     const ids = await Promise.all([invoke<string>('start', input), invoke<string>('start', input)])

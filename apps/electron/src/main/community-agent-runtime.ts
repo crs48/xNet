@@ -14,7 +14,7 @@ import {
 export const runtimeId = (path: string) =>
   createHash('sha256').update(path).digest('hex').slice(0, 24)
 export const isSupportedCodex = (version: string) =>
-  /^codex-cli 0\.162\.0-alpha\.17\.2$/.test(version)
+  ['codex-cli 0.162.0-alpha.17.2', 'codex-cli 0.163.0-alpha.10.2'].includes(version)
 const rec = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
 
@@ -83,7 +83,7 @@ export async function discoverCommunityRuntimes(): Promise<CommunityAgentRuntime
           ? 'Connect using the login already on this device.'
           : provider === 'codex' && !version.startsWith('codex-cli ')
             ? 'This is not OpenAI Codex. Select a codex-cli installation.'
-            : 'This prototype supports Codex 0.162.0-alpha.17.2 and Claude Code 2.1.278.'
+            : 'This prototype supports Codex 0.162.0-alpha.17.2, Codex 0.163.0-alpha.10.2, and Claude Code 2.1.278.'
       }
     })
   )

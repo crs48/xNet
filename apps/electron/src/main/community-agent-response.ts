@@ -76,12 +76,24 @@ export function readConversationResponse(text: string): {
 
 /** Decode only the first reply string; incomplete escapes and source never reach chat. */
 export function streamedConversationReply(text: string): string {
+  return streamedConversationProgress(text).reply
+}
+
+/** Recognize the extension field only after the real reply's closing quote. */
+export function streamedConversationProgress(text: string): {
+  reply: string
+  phase?: 'replying' | 'drafting'
+} {
   const start = /^\s*\{\s*"reply"\s*:\s*"/.exec(text)
-  if (!start) return ''
+  if (!start) return { reply: '' }
   let reply = ''
+  let closedAt: number | undefined
   for (let index = start[0].length; index < text.length; index++) {
     const char = text[index]
-    if (char === '"') break
+    if (char === '"') {
+      closedAt = index + 1
+      break
+    }
     if (char === '\\') {
       const length = text[index + 1] === 'u' ? 6 : 2
       if (index + length > text.length) break
@@ -97,5 +109,11 @@ export function streamedConversationReply(text: string): string {
     }
   }
   // A streaming chunk can end between a UTF-16 surrogate pair.
-  return reply.replace(/[\uD800-\uDBFF]$/, '')
+  return {
+    reply: reply.replace(/[\uD800-\uDBFF]$/, ''),
+    phase:
+      closedAt !== undefined && /^\s*,\s*"extension"\s*:\s*\{/.test(text.slice(closedAt))
+        ? 'drafting'
+        : 'replying'
+  }
 }

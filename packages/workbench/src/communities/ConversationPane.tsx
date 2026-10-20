@@ -25,7 +25,8 @@ import {
   X
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AgentRunCards, AgentRunHistory } from './AgentRunCards'
+import { agentReplyContent } from './agent-activity'
+import { AgentRunCards, AgentRunHistory, AgentRunReceipt } from './AgentRunCards'
 import { ChatExtensionPanel } from './ChatExtensionPanel'
 import { audienceLabel, bytesLabel, type Audience } from './model'
 import { Avatar, EmptyState, IconButton, inputClass, secondaryButton } from './primitives'
@@ -176,8 +177,13 @@ function MessageRow({
         <p
           className={`whitespace-pre-wrap break-words text-[14px] leading-[1.65] ${message.redacted ? 'italic text-muted-foreground' : ''}`}
         >
-          {message.redacted ? 'Message removed' : message.content}
+          {message.redacted
+            ? 'Message removed'
+            : agentRun && message.content
+              ? agentReplyContent(message.content, agentRun)
+              : message.content}
         </p>
+        {!message.redacted && agentRun && <AgentRunReceipt run={agentRun} />}
         {!message.redacted && agentRun?.extension && (
           <button
             className={`${secondaryButton} mt-2`}
@@ -258,6 +264,22 @@ export function ConversationPane({
   const composer = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const nearBottom = useRef(true)
+  const readingActivity = useRef(false)
+  useEffect(() => {
+    const viewport = scroller.current
+    if (!viewport) return
+    const onToggle = (event: Event) => {
+      if (
+        event.target instanceof HTMLDetailsElement &&
+        event.target.hasAttribute('data-agent-activity')
+      )
+        readingActivity.current =
+          event.target.open || !!viewport.querySelector('[data-agent-activity][open]')
+    }
+    // Native toggle is non-bubbling; React's supported details handler does not cover this parent.
+    viewport.addEventListener('toggle', onToggle, true)
+    return () => viewport.removeEventListener('toggle', onToggle, true)
+  }, [])
   const space = data.spaces.find((entry) => entry.id === channel.space)
   const audience = (space?.visibility ?? 'private') as Audience
   const title =
@@ -276,7 +298,9 @@ export function ConversationPane({
     }
   }, [draftKey])
   useEffect(() => {
-    if (nearBottom.current && !search && tab === 'conversation')
+    const inspecting =
+      readingActivity.current && scroller.current?.querySelector('[data-agent-activity][open]')
+    if (nearBottom.current && !inspecting && !search && tab === 'conversation')
       scroller.current?.scrollTo({ top: scroller.current.scrollHeight })
   }, [messages, search, tab, agents.snapshot.runs])
   const setDraftAndPersist = (value: string) => {
@@ -316,6 +340,7 @@ export function ConversationPane({
       setReply(null)
       setSaved(true)
       nearBottom.current = true
+      readingActivity.current = false
       composer.current?.focus()
       if (binding && agents.port && (binding.mode === 'direct' || mention)) {
         const contextIds = messages
@@ -489,6 +514,7 @@ export function ConversationPane({
         )}
         <div
           ref={scroller}
+          data-chat-scroll
           onScroll={() => {
             const node = scroller.current
             if (node)

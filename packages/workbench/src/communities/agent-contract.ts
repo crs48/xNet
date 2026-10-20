@@ -38,6 +38,11 @@ export interface CommunityAgentRun {
   error?: string
   startedAt: number
   finishedAt?: number
+  /** Observed host phases only; optional for journals created before activity reporting. */
+  activity?: Array<{
+    phase: 'connecting' | 'waiting' | 'replying' | 'drafting' | 'checking'
+    at: number
+  }>
   contextCount: number
   published: boolean
   purpose: 'reply' | 'extension'

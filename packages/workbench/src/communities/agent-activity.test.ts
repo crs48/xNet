@@ -1,6 +1,13 @@
 import type { CommunityAgentRun } from './agent-contract'
 import { describe, expect, it } from 'vitest'
-import { conversationAgentActivity } from './agent-activity'
+import {
+  agentDuration,
+  agentPhaseLabels,
+  agentRunKind,
+  agentReplyContent,
+  agentRunLabel,
+  conversationAgentActivity
+} from './agent-activity'
 
 const run = (overrides: Partial<CommunityAgentRun>): CommunityAgentRun => ({
   id: 'attempt-1',
@@ -84,5 +91,47 @@ describe('conversation agent activity', () => {
     const activity = conversationAgentActivity([failed, ...others], 'film-club')
     expect(activity.current).toEqual([failed])
     expect(activity.history.map((entry) => entry.id)).not.toContain('other-channel')
+  })
+})
+
+describe('agent activity presentation', () => {
+  it('identifies a stopped extension build before a complete proposal exists', () => {
+    expect(
+      agentRunKind(run({ status: 'cancelled', activity: [{ phase: 'drafting', at: 1 }] }))
+    ).toBe('Extension')
+    expect(agentRunKind(run({ status: 'completed', published: true }))).toBe('Reply')
+  })
+  it('keeps the latest cancellation visible until the next request, without accumulating alerts', () => {
+    const stopped = run({ status: 'cancelled' })
+    expect(conversationAgentActivity([stopped], 'film-club').current).toEqual([stopped])
+    const next = run({ id: 'next', messageId: 'next', startedAt: 2, status: 'running' })
+    expect(conversationAgentActivity([stopped, next], 'film-club').current).toEqual([next])
+  })
+  it('uses recorded phases without letting them override terminal states', () => {
+    for (const [phase, label] of Object.entries(agentPhaseLabels)) {
+      const activity = [{ phase: phase as keyof typeof agentPhaseLabels, at: 1 }]
+      expect(agentRunLabel(run({ status: 'running', activity }))).toBe(label)
+      expect(agentRunLabel(run({ status: 'failed', activity }))).toBe('Couldn’t finish')
+      expect(agentRunLabel(run({ status: 'completed', published: true, activity }))).toBe(
+        'Finished'
+      )
+    }
+    expect(agentRunLabel(run({ status: 'completed' }))).toBe('Saving the reply')
+    expect(agentRunLabel(run({ status: 'running' }))).toBe('Working on your request')
+  })
+  it('formats real elapsed time without a fake percentage or negative durations', () => {
+    expect(agentDuration(1000, 500)).toBe('0s')
+    expect(agentDuration(0, 59000)).toBe('59s')
+    expect(agentDuration(0, 61000)).toBe('1m 1s')
+  })
+  it('removes only the matching redundant attribution line, retaining edited and truncated content', () => {
+    const content =
+      'Codex · AI response requested and saved by You\n\nSaved preview\n[Preview ends here.]'
+    expect(agentReplyContent(content, run({}))).toBe('Saved preview\n[Preview ends here.]')
+    expect(agentReplyContent(content, run({ provider: 'claude' }))).toBe(content)
+    expect(agentReplyContent('An edited answer', run({}))).toBe('An edited answer')
+    expect(agentReplyContent('Codex · AI response requested and saved by ', run({}))).toBe(
+      'Codex · AI response requested and saved by '
+    )
   })
 })
