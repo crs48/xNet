@@ -1,3 +1,4 @@
+import type { QueryOptions } from '@xnetjs/data-bridge'
 import { TaggedError } from '@xnetjs/core'
 
 export class ExtensionAccessError extends TaggedError<'ExtensionAccessError'> {
@@ -66,7 +67,7 @@ export function assertExtensionMessage(input: unknown, maxBytes = 66_000): void 
   }
   while (stack.length) {
     const { value, depth } = stack.pop()!
-    if (++count > 4096 || depth > 16)
+    if (++count > 4096 || depth > 32)
       throw new ExtensionAccessError('quota', 'Extension message exceeds its structure limit.')
     if (value === undefined || value === null || typeof value === 'boolean') continue
     if (typeof value === 'number' && Number.isFinite(value)) continue
@@ -101,6 +102,7 @@ export function assertExtensionMessage(input: unknown, maxBytes = 66_000): void 
 }
 
 export const EXTENSION_OPERATIONS = {
+  'data.query': { version: 1, maxBytes: 4096, maxOperations: 1, deadlineMs: 5000 },
   'data.mutate': { version: 1, maxBytes: 16_384, maxOperations: 20, deadlineMs: 5000 },
   'data.undo': { version: 1, maxBytes: 1024, maxOperations: 1, deadlineMs: 5000 }
 } as const
@@ -108,9 +110,64 @@ export type ExtensionOperation =
   | { type: 'create'; schemaId: string; id?: string; properties: Record<string, unknown> }
   | { type: 'update'; nodeId: string; properties: Record<string, unknown> }
   | { type: 'delete' | 'restore'; nodeId: string }
-export type ExtensionRequest =
+export type ExtensionMutationRequest =
   | { version: 1; id: string; operation: 'data.mutate'; operations: ExtensionOperation[] }
   | { version: 1; id: string; operation: 'data.undo'; receipt: string }
+export type ExtensionQueryRequest = {
+  version: 1
+  id: string
+  operation: 'data.query'
+  schemaId: string
+  options: QueryOptions
+}
+export type ExtensionRequest = ExtensionMutationRequest | ExtensionQueryRequest
+function queryOptions(input: unknown): void {
+  const value = object(input)
+  keys(value, [
+    'nodeId',
+    'where',
+    'orderBy',
+    'limit',
+    'offset',
+    'page',
+    'includeDeleted',
+    'source',
+    'mode'
+  ])
+  if (
+    (value.nodeId !== undefined && !identifier(value.nodeId)) ||
+    (value.includeDeleted !== undefined && value.includeDeleted !== false) ||
+    (value.offset !== undefined && value.offset !== 0) ||
+    (value.mode !== undefined && value.mode !== 'local') ||
+    (value.source !== undefined && value.source !== 'auto' && value.source !== 'local')
+  )
+    throw new ExtensionAccessError('denied', 'This query option is unavailable to extensions.')
+  const size = (n: unknown) =>
+    typeof n === 'number' && Number.isSafeInteger(n) && n >= 1 && n <= 100
+  if (value.limit !== undefined && !size(value.limit))
+    throw new ExtensionAccessError('quota', 'Query pages must contain one to one hundred records.')
+  if (value.where !== undefined) properties(value.where)
+  if (value.orderBy !== undefined) {
+    const order = object(value.orderBy)
+    if (
+      Object.keys(order).length > 4 ||
+      Object.values(order).some((direction) => direction !== 'asc' && direction !== 'desc')
+    )
+      throw new ExtensionAccessError('invalid', 'Invalid query ordering.')
+  }
+  if (value.page !== undefined) {
+    const page = object(value.page)
+    keys(page, ['first', 'after', 'count'])
+    if (
+      !size(page.first) ||
+      (value.limit !== undefined && value.limit !== page.first) ||
+      (page.after !== undefined &&
+        (typeof page.after !== 'string' || !/^[a-f0-9-]{36}$/.test(page.after))) ||
+      (page.count !== undefined && page.count !== 'none')
+    )
+      throw new ExtensionAccessError('invalid', 'Use bounded cursor pages without an exact count.')
+  }
+}
 export function object(value: unknown): Record<string, unknown> {
   if (
     !value ||
@@ -153,6 +210,13 @@ export function decodeExtensionRequest(input: unknown): ExtensionRequest {
   const value = object(input)
   if (value.version !== 1 || !identifier(value.id))
     throw new ExtensionAccessError('invalid', 'Unsupported request version or identifier.')
+  if (value.operation === 'data.query') {
+    keys(value, ['version', 'id', 'operation', 'schemaId', 'options'])
+    if (typeof value.schemaId !== 'string' || !value.schemaId || value.schemaId.length > 512)
+      throw new ExtensionAccessError('invalid', 'Invalid query schema.')
+    queryOptions(value.options)
+    return boundedRequest(value, EXTENSION_OPERATIONS['data.query'].maxBytes)
+  }
   if (value.operation === 'data.undo') {
     keys(value, ['version', 'id', 'operation', 'receipt'])
     if (!identifier(value.receipt)) throw new ExtensionAccessError('invalid', 'Invalid receipt.')
@@ -190,7 +254,7 @@ export function decodeExtensionRequest(input: unknown): ExtensionRequest {
 
 /** Coverage is explicit. Unknown imports/exports never fall back to host modules. */
 export const EXTENSION_API_COVERAGE = {
-  useQuery: 'scoped live properties',
+  useQuery: 'bounded host pages and scoped live invalidation',
   useMutate: 'private task commands',
   useState: 'worker React',
   useEffect: 'worker React',

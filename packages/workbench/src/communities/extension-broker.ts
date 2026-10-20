@@ -366,8 +366,10 @@ export function createExtensionBroker(
     async request(input: unknown, signal?: AbortSignal): Promise<ExtensionMutationResult> {
       check()
       if (signal?.aborted) throw new ExtensionAccessError('cancelled', 'The request was cancelled.')
-      const request = decodeExtensionRequest(input),
-        serialized = JSON.stringify(request)
+      const request = decodeExtensionRequest(input)
+      if (request.operation === 'data.query')
+        throw new ExtensionAccessError('unsupported', 'Queries require the read broker.')
+      const serialized = JSON.stringify(request)
       const replay = replays.get(request.id)
       if (replay) {
         if (replay.input !== serialized)

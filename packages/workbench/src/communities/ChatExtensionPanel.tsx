@@ -1,5 +1,6 @@
 import type { CommunityAgentRun } from './agent-contract'
 import type { CommunityData } from './use-community-data'
+import { ChannelSchema, ChatMessageSchema } from '@xnetjs/data'
 import { PluginSourceSchema } from '@xnetjs/plugins'
 import { useQuery } from '@xnetjs/react'
 import { Code, Play, RotateCcw, X } from 'lucide-react'
@@ -17,17 +18,14 @@ import {
   type ExtensionAuthority
 } from './extension-authority'
 import { createExtensionBroker } from './extension-broker'
-import {
-  readExtensionGrant,
-  subscribeExtensionData,
-  type ExtensionGrant,
-  type ExtensionDataset
-} from './extension-data'
+import { readExtensionGrant, type ExtensionGrant, type ExtensionDataset } from './extension-data'
 import { readableNode } from './extension-data'
 import {
   subscribeExtensionDocuments,
   type ExtensionDocumentProjection
 } from './extension-documents'
+import { decodeExtensionRequest } from './extension-protocol'
+import { createExtensionQueryBroker } from './extension-queries'
 import {
   compileChatExtension,
   startChatExtension,
@@ -68,6 +66,8 @@ function PreviewTree({
     input: inputClass,
     document: ''
   }
+  if (node.type === 'text' && !node.children?.length)
+    return <span className={styles.text}>{node.text}</span>
   if (node.type === 'document') {
     const document = documents.find((item) => item.handle === node.handle)
     return (
@@ -404,6 +404,9 @@ export function ChatExtensionPanel({
       createdRecords.current
     )
     brokerRef.current = broker
+    const queries = createExtensionQueryBroker(data.bridge, grant, authority, (id) =>
+      canReadExtensionChannel(currentData.current, id)
+    )
     let unsubscribe = () => {}
     let session: ExtensionSession | null = null
     let delivery = 0
@@ -467,7 +470,9 @@ export function ChatExtensionPanel({
                 },
                 error: stopForAuthority,
                 request: async (request, signal) => {
-                  const result = await broker.request(request, signal)
+                  const decoded = decodeExtensionRequest(request)
+                  if (decoded.operation === 'data.query') return queries.query(decoded, signal)
+                  const result = await broker.request(decoded, signal)
                   if (!broker.active || signal.aborted) throw new Error('Extension access stopped.')
                   setLastReceipt(result.receipt)
                   subscribe()
@@ -486,7 +491,7 @@ export function ChatExtensionPanel({
             liveSession.current = session
           }
           setStatus(
-            `Live xNet data · ${result.data.nodes.length} approved records${grant.taskWrites ? ' · private task editing enabled' : ' · read-only'}`
+            `Live xNet data · ${result.data.grant.records.length} selected records${grant.taskWrites ? ' · private task editing enabled' : ' · read-only'}`
           )
         })
         .catch(stopForAuthority)
@@ -499,22 +504,39 @@ export function ChatExtensionPanel({
       })
     }
     const subscribe = () => {
-      unsubscribe()
       const records = [
         ...grant.records,
         ...broker
           .createdRecords()
           .filter((record) => !grant.records.some((existing) => existing.id === record.id))
       ]
-      unsubscribe = subscribeExtensionData(
-        data.bridge!,
-        { ...grant, records },
-        (id) => canReadExtensionChannel(currentData.current, id),
-        (result) => {
-          latestDataset = result
-          deliverLatest()
-        }
-      )
+      latestDataset = {
+        data: { grant: { ...grant, records }, nodes: [], hostQueries: true },
+        error: null
+      }
+      deliverLatest()
+    }
+    let invalidationTimer: ReturnType<typeof setTimeout> | undefined
+    if (data.bridge.subscribeToChanges) {
+      unsubscribe = data.bridge.subscribeToChanges((event) => {
+        const records = new Set([
+          ...grant.records.map((record) => record.id),
+          ...broker.createdRecords().map((record) => record.id)
+        ])
+        const affected = [event.node, event.previousNode].some(
+          (node) =>
+            node &&
+            (records.has(node.id) ||
+              (node.schemaId === ChannelSchema._schemaId && grant.channelIds.includes(node.id)) ||
+              (node.schemaId === ChatMessageSchema._schemaId &&
+                grant.channelIds.includes(String(node.properties.channel))))
+        )
+        if (!affected || invalidationTimer || stopped) return
+        invalidationTimer = setTimeout(() => {
+          invalidationTimer = undefined
+          if (!stopped) session?.invalidate()
+        }, 250)
+      })
     }
     subscribe()
     void subscribeExtensionDocuments(
@@ -561,6 +583,7 @@ export function ChatExtensionPanel({
       stopped = true
       clearTimeout(expiryTimer)
       clearInterval(authorityTimer)
+      clearTimeout(invalidationTimer)
       unobserve()
       stopDocuments()
       unsubscribe()

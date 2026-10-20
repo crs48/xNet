@@ -13,13 +13,13 @@ tags: [extensions, permissions, sandboxing, react, agents, local-first]
 > [!TIP]
 > Give extensions the functionality of xNet through a **scoped client SDK**, backed by a host-owned capability broker. Keep real React hooks and xNet primitives wherever their contracts fit. Keep stores, credentials, sync transports, and permission administration behind the broker. The next useful milestone is an interactive task extension with scoped reads, writes, and undo.
 
-This proposal was grounded in local commit `406e95e04` on `codex/chat-first-redesign`. The October 19 local implementation now supports an interactive private-task prototype; the full API design remains **partially implemented**. Publishing a stable extension SDK still requires the broader authority model and an independent review. The filename marks this as partially implemented; references point to the updated name.
+This proposal was grounded in local commit `406e95e04` on `codex/chat-first-redesign`. The October 19 local implementation now supports interactive private tasks, durable local approvals, scoped conversation queries, and read-only documents; the full API design remains **partially implemented**. Publishing a stable extension SDK still requires the broader authority model and an independent review. The filename marks this as partially implemented; references point to the updated name.
 
 ## Local implementation evidence — October 19
 
 The host now mounts real React in an isolated worker and reuses `useQuery` and `useMutate` through a restricted DataBridge. A closed command broker supports selected private-task fields, separately approved creation and deletion/restoration, durable replay receipts, and undo that refuses later edits. Memory and supported SQLite paths check structured snapshots, optional change heads, and deadlines within the committing batch. Unsupported adapter/index/document guards fail explicitly. ADR-49 records this conditional-write primitive without accepting the complete extension protocol.
 
-The closed mutation/undo registry now carries operation deadlines, strict decoders,
+The closed query/mutation/undo registry now carries operation deadlines, strict decoders,
 and structured errors across the worker boundary. Each host-bound port limits
 outstanding work, aborts pending validation on teardown, and drops late responses.
 Cancellation does not undo an already accepted storage transaction; receipts let a
@@ -30,6 +30,9 @@ and error tags through the real React hook in a mounted worker.
 The export inventory covers every declared entrypoint of the five SDK packages below, including legacy plugin services. Unapproved modules and named exports fail explicitly. [Scoped extension reference](../reference/scoped-extensions.md) records the working imports, limits, and remaining boundaries.
 
 Verified in the real apps:
+
+- Web query follow-up: navigate distinct pages from 65 messages, receive an outside edit live, install, reload, recover the approved page, revoke, and reload with zero projected messages and no active grant.
+- Electron query follow-up: approve a 235-message conversation, navigate distinct 20-message pages, receive an outside edit live, install, reload and restore the page, revoke, reload again, and verify no active grant or projected message remains.
 
 - Electron document follow-up: approve selected Page text, observe a live Yjs edit, install, restart the complete app, recover approval and content, revoke, reload, and verify no document view or active grant remains.
 - Electron: approve one task, edit it, undo, create a task, receive an outside edit live, and revoke (the iframe is removed).
@@ -45,7 +48,26 @@ The local authority now persists an installation epoch, approved scope, created-
 
 Selected Page text now has a separate read permission. The real extension React runtime exposes `useDocument` and a host-rendered `DocumentView` with opaque session handles. The projection omits attributes, embedded resource contents, and deleted Yjs history, and observes live document changes. It does not expose raw Yjs, awareness, or document writes. Shared document acquisition is reference-counted in Electron; the main-thread bridge loads persisted content and releases failed acquisitions.
 
-This is still not the final grant authority. Cross-device revocation, additional container policies, and a general destination/disclosure proof remain open. Queries use bounded snapshots rather than authority-bound cursors. Editable document handles need commits coordinated with the document persistence owner; writing a renderer snapshot beside a grant check could race live edits or an older background flush. Richer components, schemas, assets, external effects, and background jobs also remain unavailable. These gaps keep the corresponding items below unchecked.
+Queries now request bounded pages from the host instead of copying whole selected
+conversations into the worker. Filtering and sorting can use only readable fields;
+unknown totals stay unknown. Opaque cursors are bound to the approved session and
+query. The real `useQuery` hook shares a live page cache with twenty active
+subscriptions; scoped change notifications coalesce before reloading. The host
+checks current records and authority before delivery, rejecting stale redacted or
+reparented message projections. Tests cover guessed IDs, hidden fields, cursor
+reuse across queries and approvals, revocation during reads, cancellation, and
+read-scope monotonicity with generated inputs.
+
+A native SQLite benchmark on Apple M1 Max / Node 22.16.0 held 100,000 messages,
+with only 250 in the approved conversation. It traversed those 250 across thirteen
+pages without duplicates or private-channel rows; the largest response was 6,982
+bytes. The first host page took 31.91 ms; twenty warm samples had median 1.05 ms
+and p95 1.67 ms. A reopen run passed the same scope checks and cleanup. These
+measurements exclude IPC, worker startup, React and encrypted storage; they do
+not establish end-to-end UI latency. The reproducible manual check is
+`scripts/benchmark-extension-queries.ts`.
+
+This is still not the final grant authority. Cross-device revocation, additional container policies, and a general destination/disclosure proof remain open. Editable document handles need commits coordinated with the document persistence owner; writing a renderer snapshot beside a grant check could race live edits or an older background flush. Richer components, schemas, assets, external effects, and background jobs also remain unavailable. These gaps keep the corresponding items below unchecked.
 
 ## Problem and intended experience
 
@@ -432,7 +454,7 @@ Measure cold startup, transferred bytes, query count, host-thread stalls, and me
 - [x] Define a versioned operation registry, codecs, structured `TaggedError` failures, caller binding, quotas, cancellation, and grant epochs.
 - [x] Persist authoritative device-local grants and a host permission sheet for exact own records and selected conversations; fail closed on unavailable policy state.
 - [ ] Extend container permissions beyond selected conversations, including nested membership and reparenting checks.
-- [ ] Implement a scoped DataBridge client with live query cache, honest pagination, field-aware filtering, and authority-partitioned cursors.
+- [x] Implement a scoped DataBridge client with live query cache, honest pagination, field-aware filtering, and authority-partitioned cursors.
 - [x] Refactor bridge-only hook dependencies; reuse actual `useQuery` and `useMutate` through the extension provider.
 - [x] Prototype Remote DOM with a closed xNet component/event receiver; verify React compatibility before committing to it as a public API.
 - [x] Add create and field-limited update commands, authority checks at commit, idempotent receipts, and conservative destination policy.
@@ -484,7 +506,7 @@ Keep implementation items unchecked until fresh evidence establishes them. Core 
 - [ ] Add in-memory negative controls that deliberately omit a scope check, epoch check, or destination check; the relevant suite must fail.
 - [ ] Exercise self-owned data, group membership expiry, nested containers, reparenting, concurrent edits, deleted records, and inaccessible relation targets.
 - [ ] Drive actual Electron and web flows: approve, interact, update data elsewhere, revoke, restart, edit source, and decline a permission expansion.
-- [ ] Benchmark 100,000 records with small authorized subsets; verify scoped queries and pagination before judging throughput.
+- [x] Benchmark 100,000 records with small authorized subsets; verify scoped queries and pagination before judging throughput.
 - [ ] Test offline publication and revocation windows with two devices; document precisely which actions require connectivity.
 - [x] Record unsupported hooks/components and runtime limits in generated SDK documentation; do not make unavailable features look successful.
 

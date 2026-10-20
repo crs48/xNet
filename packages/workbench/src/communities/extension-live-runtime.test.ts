@@ -202,3 +202,57 @@ it('preserves structured broker failures through the actual React mutation hook'
     (m) => m.type === 'view' && JSON.stringify(m.tree).includes('ExtensionAccessError:denied')
   )
 })
+
+it('requests bounded host pages through real useQuery and follows opaque continuation cursors', async () => {
+  const dataset: ExtensionDataset = {
+    hostQueries: true,
+    grant: { version: 1, owner: 'did:key:owner', hash: 'pages', channelIds: ['chat'], records: [] },
+    nodes: []
+  }
+  const { worker, wait } = start(
+    extensionExamples.find((example) => example.title === 'Conversation pages')!.source,
+    dataset
+  )
+  const first = await wait((message) => message.type === 'request')
+  expect(first.request).toMatchObject({
+    operation: 'data.query',
+    options: { where: { channel: 'chat' }, page: { first: 20, count: 'none' } }
+  })
+  const cursor = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+  worker.postMessage({
+    type: 'result',
+    id: (first.request as { id: string }).id,
+    result: {
+      nodes: [],
+      metadata: {
+        source: 'local',
+        updatedAt: 1,
+        pageInfo: {
+          totalCount: null,
+          countMode: 'none',
+          hasMore: true,
+          hasNextPage: true,
+          hasPreviousPage: false,
+          loadedCount: 0,
+          endCursor: cursor
+        }
+      }
+    }
+  })
+  const view = await wait(
+    (message) =>
+      message.type === 'view' && find(message.tree as ChatPreviewNode, 'button')?.disabled === false
+  )
+  worker.postMessage({
+    type: 'event',
+    event: 'click',
+    id: find(view.tree as ChatPreviewNode, 'button')!.id,
+    revision: view.revision
+  })
+  await wait(
+    (message) =>
+      message.type === 'request' &&
+      (message.request as { options?: { page?: { after?: string } } }).options?.page?.after ===
+        cursor
+  )
+})

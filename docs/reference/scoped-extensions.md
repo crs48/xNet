@@ -38,8 +38,25 @@ filter/sort. It receives only these property fields:
 | ChatMessage | `channel`, `content`, `author`, `createdAt`           |
 
 System IDs, schema IDs, creator, and creation/update times accompany these fields.
-Relation targets, attachments, raw timestamps, and store handles are excluded. Page text requires a separate document grant described below. The host refuses oversized selections rather than silently truncating
-them. This is a bounded live snapshot, not the planned cursor/pagination API.
+Relation targets, attachments, raw timestamps, and store handles are excluded. Page text requires a separate document grant described below. Queries run in the host against approved IDs or conversation predicates before a
+page crosses the worker boundary. The default page is 50 records; `limit` or
+`page.first` can request 1–100. At most 20 live subscriptions share the worker's
+query cache. Only changes to approved selections invalidate those pages.
+
+Use `useQuery(Schema, {where, orderBy, page: {first: 20, after, count: 'none'}})`.
+`hasMore` and `pageInfo.endCursor` support forward navigation; omit `after` to
+return to the first page. Cursors are opaque, expire after ten minutes, and are
+bound to the query and approved host session. Reopening starts new pagination.
+Pages are live keyset windows: a row whose sort field changes can move between
+pages. Exact totals, nonzero offsets, search and remote sources are unavailable.
+`totalCount` is `null`; examples label their counts as records on this page.
+
+The host refreshes query caches and checks current message content before
+releasing a page. Concurrent redaction or reparenting fails with a conflict rather
+than releasing stale content. Redacted rows never reach the extension. A bounded
+scan through redacted rows can fail explicitly rather than report a false empty
+result. Each result is limited to 256,000 UTF-8 bytes; request fewer records if it
+exceeds that budget.
 
 `useMutate` uses the real hook implementation. The host supports:
 
@@ -118,10 +135,11 @@ HTML, URL, callback, or arbitrary component property is executed in the host.
 
 Use `<Button onClick={...}>` or `<input value={value}
 onInput={event => setValue(event.currentTarget.value)} />`. Catch mutation errors
-and display them. The isolated runtime preserves `ExtensionAccessError` with a
+and display them. Mutation failures preserve `ExtensionAccessError` with a
 machine-readable `code`: `denied`, `invalid`, `revoked`, `quota`, `conflict`,
 `unsupported`, `cancelled`, `timeout`, or `unavailable`. Unknown host errors are
-sanitized; stacks, causes, and host paths never enter this error response.
+sanitized; stacks, causes, and host paths never enter this error response. The real
+`useQuery` hook currently exposes query failures through its standard `error.message`.
 
 The host permits 20 outstanding calls per port. Every operation has a five-second
 deadline, including time queued behind an earlier command. Closing the runtime
@@ -133,15 +151,15 @@ Hooks can keep state and effects; effects do not confer new
 permissions. Complex editors, portals, rich focus behavior, and arbitrary xNet
 components have not been verified for this runtime.
 
-Limits: 24,000 source characters, 100,000 compiled characters, 200 records per
-selection, 500 total records, 256,000 UTF-8 input bytes, 300 rendered nodes,
+Limits: 24,000 source characters, 100,000 compiled characters, 100 selected own records,
+20 selected conversations, 100 rows per query page, 256,000 UTF-8 document input bytes, 300 rendered nodes,
 12 levels, and 32,000 text characters. Requests are bounded to 16 KiB, 20 operations,
 and 200 unique commands per session, with 1,000 committed commands per approval. A foreground heartbeat terminates an
 unresponsive worker. Chromium background throttling is not reported as an agent
 failure. Workers do not provide a hard heap quota or an OS process boundary.
 
 Revoking access stops admission and data delivery immediately, destroys the worker,
-persists revocation, and drains already accepted commits before reporting completion. Inactive windows poll authority every 500 ms; data delivery and commands also recheck authority. It does not undo
+persists revocation, and drains already accepted commits before reporting completion. Foreground sessions poll authority every 500 ms; delivery and commands also recheck it. Background timers may be throttled. It does not undo
 committed work. It cannot recall bytes already observed. Closing the panel or
 changing source destroys the runtime. New permission approvals never happen in
 guest UI, and the worker has no access to the host's saved grants.
@@ -155,3 +173,15 @@ AI calls, durable background jobs, and cross-device delegation still need scoped
 implementations. Existing trusted workspace plugin contexts have not been migrated
 and must not be exposed to this worker. The expanded boundary still needs an
 independent security review before use with sensitive third-party extensions.
+
+## Query performance check
+
+Run `pnpm exec tsx scripts/benchmark-extension-queries.ts` with the native SQLite
+module built for Node (`pnpm --filter xnet-desktop run deps:node`). The local
+extension runtime performance review consumes this report. It seeds a temporary
+100,000-record database, traverses all 250 approved messages without duplicates or
+private-channel rows, and reports cold/warm page latency and response bytes. Those
+scope and pagination assertions must pass before interpreting timing results.
+The script removes its database after the run. This measures the host broker and
+native SQLite; it excludes IPC, worker startup, React rendering and encrypted
+storage. It is a manual benchmark, not a CI latency gate.

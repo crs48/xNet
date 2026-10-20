@@ -3,6 +3,7 @@ import '@remote-dom/react/polyfill'
 import type { ExtensionMutationResult } from './extension-broker'
 import type { ExtensionDataset } from './extension-data'
 import type { ExtensionRequest } from './extension-protocol'
+import type { ExtensionQueryResult } from './extension-queries'
 import { RemoteRootElement } from '@remote-dom/core/elements'
 import { ChannelSchema, ChatMessageSchema, PageSchema, TaskSchema } from '@xnetjs/data'
 import { DataBridgeProvider, useQuery, useMutate } from '@xnetjs/react/queries'
@@ -157,10 +158,10 @@ root.connect({
 document.body.appendChild(root)
 const pending = new Map<
   string,
-  { resolve: (result: ExtensionMutationResult) => void; reject: (error: Error) => void }
+  { resolve: (result: unknown) => void; reject: (error: Error) => void }
 >()
 const request = (value: ExtensionRequest) =>
-  new Promise<ExtensionMutationResult>((resolve, reject) => {
+  new Promise<unknown>((resolve, reject) => {
     if (pending.size >= 20) {
       reject(new ExtensionAccessError('quota', 'Too many pending requests.'))
       return
@@ -194,6 +195,10 @@ self.onmessage = ({ data }) => {
       else item?.resolve(data.result)
       return
     }
+    if (data.type === 'invalidate') {
+      live?.invalidate()
+      return
+    }
     if (data.type === 'update') {
       live?.update(data.dataset as ExtensionDataset)
       return
@@ -216,7 +221,11 @@ self.onmessage = ({ data }) => {
       return
     }
     if (data.type !== 'start' || live) throw new Error('Invalid runtime handshake.')
-    live = createLiveExtensionBridge(data.dataset, request)
+    live = createLiveExtensionBridge(
+      data.dataset,
+      (value) => request(value) as Promise<ExtensionMutationResult>,
+      (value) => request(value) as Promise<ExtensionQueryResult>
+    )
     const module: { exports: { default?: unknown } } = { exports: {} }
     new Function('require', 'module', 'exports', data.code)(
       (id: string) => {

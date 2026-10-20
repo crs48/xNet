@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-19-extensions-can-browse-large-conversation",
+  "date": "October 19, 2026",
+  "title": "Extensions can browse large conversations in pages",
+  "summary": "Approved extensions now load small live pages of conversation data. Permission checks, opaque cursors, and clear loading errors keep private data scoped as you browse.",
+  "highlights": [],
+  "tags": ["plugins", "ai"],
+  "pr": 728
+}

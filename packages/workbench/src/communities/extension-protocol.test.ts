@@ -29,6 +29,11 @@ describe('extension protocol boundary', () => {
     expect(() => decodeExtensionFailure({ ...wire, code: 'host.admin' })).toThrow('Invalid failure')
     expect(() => decodeExtensionFailure({ ...wire, stack: 'secret' })).toThrow('Unsupported')
   })
+  it('accepts the full supported view depth before the separate render-tree validator', () => {
+    let tree: unknown = { type: 'text', text: 'Nested text' }
+    for (let depth = 0; depth < 12; depth++) tree = { type: 'stack', children: [tree] }
+    expect(() => assertExtensionMessage({ type: 'view', revision: 1, tree })).not.toThrow()
+  })
   it('bounds recursive and non-JSON structured-clone input before serialization', () => {
     const cycle: Record<string, unknown> = {}
     cycle.self = cycle

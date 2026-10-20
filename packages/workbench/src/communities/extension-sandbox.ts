@@ -52,6 +52,7 @@ export async function compileChatExtension(
 }
 export interface ExtensionSession {
   update(dataset: ExtensionDataset): void
+  invalidate(): void
   event(id: string, event: 'click' | 'input', value?: string): void
   stop(): void
 }
@@ -156,6 +157,9 @@ export function startChatExtension(
   frame.src = new URL('./extension-preview-frame.html', import.meta.url).href
   document.body.append(frame)
   return {
+    invalidate() {
+      send({ type: 'invalidate' })
+    },
     update(next) {
       try {
         checkDataset(next)

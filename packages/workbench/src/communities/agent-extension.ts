@@ -120,11 +120,13 @@ import { ChatMessageSchema } from '@xnetjs/data'
 import { Badge } from '@xnetjs/ui'
 
 export default function Watchlist({ channelId }: { channelId: string }) {
-  const { data: messages } = useQuery(ChatMessageSchema, { where: { channel: channelId } })
+  const { data: messages, hasMore, error } = useQuery(ChatMessageSchema, { where: { channel: channelId }, limit: 50 })
   const films = messages.filter(message => /^watch:/i.test(message.content ?? ''))
   return <section>
     <h2>Our watchlist</h2>
-    <Badge>{films.length} films</Badge>
+    <Badge>{films.length} films on this page</Badge>
+    {hasMore && <p>Showing the latest 50 messages. Use Conversation pages to browse older messages.</p>}
+    {error && <p>{error.message}</p>}
     {films.map(film => <article key={film.id}>{film.content?.replace(/^watch:\\s*/i, '')}</article>)}
     {!films.length && <p>Send “Watch: a film title” in the conversation to add it here.</p>}
   </section>
@@ -163,11 +165,31 @@ import { ChannelSchema, ChatMessageSchema } from '@xnetjs/data'
 import { Badge } from '@xnetjs/ui'
 export default function Conversations() {
   const { data: channels } = useQuery(ChannelSchema)
-  const { data: messages } = useQuery(ChatMessageSchema)
-  return <section>{channels.map(channel => <article key={channel.id}>
+  const { data: messages, hasMore, error } = useQuery(ChatMessageSchema, {limit: 50})
+  return <section>{hasMore && <p>Counts show only the latest 50 messages across these conversations.</p>}{error && <p>{error.message}</p>}{channels.map(channel => <article key={channel.id}>
     <h2>{channel.name}</h2>
-    <Badge>{messages.filter(message => message.channel === channel.id).length} messages</Badge>
+    <Badge>{messages.filter(message => message.channel === channel.id).length} messages on this page</Badge>
   </article>)}</section>
+}`
+  },
+  {
+    title: 'Conversation pages',
+    summary: 'Browse approved conversation history in small pages, with live updates.',
+    source: `import {useState} from 'react'
+import {useQuery} from '@xnetjs/react'
+import {ChatMessageSchema} from '@xnetjs/data'
+import {Button} from '@xnetjs/ui'
+export default function Messages({channelId}) {
+  const [after, setAfter] = useState(undefined)
+  const {data, pageInfo, hasMore, loading, error} = useQuery(ChatMessageSchema, {
+    where: {channel: channelId}, orderBy: {createdAt: 'desc'}, page: {first: 20, after, count: 'none'}
+  })
+  return <section><h2>Conversation pages</h2><p>{data.length} messages on this page</p>
+    {loading && <p>Loading messages…</p>}{error && <p>{error.message}</p>}
+    {data.map(message => <article key={message.id}><p>{message.content}</p></article>)}
+    <Button disabled={!hasMore || loading} onClick={() => setAfter(pageInfo.endCursor)}>Older messages</Button>
+    <Button disabled={!after} onClick={() => setAfter(undefined)}>Latest messages</Button>
+  </section>
 }`
   },
   {
@@ -182,11 +204,15 @@ export default function Tasks() {
   const { update, create, isPending } = useMutate()
   const [error, setError] = useState('')
   const [title, setTitle] = useState('')
-  const { data: tasks } = useQuery(TaskSchema, { orderBy: { updatedAt: 'desc' } })
+  const [after, setAfter] = useState(undefined)
+  const { data: tasks, hasMore, pageInfo, error: queryError } = useQuery(TaskSchema, { orderBy: { updatedAt: 'desc' }, page: {first: 20, after, count: 'none'} })
   return <section><h2>My selected tasks</h2><Badge>{tasks.length} tasks</Badge>
     {tasks.map(task => <article key={task.id}><p>{task.title}</p><Badge>{task.status}</Badge>
       <Button disabled={isPending} onClick={async () => { try { setError(''); await update(TaskSchema, task.id, { status: task.status === 'done' ? 'todo' : 'done', completed: task.status !== 'done' }) } catch (error) { setError(String(error)) } }}>{task.status === 'done' ? 'Reopen task' : 'Complete task'}</Button>
     </article>)}
+    {queryError && <p>{queryError.message}</p>}
+    <Button disabled={!hasMore} onClick={() => setAfter(pageInfo.endCursor)}>More tasks</Button>
+    <Button disabled={!after} onClick={() => setAfter(undefined)}>First tasks</Button>
     <input aria-label="New task title" value={title} onInput={event => setTitle(event.currentTarget.value)} />
     <Button disabled={isPending || !title.trim()} onClick={async () => { try { setError(''); await create(TaskSchema, { title: title.trim(), status: 'todo' }); setTitle('') } catch (error) { setError(String(error)) } }}>Add private task</Button>
     {error && <p>{error}</p>}

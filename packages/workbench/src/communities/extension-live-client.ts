@@ -1,14 +1,21 @@
 import type { ExtensionMutationResult } from './extension-broker'
 import type { ExtensionDataset } from './extension-data'
-import type { ExtensionOperation, ExtensionRequest } from './extension-protocol'
+import type {
+  ExtensionOperation,
+  ExtensionMutationRequest,
+  ExtensionQueryRequest
+} from './extension-protocol'
+import type { ExtensionQueryResult } from './extension-queries'
 import type { DataBridge, QuerySubscription } from '@xnetjs/data-bridge'
 import { createExtensionDataBridge } from './extension-data'
 import { ExtensionAccessError } from './extension-protocol'
+import { createExtensionQueryClient } from './extension-query-client'
 
 /** Only snapshots and the closed RPC protocol cross this boundary. No host object is installed. */
 export function createLiveExtensionBridge(
   initial: ExtensionDataset,
-  request: (request: ExtensionRequest) => Promise<ExtensionMutationResult>
+  request: (request: ExtensionMutationRequest) => Promise<ExtensionMutationResult>,
+  query?: (request: ExtensionQueryRequest) => Promise<ExtensionQueryResult>
 ) {
   let dataset = initial
   let snapshotBridge = createExtensionDataBridge(dataset)
@@ -17,15 +24,18 @@ export function createLiveExtensionBridge(
     byte.toString(16).padStart(2, '0')
   ).join('')
   let sequence = 0
+  const nextId = () => `${sessionId}-${++sequence}`
+  const queries = initial.hostQueries && query ? createExtensionQueryClient(query, nextId) : null
   const update = (next: ExtensionDataset) => {
     dataset = next
     snapshotBridge = createExtensionDataBridge(next)
     observers.forEach((notify) => notify())
+    queries?.invalidate()
   }
   const mutate = async (operations: ExtensionOperation[]) => {
     const result = await request({
       version: 1,
-      id: `${sessionId}-${++sequence}`,
+      id: nextId(),
       operation: 'data.mutate',
       operations
     })
@@ -40,6 +50,7 @@ export function createLiveExtensionBridge(
         : []
     )
     update({
+      hostQueries: dataset.hostQueries,
       documents: dataset.documents,
       grant: { ...dataset.grant, records: [...dataset.grant.records, ...created] },
       nodes: [...nodes.values()]
@@ -54,6 +65,7 @@ export function createLiveExtensionBridge(
   const bridge: DataBridge = {
     ...snapshotBridge,
     query(schema, options) {
+      if (queries) return queries.query(schema, options)
       let subscription = snapshotBridge.query(schema, options)
       const listeners = new Set<() => void>()
       const refresh = () => {
@@ -100,11 +112,18 @@ export function createLiveExtensionBridge(
         )
       )
     },
-    destroy: () => observers.clear()
+    reloadQuery: async (descriptor) => {
+      queries?.reload(descriptor)
+    },
+    destroy: () => {
+      queries?.stop()
+      observers.clear()
+    }
   }
   return {
     bridge,
     update,
+    invalidate: () => queries?.invalidate(),
     documents: {
       subscribe(listener: () => void) {
         observers.add(listener)

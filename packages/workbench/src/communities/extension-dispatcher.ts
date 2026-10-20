@@ -46,7 +46,9 @@ export function createExtensionDispatcher(
           error: encodeExtensionFailure(
             new ExtensionAccessError(
               'timeout',
-              'The operation timed out. An accepted edit may have committed; refresh before retrying.'
+              value.operation === 'data.query'
+                ? 'Loading data timed out. Reload this page.'
+                : 'The operation timed out. An accepted edit may have committed; refresh before retrying.'
             )
           )
         })
