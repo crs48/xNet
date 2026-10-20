@@ -356,14 +356,14 @@ export function ConversationPane({
           if (!busy) addFiles(Array.from(event.dataTransfer.files))
         }}
       >
-        <header className="flex h-[78px] shrink-0 items-center gap-1.5 border-b border-border px-3 sm:gap-3 sm:px-4 md:px-6">
+        <header className="flex min-h-[78px] shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-3 py-3 sm:gap-3 sm:px-4 md:px-6">
           <IconButton label="Back to conversations" onClick={onBack} className="md:!hidden">
             <ArrowLeft size={19} />
           </IconButton>
           <span className="hidden sm:block">
             <Avatar name={title} />
           </span>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-[120px] flex-1">
             <h1 className="truncate text-base font-semibold tracking-tight">
               {channel.kind !== 'dm' && (
                 <span className="mr-1 font-normal text-muted-foreground">#</span>
@@ -375,37 +375,43 @@ export function ConversationPane({
               {audienceLabel[audience]}
             </p>
           </div>
-          <IconButton
-            label="Conversation extensions"
-            onClick={() => {
-              setExtensionRunId(undefined)
-              setExtensionOpen(!extensionOpen)
-            }}
+          <div
+            className="ml-auto flex shrink-0 items-center gap-1.5"
+            role="group"
+            aria-label="Conversation actions"
           >
-            <Blocks size={18} />
-          </IconButton>
-          <IconButton label="Conversation agent" onClick={onAgentSettings}>
-            <Bot size={18} />
-          </IconButton>
-          <IconButton label="Start voice call" onClick={() => onCall(false)}>
-            <Phone size={18} />
-          </IconButton>
-          <IconButton label="Start video call" onClick={() => onCall(true)}>
-            <Video size={19} />
-          </IconButton>
-          <span className="mx-1 h-5 w-px bg-border" />
-          <IconButton
-            label="Search conversation"
-            onClick={() => {
-              setSearching(!searching)
-              setSearch('')
-            }}
-          >
-            <Search size={18} />
-          </IconButton>
-          <IconButton label="Conversation details" onClick={onDetails}>
-            <Info size={18} />
-          </IconButton>
+            <IconButton
+              label="Conversation extensions"
+              onClick={() => {
+                setExtensionRunId(undefined)
+                setExtensionOpen(!extensionOpen)
+              }}
+            >
+              <Blocks size={18} />
+            </IconButton>
+            <IconButton label="Conversation agent" onClick={onAgentSettings}>
+              <Bot size={18} />
+            </IconButton>
+            <IconButton label="Start voice call" onClick={() => onCall(false)}>
+              <Phone size={18} />
+            </IconButton>
+            <IconButton label="Start video call" onClick={() => onCall(true)}>
+              <Video size={19} />
+            </IconButton>
+            <span className="mx-1 h-5 w-px bg-border" />
+            <IconButton
+              label="Search conversation"
+              onClick={() => {
+                setSearching(!searching)
+                setSearch('')
+              }}
+            >
+              <Search size={18} />
+            </IconButton>
+            <IconButton label="Conversation details" onClick={onDetails}>
+              <Info size={18} />
+            </IconButton>
+          </div>
         </header>
         <div
           className="flex h-11 shrink-0 items-center gap-4 overflow-x-auto border-b border-border px-6"

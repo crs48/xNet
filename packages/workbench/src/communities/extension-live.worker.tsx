@@ -46,6 +46,9 @@ const tags: Record<string, ChatPreviewNode['type']> = {
   div: 'stack',
   section: 'stack',
   main: 'stack',
+  nav: 'stack',
+  header: 'stack',
+  footer: 'stack',
   ul: 'stack',
   ol: 'stack',
   article: 'card',
@@ -81,27 +84,24 @@ function tree(): ChatPreviewNode {
     if (node.nodeType === 3) return { type: 'text', text: node.textContent ?? '' }
     const element = node as HTMLElement,
       tag = element.localName
-    if (
-      !Object.hasOwn(tags, tag) ||
-      [...element.attributes].some(
-        (attribute) =>
-          ![
-            'class',
-            'aria-label',
-            'role',
-            'type',
-            'value',
-            'disabled',
-            'placeholder',
-            'maxlength',
-            'data-xnet-document',
-            'data-xnet-document-editor'
-          ].includes(attribute.name)
-      )
+    if (!Object.hasOwn(tags, tag))
+      throw new Error(`Unsupported element <${tag}>. Use text, layout, buttons, or text inputs.`)
+    const unsupported = [...element.attributes].find(
+      (attribute) =>
+        ![
+          'class',
+          'aria-label',
+          'role',
+          'type',
+          'value',
+          'disabled',
+          'placeholder',
+          'maxlength',
+          'data-xnet-document',
+          'data-xnet-document-editor'
+        ].includes(attribute.name)
     )
-      throw new Error(
-        'Unsupported element or property. Use text, layout, Button, or text input controls.'
-      )
+    if (unsupported) throw new Error(`Unsupported property "${unsupported.name}" on <${tag}>.`)
     if (element.hasAttribute('data-xnet-document-editor')) {
       if (tag !== 'div' || node.childNodes.length) throw new Error('Invalid document control.')
       return { type: 'document-editor', handle: element.getAttribute('data-xnet-document-editor')! }

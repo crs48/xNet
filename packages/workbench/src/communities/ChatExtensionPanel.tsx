@@ -277,12 +277,15 @@ export function ChatExtensionPanel({
           )
         }
         if (!data.bridge) throw new Error('The local store is unavailable.')
-        const id = candidate?.id ?? `chat-extension-${crypto.randomUUID()}`
+        const existing =
+          candidate ??
+          (revision?.hash === build.hash && revision.source === inputSource ? revision : undefined)
+        const id = existing?.id ?? `chat-extension-${crypto.randomUUID()}`
         const actor =
           run && !manualEdit
             ? `${run.provider} · run ${run.id} · requested by ${data.did}`
             : `Edited by ${data.did}`
-        const next: Revision = candidate ?? {
+        const next: Revision = existing ?? {
           id,
           title: inputTitle,
           summary: inputSummary,
@@ -292,7 +295,7 @@ export function ChatExtensionPanel({
           createdAt: Date.now(),
           base: baseRevision ?? revision?.id
         }
-        if (!candidate)
+        if (!existing)
           await data.bridge.create(
             PluginSourceSchema,
             {
@@ -462,6 +465,7 @@ export function ChatExtensionPanel({
       setTree(null)
       setBusy(false)
       setGrant(null)
+      setStatus('Extension stopped. Review the error, then retry the preview.')
       setError(cause instanceof Error ? cause.message : 'Extension permission is unavailable.')
     }
     let checkingAuthority = false
@@ -667,10 +671,12 @@ export function ChatExtensionPanel({
       </header>
       <div className="min-h-0 flex-1 space-y-4 overflow-auto p-5">
         <p className="text-xs leading-5 text-muted-foreground">{summary}</p>
-        <div className="rounded-lg bg-muted p-3 text-xs leading-5">
-          Uses real xNet React hooks with the data you select. Each version needs your approval.
-          Views run in an isolated worker. You can also allow edits to selected private tasks.
-        </div>
+        {!grant && (
+          <div className="rounded-lg bg-muted p-3 text-xs leading-5">
+            Choose the data this version can use. Task editing, page text, and page editing need
+            separate approval. You can revoke access at any time.
+          </div>
+        )}
         <details className="text-xs">
           <summary className="cursor-pointer">Try a data-driven example</summary>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -695,14 +701,23 @@ export function ChatExtensionPanel({
             ))}
           </div>
         </details>
-        <ExtensionDataPicker
-          data={data}
-          selection={selection}
-          onChange={(next) => {
-            revoke()
-            setSelection(next)
-          }}
-        />
+        <details key={grant ? 'approved' : 'review'} open={!grant} className="text-xs">
+          <summary className="cursor-pointer font-semibold">
+            {grant
+              ? `Data access · ${grant.channelIds.length} conversations · ${grant.records.length} records · ${grant.containers?.length ?? 0} containers · ${writeAccessLabel(grant)}`
+              : 'Review data access'}
+          </summary>
+          <div className="mt-3">
+            <ExtensionDataPicker
+              data={data}
+              selection={selection}
+              onChange={(next) => {
+                revoke()
+                setSelection(next)
+              }}
+            />
+          </div>
+        </details>
         <div className="flex flex-wrap gap-2">
           <button
             disabled={busy}
@@ -790,14 +805,14 @@ export function ChatExtensionPanel({
           </button>
         )}
         {tree && (
-          <div className="rounded-xl border border-border p-4">
+          <section aria-label="Running extension" className="rounded-xl border border-border p-4">
             <PreviewTree
               node={tree}
               session={liveSession.current}
               documents={documents}
               editors={documentEditors.current}
             />
-          </div>
+          </section>
         )}
         {revision && (
           <div className="space-y-2 rounded-lg border border-border p-3 text-xs">

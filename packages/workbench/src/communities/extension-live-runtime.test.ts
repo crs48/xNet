@@ -87,6 +87,28 @@ function start(source: string, initial?: ExtensionDataset) {
 const find = (tree: ChatPreviewNode, type: string): ChatPreviewNode | undefined =>
   tree.type === type ? tree : tree.children?.map((node) => find(node, type)).find(Boolean)
 describe('persistent React extension runtime', () => {
+  it('renders generated navigation layouts as inert host stacks', async () => {
+    const { wait } = start(
+      `export default function Test(){return <section><header><h2>Browser</h2></header><nav aria-label="Message pages"><button>Next page</button></nav><footer>Page 1</footer></section>}`
+    )
+    const view = await wait(
+      (m) => m.type === 'view' && JSON.stringify(m.tree).includes('Next page')
+    )
+    expect(find(view.tree as ChatPreviewNode, 'button')).toBeDefined()
+    expect(JSON.stringify(view.tree)).toContain('Page 1')
+  })
+  it.each([
+    ['<iframe src="https://example.com" />', 'Unsupported element <iframe>'],
+    ['<a href="https://example.com">External</a>', 'Unsupported element <a>'],
+    ['<section title="Unsupported">Text</section>', 'Unsupported property "title" on <section>']
+  ])(
+    'identifies rejected generated markup without expanding host access: %s',
+    async (markup, error) => {
+      const { messages } = start(`export default function Test(){return ${markup}}`)
+      await expect.poll(() => messages.find((m) => m.type === 'error')?.message).toContain(error)
+      expect(messages.some((m) => m.type === 'view')).toBe(false)
+    }
+  )
   it('runs real state/effect lifecycles and sends clicks back to React without executing host functions', async () => {
     const { worker, wait } = start(
       `import {useState,useEffect} from 'react'; export default function Test(){const [n,set]=useState(0);useEffect(()=>set(1),[]);return <button onClick={()=>set(x=>x+1)}>Count {n}</button>}`
