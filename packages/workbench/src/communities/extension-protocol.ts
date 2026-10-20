@@ -40,6 +40,16 @@ export function encodeExtensionFailure(error: unknown): ExtensionFailure {
         : 'The operation could not be completed. Refresh the preview before retrying.'
   }
 }
+
+/** Electron wraps storage failures in an untyped IPC error; never show that wrapper in chat. */
+export function extensionUndoMessage(error: unknown): string {
+  if (
+    error instanceof Error &&
+    error.message.endsWith('Conditional transaction conflict: a record changed before commit.')
+  )
+    return 'Cannot undo: a task changed after this edit. This undo changed no tasks.'
+  return `Could not undo this edit. ${encodeExtensionFailure(error).message}`
+}
 export function decodeExtensionFailure(input: unknown): ExtensionAccessError {
   const value = object(input)
   keys(value, ['version', '_tag', 'code', 'message'])

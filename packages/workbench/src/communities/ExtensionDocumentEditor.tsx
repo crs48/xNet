@@ -1,9 +1,32 @@
+import type { ExtensionDocumentDraft, ExtensionDocumentDrafts } from './extension-document-drafts'
 import type { ExtensionDocumentProjection } from './extension-documents'
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useState, type ReactNode } from 'react'
+import { readDocumentDraft, updateDocumentDraft } from './extension-document-drafts'
 import { encodeExtensionFailure } from './extension-protocol'
 import { inputClass, primaryButton, secondaryButton } from './primitives'
 
 export type DocumentSave = (revision: number, text: string) => Promise<void>
+const DraftContext = createContext<{
+  drafts: ExtensionDocumentDrafts
+  update(document: ExtensionDocumentProjection, patch: Partial<ExtensionDocumentDraft>): void
+} | null>(null)
+
+/** Lives outside the guest tree so changing a tab preserves drafts; stopping access clears them. */
+export function ExtensionDocumentDraftsProvider({ children }: { children: ReactNode }) {
+  const [drafts, setDrafts] = useState<ExtensionDocumentDrafts>(() => new Map())
+  return (
+    <DraftContext.Provider
+      value={{
+        drafts,
+        update: (document, patch) =>
+          setDrafts((current) => updateDocumentDraft(current, document, patch))
+      }}
+    >
+      {children}
+    </DraftContext.Provider>
+  )
+}
+
 export function ExtensionDocumentEditor({
   document,
   save
@@ -11,17 +34,10 @@ export function ExtensionDocumentEditor({
   document: ExtensionDocumentProjection
   save?: DocumentSave
 }) {
-  const [text, setText] = useState(document.editorText ?? document.text)
-  const [revision, setRevision] = useState(document.revision)
-  const [dirty, setDirty] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [status, setStatus] = useState('')
-  useEffect(() => {
-    if (!dirty) {
-      setText(document.editorText ?? document.text)
-      setRevision(document.revision)
-    }
-  }, [document.revision, document.editorText, document.text, dirty])
+  const context = useContext(DraftContext)
+  if (!context) throw new Error('Document drafts require an active preview session.')
+  const { text, revision, dirty, busy, status } = readDocumentDraft(context.drafts, document)
+  const update = (patch: Partial<ExtensionDocumentDraft>) => context.update(document, patch)
   const changed = dirty && revision !== document.revision
   return (
     <section
@@ -39,11 +55,15 @@ export function ExtensionDocumentEditor({
             value={text}
             disabled={busy}
             onChange={(event) => {
-              setText(event.target.value)
-              setDirty(true)
-              setStatus('')
+              update({ text: event.target.value, dirty: true, status: '' })
             }}
           />
+          {dirty && (
+            <p className="text-xs text-muted-foreground">
+              Unsaved changes. Switching pages or tabs keeps your draft. Closing this preview or
+              changing data access discards it.
+            </p>
+          )}
           {changed && (
             <p role="alert" className="text-xs">
               This page changed elsewhere. Reload its text before saving.
@@ -54,16 +74,12 @@ export function ExtensionDocumentEditor({
               className={primaryButton}
               disabled={!dirty || busy || changed}
               onClick={async () => {
-                setBusy(true)
-                setStatus('Saving…')
+                update({ busy: true, status: 'Saving…' })
                 try {
                   await save(revision, text)
-                  setDirty(false)
-                  setStatus('Saved on this device.')
+                  update({ dirty: false, busy: false, status: 'Saved on this device.' })
                 } catch (error) {
-                  setStatus(encodeExtensionFailure(error).message)
-                } finally {
-                  setBusy(false)
+                  update({ busy: false, status: encodeExtensionFailure(error).message })
                 }
               }}
             >
@@ -73,8 +89,7 @@ export function ExtensionDocumentEditor({
               className={secondaryButton}
               disabled={busy || !dirty}
               onClick={() => {
-                setDirty(false)
-                setStatus('')
+                update({ dirty: false, status: '' })
               }}
             >
               Reload page text

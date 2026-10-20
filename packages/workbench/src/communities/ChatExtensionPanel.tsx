@@ -24,7 +24,7 @@ import {
   subscribeExtensionDocuments,
   type ExtensionDocumentProjection
 } from './extension-documents'
-import { decodeExtensionRequest } from './extension-protocol'
+import { decodeExtensionRequest, extensionUndoMessage } from './extension-protocol'
 import { createExtensionQueryBroker } from './extension-queries'
 import {
   compileChatExtension,
@@ -36,7 +36,11 @@ import {
   canReadExtensionChannel,
   type ExtensionSelection
 } from './ExtensionDataPicker'
-import { ExtensionDocumentEditor, type DocumentSave } from './ExtensionDocumentEditor'
+import {
+  ExtensionDocumentEditor,
+  ExtensionDocumentDraftsProvider,
+  type DocumentSave
+} from './ExtensionDocumentEditor'
 import { IconButton, inputClass, primaryButton, secondaryButton } from './primitives'
 interface Revision {
   id: string
@@ -701,7 +705,7 @@ export function ChatExtensionPanel({
             ))}
           </div>
         </details>
-        <details key={grant ? 'approved' : 'review'} open={!grant} className="text-xs">
+        <details open={!grant} className="text-xs">
           <summary className="cursor-pointer font-semibold">
             {grant
               ? `Data access · ${grant.channelIds.length} conversations · ${grant.records.length} records · ${grant.containers?.length ?? 0} containers · ${writeAccessLabel(grant)}`
@@ -796,9 +800,7 @@ export function ChatExtensionPanel({
                   setLastReceipt(null)
                   setStatus('Extension edit undone.')
                 })
-                .catch((error: unknown) =>
-                  setError(error instanceof Error ? error.message : 'Undo failed.')
-                )
+                .catch((error: unknown) => setError(extensionUndoMessage(error)))
             }}
           >
             Undo last extension edit
@@ -806,12 +808,14 @@ export function ChatExtensionPanel({
         )}
         {tree && (
           <section aria-label="Running extension" className="rounded-xl border border-border p-4">
-            <PreviewTree
-              node={tree}
-              session={liveSession.current}
-              documents={documents}
-              editors={documentEditors.current}
-            />
+            <ExtensionDocumentDraftsProvider key={authority?.epoch}>
+              <PreviewTree
+                node={tree}
+                session={liveSession.current}
+                documents={documents}
+                editors={documentEditors.current}
+              />
+            </ExtensionDocumentDraftsProvider>
           </section>
         )}
         {revision && (

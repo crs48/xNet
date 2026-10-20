@@ -4,11 +4,27 @@ import {
   assertExtensionMessage,
   decodeExtensionFailure,
   encodeExtensionFailure,
+  extensionUndoMessage,
   ExtensionAccessError,
   EXTENSION_ERROR_CODES
 } from './extension-protocol'
 
 describe('extension protocol boundary', () => {
+  it('explains a rejected undo without leaking IPC details or promising rollback for unknown failures', () => {
+    expect(
+      extensionUndoMessage(
+        new Error(
+          "Error invoking remote method 'xnet:nodes:applyNodeBatch': Error: Conditional transaction conflict: a record changed before commit."
+        )
+      )
+    ).toBe('Cannot undo: a task changed after this edit. This undo changed no tasks.')
+    expect(
+      extensionUndoMessage(new ExtensionAccessError('revoked', 'Access was revoked.'))
+    ).toContain('Access was revoked.')
+    const unknown = extensionUndoMessage(new Error('/private/path connection lost after commit'))
+    expect(unknown).toContain('Refresh the preview before retrying.')
+    expect(unknown).not.toMatch(/private|changed no tasks|rolled back|connection lost/)
+  })
   it('round-trips tagged failures without leaking host causes, paths or stacks', () => {
     for (const code of EXTENSION_ERROR_CODES) {
       const error = new ExtensionAccessError(code, `Public ${code}`)
