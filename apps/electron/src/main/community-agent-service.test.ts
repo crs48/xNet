@@ -125,6 +125,37 @@ afterEach(async () => {
 })
 describe('desktop community agent lifecycle', () => {
   const input = { channelId: 'chat', messageId: 'message', contextIds: [] }
+  it('uses an explicitly selected reviewed version and records its parent independently of recent drafts', async () => {
+    fixture.nodes.set('selected-version', {
+      id: 'selected-version',
+      schemaId: 'xnet://xnet.fyi/PluginSource@1.0.0',
+      createdBy: 'did:key:owner',
+      createdAt: 1,
+      updatedAt: 1,
+      properties: {
+        name: 'Older branch',
+        description: 'Original base',
+        files: {
+          'index.tsx': 'export default function V() { return <p>EXPLICIT_SELECTED_BASE</p> }'
+        },
+        manifest: { chatPreview: { channelId: 'chat', lineage: { versionId: 'a'.repeat(64) } } }
+      }
+    })
+    await invoke('start', { ...input, extensionRevisionId: 'selected-version' })
+    expect(fixture.turns.at(-1)?.prompt).toContain('EXPLICIT_SELECTED_BASE')
+    const snapshot = await invoke<CommunityAgentSnapshot>('snapshot')
+    expect(snapshot.runs.at(-1)).toMatchObject({
+      baseRevisionId: 'selected-version',
+      baseVersionId: 'a'.repeat(64)
+    })
+    fixture.complete!()
+  })
+  it('rejects a missing explicit base without starting a provider turn', async () => {
+    await expect(invoke('start', { ...input, extensionRevisionId: 'missing' })).rejects.toThrow(
+      'selected extension'
+    )
+    expect(fixture.turns).toHaveLength(0)
+  })
   it('records observed phases once without exposing generated source or provider sessions', async () => {
     await invoke('start', input)
     fixture.emit!({ type: 'delta', text: ' reply", "extension": {' })

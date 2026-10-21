@@ -1695,3 +1695,49 @@ extension has been compiled, tested, installed or granted data access.
 tools, concurrent tasks, remote agent activity or a stable external activity API.
 Every new reported action must have an observable host event and a tested terminal
 state; provider-generated progress text alone is insufficient evidence.
+
+## ADR-53: Share immutable chat extension source with explicit remix ancestry
+
+**Status:** Accepted · 2026-10-20 · local prototype
+
+**Context:** Device-local agent drafts cannot be reviewed by another conversation
+member. A flat build history also loses which version a person intended to edit.
+
+**Decision:** Share a bounded JSON attachment through the existing signed chat
+message and blob paths. Format `xnet-chat-extension`, version `1`, carries one
+source snapshot, title, summary, author, parent fingerprint and change note.
+The SHA-256 version fingerprint covers those fields in a fixed key order, with
+an absent parent encoded as null. The attachment MIME type is
+`application/vnd.xnet.chat-extension+json`. Readers reject unknown fields, versions,
+invalid UTF-8, content mismatches and payloads over 128,000 bytes. Source retains
+the 24,000-character preview limit. The author must match the signed message's
+creator; forwarding an unchanged third-party snapshot as your own is rejected.
+
+Recipients explicitly review the source and save a private PluginSource copy.
+They choose their own data permissions. Approval identity hashes the compiled build
+and the version fingerprint together; identical code from another author cannot
+reuse a grant. Legacy versions without lineage retain their build-bound grants.
+Sharing never includes grants, runtime
+credentials, document projections or task records. Installing stays device-local.
+Remixing creates a new source version, attributed to the editor and linked to its
+selected parent; existing versions remain unchanged through this UI. Missing
+ancestors are labeled unavailable, never reconstructed from claims. A parent link
+records claimed derivation, not independent proof of how code was written.
+
+The optional desktop agent request `extensionRevisionId` selects a reviewed,
+owned source record in the same conversation. The host validates and reads that
+record, includes its bounded source as untrusted context, and records optional
+`baseRevisionId` and `baseVersionId` on the run. It takes precedence over automatic
+recent-draft context. Old requests and journals remain supported.
+
+**Tradeoff:** This is a single-parent history without merges or dependency bundles.
+Legacy builds retain their local node references. Receiving a child does not fetch
+missing ancestors. Saved shares do not prove delivery, and source can contain
+private literals even though data grants are excluded; the share confirmation asks
+the user to review source. Branch browsing covers the latest 200 local copies and
+reports truncation. Host resource limits and consent still apply to every build.
+
+**Tripwire:** Revisit this format before publishing a stable extension ecosystem,
+supporting forwarded third-party signatures, merges, multi-file packages, automatic
+ancestor retrieval, or cloud catalogs. Require independent attribution review and
+two-device delivery tests before claiming interoperable distribution.

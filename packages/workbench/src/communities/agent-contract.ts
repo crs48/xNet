@@ -35,6 +35,8 @@ export interface CommunityAgentRun {
   status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
   text: string
   extension?: CommunityAgentExtension
+  baseRevisionId?: string
+  baseVersionId?: string
   error?: string
   startedAt: number
   finishedAt?: number
@@ -57,7 +59,12 @@ export interface CommunityAgentPort {
   discover(): Promise<CommunityAgentRuntime[]>
   connect(runtimeId: string): Promise<CommunityAgentRuntime>
   bind(input: CommunityAgentBinding): Promise<void>
-  start(input: { channelId: string; messageId: string; contextIds: string[] }): Promise<string>
+  start(input: {
+    channelId: string
+    messageId: string
+    contextIds: string[]
+    extensionRevisionId?: string
+  }): Promise<string>
   cancel(runId: string): Promise<void>
   retry(runId: string): Promise<string>
   authorizePublication(runId: string): Promise<void>

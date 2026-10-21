@@ -247,6 +247,10 @@ export function ExtensionDataPicker({
             />
             Allow deleting and restoring these tasks
           </label>
+          <p className="text-muted-foreground">
+            Undoing task creation also needs delete/restore approval. Choose it before creating
+            tasks if you want to undo them here.
+          </p>
         </div>
       )}
     </fieldset>

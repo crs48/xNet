@@ -28,8 +28,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { agentReplyContent } from './agent-activity'
 import { AgentRunCards, AgentRunHistory, AgentRunReceipt } from './AgentRunCards'
 import { ChatExtensionPanel } from './ChatExtensionPanel'
+import { EXTENSION_SHARE_MIME, type SharedExtension } from './extension-versions'
 import { audienceLabel, bytesLabel, type Audience } from './model'
 import { Avatar, EmptyState, IconButton, inputClass, secondaryButton } from './primitives'
+import { SharedExtensionAttachment } from './SharedExtensionAttachment'
 
 type Message = ReturnType<typeof useMessages>['messages'][number]
 function useMessages(channelId: string, limit: number, search: string) {
@@ -113,7 +115,8 @@ function MessageRow({
   services,
   onReply,
   onDelete,
-  onReviewExtension
+  onReviewExtension,
+  onSharedExtension
 }: {
   message: Message
   agentRun?: CommunityAgentRun
@@ -123,6 +126,7 @@ function MessageRow({
   onReply: () => void
   onDelete: () => void
   onReviewExtension: (id: string) => void
+  onSharedExtension: (version: SharedExtension) => void
 }) {
   const own = message.createdBy === data.did
   const grouped =
@@ -193,9 +197,19 @@ function MessageRow({
           </button>
         )}
         {!message.redacted &&
-          message.attachments?.map((file) => (
-            <Attachment key={file.cid} file={file} services={services} />
-          ))}
+          message.attachments?.map((file) =>
+            file.mimeType === EXTENSION_SHARE_MIME ? (
+              <SharedExtensionAttachment
+                key={file.cid}
+                file={file}
+                services={services}
+                sender={message.createdBy}
+                onOpen={onSharedExtension}
+              />
+            ) : (
+              <Attachment key={file.cid} file={file} services={services} />
+            )
+          )}
         {message.edited && !message.redacted && (
           <span className="text-[10px] text-muted-foreground">edited</span>
         )}
@@ -239,6 +253,8 @@ export function ConversationPane({
   )
   const [extensionOpen, setExtensionOpen] = useState(false)
   const [extensionRunId, setExtensionRunId] = useState<string | undefined>()
+  const [sharedExtension, setSharedExtension] = useState<SharedExtension | undefined>()
+  const [remixBase, setRemixBase] = useState<{ id: string; title: string } | null>(null)
   const [mention, setMention] = useState(false)
   const [mentionPicker, setMentionPicker] = useState(false)
   const [pendingRequest, setPendingRequest] = useState<
@@ -347,10 +363,16 @@ export function ConversationPane({
           .filter((message) => !message.redacted)
           .slice(-30)
           .map((message) => message.id)
-        const request = { channelId: channel.id, messageId: sent.id, contextIds }
+        const request = {
+          channelId: channel.id,
+          messageId: sent.id,
+          contextIds,
+          ...(remixBase ? { extensionRevisionId: remixBase.id } : {})
+        }
         setPendingRequest(request)
         await agents.port.start(request)
         setPendingRequest(null)
+        setRemixBase(null)
       }
       setMention(false)
     } catch (cause) {
@@ -408,6 +430,7 @@ export function ConversationPane({
             <IconButton
               label="Conversation extensions"
               onClick={() => {
+                setSharedExtension(undefined)
                 setExtensionRunId(undefined)
                 setExtensionOpen(!extensionOpen)
               }}
@@ -587,7 +610,13 @@ export function ConversationPane({
                     composer.current?.focus()
                   }}
                   onDelete={() => setDeleteId(message.id)}
+                  onSharedExtension={(version) => {
+                    setExtensionRunId(undefined)
+                    setSharedExtension(version)
+                    setExtensionOpen(true)
+                  }}
                   onReviewExtension={(id) => {
+                    setSharedExtension(undefined)
                     setExtensionRunId(id)
                     setExtensionOpen(true)
                   }}
@@ -619,6 +648,7 @@ export function ConversationPane({
               agents={agents}
               channelId={channel.id}
               onPreview={(id) => {
+                setSharedExtension(undefined)
                 setExtensionRunId(id)
                 setExtensionOpen(true)
               }}
@@ -714,6 +744,17 @@ export function ConversationPane({
                     </IconButton>
                   </span>
                 ))}
+              </div>
+            )}
+            {remixBase && (
+              <div className="mb-2 flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-xs">
+                <Blocks size={14} />
+                <span className="flex-1">
+                  Editing {remixBase.title}. Describe your changes below.
+                </span>
+                <IconButton label="Clear extension edit context" onClick={() => setRemixBase(null)}>
+                  <X size={13} />
+                </IconButton>
               </div>
             )}
             <textarea
@@ -822,6 +863,15 @@ export function ConversationPane({
           key={`${channel.id}:${data.did}`}
           channelId={channel.id}
           data={data}
+          services={services}
+          shared={sharedExtension}
+          onRemix={(revision) => {
+            setRemixBase({ id: revision.id, title: revision.title })
+            setMention(true)
+            setExtensionOpen(false)
+            composer.current?.focus()
+            if (!binding) onAgentSettings()
+          }}
           run={agents.snapshot.runs.find((run) => run.id === extensionRunId)}
           proposals={agents.snapshot.runs.filter(
             (run) =>
@@ -829,7 +879,10 @@ export function ConversationPane({
               (run.purpose === 'extension' || !!run.extension) &&
               run.status === 'completed'
           )}
-          onReview={setExtensionRunId}
+          onReview={(id) => {
+            setSharedExtension(undefined)
+            setExtensionRunId(id)
+          }}
           onClose={() => setExtensionOpen(false)}
         />
       )}

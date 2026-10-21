@@ -1,4 +1,5 @@
 import type { CommunityAgentRun } from './agent-contract'
+import type { AttachmentServices } from './ConversationPane'
 import type { CommunityData } from './use-community-data'
 import { ChannelSchema, ChatMessageSchema } from '@xnetjs/data'
 import { PluginSourceSchema } from '@xnetjs/plugins'
@@ -32,6 +33,18 @@ import {
   type ExtensionSession
 } from './extension-sandbox'
 import {
+  createExtensionVersion,
+  extensionPermissionHash,
+  versionLineage,
+  encodeSharedExtension,
+  extensionBranches,
+  revisionKey,
+  sourceChangeSummary,
+  EXTENSION_SHARE_MIME,
+  type ExtensionRevision as Revision,
+  type SharedExtension
+} from './extension-versions'
+import {
   ExtensionDataPicker,
   canReadExtensionChannel,
   type ExtensionSelection
@@ -42,16 +55,6 @@ import {
   type DocumentSave
 } from './ExtensionDocumentEditor'
 import { IconButton, inputClass, primaryButton, secondaryButton } from './primitives'
-interface Revision {
-  id: string
-  title: string
-  summary: string
-  source: string
-  hash: string
-  actor: string
-  createdAt: number
-  base?: string
-}
 function writeAccessLabel(grant: ExtensionGrant): string {
   const access = [
     ...(grant.taskWrites ? ['private task editing'] : []),
@@ -155,6 +158,9 @@ export function ChatExtensionPanel({
   data,
   run,
   proposals,
+  services,
+  shared,
+  onRemix,
   onReview,
   onClose
 }: {
@@ -162,6 +168,9 @@ export function ChatExtensionPanel({
   data: CommunityData
   run?: CommunityAgentRun
   proposals: CommunityAgentRun[]
+  services: AttachmentServices
+  shared?: SharedExtension
+  onRemix: (revision: Revision) => void
   onReview: (id: string) => void
   onClose: () => void
 }) {
@@ -169,6 +178,12 @@ export function ChatExtensionPanel({
   const [title, setTitle] = useState('Our watchlist')
   const [summary, setSummary] = useState('A view of films and links shared in this conversation.')
   const [manualEdit, setManualEdit] = useState(false)
+  const [incomingVersion, setIncomingVersion] = useState<SharedExtension | null>(null)
+  const [parentVersion, setParentVersion] = useState<string | undefined>()
+  const [changeNote, setChangeNote] = useState('Initial version')
+  const [shareOpen, setShareOpen] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const [allVersions, setAllVersions] = useState(false)
   const [baseRevision, setBaseRevision] = useState<string | undefined>()
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -179,6 +194,8 @@ export function ChatExtensionPanel({
   const [revision, setRevision] = useState<Revision | null>(null)
   const [installed, setInstalled] = useState<string | null>(null)
   const [status, setStatus] = useState('')
+  const [notice, setNotice] = useState('')
+  const [undoing, setUndoing] = useState(false)
   const [selection, setSelection] = useState<ExtensionSelection>({
     channelIds: [channelId],
     records: []
@@ -218,7 +235,8 @@ export function ChatExtensionPanel({
         hash: info.hash,
         actor: String(info.actor),
         createdAt: node.createdAt,
-        base: typeof info.base === 'string' ? info.base : undefined
+        base: typeof info.base === 'string' ? info.base : undefined,
+        lineage: info.lineage as Revision['lineage']
       }
     ]
   })
@@ -239,7 +257,15 @@ export function ChatExtensionPanel({
       setSource(proposal.source)
       setTitle(proposal.title)
       setSummary(proposal.summary)
-      setBaseRevision(undefined)
+      setBaseRevision(run?.baseRevisionId)
+      setParentVersion(run?.baseVersionId)
+      setIncomingVersion(null)
+      setChangeNote(
+        run?.baseRevisionId
+          ? proposal.summary.slice(0, 1000) || 'Agent revision'
+          : 'Initial version'
+      )
+      setShareOpen(false)
       setRevision(null)
       setTree(null)
       setGrant(null)
@@ -247,12 +273,37 @@ export function ChatExtensionPanel({
       operation.current?.abort()
       liveOperation.current?.abort()
       setManualEdit(false)
+      setNotice('')
       setStatus('Review this proposal, then build a private preview.')
       setError('')
     } catch (cause) {
       setError(String(cause))
     }
-  }, [proposalText, proposalId])
+  }, [proposalText, proposalId, run?.baseRevisionId, run?.baseVersionId])
+  useEffect(() => {
+    if (!shared) return
+    operation.current?.abort()
+    liveOperation.current?.abort()
+    setSource(shared.source)
+    setTitle(shared.title)
+    setSummary(shared.summary)
+    setIncomingVersion(shared)
+    setParentVersion(shared.parent)
+    setChangeNote(shared.changeNote)
+    setBaseRevision(undefined)
+    setRevision(null)
+    setTree(null)
+    setGrant(null)
+    setAuthority(null)
+    setBuild(null)
+    setSelection({ channelIds: [], records: [] })
+    setManualEdit(false)
+    setEditing(false)
+    setShareOpen(false)
+    setNotice('')
+    setStatus('Shared source received. Review it and choose your own data access.')
+    setError('')
+  }, [shared])
   const preview = useCallback(
     async (candidate?: Revision, allow = false) => {
       const inputSource = candidate?.source ?? source
@@ -266,6 +317,8 @@ export function ChatExtensionPanel({
       setTree(null)
       setBusy(true)
       setError('')
+      setNotice('')
+      setUndoing(false)
       setStatus('Compiling TypeScript…')
       try {
         const build = await compileChatExtension(inputSource, controller.signal)
@@ -275,20 +328,51 @@ export function ChatExtensionPanel({
           setTitle(inputTitle)
           setSummary(inputSummary)
           setBaseRevision(candidate.id)
+          setParentVersion(revisionKey(candidate))
+          setIncomingVersion(null)
+          setChangeNote('Rebuilt for the current runtime')
           setRevision(null)
           throw new Error(
             'This version uses an older runtime. Review its source and allow data to build a new revision.'
           )
         }
         if (!data.bridge) throw new Error('The local store is unavailable.')
-        const existing =
+        let existing =
           candidate ??
+          history.find(
+            (entry) =>
+              incomingVersion &&
+              entry.lineage?.versionId === incomingVersion.versionId &&
+              entry.hash === build.hash &&
+              entry.source === inputSource
+          ) ??
           (revision?.hash === build.hash && revision.source === inputSource ? revision : undefined)
-        const id = existing?.id ?? `chat-extension-${crypto.randomUUID()}`
-        const actor =
-          run && !manualEdit
+        const actor = incomingVersion
+          ? `Shared by ${incomingVersion.author}`
+          : run && !manualEdit
             ? `${run.provider} · run ${run.id} · requested by ${data.did}`
             : `Edited by ${data.did}`
+        const lineage =
+          existing?.lineage ??
+          (incomingVersion
+            ? versionLineage(incomingVersion)
+            : versionLineage(
+                await createExtensionVersion({
+                  title: inputTitle,
+                  summary: inputSummary,
+                  source: inputSource,
+                  author: data.did!,
+                  parent: parentVersion,
+                  changeNote
+                })
+              ))
+        existing ??= history.find(
+          (entry) =>
+            entry.lineage?.versionId === lineage.versionId &&
+            entry.hash === build.hash &&
+            entry.source === inputSource
+        )
+        const id = existing?.id ?? `chat-extension-${crypto.randomUUID()}`
         const next: Revision = existing ?? {
           id,
           title: inputTitle,
@@ -297,7 +381,8 @@ export function ChatExtensionPanel({
           hash: build.hash,
           actor,
           createdAt: Date.now(),
-          base: baseRevision ?? revision?.id
+          base: baseRevision ?? revision?.id,
+          lineage
         }
         if (!existing)
           await data.bridge.create(
@@ -318,6 +403,7 @@ export function ChatExtensionPanel({
                   actor,
                   base: baseRevision ?? revision?.id,
                   runId: run?.id,
+                  lineage,
                   compiler: '@swc/wasm-web@1.15.41',
                   policy: CHAT_PREVIEW_POLICY
                 }
@@ -329,18 +415,19 @@ export function ChatExtensionPanel({
         controller.signal.throwIfAborted()
         setBuild(build)
         if (!data.did) throw new Error('Your identity is unavailable.')
+        const permissionHash = await extensionPermissionHash(build.hash, next.lineage?.versionId)
         const approved = allow
           ? readExtensionGrant(
-              JSON.stringify({ version: 1, owner: data.did, hash: build.hash, ...selection }),
+              JSON.stringify({ version: 1, owner: data.did, hash: permissionHash, ...selection }),
               data.did,
-              build.hash
+              permissionHash
             )
           : undefined
         const saved = await openExtensionAuthority(
           data.bridge,
           data.did,
           channelId,
-          build.hash,
+          permissionHash,
           approved
         )
         if (controller.signal.aborted && allow) await saved?.authority.revoke()
@@ -357,8 +444,15 @@ export function ChatExtensionPanel({
             containers: approved.containers
           })
           setGrant(approved)
+        } else if (candidate || incomingVersion) {
+          setSelection({ channelIds: [], records: [] })
         }
         setRevision(next)
+        setParentVersion(revisionKey(next))
+        setIncomingVersion(null)
+        setChangeNote(next.lineage?.changeNote ?? 'Saved version')
+        setEditing(false)
+        setShareOpen(false)
         setSource(next.source)
         setTitle(next.title)
         setSummary(next.summary)
@@ -387,7 +481,11 @@ export function ChatExtensionPanel({
       baseRevision,
       revision,
       channelId,
-      selection
+      selection,
+      incomingVersion,
+      parentVersion,
+      changeNote,
+      history
     ]
   )
   const revoke = () => {
@@ -404,6 +502,7 @@ export function ChatExtensionPanel({
     setTree(null)
     setBusy(false)
     setError('')
+    setNotice('')
     setStatus('Stopping extension access…')
     const durableRevoke = authority?.revoke()
     void Promise.all([draining, durableRevoke])
@@ -517,6 +616,7 @@ export function ChatExtensionPanel({
                   if (decoded.operation === 'data.query') return queries.query(decoded, signal)
                   const result = await broker.request(decoded, signal)
                   if (!broker.active || signal.aborted) throw new Error('Extension access stopped.')
+                  setNotice('')
                   setLastReceipt(result.receipt)
                   subscribe()
                   return {
@@ -650,6 +750,7 @@ export function ChatExtensionPanel({
       pinned &&
       restoredInstallation.current !== pinned.id &&
       !run &&
+      !shared &&
       !revision &&
       !busy &&
       !editing &&
@@ -658,7 +759,25 @@ export function ChatExtensionPanel({
       restoredInstallation.current = pinned.id
       void preview(pinned)
     }
-  }, [installed, history, run, revision, busy, editing, error, preview])
+  }, [installed, history, run, shared, revision, busy, editing, error, preview])
+  const selectedKey = revision ? revisionKey(revision) : parentVersion
+  const branches = extensionBranches(history)
+  const parent = history.find(
+    (entry) => revisionKey(entry) === revision?.lineage?.parent || entry.id === revision?.base
+  )
+  const difference = revision && parent ? sourceChangeSummary(parent.source, revision.source) : null
+  const rootOf = (key: string | undefined) => {
+    const seen = new Set<string>()
+    while (key && !seen.has(key)) {
+      seen.add(key)
+      const entry = history.find((item) => revisionKey(item) === key)
+      const next = entry?.lineage?.parent ?? entry?.base
+      if (!next) return key
+      key = next
+    }
+    return key
+  }
+  const family = rootOf(selectedKey)
   return (
     <aside
       aria-label="Extension preview"
@@ -675,6 +794,21 @@ export function ChatExtensionPanel({
       </header>
       <div className="min-h-0 flex-1 space-y-4 overflow-auto p-5">
         <p className="text-xs leading-5 text-muted-foreground">{summary}</p>
+        {incomingVersion && (
+          <div className="rounded-lg border border-border p-3 text-xs">
+            <p>
+              Shared by {data.nameFor(incomingVersion.author)} ·{' '}
+              {incomingVersion.versionId.slice(0, 8)}
+            </p>
+            <p className="mt-1">{incomingVersion.changeNote}</p>
+            {incomingVersion.parent && (
+              <p className="mt-1 text-muted-foreground">
+                Based on {incomingVersion.parent.slice(0, 8)}. Parent links describe the author's
+                stated history.
+              </p>
+            )}
+          </div>
+        )}
         {!grant && (
           <div className="rounded-lg bg-muted p-3 text-xs leading-5">
             Choose the data this version can use. Task editing, page text, and page editing need
@@ -696,6 +830,10 @@ export function ChatExtensionPanel({
                   setTitle(example.title)
                   setSummary(example.summary)
                   setManualEdit(true)
+                  setIncomingVersion(null)
+                  setParentVersion(undefined)
+                  setBaseRevision(undefined)
+                  setChangeNote('Initial example version')
                   if (example.title === 'Selected tasks')
                     setSelection({ channelIds: [], records: [] })
                 }}
@@ -723,6 +861,11 @@ export function ChatExtensionPanel({
           </div>
         </details>
         <div className="flex flex-wrap gap-2">
+          {!revision && (
+            <button disabled={busy} className={secondaryButton} onClick={() => void preview()}>
+              Save version for review
+            </button>
+          )}
           <button
             disabled={busy}
             className={primaryButton}
@@ -731,7 +874,19 @@ export function ChatExtensionPanel({
             <Play size={13} />
             {busy ? 'Loading…' : 'Allow selected data and preview'}
           </button>
-          <button className={secondaryButton} onClick={() => setEditing(!editing)}>
+          <button
+            className={secondaryButton}
+            onClick={() => {
+              if (!editing) {
+                setParentVersion(
+                  revision ? revisionKey(revision) : (incomingVersion?.versionId ?? parentVersion)
+                )
+                setBaseRevision(revision?.id ?? baseRevision)
+                setChangeNote('')
+              }
+              setEditing(!editing)
+            }}
+          >
             <Code size={14} />
             {editing ? 'Hide source' : 'Edit TypeScript'}
           </button>
@@ -752,30 +907,73 @@ export function ChatExtensionPanel({
             </button>
           )}
         </div>
+        {revision && (
+          <button className={secondaryButton} disabled={busy} onClick={() => onRemix(revision)}>
+            Edit this version with your agent
+          </button>
+        )}
         {editing && (
-          <label className="block text-xs">
-            index.tsx
-            <textarea
-              aria-label="Extension TypeScript source"
-              spellCheck={false}
-              maxLength={24000}
-              value={source}
-              onChange={(event) => {
-                revoke()
-                setBuild(null)
-                setSource(event.target.value)
-                setManualEdit(true)
-                setBaseRevision(revision?.id ?? baseRevision)
-                setRevision(null)
-              }}
-              rows={16}
-              className={`${inputClass} mt-2 font-mono text-xs`}
-            />
-          </label>
+          <div className="space-y-3">
+            <label className="block text-xs">
+              Version title
+              <input
+                className={inputClass}
+                value={title}
+                maxLength={120}
+                onChange={(event) => {
+                  revoke()
+                  setTitle(event.target.value)
+                  setManualEdit(true)
+                  setIncomingVersion(null)
+                  setRevision(null)
+                }}
+              />
+            </label>
+            <label className="block text-xs">
+              What changed?
+              <input
+                className={inputClass}
+                value={changeNote}
+                maxLength={1000}
+                onChange={(event) => {
+                  revoke()
+                  setChangeNote(event.target.value)
+                  setManualEdit(true)
+                  setIncomingVersion(null)
+                  setRevision(null)
+                }}
+              />
+            </label>
+            <label className="block text-xs">
+              index.tsx
+              <textarea
+                aria-label="Extension TypeScript source"
+                spellCheck={false}
+                maxLength={24000}
+                value={source}
+                onChange={(event) => {
+                  revoke()
+                  setBuild(null)
+                  setSource(event.target.value)
+                  setManualEdit(true)
+                  setIncomingVersion(null)
+                  setBaseRevision(revision?.id ?? baseRevision)
+                  setRevision(null)
+                }}
+                rows={16}
+                className={`${inputClass} mt-2 font-mono text-xs`}
+              />
+            </label>
+          </div>
         )}
         {status && (
           <p role="status" className="text-xs text-muted-foreground">
             {status}
+          </p>
+        )}
+        {notice && (
+          <p role="status" className="rounded-lg bg-muted p-3 text-xs">
+            {notice}
           </p>
         )}
         {error && (
@@ -786,9 +984,13 @@ export function ChatExtensionPanel({
         {lastReceipt && (
           <button
             className={secondaryButton}
+            disabled={undoing}
             onClick={() => {
               const broker = brokerRef.current
-              if (!broker) return
+              if (!broker || undoing) return
+              setUndoing(true)
+              setError('')
+              setNotice('')
               void broker
                 .request({
                   version: 1,
@@ -797,13 +999,19 @@ export function ChatExtensionPanel({
                   receipt: lastReceipt
                 })
                 .then(() => {
+                  if (brokerRef.current !== broker) return
                   setLastReceipt(null)
-                  setStatus('Extension edit undone.')
+                  setNotice('Extension edit undone.')
                 })
-                .catch((error: unknown) => setError(extensionUndoMessage(error)))
+                .catch((error: unknown) => {
+                  if (brokerRef.current === broker) setError(extensionUndoMessage(error))
+                })
+                .finally(() => {
+                  if (brokerRef.current === broker) setUndoing(false)
+                })
             }}
           >
-            Undo last extension edit
+            {undoing ? 'Undoing…' : 'Undo last extension edit'}
           </button>
         )}
         {tree && (
@@ -828,6 +1036,28 @@ export function ChatExtensionPanel({
                 ? `${grant.channelIds.length} conversations · ${grant.records.length} individual records · ${grant.containers?.length ?? 0} containers · ${writeAccessLabel(grant)}`
                 : 'No data access granted.'}
             </p>
+            {revision.lineage && (
+              <p>
+                By {data.nameFor(revision.lineage.author)} ·{' '}
+                {revision.lineage.versionId.slice(0, 8)}
+                <span className="mt-1 block">{revision.lineage.changeNote}</span>
+              </p>
+            )}
+            {difference && (
+              <details>
+                <summary className="cursor-pointer">
+                  Source changes: +{difference.added} / −{difference.removed} lines
+                </summary>
+                <p className="mt-2">Changed region compared with {parent?.title}:</p>
+                <pre className="max-h-40 overflow-auto whitespace-pre-wrap text-[10px]">
+                  {difference.before || '(no removed lines)'}
+                </pre>
+                <hr className="my-2" />
+                <pre className="max-h-40 overflow-auto whitespace-pre-wrap text-[10px]">
+                  {difference.after || '(no added lines)'}
+                </pre>
+              </details>
+            )}
             <p className="break-all text-[10px] text-muted-foreground">
               {revision.actor}
               <br />
@@ -840,7 +1070,7 @@ export function ChatExtensionPanel({
                 try {
                   localStorage.setItem(installKey, revision.id)
                   setInstalled(revision.id)
-                  setStatus(
+                  setNotice(
                     'Installed on this device. Other members must review and install their own copy.'
                   )
                 } catch {
@@ -850,6 +1080,70 @@ export function ChatExtensionPanel({
             >
               Install this version locally
             </button>
+            {revision.lineage?.author === data.did && (
+              <button className={secondaryButton} onClick={() => setShareOpen(!shareOpen)}>
+                Share this version…
+              </button>
+            )}
+            {revision.lineage && revision.lineage.author !== data.did && (
+              <p>Remix this version to share your own changes.</p>
+            )}
+            {shareOpen && (
+              <div className="space-y-2 rounded-lg bg-muted p-3">
+                <p>
+                  Share this version's TypeScript source and change note with this conversation.
+                  Data permissions, page text and task records are not included. Review source for
+                  private content before sharing.
+                </p>
+                <p className="font-medium">{revision.lineage?.changeNote}</p>
+                <button
+                  disabled={sharing}
+                  className={primaryButton}
+                  onClick={async () => {
+                    setSharing(true)
+                    setError('')
+                    try {
+                      if (!services.blobs || !data.bridge || revision.lineage?.author !== data.did)
+                        throw new Error('This version cannot be shared from this device.')
+                      const version = await createExtensionVersion({
+                        title: revision.title,
+                        summary: revision.summary,
+                        source: revision.source,
+                        author: data.did!,
+                        parent: revision.lineage.parent,
+                        changeNote: revision.lineage.changeNote
+                      })
+                      if (version.versionId !== revision.lineage.versionId)
+                        throw new Error(
+                          'The saved version changed. Save a new version before sharing.'
+                        )
+                      const file = await services.blobs.uploadData(encodeSharedExtension(version), {
+                        filename: `${revision.title.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 60)}.xnet-extension.json`,
+                        mimeType: EXTENSION_SHARE_MIME
+                      })
+                      await data.bridge.create(ChatMessageSchema, {
+                        channel: channelId,
+                        content: `Shared extension: ${revision.title}\n${version.changeNote}`,
+                        attachments: [file]
+                      })
+                      services.transfers?.enqueueUpload(file)
+                      setShareOpen(false)
+                      setNotice(
+                        'Version shared in this conversation. Saved locally; delivery to other devices is not confirmed.'
+                      )
+                    } catch (cause) {
+                      setError(
+                        cause instanceof Error ? cause.message : 'Could not share this version.'
+                      )
+                    } finally {
+                      setSharing(false)
+                    }
+                  }}
+                >
+                  {sharing ? 'Sharing…' : 'Share source in this conversation'}
+                </button>
+              </div>
+            )}
           </div>
         )}
         {proposals.length > 0 && (
@@ -882,24 +1176,56 @@ export function ChatExtensionPanel({
         )}
         <div className="border-t border-border pt-4">
           <h3 className="mb-2 text-xs font-semibold">Version history</h3>
-          {history.map((entry) => (
-            <button
-              key={entry.id}
-              disabled={busy}
-              className="mb-2 flex w-full items-center gap-2 rounded-lg border border-border p-3 text-left text-xs"
-              onClick={() => void preview(entry)}
-            >
-              <RotateCcw size={13} />
-              <span className="min-w-0 flex-1 truncate">
-                {entry.title}
-                <span className="mt-1 block text-[10px] text-muted-foreground">
-                  {new Date(entry.createdAt).toLocaleString()} · {entry.hash.slice(0, 8)}
-                  {installed === entry.id ? ' · installed' : ''}
-                </span>
-              </span>
-              Preview
-            </button>
-          ))}
+          <button className="mb-3 text-xs underline" onClick={() => setAllVersions(!allVersions)}>
+            {allVersions ? 'Show this extension family' : 'Show all saved extensions'}
+          </button>
+          <ol aria-label="Extension branches" className="space-y-2">
+            {branches
+              .filter(
+                ({ entry }) => allVersions || !family || rootOf(revisionKey(entry)) === family
+              )
+              .map(({ entry, depth, missingParent }) => (
+                <li
+                  key={entry.id}
+                  style={{ marginLeft: Math.min(depth, 6) * 12 }}
+                  className={`${depth ? 'ml-3 border-l-2 border-border pl-3' : ''}`}
+                >
+                  <button
+                    disabled={busy}
+                    aria-current={revision?.id === entry.id ? 'true' : undefined}
+                    className={`w-full rounded-lg border p-3 text-left text-xs ${revision?.id === entry.id ? 'border-foreground bg-muted' : 'border-border hover:bg-muted'}`}
+                    onClick={() => void preview(entry)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <RotateCcw size={13} />
+                      {entry.title}
+                      <span className="ml-auto">Try version</span>
+                    </span>
+                    <span className="mt-1 line-clamp-2">
+                      {entry.lineage?.changeNote ?? 'Earlier local build'}
+                    </span>
+                    <span className="mt-1 block text-[10px] text-muted-foreground">
+                      {entry.lineage ? data.nameFor(entry.lineage.author) : 'You'} ·{' '}
+                      {new Date(entry.createdAt).toLocaleString()} ·{' '}
+                      {entry.lineage?.versionId.slice(0, 8) ?? entry.id.slice(-8)}
+                      {installed === entry.id ? ' · installed' : ''}
+                      {revision?.id === entry.id ? ' · viewing' : ''}
+                    </span>
+                    {entry.lineage?.parent && (
+                      <span className="mt-1 block text-[10px]">
+                        ↳ From {entry.lineage.parent.slice(0, 8)}
+                        {missingParent ? ' · parent not available on this device' : ''}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+          </ol>
+          {revisions.hasMore && (
+            <p className="mt-2 text-xs">
+              Showing the latest 200 local versions. Older ancestry may be outside this window.
+            </p>
+          )}
           {!history.length && (
             <p className="text-xs text-muted-foreground">
               Compiled sources are saved as separate versions. Failed previews are never installed.
