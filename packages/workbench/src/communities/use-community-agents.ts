@@ -8,6 +8,8 @@ import {
   type FileRef
 } from '@xnetjs/data'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { developmentMessage, readDevelopmentEntry } from './extension-development'
+import { useDevelopmentRecords } from './use-development-records'
 const empty: CommunityAgentSnapshot = { runtimes: [], bindings: [], runs: [] }
 export function useCommunityAgents(
   port: CommunityAgentPort | undefined,
@@ -18,9 +20,71 @@ export function useCommunityAgents(
   const [error, setError] = useState('')
   const publishing = useRef(new Set<string>())
   const failedPublication = useRef(new Set<string>())
+  const requests = useDevelopmentRecords({ developmentKind: 'request' })
+  const { limited: requestsLimited, loadMore: loadMoreRequests } = requests
+  const requested = useRef(new Set<string>())
+  const activity = useRef(new Set<string>())
   const refresh = useCallback(async () => {
     if (port) setSnapshot(await port.snapshot())
   }, [port])
+  useEffect(() => {
+    if (!port) return
+    if (requestsLimited) loadMoreRequests()
+    for (const entry of requests.entries) {
+      const request = entry.record
+      if (
+        request.kind !== 'request' ||
+        request.host !== data.did ||
+        requested.current.has(entry.id)
+      )
+        continue
+      const grant = snapshot.delegations?.find(
+        (grant) =>
+          grant.projectId === request.project &&
+          grant.epoch === request.epoch &&
+          grant.expiresAt > Date.now() &&
+          grant.requesters.includes(entry.author)
+      )
+      if (!grant) continue
+      requested.current.add(entry.id)
+      void port
+        .startDevelopment({ requestId: entry.id })
+        .catch((cause: unknown) => setError('Shared request could not start: ' + String(cause)))
+    }
+  }, [requests.entries, requestsLimited, loadMoreRequests, snapshot.delegations, port, data.did])
+  useEffect(() => {
+    if (!port || !data.bridge?.get || !data.did) return
+    const bridge = data.bridge
+    for (const run of snapshot.runs) {
+      const work = run.development
+      if (!work || run.owner !== data.did) continue
+      const phase = run.activity?.at(-1)?.phase ?? ''
+      const key = run.id + ':' + run.status + ':' + phase
+      if (activity.current.has(key)) continue
+      activity.current.add(key)
+      void (async () => {
+        await port.authorizeDevelopmentActivity(run.id)
+        const event = await developmentMessage(
+          run.owner,
+          run.channelId,
+          run.provider + ': ' + run.status + (phase ? ' · ' + phase : ''),
+          {
+            kind: 'attempt',
+            project: work.projectId,
+            request: work.requestId,
+            attempt: run.id,
+            status: run.status,
+            phase,
+            startedAt: run.startedAt
+          }
+        )
+        if (!(await bridge.get!(event.id)))
+          await bridge.create(ChatMessageSchema, event.properties, event.id)
+      })().catch((cause: unknown) =>
+        setError('Shared progress could not be saved: ' + String(cause))
+      )
+    }
+  }, [snapshot.runs, port, data.bridge, data.did])
   useEffect(() => {
     if (!port) return
     let disposed = false
@@ -66,6 +130,20 @@ export function useCommunityAgents(
         const name = run.provider === 'codex' ? 'Codex' : 'Claude'
         const receipt = `${name} · AI response requested and saved by ${data.nameFor(run.owner)}\n\n`
         const attachments: FileRef[] = []
+        if (run.development?.output) {
+          const event = await developmentMessage(
+            run.owner,
+            run.channelId,
+            run.text,
+            run.development.output
+          )
+          const existing = await bridge.get(event.id)
+          if (!existing) await bridge.create(ChatMessageSchema, event.properties, event.id)
+          else if (!(await readDevelopmentEntry(existing)))
+            throw new Error('The shared result was removed.')
+          await port.acknowledge(run.id)
+          return
+        }
         if (!(await bridge.get(run.replyId))) {
           let content = receipt + run.text
           if (content.length > 10000) {
@@ -84,7 +162,7 @@ export function useCommunityAgents(
             {
               channel: run.channelId,
               content,
-              inReplyTo: run.messageId,
+              inReplyTo: run.development?.projectId ?? run.messageId,
               ...(attachments.length ? { attachments } : {})
             },
             run.replyId
@@ -136,6 +214,8 @@ export function useCommunityAgents(
     refresh,
     retryPublication: () => {
       failedPublication.current.clear()
+      requested.current.clear()
+      activity.current.clear()
       void refresh().catch((cause: unknown) => setError(String(cause)))
     }
   }

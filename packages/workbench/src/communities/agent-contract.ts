@@ -1,4 +1,14 @@
+import type { DevelopmentHistory, DevelopmentRecord } from './extension-development'
 /** Desktop IPC contract. Provider session IDs and credentials never cross this boundary. */
+export interface CommunityAgentDelegation {
+  projectId: string
+  channelId: string
+  epoch: string
+  requesters: string[]
+  expiresAt: number
+  limit: number
+  createdAt: number
+}
 export type CommunityAgentProvider = 'codex' | 'claude'
 export type AgentContextMode = 'question' | 'recent'
 export interface CommunityAgentExtension {
@@ -32,7 +42,7 @@ export interface CommunityAgentRun {
   runtimeVersion: string
   model?: string
   owner: string
-  status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
   text: string
   extension?: CommunityAgentExtension
   baseRevisionId?: string
@@ -48,11 +58,21 @@ export interface CommunityAgentRun {
   contextCount: number
   published: boolean
   purpose: 'reply' | 'extension'
+  development?: {
+    projectId: string
+    requestId: string
+    requester: string
+    epoch: string
+    parents: string[]
+    history: DevelopmentHistory
+    output?: DevelopmentRecord
+  }
 }
 export interface CommunityAgentSnapshot {
   runtimes: CommunityAgentRuntime[]
   bindings: CommunityAgentBinding[]
   runs: CommunityAgentRun[]
+  delegations?: CommunityAgentDelegation[]
 }
 export interface CommunityAgentPort {
   snapshot(): Promise<CommunityAgentSnapshot>
@@ -70,5 +90,15 @@ export interface CommunityAgentPort {
   authorizePublication(runId: string): Promise<void>
   acknowledge(runId: string): Promise<void>
   reset(channelId: string): Promise<void>
+  delegate(input: {
+    projectId: string
+    channelId: string
+    requesters: string[]
+    expiresAt: number
+    limit: number
+  }): Promise<CommunityAgentDelegation>
+  revokeDelegation(projectId: string): Promise<void>
+  startDevelopment(input: { requestId: string; retry?: boolean }): Promise<string>
+  authorizeDevelopmentActivity(runId: string): Promise<void>
   subscribe(listener: () => void): () => void
 }

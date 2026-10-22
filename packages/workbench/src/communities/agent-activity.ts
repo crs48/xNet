@@ -11,6 +11,7 @@ export function conversationAgentActivity(runs: CommunityAgentRun[], channelId: 
   const current = history.filter(
     (run) =>
       run.status === 'running' ||
+      run.status === 'queued' ||
       (latestIds.has(run.id) &&
         ((run.status === 'cancelled' && run.id === history.at(-1)?.id) ||
           run.status === 'failed' ||
@@ -36,6 +37,7 @@ export const agentRunKind = (run: CommunityAgentRun) =>
     : 'Reply'
 
 export function agentRunLabel(run: CommunityAgentRun): string {
+  if (run.status === 'queued') return 'Queued for the next update'
   if (run.status === 'cancelled') return 'Stopped'
   if (run.status === 'interrupted') return 'Interrupted'
   if (run.status === 'failed') return 'Couldn’t finish'

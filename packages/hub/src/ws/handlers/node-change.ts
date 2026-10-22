@@ -27,9 +27,10 @@ const SPACEABLE_SCHEMA_PREFIXES = [
   'xnet://xnet.fyi/Dashboard',
   'xnet://xnet.fyi/Project',
   'xnet://xnet.fyi/Channel',
-  'xnet://xnet.fyi/Task'
+  'xnet://xnet.fyi/Task',
+  'xnet://xnet.fyi/SpaceMembership@'
 ]
-const SPACE_SCHEMA_PREFIX = 'xnet://xnet.fyi/Space'
+const SPACE_SCHEMA_PREFIX = 'xnet://xnet.fyi/Space@'
 
 const firstRelationId = (value: unknown): string | null => {
   if (typeof value === 'string') return value.trim() || null

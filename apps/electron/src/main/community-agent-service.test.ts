@@ -1,8 +1,17 @@
 import type { AgentFrame, StreamTurnRequest, StreamTurnResult } from '@xnetjs/devkit'
-import type { CommunityAgentSnapshot } from '@xnetjs/workbench/community-agents'
+import type {
+  CommunityAgentSnapshot,
+  CommunityAgentDelegation
+} from '@xnetjs/workbench/community-agents'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import {
+  developmentMessage,
+  captureDevelopmentInput,
+  createExtensionVersion,
+  type DevelopmentRecord
+} from '@xnetjs/workbench/extension-development'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const fixture = vi.hoisted(() => ({
   dir: '',
@@ -450,5 +459,333 @@ describe('desktop community agent lifecycle', () => {
     expect(state.runs[0].status).toBe('interrupted')
     expect(fixture.turns).toHaveLength(1)
     expect(state.runtimes[0].state).toBe('available')
+  })
+})
+
+async function sharedNode(
+  record: DevelopmentRecord,
+  content = 'Build a reading list',
+  author = 'did:key:owner'
+) {
+  const message = await developmentMessage(author, 'chat', content, record)
+  const node = {
+    ...message,
+    schemaId: 'xnet://xnet.fyi/ChatMessage@1.0.0',
+    createdBy: author,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  }
+  fixture.nodes.set(node.id, node)
+  return node
+}
+async function sharedSetup() {
+  const channel = fixture.nodes.get('chat') as { properties: Record<string, unknown> }
+  channel.properties.space = 'community'
+  channel.properties.members = ['did:key:owner', 'did:key:bob']
+  fixture.nodes.set('community', {
+    id: 'community',
+    properties: { owners: ['did:key:owner'] },
+    updatedAt: 1
+  })
+  for (const who of ['owner', 'bob'])
+    fixture.nodes.set(who + '-membership', {
+      id: who + '-membership',
+      schemaId: 'xnet://xnet.fyi/SpaceMembership@1.0.0',
+      updatedAt: 1,
+      properties: {
+        space: 'community',
+        member: 'did:key:' + who,
+        role: who === 'owner' ? 'owner' : 'member'
+      }
+    })
+  const project = await sharedNode({
+    kind: 'project',
+    title: 'Reading list',
+    brief: 'Links shared in our room',
+    nonce: 'project'
+  })
+  const grant = await invoke<CommunityAgentDelegation>('delegate', {
+    projectId: project.id,
+    channelId: 'chat',
+    requesters: ['did:key:bob'],
+    expiresAt: Date.now() + 60000,
+    limit: 10
+  })
+  const request = (
+    content = 'Build a reading list',
+    parents: string[] = [],
+    author = 'did:key:bob'
+  ) =>
+    sharedNode(
+      {
+        kind: 'request',
+        project: project.id,
+        host: 'did:key:owner',
+        epoch: grant.epoch,
+        parents,
+        contextIds: []
+      },
+      content,
+      author
+    )
+  return { project, grant, request }
+}
+describe('shared development host authority and queue', () => {
+  it('freezes selected revisions at submission and rejects cross-project or changed context', async () => {
+    const { project, grant } = await sharedSetup()
+    const context = await sharedNode(
+      { kind: 'feedback', project: project.id, parents: [] },
+      'Only shared context'
+    )
+    const revision = await captureDevelopmentInput(context)
+    const request = await sharedNode(
+      {
+        kind: 'request',
+        project: project.id,
+        host: 'did:key:owner',
+        epoch: grant.epoch,
+        parents: [],
+        contextIds: [context.id],
+        contextDigests: [revision.digest]
+      },
+      'Use this feedback',
+      'did:key:bob'
+    )
+    context.properties.content = 'Changed before host admission'
+    await expect(invoke('startDevelopment', { requestId: request.id })).rejects.toThrow(
+      'Selected context changed'
+    )
+    context.properties.content = 'Only shared context'
+    context.properties.inReplyTo = 'another-project'
+    await expect(invoke('startDevelopment', { requestId: request.id })).rejects.toThrow(
+      'outside the conversation'
+    )
+    context.properties.inReplyTo = project.id
+    await invoke('startDevelopment', { requestId: request.id })
+    await vi.waitFor(() => expect(fixture.turns).toHaveLength(1))
+    expect(fixture.turns[0].prompt).toContain('Only shared context')
+    Object.assign(context.properties, { redacted: true })
+    fixture.complete!()
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('failed')
+    )
+    expect(
+      (await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].development?.output
+    ).toBeUndefined()
+  })
+  it('enforces expiry and a durable session budget before provider dispatch', async () => {
+    const { project } = await sharedSetup()
+    const grant = await invoke<CommunityAgentDelegation>('delegate', {
+      projectId: project.id,
+      channelId: 'chat',
+      requesters: ['did:key:bob'],
+      expiresAt: Date.now() + 60000,
+      limit: 1
+    })
+    const record: DevelopmentRecord = {
+      kind: 'request',
+      project: project.id,
+      host: 'did:key:owner',
+      epoch: grant.epoch,
+      parents: [],
+      contextIds: []
+    }
+    const first = await sharedNode(record, 'First', 'did:key:bob')
+    const second = await sharedNode(record, 'Second', 'did:key:bob')
+    await invoke('startDevelopment', { requestId: first.id })
+    await expect(invoke('startDevelopment', { requestId: second.id })).rejects.toThrow(
+      'request limit'
+    )
+    const realNow = Date.now()
+    const now = vi.spyOn(Date, 'now').mockReturnValue(realNow + 120000)
+    await expect(invoke('startDevelopment', { requestId: second.id })).rejects.toThrow(
+      'not been allowed'
+    )
+    now.mockRestore()
+  })
+  it('restores a durable queued request after a crash without resuming the interrupted run', async () => {
+    const { request } = await sharedSetup()
+    const first = await request('First'),
+      second = await request('Second')
+    await invoke('startDevelopment', { requestId: first.id })
+    await vi.waitFor(() => expect(fixture.turns).toHaveLength(1))
+    await invoke('startDevelopment', { requestId: second.id })
+    const path = join(fixture.dir, 'community-agents', 'state.json')
+    const crashSnapshot = readFileSync(path, 'utf8')
+    stop()
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    writeFileSync(path, crashSnapshot)
+    vi.resetModules()
+    const restarted = await import('./community-agent-service')
+    stop = restarted.stopCommunityAgents
+    restarted.setupCommunityAgentIPC(
+      () => ({ webContents: sender, isDestroyed: () => false }) as never
+    )
+    expect(
+      (await invoke<CommunityAgentSnapshot>('snapshot')).runs.map((run) => run.status)
+    ).toEqual(['interrupted', 'queued'])
+    await invoke('connect', 'installed')
+    await vi.waitFor(() => expect(fixture.turns).toHaveLength(2))
+    expect(fixture.turns[1].resumeSessionId).toBeUndefined()
+    expect(fixture.turns[1].prompt).toContain('Second')
+  })
+  it('runs a delegated peer request with fresh explicit context and preserves its history', async () => {
+    const { request } = await sharedSetup()
+    const node = await request()
+    await invoke('startDevelopment', { requestId: node.id })
+    await vi.waitFor(() => expect(fixture.turns).toHaveLength(1))
+    expect(fixture.turns[0].resumeSessionId).toBeUndefined()
+    expect(fixture.turns[0].prompt).toContain('did:key:bob')
+    fixture.complete!(
+      JSON.stringify({
+        reply: 'Here is our first version.',
+        extension: { title: 'List', summary: 'First version', source: 'export default () => null' }
+      })
+    )
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('completed')
+    )
+    const run = (await invoke<CommunityAgentSnapshot>('snapshot')).runs[0]
+    expect(run.development?.history.inputs[0]).toMatchObject({
+      id: node.id,
+      author: 'did:key:bob',
+      content: 'Build a reading list'
+    })
+    expect(run.development?.output?.kind).toBe('version')
+    expect(run.replyId).toMatch(/^dev-/)
+    expect(JSON.stringify(run)).not.toContain('private-provider-session')
+    await invoke('authorizePublication', run.id)
+  })
+  it('queues simultaneous feedback, deduplicates delivery, and starts the next request after completion', async () => {
+    const { request } = await sharedSetup()
+    const a = await request('First update'),
+      b = await request('Second update')
+    const [first, duplicate] = await Promise.all([
+      invoke('startDevelopment', { requestId: a.id }),
+      invoke('startDevelopment', { requestId: a.id })
+    ])
+    expect(duplicate).toBe(first)
+    await vi.waitFor(() => expect(fixture.turns).toHaveLength(1))
+    await invoke('startDevelopment', { requestId: b.id })
+    expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[1].status).toBe('queued')
+    fixture.complete!()
+    await vi.waitFor(() => expect(fixture.turns).toHaveLength(2))
+    expect(fixture.turns[1].resumeSessionId).toBeUndefined()
+    expect(fixture.turns[1].prompt).toContain('Second update')
+  })
+  it('revokes both running and queued peer requests without dispatching more work', async () => {
+    const { project, request } = await sharedSetup()
+    const a = await request('First'),
+      b = await request('Second')
+    await invoke('startDevelopment', { requestId: a.id })
+    await vi.waitFor(() => expect(fixture.turns).toHaveLength(1))
+    await invoke('startDevelopment', { requestId: b.id })
+    await invoke('revokeDelegation', project.id)
+    await vi.waitFor(async () =>
+      expect(
+        (await invoke<CommunityAgentSnapshot>('snapshot')).runs.map((run) => run.status)
+      ).toEqual(['cancelled', 'cancelled'])
+    )
+    expect(fixture.turns).toHaveLength(1)
+    await expect(invoke('startDevelopment', { requestId: b.id, retry: true })).rejects.toThrow(
+      'not been allowed'
+    )
+  })
+  it('rejects outsider delegation, altered requests, and requests intended for another host', async () => {
+    const { project, grant, request } = await sharedSetup()
+    await expect(
+      invoke('delegate', {
+        projectId: project.id,
+        channelId: 'chat',
+        requesters: ['did:key:eve'],
+        expiresAt: Date.now() + 60000,
+        limit: 10
+      })
+    ).rejects.toThrow('member')
+    const node = await request()
+    node.properties.content = 'Changed after signing'
+    await expect(invoke('startDevelopment', { requestId: node.id })).rejects.toThrow('changed')
+    const other = await sharedNode({
+      kind: 'request',
+      project: project.id,
+      host: 'did:key:other',
+      epoch: grant.epoch,
+      parents: [],
+      contextIds: []
+    })
+    await expect(invoke('startDevelopment', { requestId: other.id })).rejects.toThrow(
+      'another agent host'
+    )
+    expect(fixture.turns).toHaveLength(0)
+  })
+  it('denies cross-project source and private cross-channel context', async () => {
+    const { project, grant, request } = await sharedSetup()
+    const source = await sharedNode({
+      kind: 'version',
+      project: 'other-project',
+      parents: [],
+      manual: true,
+      extension: await createExtensionVersion({
+        title: 'Other',
+        summary: '',
+        source: 'export default () => null',
+        author: 'did:key:owner',
+        changeNote: 'Other'
+      })
+    })
+    const node = await request('Edit', [source.id])
+    await expect(invoke('startDevelopment', { requestId: node.id })).rejects.toThrow(
+      'another project'
+    )
+    fixture.nodes.set('private', {
+      ...message('private'),
+      properties: { channel: 'private-room', content: 'PRIVATE_CANARY' }
+    })
+    const cross = await sharedNode({
+      kind: 'request',
+      project: project.id,
+      host: 'did:key:owner',
+      epoch: grant.epoch,
+      parents: [],
+      contextIds: ['private']
+    })
+    await expect(invoke('startDevelopment', { requestId: cross.id })).rejects.toThrow(
+      'outside the conversation'
+    )
+    expect(fixture.turns).toHaveLength(0)
+  })
+  it('honors withdrawal before a queued request reaches the provider', async () => {
+    const { project, request } = await sharedSetup()
+    const a = await request('First'),
+      b = await request('Second')
+    await invoke('startDevelopment', { requestId: a.id })
+    await vi.waitFor(() => expect(fixture.turns).toHaveLength(1))
+    await invoke('startDevelopment', { requestId: b.id })
+    await sharedNode(
+      { kind: 'withdraw', project: project.id, request: b.id },
+      'Request withdrawn',
+      'did:key:bob'
+    )
+    fixture.complete!()
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[1].status).toBe('failed')
+    )
+    expect(fixture.turns).toHaveLength(1)
+    expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[1].error).toContain('withdrew')
+  })
+  it('revalidates retained context and membership before publishing a completed result', async () => {
+    const { request } = await sharedSetup()
+    const node = await request()
+    const id = await invoke('startDevelopment', { requestId: node.id })
+    await vi.waitFor(() => expect(fixture.turns).toHaveLength(1))
+    fixture.complete!()
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('completed')
+    )
+    const membership = fixture.nodes.get('bob-membership') as {
+      properties: Record<string, unknown>
+    }
+    membership.properties.expiresAt = Date.now() - 1
+    await expect(invoke('authorizePublication', id)).rejects.toThrow('Audience changed')
   })
 })

@@ -18,6 +18,7 @@ describe('installed agent reply policy', () => {
     expect(isSupportedCodex('0.2.3')).toBe(false)
     expect(isSupportedCodex('codex-cli 0.162.0-alpha.17.2')).toBe(true)
     expect(isSupportedCodex('codex-cli 0.163.0-alpha.10.2')).toBe(true)
+    expect(isSupportedCodex('codex-cli 0.163.0-alpha.11.1')).toBe(true)
     expect(isSupportedCodex('codex-cli 0.163.0-alpha.10.3')).toBe(false)
     expect(isSupportedCodex('codex-cli 0.163.0')).toBe(false)
   })

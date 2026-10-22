@@ -906,6 +906,11 @@ declare global {
 }
 
 const communityAgents: CommunityAgentPort = {
+  delegate: (input) => ipcRenderer.invoke('xnet:community-agents:delegate', input),
+  revokeDelegation: (id) => ipcRenderer.invoke('xnet:community-agents:revokeDelegation', id),
+  startDevelopment: (input) => ipcRenderer.invoke('xnet:community-agents:startDevelopment', input),
+  authorizeDevelopmentActivity: (id) =>
+    ipcRenderer.invoke('xnet:community-agents:authorizeDevelopmentActivity', id),
   snapshot: () => ipcRenderer.invoke('xnet:community-agents:snapshot'),
   discover: () => ipcRenderer.invoke('xnet:community-agents:discover'),
   connect: (id) => ipcRenderer.invoke('xnet:community-agents:connect', id),

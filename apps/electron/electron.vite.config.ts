@@ -32,6 +32,7 @@ const xnetPackages = [
   '@xnetjs/storage',
   '@xnetjs/sync',
   '@xnetjs/data',
+  '@xnetjs/workbench',
   '@xnetjs/query',
   '@xnetjs/social',
   '@xnetjs/telemetry',

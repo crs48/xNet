@@ -228,6 +228,9 @@ self.onmessage = ({ data }) => {
         input.value = data.value.slice(0, 2000)
         element.dispatchEvent(new Event('input', { bubbles: true }))
       }
+      // Controlled values can change without a remote DOM mutation (for example
+      // a filter over an empty page). Read the committed view after the event.
+      publish()
       return
     }
     if (data.type !== 'start' || live) throw new Error('Invalid runtime handshake.')

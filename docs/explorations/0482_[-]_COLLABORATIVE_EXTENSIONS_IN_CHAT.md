@@ -1,6 +1,6 @@
 ---
 title: Collaborative extensions in chat
-status: draft
+status: prototype
 last_updated: 2026-10-22
 review: 2026-11-04
 decider: Chris
@@ -13,7 +13,7 @@ tags: [extensions, agents, collaboration, chat, permissions]
 > [!TIP]
 > Give an extension a shared home in a conversation: a brief, version history, feedback, and visible agent requests. Start with one explicitly authorized agent host and a queue. Everyone can contribute; each person controls which version runs on their device and what data it can access.
 
-This is a proposal, grounded in local commit `bfe91e5f5` on `codex/chat-first-redesign`, not an implemented multiplayer feature. Revisit on November 4 after testing a real two-person flow; the useful question is whether conversational collaboration needs simultaneous agents yet. The product experiment is reversible. Any durable authorization or wire-format decision needs an ADR with a tripwire before implementation.
+A local prototype on `codex/chat-first-redesign` now supports shared projects, delegated requests, branches, combined proposals, manual edits, and version-specific conversation history. [The integration record](../testing/0482-shared-extension-integration.md) documents two real Electron profiles, eight versions, and the remaining release checks. ADRs 54 and 55 record the durable contracts. The design discussion below describes the broader target; unchecked retention and security work is still unfinished.
 
 ## What collaborating should feel like
 
@@ -49,7 +49,7 @@ flowchart LR
 
 The shared object is the extension project. Messages, runs, versions, and previews all point to it. Today, the UI mostly offers individually reviewed source snapshots; a project gives those snapshots a common purpose and identity.
 
-## What exists today
+## Baseline before this implementation
 
 | Area                          | State                    | Relevant behavior                                                                                                                  |
 | ----------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -268,36 +268,36 @@ Reuse the existing version viewer, scoped hooks, sandbox, and approval flow. Add
 
 Include the first history slice in that milestone: either person can open a version and see the retained request, agent response, exact base, and included feedback after the agent host goes offline.
 
-### Implementation checklist
+## Implementation checklist
 
-- [ ] Define project roles and the separate host-delegation contract; record any accepted durable authorization/wire changes in the [ADR register](../../site/src/content/docs/docs/architecture/decisions.mdx), with tripwires.
-- [ ] Add a stable extension project attached to a thread, with a brief and accepted-version history.
-- [ ] Associate source proposals, feedback, and edit requests with that project and exact base versions.
+- [x] Define project roles and the separate host-delegation contract; record any accepted durable authorization/wire changes in the [ADR register](../../site/src/content/docs/docs/architecture/decisions.mdx), with tripwires.
+- [x] Add a stable extension project attached to a thread, with a brief and accepted-version history.
+- [x] Associate source proposals, feedback, and edit requests with that project and exact base versions.
 - [ ] Persist message-revision references, bounded context manifests, published agent responses, and manual-edit events with explicit retention and access rules.
-- [ ] Build version-specific development history with this-update/ancestry views, branch deduplication, and explicit incomplete-history states.
-- [ ] Use explicit fresh-session inputs for shared runs until provider-session context can be accounted for.
-- [ ] Replace creator-only invocation assumptions with verified project authority plus explicit host delegation; preserve the existing local-owner path.
-- [ ] Persist bounded requests and attempts with replay protection, cancellation, restart recovery, and explicit waiting states.
-- [ ] Publish useful activity and validated results to the authorized audience; keep private journals and provider sessions local.
-- [ ] Show queued feedback, changes included in each run, preview/current/installed versions, and branches without replacing an active preview.
+- [x] Build version-specific development history with this-update/ancestry views, branch deduplication, and explicit incomplete-history states.
+- [x] Use explicit fresh-session inputs for shared runs until provider-session context can be accounted for.
+- [x] Replace creator-only invocation assumptions with verified project authority plus explicit host delegation; preserve the existing local-owner path.
+- [x] Persist bounded requests and attempts with replay protection, cancellation, restart recovery, and explicit waiting states.
+- [x] Publish useful activity and validated results to the authorized audience; keep private journals and provider sessions local.
+- [x] Show queued feedback, changes included in each run, preview/current/installed versions, and branches without replacing an active preview.
 - [ ] Preserve per-user, per-version data approvals and add shared sanitized fixtures.
-- [ ] Support explicit host handoff and visible competing results without promising globally exactly-once execution.
-- [ ] Implement acceptance conflict detection and resolution before allowing independent publishers to change the shared current version.
+- [x] Support explicit host handoff and visible competing results without promising globally exactly-once execution.
+- [x] Implement acceptance conflict detection and resolution before allowing independent publishers to change the shared current version.
 
-### Validation checklist
+## Validation checklist
 
-- [ ] Drive the complete flow in two separately running Electron clients with different identities, profiles, and stores over real message/blob transport. A directly injected signed fixture is not sufficient.
-- [ ] Have Bob request a change using Alice's delegated runtime; verify request attribution, frozen context, common source fingerprint, and independently approved previews.
-- [ ] Submit feedback during a run; verify it appears as queued and is included in a later acknowledged request.
+- [x] Drive the complete flow in two separately running Electron clients with different identities, profiles, and stores over real message/blob transport. A directly injected signed fixture is not sufficient.
+- [x] Have Bob request a change using Alice's delegated runtime; verify request attribution, frozen context, common source fingerprint, and independently approved previews.
+- [x] Submit feedback during a run; verify it appears as queued and is included in a later acknowledged request.
 - [ ] Start competing requests from the same base, including during a partition; retain both results and surface conflicting acceptance decisions.
 - [ ] Exercise offline hosting, crash/restart, explicit takeover, duplicate delivery, cancellation, and late provider output.
 - [ ] Reject unauthorized members, edited/replayed requests, cross-project bases, expired delegation, and publication after observed membership revocation.
 - [ ] Use distinct private-data canaries to check shared messages, bundles, activity, logs, and persisted records for unintended disclosure.
-- [ ] Verify that receiving or accepting a version never transfers local data grants or silently installs code.
-- [ ] Keep a form open while another version arrives; preserve the selected version and unsaved input.
+- [x] Verify that receiving or accepting a version never transfers local data grants or silently installs code.
+- [x] Keep a form open while another version arrives; preserve the selected version and unsaved input.
 - [ ] Reproduce the same extension behavior using shared fixtures, then verify differing local datasets are clearly identified.
 - [ ] Reassemble an older version's conversation after later messages, edits, restart, and the original agent host going offline; verify exact retained revisions and included/excluded context.
-- [ ] Traverse a fork and combined result without duplicating shared ancestors or attributing later feedback to an earlier run.
+- [x] Traverse a fork and combined result without duplicating shared ancestors or attributing later feedback to an earlier run.
 - [ ] Redact a referenced message and restrict a history audience; verify that snapshots, manifests, derived copies, and exports do not bypass those restrictions.
 - [ ] Exercise missing blobs, partial sync, imported code without history, manual edits, and opaque provider context; show honest completeness states.
 

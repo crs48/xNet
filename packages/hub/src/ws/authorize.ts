@@ -27,6 +27,7 @@ import type { HubStorage } from '../storage/interface'
 import type { WebSocket } from 'ws'
 import { hasHubCapability } from '../auth/capabilities'
 import { HUB_METRICS } from '../middleware/metrics'
+import { canReadCommunity, COMMUNITY_ROOM_PREFIX } from '../services/community-records'
 import { profileSubjectFromDocId } from '../services/share-access'
 import { buildWsError } from './errors'
 
@@ -34,6 +35,7 @@ export const topicToResource = (topic: string): string => {
   // A doc room and a channel share room (0298) both resolve to the resource id
   // the grant is keyed on, so the existing grant-index / Space-cascade checks
   // authorize them unchanged.
+  if (topic.startsWith(COMMUNITY_ROOM_PREFIX)) return topic.slice(COMMUNITY_ROOM_PREFIX.length)
   if (topic.startsWith('xnet-doc-')) return topic.slice('xnet-doc-'.length)
   if (topic.startsWith('xnet-channel-')) return topic.slice('xnet-channel-'.length)
   if (topic.startsWith('xnet-workspace-')) return topic.slice('xnet-workspace-'.length)
@@ -102,6 +104,21 @@ export const authorizeRoomAction = async (input: {
       reason: decision.message
     })
     return decision
+  }
+
+  // A self-issued wildcard is not permission to receive a private roster.
+  if (input.topic.startsWith(COMMUNITY_ROOM_PREFIX)) {
+    // Anonymous sessions exist only on an explicitly unauthenticated development hub.
+    const allowed =
+      input.session.did === 'did:key:anonymous' ||
+      (await canReadCommunity(input.storage, input.session.did, resource))
+    return allowed
+      ? { allowed: true, source: 'space-grant' }
+      : {
+          allowed: false,
+          code: 'UNAUTHORIZED',
+          message: 'Community membership is unavailable or revoked'
+        }
   }
 
   // A DID whose share grants were all revoked ("remove access") is denied

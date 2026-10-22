@@ -120,8 +120,9 @@ export function AgentSettings({
             </label>
             <p className="text-xs leading-5 text-muted-foreground">
               Recent context includes up to 30 loaded messages, capped at 24,000 characters.
-              Attachments are excluded. Only you can invoke this runtime; other members’ messages
-              never start it. This remains a community security preview.
+              Attachments are excluded. Ordinary chat invokes your runtime only for you. In Build
+              together, you can separately allow named collaborators to request work with fresh
+              project context. This remains a community security preview.
             </p>
             <button
               disabled={busy || runtime?.state !== 'ready'}

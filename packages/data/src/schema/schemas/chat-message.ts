@@ -32,6 +32,12 @@ export const ChatMessageSchema = defineSchema({
     /** Thread root message (flat threading, like Comment.inReplyTo) */
     inReplyTo: relation({ target: 'xnet://xnet.fyi/ChatMessage@1.0.0' as const }),
 
+    /** Indexed development records share the conversation's authorization and transport. */
+    developmentKind: text({ maxLength: 24 }),
+    developmentProject: relation({ target: 'xnet://xnet.fyi/ChatMessage@1.0.0' as const }),
+    /** Versioned protocol; consumers must validate the signed content identity before use. */
+    development: json<Record<string, unknown>>({}),
+
     /** Optional file attachments */
     attachments: file({ multiple: true }),
 

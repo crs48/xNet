@@ -16,6 +16,7 @@ import { bytesToBase64, generateSigningKeyPair } from '@xnetjs/crypto'
 import { identityFromPrivateKey } from '@xnetjs/identity'
 import { createChangeId, createUnsignedChange, signChange } from '@xnetjs/sync'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { canReadCommunity, communityChanges } from '../src/services/community-records'
 import {
   channelShareRoom,
   NodeRelayService,
@@ -24,6 +25,8 @@ import {
 } from '../src/services/node-relay'
 import { createMemoryStorage } from '../src/storage/memory'
 import { createSQLiteStorage } from '../src/storage/sqlite'
+import { authorizeRoomAction } from '../src/ws/authorize'
+import { maintainSpaceContainment } from '../src/ws/handlers/node-change'
 
 type Actor = { did: string; privateKey: Uint8Array; lamport: number }
 
@@ -35,10 +38,10 @@ const actor = (): Actor => {
 const signChangeFor = (
   who: Actor,
   nodeId: string,
-  schemaId: string,
+  schemaId: string | undefined,
   properties: Record<string, unknown>
 ): SerializedNodeChange => {
-  const payload = { nodeId, schemaId, properties }
+  const payload = { nodeId, ...(schemaId ? { schemaId } : {}), properties }
   const signed = signChange(
     createUnsignedChange({
       id: createChangeId(),
@@ -146,6 +149,90 @@ describe.each(factories)('channel share fan-out ($name)', ({ create }) => {
       }
     )
 
+  it('syncs the authenticated community roster, including revocation, without other content', async () => {
+    const owner = actor()
+    const member = actor()
+    const outsider = actor()
+    const svc = relay(gateWith(new Map()))
+    const space = 'circle-collaboration'
+    const membership = `spacemember:${space}:${member.did}`
+    const write = async (
+      id: string,
+      schema: string | undefined,
+      properties: Record<string, unknown>,
+      who = owner
+    ) => {
+      const change = signChangeFor(who, id, schema, properties)
+      await svc.handleNodeChange(relayMsg(change), authFor(who))
+      await maintainSpaceContainment(storage, change)
+      return change
+    }
+    await write(space, 'xnet://xnet.fyi/Space@1.0.0', { name: 'Studio', owners: [owner.did] })
+    await write(membership, 'xnet://xnet.fyi/SpaceMembership@1.0.0', {
+      space,
+      member: member.did,
+      role: 'member'
+    })
+    await write('general', CHANNEL, { space, members: [owner.did, member.did] })
+    await write('private-note', 'xnet://xnet.fyi/Page@1.0.0', {
+      space,
+      title: 'Do not copy into roster'
+    })
+    expect(await canReadCommunity(storage, member.did, space)).toBe(true)
+    expect(await canReadCommunity(storage, outsider.did, space)).toBe(false)
+    outsider.lamport = -1
+    await write(
+      space,
+      'xnet://xnet.fyi/Space@1.0.0',
+      { name: 'Forged circle', owners: [outsider.did] },
+      outsider
+    )
+    expect(await canReadCommunity(storage, outsider.did, space)).toBe(false)
+    await write(
+      `spacemember:${space}:${outsider.did}`,
+      'xnet://xnet.fyi/SpaceMembership@1.0.0',
+      { space, member: outsider.did, role: 'owner' },
+      outsider
+    )
+    expect(await canReadCommunity(storage, outsider.did, space)).toBe(false)
+    expect((await communityChanges(storage, space)).map((c) => c.nodeId)).toEqual([
+      space,
+      membership
+    ])
+    const room = 'xnet-community-' + space
+    const injected = signChangeFor(member, 'injected-private-note', CHAT_MESSAGE, {
+      channel: 'general',
+      content: 'Not roster content'
+    })
+    await expect(
+      svc.handleNodeChange({ ...relayMsg(injected), room }, authFor(member))
+    ).rejects.toThrow('read-only')
+    await expect(svc.handleClear({ type: 'node-clear', room }, authFor(owner))).rejects.toThrow(
+      'read-only'
+    )
+    const received = await svc.handleSyncRequest(
+      { type: 'node-sync-request', room, sinceLamport: 0 },
+      authFor(member)
+    )
+    expect(new Set(received.changes.map((c) => c.nodeId))).toEqual(new Set([space, membership]))
+    expect(received.changes.every((change) => change.authorDid === owner.did)).toBe(true)
+    await write(membership, undefined, { expiresAt: 1 })
+    expect(await canReadCommunity(storage, member.did, space)).toBe(false)
+    const later = await svc.handleSyncRequest(
+      { type: 'node-sync-request', room, sinceLamport: received.highWaterMark },
+      authFor(owner)
+    )
+    expect(later.changes).toHaveLength(1)
+    expect(later.changes[0].payload.properties?.expiresAt).toBe(1)
+    const session = {
+      did: outsider.did,
+      capabilities: [{ with: '*', can: 'hub/relay' }]
+    } as unknown as Parameters<typeof authorizeRoomAction>[0]['session']
+    expect(
+      (await authorizeRoomAction({ storage, session, action: 'hub/relay', topic: room })).allowed
+    ).toBe(false)
+  })
+
   it('delivers the channel node, its messages, and member profiles to the share room', async () => {
     const owner = actor()
     const member = actor()
@@ -222,6 +309,38 @@ describe.each(factories)('channel share fan-out ($name)', ({ create }) => {
     const messageNodes = changes.filter((c) => c.schemaId === CHAT_MESSAGE).map((c) => c.nodeId)
     expect(messageNodes).toContain('m-c')
     expect(messageNodes).not.toContain('m-r')
+  })
+  it('relays partial redactions and recovers edits delivered before the original message', async () => {
+    const owner = actor(),
+      member = actor()
+    const svc = relay(gateWith(new Map()))
+    await svc.handleNodeChange(
+      relayMsg(signChangeFor(owner, 'room', CHANNEL, { members: [owner.did, member.did] })),
+      authFor(owner)
+    )
+    const original = signChangeFor(member, 'question', CHAT_MESSAGE, {
+      channel: 'room',
+      content: 'Original'
+    })
+    const removed = signChangeFor(member, 'question', undefined, { content: '', redacted: true })
+    await svc.handleNodeChange(relayMsg(removed), authFor(member))
+    await svc.handleNodeChange(relayMsg(original), authFor(member))
+    const messages = (
+      await storage.getRoomChangesSince(channelShareRoom('room'), 0)
+    ).changes.filter((entry) => entry.nodeId === 'question')
+    expect(new Set(messages.map((entry) => entry.hash))).toEqual(
+      new Set([original.hash, removed.hash])
+    )
+    const edited = signChangeFor(member, 'question', undefined, {
+      content: 'Later text',
+      edited: true
+    })
+    await svc.handleNodeChange(relayMsg(edited), authFor(member))
+    expect(
+      (await storage.getRoomChangesSince(channelShareRoom('room'), 0)).changes.map(
+        (entry) => entry.hash
+      )
+    ).toContain(edited.hash)
   })
 
   it('advances the share-room cursor by seq (not author lamport)', async () => {

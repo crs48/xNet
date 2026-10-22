@@ -26,6 +26,7 @@ import {
   verifyChangeHash,
   type Change
 } from '@xnetjs/sync'
+import { COMMUNITY_ROOM_PREFIX, communityChanges, communityRecord } from './community-records'
 import { reportUnauthorizedRemoteWrite } from './remote-mutation-telemetry'
 
 type NodePayload = SerializedNodeChange['payload']
@@ -237,6 +238,8 @@ export class NodeRelayService {
   }
 
   async handleNodeChange(msg: NodeChangeMessage, auth: AuthContext): Promise<boolean> {
+    if (msg.room.startsWith(COMMUNITY_ROOM_PREFIX))
+      throw new NodeRelayError('UNAUTHORIZED', 'Community dependency rooms are read-only.')
     // Billing read-only (0418) — checked before authorization work, because a
     // read-only hub rejects every inbound change regardless of who sent it. The
     // client keeps its copy and re-syncs once payment recovers; nothing is lost.
@@ -463,13 +466,32 @@ export class NodeRelayService {
   private async fanOutToShareRoom(change: SerializedNodeChange): Promise<void> {
     const gate = this.options.shareAccess
     if (!gate) return
-    const schema = change.schemaId ?? change.payload.schemaId ?? ''
+    const declaredSchema = change.schemaId ?? change.payload.schemaId
+    if (
+      declaredSchema &&
+      ![
+        CHANNEL_SCHEMA_PREFIX,
+        CHAT_MESSAGE_SCHEMA_PREFIX,
+        WORKSPACE_SCHEMA_PREFIX,
+        'xnet://xnet.fyi/Space@',
+        'xnet://xnet.fyi/SpaceMembership@'
+      ].some((prefix) => declaredSchema.startsWith(prefix))
+    )
+      return
+    const authorHistory = await this.storage.getNodeChangesForNode(change.authorDid, change.nodeId)
+    const originalSchema = authorHistory.find(
+      (entry) => entry.authorDid === change.authorDid && (entry.schemaId ?? entry.payload.schemaId)
+    )
+    const schema =
+      originalSchema?.schemaId ?? originalSchema?.payload.schemaId ?? declaredSchema ?? ''
+    if (declaredSchema && declaredSchema !== schema) return
 
     // The resource the fan-out is gated + keyed on, its share room, and any
     // profiles to deliver alongside (channels carry members' names).
     let resourceId: string | null = null
     let room: string | null = null
     let profileDids: string[] = []
+    let messageHistory: SerializedNodeChange[] = []
     if (schema.startsWith(CHANNEL_SCHEMA_PREFIX)) {
       resourceId = change.nodeId
       room = channelShareRoom(resourceId)
@@ -477,11 +499,50 @@ export class NodeRelayService {
       // Deliver every member's profile so names render at share time.
       profileDids = Array.isArray(members) ? members.filter((m) => typeof m === 'string') : []
     } else if (schema.startsWith(CHAT_MESSAGE_SCHEMA_PREFIX)) {
-      const channel = change.payload.properties?.channel
+      // Partial edits and redactions omit the channel. Recover it from the
+      // author's signed message history, including updates that arrived first.
+      const history = authorHistory.filter(
+        (entry) =>
+          entry.authorDid === change.authorDid &&
+          (entry.schemaId ?? entry.payload.schemaId ?? schema).startsWith(
+            CHAT_MESSAGE_SCHEMA_PREFIX
+          )
+      )
+      const channel = history.find((entry) => typeof entry.payload.properties?.channel === 'string')
+        ?.payload.properties?.channel
+      if (
+        typeof change.payload.properties?.channel === 'string' &&
+        change.payload.properties.channel !== channel
+      )
+        return
       resourceId = typeof channel === 'string' ? channel : null
       room = resourceId ? channelShareRoom(resourceId) : null
+      if (typeof change.payload.properties?.channel === 'string')
+        messageHistory = history.filter(
+          (entry) =>
+            entry.hash !== change.hash &&
+            (entry.payload.properties?.channel === undefined ||
+              entry.payload.properties.channel === channel)
+        )
       // Deliver the message author's profile so their name renders.
       profileDids = [change.authorDid]
+    } else if (
+      schema.startsWith('xnet://xnet.fyi/Space@') ||
+      schema.startsWith('xnet://xnet.fyi/SpaceMembership@')
+    ) {
+      const value = change.payload.properties?.space
+      const spaceId = schema.startsWith('xnet://xnet.fyi/Space@')
+        ? change.nodeId
+        : typeof value === 'string'
+          ? value
+          : await this.storage.getNodeContainer(change.nodeId)
+      if (!spaceId) return
+      const space = await communityRecord(this.storage, spaceId)
+      if (!space || space.creator !== change.authorDid) return
+      room = COMMUNITY_ROOM_PREFIX + spaceId
+      await this.storage.addChangeToRoom(room, change.hash)
+      this.options.broadcastToRoom?.(room, change)
+      return
     } else if (schema.startsWith(WORKSPACE_SCHEMA_PREFIX)) {
       // A workspace (bench) is a single node — no children, no profiles (0298).
       resourceId = change.nodeId
@@ -496,6 +557,10 @@ export class NodeRelayService {
     await this.storage.addChangeToRoom(room, change.hash)
     // Deliver in real time to anyone subscribed to the share room.
     this.options.broadcastToRoom?.(room, change)
+    for (const earlier of messageHistory) {
+      await this.storage.addChangeToRoom(room, earlier.hash)
+      this.options.broadcastToRoom?.(room, earlier)
+    }
     for (const did of profileDids) {
       const profileHash = await this.storage.getLatestProfileHash(did)
       if (profileHash) await this.storage.addChangeToRoom(room, profileHash)
@@ -509,6 +574,8 @@ export class NodeRelayService {
    * changes were removed so the caller can confirm the reset.
    */
   async handleClear(msg: NodeClearRequest, auth: AuthContext): Promise<NodeClearedResponse> {
+    if (msg.room.startsWith(COMMUNITY_ROOM_PREFIX))
+      throw new NodeRelayError('UNAUTHORIZED', 'Community dependency rooms are read-only.')
     if (!auth.can('hub/relay', msg.room)) {
       throw new NodeRelayError('UNAUTHORIZED', 'Insufficient capabilities for node relay')
     }
@@ -526,7 +593,19 @@ export class NodeRelayService {
     // mapping and cursor on a per-room `seq` (carried opaquely in
     // `sinceLamport`/`highWaterMark`), not the author lamport used for
     // author/doc rooms.
-    if (msg.room.startsWith('xnet-channel-') || msg.room.startsWith('xnet-workspace-')) {
+    if (msg.room.startsWith(COMMUNITY_ROOM_PREFIX)) {
+      for (const change of await communityChanges(
+        this.storage,
+        msg.room.slice(COMMUNITY_ROOM_PREFIX.length)
+      )) {
+        await this.storage.addChangeToRoom(msg.room, change.hash)
+      }
+    }
+    if (
+      msg.room.startsWith('xnet-channel-') ||
+      msg.room.startsWith('xnet-workspace-') ||
+      msg.room.startsWith(COMMUNITY_ROOM_PREFIX)
+    ) {
       const { changes, highWaterMark, hasMore } = await this.storage.getRoomChangesSince(
         msg.room,
         msg.sinceLamport

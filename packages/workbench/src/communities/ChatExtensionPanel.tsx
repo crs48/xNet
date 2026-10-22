@@ -161,6 +161,8 @@ export function ChatExtensionPanel({
   services,
   shared,
   onRemix,
+  onPublishVersion,
+  onHistory,
   onReview,
   onClose
 }: {
@@ -171,6 +173,8 @@ export function ChatExtensionPanel({
   services: AttachmentServices
   shared?: SharedExtension
   onRemix: (revision: Revision) => void
+  onPublishVersion?: (revision: Revision) => Promise<void>
+  onHistory?: () => void
   onReview: (id: string) => void
   onClose: () => void
 }) {
@@ -183,6 +187,7 @@ export function ChatExtensionPanel({
   const [changeNote, setChangeNote] = useState('Initial version')
   const [shareOpen, setShareOpen] = useState(false)
   const [sharing, setSharing] = useState(false)
+  const [publishedRevision, setPublishedRevision] = useState('')
   const [allVersions, setAllVersions] = useState(false)
   const [baseRevision, setBaseRevision] = useState<string | undefined>()
   const [editing, setEditing] = useState(false)
@@ -908,10 +913,60 @@ export function ChatExtensionPanel({
           )}
         </div>
         {revision && (
-          <button className={secondaryButton} disabled={busy} onClick={() => onRemix(revision)}>
+          <button
+            className={secondaryButton}
+            disabled={
+              busy ||
+              !!(
+                onPublishVersion &&
+                revision.source !== shared?.source &&
+                publishedRevision !== revision.id
+              )
+            }
+            onClick={() => onRemix(revision)}
+            title={
+              onPublishVersion &&
+              publishedRevision !== revision.id &&
+              revision.source !== shared?.source
+                ? 'Publish your edit to the project before asking the agent to build on it.'
+                : undefined
+            }
+          >
             Edit this version with your agent
           </button>
         )}
+        {onHistory && (
+          <button className={secondaryButton} onClick={onHistory}>
+            Project versions and development history
+          </button>
+        )}
+        {revision &&
+          onPublishVersion &&
+          publishedRevision !== revision.id &&
+          !incomingVersion &&
+          revision.lineage?.author === data.did &&
+          revision.source !== shared?.source && (
+            <button
+              className={secondaryButton}
+              disabled={busy || sharing}
+              onClick={() => {
+                setSharing(true)
+                void onPublishVersion(revision)
+                  .then(() => {
+                    setPublishedRevision(revision.id)
+                    setParentVersion(revision.lineage?.versionId)
+                    setBaseRevision(revision.id)
+                    setNotice(
+                      'Your version was published to the shared project. You can now build on it with the agent.'
+                    )
+                  })
+                  .catch((cause: unknown) => setError(String(cause)))
+                  .finally(() => setSharing(false))
+              }}
+            >
+              Publish my edit to project
+            </button>
+          )}
         {editing && (
           <div className="space-y-3">
             <label className="block text-xs">

@@ -1741,3 +1741,79 @@ reports truncation. Host resource limits and consent still apply to every build.
 supporting forwarded third-party signatures, merges, multi-file packages, automatic
 ancestor retrieval, or cloud catalogs. Require independent attribution review and
 two-device delivery tests before claiming interoperable distribution.
+
+## ADR-54: Keep shared extension development in authenticated chat records
+
+**Status:** Accepted · 2026-10-22 · local prototype
+
+**Context:** Sharing source copies does not give collaborators a common project,
+execution policy, or the conversation that produced a particular version.
+
+**Decision:** Add optional indexed development fields to ChatMessage. A version-1
+JSON envelope carries a closed project, feedback, host offer, request, attempt, version,
+withdrawal, or acceptance record. Each record's node ID binds its author, channel,
+visible text, and canonical payload through SHA-256. Consumers verify the envelope,
+identity, bounds, and relationships before using it. Redaction remains a message
+operation. Changing hashed fields invalidates the record rather than rewriting a
+previously accepted version. The existing source-attachment version-1 format stays
+unchanged; project records separately carry up to four parent version-record IDs.
+
+Only a device owner can grant use of their runtime. Device-local delegation names
+one project and channel, requesters, an epoch, expiry, and request budget. Signed
+peer requests must match that grant and current contributor membership. The host
+serializes its queue, checks scope before dispatch and publication, and starts each
+shared provider turn with fresh explicit context. Queued work survives restart but
+requires a ready runtime; interrupted work requires an explicit retry. Host offers
+advertise permission but never create it. Credentials and provider sessions stay local.
+
+New requests carry ordered message IDs and revision digests frozen at submission.
+The host rejects changed, removed, unfrozen, or cross-project context. The original
+request stays immutable; withdrawing it and sending a new one records the revision.
+
+Versions retain their source fingerprint, attributed request/attempt, parent IDs,
+and reported message revisions. The history viewer checks current source-message
+availability and redaction before displaying retained text. Published snapshots are
+copies received by the conversation's existing audience: they cannot promise erasure
+from other devices or cryptographic proof of provider execution. Future changes to
+history retention must account for these already distributed copies. Sharing source
+outside the project excludes its development history and local data grants.
+
+Project creators accept versions through append-only acceptance records referencing
+previously observed acceptances. Concurrent heads remain visible until explicitly
+resolved. A host's queue is local serialization, not a distributed lock or an
+exactly-once guarantee across disconnected hosts.
+
+**Tradeoff:** This prototype supports top-level community membership and bounded
+single-file extensions. It does not silently grant agent tool execution, shared-data
+writes, installation, or inherited-community authority. Retained transcripts are
+reported provenance; opaque model internals are outside the record.
+
+**Tripwire:** Revisit before publishing a stable shared-development API, broadening
+membership inheritance, adding automatic private-context inclusion, requiring hard
+history erasure, or claiming distributed exactly-once execution. Require two-client
+transport, conflicting-head, restart, and revocation evidence before release.
+
+### ADR 55: Community dependency rooms for collaboration (prototype)
+
+**Date:** 2026-10-22. **Status:** Prototype.
+
+A channel share room does not carry the community and membership records needed
+by a second client's authorization evaluator. Add `xnet-community-<spaceId>` as
+a subscribe-only dependency room. It carries signed Space and SpaceMembership
+changes, never arbitrary child content. Existing publish-wrapped node changes
+and per-room sequence cursors are unchanged.
+
+The first implementation supports top-level circles whose creator manages the
+roster. Authenticated hosts require a current creator-issued membership and
+reject a self-issued wildcard as sufficient permission to read the roster.
+The creator comes from the ownership index pinned at first verified creation,
+not an author selected by the lowest Lamport clock. Client writes and clears to
+the dependency room are rejected; only the relay indexes its signed records.
+Explicit anonymous development hosts retain their existing open-relay semantics.
+A membership expiry or removal affects future reads after it is observed;
+already received records cannot be recalled. This does not complete 0478's
+private-community encryption or general inherited membership model.
+
+**Tripwire:** Nested communities, delegated roster administrators, or a roster
+larger than 2,000 people requires a reviewed dependency and authorization design
+before expanding this protocol.

@@ -18,6 +18,10 @@
       "import": "./src/communities/index.ts",
       "types": "./src/communities/index.ts"
     },
+    "./extension-development": {
+      "types": "./src/communities/extension-development.ts",
+      "import": "./src/communities/extension-development.ts"
+    },
     "./community-agents": {
       "types": "./src/communities/agent-contract.ts",
       "import": "./src/communities/agent-contract.ts"

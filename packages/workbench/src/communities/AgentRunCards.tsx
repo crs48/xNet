@@ -50,7 +50,7 @@ function RunActions({
   const busy = agents.snapshot.runs.some((entry) => entry.status === 'running')
   return (
     <>
-      {run.status === 'running' && (
+      {(run.status === 'running' || run.status === 'queued') && (
         <button
           className={actionClass}
           disabled={pending || !agents.port}

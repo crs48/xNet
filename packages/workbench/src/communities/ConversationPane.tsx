@@ -28,7 +28,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { agentReplyContent } from './agent-activity'
 import { AgentRunCards, AgentRunHistory, AgentRunReceipt } from './AgentRunCards'
 import { ChatExtensionPanel } from './ChatExtensionPanel'
+import { readDevelopmentEntry } from './extension-development'
 import { EXTENSION_SHARE_MIME, type SharedExtension } from './extension-versions'
+import { createExtensionVersion } from './extension-versions'
+import { ExtensionProjects, publishDevelopment } from './ExtensionProjects'
 import { audienceLabel, bytesLabel, type Audience } from './model'
 import { Avatar, EmptyState, IconButton, inputClass, secondaryButton } from './primitives'
 import { SharedExtensionAttachment } from './SharedExtensionAttachment'
@@ -254,6 +257,15 @@ export function ConversationPane({
   const [extensionOpen, setExtensionOpen] = useState(false)
   const [extensionRunId, setExtensionRunId] = useState<string | undefined>()
   const [sharedExtension, setSharedExtension] = useState<SharedExtension | undefined>()
+  const [selectedProject, setSelectedProject] = useState('')
+  const [projectEditBase, setProjectEditBase] = useState<{
+    project: string
+    version: string
+    nonce: number
+  } | null>(null)
+  const [projectPreview, setProjectPreview] = useState<{ project: string; version: string } | null>(
+    null
+  )
   const [remixBase, setRemixBase] = useState<{ id: string; title: string } | null>(null)
   const [mention, setMention] = useState(false)
   const [mentionPicker, setMentionPicker] = useState(false)
@@ -264,7 +276,9 @@ export function ConversationPane({
   const agentBusy = agents.snapshot.runs.some(
     (run) => run.channelId === channel.id && run.status === 'running'
   )
-  const [tab, setTab] = useState<'conversation' | 'media' | 'activity'>('conversation')
+  const [tab, setTab] = useState<'conversation' | 'media' | 'activity' | 'extensions'>(
+    'conversation'
+  )
   const [searching, setSearching] = useState(false)
   const [search, setSearch] = useState('')
   const [limit, setLimit] = useState(100)
@@ -276,6 +290,9 @@ export function ConversationPane({
   const [saved, setSaved] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const { messages, loading, error: queryError, reload } = useMessages(channel.id, limit, search)
+  const conversationMessages = messages.filter(
+    (message) => !['attempt', 'host', 'accept', 'withdraw'].includes(message.developmentKind ?? '')
+  )
   const scroller = useRef<HTMLDivElement>(null)
   const composer = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -466,29 +483,36 @@ export function ConversationPane({
           role="tablist"
           aria-label="Conversation views"
         >
-          {(['conversation', 'media', ...(agents.port ? ['activity' as const] : [])] as const).map(
-            (value) => (
-              <button
-                key={value}
-                role="tab"
-                aria-selected={tab === value}
-                onClick={() => {
-                  setTab(value)
-                  scroller.current?.scrollTo({ top: 0 })
-                  nearBottom.current = true
-                }}
-                className={`h-full shrink-0 border-b-2 text-xs font-medium ${tab === value ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground'}`}
-              >
-                {value === 'conversation'
-                  ? 'Conversation'
+          {(
+            [
+              'conversation',
+              'extensions',
+              'media',
+              ...(agents.port ? ['activity' as const] : [])
+            ] as const
+          ).map((value) => (
+            <button
+              key={value}
+              role="tab"
+              aria-selected={tab === value}
+              onClick={() => {
+                setTab(value)
+                scroller.current?.scrollTo({ top: 0 })
+                nearBottom.current = true
+              }}
+              className={`h-full shrink-0 border-b-2 text-xs font-medium ${tab === value ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground'}`}
+            >
+              {value === 'conversation'
+                ? 'Conversation'
+                : value === 'extensions'
+                  ? 'Build together'
                   : value === 'media'
                     ? 'Shared media'
                     : 'Agent activity'}
-              </button>
-            )
-          )}
+            </button>
+          ))}
         </div>
-        {binding && (
+        {binding && tab !== 'extensions' && (
           <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/30 px-6 py-2 text-[11px] text-muted-foreground">
             <Bot size={13} />
             <span>
@@ -558,30 +582,49 @@ export function ConversationPane({
               Loading messages…
             </p>
           )}
-          {tab !== 'activity' && messages.length >= limit && (
+          {(tab === 'conversation' || tab === 'media') && messages.length >= limit && (
             <div className="p-4 text-center">
               <button onClick={() => setLimit((value) => value + 100)} className={secondaryButton}>
                 Load earlier messages
               </button>
             </div>
           )}
-          {tab !== 'activity' && !loading && !queryError && !messages.length && (
-            <EmptyState
-              icon={<span className="text-2xl">#</span>}
-              title={search ? 'No matching messages' : `This is the start of ${title}`}
-              description={
-                search
-                  ? 'Try a different word or clear the search to return to the conversation.'
-                  : channel.topic ||
-                    'A little place to stay in touch. Send a message, share a moment, or start a call.'
-              }
+          {(tab === 'conversation' || tab === 'media') &&
+            !loading &&
+            !queryError &&
+            !messages.length && (
+              <EmptyState
+                icon={<span className="text-2xl">#</span>}
+                title={search ? 'No matching messages' : `This is the start of ${title}`}
+                description={
+                  search
+                    ? 'Try a different word or clear the search to return to the conversation.'
+                    : channel.topic ||
+                      'A little place to stay in touch. Send a message, share a moment, or start a call.'
+                }
+              />
+            )}
+          {tab === 'extensions' ? (
+            <ExtensionProjects
+              data={data}
+              agents={agents}
+              channel={channel}
+              selectedProject={selectedProject}
+              editBase={projectEditBase}
+              onSelectProject={setSelectedProject}
+              onSettings={onAgentSettings}
+              onPreview={(version, project, entry) => {
+                setProjectPreview({ project, version: entry })
+                setSharedExtension(version)
+                setExtensionRunId(undefined)
+                setExtensionOpen(true)
+              }}
             />
-          )}
-          {tab === 'conversation' ? (
-            messages.map((message, index) => (
+          ) : tab === 'conversation' ? (
+            conversationMessages.map((message, index) => (
               <div key={message.id}>
                 {(index === 0 ||
-                  new Date(messages[index - 1].createdAt).toDateString() !==
+                  new Date(conversationMessages[index - 1].createdAt).toDateString() !==
                     new Date(message.createdAt).toDateString()) && (
                   <div className="mx-6 mb-2 mt-7 flex items-center gap-4">
                     <span className="h-px flex-1 bg-border" />
@@ -602,7 +645,7 @@ export function ConversationPane({
                       run.owner === message.createdBy &&
                       run.status === 'completed'
                   )}
-                  previous={messages[index - 1]}
+                  previous={conversationMessages[index - 1]}
                   data={data}
                   services={services}
                   onReply={() => {
@@ -611,16 +654,29 @@ export function ConversationPane({
                   }}
                   onDelete={() => setDeleteId(message.id)}
                   onSharedExtension={(version) => {
+                    setProjectPreview(null)
                     setExtensionRunId(undefined)
                     setSharedExtension(version)
                     setExtensionOpen(true)
                   }}
                   onReviewExtension={(id) => {
+                    setProjectPreview(null)
                     setSharedExtension(undefined)
                     setExtensionRunId(id)
                     setExtensionOpen(true)
                   }}
                 />
+                {message.developmentProject && (
+                  <button
+                    className="mb-3 ml-16 text-xs underline"
+                    onClick={() => {
+                      setSelectedProject(message.developmentProject!)
+                      setTab('extensions')
+                    }}
+                  >
+                    Open extension conversation
+                  </button>
+                )}
               </div>
             ))
           ) : tab === 'media' ? (
@@ -675,7 +731,7 @@ export function ConversationPane({
             </button>
           </div>
         )}
-        <div className="shrink-0 px-4 pb-4 md:px-6">
+        <div className={tab === 'extensions' ? 'hidden' : 'shrink-0 px-4 pb-4 md:px-6'}>
           {reply && (
             <div className="flex items-center justify-between rounded-t-xl border border-b-0 border-border bg-muted px-4 py-2">
               <p className="truncate text-xs">
@@ -865,7 +921,54 @@ export function ConversationPane({
           data={data}
           services={services}
           shared={sharedExtension}
+          onPublishVersion={
+            projectPreview
+              ? async (revision) => {
+                  const node = await data.bridge?.get?.(projectPreview.version)
+                  const base = node ? await readDevelopmentEntry(node) : null
+                  if (
+                    base?.record.kind !== 'version' ||
+                    base.record.extension.versionId !== revision.lineage?.parent
+                  )
+                    throw new Error(
+                      'Choose the project version you edited before publishing this variation.'
+                    )
+                  const extension = await createExtensionVersion({
+                    title: revision.title,
+                    summary: revision.summary,
+                    source: revision.source,
+                    author: data.did!,
+                    parent: revision.lineage?.parent,
+                    changeNote: revision.lineage?.changeNote || 'Manual edit'
+                  })
+                  const version = await publishDevelopment(data, channel.id, extension.changeNote, {
+                    kind: 'version',
+                    project: projectPreview.project,
+                    parents: [projectPreview.version],
+                    extension,
+                    manual: true
+                  })
+                  setProjectPreview({ project: projectPreview.project, version })
+                }
+              : undefined
+          }
+          onHistory={
+            projectPreview
+              ? () => {
+                  setSelectedProject(projectPreview.project)
+                  setTab('extensions')
+                  setExtensionOpen(false)
+                }
+              : undefined
+          }
           onRemix={(revision) => {
+            if (projectPreview) {
+              setProjectEditBase({ ...projectPreview, nonce: Date.now() })
+              setSelectedProject(projectPreview.project)
+              setTab('extensions')
+              setExtensionOpen(false)
+              return
+            }
             setRemixBase({ id: revision.id, title: revision.title })
             setMention(true)
             setExtensionOpen(false)
@@ -880,6 +983,7 @@ export function ConversationPane({
               run.status === 'completed'
           )}
           onReview={(id) => {
+            setProjectPreview(null)
             setSharedExtension(undefined)
             setExtensionRunId(id)
           }}

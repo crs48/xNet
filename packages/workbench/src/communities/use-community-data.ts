@@ -35,12 +35,15 @@ export function useCommunityData() {
     profiles.find((p) => p.did === who && p.createdBy === who)?.displayName ||
     (who === did ? 'You' : shortDid(who ?? 'Unknown'))
   const roomKey = channels
-    .map((channel) => channel.id)
+    .flatMap((channel) => [
+      channelShareRoom(channel.id),
+      ...(channel.space ? ['xnet-community-' + channel.space] : [])
+    ])
     .sort()
     .join('|')
   useEffect(() => {
     if (!syncManager || !roomKey) return
-    const rooms = roomKey.split('|').map(channelShareRoom)
+    const rooms = [...new Set(roomKey.split('|'))]
     for (const room of rooms) syncManager.subscribeShareRoom(room)
     return () => {
       for (const room of rooms) syncManager.unsubscribeShareRoom(room)
