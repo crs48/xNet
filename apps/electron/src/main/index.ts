@@ -12,6 +12,7 @@ import { prepareWorkspaceUpgrade } from '../storage/migrations'
 import { recoverPendingRestore, restoreCheckpoint } from '../storage/restore'
 import { setupAgentBridgeIPC, startAgentBridge, stopAgentBridge } from './agent-bridge-manager'
 import { setupCloudflareTunnelIPC, stopCloudflareTunnel } from './cloudflare-tunnel-ipc'
+import { setupCommunityAgentIPC, stopCommunityAgents } from './community-agent-service'
 import { installMainCrashLog } from './crash-log'
 import {
   spawnDataProcess,
@@ -77,6 +78,7 @@ let writersStopped = false
 
 async function stopWorkspaceWriters(): Promise<void> {
   await shutdownRecordingCapture()
+  stopCommunityAgents()
   await stopAgentBridge()
   await stopSpatialLibrary()
   await stopLocalAPI()
@@ -108,7 +110,6 @@ async function restartWorkspaceWriters(): Promise<void> {
     await startAgentBridge()
   }
   for (const window of BrowserWindow.getAllWindows()) {
-    window.webContents.once('did-finish-load', () => setupWindowChannel(window))
     window.reload()
   }
 }
@@ -391,6 +392,8 @@ async function createWindow() {
 
   mainWindow.webContents.on('did-finish-load', () => {
     bootTrace('renderer loaded')
+    // Reload replaces the preload realm and its MessagePort. Reconnect every time.
+    setupWindowChannel(window)
     // Flush everything main logged before a renderer existed (0413). Done here
     // rather than at window creation so the renderer's own listener is already
     // registered and the flush cannot race it.
@@ -518,6 +521,7 @@ app
 
     // Setup agent bridge IPC handlers (drives the user's claude/codex CLI)
     setupAgentBridgeIPC()
+    setupCommunityAgentIPC(() => mainWindow)
 
     // Setup dev-only Storybook IPC handlers
     if (process.env.NODE_ENV === 'development') {
@@ -542,7 +546,6 @@ app
 
     // Setup MessagePort channel between renderer and data process
     if (mainWindow) {
-      setupWindowChannel(mainWindow)
       initAutoUpdater(mainWindow, async () => {
         if (!hasDownloadedUpdate()) throw new Error('No downloaded update is ready to install.')
         installRequested = true
@@ -553,9 +556,6 @@ app
     app.on('activate', async () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         await createWindow()
-        if (mainWindow) {
-          setupWindowChannel(mainWindow)
-        }
       }
     })
   })

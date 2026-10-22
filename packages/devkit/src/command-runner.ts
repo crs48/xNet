@@ -8,8 +8,8 @@
  * whole dev loop unit-testable without spawning anything.
  */
 
-import { spawn } from 'node:child_process'
 import type { DuplexProcess, DuplexRunner, DuplexRunOptions } from './json-rpc-stdio'
+import { spawn } from 'node:child_process'
 
 export interface CommandResult {
   /** `true` when the process exited 0. */
@@ -158,7 +158,7 @@ export class NodeLineRunner implements LineRunner {
     }
     bumpIdle()
 
-    child.stdout?.on('data', (data: Buffer) => {
+    child.stdout?.on('data', (data: string) => {
       bumpIdle()
       stdoutBuffer += data.toString()
       const lines = stdoutBuffer.split('\n')
@@ -289,6 +289,10 @@ export class NodeDuplexRunner implements DuplexRunner {
       stdio: ['pipe', 'pipe', 'pipe']
     })
 
+    // Drain stderr without reflecting provider diagnostics (which may contain account data).
+    child.stderr?.resume()
+    child.stdin?.on('error', () => child.kill())
+    child.stdout?.setEncoding('utf8')
     const pending: string[] = []
     let buffer = ''
     let closed = false
@@ -306,7 +310,7 @@ export class NodeDuplexRunner implements DuplexRunner {
     }
     bumpIdle()
 
-    child.stdout?.on('data', (data: Buffer) => {
+    child.stdout?.on('data', (data: string) => {
       bumpIdle()
       buffer += data.toString()
       const lines = buffer.split('\n')

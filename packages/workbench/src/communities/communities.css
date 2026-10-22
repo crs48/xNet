@@ -1,0 +1,51 @@
+/* This shell intentionally ignores the legacy cozy palette. */
+.community-app,
+.community-modal {
+  color-scheme: light;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 8%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 42%;
+  --border: 0 0% 90%;
+  --ring: 0 0% 35%;
+  --destructive: 0 0% 20%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.community-app button:focus-visible,
+.community-modal button:focus-visible,
+.community-app a:focus-visible,
+.community-modal a:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 3px;
+}
+.community-modal::backdrop {
+  background: rgb(0 0 0 / 28%);
+}
+.community-app .titlebar-drag {
+  -webkit-app-region: drag;
+}
+/* Reuse the SVG masters so the desktop and web shells match the site. */
+.community-brand-mark,
+.community-brand-wordmark {
+  display: block;
+  flex-shrink: 0;
+  background-color: currentColor;
+}
+.community-brand-mark {
+  -webkit-mask: url('../../../../site/public/mark.svg') center / contain no-repeat;
+  mask: url('../../../../site/public/mark.svg') center / contain no-repeat;
+}
+.community-brand-wordmark {
+  aspect-ratio: 226.147927 / 86;
+  -webkit-mask: url('../../../../site/public/wordmark.svg') center / contain no-repeat;
+  mask: url('../../../../site/public/wordmark.svg') center / contain no-repeat;
+}
+@media (prefers-reduced-motion: reduce) {
+  .community-app *,
+  .community-modal * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

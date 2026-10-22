@@ -41,13 +41,43 @@ export function createIPCBlobStore(): IPCBlobStore {
         return new Uint8Array(data)
       }
 
-      // We don't have it - request from peers
-      log('Blob not found locally, requesting from peers:', cid)
-      await window.xnetBSM.requestBlobs([cid])
-
-      // TODO: Could wait for blob-received event, but for now return null
-      // The UI should retry or show loading state
-      return null
+      // Subscribe before requesting: a fast peer can respond during the IPC call.
+      return new Promise<Uint8Array | null>((resolve, reject) => {
+        let settled = false
+        const finish = (bytes: number[] | Uint8Array | null, error?: unknown) => {
+          if (settled) return
+          settled = true
+          clearTimeout(timeout)
+          unsubscribe()
+          if (error) reject(error)
+          else resolve(bytes ? new Uint8Array(bytes) : null)
+        }
+        const unsubscribe = window.xnetBSM.onBlobReceived((received) => {
+          if (received === cid)
+            void window.xnetBSM.getBlob(cid).then(
+              (bytes) => finish(bytes),
+              (error: unknown) => finish(null, error)
+            )
+        })
+        const timeout = setTimeout(
+          () =>
+            finish(
+              null,
+              new Error(
+                'No peer supplied this attachment within 15 seconds. Try again when its sender is online.'
+              )
+            ),
+          15_000
+        )
+        void window.xnetBSM
+          .requestBlobs([cid])
+          .then(async () => {
+            // Cover a concurrent download between the first read and subscription.
+            const bytes = await window.xnetBSM.getBlob(cid)
+            if (bytes) finish(bytes)
+          })
+          .catch((error: unknown) => finish(null, error))
+      })
     },
 
     async put(data: Uint8Array): Promise<ContentId> {

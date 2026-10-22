@@ -13,7 +13,7 @@
  * row in the real shell actually repaints the main region.
  */
 import { expect, test, type Page } from '@playwright/test'
-import { setupTestAuth } from '../helpers/test-auth'
+import { setupTestAuth, openWorkspaceToolsIfVisible } from '../helpers/test-auth'
 
 const BASE = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:5173'
 
@@ -21,6 +21,7 @@ const BASE = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:5173'
 async function advanceOnboarding(page: Page): Promise<void> {
   const ready = page.locator('[data-wb-region="sidebar"]')
   for (let i = 0; i < 10; i++) {
+    await openWorkspaceToolsIfVisible(page)
     if ((await ready.count()) > 0) return
     const start = page.getByRole('button', { name: /Get started|Create your first page/i })
     if ((await start.count()) > 0 && (await start.first().isVisible())) {

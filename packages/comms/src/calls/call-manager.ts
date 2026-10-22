@@ -43,6 +43,8 @@ export interface CallManagerOptions {
   getLocalTracks?: () => Array<[unknown, unknown]>
   /** Participant ceiling including self; defaults from local media kind */
   maxParticipants?: number
+  /** Negotiation failures are surfaced to the call UI. */
+  onError?: (error: Error) => void
 }
 
 export interface CallManager {
@@ -61,6 +63,8 @@ interface PeerEntry {
   media: MediaFlags
   connection: PeerConnectionLike | null
   stream: unknown | null
+  remoteDescriptionReady: boolean
+  pendingIce: unknown[]
 }
 
 export function createCallManager(options: CallManagerOptions): CallManager {
@@ -70,6 +74,22 @@ export function createCallManager(options: CallManagerOptions): CallManager {
   let status: CallStatus = 'idle'
   let media: MediaFlags = { audio: true, video: false, screen: false }
   let unsubscribe: (() => void) | null = null
+
+  function report(cause: unknown): void {
+    const error = cause instanceof Error ? cause : new Error(String(cause))
+    if (options.onError) options.onError(error)
+    else console.error('[CallManager] Negotiation failed:', error)
+  }
+  async function setRemote(
+    entry: PeerEntry,
+    description: { type: string; sdp: string }
+  ): Promise<void> {
+    if (!entry.connection) return
+    await entry.connection.setRemoteDescription(description)
+    entry.remoteDescriptionReady = true
+    const candidates = entry.pendingIce.splice(0)
+    for (const candidate of candidates) await entry.connection.addIceCandidate(candidate)
+  }
 
   function emit(): void {
     for (const handler of handlers) handler()
@@ -131,16 +151,26 @@ export function createCallManager(options: CallManagerOptions): CallManager {
       setStatus('full')
       return null
     }
-    const entry: PeerEntry = { sessionId, did, media: peerMedia, connection: null, stream: null }
+    const entry: PeerEntry = {
+      sessionId,
+      did,
+      media: peerMedia,
+      connection: null,
+      stream: null,
+      remoteDescriptionReady: false,
+      pendingIce: []
+    }
     peers.set(sessionId, entry)
     emit()
     return entry
   }
 
   async function startOffer(remote: PeerEntry): Promise<void> {
+    if (remote.connection) return
     const connection = createConnection(remote)
     const offer = await connection.createOffer()
     await connection.setLocalDescription(offer)
+    if (!peers.has(remote.sessionId)) return
     transport.send({
       kind: 'offer',
       from: self.sessionId,
@@ -151,9 +181,10 @@ export function createCallManager(options: CallManagerOptions): CallManager {
 
   async function answerOffer(remote: PeerEntry, sdp: string): Promise<void> {
     const connection = remote.connection ?? createConnection(remote)
-    await connection.setRemoteDescription({ type: 'offer', sdp })
+    await setRemote(remote, { type: 'offer', sdp })
     const answer = await connection.createAnswer()
     await connection.setLocalDescription(answer)
+    if (!peers.has(remote.sessionId)) return
     transport.send({
       kind: 'answer',
       from: self.sessionId,
@@ -180,29 +211,33 @@ export function createCallManager(options: CallManagerOptions): CallManager {
       did: self.did,
       media
     })
-    if (iInitiate(signal.from)) void startOffer(entry)
+    if (iInitiate(signal.from)) void startOffer(entry).catch(report)
   }
 
   function handleWelcome(signal: Extract<CallSignal, { kind: 'welcome' }>): void {
     const entry = addPeer(signal.from, signal.did, signal.media)
-    if (entry && iInitiate(signal.from)) void startOffer(entry)
+    if (entry && iInitiate(signal.from)) void startOffer(entry).catch(report)
   }
 
   function handleTargeted(signal: CallSignal): void {
     if (signal.kind === 'offer') {
       const entry = peers.get(signal.from)
-      if (entry) void answerOffer(entry, signal.sdp)
+      if (entry) void answerOffer(entry, signal.sdp).catch(report)
       return
     }
     if (signal.kind === 'answer') {
-      void peers.get(signal.from)?.connection?.setRemoteDescription({
-        type: 'answer',
-        sdp: signal.sdp
-      })
+      const entry = peers.get(signal.from)
+      if (entry) void setRemote(entry, { type: 'answer', sdp: signal.sdp }).catch(report)
       return
     }
     if (signal.kind === 'ice') {
-      void peers.get(signal.from)?.connection?.addIceCandidate(signal.candidate)
+      const entry = peers.get(signal.from)
+      if (!entry) return
+      if (!entry.remoteDescriptionReady) {
+        if (entry.pendingIce.length < 64) entry.pendingIce.push(signal.candidate)
+      } else {
+        void entry.connection?.addIceCandidate(signal.candidate).catch(report)
+      }
     }
   }
 

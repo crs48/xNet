@@ -12,13 +12,17 @@
  * which broadcasts it over WebSocket to other peers.
  */
 
-import type {
-  SyncManager,
-  SyncReconciliationOptions,
-  SyncReconciliationReport
-} from '@xnetjs/react'
+import type { NodeStore } from '@xnetjs/data'
 import type { SyncLifecycleInput, SyncLifecycleState, SyncReplicationConfig } from '@xnetjs/sync'
 import { createYWebRTCProvider, type YWebRTCProvider } from '@xnetjs/network'
+import {
+  type SyncManager,
+  type SyncReconciliationOptions,
+  type SyncReconciliationReport,
+  createConnectionManager,
+  NodeStoreSyncProvider,
+  type ConnectionManager
+} from '@xnetjs/react'
 import { createSyncLifecycleState } from '@xnetjs/sync'
 import {
   Awareness,
@@ -52,6 +56,7 @@ interface DevToolsEventBus {
 }
 
 export interface IPCSyncManager extends SyncManager {
+  attachNodeStore(store: NodeStore, getAuthToken: () => Promise<string>): () => void
   flushDocuments(): Promise<void>
   /** Instrument with devtools event bus for sync monitoring */
   instrument(eventBus: DevToolsEventBus): () => void
@@ -83,6 +88,43 @@ export function createIPCSyncManager(): IPCSyncManager {
   const trackedSchemas = new Map<string, string>()
   const webrtcProviders = new Map<string, YWebRTCProvider>()
 
+  let nodeConnection: ConnectionManager | null = null
+  let nodeProvider: NodeStoreSyncProvider | null = null
+  let nodeStore: NodeStore | null = null
+  let nodeAuth: (() => Promise<string>) | undefined
+  const shareRooms = new Map<string, { refs: number; provider: NodeStoreSyncProvider | null }>()
+  function disconnectNodes() {
+    nodeProvider?.detach()
+    nodeProvider = null
+    for (const entry of shareRooms.values()) {
+      entry.provider?.detach()
+      entry.provider = null
+    }
+    nodeConnection?.disconnect()
+    nodeConnection = null
+  }
+  function connectNodes() {
+    disconnectNodes()
+    if (!nodeStore || !identityAuthorDID) return
+    nodeConnection = createConnectionManager({
+      url: bsmStartOptions.signalingUrl,
+      getUCANToken: bsmStartOptions.ucanToken ? undefined : nodeAuth,
+      ucanToken: bsmStartOptions.ucanToken
+    })
+    const store = nodeStore
+    nodeProvider = new NodeStoreSyncProvider(
+      store,
+      identityAuthorDID,
+      false,
+      (change) => !store.isDraftPrivate(change.payload.nodeId)
+    )
+    nodeProvider.attach(nodeConnection)
+    for (const [room, entry] of shareRooms) {
+      entry.provider = new NodeStoreSyncProvider(store, room, true)
+      entry.provider.attach(nodeConnection)
+    }
+    nodeConnection.connect()
+  }
   let currentStatus: ConnectionStatus = 'disconnected'
   let previousStatus: ConnectionStatus = 'disconnected'
   const statusListeners = new Set<StatusHandler>()
@@ -174,8 +216,8 @@ export function createIPCSyncManager(): IPCSyncManager {
       webrtcProviders.set(nodeId, provider)
 
       // Downgrade immediately on auth/ICE failures.
-      provider.provider.on('status', (event: { status: string }) => {
-        if (event.status === 'failed' || event.status === 'disconnected') {
+      provider.provider.on('status', (event: { connected: boolean }) => {
+        if (!event.connected) {
           const existing = webrtcProviders.get(nodeId)
           existing?.destroy()
           webrtcProviders.delete(nodeId)
@@ -286,6 +328,33 @@ export function createIPCSyncManager(): IPCSyncManager {
   }
 
   return {
+    attachNodeStore(store, getAuthToken) {
+      nodeStore = store
+      nodeAuth = getAuthToken
+      connectNodes()
+      return () => {
+        disconnectNodes()
+        nodeStore = null
+        nodeAuth = undefined
+      }
+    },
+    subscribeShareRoom(room) {
+      const existing = shareRooms.get(room)
+      if (existing) {
+        existing.refs += 1
+        return
+      }
+      const provider =
+        nodeStore && nodeConnection ? new NodeStoreSyncProvider(nodeStore, room, true) : null
+      shareRooms.set(room, { refs: 1, provider })
+      if (provider && nodeConnection) provider.attach(nodeConnection)
+    },
+    unsubscribeShareRoom(room) {
+      const entry = shareRooms.get(room)
+      if (!entry || --entry.refs > 0) return
+      entry.provider?.detach()
+      shareRooms.delete(room)
+    },
     async start() {
       // Guard against multiple start calls (React StrictMode)
       if (statusCleanup) {
@@ -324,6 +393,7 @@ export function createIPCSyncManager(): IPCSyncManager {
     setIdentity(authorDID: string, signingKey: Uint8Array) {
       identityAuthorDID = authorDID
       identitySigningKey = Array.from(signingKey)
+      if (nodeStore) connectNodes()
     },
 
     configureReplication(config) {
@@ -342,6 +412,7 @@ export function createIPCSyncManager(): IPCSyncManager {
         iceServers: input.iceServers
       }
 
+      connectNodes()
       try {
         await window.xnetBSM.reconfigure({
           ...bsmStartOptions,
@@ -354,6 +425,7 @@ export function createIPCSyncManager(): IPCSyncManager {
     },
 
     async stop() {
+      disconnectNodes()
       updateLifecycle({
         stopped: true,
         replaying: false
@@ -424,9 +496,6 @@ export function createIPCSyncManager(): IPCSyncManager {
         const awareness = new Awareness(doc)
         awarenessMap.set(nodeId, awareness)
 
-        // Request port from main process (preload manages the actual MessagePort)
-        await window.xnetBSM.acquire(nodeId, '')
-
         // Set up message handler for remote updates (via preload)
         const messageCleanup = window.xnetBSM.onMessage(nodeId, (data: unknown) => {
           const { type, update, users } = data as {
@@ -453,6 +522,9 @@ export function createIPCSyncManager(): IPCSyncManager {
           }
         })
 
+        // Register before acquiring: the initial document/presence response can arrive immediately.
+        await window.xnetBSM.acquire(nodeId, '')
+
         // Forward local edits to main process (via preload)
         // Note: We skip 'remote' origin to avoid echo, but we DO forward 'storage'
         // origin updates so the main process gets the initial content loaded from local SQLite storage
@@ -474,11 +546,13 @@ export function createIPCSyncManager(): IPCSyncManager {
             window.xnetBSM.postMessage(nodeId, { type: 'awareness', update: Array.from(update) })
           }
         }
-        awareness.on('change', awarenessHandler)
+        // Heartbeats use `update` even when the state is unchanged. Forward them
+        // so remote peers do not expire an otherwise healthy call after 30 seconds.
+        awareness.on('update', awarenessHandler)
 
         cleanups.set(nodeId, () => {
           doc.off('update', updateHandler)
-          awareness.off('change', awarenessHandler)
+          awareness.off('update', awarenessHandler)
           messageCleanup()
         })
 

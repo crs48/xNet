@@ -16,6 +16,7 @@
  *   cd tests/e2e && pnpm exec playwright test src/electron-smoke.spec.ts --project=electron
  */
 import { expect, test, type Page } from '@playwright/test'
+import { openWorkspaceToolsIfVisible } from '../helpers/test-auth'
 import { electronRendererBuilt, launchElectronApp } from './lib/sync-harness'
 
 // Benign console noise we don't want to fail a boot on: CDP/devtools chatter and
@@ -189,6 +190,7 @@ test.describe('Electron app smoke (0238 L3)', () => {
     try {
       await waitForRenderer(win)
       await advanceOnboardingIfNeeded(win)
+      await openWorkspaceToolsIfVisible(win)
       await expect(
         win.locator('[data-action-dock="canvas-home"] [data-action-dock-button="page"]')
       ).toBeVisible({ timeout: 30_000 })

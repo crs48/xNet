@@ -171,3 +171,65 @@ describe('createCallManager mesh', () => {
     expect(a.manager.getPeers()[0]?.did).toBe('did:key:zbbb')
   })
 })
+
+describe('call negotiation failures and ordering', () => {
+  it('holds early ICE until the remote description is applied', async () => {
+    const bus = createLoopbackBus()
+    const remote = bus.transport()
+    const connection = fakePeerConnection('local')
+    const manager = createCallManager({
+      self: { did: 'did:key:zlocal', sessionId: 'aaa' },
+      transport: bus.transport(),
+      createPeerConnection: () => connection
+    })
+    manager.join(AUDIO)
+    remote.send({ kind: 'announce', from: 'bbb', did: 'did:key:zremote', media: AUDIO })
+    remote.send({ kind: 'ice', from: 'bbb', to: 'aaa', candidate: { candidate: 'early' } })
+    expect(connection.addIceCandidate).not.toHaveBeenCalled()
+    remote.send({ kind: 'answer', from: 'bbb', to: 'aaa', sdp: 'answer' })
+    await settle()
+    expect(connection.addIceCandidate).toHaveBeenCalledWith({ candidate: 'early' })
+    manager.leave()
+    remote.close()
+  })
+  it('does not negotiate twice when a peer announces repeatedly', async () => {
+    const bus = createLoopbackBus()
+    const remote = bus.transport()
+    const connection = fakePeerConnection('local')
+    const manager = createCallManager({
+      self: { did: 'did:key:zlocal', sessionId: 'aaa' },
+      transport: bus.transport(),
+      createPeerConnection: () => connection
+    })
+    manager.join(AUDIO)
+    for (let i = 0; i < 3; i++)
+      remote.send({ kind: 'announce', from: 'bbb', did: 'did:key:zremote', media: AUDIO })
+    await settle()
+    expect(connection.createOffer).toHaveBeenCalledTimes(1)
+    manager.leave()
+    remote.close()
+  })
+  it('reports rejected negotiation to the caller without an unhandled rejection', async () => {
+    const bus = createLoopbackBus()
+    const remote = bus.transport()
+    const onError = vi.fn()
+    const connection = fakePeerConnection('local')
+    connection.createOffer = vi.fn(async () => {
+      throw new Error('Media negotiation failed')
+    })
+    const manager = createCallManager({
+      self: { did: 'did:key:zlocal', sessionId: 'aaa' },
+      transport: bus.transport(),
+      createPeerConnection: () => connection,
+      onError
+    })
+    manager.join(AUDIO)
+    remote.send({ kind: 'announce', from: 'bbb', did: 'did:key:zremote', media: AUDIO })
+    await settle()
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Media negotiation failed' })
+    )
+    manager.leave()
+    remote.close()
+  })
+})

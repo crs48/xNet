@@ -1,6 +1,6 @@
+import type { AgentFrame } from './agent-frames'
 import { describe, expect, it, vi } from 'vitest'
 import { acpChatAgent, foldAcpUpdate } from './acp-agent'
-import type { AgentFrame } from './agent-frames'
 import { codexAppServerChatAgent, foldCodexNotification } from './codex-app-server'
 import { JsonRpcSession, type DuplexProcess, type DuplexRunner } from './json-rpc-stdio'
 
@@ -141,99 +141,117 @@ describe('JSON-RPC over stdio (exploration 0416)', () => {
   })
 })
 
-describe('Codex app-server folding (exploration 0416)', () => {
-  it('maps deltas, tool calls, results, and usage', () => {
-    expect(foldCodexNotification('codex/event/agent_message_delta', { delta: 'hi' })).toEqual([
-      { type: 'delta', text: 'hi' }
-    ])
-    expect(
-      foldCodexNotification('codex/event/tool_call_begin', {
-        call_id: 'c1',
-        tool_name: 'shell',
-        arguments: { cmd: 'ls' }
-      })
-    ).toEqual([{ type: 'tool_call', id: 'c1', name: 'shell', input: { cmd: 'ls' } }])
-    expect(
-      foldCodexNotification('codex/event/token_count', {
-        info: { input_tokens: 10, output_tokens: 4 }
-      })
-    ).toEqual([{ type: 'cost', inputTokens: 10, outputTokens: 4 }])
-  })
-
-  it('treats an unstated tool outcome as failure, not success', () => {
-    expect(foldCodexNotification('codex/event/tool_call_end', { call_id: 'c1' })).toEqual([
-      { type: 'tool_result', id: 'c1', ok: false, content: undefined }
-    ])
-    expect(
-      foldCodexNotification('codex/event/tool_call_end', { call_id: 'c1', success: true })
-    ).toEqual([{ type: 'tool_result', id: 'c1', ok: true, content: undefined }])
-  })
-
-  it('drops complete-message events so deltas are not duplicated', () => {
-    expect(foldCodexNotification('codex/event/agent_message', { message: 'hi' })).toEqual([])
-    expect(foldCodexNotification('codex/event/unknown', {})).toEqual([])
-  })
-
-  it('creates a thread on the first turn and reuses it on resume', async () => {
-    const script = {
-      responses: { newConversation: { conversationId: 'thread-1' } },
-      emitAfter: {
-        sendUserMessage: [
-          {
-            jsonrpc: '2.0',
-            method: 'codex/event/agent_message_delta',
-            params: { delta: 'done' }
-          },
-          { jsonrpc: '2.0', method: 'codex/event/task_complete', params: {} }
-        ]
-      }
+describe('Codex app-server v2 (0480)', () => {
+  const script = (status = 'completed') => ({
+    responses: {
+      'thread/start': { thread: { id: 'thread-1' } },
+      'thread/resume': { thread: { id: 'thread-1' } },
+      'turn/start': { turn: { id: 'turn-1' } }
+    },
+    emitAfter: {
+      'turn/start': [
+        { method: 'codex/event/agent_message_delta', params: { delta: 'duplicate' } },
+        {
+          method: 'item/agentMessage/delta',
+          params: { threadId: 'thread-1', turnId: 'turn-1', delta: 'done' }
+        },
+        {
+          method: 'turn/completed',
+          params: { threadId: 'thread-1', turn: { id: 'turn-1', status } }
+        }
+      ]
     }
-
-    const first = fakeAgent(script)
-    const agentA = codexAppServerChatAgent(first.runner, { cwd: '/tmp' })
-    const frames: AgentFrame[] = []
-    const resultA = await agentA.streamTurnFrames({ prompt: 'hello' }, (f) => frames.push(f))
-
-    expect(resultA.sessionId).toBe('thread-1')
-    expect(resultA.text).toBe('done')
-    expect(frames.some((f) => f.type === 'session')).toBe(true)
-    expect(sentMethods(first.written)).toContain('newConversation')
-
-    // Resuming must NOT create a second thread.
-    const second = fakeAgent(script)
-    const agentB = codexAppServerChatAgent(second.runner, { cwd: '/tmp' })
-    const resultB = await agentB.streamTurnFrames(
-      { prompt: 'follow up', resumeSessionId: 'thread-1' },
+  })
+  it('uses initialize/initialized, v2 start and an explicit resume after process restart', async () => {
+    for (const resumeSessionId of [undefined, 'thread-1']) {
+      const fake = fakeAgent(script())
+      const agent = codexAppServerChatAgent(fake.runner, {
+        cwd: '/tmp',
+        config: { 'features.shell_tool': false }
+      })
+      const result = await agent.streamTurnFrames({ prompt: 'hello', resumeSessionId }, () => {})
+      expect(result).toEqual({ text: 'done', sessionId: 'thread-1' })
+      expect(sentMethods(fake.written)).toEqual([
+        'initialize',
+        'initialized',
+        resumeSessionId ? 'thread/resume' : 'thread/start',
+        'turn/start'
+      ])
+      const start = JSON.parse(fake.written[2])
+      expect(start.params.approvalPolicy).toBe('never')
+      expect(start.params.config['features.shell_tool']).toBe(false)
+    }
+  })
+  it('maps current event names and preserves the legacy folding helper', () => {
+    expect(foldCodexNotification('item/agentMessage/delta', { delta: 'hello' })).toEqual([
+      { type: 'delta', text: 'hello' }
+    ])
+    expect(foldCodexNotification('codex/event/agent_message_delta', { delta: 'hello' })).toEqual([
+      { type: 'delta', text: 'hello' }
+    ])
+    expect(
+      foldCodexNotification('item/completed', { item: { type: 'commandExecution', id: 'a' } })
+    ).toMatchObject([{ type: 'tool_result', ok: false }])
+  })
+  it.each(['failed', 'interrupted'])('never treats terminal %s as success', async (status) => {
+    const fake = fakeAgent(script(status))
+    await expect(
+      codexAppServerChatAgent(fake.runner, { cwd: '/tmp' }).streamTurn(
+        { prompt: 'hello' },
+        () => {}
+      )
+    ).rejects.toThrow(status)
+  })
+  it('fails on EOF after a partial answer', async () => {
+    const setup = script()
+    setup.emitAfter['turn/start'].pop()
+    const fake = fakeAgent(setup)
+    const agent = codexAppServerChatAgent(fake.runner, { cwd: '/tmp' })
+    const result = agent.streamTurn({ prompt: 'hello' }, () => {
+      setTimeout(() => fake.proc.kill(), 0)
+    })
+    await expect(result).rejects.toThrow('disconnected before turn completion')
+  })
+  it('refuses a runtime without v2 thread IDs', async () => {
+    const fake = fakeAgent({})
+    await expect(
+      codexAppServerChatAgent(fake.runner, { cwd: '/tmp' }).streamTurn({ prompt: 'hi' }, () => {})
+    ).rejects.toThrow('thread ID')
+  })
+  it('denies approvals and does not accept arbitrary server requests', async () => {
+    const fake = fakeAgent(script())
+    fake.push({
+      id: 90,
+      method: 'item/commandExecution/requestApproval',
+      params: { itemId: 'cmd', command: 'touch sentinel' }
+    })
+    fake.push({ id: 91, method: 'item/tool/call', params: {} })
+    await codexAppServerChatAgent(fake.runner, { cwd: '/tmp' }).streamTurn(
+      { prompt: 'hello' },
       () => {}
     )
-
-    expect(resultB.sessionId).toBe('thread-1')
-    expect(sentMethods(second.written)).not.toContain('newConversation')
+    const replies = fake.written.map((s) => JSON.parse(s))
+    expect(replies.find((r) => r.id === 90).result).toEqual({ decision: 'decline' })
+    expect(replies.find((r) => r.id === 91).error).toBeDefined()
   })
-
-  it('surfaces a permission request and denies it by default', async () => {
-    const { runner } = fakeAgent({
-      responses: { newConversation: { conversationId: 't' } },
-      emitAfter: {
-        sendUserMessage: [
-          {
-            jsonrpc: '2.0',
-            id: 7,
-            method: 'codex/request/exec_approval',
-            params: { command: 'rm' }
-          },
-          { jsonrpc: '2.0', method: 'codex/event/task_complete', params: {} }
-        ]
-      }
+  it('interrupts a running turn and rejects cancellation', async () => {
+    const setup = script()
+    setup.emitAfter['turn/start'].pop()
+    const fake = fakeAgent(setup)
+    const controller = new AbortController()
+    const result = codexAppServerChatAgent(fake.runner, { cwd: '/tmp' }).streamTurn(
+      { prompt: 'go', signal: controller.signal },
+      () => {}
+    )
+    const assertion = expect(result).rejects.toThrow()
+    await vi.waitFor(() => expect(sentMethods(fake.written)).toContain('turn/start'))
+    controller.abort()
+    await vi.waitFor(() => expect(sentMethods(fake.written)).toContain('turn/interrupt'))
+    fake.push({
+      method: 'turn/completed',
+      params: { threadId: 'thread-1', turn: { id: 'turn-1', status: 'interrupted' } }
     })
-
-    const frames: AgentFrame[] = []
-    const agent = codexAppServerChatAgent(runner, { cwd: '/tmp' })
-    await agent.streamTurnFrames({ prompt: 'go' }, (f) => frames.push(f))
-
-    const permission = frames.find((f) => f.type === 'permission_request')
-    expect(permission).toBeDefined()
-    expect(permission).toMatchObject({ tool: 'rm' })
+    await assertion
   })
 })
 

@@ -15,7 +15,7 @@
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import {
   buildAgentArgs,
   cliChatAgent,
@@ -30,6 +30,7 @@ import {
 } from '@xnetjs/devkit'
 import { app, ipcMain } from 'electron'
 import { setupAgentApprovalIPC, startAgentMcpServer, stopAgentMcpServer } from './agent-mcp-server'
+import { prepareCodex, runtimeId } from './community-agent-runtime'
 
 export interface AgentBridgeStatus {
   running: boolean
@@ -132,10 +133,38 @@ export async function startAgentBridge(
     return status
   }
 
-  const mcp = await resolveMcpConfigPath()
+  const isCodex = /^codex-cli /.test(probe.stdout.trim())
+  if (basename(agentCmd).replace(/\.exe$/, '') === 'codex' && !isCodex) {
+    status = {
+      running: false,
+      agent: agentCmd,
+      detail: 'This codex executable is not OpenAI Codex. Select a codex-cli installation.'
+    }
+    return status
+  }
+  const mcp = isCodex ? {} : await resolveMcpConfigPath()
   const mcpConfigPath = mcp.path
   let agent: ChatAgent
-  if (agentCmd === 'claude') {
+  if (isCodex) {
+    try {
+      agent = (
+        await prepareCodex(
+          {
+            id: runtimeId(agentCmd),
+            provider: 'codex',
+            path: agentCmd,
+            version: probe.stdout.trim(),
+            state: 'available',
+            detail: ''
+          },
+          join(app.getPath('userData'), 'bridge-codex')
+        )
+      ).agent
+    } catch (cause) {
+      status = { running: false, agent: agentCmd, detail: errorMessage(cause) }
+      return status
+    }
+  } else if (basename(agentCmd).replace(/\.exe$/, '') === 'claude') {
     // Streaming + session continuity (exploration 0391): live deltas over SSE,
     // --resume across turns.
     agent = cliStreamingChatAgent(new NodeLineRunner(), {

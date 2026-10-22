@@ -136,6 +136,36 @@ describe('createIPCSyncManager', () => {
     ])
   })
 
+  it('forwards unchanged awareness heartbeats so idle call peers stay present', async () => {
+    const manager = createIPCSyncManager()
+    await manager.acquire('idle-call')
+    const awareness = manager.getAwareness('idle-call')!
+    awareness.setLocalStateField('communityCall', { session: 'local-session' })
+    mockBSM.api.postMessage.mockClear()
+    awareness.setLocalState(awareness.getLocalState())
+    expect(mockBSM.api.postMessage).toHaveBeenCalledWith(
+      'idle-call',
+      expect.objectContaining({ type: 'awareness', update: expect.any(Array) })
+    )
+    manager.release('idle-call')
+  })
+
+  it('receives the initial document response during acquisition', async () => {
+    const remote = new Y.Doc()
+    remote.getText('content').insert(0, 'initial response')
+    mockBSM.api.acquire.mockImplementation(async (nodeId) => {
+      mockBSM.emitMessage(nodeId, {
+        type: 'update',
+        update: Array.from(Y.encodeStateAsUpdate(remote))
+      })
+    })
+    const manager = createIPCSyncManager()
+    const doc = await manager.acquire('initial-response')
+    expect(doc.getText('content').toString()).toBe('initial response')
+    manager.release('initial-response')
+    remote.destroy()
+  })
+
   it('applies remote updates and clears remote presence after disconnect', async () => {
     const manager = createIPCSyncManager()
     await manager.start()
