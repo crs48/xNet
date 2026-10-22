@@ -5,6 +5,7 @@ import { NodeCommandRunner } from '@xnetjs/devkit'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   agentEnvironment,
+  isSupportedClaude,
   isSupportedCodex,
   prepareCodex,
   replyModelCatalog
@@ -14,6 +15,13 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 describe('installed agent reply policy', () => {
+  it('accepts only the tested Claude Code executables', () => {
+    expect(isSupportedClaude('2.1.278 (Claude Code)')).toBe(true)
+    expect(isSupportedClaude('2.1.304 (Claude Code)')).toBe(true)
+    expect(isSupportedClaude('2.1.305 (Claude Code)')).toBe(false)
+    expect(isSupportedClaude('12.1.278 (Claude Code)')).toBe(false)
+    expect(isSupportedClaude('2.1.304 (another CLI)')).toBe(false)
+  })
   it('rejects the unrelated PATH codex and untested versions', () => {
     expect(isSupportedCodex('0.2.3')).toBe(false)
     expect(isSupportedCodex('codex-cli 0.162.0-alpha.17.2')).toBe(true)

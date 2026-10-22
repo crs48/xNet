@@ -164,3 +164,31 @@ checks, not a claim about the complete monorepo test suite.
 
 Leave the exploration partially implemented until its broader retention,
 encrypted-delivery, partition, and fixture checks have evidence.
+
+## Claude and Codex tryout follow-up
+
+The original profile was reopened for the user's hands-on tryout. Both local
+integrations were connected through **Your agents**, using the existing logins:
+Claude Code `2.1.304` and Codex `0.163.0-alpha.11.1`. The current Claude binary's
+help and [CLI reference](https://code.claude.com/docs/en/cli-reference) were
+checked before adding that exact version to the allowlist. Tools, hooks, MCP,
+skills, and custom plugins remain disabled in the provider adapter.
+
+Claude replied in its own conversation and generated **Agent Playground**, a
+read-only `useQuery(TaskSchema)` view with a separate local counter. The actual
+Electron preview compiled successfully. With no approved task records, the
+query reported that the schema was outside the read grant. **Add one** moved
+the counter from 0 to 2, and **Reset** returned it to 0 despite the denied query.
+
+A simultaneous chat check exposed an unnecessarily global busy restriction.
+Ordinary conversations now allow different local runtimes to work independently;
+overlapping work in the same runtime or conversation remains blocked. A service
+test verifies both agents running together and cancellation of one leaving the
+other unaffected. Shared-project requests retain their serialized host queue.
+After restarting with this change, two messages sent through the UI produced
+overlapping `running` states for Claude and Codex, then two completed replies.
+Both replies appeared in their respective conversations.
+
+Verification: 33 runtime/service tests passed, the Electron typecheck passed,
+changed TypeScript files passed ESLint, and the graph refresh completed. The
+application and development hub were deliberately left running for the user.

@@ -19,6 +19,8 @@ export const isSupportedCodex = (version: string) =>
     'codex-cli 0.163.0-alpha.10.2',
     'codex-cli 0.163.0-alpha.11.1'
   ].includes(version)
+export const isSupportedClaude = (version: string) =>
+  ['2.1.278 (Claude Code)', '2.1.304 (Claude Code)'].includes(version)
 const rec = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
 
@@ -75,8 +77,7 @@ export async function discoverCommunityRuntimes(): Promise<CommunityAgentRuntime
       const version = result.stdout.trim().slice(0, 160)
       const provider = basename(path).startsWith('claude') ? 'claude' : 'codex'
       const compatible =
-        result.ok &&
-        (provider === 'codex' ? isSupportedCodex(version) : /2\.1\.278.*Claude Code/.test(version))
+        result.ok && (provider === 'codex' ? isSupportedCodex(version) : isSupportedClaude(version))
       return {
         id: runtimeId(path),
         path,
@@ -87,7 +88,7 @@ export async function discoverCommunityRuntimes(): Promise<CommunityAgentRuntime
           ? 'Connect using the login already on this device.'
           : provider === 'codex' && !version.startsWith('codex-cli ')
             ? 'This is not OpenAI Codex. Select a codex-cli installation.'
-            : 'This prototype supports Codex 0.162.0-alpha.17.2, Codex 0.163.0-alpha.10.2 / 0.163.0-alpha.11.1, and Claude Code 2.1.278.'
+            : 'This prototype supports Codex 0.162.0-alpha.17.2, Codex 0.163.0-alpha.10.2 / 0.163.0-alpha.11.1, and Claude Code 2.1.278 / 2.1.304.'
       }
     })
   )
@@ -281,8 +282,7 @@ export async function prepareClaude(
   runtime: CommunityAgentRuntime,
   root: string
 ): Promise<{ agent: FramedChatAgent; runtime: CommunityAgentRuntime }> {
-  if (!/^2\.1\.278 \(Claude Code\)$/.test(runtime.version))
-    throw new Error('Unsupported Claude Code version')
+  if (!isSupportedClaude(runtime.version)) throw new Error('Unsupported Claude Code version')
   mkdirSync(root, { recursive: true, mode: 0o700 })
   await verifyRuntimeVersion(runtime, root)
   const { foldStreamJsonFrames, initialStreamJsonFrameState } = await import('@xnetjs/devkit')

@@ -627,8 +627,6 @@ async function start(
     const existing = current.runs.find((run) => run.messageId === input.messageId)
     if (existing) return existing.id
   }
-  if (current.runs.some((run) => run.status === 'running' || run.status === 'queued'))
-    throw new Error('Another local agent is working. Stop it or wait for it to finish.')
   if (current.runs.filter((run) => Date.now() - run.startedAt < 3600_000).length >= 60)
     throw new Error('The local limit is 60 agent requests per hour.')
   const binding = current.bindings.find(
@@ -638,6 +636,14 @@ async function start(
   const runtime = current.runtimes.find((entry) => entry.id === binding.runtimeId)
   if (!runtime || !['ready', 'available'].includes(runtime.state))
     throw new Error(runtime?.detail ?? 'This runtime is unavailable.')
+  if (
+    current.runs.some(
+      (run) =>
+        (run.status === 'running' || run.status === 'queued') &&
+        (run.runtimeId === runtime.id || run.channelId === input.channelId)
+    )
+  )
+    throw new Error('This agent is already working. Stop it or wait for it to finish.')
   const audience = await boundary(binding)
   if (retry && retry.audience !== audience)
     throw new Error(

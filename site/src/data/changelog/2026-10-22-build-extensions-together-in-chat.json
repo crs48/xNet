@@ -3,6 +3,8 @@
   "date": "October 22, 2026",
   "title": "Build extensions together in chat",
   "summary": "The desktop prototype supports shared extension projects, delegated agent requests, attributed versions, and the conversation behind each version, with separate data permissions for each person.",
-  "highlights": [],
+  "highlights": [
+    "Use your local Claude Code and Codex logins, with independent conversations running at the same time."
+  ],
   "tags": ["app", "ai", "plugins"]
 }

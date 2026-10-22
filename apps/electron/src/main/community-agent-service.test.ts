@@ -1,7 +1,8 @@
 import type { AgentFrame, StreamTurnRequest, StreamTurnResult } from '@xnetjs/devkit'
 import type {
   CommunityAgentSnapshot,
-  CommunityAgentDelegation
+  CommunityAgentDelegation,
+  CommunityAgentRuntime
 } from '@xnetjs/workbench/community-agents'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -56,8 +57,15 @@ vi.mock('./community-agent-runtime', () => {
     state: 'available',
     detail: ''
   }
-  const prepare = async () => ({
-    runtime: { ...runtime, state: 'ready' },
+  const claude = {
+    ...runtime,
+    id: 'installed-claude',
+    provider: 'claude',
+    path: '/test/claude',
+    version: '2.1.304 (Claude Code)'
+  }
+  const prepare = async (selected: CommunityAgentRuntime) => ({
+    runtime: { ...selected, state: 'ready' },
     agent: {
       streamTurnFrames: async (
         turn: StreamTurnRequest,
@@ -77,7 +85,7 @@ vi.mock('./community-agent-runtime', () => {
     }
   })
   return {
-    discoverCommunityRuntimes: async () => [runtime],
+    discoverCommunityRuntimes: async () => [runtime, claude],
     prepareCodex: prepare,
     prepareClaude: prepare
   }
@@ -134,6 +142,50 @@ afterEach(async () => {
 })
 describe('desktop community agent lifecycle', () => {
   const input = { channelId: 'chat', messageId: 'message', contextIds: [] }
+  it('runs Claude and Codex independently while preventing overlapping work on one runtime', async () => {
+    const codexId = await invoke<string>('start', input)
+    fixture.nodes.set('another-message', message('another-message'))
+    await expect(invoke('start', { ...input, messageId: 'another-message' })).rejects.toThrow(
+      'This agent is already working'
+    )
+    fixture.nodes.set('claude-chat', {
+      id: 'claude-chat',
+      schemaId: 'xnet://xnet.fyi/Channel@1.0.0',
+      properties: { members: ['did:key:owner'] },
+      createdBy: 'did:key:owner',
+      createdAt: 1,
+      updatedAt: 1
+    })
+    fixture.nodes.set('claude-message', {
+      ...message('claude-message'),
+      properties: { channel: 'claude-chat', content: 'A separate Claude question' }
+    })
+    await invoke('connect', 'installed-claude')
+    await invoke('bind', {
+      channelId: 'claude-chat',
+      runtimeId: 'installed-claude',
+      provider: 'claude',
+      context: 'question',
+      mode: 'direct',
+      enabled: true
+    })
+    await invoke('start', { channelId: 'claude-chat', messageId: 'claude-message', contextIds: [] })
+    expect(fixture.turns).toHaveLength(2)
+    expect(
+      (await invoke<CommunityAgentSnapshot>('snapshot')).runs.map((run) => run.status)
+    ).toEqual(['running', 'running'])
+    await invoke('cancel', codexId)
+    await vi.waitFor(async () =>
+      expect(
+        (await invoke<CommunityAgentSnapshot>('snapshot')).runs.map((run) => run.status)
+      ).toEqual(['cancelled', 'running'])
+    )
+    expect(fixture.turns[1].signal?.aborted).toBe(false)
+    fixture.complete!()
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[1].status).toBe('completed')
+    )
+  })
   it('uses an explicitly selected reviewed version and records its parent independently of recent drafts', async () => {
     fixture.nodes.set('selected-version', {
       id: 'selected-version',
