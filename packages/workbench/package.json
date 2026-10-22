@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/workbench",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "xNet workbench core — the host-agnostic shell state, tabs, navigation intent, and PlatformPort shared by the web and desktop surfaces (exploration 0406)",
   "type": "module",
   "main": "./src/index.ts",
