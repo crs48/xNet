@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-22-dialogs-open-in-the-center-of-the-window",
+  "date": "October 22, 2026",
+  "title": "Dialogs open in the center of the window",
+  "summary": "Settings, search, profiles, and conversation dialogs stay centered instead of appearing in the top-left corner.",
+  "highlights": [],
+  "tags": ["app"],
+  "pr": 728
+}
