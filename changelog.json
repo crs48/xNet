@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-10-22-what-desire-builds-explores-eros-and-sof",
+      "url": "https://xnet.fyi/changelog#2026-10-22-what-desire-builds-explores-eros-and-sof",
+      "title": "What Desire Builds explores Eros and software",
+      "content_text": "A new blog essay connects bodily attention, consent, and the wish to make tools together in xNet.\n",
+      "date_published": "2026-10-22T21:19:44Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "October 22, 2026",
+        "summary": "A new blog essay connects bodily attention, consent, and the wish to make tools together in xNet.",
+        "highlights": [],
+        "mergedAt": "2026-10-22T21:19:44Z",
+        "pr": 729,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-10-10-explore-the-workspace-and-the-ideas-behi",
       "url": "https://xnet.fyi/changelog#2026-10-10-explore-the-workspace-and-the-ideas-behi",
       "title": "Explore the workspace and the ideas behind xNet",

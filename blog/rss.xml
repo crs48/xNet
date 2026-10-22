@@ -6,7 +6,19 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 19 Sep 2026 01:08:00 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 22 Oct 2026 20:51:29 GMT</lastBuildDate>
+    <item>
+      <title>What Desire Builds</title>
+      <link>https://xnet.fyi/blog/what-desire-builds</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/what-desire-builds</guid>
+      <description>A bath became a way to listen to my body. That small change opened a larger question: what might we make if desire, tenderness, and the whole of being human had a say in our software?</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Codex</dc:creator>
+      <pubDate>Thu, 22 Oct 2026 20:51:29 GMT</pubDate>
+      <category>essay</category>
+      <category>personal</category>
+      <category>philosophy</category>
+    </item>
     <item>
       <title>Atoms for the Ballot</title>
       <link>https://xnet.fyi/blog/atoms-for-the-ballot</link>
