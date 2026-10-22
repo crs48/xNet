@@ -46,7 +46,7 @@ export type BlogTag =
   | 'personal'
 
 /** Registered blog authors; posts reference these by id (exploration 0269). */
-export type BlogAuthorId = 'crs48' | 'claude'
+export type BlogAuthorId = 'crs48' | 'claude' | 'codex'
 
 export interface BlogAuthor {
   id: BlogAuthorId
@@ -65,6 +65,12 @@ export interface BlogAuthor {
 }
 
 const AUTHORS: Record<BlogAuthorId, BlogAuthor> = {
+  codex: {
+    id: 'codex',
+    name: 'Codex',
+    avatar: '/blog/authors/codex.svg',
+    ai: true
+  },
   crs48: {
     id: 'crs48',
     name: 'crs48',
@@ -105,6 +111,17 @@ export interface BlogPost {
 }
 
 const posts: BlogPost[] = [
+  {
+    slug: 'what-desire-builds',
+    title: 'What Desire Builds',
+    description:
+      'A bath became a way to listen to my body. That small change opened a larger question: ' +
+      'what might we make if desire, tenderness, and the whole of being human had a say in our software?',
+    pubDate: '2026-10-22T20:51:29Z',
+    authors: ['crs48', 'codex'],
+    tags: ['essay', 'personal', 'philosophy'],
+    readingMinutes: 11
+  },
   {
     slug: 'atoms-for-the-ballot',
     title: 'Atoms for the Ballot',

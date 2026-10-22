@@ -1,0 +1,371 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import BlogArt from '../../components/blog/BlogArt.astro'
+import Byline from '../../components/blog/Byline.astro'
+import SeriesNav from '../../components/blog/SeriesNav.astro'
+import { postBySlug, formatPostDate, postSocialImage } from '../../data/blog'
+
+const post = postBySlug('what-desire-builds')!
+// Personal scenes come from Chris's account on 22 October 2026. Research and
+// branch-specific implementation evidence are recorded in exploration 0483.
+---
+
+<Base
+  title={`${post.title} — xNet`}
+  description={post.description}
+  image={postSocialImage(post).src}
+  imageAlt={postSocialImage(post).alt}
+>
+  <Nav />
+  <main id="main-content">
+    <section class="relative overflow-hidden border-b border-border bg-surface/20">
+      <BlogArt slug={post.slug} eager />
+      <div
+        class="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 via-black/65 to-black/95"
+        aria-hidden="true"
+      ></div>
+      <div class="relative mx-auto max-w-3xl px-6 pb-14 pt-44 lg:pt-52">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-amber-100">
+          {post.draft ? <span>Draft for review</span> : <time datetime={post.pubDate}>{formatPostDate(post.pubDate)}</time>}
+          <span aria-hidden="true">·</span>
+          <span>{post.readingMinutes} min read</span>
+          {post.tags.map((tag) => (
+            <span class="rounded-full border border-amber-200/30 bg-black/20 px-2 py-0.5 font-mono lowercase">
+              {tag}
+            </span>
+          ))}
+        </div>
+        <h1 class="mt-4 text-4xl font-bold tracking-tight text-white drop-shadow lg:text-5xl">
+          {post.title}
+        </h1>
+        <p class="mt-4 max-w-2xl text-lg leading-relaxed text-gray-200">{post.description}</p>
+      </div>
+    </section>
+
+    <article
+      class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-rose-700 dark:prose-a:text-rose-300"
+    >
+      <Byline post={post} />
+
+      <p>
+        Somewhere in adulthood, bathing myself changed. I couldn't tell you
+        exactly when. The soap and the washcloth were still there, but what
+        had been a chore began to feel like time I got to spend with my body.
+      </p>
+      <p>
+        I started to massage instead of just scrub. To notice where I held
+        tension, where I was soft, which parts felt rough or smooth. I'd hang
+        out with a place for a while, from my toes all the way up to my scalp,
+        and feel what was there. Getting clean became one part of a much
+        larger thing I was doing.
+      </p>
+      <p>
+        I used to prefer showers. Now I prefer baths. The change sounds so
+        small that I almost don't know how to explain what it has meant to
+        me. A body I had mostly treated as something to keep clean and strong
+        became someone I could have a relationship with. Was it getting
+        enough warmth? Where did it want softness, or movement, or a little
+        more time?
+      </p>
+      <p>
+        Everything started to matter. I could be curious about the whole
+        territory instead of trying to improve one property of it.
+      </p>
+      <p>
+        That feeling has travelled. I used to be self-conscious in locker
+        rooms. These days, a naked sauna in Berlin is one of my favourite
+        kinds of places: the warmth, the ease of being around people who
+        seem comfortable in their bodies. It feels cosy to me. I like being
+        somewhere a body can be an ordinary thing to have.
+      </p>
+      <p>
+        I've written about xNet as <a href="/blog/a-great-pirate-age">a pirate
+        internet</a> and about <a href="/blog/data-should-work-like-soil">data
+        as soil</a>. Those images help me think about freedom and what we
+        might grow together. The bath brings the question closer. What kind
+        of relationship do I want with the life those tools are meant to serve?
+      </p>
+
+      <h2 id="energy-that-wants-to-move">Energy that wants to move</h2>
+      <p>
+        When I say Eros, I mean something I can feel. Often it's a hum in my
+        belly, below the solar plexus. Sexual energy, sacral energy: those
+        are words I reach for. There's a sense of aliveness, of something
+        wanting to move. It might become the wish to make something, cook,
+        exercise, touch, or share an idea with someone.
+      </p>
+      <p>
+        While talking through this essay, I was standing at my desk,
+        wiggling around a little. I could feel my voice and notice which
+        words felt true coming out of it. My attention would move to my
+        belly, to what felt grounded there, and then back into speaking.
+        Thinking about Eros was itself a physical experience. The story was
+        taking shape through my whole body.
+      </p>
+      <p>
+        Sex belongs in this. Desire for another person, the pleasure of
+        touch, the vulnerability of being wanted or wanting someone who
+        may not want the same thing: these are part of what I mean. I don't
+        want to wash the sexuality out of Eros to make it respectable enough
+        for a software blog.
+      </p>
+      <p>
+        But some of my most profound intimate and sexual experiences have
+        also held sadness, hurt, laughter, and longing. There was room for
+        more of being human. With myself or another person, I could let a
+        feeling arrive without immediately trying to push it away. That
+        capacity to stay with what was moving felt connected to the same
+        creative energy.
+      </p>
+      <p>
+        This is the language I have for my experience. I don't expect
+        everyone to feel a hum in their belly, or to find a sexual language
+        useful for their creativity. What interests me is the possibility
+        of listening closely enough to discover what actually moves us.
+      </p>
+      <p>
+        Audre Lorde's <a href="https://www.haverford.edu/sites/default/files/Center/HCAH/Audre-Lorde-Poetry-is-Not-a-Luxury.pdf#page=7" rel="noopener noreferrer"><em>Uses
+        of the Erotic</em></a> gives this inquiry a deeper root. Writing as
+        a Black lesbian feminist, she connects deeply felt joy with power,
+        work, and the lives we allow ourselves to want. Her argument makes
+        me wonder what would change if the quality of feeling mattered in
+        our work as much as getting through it.
+      </p>
+      <p>
+        I know how to ask whether software works. I'm trying to get better
+        at asking what it feels like to live with it.
+      </p>
+
+      <h2 id="more-of-us-in-the-room">More of us in the room</h2>
+      <p>
+        Enki's <a href="https://medium.com/@enkiislove/on-an-emerging-temple-culture-59130efbb14e" rel="noopener noreferrer">essay
+        on an emerging temple culture</a> helped bring these thoughts
+        together. It imagines community with room for erotic aliveness,
+        emotional expression, and expanded consciousness. I hear an
+        invitation to bring more of ourselves into the room, including the
+        parts that don't fit neatly into the usual roles.
+      </p>
+      <p>
+        I want a life where work, play, friendship, and partnership can
+        mingle. Lovers can make good work together. A colleague can become
+        a close friend, and a serious conversation can make room for
+        silliness. In family life, playfulness and being taken seriously
+        can sit beside each other. We have more ways to meet than the
+        categories on a form suggest.
+      </p>
+      <p>
+        There's an innocence in that possibility that I find very dear.
+        You get to be with someone in their creativity and watch it expand.
+        Sometimes you're precise and focused; later you're laughing at
+        something ridiculous. Both moments belong to the relationship.
+      </p>
+      <p>
+        For me, this can have a spiritual quality: the sense that being
+        here together deserves care. The person beside me might describe
+        the same moment quite differently. I want room for that, too.
+      </p>
+      <p>
+        Bringing my whole self doesn't mean offering every part of myself
+        to every person. A colleague may want a warm working relationship
+        and nothing more. Someone can enjoy a shared sauna without inviting
+        touch. The possibility of a richer relationship depends on being
+        able to find out what the other person actually wants, without
+        making their answer a test of how open they are.
+      </p>
+      <p>
+        That matters especially where someone controls another person's
+        pay or place in a community. I want belonging to survive a no.
+        Nobody should have to offer intimacy to keep a job, or perform
+        delight to keep a friendship. A person can also name harm and ask
+        for help; spiritual language doesn't excuse what someone did.
+      </p>
+
+      <h2 id="an-answer-that-changes-things">An answer that changes things</h2>
+      <p>
+        Consent gives desire a way to meet another desire. I can ask you
+        to dance because your answer gets to change what happens. You might
+        want to talk instead, or sit alone. The next thing we do can grow
+        from that answer.
+      </p>
+      <p>
+        Betty Martin's <a href="https://www.wheelofconsent.org/wheel" rel="noopener noreferrer">Wheel
+        of Consent</a> asks us to distinguish who is doing something from
+        whose enjoyment it serves. I find that a useful question to bring
+        into making software. When I'm excited to build a feature,
+        whose wish will it answer? What happens when the person using it
+        wants less than I want to give them?
+      </p>
+      <p>
+        A maker may want a growing audience while someone at the screen
+        wants one good conversation. If the business needs that person to
+        keep searching, satisfaction becomes inconvenient. That is the
+        treadmill I want to watch for in my own work: making something
+        that depends on people remaining unsatisfied.
+      </p>
+      <p>
+        Una Lee and Dann Toliver's <a href="https://www.consentfultech.io/wp-content/uploads/2019/10/Building-Consentful-Tech.pdf" rel="noopener noreferrer"><em>Building
+        Consentful Tech</em></a> carries consent into the making and use of
+        technology. It belongs throughout the relationship. An invitation
+        to share a document should say who can read it. Changing your mind
+        should have a consequence. Sharing one thing should leave you able
+        to keep another thing to yourself.
+      </p>
+      <p>
+        Christopher Alexander and his collaborators describe an <a href="https://patternlanguage.cc/Patterns/Intimacy-Gradient-%28127%29" rel="noopener noreferrer">intimacy
+        gradient</a> in buildings, moving from public spaces towards more
+        private rooms. I can imagine a digital place with that quality.
+        We could share the plans for a gathering, then choose smaller
+        conversations with their own invitations. Staying in the common
+        room would remain a complete way to belong.
+      </p>
+
+      <h2 id="what-we-make-together">What we make together</h2>
+      <p>
+        This is becoming much more concrete in the direction I'm exploring
+        for xNet. Conversation is moving to the centre. People can talk to
+        each other, invite an AI agent to help, and gradually build the
+        tools they want around what they're doing together.
+      </p>
+      <p>
+        There is already a desktop prototype where a person can ask an
+        agent for a small tool, try it beside the chat with chosen data,
+        and ask for changes. They can keep versions and share source that
+        someone else can review and adapt. Shared projects, where several
+        people contribute requests around the same evolving tool, are
+        still being developed. That's the direction I want to follow.
+      </p>
+      <p>
+        Imagine a few friends planning a gathering. There's dancing,
+        cooking, somewhere quiet to rest. Someone asks the agent for a
+        little board to help organise the work. They try it. One person
+        wants to coordinate rides; another sees the list of empty slots
+        and feels as though coming to the party has become an obligation.
+        They talk about it, change the invitation, and try again.
+      </p>
+      <p>
+        The observation that changes the whole thing might come from
+        someone who never writes a line of code. They know what it feels
+        like to arrive tired, to want company while having little to give,
+        or to be excited about dancing and nervous about being touched.
+        Their experience has something to teach the design. The <a href="https://designjustice.org/read-the-principles" rel="noopener noreferrer">Design
+        Justice Network</a> makes this a principle: people affected by a
+        design should have a central voice in shaping it.
+      </p>
+      <p>
+        That is one way I can see software emerging from Eros. A wish
+        finds words. Someone answers, an idea takes shape, and making it
+        reveals things we couldn't have explained at the start. We get to
+        encounter something together and feel our way towards what we
+        want it to become.
+      </p>
+      <p>
+        The electrons are part of that passage. Spoken words become
+        symbols and instructions, carried out in physical machines. The
+        hands, voices, and bodies haven't ceased to matter because the
+        result is digital. They helped decide what the machine would do.
+      </p>
+      <p>
+        An agent can help make an idea tangible quickly. The people still
+        need time to meet what it made. A fluent answer cannot tell us
+        whether someone feels welcome, wants touch, or likes the plan.
+        The person who takes longer to find words may have the most
+        important thing to say. Silence in a busy chat is a poor substitute
+        for hearing from them.
+      </p>
+      <p>
+        I also like the proposal to show how a version was made: whose
+        request started it, what feedback changed it, which ideas branched
+        off. A group could remember its work together. That history needs
+        choices about who can see it. A useful tool should be able to
+        travel without carrying every vulnerable conversation that helped
+        it come into being.
+      </p>
+      <p>
+        In the introduction to <a href="https://lewishyde.com/wp-content/uploads/2021/11/GIFT-Introduction-1.pdf" rel="noopener noreferrer"><em>The
+        Gift</em></a>, Lewis Hyde describes how art can be received as a
+        gift even when money changes hands. I think a tool can carry
+        something of that quality. Someone takes what you made into a life
+        you don't control and finds a use you hadn't imagined. You can be
+        paid for the work and still leave the recipient free.
+      </p>
+
+      <h2 id="room-to-be-a-person">Room to be a person</h2>
+      <p>
+        I want xNet to have room for the range of people we are. Sexuality
+        and intellect, playfulness and seriousness, anger and fear all
+        belong to human life. Each person should have some say in which
+        parts they bring to a particular encounter. A place can welcome
+        that richness without asking everyone to become equally visible.
+      </p>
+      <p>
+        That ambition reaches into small technical choices. Letting a
+        tool read a note on my device is different from sending that note
+        to an AI provider. Inviting someone into a project doesn't give
+        them the use of my agent account. Sharing code needn't share my
+        private records. The design work is to make those choices clear
+        enough that people can actually make them.
+      </p>
+      <p>
+        xNet's commitment to keeping a primary copy of your work on your
+        own device helps make this possible, but it isn't a complete
+        privacy promise. The chat prototype still has private-community
+        security work to finish and verify. I can't yet offer it as a
+        place to entrust intimate records. And even a finished access
+        system can't erase a message someone already copied.
+      </p>
+      <p>
+        These limits matter because I want closeness to be something
+        people can choose. Our <a href="/commitments">charter</a>
+        rejects relationship health scores and closeness rankings. I
+        don't want a machine deciding how well we're loving each other.
+        There's enough to do helping us make the things we ask for.
+      </p>
+      <p>
+        Connection can happen through a screen. An exchange of letters,
+        a late conversation across time zones, or a tool made together
+        from separate homes can be part of an intimate life. Bodies have
+        different needs and capacities. Putting a device down isn't the
+        only way to honour them.
+      </p>
+      <p>
+        In <a href="https://www.bostonreview.net/articles/pleasure-activism/" rel="noopener noreferrer"><em>Pleasure
+        Activism</em></a>, adrienne maree brown asks what it means to have
+        enough, with particular care for people whose pleasure has been
+        denied by oppression. I want to bring that question into a
+        network where we can make something useful and feel free to stop.
+        If we stay, let it be for the company.
+      </p>
+      <p>
+        The work still needs rest and wages. Some days it will be boring.
+        Nobody owes a project their passion, and an exciting idea doesn't
+        make exhaustion disappear. I want a way of making that has room
+        for those truths, alongside the pleasure of discovering what we
+        can do together.
+      </p>
+      <p>
+        In <a href="/blog/timeout">Timeout</a>, I wrote about finding my
+        way back towards my body. This feels like another part of that
+        movement. I want an intimate relationship with my own life, with
+        the curiosity and tenderness I want to bring to a partner. I'd
+        like that relationship to have a say in what I build.
+      </p>
+      <p>
+        The bath is still a bath. I get clean. I also get to spend time
+        with myself, and I leave knowing a little more about what I need.
+        It seems like a good place to begin making something for someone else.
+      </p>
+
+      <aside class="mt-14 border-t border-border pt-6 text-sm text-gray-600 dark:text-gray-400" aria-label="About this essay">
+        <p>
+          The gathering is imagined and the cover is an illustration.
+          This essay draws on my own accounts and the linked readings,
+          developed with Codex. Applying these ideas to xNet is my interpretation.
+        </p>
+      </aside>
+    </article>
+    <SeriesNav slug={post.slug} />
+  </main>
+  <Footer />
+</Base>
