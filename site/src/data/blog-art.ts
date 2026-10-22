@@ -8,6 +8,8 @@ export interface BlogArt {
 }
 
 const descriptions: Record<string, string> = {
+  'what-desire-builds':
+    'A painterly close view of adult hands resting in warm bath water, with soft light on the ripples.',
   'atoms-for-the-ballot': 'A hand places a folded paper ballot into a wooden ballot box.',
   'the-hundred-year-machine': 'A well-used treadle sewing machine stands in a sunlit room.',
   'the-door-inside-the-house':
