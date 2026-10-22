@@ -4,5 +4,14 @@
   "title": "What Desire Builds explores Eros and software",
   "summary": "A new blog essay connects bodily attention, consent, and the wish to make tools together in xNet.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 729,
+  "mergedAt": "2026-10-22T21:19:44Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
