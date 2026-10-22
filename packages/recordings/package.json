@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/recordings",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Local-first screen recording core (exploration 0414). Pure, platform-agnostic logic: the edit decision list (cut maths, source/edited timeline mapping), auto-edit proposers (silence from a VAD envelope, filler words when the engine is verbatim), capture-path resolution, WebVTT captions, chapter prompting, camera-layout compositing maths, and the resumable-upload manifest. Capture itself is platform code (Electron helper / browser); this package never touches a frame.",
   "license": "MIT",
   "type": "module",

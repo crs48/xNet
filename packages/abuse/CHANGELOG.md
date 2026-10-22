@@ -1,5 +1,13 @@
 # @xnetjs/abuse
 
+## 4.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`2c148e8`](https://github.com/crs48/xNet/commit/2c148e8f134b0062ea9bca7af888710834f1ad91)]:
+  - @xnetjs/identity@4.0.0
+  - @xnetjs/crypto@4.0.0
+
 ## 3.0.0
 
 ### Patch Changes
