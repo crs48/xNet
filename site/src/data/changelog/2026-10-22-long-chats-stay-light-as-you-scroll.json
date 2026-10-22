@@ -1,0 +1,9 @@
+{
+  "id": "2026-10-22-long-chats-stay-light-as-you-scroll",
+  "date": "October 22, 2026",
+  "title": "Long chats stay light as you scroll",
+  "summary": "Conversations render just the visible messages and a small buffer, load older history in bounded windows, and keep your reading position when new messages arrive.",
+  "highlights": [],
+  "tags": ["app", "performance"],
+  "pr": 728
+}

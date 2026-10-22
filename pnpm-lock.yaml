@@ -1847,8 +1847,8 @@ importers:
   packages/react:
     dependencies:
       '@tanstack/react-virtual':
-        specifier: ^3.13.18
-        version: 3.13.18(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^3.14.2
+        version: 3.14.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@xnetjs/billing':
         specifier: workspace:*
         version: link:../billing
@@ -2361,8 +2361,8 @@ importers:
         specifier: ^8.21.2
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-virtual':
-        specifier: ^3.13.2
-        version: 3.13.18(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^3.14.2
+        version: 3.14.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@xnetjs/canvas':
         specifier: workspace:*
         version: link:../canvas

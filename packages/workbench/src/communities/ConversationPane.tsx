@@ -2,7 +2,6 @@ import type { CommunityAgentRun } from './agent-contract'
 import type { CommunityAgents } from './use-community-agents'
 import type { CommunityData, Conversation } from './use-community-data'
 import type { BlobService, BlobTransferQueue, FileRef } from '@xnetjs/data'
-import { compareMessages } from '@xnetjs/comms'
 import { ChatMessageSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import {
@@ -35,18 +34,9 @@ import { ExtensionProjects, publishDevelopment } from './ExtensionProjects'
 import { audienceLabel, bytesLabel, type Audience } from './model'
 import { Avatar, EmptyState, IconButton, inputClass, secondaryButton } from './primitives'
 import { SharedExtensionAttachment } from './SharedExtensionAttachment'
+import { useChatHistory, type ChatMessage as Message } from './use-chat-history'
+import { VirtualChatTimeline } from './VirtualChatTimeline'
 
-type Message = ReturnType<typeof useMessages>['messages'][number]
-function useMessages(channelId: string, limit: number, search: string) {
-  const query = useQuery(ChatMessageSchema, {
-    where: { channel: channelId },
-    orderBy: { createdAt: 'desc' },
-    limit,
-    ...(search.trim() ? { search: search.trim() } : {})
-  })
-  const messages = useMemo(() => [...query.data].sort(compareMessages), [query.data])
-  return { ...query, messages }
-}
 export interface AttachmentServices {
   blobs: BlobService | null
   transfers?: BlobTransferQueue | null
@@ -55,6 +45,15 @@ export function Attachment({ file, services }: { file: FileRef; services: Attach
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const mounted = useRef(true)
+  const objectUrl = useRef<string | null>(null)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      if (objectUrl.current) URL.revokeObjectURL(objectUrl.current)
+    }
+  }, [])
   const load = async () => {
     setBusy(true)
     setError('')
@@ -62,11 +61,21 @@ export function Attachment({ file, services }: { file: FileRef; services: Attach
       if (!services.blobs) throw new Error('File storage is not available.')
       if (!(await services.blobs.has(file)) && services.transfers)
         await services.transfers.ensureLocal(file)
-      setUrl(await services.blobs.getUrl(file))
+      // This row owns its URL. The shared blob URL cache would retain every
+      // opened attachment after its virtualized row left the screen.
+      const bytes = await services.blobs.getData(file)
+      if (!bytes) throw new Error('This attachment is not available on this device.')
+      if (!mounted.current) return
+      const nextUrl = URL.createObjectURL(
+        new Blob([new Uint8Array(bytes)], { type: file.mimeType })
+      )
+      if (objectUrl.current) URL.revokeObjectURL(objectUrl.current)
+      objectUrl.current = nextUrl
+      setUrl(nextUrl)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      if (mounted.current) setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
-      setBusy(false)
+      if (mounted.current) setBusy(false)
     }
   }
   const image = /^image\/(png|jpeg|webp|gif|avif)$/.test(file.mimeType)
@@ -281,7 +290,6 @@ export function ConversationPane({
   )
   const [searching, setSearching] = useState(false)
   const [search, setSearch] = useState('')
-  const [limit, setLimit] = useState(100)
   const [draft, setDraft] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [reply, setReply] = useState<Message | null>(null)
@@ -289,30 +297,25 @@ export function ConversationPane({
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const { messages, loading, error: queryError, reload } = useMessages(channel.id, limit, search)
-  const conversationMessages = messages.filter(
-    (message) => !['attempt', 'host', 'accept', 'withdraw'].includes(message.developmentKind ?? '')
+  const history = useChatHistory(channel.id, search)
+  const { messages, loading, error: queryError, reload } = history
+  const conversationMessages = useMemo(
+    () =>
+      messages.filter(
+        (message) =>
+          !['attempt', 'host', 'accept', 'withdraw'].includes(message.developmentKind ?? '')
+      ),
+    [messages]
   )
+  const recentContext = useQuery(ChatMessageSchema, {
+    where: { channel: channel.id },
+    orderBy: { createdAt: 'desc' },
+    page: { first: 30, count: 'none' },
+    enabled: !!binding
+  })
   const scroller = useRef<HTMLDivElement>(null)
   const composer = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
-  const nearBottom = useRef(true)
-  const readingActivity = useRef(false)
-  useEffect(() => {
-    const viewport = scroller.current
-    if (!viewport) return
-    const onToggle = (event: Event) => {
-      if (
-        event.target instanceof HTMLDetailsElement &&
-        event.target.hasAttribute('data-agent-activity')
-      )
-        readingActivity.current =
-          event.target.open || !!viewport.querySelector('[data-agent-activity][open]')
-    }
-    // Native toggle is non-bubbling; React's supported details handler does not cover this parent.
-    viewport.addEventListener('toggle', onToggle, true)
-    return () => viewport.removeEventListener('toggle', onToggle, true)
-  }, [])
   const space = data.spaces.find((entry) => entry.id === channel.space)
   const audience = (space?.visibility ?? 'private') as Audience
   const title =
@@ -330,12 +333,6 @@ export function ConversationPane({
       setError('This device cannot restore saved drafts.')
     }
   }, [draftKey])
-  useEffect(() => {
-    const inspecting =
-      readingActivity.current && scroller.current?.querySelector('[data-agent-activity][open]')
-    if (nearBottom.current && !inspecting && !search && tab === 'conversation')
-      scroller.current?.scrollTo({ top: scroller.current.scrollHeight })
-  }, [messages, search, tab, agents.snapshot.runs])
   const setDraftAndPersist = (value: string) => {
     setDraft(value)
     setSaved(false)
@@ -358,6 +355,11 @@ export function ConversationPane({
     setSaved(false)
     try {
       if (!data.bridge) throw new Error('The local store is still loading.')
+      if (binding && (binding.mode === 'direct' || mention)) {
+        if (recentContext.error) throw recentContext.error
+        if (recentContext.loading)
+          throw new Error('Recent messages are still loading. Try again in a moment.')
+      }
       const attachments: FileRef[] = []
       if (files.length && !services.blobs) throw new Error('Attachment storage is not available.')
       for (const file of files) attachments.push(await services.blobs!.upload(file))
@@ -372,13 +374,12 @@ export function ConversationPane({
       setFiles([])
       setReply(null)
       setSaved(true)
-      nearBottom.current = true
-      readingActivity.current = false
+      history.jumpToLatest()
       composer.current?.focus()
       if (binding && agents.port && (binding.mode === 'direct' || mention)) {
-        const contextIds = messages
+        const contextIds = [...recentContext.data]
+          .reverse()
           .filter((message) => !message.redacted)
-          .slice(-30)
           .map((message) => message.id)
         const request = {
           channelId: channel.id,
@@ -498,7 +499,6 @@ export function ConversationPane({
               onClick={() => {
                 setTab(value)
                 scroller.current?.scrollTo({ top: 0 })
-                nearBottom.current = true
               }}
               className={`h-full shrink-0 border-b-2 text-xs font-medium ${tab === value ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground'}`}
             >
@@ -559,40 +559,11 @@ export function ConversationPane({
             </IconButton>
           </div>
         )}
-        <div
-          ref={scroller}
-          data-chat-scroll
-          onScroll={() => {
-            const node = scroller.current
-            if (node)
-              nearBottom.current = node.scrollHeight - node.scrollTop - node.clientHeight < 120
-          }}
-          className="min-h-0 flex-1 overflow-y-auto pb-6"
-        >
-          {queryError && (
-            <div role="alert" className="p-6 text-sm">
-              Could not load messages: {queryError.message}
-              <button onClick={reload} className={`${secondaryButton} ml-2`}>
-                Retry
-              </button>
-            </div>
-          )}
-          {loading && (
-            <p role="status" className="p-6 text-sm text-muted-foreground">
-              Loading messages…
-            </p>
-          )}
-          {(tab === 'conversation' || tab === 'media') && messages.length >= limit && (
-            <div className="p-4 text-center">
-              <button onClick={() => setLimit((value) => value + 100)} className={secondaryButton}>
-                Load earlier messages
-              </button>
-            </div>
-          )}
-          {(tab === 'conversation' || tab === 'media') &&
-            !loading &&
-            !queryError &&
-            !messages.length && (
+        {tab === 'conversation' ? (
+          <VirtualChatTimeline
+            key={search.trim()}
+            history={{ ...history, messages: conversationMessages }}
+            empty={
               <EmptyState
                 icon={<span className="text-2xl">#</span>}
                 title={search ? 'No matching messages' : `This is the start of ${title}`}
@@ -603,25 +574,11 @@ export function ConversationPane({
                       'A little place to stay in touch. Send a message, share a moment, or start a call.'
                 }
               />
-            )}
-          {tab === 'extensions' ? (
-            <ExtensionProjects
-              data={data}
-              agents={agents}
-              channel={channel}
-              selectedProject={selectedProject}
-              editBase={projectEditBase}
-              onSelectProject={setSelectedProject}
-              onSettings={onAgentSettings}
-              onPreview={(version, project, entry) => {
-                setProjectPreview({ project, version: entry })
-                setSharedExtension(version)
-                setExtensionRunId(undefined)
-                setExtensionOpen(true)
-              }}
-            />
-          ) : tab === 'conversation' ? (
-            conversationMessages.map((message, index) => (
+            }
+            activity={
+              search.trim() ? null : <AgentRunCards agents={agents} channelId={channel.id} />
+            }
+            renderMessage={(message, index) => (
               <div key={message.id}>
                 {(index === 0 ||
                   new Date(conversationMessages[index - 1].createdAt).toDateString() !==
@@ -678,40 +635,109 @@ export function ConversationPane({
                   </button>
                 )}
               </div>
-            ))
-          ) : tab === 'media' ? (
-            <div className="grid grid-cols-1 gap-4 p-6 lg:grid-cols-2">
-              {messages.flatMap((message) =>
-                message.redacted
-                  ? []
-                  : (message.attachments ?? []).map((file) => (
-                      <Attachment
-                        key={`${message.id}-${file.cid}`}
-                        file={file}
-                        services={services}
-                      />
-                    ))
-              )}
-              {messages.length > 0 &&
-                !messages.some((message) => !message.redacted && message.attachments?.length) && (
-                  <p className="text-sm text-muted-foreground">
-                    No attachments in the loaded conversation history.
-                  </p>
+            )}
+          />
+        ) : (
+          <div ref={scroller} data-chat-scroll className="min-h-0 flex-1 overflow-y-auto pb-6">
+            {queryError && (
+              <div role="alert" className="p-6 text-sm">
+                Could not load messages: {queryError.message}
+                <button onClick={reload} className={`${secondaryButton} ml-2`}>
+                  Retry
+                </button>
+              </div>
+            )}
+            {loading && (
+              <p role="status" className="p-6 text-sm text-muted-foreground">
+                Loading messages…
+              </p>
+            )}
+            {tab === 'media' && history.hasOlder && (
+              <div className="p-4 text-center">
+                <button
+                  onClick={history.older}
+                  disabled={loading || !!queryError}
+                  className={secondaryButton}
+                >
+                  Load earlier messages
+                </button>
+              </div>
+            )}
+            {tab === 'media' && !loading && !queryError && !messages.length && (
+              <EmptyState
+                icon={<span className="text-2xl">#</span>}
+                title={search ? 'No matching messages' : `This is the start of ${title}`}
+                description={
+                  search
+                    ? 'Try a different word or clear the search to return to the conversation.'
+                    : channel.topic ||
+                      'A little place to stay in touch. Send a message, share a moment, or start a call.'
+                }
+              />
+            )}
+            {tab === 'extensions' ? (
+              <ExtensionProjects
+                data={data}
+                agents={agents}
+                channel={channel}
+                selectedProject={selectedProject}
+                editBase={projectEditBase}
+                onSelectProject={setSelectedProject}
+                onSettings={onAgentSettings}
+                onPreview={(version, project, entry) => {
+                  setProjectPreview({ project, version: entry })
+                  setSharedExtension(version)
+                  setExtensionRunId(undefined)
+                  setExtensionOpen(true)
+                }}
+              />
+            ) : tab === 'media' ? (
+              <div className="grid grid-cols-1 gap-4 p-6 lg:grid-cols-2">
+                {messages.flatMap((message) =>
+                  message.redacted
+                    ? []
+                    : (message.attachments ?? []).map((file) => (
+                        <Attachment
+                          key={`${message.id}-${file.cid}`}
+                          file={file}
+                          services={services}
+                        />
+                      ))
                 )}
-            </div>
-          ) : (
-            <AgentRunHistory
-              agents={agents}
-              channelId={channel.id}
-              onPreview={(id) => {
-                setSharedExtension(undefined)
-                setExtensionRunId(id)
-                setExtensionOpen(true)
-              }}
-            />
-          )}
-          {tab === 'conversation' && <AgentRunCards agents={agents} channelId={channel.id} />}
-        </div>
+                {messages.length > 0 &&
+                  !messages.some((message) => !message.redacted && message.attachments?.length) && (
+                    <p className="text-sm text-muted-foreground">
+                      No attachments in the loaded conversation history.
+                    </p>
+                  )}
+              </div>
+            ) : (
+              <AgentRunHistory
+                agents={agents}
+                channelId={channel.id}
+                onPreview={(id) => {
+                  setSharedExtension(undefined)
+                  setExtensionRunId(id)
+                  setExtensionOpen(true)
+                }}
+              />
+            )}
+            {tab === 'media' && history.offset > 0 && (
+              <div className="flex justify-center gap-3 p-4">
+                <button
+                  onClick={history.newer}
+                  disabled={loading || !!queryError}
+                  className={secondaryButton}
+                >
+                  Load newer messages
+                </button>
+                <button onClick={history.jumpToLatest} className={secondaryButton}>
+                  Jump to latest
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         {deleteId && (
           <div className="flex items-center justify-between gap-2 border-t border-border bg-muted px-6 py-3 text-sm">
             <span>Remove your message? Copies may remain on other devices.</span>
