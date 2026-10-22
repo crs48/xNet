@@ -11,6 +11,7 @@ import { readDesktopSettings } from '../storage/desktop-settings'
 import { prepareWorkspaceUpgrade } from '../storage/migrations'
 import { recoverPendingRestore, restoreCheckpoint } from '../storage/restore'
 import { setupAgentBridgeIPC, startAgentBridge, stopAgentBridge } from './agent-bridge-manager'
+import { configureChatMediaWindow, setupChatMediaIPC } from './chat-media-ipc'
 import { setupCloudflareTunnelIPC, stopCloudflareTunnel } from './cloudflare-tunnel-ipc'
 import { setupCommunityAgentIPC, stopCommunityAgents } from './community-agent-service'
 import { installMainCrashLog } from './crash-log'
@@ -372,6 +373,7 @@ async function createWindow() {
   })
 
   const window = mainWindow
+  configureChatMediaWindow(window)
   let closing = false
   window.on('close', (event) => {
     if (quitBarrier.approved) return
@@ -522,6 +524,7 @@ app
     // Setup agent bridge IPC handlers (drives the user's claude/codex CLI)
     setupAgentBridgeIPC()
     setupCommunityAgentIPC(() => mainWindow)
+    setupChatMediaIPC(() => mainWindow)
 
     // Setup dev-only Storybook IPC handlers
     if (process.env.NODE_ENV === 'development') {

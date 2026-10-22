@@ -22,6 +22,10 @@
       "types": "./src/communities/extension-development.ts",
       "import": "./src/communities/extension-development.ts"
     },
+    "./chat-media": {
+      "types": "./src/communities/chat-media-contract.ts",
+      "import": "./src/communities/chat-media-contract.ts"
+    },
     "./community-agents": {
       "types": "./src/communities/agent-contract.ts",
       "import": "./src/communities/agent-contract.ts"

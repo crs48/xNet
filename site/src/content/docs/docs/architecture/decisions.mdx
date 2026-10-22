@@ -1817,3 +1817,27 @@ private-community encryption or general inherited membership model.
 **Tripwire:** Nested communities, delegated roster administrators, or a roster
 larger than 2,000 people requires a reviewed dependency and authorization design
 before expanding this protocol.
+
+## ADR-56: Store chat preview assets as file references
+
+**Status:** Accepted · 2026-10-22 · local prototype
+
+The optional `image` and `media` fields on `MessageLinkPreview` carry existing
+`FileRef` values. The sender resolves metadata and uploads preview bytes through
+the existing blob service. Readers render those stored references. Existing
+`imageUrl` records remain compatible; the desktop chat does not hotlink them.
+
+Desktop resolution checks DNS and every redirect, pins the checked address to
+the socket, and limits time, bytes, concurrent requests, and URLs per message.
+Sending text does not wait for a preview. YouTube embeds load only after a click
+and contact YouTube directly; they are not offline video copies. Readers validate
+preview fields and never execute arbitrary provider HTML.
+
+**Tradeoff:** Snapshots can become stale and consume blob storage. Images and
+files share the conversation's current attachment permissions and retention
+limitations. A preview is untrusted presentation, not proof of a site's identity.
+
+**Tripwire:** Revisit before adding authenticated unfurling, automatic recipient
+fetching, arbitrary provider embeds, or durable background retries. Require
+two-device blob-delivery evidence before promising offline availability to every
+conversation member.

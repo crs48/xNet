@@ -452,6 +452,7 @@ export function App(): React.ReactElement {
         desktop
         blobs={blobs}
         transfers={transfers}
+        resolveLink={window.xnet.resolveChatLink}
         onOpenWorkspace={() => setWorkspace(true)}
         onOpenSettings={() => setSettings(true)}
         banner={

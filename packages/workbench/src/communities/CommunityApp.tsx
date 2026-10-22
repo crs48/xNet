@@ -295,6 +295,7 @@ export function CommunityApp({
   desktop,
   blobs,
   transfers,
+  resolveLink,
   onOpenWorkspace,
   onOpenSettings,
   onAddShared,
@@ -666,7 +667,7 @@ export function CommunityApp({
               key={channel.id}
               channel={channel}
               data={data}
-              services={{ blobs, transfers }}
+              services={{ blobs, transfers, resolveLink }}
               onBack={() => setMobileOpen(false)}
               onDetails={() => setDetails(!details)}
               onCall={(video) => {

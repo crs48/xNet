@@ -23,11 +23,13 @@ import type {
 } from '../shared/social-import'
 import type { ApplyNodeBatchResult } from '@xnetjs/data'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
+import type { ChatLinkResolution } from '@xnetjs/workbench/chat-media'
 import type { CommunityAgentPort } from '@xnetjs/workbench/community-agents'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
+  resolveChatLink: (url: string) => ipcRenderer.invoke('xnet:chat:resolve-link', url),
   getSettingsRecovery: () => ipcRenderer.invoke('xnet:settings:recovery'),
   saveDesktopSettings: (settings: DesktopSettings) =>
     ipcRenderer.invoke('xnet:settings:save', settings),
@@ -620,6 +622,7 @@ export interface RecoveryStatus {
 }
 
 export interface XNetAPI {
+  resolveChatLink(url: string): Promise<ChatLinkResolution>
   libraryCaptureShortcut(): Promise<{ accelerator: string; registered: boolean }>
   closeLibraryCapture(returnToPreviousApp?: boolean): void
   onLibraryCapture(handler: (url: string) => void): () => void

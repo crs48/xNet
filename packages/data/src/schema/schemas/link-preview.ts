@@ -1,12 +1,15 @@
 /**
  * Composer-resolved URL previews (exploration 0295).
  *
- * A preview is resolved ONCE, by the author's composer (via the hub's
- * SSRF-guarded /unfurl proxy), and stored as a structured field on the
+ * A preview is resolved by the author's composer (via a guarded desktop
+ * fetcher or the hub's /unfurl proxy), and stored as a structured field on the
  * message/comment — the sender-generated model. Readers render the stored
  * snapshot and never fetch the URL, so no reader IPs leak, no read
- * receipts exist, and previews replicate offline like any other data.
+ * receipts exist from automatic previews, and snapshots replicate offline.
+ * Playing a third-party embed still contacts that provider.
  */
+
+import type { FileRef } from '../properties/file'
 
 /** One stored preview. `url` matches the verbatim token in `content`. */
 export interface MessageLinkPreview {
@@ -22,6 +25,10 @@ export interface MessageLinkPreview {
    * origin from every reader.
    */
   imageUrl?: string
+  /** Sender-fetched image stored locally; readers never hotlink the source. */
+  image?: FileRef
+  /** A directly linked image, PDF, audio, video, or text file. */
+  media?: FileRef
   providerName?: string
   /** Real destination host, always displayed (anti-phishing). */
   domain: string

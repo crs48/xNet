@@ -1,7 +1,9 @@
 import type { CommunityAgentRun } from './agent-contract'
+import type { AttachmentServices } from './ChatAttachment'
 import type { CommunityAgents } from './use-community-agents'
 import type { CommunityData, Conversation } from './use-community-data'
-import type { BlobService, BlobTransferQueue, FileRef } from '@xnetjs/data'
+import type { FileRef } from '@xnetjs/data'
+export type { AttachmentServices } from './ChatAttachment'
 import { ChatMessageSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import {
@@ -11,9 +13,6 @@ import {
   ArrowLeft,
   ArrowUp,
   Check,
-  Download,
-  File,
-  Image,
   Info,
   Paperclip,
   Phone,
@@ -26,99 +25,21 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { agentReplyContent } from './agent-activity'
 import { AgentRunCards, AgentRunHistory, AgentRunReceipt } from './AgentRunCards'
+import { fileMimeType } from './chat-media'
+import { Attachment } from './ChatAttachment'
+import { ChatContent } from './ChatContent'
 import { ChatExtensionPanel } from './ChatExtensionPanel'
 import { readDevelopmentEntry } from './extension-development'
 import { EXTENSION_SHARE_MIME, type SharedExtension } from './extension-versions'
 import { createExtensionVersion } from './extension-versions'
 import { ExtensionProjects, publishDevelopment } from './ExtensionProjects'
-import { audienceLabel, bytesLabel, type Audience } from './model'
+import { audienceLabel, type Audience } from './model'
 import { Avatar, EmptyState, IconButton, inputClass, secondaryButton } from './primitives'
 import { SharedExtensionAttachment } from './SharedExtensionAttachment'
 import { useChatHistory, type ChatMessage as Message } from './use-chat-history'
+import { useChatPreviews } from './use-chat-previews'
 import { VirtualChatTimeline } from './VirtualChatTimeline'
 
-export interface AttachmentServices {
-  blobs: BlobService | null
-  transfers?: BlobTransferQueue | null
-}
-export function Attachment({ file, services }: { file: FileRef; services: AttachmentServices }) {
-  const [url, setUrl] = useState<string | null>(null)
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  const mounted = useRef(true)
-  const objectUrl = useRef<string | null>(null)
-  useEffect(() => {
-    mounted.current = true
-    return () => {
-      mounted.current = false
-      if (objectUrl.current) URL.revokeObjectURL(objectUrl.current)
-    }
-  }, [])
-  const load = async () => {
-    setBusy(true)
-    setError('')
-    try {
-      if (!services.blobs) throw new Error('File storage is not available.')
-      if (!(await services.blobs.has(file)) && services.transfers)
-        await services.transfers.ensureLocal(file)
-      // This row owns its URL. The shared blob URL cache would retain every
-      // opened attachment after its virtualized row left the screen.
-      const bytes = await services.blobs.getData(file)
-      if (!bytes) throw new Error('This attachment is not available on this device.')
-      if (!mounted.current) return
-      const nextUrl = URL.createObjectURL(
-        new Blob([new Uint8Array(bytes)], { type: file.mimeType })
-      )
-      if (objectUrl.current) URL.revokeObjectURL(objectUrl.current)
-      objectUrl.current = nextUrl
-      setUrl(nextUrl)
-    } catch (cause) {
-      if (mounted.current) setError(cause instanceof Error ? cause.message : String(cause))
-    } finally {
-      if (mounted.current) setBusy(false)
-    }
-  }
-  const image = /^image\/(png|jpeg|webp|gif|avif)$/.test(file.mimeType)
-  const video = /^video\/(mp4|webm|ogg)$/.test(file.mimeType)
-  const audio = /^audio\//.test(file.mimeType)
-  return (
-    <div className="my-2 max-w-sm overflow-hidden rounded-xl border border-border bg-background text-foreground">
-      {url && image && <img src={url} alt={file.name} className="max-h-64 w-full object-contain" />}
-      {url && video && <video src={url} controls preload="metadata" className="max-h-64 w-full" />}
-      {url && audio && <audio src={url} controls preload="metadata" className="w-full" />}
-      <div className="flex items-center gap-3 p-3">
-        {image ? <Image size={20} /> : video ? <Video size={20} /> : <File size={20} />}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{file.name}</p>
-          <p className="text-xs text-muted-foreground">{bytesLabel(file.size)}</p>
-        </div>
-        {url ? (
-          <a
-            href={url}
-            download={file.name}
-            aria-label={`Download ${file.name}`}
-            className="rounded-lg p-2 hover:bg-muted"
-          >
-            <Download size={17} />
-          </a>
-        ) : (
-          <button
-            onClick={() => void load()}
-            disabled={busy}
-            className="rounded-lg px-2 py-1 text-xs font-medium hover:bg-muted"
-          >
-            {busy ? 'Loading…' : 'Open'}
-          </button>
-        )}
-      </div>
-      {error && (
-        <p role="alert" className="px-3 pb-3 text-xs text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
-  )
-}
 function MessageRow({
   message,
   agentRun,
@@ -190,15 +111,19 @@ function MessageRow({
             Reply in this conversation
           </p>
         )}
-        <p
-          className={`whitespace-pre-wrap break-words text-[14px] leading-[1.65] ${message.redacted ? 'italic text-muted-foreground' : ''}`}
-        >
-          {message.redacted
-            ? 'Message removed'
-            : agentRun && message.content
-              ? agentReplyContent(message.content, agentRun)
-              : message.content}
-        </p>
+        {message.redacted ? (
+          <p className="text-sm italic text-muted-foreground">Message removed</p>
+        ) : (
+          <ChatContent
+            content={
+              agentRun && message.content
+                ? agentReplyContent(message.content, agentRun)
+                : (message.content ?? '')
+            }
+            previews={message.linkPreviews}
+            services={services}
+          />
+        )}
         {!message.redacted && agentRun && <AgentRunReceipt run={agentRun} />}
         {!message.redacted && agentRun?.extension && (
           <button
@@ -343,6 +268,7 @@ export function ConversationPane({
       setError('Your draft is in memory only; this device cannot save it.')
     }
   }
+  const previews = useChatPreviews(draft, services, channel.id)
   const send = async () => {
     if (
       (!draft.trim() && !files.length) ||
@@ -360,16 +286,41 @@ export function ConversationPane({
         if (recentContext.loading)
           throw new Error('Recent messages are still loading. Try again in a moment.')
       }
+      const finishPreviews = previews.prepare()
       const attachments: FileRef[] = []
       if (files.length && !services.blobs) throw new Error('Attachment storage is not available.')
-      for (const file of files) attachments.push(await services.blobs!.upload(file))
+      for (const file of files)
+        attachments.push(
+          await services.blobs!.upload(
+            new globalThis.File([file], file.name, { type: fileMimeType(file.name, file.type) })
+          )
+        )
       const sent = await data.bridge.create(ChatMessageSchema, {
         channel: channel.id,
+        linkPreviews: [],
         content: `${mention ? `@${agentName}\n\n` : ''}${draft.trim() || attachments.map((file) => file.name).join(', ')}`,
         ...(attachments.length ? { attachments } : {}),
         ...(reply ? { inReplyTo: reply.inReplyTo || reply.id } : {})
       })
       for (const attachment of attachments) services.transfers?.enqueueUpload(attachment)
+      // Sending never waits for the network. Only the sender adds the snapshot;
+      // a redacted message must not regain media when an in-flight fetch finishes.
+      const bridge = data.bridge
+      void finishPreviews()
+        .then(async (linkPreviews) => {
+          if (!linkPreviews.length) return
+          const current = await bridge.get?.(sent.id)
+          if (
+            current &&
+            !current.properties.redacted &&
+            current.properties.content === sent.properties.content
+          )
+            await bridge.update(sent.id, { linkPreviews })
+        })
+        .catch((cause: unknown) =>
+          setError(`Message saved, but its preview could not be saved: ${String(cause)}`)
+        )
+      previews.reset()
       setDraftAndPersist('')
       setFiles([])
       setReply(null)
@@ -748,7 +699,12 @@ export function ConversationPane({
               className={secondaryButton}
               onClick={() => {
                 void data.bridge
-                  ?.update(deleteId, { content: '', redacted: true, attachments: null })
+                  ?.update(deleteId, {
+                    content: '',
+                    redacted: true,
+                    attachments: null,
+                    linkPreviews: null
+                  })
                   .then(() => setDeleteId(null))
                   .catch((cause: unknown) => setError(String(cause)))
               }}
@@ -839,6 +795,35 @@ export function ConversationPane({
                 </IconButton>
               </div>
             )}
+            {previews.offers.length > 0 && (
+              <div className="mb-3 space-y-1" aria-label="Link previews">
+                {previews.offers.map((offer) => (
+                  <div
+                    key={offer.url}
+                    className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">
+                        {offer.result?.preview.title ?? new URL(offer.url).host}
+                      </p>
+                      <p role="status" className="truncate text-[11px] text-muted-foreground">
+                        {offer.error
+                          ? 'Preview unavailable · the link will still be sent'
+                          : offer.result
+                            ? (offer.result.warning ?? 'Preview ready')
+                            : 'Preparing preview…'}
+                      </p>
+                    </div>
+                    <IconButton
+                      label={`Remove preview for ${new URL(offer.url).host}`}
+                      onClick={() => previews.dismiss(offer.url)}
+                    >
+                      <X size={13} />
+                    </IconButton>
+                  </div>
+                ))}
+              </div>
+            )}
             <textarea
               ref={composer}
               aria-label={`Message ${title}`}
@@ -848,6 +833,13 @@ export function ConversationPane({
               onChange={(event) => {
                 setDraftAndPersist(event.target.value)
                 setMentionPicker(!!binding && /(^|\s)@\w*$/.test(event.target.value))
+              }}
+              onPaste={(event) => {
+                const pasted = Array.from(event.clipboardData.files)
+                if (pasted.length) {
+                  event.preventDefault()
+                  addFiles(pasted)
+                }
               }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
@@ -888,7 +880,7 @@ export function ConversationPane({
                 <span className="text-[11px] text-muted-foreground">
                   {files.length
                     ? 'Files stay on this device until shared with a host.'
-                    : 'Enter to send · Shift + Enter for a new line'}
+                    : 'Markdown supported · Enter to send · Shift + Enter for a new line'}
                 </span>
               </div>
               <button
