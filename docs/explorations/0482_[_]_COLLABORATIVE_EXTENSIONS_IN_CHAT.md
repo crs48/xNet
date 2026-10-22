@@ -1,7 +1,7 @@
 ---
 title: Collaborative extensions in chat
 status: draft
-last_updated: 2026-10-21
+last_updated: 2026-10-22
 review: 2026-11-04
 decider: Chris
 door: two-way
@@ -26,6 +26,7 @@ Alice and Bob open a shared chat and work on a reading-list extension.
 5. While it works, Bob adds: “Keep the filters visible when I scroll.” That message shows **Queued for the next update**, rather than silently disappearing into context.
 6. Version 4 arrives with a short change summary. Both can try it, leave feedback attached to v4, or compare it with v3.
 7. Bob chooses **Make a variation** to try a compact layout. That creates a branch. Alice can try Bob’s version without replacing her installed version.
+8. Alice opens **How this version was made** on either branch. The conversation shows the requests, agent replies, and feedback that led to that version, with earlier versions available inline.
 
 No build/reply mode selector is needed. An explicit mention in the extension thread, or a direct message to its agent, becomes a request. Ordinary discussion remains discussion. A queued request can be edited or withdrawn before it starts; once started, it has a frozen, inspectable scope.
 
@@ -73,6 +74,8 @@ The key code seams are:
 - [Recorded integration passes](../testing/0481-integration-passes-3.md): what the local remix tests actually established.
 
 The extension UI preserves version snapshots, but the underlying source records are mutable nodes. A collaborative version contract needs validated content identity and explicit rules for amendments; UI convention alone is not immutability.
+
+Chat messages already have an xNet schema, authorship, thread links, edit markers, and redaction. That supplies the conversation objects, but message IDs and their current contents alone do not establish which historical revision an agent consumed. The current local agent journal also resumes provider sessions; those sessions must not become an invisible source of development history.
 
 ## Useful precedent
 
@@ -194,17 +197,85 @@ Bind claims such as “requested by Bob” to authenticated request records. A s
 
 </details>
 
+## Reassemble the conversation behind any version
+
+The conversation is part of the development record. Human messages and published agent responses belong in xNet, with versions linked to the messages and attempts that produced them. The history viewer should work for an authorized reader after the original agent host goes offline; it must not depend on that host's private journal.
+
+Every version gets **How this version was made**. The default view reads like an ordinary chat, grouped by iteration:
+
+- The request and relevant discussion, with each speaker identified.
+- The agent's published clarification questions, replies, and useful progress updates.
+- The resulting version, change summary, and feedback used by the next iteration.
+- A visible branch point when another person took the work in a different direction.
+
+Offer **This update** and **From the beginning**. The first shows the attempt or manual edit that produced this version. The second follows its ancestors and assembles their development conversations. Later feedback appears separately as **Discussion after this version**, so it cannot be mistaken for an input that created the artifact.
+
+```mermaid
+flowchart LR
+  M[Human and agent message revisions] --> C[Frozen run context]
+  B[Brief and base version] --> C
+  C --> R[Attributed run]
+  R --> A[Published agent reply]
+  R --> V[Version and source fingerprint]
+  P[Parent version] --> V
+  V --> H[How this version was made]
+  M --> H
+  A --> H
+  P --> H
+```
+
+### Record the relationships when the work happens
+
+Do not infer causation later from timestamps or every message before a version. A busy channel can contain unrelated discussions, and feedback can arrive while a run is already working.
+
+For each attempt, retain an authenticated context manifest that identifies the base source version, brief revision, triggering request, and ordered message revisions actually included. A message reference needs its ID plus a verifiable revision/change reference and content digest. Attachments, excerpts, and summaries need their own version references; a summary must identify the source revisions it summarizes. Digests detect mismatches but cannot recover missing content.
+
+Keep immutable, access-controlled revisions or explicitly retained snapshots available under the conversation's retention policy. Reuse those records across attempts instead of copying the whole transcript into every version. Retention and replication must cover the referenced revisions and supporting blobs, not just the version record. This is a proposed contract; the existing edit flag is not sufficient evidence that old text remains recoverable.
+
+Link the output source fingerprint, published response, and attempt outcome together. If an output arrives before its history has synced, show **History syncing**. If its history was never provided, is inaccessible, or was removed, show that state explicitly. Do not label an incomplete history as complete or block independently reviewing the code.
+
+Manual code edits get an attributed edit event with the base version, resulting version, diff, and optional explanation. Failed attempts can remain in the development conversation with their outcome, but are not labeled as producing a version. Existing imported extensions may have only an author and source; do not invent a conversation for them.
+
+### Development history and model input are different views
+
+The default history explains what people said and what was built. An expandable **Input used for this update** shows the permitted context manifest, including selected messages, excerpts, summaries, and omissions. Related discussion can appear in the default history while being labeled **Not included in this run**.
+
+For shared runs, start with fresh provider sessions and an explicit bounded input assembled from xNet. Later, session reuse can be an optimization only when its explicit prior inputs and outputs are accounted for. The current audience-scoped provider session does not by itself provide that accounting. If a provider applies hidden compaction or other opaque state, mark the input record as partial.
+
+Record the prompt-template version, available model/settings metadata, and permitted external inputs alongside the manifest. Keep credentials, private runtime journals, and private reasoning out of the shared record. An executor's signed account establishes who reported the run; it does not independently prove the provider consumed that exact input.
+
+Reading history is deterministic where the retained records are available. Running the same model request again need not generate the same code. Preserve the actual source artifact and its dependencies/build identity separately; the transcript is an explanation and a useful starting point for a new branch, not a substitute for the saved artifact.
+
+### Follow branches without rewriting their history
+
+To assemble the history, traverse the selected version's parent graph, gather linked attempts and message revisions, enforce access and redaction, and deduplicate shared ancestors. Use recorded causal relationships and input order; timestamps are display hints. Show parallel branches as parallel work rather than inventing a single causal sequence.
+
+When two branches are combined, retain both histories and the new combining request. Following **Start from here** creates a new request based on the selected version, with visible, freshly authorized context. Viewing old history alone must never execute code, restore old grants, or send content to a provider.
+
+### History follows its own access and retention rules
+
+Sharing an extension with another group does not automatically share the conversation that created it. A recipient can see **Development history not shared** and still review the source. Exporting authorized development history is a separate, explicit choice.
+
+Check permissions for every referenced record and attachment. Do not leak private message IDs, authors, excerpts, or guessable content hashes into a broader audience's manifest; use an opaque withheld-context marker where necessary. Retaining a revision must not create a second access path around the original conversation's authorization.
+
+If a message is redacted, the history viewer honors that redaction and shows an unavailable entry rather than recovering its text from a hidden snapshot. Apply retention/removal rules consistently to snapshots and derived context copies. Unaffected history remains useful, while completeness is visibly reduced. As with chat itself, copies already received by someone else cannot be recalled.
+
 ## First useful milestone
 
 Two actual people, on separate Electron profiles and devices or processes, can build one extension in one chat using one person's local Codex. Either person can submit feedback; accepted requests are queued visibly; both receive the same attributed proposal; each can try it with independently approved data.
 
 Reuse the existing version viewer, scoped hooks, sandbox, and approval flow. Add project identity, thread context, delegated requests, shared activity, and review of the proposed current version. Do not make live code coediting, arbitrary agent tools, or collaborative data writes prerequisites.
 
+Include the first history slice in that milestone: either person can open a version and see the retained request, agent response, exact base, and included feedback after the agent host goes offline.
+
 ### Implementation checklist
 
 - [ ] Define project roles and the separate host-delegation contract; record any accepted durable authorization/wire changes in the [ADR register](../../site/src/content/docs/docs/architecture/decisions.mdx), with tripwires.
 - [ ] Add a stable extension project attached to a thread, with a brief and accepted-version history.
 - [ ] Associate source proposals, feedback, and edit requests with that project and exact base versions.
+- [ ] Persist message-revision references, bounded context manifests, published agent responses, and manual-edit events with explicit retention and access rules.
+- [ ] Build version-specific development history with this-update/ancestry views, branch deduplication, and explicit incomplete-history states.
+- [ ] Use explicit fresh-session inputs for shared runs until provider-session context can be accounted for.
 - [ ] Replace creator-only invocation assumptions with verified project authority plus explicit host delegation; preserve the existing local-owner path.
 - [ ] Persist bounded requests and attempts with replay protection, cancellation, restart recovery, and explicit waiting states.
 - [ ] Publish useful activity and validated results to the authorized audience; keep private journals and provider sessions local.
@@ -225,6 +296,10 @@ Reuse the existing version viewer, scoped hooks, sandbox, and approval flow. Add
 - [ ] Verify that receiving or accepting a version never transfers local data grants or silently installs code.
 - [ ] Keep a form open while another version arrives; preserve the selected version and unsaved input.
 - [ ] Reproduce the same extension behavior using shared fixtures, then verify differing local datasets are clearly identified.
+- [ ] Reassemble an older version's conversation after later messages, edits, restart, and the original agent host going offline; verify exact retained revisions and included/excluded context.
+- [ ] Traverse a fork and combined result without duplicating shared ancestors or attributing later feedback to an earlier run.
+- [ ] Redact a referenced message and restrict a history audience; verify that snapshots, manifests, derived copies, and exports do not bypass those restrictions.
+- [ ] Exercise missing blobs, partial sync, imported code without history, manual edits, and opaque provider context; show honest completeness states.
 
 ## Relationship to the existing explorations
 
