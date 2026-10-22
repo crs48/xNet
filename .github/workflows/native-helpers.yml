@@ -21,7 +21,7 @@ jobs:
     runs-on: macos-14
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build xnet-audiotee (release)
         working-directory: apps/electron/native/audiotee
@@ -31,7 +31,7 @@ jobs:
     runs-on: macos-14
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build xnet-screencap (release)
         working-directory: apps/electron/native/screencap
