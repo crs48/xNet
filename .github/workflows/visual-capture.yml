@@ -72,7 +72,7 @@ jobs:
     # job's shim-conformance check instead (exploration 0283).
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
@@ -93,7 +93,7 @@ jobs:
       # on a hit we still run install-deps (apt only). (Exploration 0193.)
       - name: Cache Playwright browser
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-1.58.1-chromium
@@ -169,7 +169,7 @@ jobs:
 
       - name: Upload artifact
         if: always() && hashFiles('tmp/visuals/**') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ui-visuals-pr-${{ github.event.pull_request.number }}
           path: tmp/visuals
@@ -201,7 +201,7 @@ jobs:
           fi
 
       - name: Upsert sticky comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs')
@@ -239,7 +239,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
 
       - name: Build packages
@@ -253,7 +253,7 @@ jobs:
       # on a hit we still run install-deps (apt only). (Exploration 0193.)
       - name: Cache Playwright browser
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-1.58.1-chromium
