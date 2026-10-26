@@ -37,12 +37,12 @@ jobs:
         id: app-token
         if: ${{ vars.CHANGELOG_APP_ID != '' }}
         continue-on-error: true
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ vars.CHANGELOG_APP_ID }}
           private-key: ${{ secrets.CHANGELOG_APP_PRIVATE_KEY }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
@@ -51,10 +51,10 @@ jobs:
       - name: Ensure base ref is present
         run: git fetch --no-tags origin ${{ github.event.pull_request.base.ref }}
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: '10.30.3'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '23'
           cache: 'pnpm'
@@ -130,7 +130,7 @@ jobs:
       # For fork PRs (cannot push) surface the suggestion as a comment instead.
       - name: Suggest changeset on fork PRs
         if: ${{ steps.gate.outputs.covered != 'true' && github.event.pull_request.head.repo.full_name != github.repository }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('node:fs')

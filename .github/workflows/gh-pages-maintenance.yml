@@ -27,7 +27,7 @@ jobs:
     if: github.repository_owner == 'crs48'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Find orphaned previews
         id: sweep
@@ -108,7 +108,7 @@ jobs:
       # merged PR never shows broken images. Comment-only; safe to no-op.
       - name: Tombstone expired visuals comments
         if: steps.sweep.outputs.tombstone != ''
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const marker = '<!-- xnet-visuals -->'
