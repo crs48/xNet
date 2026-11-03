@@ -1,0 +1,2847 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta
+      name="description"
+      content="Research on moderation with agency: YouTube, X, Reddit, Bluesky, open tools, private spaces, and a proposed architecture for xNet."
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Moderation with agency · xNet field notes</title>
+    <style>
+      :root {
+        --paper: #fff;
+        --bg: #f7f8fa;
+        --ink: #20252e;
+        --muted: #626c7a;
+        --line: #e1e5ea;
+        --soft: #f1f3f6;
+        --accent: #3d587e;
+        --shadow: 0 2px 3px #14263804, 0 8px 28px #14263806;
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-padding-top: 30px;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.65 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      a {
+        color: var(--accent);
+        text-underline-offset: 4px;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      button,
+      select {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 9px 12px;
+        background: white;
+        box-shadow: 0 1px 2px #14263805;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:hover {
+        background: var(--soft);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      button.primary,
+      .button.primary {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+      button:focus-visible,
+      a:focus-visible,
+      select:focus-visible,
+      input:focus-visible,
+      summary:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 3px solid #7290ba;
+        outline-offset: 4px;
+      }
+      input[type='checkbox'] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--ink);
+        flex-shrink: 0;
+      }
+      summary {
+        cursor: pointer;
+      }
+      small,
+      .muted {
+        color: var(--muted);
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+      h1 {
+        font-size: clamp(42px, 5vw, 68px);
+        line-height: 1.06;
+        letter-spacing: -0.055em;
+        font-weight: 650;
+        max-width: 800px;
+        margin: 26px 0;
+      }
+      h2 {
+        font-size: 30px;
+        line-height: 1.25;
+        letter-spacing: -0.025em;
+      }
+      h3 {
+        font-size: 20px;
+        line-height: 1.35;
+        letter-spacing: -0.015em;
+      }
+      p {
+        margin-bottom: 18px;
+      }
+      .skip {
+        position: fixed;
+        left: 20px;
+        top: -100px;
+        z-index: 10;
+        background: #fff;
+        padding: 10px;
+      }
+      .skip:focus {
+        top: 12px;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 254px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 30px 22px;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--line);
+        background: #f5f6f8;
+        overflow: auto;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: var(--ink);
+      }
+      .brand svg {
+        width: 92px;
+        height: auto;
+      }
+      .brand span {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        border-left: 1px solid #cbd1db;
+        padding-left: 12px;
+        line-height: 1.4;
+      }
+      .section-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+        font-weight: 650;
+        margin: 30px 0 9px;
+      }
+      .sidebar nav {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .sidebar nav a {
+        font-size: 12px;
+        line-height: 1.45;
+        text-decoration: none;
+        color: #57616f;
+        padding: 7px 10px;
+        border-radius: 8px;
+      }
+      .sidebar nav a:hover,
+      .sidebar nav a[aria-current='true'] {
+        background: #e9ecf1;
+        color: #20252e;
+      }
+      .sidebar .quick a {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .sidebar-footer {
+        padding-top: 24px;
+        margin-top: auto;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      main {
+        min-width: 0;
+        max-width: 1300px;
+        padding: 44px 6vw 64px;
+        margin: 0 auto;
+        width: 100%;
+      }
+      .topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 11px;
+        border: 1px solid var(--line);
+        background: #fff;
+        padding: 4px 9px;
+        border-radius: 99px;
+        font-weight: 600;
+      }
+      .pill:before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #65748b;
+      }
+      .hero {
+        padding: 24px 0 42px;
+      }
+      .lede {
+        font-size: 20px;
+        line-height: 1.55;
+        color: #5e6877;
+        max-width: 700px;
+        letter-spacing: -0.015em;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 25px;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        padding: 10px 16px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: #fff;
+        color: var(--ink);
+        font-size: 13px;
+        box-shadow: var(--shadow);
+      }
+      .framework {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        background: #fff;
+        margin: 0 0 54px;
+        overflow: hidden;
+      }
+      .framework div {
+        padding: 20px 16px;
+        border-right: 1px solid var(--line);
+      }
+      .framework div:last-child {
+        border: 0;
+      }
+      .framework span {
+        font:
+          11px ui-monospace,
+          monospace;
+        color: #838c99;
+      }
+      .framework strong {
+        display: block;
+        font-size: 14px;
+        margin: 12px 0 5px;
+      }
+      .framework p {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.5;
+        margin: 0;
+      }
+      .eyebrow {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-weight: 650;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 28px;
+        box-shadow: var(--shadow);
+        margin-bottom: 30px;
+      }
+      .panel > p {
+        max-width: 720px;
+        color: var(--muted);
+      }
+      .lab-layout {
+        display: grid;
+        grid-template-columns: minmax(230px, 0.9fr) minmax(0, 1.1fr);
+        gap: 28px;
+      }
+      .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 13px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .field select {
+        font-size: 13px;
+        width: 100%;
+        max-width: 100%;
+        font-weight: 400;
+      }
+      .split-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      fieldset {
+        border: 0;
+        padding: 0;
+        margin: 0;
+      }
+      legend {
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .check {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 12px;
+        line-height: 1.5;
+        margin: 9px 0;
+      }
+      .controls details {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+      .sample {
+        background: #f7f8fa;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 18px;
+      }
+      .sample h3 {
+        margin: 10px 0;
+        font-size: 17px;
+      }
+      .sample p {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 0;
+      }
+      .sample .category {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .outcomes {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin: 16px 0 0;
+      }
+      .outcome {
+        padding: 12px 0;
+        border-bottom: 1px solid #edf0f3;
+        display: grid;
+        grid-template-columns: 83px minmax(0, 1fr);
+        gap: 10px;
+        font-size: 12px;
+      }
+      .outcome dt {
+        color: var(--muted);
+        padding-top: 1px;
+      }
+      .outcome dd {
+        margin: 0;
+      }
+      .outcome strong {
+        font-size: 13px;
+        font-weight: 600;
+        display: block;
+      }
+      .outcome p {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.5;
+        margin: 4px 0;
+      }
+      .authority {
+        font-size: 10px;
+        color: #515d6f;
+      }
+      .lab-foot {
+        font-size: 11px;
+        line-height: 1.55;
+        color: var(--muted);
+        margin: 14px 0 0;
+      }
+      .receipt {
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: var(--soft);
+        font-size: 12px;
+        margin-top: 15px;
+      }
+      .report-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      .message {
+        display: flex;
+        align-items: flex-start;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px;
+        gap: 10px;
+        margin-bottom: 9px;
+        font-size: 12px;
+      }
+      .message strong {
+        font-size: 11px;
+      }
+      .message time {
+        font-size: 10px;
+        color: var(--muted);
+        margin-left: 8px;
+      }
+      .message p {
+        margin: 5px 0 0;
+      }
+      .preview {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 18px;
+        min-width: 0;
+      }
+      .preview h3 {
+        font-size: 16px;
+      }
+      .preview ul {
+        padding-left: 20px;
+        font-size: 12px;
+      }
+      .preview p {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      #report-status {
+        font-size: 12px;
+        margin: 14px 0 0;
+      }
+      .document-intro {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid var(--line);
+        padding: 40px 0 20px;
+        margin-bottom: 36px;
+      }
+      .document-intro p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .document-intro h2 {
+        margin-bottom: 7px;
+      }
+      .download-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .download-actions button {
+        font-size: 11px;
+      }
+      .document {
+        font-size: 15px;
+        line-height: 1.85;
+        max-width: 920px;
+      }
+      .document > h2 {
+        margin: 58px 0 22px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+        font-size: 27px;
+      }
+      .document h3 {
+        margin-top: 30px;
+      }
+      .document p,
+      .document li {
+        max-width: 84ch;
+      }
+      .document ul,
+      .document ol {
+        padding-left: 25px;
+      }
+      .document li {
+        margin-bottom: 7px;
+      }
+      .document blockquote {
+        margin: 25px 0;
+        padding: 20px 22px;
+        border-left: 3px solid #8d9db2;
+        background: #eef1f5;
+        border-radius: 0 10px 10px 0;
+        font-size: 15px;
+      }
+      .document blockquote p:last-child {
+        margin: 0;
+      }
+      .document strong {
+        font-weight: 650;
+      }
+      .document details {
+        margin: 24px 0;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 17px 20px;
+        background: #fff;
+      }
+      .document summary {
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .document details[open] summary {
+        margin-bottom: 18px;
+      }
+      .table-wrap {
+        overflow-x: auto;
+        margin: 24px 0;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      .table-wrap table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 12px;
+        line-height: 1.65;
+        min-width: 580px;
+      }
+      .table-wrap th,
+      .table-wrap td {
+        text-align: left;
+        vertical-align: top;
+        padding: 14px 15px;
+        border-bottom: 1px solid var(--line);
+      }
+      .table-wrap th {
+        background: #f1f3f6;
+        font-weight: 600;
+      }
+      .table-wrap tr:last-child td {
+        border: 0;
+      }
+      .document pre {
+        overflow: auto;
+        background: #eef1f5;
+        padding: 18px;
+        border-radius: 10px;
+        font:
+          12px/1.7 ui-monospace,
+          monospace;
+      }
+      .document code {
+        font-size: 0.88em;
+      }
+      .architecture {
+        background: #fff;
+        border: 1px solid var(--line);
+        padding: 24px;
+        border-radius: 14px;
+        margin: 28px 0;
+        font-size: 12px;
+      }
+      .architecture figcaption {
+        color: var(--muted);
+        font-size: 11px;
+        margin-bottom: 15px;
+      }
+      .diagram-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .diagram-row span {
+        background: #f1f3f6;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .diagram-row b {
+        font-weight: 400;
+        color: #6f7e93;
+      }
+      .diagram-down {
+        text-align: center;
+        color: #7c899a;
+        margin: 8px;
+      }
+      .diagram-leaves {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .diagram-leaves span {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fafbfd;
+      }
+      .architecture details {
+        padding: 0;
+        border: 0;
+        margin: 20px 0 0;
+        box-shadow: none;
+      }
+      .architecture summary {
+        font-size: 10px;
+        font-weight: 400;
+        color: var(--muted);
+      }
+      .architecture p {
+        font-size: 12px;
+        line-height: 1.7;
+        margin: 12px 0 0;
+      }
+      .local-reference {
+        color: inherit;
+        text-decoration: underline dotted;
+        text-underline-offset: 3px;
+        cursor: help;
+      }
+      .task-item {
+        list-style: none;
+        margin-left: -20px;
+      }
+      .task-box {
+        font-size: 14px;
+        color: #7a8798;
+        margin-right: 8px;
+      }
+      .footer {
+        margin: 60px 0 0;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .footer a {
+        color: inherit;
+      }
+      .mobile-nav {
+        display: none;
+      }
+      noscript {
+        display: block;
+        padding: 15px;
+        background: #fff4d9;
+      }
+      .sim-note {
+        font-size: 11px !important;
+        color: #5b6779 !important;
+        border-left: 2px solid #bac4d1;
+        padding-left: 10px;
+      }
+      @media (min-width: 1600px) {
+        main {
+          padding-left: 90px;
+          padding-right: 90px;
+        }
+      }
+      @media (max-width: 1100px) {
+        .shell {
+          grid-template-columns: 215px minmax(0, 1fr);
+        }
+        .sidebar {
+          padding: 26px 15px;
+        }
+        main {
+          padding: 30px;
+        }
+        .framework {
+          grid-template-columns: repeat(5, 1fr);
+        }
+        .framework div {
+          padding: 14px 10px;
+        }
+        .lab-layout {
+          grid-template-columns: 1fr;
+        }
+        .outcomes {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          column-gap: 20px;
+        }
+        .outcome {
+          grid-template-columns: 1fr;
+          gap: 2px;
+        }
+        .report-layout {
+          grid-template-columns: 1fr;
+        }
+        .split-fields {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 760px) {
+        .shell {
+          display: block;
+        }
+        .sidebar {
+          position: static;
+          height: auto;
+          padding: 18px 22px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .sidebar nav,
+        .sidebar .section-label,
+        .sidebar-footer {
+          display: none;
+        }
+        .sidebar .brand {
+          justify-content: space-between;
+        }
+        .mobile-nav {
+          display: flex;
+          gap: 18px;
+          margin-top: 15px;
+          font-size: 12px;
+        }
+        main {
+          padding: 26px 20px;
+        }
+        .hero {
+          padding: 16px 0 28px;
+        }
+        h1 {
+          font-size: 44px;
+        }
+        .lede {
+          font-size: 18px;
+        }
+        .framework {
+          grid-template-columns: repeat(2, 1fr);
+          margin-bottom: 32px;
+        }
+        .framework div {
+          border-bottom: 1px solid var(--line);
+          padding: 16px;
+        }
+        .framework div:last-child {
+          grid-column: 1/-1;
+        }
+        .framework strong {
+          margin-top: 6px;
+        }
+        .panel {
+          padding: 20px;
+          border-radius: 14px;
+        }
+        .panel h2 {
+          font-size: 25px;
+        }
+        .outcomes {
+          display: block;
+        }
+        .outcome {
+          grid-template-columns: 82px 1fr;
+          gap: 10px;
+        }
+        .document-intro {
+          display: block;
+        }
+        .download-actions {
+          margin-top: 15px;
+        }
+        .document {
+          font-size: 14px;
+        }
+        .document > h2 {
+          font-size: 24px;
+        }
+        .diagram-leaves {
+          grid-template-columns: 1fr 1fr;
+        }
+        .topline {
+          font-size: 10px;
+        }
+        .table-wrap table {
+          min-width: 550px;
+        }
+        .split-fields {
+          grid-template-columns: 1fr;
+        }
+        .document blockquote {
+          padding: 16px;
+          font-size: 14px;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        html {
+          scroll-behavior: smooth;
+        }
+        .outcome {
+          animation: appear 0.18s ease-out;
+        }
+        @keyframes appear {
+          from {
+            opacity: 0.5;
+            transform: translateY(2px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      }
+      @media print {
+        body {
+          background: #fff;
+        }
+        .shell {
+          display: block;
+        }
+        .sidebar,
+        .actions,
+        .download-actions,
+        .mobile-nav,
+        .skip {
+          display: none;
+        }
+        main {
+          max-width: none;
+          padding: 0;
+        }
+        .hero {
+          padding: 0;
+        }
+        .framework {
+          margin-bottom: 24px;
+        }
+        .panel {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+        .document {
+          max-width: none;
+          font-size: 10pt;
+        }
+        .document h2 {
+          break-after: avoid;
+        }
+        .table-wrap {
+          overflow: visible;
+        }
+        .table-wrap table {
+          min-width: 0;
+        }
+        .document a {
+          color: inherit;
+        }
+        .document pre {
+          white-space: pre-wrap;
+        }
+        .architecture {
+          break-inside: avoid;
+        }
+        .footer {
+          margin: 20px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="#main" aria-label="xNet field notes home"
+          ><svg
+            aria-hidden="true"
+            focusable="false"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 226.147927 86"
+            fill="currentColor"
+            role="img"
+            aria-label="xNet"
+          >
+            <path
+              fill-rule="evenodd"
+              transform="translate(-2.709592 18.261837) scale(0.644478)"
+              d="M23 10 C19.410149 6.410149 13.589851 6.410149 10 10 C6.410149 13.589851 6.410149 19.410149 10 23 L20 33 C24.25 37.25 28.5 41.5 28.5 50 C28.5 58.5 24.25 62.75 20 67 L10 77 C6.410149 80.589851 6.410149 86.410149 10 90 C13.589851 93.589851 19.410149 93.589851 23 90 L33 80 C37.25 75.75 41.5 71.5 50 71.5 C58.5 71.5 62.75 75.75 67 80 L77 90 C80.589851 93.589851 86.410149 93.589851 90 90 C93.589851 86.410149 93.589851 80.589851 90 77 L80 67 C75.75 62.75 71.5 58.5 71.5 50 C71.5 41.5 75.75 37.25 80 33 L90 23 C93.589851 19.410149 93.589851 13.589851 90 10 C86.410149 6.410149 80.589851 6.410149 77 10 L67 20 C62.75 24.25 58.5 28.5 50 28.5 C41.5 28.5 37.25 24.25 33 20 L23 10 Z M56.768436 56.768436 C54.4611 59.075771 52.153765 61.383107 50 61.383107 C47.846235 61.383107 45.5389 59.075771 43.231564 56.768436 C40.924229 54.4611 38.616893 52.153765 38.616893 50 C38.616893 47.846235 40.924229 45.5389 43.231564 43.231564 C45.5389 40.924229 47.846235 38.616893 50 38.616893 C52.153765 38.616893 54.4611 40.924229 56.768436 43.231564 C59.075771 45.5389 61.383107 47.846235 61.383107 50 C61.383107 52.153765 59.075771 54.4611 56.768436 56.768436 Z"
+            />
+            <path
+              d="M118.481583 6Q121.065224 6 122.688599 7.731739Q124.303772 9.453674 124.303772 12.026381V71.464149Q124.303772 74.245941 122.426743 76.122971Q120.549713 78 117.767921 78Q116.391235 78 114.965652 77.524811Q113.507195 77.038651 112.736839 76.158089Q112.731445 76.151932 112.726379 76.1455L75.877151 29.356701V71.973618Q75.877151 74.549316 74.207817 76.272057Q72.533401 78 69.850769 78Q67.266129 78 65.642754 76.268265Q64.028572 74.546265 64.028572 71.973618V12.535852Q64.028572 9.754056 65.905598 7.877028Q67.782623 6 70.56443 6Q72.048058 6 73.630356 6.580412Q75.251457 7.174009 76.023232 8.376584L112.557289 54.978981V12.026381Q112.557289 9.453736 114.171463 7.731743Q115.794846 6 118.481583 6Z"
+            />
+            <path
+              d="M158.860901 79.019936Q150.112137 79.019936 143.666931 75.358727Q137.216446 71.695518 133.75853 65.397034Q130.303772 59.107063 130.303772 51.175453Q130.303772 41.915348 134.066879 35.3685Q137.831375 28.819975 143.919937 25.311119Q150.009003 21.802561 156.822037 21.802561Q162.091492 21.802561 166.793488 23.972721Q171.486725 26.138823 175.096527 29.903065Q178.704865 33.665741 180.817993 38.613434Q182.932907 43.566624 182.932907 49.136578Q182.932907 49.143192 182.932632 49.149796Q182.824692 51.737495 180.881989 53.355892Q178.958115 54.958775 176.397064 54.958775H143.131485Q143.689377 57.4883 144.91127 59.525696Q147.160736 63.275146 150.705429 65.222206Q154.252945 67.170364 158.249344 67.170364Q161.979385 67.170364 164.181473 66.569977Q166.378952 65.970848 167.714752 65.129707Q169.099945 64.257111 170.229645 63.640812Q170.234695 63.638065 170.239822 63.635498Q172.142426 62.68523 173.847717 62.68523Q176.225235 62.68523 177.797546 64.310257Q179.364624 65.931992 179.364624 68.099052Q179.364624 71.00457 176.393326 73.340462Q173.698669 75.618973 168.856064 77.319Q164.01268 79.019936 158.860901 79.019936ZM143.237015 44.130135H169.248657V43.744637Q169.049622 40.893745 167.229233 38.630466Q165.387161 36.340221 162.646332 34.99548Q159.909256 33.651138 156.822037 33.651138Q153.81189 33.651138 151.206024 34.452869Q148.630859 35.245441 146.749771 37.126541Q144.863831 39.011505 143.766632 42.205132Q143.458817 43.099812 143.237015 44.130135Z"
+            />
+            <path
+              d="M192.95929 23.84144H197.332489V17.633549Q197.332489 14.851746 199.209511 12.97472Q201.086533 11.097695 203.868347 11.097695Q206.65564 11.097695 208.43158 12.981421Q210.199997 14.857183 210.199997 17.633549V23.84144H217.121552Q219.700165 23.84144 221.42453 25.565823Q223.147934 27.289211 223.147934 29.867821Q223.147934 32.347275 221.420975 34.020679Q219.697174 35.690018 217.121552 35.690018H210.199997V63.00235Q210.199997 64.340332 210.714401 65.181007Q211.222137 66.011711 212.096268 66.379433Q213.005829 66.762993 214.063721 66.762993Q215.218719 66.762993 216.175552 66.332039Q217.25769 65.845146 218.65097 65.845146Q220.221115 65.845146 221.488358 67.277344Q222.740555 68.692558 222.740555 71.157867Q222.740555 74.193542 219.475296 76.121269Q216.291275 78 212.636414 78Q210.473801 78 207.852417 77.640221Q205.188156 77.274551 202.838821 75.864357Q200.469238 74.443642 198.898483 71.511818Q197.332489 68.586998 197.332489 63.511826V35.690018H192.95929Q190.381729 35.690018 188.657349 33.96669Q186.932907 32.242245 186.932907 29.663637Q186.932907 27.185175 188.660843 25.51078Q190.384659 23.84144 192.95929 23.84144Z"
+            />
+          </svg>
+          <span>FIELD<br />NOTES</span></a
+        >
+        <div class="section-label">Exploration 0500</div>
+        <nav class="quick" aria-label="Interactive exploration">
+          <a href="#policy-lab">Policy lab</a><a href="#private-report">Private report preview</a
+          ><a href="#research">Research &amp; architecture</a>
+        </nav>
+        <div class="section-label">In this document</div>
+        <nav aria-label="Research chapters">
+          <a href="#the-question-worth-answering">The question worth answering</a>
+          <a href="#what-the-major-platforms-actually-separate"
+            >What the major platforms actually separate</a
+          >
+          <a href="#open-tools-worth-borrowing-from">Open tools worth borrowing from</a>
+          <a href="#what-good-moderation-can-be-judged-by">What good moderation can be judged by</a>
+          <a href="#five-powers-five-understandable-decisions"
+            >Five powers, five understandable decisions</a
+          >
+          <a href="#public-media-and-the-seeding-contract">Public media and the seeding contract</a>
+          <a href="#private-rooms-without-invisible-surveillance"
+            >Private rooms without invisible surveillance</a
+          >
+          <a href="#a-small-architecture-with-room-to-grow"
+            >A small architecture with room to grow</a
+          >
+          <a href="#human-review-automation-and-appeals">Human review, automation, and appeals</a>
+          <a href="#options-and-the-recommended-first-release"
+            >Options and the recommended first release</a
+          >
+          <a href="#tests-that-could-change-this-recommendation"
+            >Tests that could change this recommendation</a
+          >
+          <a href="#reading-map-and-research-limits">Reading map and research limits</a>
+        </nav>
+        <div class="sidebar-footer">
+          Research draft · 2 Nov 2026<br />Local exploration. No tracking.<br />Policies are
+          proposals, not shipped features.
+        </div>
+        <div class="mobile-nav">
+          <a href="#policy-lab">Try the lab</a><a href="#research">Read research</a
+          ><a href="#private-report">Private reports</a>
+        </div>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="topline">
+          <span>COMMUNITY NETWORK / MODERATION</span><span class="pill">Research draft</span>
+        </div>
+        <header class="hero">
+          <h1>Many voices.<br />A say in what reaches you.</h1>
+          <p class="lede">
+            How do we protect room to speak—and room to feel at home? A field guide to moderation,
+            personal agency, and communities that can govern themselves.
+          </p>
+          <div class="actions">
+            <a class="button primary" href="#policy-lab"
+              >Explore the tradeoffs <span aria-hidden="true">&nbsp;↗</span></a
+            ><a class="button" href="#what-the-major-platforms-actually-separate"
+              >Compare the platforms</a
+            ><a class="button" href="#a-small-architecture-with-room-to-grow"
+              >See the architecture</a
+            >
+          </div>
+        </header>
+        <div class="framework" aria-label="Five separate moderation powers">
+          <div>
+            <span>01</span><strong>What I see</strong>
+            <p>Attention belongs to the reader.</p>
+          </div>
+          <div>
+            <span>02</span><strong>Who reaches me</strong>
+            <p>Contact requires boundaries.</p>
+          </div>
+          <div>
+            <span>03</span><strong>What gets listed</strong>
+            <p>Discovery has an operator.</p>
+          </div>
+          <div>
+            <span>04</span><strong>What I host</strong>
+            <p>Bandwidth needs consent.</p>
+          </div>
+          <div>
+            <span>05</span><strong>How we review</strong>
+            <p>Decisions can be challenged.</p>
+          </div>
+        </div>
+        <noscript
+          >The full research is readable below. Enable JavaScript to use the two local simulations
+          and download buttons.</noscript
+        >
+        <section class="panel" id="policy-lab" aria-labelledby="lab-title">
+          <p class="eyebrow">01 / Interactive policy lab</p>
+          <h2 id="lab-title">One post. Different boundaries.</h2>
+          <p>
+            Change a preference and see which powers it actually changes. Hiding a post is different
+            from banning it—or agreeing to host it.
+          </p>
+          <p class="sim-note">
+            Fictional examples. No content is classified, fetched, removed, or shared. This is a
+            small model of the proposal, not production enforcement.
+          </p>
+          <div class="lab-layout">
+            <form class="controls" id="policy-controls">
+              <label class="field"
+                >Example<select name="scenario" id="scenario">
+                  <option value="news">Graphic documentary footage</option>
+                  <option value="opinion">An unpopular opinion</option>
+                  <option value="spoiler">A film spoiler</option>
+                  <option value="art">Adult art</option>
+                  <option value="harassment">Repeated unwanted contact</option>
+                  <option value="prohibited">A confirmed operator violation</option>
+                  <option value="unknown">An unclassified upload</option>
+                </select></label
+              >
+              <div class="split-fields">
+                <label class="field"
+                  >Your display preference<select name="preference">
+                    <option value="show">Show optional content</option>
+                    <option value="warn" selected>Warn on selected labels</option>
+                    <option value="hide">Hide this from me</option>
+                  </select></label
+                ><label class="field"
+                  >Account policy<select name="audience">
+                    <option value="adult">Adult</option>
+                    <option value="teen">Teen (illustrative)</option>
+                  </select></label
+                >
+              </div>
+              <label class="field"
+                >Where you encounter it<select name="surface">
+                  <option value="public">Public feed</option>
+                  <option value="private">Private room</option>
+                </select></label
+              >
+              <label class="field"
+                >Your device’s hosting choice<select name="hosting">
+                  <option value="unapproved">No approval to retain this item</option>
+                  <option value="approved">Explicitly approve this item</option>
+                  <option value="declined">Do not host this item</option>
+                </select></label
+              >
+              <label class="check"
+                ><input type="checkbox" name="blockContact" />Block contact from this account</label
+              >
+              <details>
+                <summary>Community and label authority</summary>
+                <label class="field"
+                  >Optional label status<select name="label">
+                    <option value="trusted">Selected issuer · current</option>
+                    <option value="untrusted">Unselected issuer</option>
+                    <option value="expired">Expired assertion</option>
+                  </select></label
+                >
+                <label class="check"
+                  ><input type="checkbox" name="member" checked />You are a member of the private
+                  room</label
+                >
+                <label class="check"
+                  ><input type="checkbox" name="communityRestricted" />Room moderators restricted
+                  this contribution</label
+                >
+              </details>
+              <button type="reset">Reset example</button>
+            </form>
+            <div id="policy-results" aria-live="polite" aria-atomic="true"></div>
+          </div>
+        </section>
+        <section class="panel" id="private-report" aria-labelledby="report-title">
+          <p class="eyebrow">02 / Private evidence</p>
+          <h2 id="report-title">Report a problem. Keep a boundary.</h2>
+          <p>
+            A private report is a deliberate disclosure. Select the excerpts a reviewer would
+            receive; the rest of the conversation stays out of the report.
+          </p>
+          <p class="sim-note">
+            All people and messages below are fictional. Nothing leaves this page.
+          </p>
+          <div class="report-layout">
+            <form id="report-controls">
+              <fieldset>
+                <legend>Choose messages to include</legend>
+                <div id="report-messages"></div>
+              </fieldset>
+              <label class="field"
+                >Who would receive the report?<select name="recipient">
+                  <option value="community">Room moderators</option>
+                  <option value="operator">Service operator</option>
+                </select></label
+              >
+              <label class="check"
+                ><input type="checkbox" name="consent" />I have reviewed these excerpts and this
+                recipient.</label
+              >
+              <button class="primary" type="submit" id="simulate-report" disabled>
+                Simulate disclosure
+              </button>
+              <p id="report-status" role="status"></p>
+            </form>
+            <div class="preview" id="report-preview" aria-live="polite"></div>
+          </div>
+        </section>
+        <div class="document-intro" id="research">
+          <div>
+            <p class="eyebrow">03 / The research document</p>
+            <h2>Moderation with agency</h2>
+            <p>Platform research, open tools, architecture, and an implementation path.</p>
+          </div>
+          <div class="download-actions">
+            <button id="download-md">Download Markdown</button
+            ><button id="download-html">Save website</button><button id="print">Print / PDF</button>
+          </div>
+        </div>
+        <article class="document">
+          <blockquote>
+            <p>
+              Build a network where people can speak, find their people, and decide what reaches
+              them. Separate personal filters, community rules, discovery policies, and hosting
+              decisions. Give every consequential restriction a reason, a scope, and a way to
+              challenge it.
+            </p>
+          </blockquote>
+          <p>
+            This is a research proposal for the new Rust/Tauri experiment, not a description of
+            moderation it already provides. The
+            <a href="#policy-lab">interactive website</a> renders this document and adds two
+            fictional, local-only simulations. Published platform documentation was checked on
+            November 2, 2026. Recommendations below are our design judgments; published features are
+            not evidence that a platform executes them well in every case.
+          </p>
+          <p>
+            Chris should re-decide this proposal on December 2, or before opening the prototype to
+            strangers, whichever comes first. The next decision is whether to implement a small
+            accountable moderation system—not whether to adopt a permanent network constitution.
+            Public protocol and privacy commitments will need their own ADRs and tripwires before
+            implementation.
+          </p>
+          <h2 id="the-question-worth-answering">The question worth answering</h2>
+          <p>
+            How can a broadly permissive network make people feel welcome without giving either its
+            operator or its loudest users unlimited power over everyone else?
+          </p>
+          <p>
+            “Allow all content, then add filters” leaves out the people receiving threats,
+            maintaining servers, or involuntarily distributing files. “Let one central service
+            decide everything” leaves out cultural differences, mistakes, and the ability to leave.
+            Neither adequately protects expression.
+          </p>
+          <p>
+            A better starting point is
+            <strong>many spaces, explicit boundaries, and accountable power</strong>. A person can
+            publish a lawful unpopular opinion without being entitled to appear in every
+            recommendation feed. A reader can refuse contact without trying to erase that person
+            from the internet. A group can stay focused on making games without treating every
+            off-topic post as misconduct.
+          </p>
+          <p>
+            For xNet, this matters especially because people contribute their own devices and
+            bandwidth. Joining a participating network must not mean agreeing to store every file
+            another participant supplies. The requirement to contribute capacity needs a clear
+            permitted-content scope, budgets, and an emergency pause. A pause may also suspend
+            network consumption under the participation rule; it must never prevent blocking someone
+            or leaving a room.
+          </p>
+          <h2 id="what-the-major-platforms-actually-separate">
+            What the major platforms actually separate
+          </h2>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Platform</th>
+                  <th>Main layers</th>
+                  <th>Useful lesson</th>
+                  <th>Main limit for xNet</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>YouTube</td>
+                  <td>Platform rules, contextual review, channel moderation, monetization rules</td>
+                  <td>Context and channel-level controls matter</td>
+                  <td>A central operator still owns the enforcement path</td>
+                </tr>
+                <tr>
+                  <td>X / Twitter</td>
+                  <td>
+                    Account and post enforcement, reach restrictions, personal controls, Community
+                    Notes
+                  </td>
+                  <td>Removal, distribution, and corrective context are different actions</td>
+                  <td>
+                    Public visibility survives some personal blocks; notes are not a complete safety
+                    system
+                  </td>
+                </tr>
+                <tr>
+                  <td>Reddit</td>
+                  <td>
+                    Platform administrators, volunteer community moderators, queues and posting
+                    guidance
+                  </td>
+                  <td>Communities need their own norms and low-cost ways to teach them</td>
+                  <td>
+                    Volunteer labor, inconsistent enforcement, and capture remain governance
+                    problems
+                  </td>
+                </tr>
+                <tr>
+                  <td>Bluesky</td>
+                  <td>
+                    Service takedowns, moderation labels, optional labelers, personal preferences
+                  </td>
+                  <td>Portable assertions can support multiple interpretations</td>
+                  <td>Optional labels do not override a service's mandatory decisions</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <h3 id="youtube-context-platform-rules-and-channel-boundaries">
+            YouTube: context, platform rules, and channel boundaries
+          </h3>
+          <p>
+            YouTube describes automated detection, human reporting, review, and exceptions for
+            educational, documentary, scientific, or artistic context. Its monetization standards
+            are a separate layer from whether content may remain available. Channel owners also have
+            controls over their own conversations. That separation is more useful to borrow than a
+            single “safe/unsafe” flag.
+            <a
+              href="https://www.youtube.com/howyoutubeworks/our-commitments/managing-harmful-content/"
+              >YouTube policies</a
+            >
+          </p>
+          <p>
+            Its Community Guidelines apply to private and unlisted content too. Private visibility
+            on a centrally hosted video service therefore does not mean the operator cannot moderate
+            the upload.
+            <a href="https://support.google.com/youtube/answer/9288567?hl=en"
+              >Guidelines overview</a
+            >
+          </p>
+          <p>
+            Creators can appeal removals and strikes; review can restore content, keep the decision,
+            or change its treatment. Channel chat tools include moderators, message removal,
+            timeouts, and hiding users. These operate at different scopes from a platform-wide
+            suspension.
+            <a href="https://support.google.com/youtube/answer/185111?hl=en">Appeals</a>,
+            <a href="https://support.google.com/youtube/answer/10888907?hl=en"
+              >live-chat moderation</a
+            >
+          </p>
+          <p>
+            <strong>For xNet:</strong> preserve context during review, offer temporary restrictions,
+            and keep community powers distinct from operator powers. Prefer an understandable notice
+            over a mysterious disappearance. An abuse-resistant exception may hide some enforcement
+            details, but should not become the default explanation for every restriction.
+          </p>
+          <h3 id="x-twitter-distribution-is-a-moderation-surface">
+            X / Twitter: distribution is a moderation surface
+          </h3>
+          <p>
+            X documents a range of actions: labels, reduced reach, interaction restrictions,
+            required removal, and account suspension. A post can remain accessible while being
+            excluded from particular discovery surfaces. Appeals exist for multiple kinds of
+            enforcement. Treating all of these as simply “removed” would hide important
+            consequences.
+            <a href="https://help.x.com/en/rules-and-policies/enforcement-options"
+              >Enforcement options</a
+            >
+          </p>
+          <p>
+            Blocking illustrates another distinction: blocked accounts can still view public posts,
+            although they cannot engage with them through the blocked account. A public post does
+            not become confidential because its author blocks someone.
+            <a href="https://help.x.com/en/using-x/blocking-and-unblocking-accounts"
+              >Blocking behavior</a
+            >
+          </p>
+          <p>
+            Community Notes adds corrective context using contributor ratings and a ranking method
+            that seeks agreement across people who previously rated notes differently. This is not a
+            simple majority vote, nor does it make the resulting judgment infallible.
+            <a href="https://communitynotes.x.com/guide/en/under-the-hood/ranking-notes"
+              >Ranking notes</a
+            >
+          </p>
+          <p>
+            <strong>For xNet:</strong> consider contextual notes later, especially for disputed
+            claims. Do not make a small network's initial safety depend on having a large, diverse
+            rating population. A note is not a substitute for stopping unwanted contact, handling
+            threats, or reviewing sensitive evidence. Explain recommendation exclusion separately
+            from deletion.
+          </p>
+          <h3 id="reddit-communities-are-institutions-not-just-feeds">
+            Reddit: communities are institutions, not just feeds
+          </h3>
+          <p>
+            Reddit's volunteer moderators set and enforce community rules within platform-wide
+            requirements. Their authority is local to communities; platform administrators have
+            different powers. This is a useful social model for xNet's private rooms and public
+            interest groups.
+            <a href="https://support.reddithelp.com/hc/en-us/articles/204533859-What-s-a-moderator"
+              >What moderators do</a
+            >
+          </p>
+          <p>
+            Crowd Control can collapse or filter contributions from accounts a community does not
+            yet trust. That can absorb a sudden influx without immediately banning everyone
+            involved, but newcomer filtering deserves scrutiny: joining a new community should not
+            itself become evidence of bad intent.
+            <a href="https://support.reddithelp.com/hc/en-us/articles/15484545006996-Crowd-Control"
+              >Crowd Control</a
+            >
+          </p>
+          <p>
+            Reddit also supports guidance while someone writes a post or comment. This moves some
+            moderation before publication: explain the norm while the person can still easily
+            comply. Its current AutoModerator documentation includes a significant transition:
+            certain enforcement actions are unavailable for newly created communities or ones that
+            had not used AutoModerator, directing them toward Rules and Automation. Old setup
+            tutorials may no longer describe a new community's options.
+            <a
+              href="https://support.reddithelp.com/hc/en-us/articles/17625458521748-Automations-Post-Comment-Guidance-Set-Up"
+              >Posting guidance</a
+            >,
+            <a href="https://support.reddithelp.com/hc/en-us/articles/15484574206484-Automoderator"
+              >AutoModerator</a
+            >
+          </p>
+          <p>
+            <strong>For xNet:</strong> give groups visible, short rules; offer slow mode, newcomer
+            review, and timeouts; provide a manageable queue. Make these rules available before
+            someone contributes. Do not turn local reputation into a network-wide social score.
+          </p>
+          <h3 id="bluesky-labels-are-claims-policies-decide-what-to-do">
+            Bluesky: labels are claims, policies decide what to do
+          </h3>
+          <p>
+            Bluesky combines service-level takedowns, moderation-service labels, and personal
+            controls. Its official client includes Bluesky moderation alongside optional labelers.
+            User choice operates within that service boundary; it does not restore material removed
+            from its APIs. An unauthenticated-view restriction is also not a confidentiality
+            guarantee.
+            <a
+              href="https://github.com/bluesky-social/bsky-docs/blob/main/docs/advanced-guides/moderation.md"
+              >Moderation architecture</a
+            >
+          </p>
+          <p>
+            AT Protocol labels carry an issuer, subject, value, timestamps, and optionally a content
+            version, expiry, and signature. Negating a label retracts an assertion; it does not
+            prove the opposite. Authenticating a label establishes who issued it, not whether they
+            are right. <a href="https://atproto.com/specs/label">Label specification</a>
+          </p>
+          <p>
+            <strong>For xNet:</strong> borrow attributable, retractable claims and selectable
+            providers. A community could trust a film-spoiler labeler while another trusts a
+            graphic-content reviewer. Keep operator restrictions visibly separate. Do not promise AT
+            Protocol compatibility merely because an internal structure resembles its labels:
+            identifiers, signatures, feeds, and service semantics need a real adapter.
+          </p>
+          <h2 id="open-tools-worth-borrowing-from">Open tools worth borrowing from</h2>
+          <p>
+            No single tool provides policy, contextual judgment, staffing, privacy, appeals, and
+            peer-serving enforcement. The useful open ecosystem is a set of components.
+          </p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tool or project</th>
+                  <th>Useful capability</th>
+                  <th>Fit for this prototype</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Ozone</td>
+                  <td>Reports, triage, escalation, investigation and action history</td>
+                  <td>
+                    Study its console; use it directly when integrating actual AT Protocol
+                    moderation
+                  </td>
+                </tr>
+                <tr>
+                  <td>Mastodon</td>
+                  <td>Personal filters and reports; account, server and media restrictions</td>
+                  <td>Borrow explicit scopes and report destinations</td>
+                </tr>
+                <tr>
+                  <td>PeerTube</td>
+                  <td>Video reports, upload quarantine, quotas and instance-level moderation</td>
+                  <td>Closest operational comparison for a community media host</td>
+                </tr>
+                <tr>
+                  <td>Draupnir / Matrix</td>
+                  <td>Shared policy lists, room protections, management workflows</td>
+                  <td>Borrow trusted-list subscriptions and deliberate escalation</td>
+                </tr>
+                <tr>
+                  <td>ThreatExchange tooling</td>
+                  <td>Known-image/video similarity matching components</td>
+                  <td>Later specialist component, not the MVP's moderation brain</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            <strong>Ozone</strong> is a particularly useful reference for moderator workflow. Its
+            repository documents a console connected to a moderation service; that does not make it
+            a backend for arbitrary xNet records or encrypted rooms. The repository offers MIT or
+            Apache-2.0 licensing subject to noted exceptions. Inspect dependencies and exceptions
+            before copying code. <a href="https://github.com/bluesky-social/ozone">Ozone</a>,
+            <a href="https://github.com/bluesky-social/ozone/blob/main/LICENSE">license</a>
+          </p>
+          <p>
+            <strong>Mastodon</strong> separates a person's filters, mutes, blocks, and reports from
+            server actions such as limiting accounts, suspending domains, or rejecting remote media.
+            Reports can include selected posts and can be forwarded to the remote server.
+            Domain-wide restrictions have collateral effects; defederating does not erase remote
+            copies. <a href="https://docs.joinmastodon.org/user/moderating/">Personal controls</a>,
+            <a href="https://docs.joinmastodon.org/admin/moderation/">operator controls</a>
+          </p>
+          <p>
+            <strong>PeerTube</strong> provides upload quarantine, reporting, quotas, watched-word
+            policies, and moderator roles. Its moderators can access private and unlisted videos:
+            that is a different privacy contract from end-to-end encryption. Separately, following
+            another instance for discovery and hosting redundant copies are distinct operations,
+            with their own controls.
+            <a href="https://docs.joinpeertube.org/admin/moderation">Moderation</a>,
+            <a href="https://docs.joinpeertube.org/admin/following-instances"
+              >following and redundancy</a
+            >
+          </p>
+          <p>
+            <strong>Draupnir</strong> helps Matrix communities apply shared policies and
+            configurable protections. A local ban can be deliberately escalated into a shared
+            policy. Its protections can support simulated actions—a valuable pattern for showing the
+            effects of a new rule before enabling it. Importing a list should not silently delegate
+            every administrative capability to its author.
+            <a href="https://github.com/the-draupnir-project/Draupnir">Draupnir</a>,
+            <a
+              href="https://the-draupnir-project.github.io/draupnir-documentation/protections/configuring-protections"
+              >protection configuration</a
+            >
+          </p>
+          <p>
+            <strong>ThreatExchange</strong> contains image/video similarity tooling and
+            integrations. HMA targets AWS; its repository describes Open Media Match as a
+            cloud-agnostic successor under construction. Source availability does not grant access
+            to trusted hash datasets. Similarity matching is neither a complete classifier nor proof
+            of a violation. Its BSD licensing includes component exceptions.
+            <a href="https://github.com/meta/ThreatExchange">Tools</a>,
+            <a href="https://github.com/meta/ThreatExchange/blob/main/LICENSE">license</a>
+          </p>
+          <p>
+            Our initial recommendation is to build a small xNet-specific enforcement and case layer,
+            study these workflows, and add adapters only when needed. This fits the goal of a
+            self-hostable Rust service without adopting an entire social server or cloud-specific
+            matching stack.
+          </p>
+          <h2 id="what-good-moderation-can-be-judged-by">What good moderation can be judged by</h2>
+          <p>
+            The strongest design principles here are procedural: clear rules, appropriate context,
+            limited powers, notices, review, and correction. The Santa Clara Principles argue for
+            transparency, cultural and linguistic competence, understandable notices, and meaningful
+            appeals, including review independent of the initial decision-maker. They are governance
+            recommendations, not evidence that adding an appeal button guarantees fairness.
+            <a href="https://santaclaraprinciples.org/">Santa Clara Principles</a>
+          </p>
+          <p>
+            There is also evidence that moderation can help people participate. A randomized field
+            experiment across 2,190 r/science discussions found that displaying community norms
+            improved compliance and newcomer participation. That result concerns one specific
+            community and intervention; it is a reason to test visible norms, not a predicted effect
+            size for xNet.
+            <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6525516/">Matias, PNAS, 2019</a>
+          </p>
+          <p>
+            For xNet, “best” should mean people can understand and influence the rules, legitimate
+            participation survives errors, and abuse becomes less costly to escape. Measure those
+            outcomes rather than the number of posts removed.
+          </p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Question</th>
+                  <th>Useful signal</th>
+                  <th>What it does not prove</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Can people stop unwanted contact?</td>
+                  <td>Repeat contact after a block, including alternate routes</td>
+                  <td>An account block stops every determined person</td>
+                </tr>
+                <tr>
+                  <td>Are restrictions understandable?</td>
+                  <td>Users can identify who acted, why, and where to appeal</td>
+                  <td>A notice alone is fair process</td>
+                </tr>
+                <tr>
+                  <td>Can mistakes be corrected?</td>
+                  <td>Appeal delay, reinstatement and label retraction propagation</td>
+                  <td>Appeal reversal rate is classifier accuracy</td>
+                </tr>
+                <tr>
+                  <td>Are communities welcoming?</td>
+                  <td>Newcomer participation and reported comfort, by context</td>
+                  <td>More engagement always means a healthier space</td>
+                </tr>
+                <tr>
+                  <td>Can moderators sustain the work?</td>
+                  <td>Queue age, time per case, repeated exposure, volunteer retention</td>
+                  <td>Faster decisions are necessarily better</td>
+                </tr>
+                <tr>
+                  <td>Does privacy survive reporting?</td>
+                  <td>Unselected evidence never leaves the device</td>
+                  <td>Consent to one report authorizes future monitoring</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Prefer minimal, aggregated measurement. Private-message contents should not become
+            analytics. Any exposure denominator or language audit needs an explicit collection
+            design; do not invent precise safety statistics from incomplete telemetry.
+          </p>
+          <h2 id="five-powers-five-understandable-decisions">
+            Five powers, five understandable decisions
+          </h2>
+          <blockquote>
+            <p>
+              “Hidden from you,” “removed from this group,” “not listed here,” and “your device
+              stopped sharing it” are different outcomes. The interface and the API must preserve
+              that distinction.
+            </p>
+          </blockquote>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Power</th>
+                  <th>Who has it?</th>
+                  <th>Example</th>
+                  <th>Boundary</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>See</td>
+                  <td>The reader, within the chosen service and age policy</td>
+                  <td>Warn me before graphic news</td>
+                  <td>Does not order someone else's service to restore a file</td>
+                </tr>
+                <tr>
+                  <td>Contact and participate</td>
+                  <td>Recipient and community administrators</td>
+                  <td>Friends-only DMs; temporary room timeout</td>
+                  <td>Public posts remain public unless access itself changes</td>
+                </tr>
+                <tr>
+                  <td>Index and recommend</td>
+                  <td>Each registry or discovery operator</td>
+                  <td>List a work but omit it from recommendations</td>
+                  <td>Does not delete the original or bind other registries</td>
+                </tr>
+                <tr>
+                  <td>Store and serve</td>
+                  <td>Each device or hosting operator</td>
+                  <td>Stop seeding a file or refuse a category</td>
+                  <td>Does not erase another person's retained copy</td>
+                </tr>
+                <tr>
+                  <td>Review and appeal</td>
+                  <td>The authority that made the decision</td>
+                  <td>Challenge a room ban with its moderators</td>
+                  <td>A labeler cannot reverse a separate registry removal</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Communities additionally decide what contributions belong in their space. That is a
+            scoped participation decision, not ownership of every copy of a member's work.
+          </p>
+          <figure class="architecture">
+            <figcaption>Policy inputs become separate, scoped outcomes.</figcaption>
+            <div class="diagram-row">
+              <span>Attributed assertions</span><span>Personal preferences</span
+              ><span>Community &amp; operator rules</span>
+            </div>
+            <div class="diagram-down" aria-hidden="true">↓</div>
+            <div class="diagram-row"><span>Scoped policy evaluation</span></div>
+            <div class="diagram-down" aria-hidden="true">↓</div>
+            <div class="diagram-leaves">
+              <span>Display</span><span>Contact</span><span>Discovery</span><span>Hosting</span
+              ><span>Reasons &amp; appeals</span>
+            </div>
+            <details>
+              <summary>Diagram source</summary>
+              <pre>
+flowchart LR
+  L[Attributed labels and reports] --&gt; P[Scoped policy evaluation]
+  U[Personal preferences] --&gt; P
+  C[Community and operator rules] --&gt; P
+  P --&gt; V[Show or warn or hide]
+  P --&gt; M[Contact and membership]
+  P --&gt; I[Index and recommend]
+  P --&gt; H[Store and serve]
+  P --&gt; R[Reasons and appeal route]
+</pre
+              >
+            </details>
+          </figure>
+          <h3 id="different-problems-deserve-different-controls">
+            Different problems deserve different controls
+          </h3>
+          <p>
+            <strong>Taste and attention:</strong> spoilers, topics, frequency, styles, and ordinary
+            disagreement usually belong in personal filters. Offer mute, show less, and undo without
+            making someone file an abuse report.
+          </p>
+          <p>
+            <strong>Audience and context:</strong> adult art or graphic reporting may need warnings
+            and audience restrictions. Treat a label as a contextual claim, not a moral judgment
+            about the creator. Adult preferences do not override a protected youth account's policy.
+          </p>
+          <p>
+            <strong>Behavior:</strong> harassment, spam, repeated unwanted contact, and coordinated
+            disruption need contact limits, rate controls, and community enforcement. Hiding one
+            offensive word will not solve a campaign against someone.
+          </p>
+          <p>
+            <strong>Operator prohibitions:</strong> operators need a published baseline for serious
+            abuse and prohibited material, with specialist escalation where necessary. Known child
+            sexual abuse material, non-consensual intimate imagery, and credible threats cannot be
+            treated as just another “show me everything” preference. Exact legal duties differ by
+            operator and jurisdiction and need separate qualified review before public operation;
+            this proposal does not claim to settle them.
+          </p>
+          <p>
+            Disagreement, criticism, and low popularity are not sufficient reasons to classify
+            content as abuse. Conversely, calling something “speech” does not entitle it to another
+            person's inbox, storage, or recommendation feed.
+          </p>
+          <h3 id="a-compact-user-experience">A compact user experience</h3>
+          <p>
+            The everyday menu should start with <strong>Hide this</strong>,
+            <strong>Mute this topic</strong>, <strong>Block contact</strong>, and
+            <strong>Report a problem</strong>. Keep these distinct. Explain “mute” as a reversible
+            personal choice. Let a report start with plain language: “Someone won't leave me alone,”
+            “This exposes private information,” or “This breaks this group's rules.”
+          </p>
+          <p>
+            A filtered item can show a small receipt: “Graphic news · warned by Documentary Review ·
+            your preference.” A group restriction should instead name the group rule and show its
+            appeal route. Optional labels can be overridden by eligible adults; mandatory operator
+            decisions should say which service restricted access. Do not suggest a button can
+            override someone else's authority.
+          </p>
+          <p>
+            Offer presets such as Quiet, Standard, and More open, but expand them into real
+            settings. “More open” must never secretly enable stranger DMs, public profile fields, or
+            file seeding. A new rule should have a dry-run view: what it would affect, whose
+            decisions it trusts, and how to undo it.
+          </p>
+          <h2 id="public-media-and-the-seeding-contract">Public media and the seeding contract</h2>
+          <p>
+            A shared public URL is not a promise of universal hosting. A registry publishes its own
+            index; devices accept specific hosting responsibilities. Keep discovery, viewing,
+            caching, retaining, and serving independently expressible, even when a user chooses a
+            convenient preset combining them.
+          </p>
+          <p>
+            The current product direction requires active contribution to consume network content.
+            Preserve that experiment, but define contribution as capacity within a user's approved
+            hosting policy. <strong>A like is not permission to persistently seed a file.</strong> A
+            subscription can propose a retention rule; the user should see its storage budget,
+            audience, and exclusions before enabling it.
+          </p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Situation</th>
+                  <th>Proposed behavior</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>You mute a creator</td>
+                  <td>
+                    Hide their work from your feed; leave hosting policy unchanged unless you choose
+                    otherwise
+                  </td>
+                </tr>
+                <tr>
+                  <td>You decline to host adult media</td>
+                  <td>
+                    Do not acquire or serve it under that policy; viewing policy remains separate
+                  </td>
+                </tr>
+                <tr>
+                  <td>A file has not been classified</td>
+                  <td>
+                    Do not treat absence of labels as proof it is safe; require explicit retention
+                    or an approved conservative hosting rule
+                  </td>
+                </tr>
+                <tr>
+                  <td>A trusted operator confirms a prohibited file</td>
+                  <td>
+                    Stop advertising and serving it through that operator's participating services;
+                    notify affected retainers
+                  </td>
+                </tr>
+                <tr>
+                  <td>A decision is reversed</td>
+                  <td>
+                    Retract the relevant restriction and recompute decisions; do not silently
+                    download the file again
+                  </td>
+                </tr>
+                <tr>
+                  <td>A peer ignores a restriction</td>
+                  <td>
+                    Stop dealing with that peer where policy requires it; do not promise remote
+                    erasure
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Serving refusal must be checked in Rust when issuing a stream ticket and when serving
+            ranges or chunks—not only when drawing the feed. A previously issued ticket must not
+            provide a permanent bypass. Cancel in-flight transfers where feasible; bytes already
+            delivered cannot be recalled. Cache removal, user-retained originals, and evidence
+            preservation are separate operations with distinct permissions and retention rules.
+          </p>
+          <p>
+            For private media, encrypting bytes before replication can let authorized friends help
+            with availability while keeping decryption keys with recipients. It still exposes some
+            access patterns and consumes storage. A removed member may retain old plaintext or keys.
+            Future-access revocation needs key rotation and membership changes; transport encryption
+            alone does not provide that property.
+          </p>
+          <h2 id="private-rooms-without-invisible-surveillance">
+            Private rooms without invisible surveillance
+          </h2>
+          <p>
+            Private spaces need moderation too: invitations, role boundaries, slow mode, blocks,
+            removal, and an escape route when the owner is the problem. They do not need an
+            undisclosed reader of every conversation.
+          </p>
+          <p>
+            Matrix's E2EE model keeps message and attachment keys at endpoints. A bot given keys
+            becomes another recipient. Draupnir documents an additional limit: a malicious sender
+            can share keys with some participants while withholding them from moderator devices,
+            defeating content-based inspection. Adding a moderation bot cannot guarantee complete
+            visibility.
+            <a href="https://www.matrix.org/docs/matrix-concepts/end-to-end-encryption/"
+              >Matrix E2EE</a
+            >,
+            <a
+              href="https://the-draupnir-project.github.io/draupnir-documentation/moderator/managing-protected-rooms#protecting-encrypted-rooms"
+              >Draupnir encrypted rooms</a
+            >
+          </p>
+          <p>
+            The proposed report flow is
+            <strong>select, preview, choose a recipient, disclose</strong>. The user can add
+            context, but the default must not export the whole room. Clearly list the exact
+            messages, attached files, identities, timestamps, and destination. A message author may
+            be identifiable from the excerpt even if a display name is omitted. Avoid promising
+            anonymity merely because the reporter's name is hidden in the moderator queue.
+          </p>
+          <figure class="architecture">
+            <figcaption>A private report is an explicit, bounded disclosure.</figcaption>
+            <ol>
+              <li>Select messages and optional context on your device.</li>
+              <li>Preview the exact evidence and recipient.</li>
+              <li>Approve this disclosure.</li>
+              <li>Send only approved evidence to that reviewer.</li>
+              <li>Receive case updates; apply a retention deadline.</li>
+            </ol>
+            <details>
+              <summary>Diagram source</summary>
+              <pre>
+sequenceDiagram
+  participant U as Reporting person
+  participant D as Their device
+  participant R as Selected reviewer
+  U-&gt;&gt;D: Select messages and optional context
+  D--&gt;&gt;U: Preview evidence and destination
+  U-&gt;&gt;D: Explicitly approve this disclosure
+  D-&gt;&gt;R: Send only approved evidence
+  R--&gt;&gt;U: Receipt and case updates
+  R-&gt;&gt;R: Scoped decision and retention deadline
+</pre
+              >
+            </details>
+          </figure>
+          <p>
+            Draupnir's report integration describes limits on extracting event information,
+            including witnessed, unencrypted, non-redacted events. xNet will need its own deliberate
+            evidence flow for E2EE rather than assuming a server report API can read private
+            messages.
+            <a
+              href="https://the-draupnir-project.github.io/draupnir-documentation/bot/homeserver-administration"
+              >Draupnir reporting</a
+            >
+          </p>
+          <p>
+            A community moderator normally receives community-rule reports. A service operator can
+            receive reports about its own services. If the room owner is the subject, offer another
+            available authority and explain what that authority can actually do. Offline, blocking
+            and leaving must still work; remote reports can remain visibly queued rather than
+            appearing submitted.
+          </p>
+          <p>
+            Keep evidence encrypted at rest with case-specific access, retention limits, and access
+            logs. Public transparency can contain counts and redacted decisions, not private quotes,
+            reporter identities, or harmful files. An immutable audit trail is not a reason to
+            retain every piece of private evidence forever. Signing public posts also does not
+            settle the tradeoff between report authenticity and deniability in a future private
+            messaging protocol.
+          </p>
+          <h3 id="younger-users-need-a-different-default">
+            Younger users need a different default
+          </h3>
+          <p>
+            For a future youth offering, use closed contact defaults, limited discovery, reporting
+            accessible without adult technical vocabulary, and no adult-content override. Do not
+            publish birth dates as an age-control mechanism. A child's safety and a parent's or
+            institution's surveillance preferences are not automatically the same thing.
+          </p>
+          <p>
+            Start moderation trials with a bounded adult community. An 8–12 product and a 16–25
+            community are not the same policy problem. Youth access needs its own consent,
+            age-assurance, safeguarding, and jurisdiction review before making promises. The
+            website's teen scenario is an illustrative policy difference, not an implemented
+            age-verification system.
+          </p>
+          <h2 id="a-small-architecture-with-room-to-grow">
+            A small architecture with room to grow
+          </h2>
+          <p>
+            Use a Rust decision module with explicit inputs and bounded work. Separate detections
+            from decisions, and decisions from their execution. SQLite is sufficient for a local
+            case log and materialized views; a hosted registry can move that store to Postgres when
+            its actual load requires it. CRDTs do not resolve a dispute about who is authorized to
+            ban whom.
+          </p>
+          <figure class="architecture">
+            <figcaption>One decision path, enforced at every relevant access path.</figcaption>
+            <div class="diagram-row">
+              <span>Reports &amp; assertions</span><b aria-hidden="true">→</b
+              ><span>Private case queue</span><b aria-hidden="true">→</b
+              ><span>Authorized decision</span>
+            </div>
+            <div class="diagram-down" aria-hidden="true">↓</div>
+            <div class="diagram-row">
+              <span>Minimal journal</span><b aria-hidden="true">→</b
+              ><span>Materialized policy state</span>
+            </div>
+            <div class="diagram-down" aria-hidden="true">↓</div>
+            <div class="diagram-leaves">
+              <span>Client explanations</span><span>Registry &amp; direct lookup</span
+              ><span>Peer admission &amp; chunks</span><span>Bridge tickets &amp; ranges</span>
+            </div>
+            <p>Appeals and reversals update the journal and recompute the affected views.</p>
+            <details>
+              <summary>Diagram source</summary>
+              <pre>
+flowchart TB
+  E[Reports and authenticated assertions] --&gt; Q[Private case queue]
+  Q --&gt; A[Authorized scoped decision]
+  A --&gt; J[Minimal decision journal]
+  J --&gt; P[Materialized policy state]
+  P --&gt; UI[Client explanations and controls]
+  P --&gt; REG[Registry queries and item lookup]
+  P --&gt; PEER[Peer admission and chunk serving]
+  P --&gt; API[Bridge tickets and media routes]
+  AP[Appeal and reversal] --&gt; J
+</pre
+              >
+            </details>
+          </figure>
+          <details>
+            <summary>Proposed data contracts and security boundaries</summary>
+            <p>These are conceptual shapes, not a frozen public API.</p>
+            <pre><code class="language-rust">struct Decision {
+    display: DisplayAction,       // show, warn, hide, unavailable
+    contact: ContactAction,       // allow, request, deny
+    index: IndexAction,           // list, omit, quarantine
+    serve: ServeAction,           // allow, deny, explicit_consent_required
+    reasons: Vec&lt;Reason&gt;,        // issuer, policy version, scope, appeal route
+}
+
+// Evaluate already-authenticated, bounded facts. No network requests or plugins.
+fn evaluate(input: &amp;PolicyInput) -&gt; Result&lt;Decision, PolicyError&gt;;
+</code></pre>
+            <p>
+              Keep distinct records for <strong>LabelAssertion</strong>,
+              <strong>PolicySubscription</strong>, <strong>CommunityRole</strong>,
+              <strong>Report</strong>, <strong>CaseDecision</strong>, <strong>Appeal</strong>, and
+              <strong>HostingPreference</strong>. An assertion targets a stable subject and, where
+              relevant, a content hash/version. A decision records the actual authority, scope,
+              policy version, expiry, and superseded decision. Reports are evidence and allegations;
+              they are not automatically labels or bans.
+            </p>
+            <p>
+              Verify signatures, authority scope, issuer subscriptions, size limits, and freshness
+              before evaluation. A valid signature does not grant moderator powers. Bound report
+              attachments and policy-list sizes. An untrusted list must never be able to execute
+              code or silently become an administrator.
+            </p>
+            <p>
+              Do not resolve membership and moderator authority with an unconstrained
+              last-writer-wins field. Start with a clear room authority and ordered membership
+              epochs. Revocation changes future access; future E2EE also needs corresponding key
+              updates. Offline clients may retain old views, but cannot invent new grants from stale
+              authority.
+            </p>
+            <p>
+              Optional expired labels should lose their power to create new restrictions; show their
+              stale state where relevant. A confirmed operator restriction should persist until an
+              authorized reversal or its defined expiry—not disappear because a label service timed
+              out. A freshness failure should be an explicit state with a documented policy, never
+              silently mean “safe.”
+            </p>
+            <p>
+              Maintain small append-only decision records, but keep deletable sensitive evidence in
+              a separate store. Restrict evidence viewers, blur distressing material by default,
+              prevent autoplay, and isolate media parsing. Role changes and bulk actions need
+              auditability; large-impact operations can require a second reviewer when staffing
+              permits.
+            </p>
+          </details>
+          <h3 id="where-this-fits-the-code-that-exists">Where this fits the code that exists</h3>
+          <p>
+            The new prototype already has signed records, a registry, peer transfer, and
+            public/private room routes. It does <strong>not</strong> yet have the controls proposed
+            here. Its private rooms use authenticated encrypted transport with owner-hosted history;
+            they are not an MLS/Signal-style E2EE group implementation.
+            <a
+              title="Repository reference: ../../experiments/community-network/README.md"
+              class="local-reference"
+              >Prototype README</a
+            >
+          </p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Seam</th>
+                  <th>Current responsibility</th>
+                  <th>Proposed addition</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <a
+                      title="Repository reference: ../../experiments/community-network/crates/network/src/model.rs"
+                      class="local-reference"
+                      >model.rs</a
+                    >
+                  </td>
+                  <td>Records, announcements and peer requests</td>
+                  <td>Typed subjects, scoped moderation records and policy versions</td>
+                  <td>⬜ Proposed</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      title="Repository reference: ../../experiments/community-network/crates/network/src/registry.rs"
+                      class="local-reference"
+                      >registry.rs</a
+                    >
+                  </td>
+                  <td>Announce, catalog and direct item lookup</td>
+                  <td>Consistent decisions across search, pages, replies and direct IDs</td>
+                  <td>⬜ Proposed</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      title="Repository reference: ../../experiments/community-network/crates/network/src/peer.rs"
+                      class="local-reference"
+                      >peer.rs</a
+                    >
+                  </td>
+                  <td>Retain, announce, chunks and room authorization</td>
+                  <td>Serving refusal, provider withdrawal, membership revocation</td>
+                  <td>⬜ Proposed</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      title="Repository reference: ../../experiments/community-network/crates/network/src/bridge.rs"
+                      class="local-reference"
+                      >bridge.rs</a
+                    >
+                  </td>
+                  <td>Local commands, stream tickets and media ranges</td>
+                  <td>Apply policy at ticket creation and subsequent serving</td>
+                  <td>⬜ Proposed</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      title="Repository reference: ../../experiments/community-network/crates/network/src/store.rs"
+                      class="local-reference"
+                      >store.rs</a
+                    >
+                  </td>
+                  <td>Local persistent state</td>
+                  <td>Private case store and rebuildable decision views</td>
+                  <td>⬜ Proposed</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      title="Repository reference: ../../experiments/community-network/apps/desktop/ui/PublicFeed.tsx"
+                      class="local-reference"
+                      >PublicFeed.tsx</a
+                    >
+                  </td>
+                  <td>Public posts and replies</td>
+                  <td>Mute, block, report, decision receipts and appeals</td>
+                  <td>⬜ Proposed</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      title="Repository reference: ../../experiments/community-network/web/registry.js"
+                      class="local-reference"
+                      >registry.js</a
+                    >
+                  </td>
+                  <td>Public landing and content pages</td>
+                  <td>Avoid leaking restricted bodies through link previews or direct pages</td>
+                  <td>⬜ Proposed</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            A registry stores public post bodies as well as metadata, while media is served by
+            peers. “We only host an index” is not an accurate description of every current data
+            path. A fresh device key and display name are not a scarce human identity, so free key
+            generation also cannot be the basis of an abuse-resistant reputation system.
+          </p>
+          <h2 id="human-review-automation-and-appeals">Human review, automation, and appeals</h2>
+          <p>
+            Give moderators a queue with a reason for priority, related reports, the relevant
+            policy, and the smallest useful context. Deduplicate campaigns without making report
+            volume a vote. Show provisional actions separately from confirmed findings. Let
+            reviewers recuse themselves, hand off distressing cases, and record uncertainty.
+          </p>
+          <figure class="architecture">
+            <figcaption>
+              A decision is reviewable, including after a temporary restriction.
+            </figcaption>
+            <div class="diagram-row">
+              <span>Received</span><b aria-hidden="true">→</b><span>Triage</span
+              ><b aria-hidden="true">→</b><span>No action, or review</span>
+            </div>
+            <p>Temporary restrictions can protect a space while review is pending.</p>
+            <div class="diagram-row">
+              <span>Decision &amp; notice</span><b aria-hidden="true">→</b><span>Appeal</span
+              ><b aria-hidden="true">→</b><span>Independent review</span>
+            </div>
+            <p>
+              Outcome: uphold, or reverse → retract the restriction and restore affected access.
+            </p>
+            <details>
+              <summary>Diagram source</summary>
+              <pre>
+stateDiagram-v2
+  [*] --&gt; Received
+  Received --&gt; Triage
+  Triage --&gt; NoAction
+  Triage --&gt; TemporaryRestriction
+  TemporaryRestriction --&gt; Review
+  Triage --&gt; Review
+  Review --&gt; DecisionAndNotice
+  DecisionAndNotice --&gt; Appeal
+  Appeal --&gt; IndependentReview
+  IndependentReview --&gt; Upheld
+  IndependentReview --&gt; Reversed
+  Reversed --&gt; RetractAndRestore
+</pre
+              >
+            </details>
+          </figure>
+          <p>
+            A notice should state what changed, which authority acted, the applicable rule,
+            duration, and appeal route. Preserve appeal access after a suspension. Sometimes
+            identifying evidence or a reporter would create risk; explain the decision without
+            exposing them. Where possible, another reviewer handles the appeal. A two-person
+            community cannot honestly promise institutional independence—offer recusal and an
+            external escalation route only if one actually exists.
+          </p>
+          <p>
+            AI can help deduplicate reports, translate, suggest relevant rules, or draft a notice
+            for review. It should not decide that a political view is false because a language model
+            says so. Treat reported content as hostile input: no executing its instructions,
+            following arbitrary links, or giving it case-system credentials. Sending private
+            evidence to a hosted model changes who receives it and requires an explicit approved
+            arrangement; it must not happen merely because the user connected Codex or Claude
+            elsewhere in the app.
+          </p>
+          <p>
+            At larger scale, specialized classifiers and trusted known-content hashes can triage
+            material, with audited thresholds and human escalation. Separate exact byte matches,
+            perceptual similarity, and inferred meaning. Each has different evasion and
+            false-positive properties. Neither open model weights nor a high confidence score
+            settles context or policy.
+          </p>
+          <p>
+            Moderation also has a labor budget. An illustrative 50 cases a day at six minutes each
+            is five reviewer-hours, before appeals, coordination, and specialist incidents. Those
+            are planning assumptions, not measured xNet costs. Cheap metadata hosting does not make
+            a public network free to operate responsibly.
+          </p>
+          <h2 id="options-and-the-recommended-first-release">
+            Options and the recommended first release
+          </h2>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Direction</th>
+                  <th>Benefit</th>
+                  <th>Cost</th>
+                  <th>Recommendation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Only personal filters</td>
+                  <td>Very simple; strong immediate reader control</td>
+                  <td>Cannot address unwanted contact, operator duties or involuntary hosting</td>
+                  <td>Include, but insufficient alone</td>
+                </tr>
+                <tr>
+                  <td>One global moderation service</td>
+                  <td>Consistent starting point and clear operator</td>
+                  <td>Central dependency and one cultural/political bottleneck</td>
+                  <td>Use only for the first operator's own scope</td>
+                </tr>
+                <tr>
+                  <td>Community rules plus optional labelers</td>
+                  <td>Local autonomy and portable specialist judgments</td>
+                  <td>Trust, freshness, onboarding and appeal complexity</td>
+                  <td>Target architecture; introduce gradually</td>
+                </tr>
+                <tr>
+                  <td>AI-only decisions</td>
+                  <td>Low apparent review cost</td>
+                  <td>Context errors, manipulation, privacy risk, weak accountability</td>
+                  <td>Do not adopt</td>
+                </tr>
+                <tr>
+                  <td>A complete imported moderation platform</td>
+                  <td>Mature workflows in its native ecosystem</td>
+                  <td>Identity/protocol mismatch; still needs local enforcement</td>
+                  <td>Borrow patterns, then integrate where compatible</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            <strong>Recommendation:</strong> start with a clearly accountable registry operator and
+            small invited communities. Build personal controls and scoped enforcement first. Add
+            shared labels when more than one operator actually needs them. Preserve the ability to
+            move to another registry without pretending a new registry can override a private room's
+            membership or require an unwilling peer to host a file.
+          </p>
+          <p>
+            This is consistent with sovereignty: power is explicit, bounded, and replaceable. It is
+            also consistent with a pleasant social product. A person should be able to say “less of
+            this,” find friends, and get help without learning the federation architecture.
+          </p>
+          <h3 id="stage-1-make-the-first-community-manageable">
+            Stage 1: make the first community manageable
+          </h3>
+          <ul>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Publish short operator
+              and community rules, including what remains a personal preference.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Add local mute, topic
+              filtering, block-contact and report actions with clear scopes.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Implement report
+              receipts, a private queue, temporary actions, notices and appeals.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Enforce restrictions in
+              catalog queries, direct record lookup, peer serving and bridge ranges.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Add hosting policies,
+              explicit retention approval and an emergency contribution pause.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Support room removal,
+              role changes and invitation rotation; accurately describe current privacy.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Assign an actual operator
+              and reviewer before onboarding strangers; define incident escalation.
+            </li>
+          </ul>
+          <h3 id="stage-2-let-communities-govern-themselves">
+            Stage 2: let communities govern themselves
+          </h3>
+          <ul>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Add visible room rules,
+              newcomer review, slow mode and time-limited restrictions.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Offer selective
+              private-evidence disclosure with recipient preview and retention controls.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Add dry-run policy
+              changes and correction propagation across local materialized views.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Test owner-abuse
+              reporting and appeal conflicts with a second real community.
+            </li>
+          </ul>
+          <h3 id="stage-3-connect-independent-services">Stage 3: connect independent services</h3>
+          <ul>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Define authenticated
+              label assertions, subscriptions, retractions and freshness semantics.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Build a real AT Protocol
+              adapter if Bluesky labels are needed; do not claim compatibility early.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Add transparent
+              operator-to-operator notices without forcing shared rules on every host.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Evaluate specialist
+              classifiers or hash tools against measured queue needs and dataset access.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Commission the private
+              messaging and youth-access designs separately before promising them.
+            </li>
+          </ul>
+          <h2 id="tests-that-could-change-this-recommendation">
+            Tests that could change this recommendation
+          </h2>
+          <p>
+            These are product acceptance checks for future implementation. The website model is a
+            smaller illustration and does not establish network security.
+          </p>
+          <ul>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> A personal filter hides a
+              post without banning its author or changing another person's feed.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> An optional labeler's
+              action cannot grant itself registry, room or hosting authority.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> A user cannot override
+              another operator's removal by selecting “show.”
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Quoted abuse, reclaimed
+              language, political criticism and graphic news receive context-sensitive review.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> A coordinated report
+              campaign cannot turn report count alone into a confirmed violation.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> A revoked room member
+              cannot receive future protected content; old-copy limits are explained.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> A private report sends
+              exactly the selected evidence and no unapproved attachments or history.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Direct IDs, previews, old
+              stream tickets and chunk requests cannot bypass the relevant enforcement.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Expired assertions,
+              forged moderator keys and unavailable services produce explicit correct states.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> An appeal reversal
+              propagates without leaving a permanent misleading label or silently restarting
+              downloads.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Blocking, leaving,
+              reporting and appeal notices work with keyboard and assistive technology.
+            </li>
+            <li class="task-item">
+              <span class="task-box" aria-label="Not implemented">□</span> Two independently
+              operated registries can disagree without leaking private content or forcing
+              replication.
+            </li>
+          </ul>
+          <p>
+            Reopen the architecture if most useful moderation turns out to require centralized
+            private plaintext, if ordinary users cannot understand the separate scopes, or if the
+            staffing burden makes an open public launch unsustainable. Those are reasons to narrow
+            the product or change its boundaries, not to hide the cost in defaults.
+          </p>
+          <h2 id="reading-map-and-research-limits">Reading map and research limits</h2>
+          <p>
+            For <strong>platform behavior</strong>, start with
+            <a
+              href="https://www.youtube.com/howyoutubeworks/our-commitments/managing-harmful-content/"
+              >YouTube policies</a
+            >,
+            <a href="https://help.x.com/en/rules-and-policies/enforcement-options">X enforcement</a
+            >,
+            <a href="https://support.reddithelp.com/hc/en-us/articles/204533859-What-s-a-moderator"
+              >Reddit community moderation</a
+            >, and
+            <a
+              href="https://github.com/bluesky-social/bsky-docs/blob/main/docs/advanced-guides/moderation.md"
+              >Bluesky architecture</a
+            >.
+          </p>
+          <p>
+            For <strong>an implementation reference</strong>, start with
+            <a href="https://github.com/bluesky-social/ozone">Ozone</a>,
+            <a href="https://docs.joinpeertube.org/admin/moderation">PeerTube</a>,
+            <a href="https://docs.joinmastodon.org/admin/moderation">Mastodon</a>, and
+            <a href="https://github.com/the-draupnir-project/Draupnir">Draupnir</a>. For
+            <strong>fair process and evidence</strong>, read the
+            <a href="https://santaclaraprinciples.org/">Santa Clara Principles</a> and the
+            <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6525516/"
+              >community-norms field experiment</a
+            >.
+          </p>
+          <p>
+            This review examines published capabilities and one bounded empirical result. It does
+            not audit platform enforcement accuracy, resolve jurisdiction-specific legal
+            obligations, establish classifier benchmarks, or certify any proposed encryption
+            protocol. Those are separate investigations. The concrete next step is the Stage 1
+            pilot, with people able to challenge the rules and with enough observability to discover
+            where our assumptions fail.
+          </p>
+        </article>
+        <footer class="footer">
+          xNet field notes · 0500 · Research checked November 2, 2026.<br />This page works offline.
+          The simulations do not send or save your choices. <a href="#main">Back to top ↑</a>
+        </footer>
+      </main>
+    </div>
+    <script>
+      const sourceDocument = {
+        filename: '0500_[_]_MODERATION_WITH_AGENCY.md',
+        source:
+          "---\ntitle: Moderation with agency\nstatus: draft\nlast_updated: 2026-11-02\nreview: 2026-12-02\ndecider: Chris\ndoor: two-way\ntags: [moderation, community, privacy, federation, research]\n---\n\n# Moderation with agency\n\n> [!TIP]\n> Build a network where people can speak, find their people, and decide what reaches them. Separate personal filters, community rules, discovery policies, and hosting decisions. Give every consequential restriction a reason, a scope, and a way to challenge it.\n\nThis is a research proposal for the new Rust/Tauri experiment, not a description of moderation it already provides. The [interactive website](web/0500/index.html) renders this document and adds two fictional, local-only simulations. Published platform documentation was checked on November 2, 2026. Recommendations below are our design judgments; published features are not evidence that a platform executes them well in every case.\n\nChris should re-decide this proposal on December 2, or before opening the prototype to strangers, whichever comes first. The next decision is whether to implement a small accountable moderation system—not whether to adopt a permanent network constitution. Public protocol and privacy commitments will need their own ADRs and tripwires before implementation.\n\n## The question worth answering\n\nHow can a broadly permissive network make people feel welcome without giving either its operator or its loudest users unlimited power over everyone else?\n\n“Allow all content, then add filters” leaves out the people receiving threats, maintaining servers, or involuntarily distributing files. “Let one central service decide everything” leaves out cultural differences, mistakes, and the ability to leave. Neither adequately protects expression.\n\nA better starting point is **many spaces, explicit boundaries, and accountable power**. A person can publish a lawful unpopular opinion without being entitled to appear in every recommendation feed. A reader can refuse contact without trying to erase that person from the internet. A group can stay focused on making games without treating every off-topic post as misconduct.\n\nFor xNet, this matters especially because people contribute their own devices and bandwidth. Joining a participating network must not mean agreeing to store every file another participant supplies. The requirement to contribute capacity needs a clear permitted-content scope, budgets, and an emergency pause. A pause may also suspend network consumption under the participation rule; it must never prevent blocking someone or leaving a room.\n\n## What the major platforms actually separate\n\n| Platform    | Main layers                                                                          | Useful lesson                                                       | Main limit for xNet                                                                     |\n| ----------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |\n| YouTube     | Platform rules, contextual review, channel moderation, monetization rules            | Context and channel-level controls matter                           | A central operator still owns the enforcement path                                      |\n| X / Twitter | Account and post enforcement, reach restrictions, personal controls, Community Notes | Removal, distribution, and corrective context are different actions | Public visibility survives some personal blocks; notes are not a complete safety system |\n| Reddit      | Platform administrators, volunteer community moderators, queues and posting guidance | Communities need their own norms and low-cost ways to teach them    | Volunteer labor, inconsistent enforcement, and capture remain governance problems       |\n| Bluesky     | Service takedowns, moderation labels, optional labelers, personal preferences        | Portable assertions can support multiple interpretations            | Optional labels do not override a service's mandatory decisions                         |\n\n### YouTube: context, platform rules, and channel boundaries\n\nYouTube describes automated detection, human reporting, review, and exceptions for educational, documentary, scientific, or artistic context. Its monetization standards are a separate layer from whether content may remain available. Channel owners also have controls over their own conversations. That separation is more useful to borrow than a single “safe/unsafe” flag. [YouTube policies](https://www.youtube.com/howyoutubeworks/our-commitments/managing-harmful-content/)\n\nIts Community Guidelines apply to private and unlisted content too. Private visibility on a centrally hosted video service therefore does not mean the operator cannot moderate the upload. [Guidelines overview](https://support.google.com/youtube/answer/9288567?hl=en)\n\nCreators can appeal removals and strikes; review can restore content, keep the decision, or change its treatment. Channel chat tools include moderators, message removal, timeouts, and hiding users. These operate at different scopes from a platform-wide suspension. [Appeals](https://support.google.com/youtube/answer/185111?hl=en), [live-chat moderation](https://support.google.com/youtube/answer/10888907?hl=en)\n\n**For xNet:** preserve context during review, offer temporary restrictions, and keep community powers distinct from operator powers. Prefer an understandable notice over a mysterious disappearance. An abuse-resistant exception may hide some enforcement details, but should not become the default explanation for every restriction.\n\n### X / Twitter: distribution is a moderation surface\n\nX documents a range of actions: labels, reduced reach, interaction restrictions, required removal, and account suspension. A post can remain accessible while being excluded from particular discovery surfaces. Appeals exist for multiple kinds of enforcement. Treating all of these as simply “removed” would hide important consequences. [Enforcement options](https://help.x.com/en/rules-and-policies/enforcement-options)\n\nBlocking illustrates another distinction: blocked accounts can still view public posts, although they cannot engage with them through the blocked account. A public post does not become confidential because its author blocks someone. [Blocking behavior](https://help.x.com/en/using-x/blocking-and-unblocking-accounts)\n\nCommunity Notes adds corrective context using contributor ratings and a ranking method that seeks agreement across people who previously rated notes differently. This is not a simple majority vote, nor does it make the resulting judgment infallible. [Ranking notes](https://communitynotes.x.com/guide/en/under-the-hood/ranking-notes)\n\n**For xNet:** consider contextual notes later, especially for disputed claims. Do not make a small network's initial safety depend on having a large, diverse rating population. A note is not a substitute for stopping unwanted contact, handling threats, or reviewing sensitive evidence. Explain recommendation exclusion separately from deletion.\n\n### Reddit: communities are institutions, not just feeds\n\nReddit's volunteer moderators set and enforce community rules within platform-wide requirements. Their authority is local to communities; platform administrators have different powers. This is a useful social model for xNet's private rooms and public interest groups. [What moderators do](https://support.reddithelp.com/hc/en-us/articles/204533859-What-s-a-moderator)\n\nCrowd Control can collapse or filter contributions from accounts a community does not yet trust. That can absorb a sudden influx without immediately banning everyone involved, but newcomer filtering deserves scrutiny: joining a new community should not itself become evidence of bad intent. [Crowd Control](https://support.reddithelp.com/hc/en-us/articles/15484545006996-Crowd-Control)\n\nReddit also supports guidance while someone writes a post or comment. This moves some moderation before publication: explain the norm while the person can still easily comply. Its current AutoModerator documentation includes a significant transition: certain enforcement actions are unavailable for newly created communities or ones that had not used AutoModerator, directing them toward Rules and Automation. Old setup tutorials may no longer describe a new community's options. [Posting guidance](https://support.reddithelp.com/hc/en-us/articles/17625458521748-Automations-Post-Comment-Guidance-Set-Up), [AutoModerator](https://support.reddithelp.com/hc/en-us/articles/15484574206484-Automoderator)\n\n**For xNet:** give groups visible, short rules; offer slow mode, newcomer review, and timeouts; provide a manageable queue. Make these rules available before someone contributes. Do not turn local reputation into a network-wide social score.\n\n### Bluesky: labels are claims, policies decide what to do\n\nBluesky combines service-level takedowns, moderation-service labels, and personal controls. Its official client includes Bluesky moderation alongside optional labelers. User choice operates within that service boundary; it does not restore material removed from its APIs. An unauthenticated-view restriction is also not a confidentiality guarantee. [Moderation architecture](https://github.com/bluesky-social/bsky-docs/blob/main/docs/advanced-guides/moderation.md)\n\nAT Protocol labels carry an issuer, subject, value, timestamps, and optionally a content version, expiry, and signature. Negating a label retracts an assertion; it does not prove the opposite. Authenticating a label establishes who issued it, not whether they are right. [Label specification](https://atproto.com/specs/label)\n\n**For xNet:** borrow attributable, retractable claims and selectable providers. A community could trust a film-spoiler labeler while another trusts a graphic-content reviewer. Keep operator restrictions visibly separate. Do not promise AT Protocol compatibility merely because an internal structure resembles its labels: identifiers, signatures, feeds, and service semantics need a real adapter.\n\n## Open tools worth borrowing from\n\nNo single tool provides policy, contextual judgment, staffing, privacy, appeals, and peer-serving enforcement. The useful open ecosystem is a set of components.\n\n| Tool or project        | Useful capability                                                      | Fit for this prototype                                                            |\n| ---------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------- |\n| Ozone                  | Reports, triage, escalation, investigation and action history          | Study its console; use it directly when integrating actual AT Protocol moderation |\n| Mastodon               | Personal filters and reports; account, server and media restrictions   | Borrow explicit scopes and report destinations                                    |\n| PeerTube               | Video reports, upload quarantine, quotas and instance-level moderation | Closest operational comparison for a community media host                         |\n| Draupnir / Matrix      | Shared policy lists, room protections, management workflows            | Borrow trusted-list subscriptions and deliberate escalation                       |\n| ThreatExchange tooling | Known-image/video similarity matching components                       | Later specialist component, not the MVP's moderation brain                        |\n\n**Ozone** is a particularly useful reference for moderator workflow. Its repository documents a console connected to a moderation service; that does not make it a backend for arbitrary xNet records or encrypted rooms. The repository offers MIT or Apache-2.0 licensing subject to noted exceptions. Inspect dependencies and exceptions before copying code. [Ozone](https://github.com/bluesky-social/ozone), [license](https://github.com/bluesky-social/ozone/blob/main/LICENSE)\n\n**Mastodon** separates a person's filters, mutes, blocks, and reports from server actions such as limiting accounts, suspending domains, or rejecting remote media. Reports can include selected posts and can be forwarded to the remote server. Domain-wide restrictions have collateral effects; defederating does not erase remote copies. [Personal controls](https://docs.joinmastodon.org/user/moderating/), [operator controls](https://docs.joinmastodon.org/admin/moderation/)\n\n**PeerTube** provides upload quarantine, reporting, quotas, watched-word policies, and moderator roles. Its moderators can access private and unlisted videos: that is a different privacy contract from end-to-end encryption. Separately, following another instance for discovery and hosting redundant copies are distinct operations, with their own controls. [Moderation](https://docs.joinpeertube.org/admin/moderation), [following and redundancy](https://docs.joinpeertube.org/admin/following-instances)\n\n**Draupnir** helps Matrix communities apply shared policies and configurable protections. A local ban can be deliberately escalated into a shared policy. Its protections can support simulated actions—a valuable pattern for showing the effects of a new rule before enabling it. Importing a list should not silently delegate every administrative capability to its author. [Draupnir](https://github.com/the-draupnir-project/Draupnir), [protection configuration](https://the-draupnir-project.github.io/draupnir-documentation/protections/configuring-protections)\n\n**ThreatExchange** contains image/video similarity tooling and integrations. HMA targets AWS; its repository describes Open Media Match as a cloud-agnostic successor under construction. Source availability does not grant access to trusted hash datasets. Similarity matching is neither a complete classifier nor proof of a violation. Its BSD licensing includes component exceptions. [Tools](https://github.com/meta/ThreatExchange), [license](https://github.com/meta/ThreatExchange/blob/main/LICENSE)\n\nOur initial recommendation is to build a small xNet-specific enforcement and case layer, study these workflows, and add adapters only when needed. This fits the goal of a self-hostable Rust service without adopting an entire social server or cloud-specific matching stack.\n\n## What good moderation can be judged by\n\nThe strongest design principles here are procedural: clear rules, appropriate context, limited powers, notices, review, and correction. The Santa Clara Principles argue for transparency, cultural and linguistic competence, understandable notices, and meaningful appeals, including review independent of the initial decision-maker. They are governance recommendations, not evidence that adding an appeal button guarantees fairness. [Santa Clara Principles](https://santaclaraprinciples.org/)\n\nThere is also evidence that moderation can help people participate. A randomized field experiment across 2,190 r/science discussions found that displaying community norms improved compliance and newcomer participation. That result concerns one specific community and intervention; it is a reason to test visible norms, not a predicted effect size for xNet. [Matias, PNAS, 2019](https://pmc.ncbi.nlm.nih.gov/articles/PMC6525516/)\n\nFor xNet, “best” should mean people can understand and influence the rules, legitimate participation survives errors, and abuse becomes less costly to escape. Measure those outcomes rather than the number of posts removed.\n\n| Question                          | Useful signal                                                    | What it does not prove                             |\n| --------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------- |\n| Can people stop unwanted contact? | Repeat contact after a block, including alternate routes         | An account block stops every determined person     |\n| Are restrictions understandable?  | Users can identify who acted, why, and where to appeal           | A notice alone is fair process                     |\n| Can mistakes be corrected?        | Appeal delay, reinstatement and label retraction propagation     | Appeal reversal rate is classifier accuracy        |\n| Are communities welcoming?        | Newcomer participation and reported comfort, by context          | More engagement always means a healthier space     |\n| Can moderators sustain the work?  | Queue age, time per case, repeated exposure, volunteer retention | Faster decisions are necessarily better            |\n| Does privacy survive reporting?   | Unselected evidence never leaves the device                      | Consent to one report authorizes future monitoring |\n\nPrefer minimal, aggregated measurement. Private-message contents should not become analytics. Any exposure denominator or language audit needs an explicit collection design; do not invent precise safety statistics from incomplete telemetry.\n\n## Five powers, five understandable decisions\n\n> [!IMPORTANT]\n> “Hidden from you,” “removed from this group,” “not listed here,” and “your device stopped sharing it” are different outcomes. The interface and the API must preserve that distinction.\n\n| Power                   | Who has it?                                          | Example                                      | Boundary                                                |\n| ----------------------- | ---------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------- |\n| See                     | The reader, within the chosen service and age policy | Warn me before graphic news                  | Does not order someone else's service to restore a file |\n| Contact and participate | Recipient and community administrators               | Friends-only DMs; temporary room timeout     | Public posts remain public unless access itself changes |\n| Index and recommend     | Each registry or discovery operator                  | List a work but omit it from recommendations | Does not delete the original or bind other registries   |\n| Store and serve         | Each device or hosting operator                      | Stop seeding a file or refuse a category     | Does not erase another person's retained copy           |\n| Review and appeal       | The authority that made the decision                 | Challenge a room ban with its moderators     | A labeler cannot reverse a separate registry removal    |\n\nCommunities additionally decide what contributions belong in their space. That is a scoped participation decision, not ownership of every copy of a member's work.\n\n```mermaid\nflowchart LR\n  L[Attributed labels and reports] --> P[Scoped policy evaluation]\n  U[Personal preferences] --> P\n  C[Community and operator rules] --> P\n  P --> V[Show or warn or hide]\n  P --> M[Contact and membership]\n  P --> I[Index and recommend]\n  P --> H[Store and serve]\n  P --> R[Reasons and appeal route]\n```\n\n### Different problems deserve different controls\n\n**Taste and attention:** spoilers, topics, frequency, styles, and ordinary disagreement usually belong in personal filters. Offer mute, show less, and undo without making someone file an abuse report.\n\n**Audience and context:** adult art or graphic reporting may need warnings and audience restrictions. Treat a label as a contextual claim, not a moral judgment about the creator. Adult preferences do not override a protected youth account's policy.\n\n**Behavior:** harassment, spam, repeated unwanted contact, and coordinated disruption need contact limits, rate controls, and community enforcement. Hiding one offensive word will not solve a campaign against someone.\n\n**Operator prohibitions:** operators need a published baseline for serious abuse and prohibited material, with specialist escalation where necessary. Known child sexual abuse material, non-consensual intimate imagery, and credible threats cannot be treated as just another “show me everything” preference. Exact legal duties differ by operator and jurisdiction and need separate qualified review before public operation; this proposal does not claim to settle them.\n\nDisagreement, criticism, and low popularity are not sufficient reasons to classify content as abuse. Conversely, calling something “speech” does not entitle it to another person's inbox, storage, or recommendation feed.\n\n### A compact user experience\n\nThe everyday menu should start with **Hide this**, **Mute this topic**, **Block contact**, and **Report a problem**. Keep these distinct. Explain “mute” as a reversible personal choice. Let a report start with plain language: “Someone won't leave me alone,” “This exposes private information,” or “This breaks this group's rules.”\n\nA filtered item can show a small receipt: “Graphic news · warned by Documentary Review · your preference.” A group restriction should instead name the group rule and show its appeal route. Optional labels can be overridden by eligible adults; mandatory operator decisions should say which service restricted access. Do not suggest a button can override someone else's authority.\n\nOffer presets such as Quiet, Standard, and More open, but expand them into real settings. “More open” must never secretly enable stranger DMs, public profile fields, or file seeding. A new rule should have a dry-run view: what it would affect, whose decisions it trusts, and how to undo it.\n\n## Public media and the seeding contract\n\nA shared public URL is not a promise of universal hosting. A registry publishes its own index; devices accept specific hosting responsibilities. Keep discovery, viewing, caching, retaining, and serving independently expressible, even when a user chooses a convenient preset combining them.\n\nThe current product direction requires active contribution to consume network content. Preserve that experiment, but define contribution as capacity within a user's approved hosting policy. **A like is not permission to persistently seed a file.** A subscription can propose a retention rule; the user should see its storage budget, audience, and exclusions before enabling it.\n\n| Situation                                     | Proposed behavior                                                                                                       |\n| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |\n| You mute a creator                            | Hide their work from your feed; leave hosting policy unchanged unless you choose otherwise                              |\n| You decline to host adult media               | Do not acquire or serve it under that policy; viewing policy remains separate                                           |\n| A file has not been classified                | Do not treat absence of labels as proof it is safe; require explicit retention or an approved conservative hosting rule |\n| A trusted operator confirms a prohibited file | Stop advertising and serving it through that operator's participating services; notify affected retainers               |\n| A decision is reversed                        | Retract the relevant restriction and recompute decisions; do not silently download the file again                       |\n| A peer ignores a restriction                  | Stop dealing with that peer where policy requires it; do not promise remote erasure                                     |\n\nServing refusal must be checked in Rust when issuing a stream ticket and when serving ranges or chunks—not only when drawing the feed. A previously issued ticket must not provide a permanent bypass. Cancel in-flight transfers where feasible; bytes already delivered cannot be recalled. Cache removal, user-retained originals, and evidence preservation are separate operations with distinct permissions and retention rules.\n\nFor private media, encrypting bytes before replication can let authorized friends help with availability while keeping decryption keys with recipients. It still exposes some access patterns and consumes storage. A removed member may retain old plaintext or keys. Future-access revocation needs key rotation and membership changes; transport encryption alone does not provide that property.\n\n## Private rooms without invisible surveillance\n\nPrivate spaces need moderation too: invitations, role boundaries, slow mode, blocks, removal, and an escape route when the owner is the problem. They do not need an undisclosed reader of every conversation.\n\nMatrix's E2EE model keeps message and attachment keys at endpoints. A bot given keys becomes another recipient. Draupnir documents an additional limit: a malicious sender can share keys with some participants while withholding them from moderator devices, defeating content-based inspection. Adding a moderation bot cannot guarantee complete visibility. [Matrix E2EE](https://www.matrix.org/docs/matrix-concepts/end-to-end-encryption/), [Draupnir encrypted rooms](https://the-draupnir-project.github.io/draupnir-documentation/moderator/managing-protected-rooms#protecting-encrypted-rooms)\n\nThe proposed report flow is **select, preview, choose a recipient, disclose**. The user can add context, but the default must not export the whole room. Clearly list the exact messages, attached files, identities, timestamps, and destination. A message author may be identifiable from the excerpt even if a display name is omitted. Avoid promising anonymity merely because the reporter's name is hidden in the moderator queue.\n\n```mermaid\nsequenceDiagram\n  participant U as Reporting person\n  participant D as Their device\n  participant R as Selected reviewer\n  U->>D: Select messages and optional context\n  D-->>U: Preview evidence and destination\n  U->>D: Explicitly approve this disclosure\n  D->>R: Send only approved evidence\n  R-->>U: Receipt and case updates\n  R->>R: Scoped decision and retention deadline\n```\n\nDraupnir's report integration describes limits on extracting event information, including witnessed, unencrypted, non-redacted events. xNet will need its own deliberate evidence flow for E2EE rather than assuming a server report API can read private messages. [Draupnir reporting](https://the-draupnir-project.github.io/draupnir-documentation/bot/homeserver-administration)\n\nA community moderator normally receives community-rule reports. A service operator can receive reports about its own services. If the room owner is the subject, offer another available authority and explain what that authority can actually do. Offline, blocking and leaving must still work; remote reports can remain visibly queued rather than appearing submitted.\n\nKeep evidence encrypted at rest with case-specific access, retention limits, and access logs. Public transparency can contain counts and redacted decisions, not private quotes, reporter identities, or harmful files. An immutable audit trail is not a reason to retain every piece of private evidence forever. Signing public posts also does not settle the tradeoff between report authenticity and deniability in a future private messaging protocol.\n\n### Younger users need a different default\n\nFor a future youth offering, use closed contact defaults, limited discovery, reporting accessible without adult technical vocabulary, and no adult-content override. Do not publish birth dates as an age-control mechanism. A child's safety and a parent's or institution's surveillance preferences are not automatically the same thing.\n\nStart moderation trials with a bounded adult community. An 8–12 product and a 16–25 community are not the same policy problem. Youth access needs its own consent, age-assurance, safeguarding, and jurisdiction review before making promises. The website's teen scenario is an illustrative policy difference, not an implemented age-verification system.\n\n## A small architecture with room to grow\n\nUse a Rust decision module with explicit inputs and bounded work. Separate detections from decisions, and decisions from their execution. SQLite is sufficient for a local case log and materialized views; a hosted registry can move that store to Postgres when its actual load requires it. CRDTs do not resolve a dispute about who is authorized to ban whom.\n\n```mermaid\nflowchart TB\n  E[Reports and authenticated assertions] --> Q[Private case queue]\n  Q --> A[Authorized scoped decision]\n  A --> J[Minimal decision journal]\n  J --> P[Materialized policy state]\n  P --> UI[Client explanations and controls]\n  P --> REG[Registry queries and item lookup]\n  P --> PEER[Peer admission and chunk serving]\n  P --> API[Bridge tickets and media routes]\n  AP[Appeal and reversal] --> J\n```\n\n\u003cdetails>\n\u003csummary>Proposed data contracts and security boundaries\u003c/summary>\n\nThese are conceptual shapes, not a frozen public API.\n\n```rust\nstruct Decision {\n    display: DisplayAction,       // show, warn, hide, unavailable\n    contact: ContactAction,       // allow, request, deny\n    index: IndexAction,           // list, omit, quarantine\n    serve: ServeAction,           // allow, deny, explicit_consent_required\n    reasons: Vec\u003cReason>,        // issuer, policy version, scope, appeal route\n}\n\n// Evaluate already-authenticated, bounded facts. No network requests or plugins.\nfn evaluate(input: &PolicyInput) -> Result\u003cDecision, PolicyError>;\n```\n\nKeep distinct records for **LabelAssertion**, **PolicySubscription**, **CommunityRole**, **Report**, **CaseDecision**, **Appeal**, and **HostingPreference**. An assertion targets a stable subject and, where relevant, a content hash/version. A decision records the actual authority, scope, policy version, expiry, and superseded decision. Reports are evidence and allegations; they are not automatically labels or bans.\n\nVerify signatures, authority scope, issuer subscriptions, size limits, and freshness before evaluation. A valid signature does not grant moderator powers. Bound report attachments and policy-list sizes. An untrusted list must never be able to execute code or silently become an administrator.\n\nDo not resolve membership and moderator authority with an unconstrained last-writer-wins field. Start with a clear room authority and ordered membership epochs. Revocation changes future access; future E2EE also needs corresponding key updates. Offline clients may retain old views, but cannot invent new grants from stale authority.\n\nOptional expired labels should lose their power to create new restrictions; show their stale state where relevant. A confirmed operator restriction should persist until an authorized reversal or its defined expiry—not disappear because a label service timed out. A freshness failure should be an explicit state with a documented policy, never silently mean “safe.”\n\nMaintain small append-only decision records, but keep deletable sensitive evidence in a separate store. Restrict evidence viewers, blur distressing material by default, prevent autoplay, and isolate media parsing. Role changes and bulk actions need auditability; large-impact operations can require a second reviewer when staffing permits.\n\n\u003c/details>\n\n### Where this fits the code that exists\n\nThe new prototype already has signed records, a registry, peer transfer, and public/private room routes. It does **not** yet have the controls proposed here. Its private rooms use authenticated encrypted transport with owner-hosted history; they are not an MLS/Signal-style E2EE group implementation. [Prototype README](../../experiments/community-network/README.md)\n\n| Seam                                                                                 | Current responsibility                          | Proposed addition                                                     | Status      |\n| ------------------------------------------------------------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------- | ----------- |\n| [model.rs](../../experiments/community-network/crates/network/src/model.rs)          | Records, announcements and peer requests        | Typed subjects, scoped moderation records and policy versions         | ⬜ Proposed |\n| [registry.rs](../../experiments/community-network/crates/network/src/registry.rs)    | Announce, catalog and direct item lookup        | Consistent decisions across search, pages, replies and direct IDs     | ⬜ Proposed |\n| [peer.rs](../../experiments/community-network/crates/network/src/peer.rs)            | Retain, announce, chunks and room authorization | Serving refusal, provider withdrawal, membership revocation           | ⬜ Proposed |\n| [bridge.rs](../../experiments/community-network/crates/network/src/bridge.rs)        | Local commands, stream tickets and media ranges | Apply policy at ticket creation and subsequent serving                | ⬜ Proposed |\n| [store.rs](../../experiments/community-network/crates/network/src/store.rs)          | Local persistent state                          | Private case store and rebuildable decision views                     | ⬜ Proposed |\n| [PublicFeed.tsx](../../experiments/community-network/apps/desktop/ui/PublicFeed.tsx) | Public posts and replies                        | Mute, block, report, decision receipts and appeals                    | ⬜ Proposed |\n| [registry.js](../../experiments/community-network/web/registry.js)                   | Public landing and content pages                | Avoid leaking restricted bodies through link previews or direct pages | ⬜ Proposed |\n\nA registry stores public post bodies as well as metadata, while media is served by peers. “We only host an index” is not an accurate description of every current data path. A fresh device key and display name are not a scarce human identity, so free key generation also cannot be the basis of an abuse-resistant reputation system.\n\n## Human review, automation, and appeals\n\nGive moderators a queue with a reason for priority, related reports, the relevant policy, and the smallest useful context. Deduplicate campaigns without making report volume a vote. Show provisional actions separately from confirmed findings. Let reviewers recuse themselves, hand off distressing cases, and record uncertainty.\n\n```mermaid\nstateDiagram-v2\n  [*] --> Received\n  Received --> Triage\n  Triage --> NoAction\n  Triage --> TemporaryRestriction\n  TemporaryRestriction --> Review\n  Triage --> Review\n  Review --> DecisionAndNotice\n  DecisionAndNotice --> Appeal\n  Appeal --> IndependentReview\n  IndependentReview --> Upheld\n  IndependentReview --> Reversed\n  Reversed --> RetractAndRestore\n```\n\nA notice should state what changed, which authority acted, the applicable rule, duration, and appeal route. Preserve appeal access after a suspension. Sometimes identifying evidence or a reporter would create risk; explain the decision without exposing them. Where possible, another reviewer handles the appeal. A two-person community cannot honestly promise institutional independence—offer recusal and an external escalation route only if one actually exists.\n\nAI can help deduplicate reports, translate, suggest relevant rules, or draft a notice for review. It should not decide that a political view is false because a language model says so. Treat reported content as hostile input: no executing its instructions, following arbitrary links, or giving it case-system credentials. Sending private evidence to a hosted model changes who receives it and requires an explicit approved arrangement; it must not happen merely because the user connected Codex or Claude elsewhere in the app.\n\nAt larger scale, specialized classifiers and trusted known-content hashes can triage material, with audited thresholds and human escalation. Separate exact byte matches, perceptual similarity, and inferred meaning. Each has different evasion and false-positive properties. Neither open model weights nor a high confidence score settles context or policy.\n\nModeration also has a labor budget. An illustrative 50 cases a day at six minutes each is five reviewer-hours, before appeals, coordination, and specialist incidents. Those are planning assumptions, not measured xNet costs. Cheap metadata hosting does not make a public network free to operate responsibly.\n\n## Options and the recommended first release\n\n| Direction                               | Benefit                                          | Cost                                                                    | Recommendation                                   |\n| --------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------ |\n| Only personal filters                   | Very simple; strong immediate reader control     | Cannot address unwanted contact, operator duties or involuntary hosting | Include, but insufficient alone                  |\n| One global moderation service           | Consistent starting point and clear operator     | Central dependency and one cultural/political bottleneck                | Use only for the first operator's own scope      |\n| Community rules plus optional labelers  | Local autonomy and portable specialist judgments | Trust, freshness, onboarding and appeal complexity                      | Target architecture; introduce gradually         |\n| AI-only decisions                       | Low apparent review cost                         | Context errors, manipulation, privacy risk, weak accountability         | Do not adopt                                     |\n| A complete imported moderation platform | Mature workflows in its native ecosystem         | Identity/protocol mismatch; still needs local enforcement               | Borrow patterns, then integrate where compatible |\n\n**Recommendation:** start with a clearly accountable registry operator and small invited communities. Build personal controls and scoped enforcement first. Add shared labels when more than one operator actually needs them. Preserve the ability to move to another registry without pretending a new registry can override a private room's membership or require an unwilling peer to host a file.\n\nThis is consistent with sovereignty: power is explicit, bounded, and replaceable. It is also consistent with a pleasant social product. A person should be able to say “less of this,” find friends, and get help without learning the federation architecture.\n\n### Stage 1: make the first community manageable\n\n- [ ] Publish short operator and community rules, including what remains a personal preference.\n- [ ] Add local mute, topic filtering, block-contact and report actions with clear scopes.\n- [ ] Implement report receipts, a private queue, temporary actions, notices and appeals.\n- [ ] Enforce restrictions in catalog queries, direct record lookup, peer serving and bridge ranges.\n- [ ] Add hosting policies, explicit retention approval and an emergency contribution pause.\n- [ ] Support room removal, role changes and invitation rotation; accurately describe current privacy.\n- [ ] Assign an actual operator and reviewer before onboarding strangers; define incident escalation.\n\n### Stage 2: let communities govern themselves\n\n- [ ] Add visible room rules, newcomer review, slow mode and time-limited restrictions.\n- [ ] Offer selective private-evidence disclosure with recipient preview and retention controls.\n- [ ] Add dry-run policy changes and correction propagation across local materialized views.\n- [ ] Test owner-abuse reporting and appeal conflicts with a second real community.\n\n### Stage 3: connect independent services\n\n- [ ] Define authenticated label assertions, subscriptions, retractions and freshness semantics.\n- [ ] Build a real AT Protocol adapter if Bluesky labels are needed; do not claim compatibility early.\n- [ ] Add transparent operator-to-operator notices without forcing shared rules on every host.\n- [ ] Evaluate specialist classifiers or hash tools against measured queue needs and dataset access.\n- [ ] Commission the private messaging and youth-access designs separately before promising them.\n\n## Tests that could change this recommendation\n\nThese are product acceptance checks for future implementation. The website model is a smaller illustration and does not establish network security.\n\n- [ ] A personal filter hides a post without banning its author or changing another person's feed.\n- [ ] An optional labeler's action cannot grant itself registry, room or hosting authority.\n- [ ] A user cannot override another operator's removal by selecting “show.”\n- [ ] Quoted abuse, reclaimed language, political criticism and graphic news receive context-sensitive review.\n- [ ] A coordinated report campaign cannot turn report count alone into a confirmed violation.\n- [ ] A revoked room member cannot receive future protected content; old-copy limits are explained.\n- [ ] A private report sends exactly the selected evidence and no unapproved attachments or history.\n- [ ] Direct IDs, previews, old stream tickets and chunk requests cannot bypass the relevant enforcement.\n- [ ] Expired assertions, forged moderator keys and unavailable services produce explicit correct states.\n- [ ] An appeal reversal propagates without leaving a permanent misleading label or silently restarting downloads.\n- [ ] Blocking, leaving, reporting and appeal notices work with keyboard and assistive technology.\n- [ ] Two independently operated registries can disagree without leaking private content or forcing replication.\n\nReopen the architecture if most useful moderation turns out to require centralized private plaintext, if ordinary users cannot understand the separate scopes, or if the staffing burden makes an open public launch unsustainable. Those are reasons to narrow the product or change its boundaries, not to hide the cost in defaults.\n\n## Reading map and research limits\n\nFor **platform behavior**, start with [YouTube policies](https://www.youtube.com/howyoutubeworks/our-commitments/managing-harmful-content/), [X enforcement](https://help.x.com/en/rules-and-policies/enforcement-options), [Reddit community moderation](https://support.reddithelp.com/hc/en-us/articles/204533859-What-s-a-moderator), and [Bluesky architecture](https://github.com/bluesky-social/bsky-docs/blob/main/docs/advanced-guides/moderation.md).\n\nFor **an implementation reference**, start with [Ozone](https://github.com/bluesky-social/ozone), [PeerTube](https://docs.joinpeertube.org/admin/moderation), [Mastodon](https://docs.joinmastodon.org/admin/moderation), and [Draupnir](https://github.com/the-draupnir-project/Draupnir). For **fair process and evidence**, read the [Santa Clara Principles](https://santaclaraprinciples.org/) and the [community-norms field experiment](https://pmc.ncbi.nlm.nih.gov/articles/PMC6525516/).\n\nThis review examines published capabilities and one bounded empirical result. It does not audit platform enforcement accuracy, resolve jurisdiction-specific legal obligations, establish classifier benchmarks, or certify any proposed encryption protocol. Those are separate investigations. The concrete next step is the Stage 1 pilot, with people able to challenge the rules and with enough observability to discover where our assumptions fail.\n"
+      }
+      // A deliberately small policy simulation, not production moderation or cryptography.
+      const scenarios = {
+        opinion: {
+          title: 'An unpopular opinion',
+          category: 'Ordinary disagreement',
+          text: 'I think every city should make its main street car-free.',
+          sensitive: false
+        },
+        spoiler: {
+          title: 'A film spoiler',
+          category: 'Spoilers',
+          text: 'A fictional plot detail you would rather discover yourself.',
+          sensitive: true
+        },
+        news: {
+          title: 'Graphic documentary footage',
+          category: 'Graphic news',
+          text: 'A placeholder for contextual reporting. No graphic media is included.',
+          sensitive: true
+        },
+        art: {
+          title: 'Adult art',
+          category: 'Adult content',
+          text: 'A placeholder for a lawful adult work. No adult media is included.',
+          sensitive: true,
+          adultsOnly: true
+        },
+        harassment: {
+          title: 'Repeated unwanted contact',
+          category: 'Contact abuse',
+          text: 'A fictional sender keeps addressing you after you ask them to stop.',
+          sensitive: false
+        },
+        prohibited: {
+          title: 'A confirmed operator violation',
+          category: 'Operator restriction',
+          text: 'A fictional case already reviewed under this operator’s serious-abuse rules. No harmful content is included.',
+          sensitive: false,
+          removed: true
+        },
+        unknown: {
+          title: 'An unclassified upload',
+          category: 'No assessment',
+          text: 'There is no trusted assessment of this fictional upload.',
+          sensitive: false,
+          unknown: true
+        }
+      }
+
+      const defaults = {
+        scenario: 'news',
+        preference: 'warn',
+        audience: 'adult',
+        surface: 'public',
+        label: 'trusted',
+        communityRestricted: false,
+        member: true,
+        blockContact: false,
+        hosting: 'unapproved'
+      }
+
+      function evaluatePolicy(input) {
+        const state = { ...defaults, ...input }
+        const item = scenarios[state.scenario]
+        if (!Object.hasOwn(scenarios, state.scenario)) throw new Error('Unknown scenario')
+        for (const [key, values] of Object.entries({
+          preference: ['show', 'warn', 'hide'],
+          audience: ['adult', 'teen'],
+          surface: ['public', 'private'],
+          label: ['trusted', 'untrusted', 'expired'],
+          hosting: ['approved', 'declined', 'unapproved']
+        }))
+          if (!values.includes(state[key])) throw new Error(`Invalid ${key}`)
+        for (const key of ['communityRestricted', 'member', 'blockContact']) {
+          if (typeof state[key] !== 'boolean') throw new Error(`Invalid ${key}`)
+        }
+        const privateRoom = state.surface === 'private'
+        const excluded = privateRoom && (!state.member || state.communityRestricted)
+        const youthRestriction = item.adultsOnly && state.audience === 'teen'
+        const labelApplies = state.label === 'trusted' && item.sensitive
+        let display = {
+          value: 'Visible',
+          reason: item.unknown
+            ? 'No assessment is available. Visible is not a safety certification.'
+            : 'No applicable display restriction.',
+          authority: 'Your preferences'
+        }
+        if (labelApplies)
+          display = {
+            value: { show: 'Visible', warn: 'Warning first', hide: 'Hidden from you' }[
+              state.preference
+            ],
+            reason: `${item.category}: your chosen treatment of this optional label.`,
+            authority: 'Your preferences · selected labeler'
+          }
+        // A personal hide always works, including for unlabelled ordinary disagreement.
+        if (state.preference === 'hide')
+          display = {
+            value: 'Hidden from you',
+            reason: 'Your personal choice does not remove other people’s access.',
+            authority: 'Your preferences'
+          }
+        if (excluded)
+          display = {
+            value: 'Unavailable here',
+            reason: state.member
+              ? 'This contribution is restricted in this room.'
+              : 'You are not a member of this private room.',
+            authority: 'Room authority'
+          }
+        if (youthRestriction)
+          display = {
+            value: 'Age restricted',
+            reason:
+              'This fixture includes a known adult classification. Optional label settings cannot override the youth policy.',
+            authority: 'Account age policy'
+          }
+        if (item.removed)
+          display = {
+            value: 'Unavailable here',
+            reason:
+              'This operator has restricted the item. A personal “show” preference cannot restore it.',
+            authority: 'Service operator'
+          }
+
+        const community = {
+          value: item.removed
+            ? 'Restricted by operator'
+            : state.communityRestricted
+              ? 'Removed from this room'
+              : 'Accepted by this room',
+          reason: item.removed
+            ? 'This operator restricts the item across its own participating services.'
+            : 'A room rule affects this room; it is not a network-wide ban.',
+          authority: item.removed ? 'Service operator' : 'Room moderators'
+        }
+        let contact = {
+          value: 'Request allowed',
+          reason:
+            'No block is set in this simulation. Abuse reports do not automatically establish a finding.',
+          authority: 'Recipient'
+        }
+        if (state.blockContact)
+          contact = {
+            value: 'Contact blocked',
+            reason:
+              'This account cannot contact you through this route; public content is not made private.',
+            authority: 'Recipient'
+          }
+        if (privateRoom && !state.member)
+          contact = {
+            value: 'Membership required',
+            reason: 'Private-room participation needs an invitation or approved membership.',
+            authority: 'Room authority'
+          }
+        const index = {
+          value: privateRoom
+            ? 'Never publicly indexed'
+            : item.removed
+              ? 'Omitted by this registry'
+              : 'Eligible for public listing',
+          reason: privateRoom
+            ? 'Private content does not enter the public catalog.'
+            : 'Other registries make their own decisions. Listing does not promise recommendation.',
+          authority: 'Registry operator'
+        }
+        let hosting = {
+          value: 'Ask before retaining',
+          reason:
+            'No hosting permission is present. Viewing and liking are not consent to persistent seeding.',
+          authority: 'Device owner'
+        }
+        if (state.hosting === 'approved')
+          hosting = {
+            value: 'Approved to seed',
+            reason:
+              'Explicit approval for this fictional item. Your feed preference remains independent.',
+            authority: 'Device owner'
+          }
+        if (state.hosting === 'declined')
+          hosting = {
+            value: 'Do not seed',
+            reason: 'Your device declines this item. This does not delete the original.',
+            authority: 'Device owner'
+          }
+        if (excluded || youthRestriction || item.removed)
+          hosting = {
+            value: 'Serving denied',
+            reason:
+              'The relevant access or operator rule takes precedence over a retention preference.',
+            authority: excluded
+              ? 'Room authority'
+              : youthRestriction
+                ? 'Account age policy'
+                : 'Service operator'
+          }
+        const review = item.removed
+          ? 'Appeal to this service operator. Your preference cannot overturn its decision.'
+          : youthRestriction
+            ? 'Ask the account service to review a mistaken classification. Adult-content access is not a personal override for teen accounts.'
+            : excluded
+              ? 'Ask the room authority about access or appeal its room decision.'
+              : 'Change your preferences; challenge an optional label with its issuer. Separate restrictions need separate appeals.'
+        const labelStatus = !item.sensitive
+          ? 'No optional content label applies to this example'
+          : state.label === 'trusted'
+            ? 'Selected labeler · current assertion'
+            : state.label === 'expired'
+              ? 'Expired optional assertion · not applied'
+              : 'Unselected issuer · not applied'
+        return { item, display, community, contact, index, hosting, review, labelStatus }
+      }
+
+      const fictionalMessages = [
+        {
+          id: 'm1',
+          author: 'Mira',
+          time: '10:02',
+          text: 'Can we keep feedback about the game, please?'
+        },
+        {
+          id: 'm2',
+          author: 'Rowan',
+          time: '10:03',
+          text: 'I will keep messaging you until you answer.'
+        },
+        { id: 'm3', author: 'Mira', time: '10:04', text: 'Please stop contacting me.' }
+      ]
+
+      function previewReport(ids, recipient) {
+        const recipients = { community: 'Room moderators', operator: 'Service operator' }
+        if (!Object.hasOwn(recipients, recipient))
+          throw new Error('Choose a valid report recipient')
+        const selected = new Set(ids)
+        if ([...selected].some((id) => !fictionalMessages.some((message) => message.id === id)))
+          throw new Error('Unknown evidence selection')
+        return {
+          recipient: recipients[recipient],
+          messages: fictionalMessages
+            .filter((message) => selected.has(message.id))
+            .map((message) => ({ ...message })),
+          attachments: [],
+          disclosure:
+            'Selected message text, authors and displayed times only. No other messages, attachments, member list or decryption keys.',
+          warning:
+            'These excerpts can identify participants and may lack context. This is a local simulation; nothing is sent.'
+        }
+      }
+
+      function simulateReport(ids, recipient, consent) {
+        const preview = previewReport(ids, recipient)
+        if (preview.messages.length === 0) throw new Error('Select at least one message')
+        if (consent !== true) throw new Error('Confirm the exact evidence and recipient first')
+        return { ...preview, status: 'Simulation complete — no report sent' }
+      }
+
+      const controls = document.querySelector('#policy-controls')
+      const results = document.querySelector('#policy-results')
+      const reportControls = document.querySelector('#report-controls')
+      const reportPreview = document.querySelector('#report-preview')
+      const status = document.querySelector('#report-status')
+      const submit = document.querySelector('#simulate-report')
+      const element = (tag, text, className) => {
+        const node = document.createElement(tag)
+        if (text !== undefined) node.textContent = text
+        if (className) node.className = className
+        return node
+      }
+      function renderPolicy() {
+        const data = new FormData(controls)
+        const decision = evaluatePolicy({
+          ...Object.fromEntries(data),
+          member: data.has('member'),
+          communityRestricted: data.has('communityRestricted'),
+          blockContact: data.has('blockContact')
+        })
+        const sample = element('div', undefined, 'sample')
+        sample.append(
+          element('span', decision.item.category, 'category'),
+          element('h3', decision.item.title),
+          element('p', decision.item.text)
+        )
+        const outcomes = element('dl', undefined, 'outcomes')
+        for (const [key, title] of [
+          ['display', 'Your view'],
+          ['contact', 'Contact'],
+          ['community', 'Community'],
+          ['index', 'Discovery'],
+          ['hosting', 'Your device']
+        ]) {
+          const outcome = element('div', undefined, 'outcome')
+          const details = element('dd')
+          details.append(
+            element('strong', decision[key].value),
+            element('p', decision[key].reason),
+            element('span', decision[key].authority, 'authority')
+          )
+          outcome.append(element('dt', title), details)
+          outcomes.append(outcome)
+        }
+        results.replaceChildren(
+          sample,
+          outcomes,
+          element('p', decision.review, 'receipt'),
+          element('p', decision.labelStatus, 'lab-foot')
+        )
+      }
+      controls.addEventListener('change', renderPolicy)
+      controls.addEventListener('submit', (event) => event.preventDefault())
+      controls.addEventListener('reset', () => queueMicrotask(renderPolicy))
+      renderPolicy()
+
+      for (const message of fictionalMessages) {
+        const label = element('label', undefined, 'message')
+        const input = element('input')
+        input.type = 'checkbox'
+        input.name = 'message'
+        input.value = message.id
+        input.setAttribute('aria-label', `Include ${message.author} at ${message.time}`)
+        if (message.id === 'm2') input.checked = true
+        const body = element('span')
+        body.append(
+          element('strong', message.author),
+          element('time', message.time),
+          element('p', message.text)
+        )
+        label.append(input, body)
+        document.querySelector('#report-messages').append(label)
+      }
+      function readReport() {
+        const data = new FormData(reportControls)
+        return {
+          ids: data.getAll('message'),
+          recipient: data.get('recipient'),
+          consent: data.has('consent')
+        }
+      }
+      function renderReport() {
+        const state = readReport()
+        const preview = previewReport(state.ids, state.recipient)
+        const list = element('ul')
+        for (const message of preview.messages)
+          list.append(element('li', `${message.author} · ${message.time} — ${message.text}`))
+        if (!preview.messages.length) list.append(element('li', 'No messages selected.'))
+        reportPreview.replaceChildren(
+          element('h3', 'Disclosure preview'),
+          element('p', `Recipient: ${preview.recipient}`),
+          list,
+          element('p', preview.disclosure),
+          element('p', preview.warning)
+        )
+        submit.disabled = !state.consent || state.ids.length === 0
+      }
+      reportControls.addEventListener('change', (event) => {
+        if (event.target.name !== 'consent')
+          reportControls.elements.namedItem('consent').checked = false
+        status.textContent = ''
+        renderReport()
+      })
+      reportControls.addEventListener('submit', (event) => {
+        event.preventDefault()
+        const state = readReport()
+        try {
+          status.textContent = simulateReport(state.ids, state.recipient, state.consent).status
+        } catch (error) {
+          status.textContent = error.message
+        }
+      })
+      renderReport()
+
+      function download(filename, body, type) {
+        const url = URL.createObjectURL(new Blob([body], { type }))
+        const link = element('a')
+        link.href = url
+        link.download = filename
+        document.body.append(link)
+        link.click()
+        link.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 1500)
+      }
+      document
+        .querySelector('#download-md')
+        .addEventListener('click', () =>
+          download(sourceDocument.filename, sourceDocument.source, 'text/markdown;charset=utf-8')
+        )
+      document.querySelector('#download-html').addEventListener('click', () => {
+        // Reset transient DOM in the export; scripts reconstruct the default simulations.
+        const copy = document.documentElement.cloneNode(true)
+        for (const id of ['policy-results', 'report-messages', 'report-preview', 'report-status'])
+          copy.querySelector(`#${id}`).replaceChildren()
+        copy.querySelector('[name=consent]').removeAttribute('checked')
+        copy.querySelector('#simulate-report').setAttribute('disabled', '')
+        download(
+          'xnet-moderation-with-agency.html',
+          '<!doctype html>\n' + copy.outerHTML,
+          'text/html;charset=utf-8'
+        )
+      })
+      document.querySelector('#print').addEventListener('click', () => window.print())
+      const navLinks = [...document.querySelectorAll('.sidebar nav a')]
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const active = entries.find((entry) => entry.isIntersecting)
+          if (!active) return
+          for (const link of navLinks) {
+            if (link.hash === '#' + active.target.id) link.setAttribute('aria-current', 'true')
+            else link.removeAttribute('aria-current')
+          }
+        },
+        { rootMargin: '-5% 0px -75% 0px' }
+      )
+      for (const heading of document.querySelectorAll('section[id], .document h2'))
+        observer.observe(heading)
+    </script>
+  </body>
+</html>

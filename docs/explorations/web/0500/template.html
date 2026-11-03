@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta
+      name="description"
+      content="Research on moderation with agency: YouTube, X, Reddit, Bluesky, open tools, private spaces, and a proposed architecture for xNet."
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Moderation with agency · xNet field notes</title>
+    <style>
+      :root {
+        --paper: #fff;
+        --bg: #f7f8fa;
+        --ink: #20252e;
+        --muted: #626c7a;
+        --line: #e1e5ea;
+        --soft: #f1f3f6;
+        --accent: #3d587e;
+        --shadow: 0 2px 3px #14263804, 0 8px 28px #14263806;
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-padding-top: 30px;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.65 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      a {
+        color: var(--accent);
+        text-underline-offset: 4px;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      button,
+      select {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 9px 12px;
+        background: white;
+        box-shadow: 0 1px 2px #14263805;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:hover {
+        background: var(--soft);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      button.primary,
+      .button.primary {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+      button:focus-visible,
+      a:focus-visible,
+      select:focus-visible,
+      input:focus-visible,
+      summary:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 3px solid #7290ba;
+        outline-offset: 4px;
+      }
+      input[type='checkbox'] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--ink);
+        flex-shrink: 0;
+      }
+      summary {
+        cursor: pointer;
+      }
+      small,
+      .muted {
+        color: var(--muted);
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+      h1 {
+        font-size: clamp(42px, 5vw, 68px);
+        line-height: 1.06;
+        letter-spacing: -0.055em;
+        font-weight: 650;
+        max-width: 800px;
+        margin: 26px 0;
+      }
+      h2 {
+        font-size: 30px;
+        line-height: 1.25;
+        letter-spacing: -0.025em;
+      }
+      h3 {
+        font-size: 20px;
+        line-height: 1.35;
+        letter-spacing: -0.015em;
+      }
+      p {
+        margin-bottom: 18px;
+      }
+      .skip {
+        position: fixed;
+        left: 20px;
+        top: -100px;
+        z-index: 10;
+        background: #fff;
+        padding: 10px;
+      }
+      .skip:focus {
+        top: 12px;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 254px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 30px 22px;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--line);
+        background: #f5f6f8;
+        overflow: auto;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: var(--ink);
+      }
+      .brand svg {
+        width: 92px;
+        height: auto;
+      }
+      .brand span {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        border-left: 1px solid #cbd1db;
+        padding-left: 12px;
+        line-height: 1.4;
+      }
+      .section-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+        font-weight: 650;
+        margin: 30px 0 9px;
+      }
+      .sidebar nav {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .sidebar nav a {
+        font-size: 12px;
+        line-height: 1.45;
+        text-decoration: none;
+        color: #57616f;
+        padding: 7px 10px;
+        border-radius: 8px;
+      }
+      .sidebar nav a:hover,
+      .sidebar nav a[aria-current='true'] {
+        background: #e9ecf1;
+        color: #20252e;
+      }
+      .sidebar .quick a {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .sidebar-footer {
+        padding-top: 24px;
+        margin-top: auto;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      main {
+        min-width: 0;
+        max-width: 1300px;
+        padding: 44px 6vw 64px;
+        margin: 0 auto;
+        width: 100%;
+      }
+      .topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 11px;
+        border: 1px solid var(--line);
+        background: #fff;
+        padding: 4px 9px;
+        border-radius: 99px;
+        font-weight: 600;
+      }
+      .pill:before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #65748b;
+      }
+      .hero {
+        padding: 24px 0 42px;
+      }
+      .lede {
+        font-size: 20px;
+        line-height: 1.55;
+        color: #5e6877;
+        max-width: 700px;
+        letter-spacing: -0.015em;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 25px;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        padding: 10px 16px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: #fff;
+        color: var(--ink);
+        font-size: 13px;
+        box-shadow: var(--shadow);
+      }
+      .framework {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        background: #fff;
+        margin: 0 0 54px;
+        overflow: hidden;
+      }
+      .framework div {
+        padding: 20px 16px;
+        border-right: 1px solid var(--line);
+      }
+      .framework div:last-child {
+        border: 0;
+      }
+      .framework span {
+        font:
+          11px ui-monospace,
+          monospace;
+        color: #838c99;
+      }
+      .framework strong {
+        display: block;
+        font-size: 14px;
+        margin: 12px 0 5px;
+      }
+      .framework p {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.5;
+        margin: 0;
+      }
+      .eyebrow {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-weight: 650;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 28px;
+        box-shadow: var(--shadow);
+        margin-bottom: 30px;
+      }
+      .panel > p {
+        max-width: 720px;
+        color: var(--muted);
+      }
+      .lab-layout {
+        display: grid;
+        grid-template-columns: minmax(230px, 0.9fr) minmax(0, 1.1fr);
+        gap: 28px;
+      }
+      .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 13px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .field select {
+        font-size: 13px;
+        width: 100%;
+        max-width: 100%;
+        font-weight: 400;
+      }
+      .split-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      fieldset {
+        border: 0;
+        padding: 0;
+        margin: 0;
+      }
+      legend {
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .check {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 12px;
+        line-height: 1.5;
+        margin: 9px 0;
+      }
+      .controls details {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+      .sample {
+        background: #f7f8fa;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 18px;
+      }
+      .sample h3 {
+        margin: 10px 0;
+        font-size: 17px;
+      }
+      .sample p {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 0;
+      }
+      .sample .category {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .outcomes {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin: 16px 0 0;
+      }
+      .outcome {
+        padding: 12px 0;
+        border-bottom: 1px solid #edf0f3;
+        display: grid;
+        grid-template-columns: 83px minmax(0, 1fr);
+        gap: 10px;
+        font-size: 12px;
+      }
+      .outcome dt {
+        color: var(--muted);
+        padding-top: 1px;
+      }
+      .outcome dd {
+        margin: 0;
+      }
+      .outcome strong {
+        font-size: 13px;
+        font-weight: 600;
+        display: block;
+      }
+      .outcome p {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.5;
+        margin: 4px 0;
+      }
+      .authority {
+        font-size: 10px;
+        color: #515d6f;
+      }
+      .lab-foot {
+        font-size: 11px;
+        line-height: 1.55;
+        color: var(--muted);
+        margin: 14px 0 0;
+      }
+      .receipt {
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: var(--soft);
+        font-size: 12px;
+        margin-top: 15px;
+      }
+      .report-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      .message {
+        display: flex;
+        align-items: flex-start;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px;
+        gap: 10px;
+        margin-bottom: 9px;
+        font-size: 12px;
+      }
+      .message strong {
+        font-size: 11px;
+      }
+      .message time {
+        font-size: 10px;
+        color: var(--muted);
+        margin-left: 8px;
+      }
+      .message p {
+        margin: 5px 0 0;
+      }
+      .preview {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 18px;
+        min-width: 0;
+      }
+      .preview h3 {
+        font-size: 16px;
+      }
+      .preview ul {
+        padding-left: 20px;
+        font-size: 12px;
+      }
+      .preview p {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      #report-status {
+        font-size: 12px;
+        margin: 14px 0 0;
+      }
+      .document-intro {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid var(--line);
+        padding: 40px 0 20px;
+        margin-bottom: 36px;
+      }
+      .document-intro p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .document-intro h2 {
+        margin-bottom: 7px;
+      }
+      .download-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .download-actions button {
+        font-size: 11px;
+      }
+      .document {
+        font-size: 15px;
+        line-height: 1.85;
+        max-width: 920px;
+      }
+      .document > h2 {
+        margin: 58px 0 22px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+        font-size: 27px;
+      }
+      .document h3 {
+        margin-top: 30px;
+      }
+      .document p,
+      .document li {
+        max-width: 84ch;
+      }
+      .document ul,
+      .document ol {
+        padding-left: 25px;
+      }
+      .document li {
+        margin-bottom: 7px;
+      }
+      .document blockquote {
+        margin: 25px 0;
+        padding: 20px 22px;
+        border-left: 3px solid #8d9db2;
+        background: #eef1f5;
+        border-radius: 0 10px 10px 0;
+        font-size: 15px;
+      }
+      .document blockquote p:last-child {
+        margin: 0;
+      }
+      .document strong {
+        font-weight: 650;
+      }
+      .document details {
+        margin: 24px 0;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 17px 20px;
+        background: #fff;
+      }
+      .document summary {
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .document details[open] summary {
+        margin-bottom: 18px;
+      }
+      .table-wrap {
+        overflow-x: auto;
+        margin: 24px 0;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      .table-wrap table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 12px;
+        line-height: 1.65;
+        min-width: 580px;
+      }
+      .table-wrap th,
+      .table-wrap td {
+        text-align: left;
+        vertical-align: top;
+        padding: 14px 15px;
+        border-bottom: 1px solid var(--line);
+      }
+      .table-wrap th {
+        background: #f1f3f6;
+        font-weight: 600;
+      }
+      .table-wrap tr:last-child td {
+        border: 0;
+      }
+      .document pre {
+        overflow: auto;
+        background: #eef1f5;
+        padding: 18px;
+        border-radius: 10px;
+        font:
+          12px/1.7 ui-monospace,
+          monospace;
+      }
+      .document code {
+        font-size: 0.88em;
+      }
+      .architecture {
+        background: #fff;
+        border: 1px solid var(--line);
+        padding: 24px;
+        border-radius: 14px;
+        margin: 28px 0;
+        font-size: 12px;
+      }
+      .architecture figcaption {
+        color: var(--muted);
+        font-size: 11px;
+        margin-bottom: 15px;
+      }
+      .diagram-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .diagram-row span {
+        background: #f1f3f6;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .diagram-row b {
+        font-weight: 400;
+        color: #6f7e93;
+      }
+      .diagram-down {
+        text-align: center;
+        color: #7c899a;
+        margin: 8px;
+      }
+      .diagram-leaves {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .diagram-leaves span {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fafbfd;
+      }
+      .architecture details {
+        padding: 0;
+        border: 0;
+        margin: 20px 0 0;
+        box-shadow: none;
+      }
+      .architecture summary {
+        font-size: 10px;
+        font-weight: 400;
+        color: var(--muted);
+      }
+      .architecture p {
+        font-size: 12px;
+        line-height: 1.7;
+        margin: 12px 0 0;
+      }
+      .local-reference {
+        color: inherit;
+        text-decoration: underline dotted;
+        text-underline-offset: 3px;
+        cursor: help;
+      }
+      .task-item {
+        list-style: none;
+        margin-left: -20px;
+      }
+      .task-box {
+        font-size: 14px;
+        color: #7a8798;
+        margin-right: 8px;
+      }
+      .footer {
+        margin: 60px 0 0;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .footer a {
+        color: inherit;
+      }
+      .mobile-nav {
+        display: none;
+      }
+      noscript {
+        display: block;
+        padding: 15px;
+        background: #fff4d9;
+      }
+      .sim-note {
+        font-size: 11px !important;
+        color: #5b6779 !important;
+        border-left: 2px solid #bac4d1;
+        padding-left: 10px;
+      }
+      @media (min-width: 1600px) {
+        main {
+          padding-left: 90px;
+          padding-right: 90px;
+        }
+      }
+      @media (max-width: 1100px) {
+        .shell {
+          grid-template-columns: 215px minmax(0, 1fr);
+        }
+        .sidebar {
+          padding: 26px 15px;
+        }
+        main {
+          padding: 30px;
+        }
+        .framework {
+          grid-template-columns: repeat(5, 1fr);
+        }
+        .framework div {
+          padding: 14px 10px;
+        }
+        .lab-layout {
+          grid-template-columns: 1fr;
+        }
+        .outcomes {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          column-gap: 20px;
+        }
+        .outcome {
+          grid-template-columns: 1fr;
+          gap: 2px;
+        }
+        .report-layout {
+          grid-template-columns: 1fr;
+        }
+        .split-fields {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 760px) {
+        .shell {
+          display: block;
+        }
+        .sidebar {
+          position: static;
+          height: auto;
+          padding: 18px 22px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .sidebar nav,
+        .sidebar .section-label,
+        .sidebar-footer {
+          display: none;
+        }
+        .sidebar .brand {
+          justify-content: space-between;
+        }
+        .mobile-nav {
+          display: flex;
+          gap: 18px;
+          margin-top: 15px;
+          font-size: 12px;
+        }
+        main {
+          padding: 26px 20px;
+        }
+        .hero {
+          padding: 16px 0 28px;
+        }
+        h1 {
+          font-size: 44px;
+        }
+        .lede {
+          font-size: 18px;
+        }
+        .framework {
+          grid-template-columns: repeat(2, 1fr);
+          margin-bottom: 32px;
+        }
+        .framework div {
+          border-bottom: 1px solid var(--line);
+          padding: 16px;
+        }
+        .framework div:last-child {
+          grid-column: 1/-1;
+        }
+        .framework strong {
+          margin-top: 6px;
+        }
+        .panel {
+          padding: 20px;
+          border-radius: 14px;
+        }
+        .panel h2 {
+          font-size: 25px;
+        }
+        .outcomes {
+          display: block;
+        }
+        .outcome {
+          grid-template-columns: 82px 1fr;
+          gap: 10px;
+        }
+        .document-intro {
+          display: block;
+        }
+        .download-actions {
+          margin-top: 15px;
+        }
+        .document {
+          font-size: 14px;
+        }
+        .document > h2 {
+          font-size: 24px;
+        }
+        .diagram-leaves {
+          grid-template-columns: 1fr 1fr;
+        }
+        .topline {
+          font-size: 10px;
+        }
+        .table-wrap table {
+          min-width: 550px;
+        }
+        .split-fields {
+          grid-template-columns: 1fr;
+        }
+        .document blockquote {
+          padding: 16px;
+          font-size: 14px;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        html {
+          scroll-behavior: smooth;
+        }
+        .outcome {
+          animation: appear 0.18s ease-out;
+        }
+        @keyframes appear {
+          from {
+            opacity: 0.5;
+            transform: translateY(2px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      }
+      @media print {
+        body {
+          background: #fff;
+        }
+        .shell {
+          display: block;
+        }
+        .sidebar,
+        .actions,
+        .download-actions,
+        .mobile-nav,
+        .skip {
+          display: none;
+        }
+        main {
+          max-width: none;
+          padding: 0;
+        }
+        .hero {
+          padding: 0;
+        }
+        .framework {
+          margin-bottom: 24px;
+        }
+        .panel {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+        .document {
+          max-width: none;
+          font-size: 10pt;
+        }
+        .document h2 {
+          break-after: avoid;
+        }
+        .table-wrap {
+          overflow: visible;
+        }
+        .table-wrap table {
+          min-width: 0;
+        }
+        .document a {
+          color: inherit;
+        }
+        .document pre {
+          white-space: pre-wrap;
+        }
+        .architecture {
+          break-inside: avoid;
+        }
+        .footer {
+          margin: 20px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="#main" aria-label="xNet field notes home"
+          ><!-- WORDMARK --><span>FIELD<br />NOTES</span></a
+        >
+        <div class="section-label">Exploration 0500</div>
+        <nav class="quick" aria-label="Interactive exploration">
+          <a href="#policy-lab">Policy lab</a><a href="#private-report">Private report preview</a
+          ><a href="#research">Research &amp; architecture</a>
+        </nav>
+        <div class="section-label">In this document</div>
+        <nav aria-label="Research chapters"><!-- NAV --></nav>
+        <div class="sidebar-footer">
+          Research draft · 2 Nov 2026<br />Local exploration. No tracking.<br />Policies are
+          proposals, not shipped features.
+        </div>
+        <div class="mobile-nav">
+          <a href="#policy-lab">Try the lab</a><a href="#research">Read research</a
+          ><a href="#private-report">Private reports</a>
+        </div>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="topline">
+          <span>COMMUNITY NETWORK / MODERATION</span><span class="pill">Research draft</span>
+        </div>
+        <header class="hero">
+          <h1>Many voices.<br />A say in what reaches you.</h1>
+          <p class="lede">
+            How do we protect room to speak—and room to feel at home? A field guide to moderation,
+            personal agency, and communities that can govern themselves.
+          </p>
+          <div class="actions">
+            <a class="button primary" href="#policy-lab"
+              >Explore the tradeoffs <span aria-hidden="true">&nbsp;↗</span></a
+            ><a class="button" href="#what-the-major-platforms-actually-separate"
+              >Compare the platforms</a
+            ><a class="button" href="#a-small-architecture-with-room-to-grow"
+              >See the architecture</a
+            >
+          </div>
+        </header>
+        <div class="framework" aria-label="Five separate moderation powers">
+          <div>
+            <span>01</span><strong>What I see</strong>
+            <p>Attention belongs to the reader.</p>
+          </div>
+          <div>
+            <span>02</span><strong>Who reaches me</strong>
+            <p>Contact requires boundaries.</p>
+          </div>
+          <div>
+            <span>03</span><strong>What gets listed</strong>
+            <p>Discovery has an operator.</p>
+          </div>
+          <div>
+            <span>04</span><strong>What I host</strong>
+            <p>Bandwidth needs consent.</p>
+          </div>
+          <div>
+            <span>05</span><strong>How we review</strong>
+            <p>Decisions can be challenged.</p>
+          </div>
+        </div>
+        <noscript
+          >The full research is readable below. Enable JavaScript to use the two local simulations
+          and download buttons.</noscript
+        >
+        <section class="panel" id="policy-lab" aria-labelledby="lab-title">
+          <p class="eyebrow">01 / Interactive policy lab</p>
+          <h2 id="lab-title">One post. Different boundaries.</h2>
+          <p>
+            Change a preference and see which powers it actually changes. Hiding a post is different
+            from banning it—or agreeing to host it.
+          </p>
+          <p class="sim-note">
+            Fictional examples. No content is classified, fetched, removed, or shared. This is a
+            small model of the proposal, not production enforcement.
+          </p>
+          <div class="lab-layout">
+            <form class="controls" id="policy-controls">
+              <label class="field"
+                >Example<select name="scenario" id="scenario">
+                  <option value="news">Graphic documentary footage</option>
+                  <option value="opinion">An unpopular opinion</option>
+                  <option value="spoiler">A film spoiler</option>
+                  <option value="art">Adult art</option>
+                  <option value="harassment">Repeated unwanted contact</option>
+                  <option value="prohibited">A confirmed operator violation</option>
+                  <option value="unknown">An unclassified upload</option>
+                </select></label
+              >
+              <div class="split-fields">
+                <label class="field"
+                  >Your display preference<select name="preference">
+                    <option value="show">Show optional content</option>
+                    <option value="warn" selected>Warn on selected labels</option>
+                    <option value="hide">Hide this from me</option>
+                  </select></label
+                ><label class="field"
+                  >Account policy<select name="audience">
+                    <option value="adult">Adult</option>
+                    <option value="teen">Teen (illustrative)</option>
+                  </select></label
+                >
+              </div>
+              <label class="field"
+                >Where you encounter it<select name="surface">
+                  <option value="public">Public feed</option>
+                  <option value="private">Private room</option>
+                </select></label
+              >
+              <label class="field"
+                >Your device’s hosting choice<select name="hosting">
+                  <option value="unapproved">No approval to retain this item</option>
+                  <option value="approved">Explicitly approve this item</option>
+                  <option value="declined">Do not host this item</option>
+                </select></label
+              >
+              <label class="check"
+                ><input type="checkbox" name="blockContact" />Block contact from this account</label
+              >
+              <details>
+                <summary>Community and label authority</summary>
+                <label class="field"
+                  >Optional label status<select name="label">
+                    <option value="trusted">Selected issuer · current</option>
+                    <option value="untrusted">Unselected issuer</option>
+                    <option value="expired">Expired assertion</option>
+                  </select></label
+                >
+                <label class="check"
+                  ><input type="checkbox" name="member" checked />You are a member of the private
+                  room</label
+                >
+                <label class="check"
+                  ><input type="checkbox" name="communityRestricted" />Room moderators restricted
+                  this contribution</label
+                >
+              </details>
+              <button type="reset">Reset example</button>
+            </form>
+            <div id="policy-results" aria-live="polite" aria-atomic="true"></div>
+          </div>
+        </section>
+        <section class="panel" id="private-report" aria-labelledby="report-title">
+          <p class="eyebrow">02 / Private evidence</p>
+          <h2 id="report-title">Report a problem. Keep a boundary.</h2>
+          <p>
+            A private report is a deliberate disclosure. Select the excerpts a reviewer would
+            receive; the rest of the conversation stays out of the report.
+          </p>
+          <p class="sim-note">
+            All people and messages below are fictional. Nothing leaves this page.
+          </p>
+          <div class="report-layout">
+            <form id="report-controls">
+              <fieldset>
+                <legend>Choose messages to include</legend>
+                <div id="report-messages"></div>
+              </fieldset>
+              <label class="field"
+                >Who would receive the report?<select name="recipient">
+                  <option value="community">Room moderators</option>
+                  <option value="operator">Service operator</option>
+                </select></label
+              >
+              <label class="check"
+                ><input type="checkbox" name="consent" />I have reviewed these excerpts and this
+                recipient.</label
+              >
+              <button class="primary" type="submit" id="simulate-report" disabled>
+                Simulate disclosure
+              </button>
+              <p id="report-status" role="status"></p>
+            </form>
+            <div class="preview" id="report-preview" aria-live="polite"></div>
+          </div>
+        </section>
+        <div class="document-intro" id="research">
+          <div>
+            <p class="eyebrow">03 / The research document</p>
+            <h2>Moderation with agency</h2>
+            <p>Platform research, open tools, architecture, and an implementation path.</p>
+          </div>
+          <div class="download-actions">
+            <button id="download-md">Download Markdown</button
+            ><button id="download-html">Save website</button><button id="print">Print / PDF</button>
+          </div>
+        </div>
+        <article class="document"><!-- CONTENT --></article>
+        <footer class="footer">
+          xNet field notes · 0500 · Research checked November 2, 2026.<br />This page works offline.
+          The simulations do not send or save your choices. <a href="#main">Back to top ↑</a>
+        </footer>
+      </main>
+    </div>
+    <script>
+      /* SOURCE */
+      /* MODEL */
+      /* APP */
+    </script>
+  </body>
+</html>
