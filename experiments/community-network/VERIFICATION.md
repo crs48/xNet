@@ -122,6 +122,8 @@ The UI pass found and corrected the long disclosure form, vague removed-member e
 
 The first pre-commit run hit the existing web demo-seeding test's ten-second timeout (912 passed, one timeout). Its isolated rerun passed all seven tests, and the full rerun passed all 913 tests across 119 files. All 102 affected typecheck/build tasks succeeded. The first commit-message attempt then failed the 100-character body-line rule; the message was wrapped before retrying. No hook bypass was used.
 
+Local implementation commit `b54a91dde` completed with all hooks: 102 affected tasks and 913 tests across 119 files passed again. The final evidence-encryption test also verifies that copying valid ciphertext to a different case key fails AES-GCM authentication. Nothing was pushed, merged or deployed.
+
 ### Remaining boundaries
 
 The registry policy signer is pinned on first use; this still needs authenticated production bootstrap/key rotation. Fresh policy is an availability dependency for public media. A registry delists public rooms; their independent hosts retain room-admission authority. Registry-wide restrictions do not reach private chat policy. Existing copied bytes cannot be recalled and modified clients can ignore policy.

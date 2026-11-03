@@ -17,7 +17,7 @@ remain later decisions, as the exploration specifies. No deployment or public se
       appeals/reversal, revoked membership and private evidence boundaries.
 - [x] Build and drive both native profiles through public and private moderation flows.
 - [x] Update exploration checklists, local documentation and verification.
-- [ ] Finish local commits with required hooks; no push or merge.
+- [x] Create the local implementation commit with required hooks; no push or merge.
 
 Public registry policy uses a signed short lease pinned on first use. This experiment's single
 registry remains an availability dependency for fresh operator policy. Old content already copied
