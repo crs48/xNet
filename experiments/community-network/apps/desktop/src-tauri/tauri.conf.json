@@ -25,6 +25,6 @@
     "targets": ["app"],
     "category": "SocialNetworking",
     "shortDescription": "A local community network experiment",
-    "icon": []
+    "icon": ["icons/icon.icns", "icons/icon.ico", "icons/icon.png"]
   }
 }

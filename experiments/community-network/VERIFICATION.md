@@ -24,6 +24,8 @@ The continuation adds a shared extension request/response contract and an explic
 
 The updated native-host probe ran against the real Leo desktop. Pausing in the native UI produced inactive status and a denied playback request with no ticket. Resuming in the UI restored a valid session; the probe validated that response with the extension's actual parser and fetched a 64-byte range. JavaScript syntax and Python compile checks also passed. The retry control itself still needs Chrome verification.
 
+The branding pass reused the existing xNet logotype and native mark exports. The frontend and native desktop builds passed. Both generated launchers have an icon resource that matches the source ICNS, and Finder's application information visibly renders the rounded xNet mark. Both native peers reopened with their existing profiles and the logotype visible in the sidebar. Evidence: `.local/evidence/native-brand-icon.png`.
+
 ## Native and browser interaction
 
 - Created **Maya** and **Leo** through the native onboarding UI, including contribution consent.

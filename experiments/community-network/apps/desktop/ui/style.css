@@ -393,8 +393,8 @@
   .loading {
     @apply grid min-h-screen place-content-center gap-4 text-center text-slate-500;
   }
-  .loading strong {
-    @apply text-3xl text-slate-800;
+  .loading img {
+    @apply mx-auto;
   }
   dialog {
     margin: auto;

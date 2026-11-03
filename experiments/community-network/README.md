@@ -90,6 +90,8 @@ flowchart LR
 
 Only existing branding assets were copied. The workspace has its own Cargo and pnpm lockfiles and is outside the root pnpm workspace. It can be evaluated or removed without deprecating the existing apps. Promotion would require an explicit migration plan and ADR; this format is not a new stable xNet protocol.
 
+Branding uses the existing `site/public/wordmark.svg` for the interface and the `apps/electron/build/icon.*` mark exports for native icons. Copies live in this experiment so it remains independently buildable. Tauri bundles and the local macOS launchers both declare the icon; regenerate the launchers after updating its artwork.
+
 ## Protocol and limits
 
 - **Identity:** persistent Ed25519 device key plus a chosen display name. Names are not unique or social-account verified. No Bluesky/Google/X OAuth, account recovery, device linking or password UX yet.

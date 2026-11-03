@@ -261,7 +261,7 @@ function App() {
   if (!snapshot)
     return (
       <div className="loading">
-        <strong>xNet</strong>
+        <img src="/wordmark.svg" alt="xNet" width="120" height="46" />
         <p>{status || 'Starting your local peer…'}</p>
       </div>
     )
