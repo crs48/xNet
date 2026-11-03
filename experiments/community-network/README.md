@@ -60,6 +60,8 @@ python3 scripts/install-native-host.py --extension-id YOUR_32_LETTER_ID --data .
 
 The extension's own iframe receives a short-lived playback URL from Chrome native messaging. The webpage does not receive the control credential. The native host allows public playback and a minimal participation status; it rejects chat access, file import, publishing and settings changes. The background worker checks the extension frame and the exact local registry URL. Host permissions are loopback-only because both the registry and the temporary playback port are local in this experiment.
 
+The player has a **Try again** action for unavailable desktops, paused hosting and interrupted playback. A request times out after 30 seconds; retries are explicit, and late replies cannot replace a newer attempt. Its request contract binds the extension frame, parent content page and requested content ID. The response contract accepts only a loopback media URL with a scoped ticket. Those contracts are checked by `pnpm test:extension`; this does not replace an actual Chrome interaction pass.
+
 Remove the native manifest printed by the registration script to disconnect the browser, and remove the unpacked extension in Chrome. Windows registration, production domain allowlisting, installers and automatic pairing remain future work. Browser requests for local-network access must also be handled in the real Chrome verification pass.
 
 ## What lives where
@@ -107,8 +109,11 @@ The registry is intentionally loopback-only by default. Before offering it publi
 cargo +stable test -p community-network -p community-node -- --nocapture
 pnpm build
 cargo +stable build --workspace --features tauri/custom-protocol
+pnpm test:extension
 python3 scripts/check-native-host.py --data .local/leo --media CONTENT_ID_FROM_DEMO
 ```
+
+For the contribution-denial check, pause the selected profile in the desktop UI and run the native-host check with `--expect-paused`. It must report inactive status and reject playback without issuing a ticket. Resume in the UI and rerun without that flag; it validates the real response against the extension contract and reads a byte range through the desktop.
 
 The network integration test starts three independent Iroh endpoints and a temporary registry. It covers publication/search, real chunk transfer, verified re-seeding from the second peer after the first pauses, public/private messages, an uninvited reader, bad invitations, forged sender signatures, tampered registry records, corrupted chunks, bridge authorization, HTTP ranges and paused access. Unit tests cover signature/range boundaries, profile locking, persistent identities/records, corruption handling and truncated native framing.
 

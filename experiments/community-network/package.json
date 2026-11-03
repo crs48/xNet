@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 4381",
     "build": "tsc --noEmit && vite build",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test:extension": "node --test scripts/extension-protocol.test.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.10.1",

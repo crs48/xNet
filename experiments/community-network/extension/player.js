@@ -1,33 +1,67 @@
+import { playbackResponse } from './protocol.js'
+
 const status = document.getElementById('status')
+const retry = document.getElementById('retry')
+const video = document.getElementById('video')
+const image = document.getElementById('image')
 const id = location.hash.slice(1)
+let attempt = 0
+let pending = false
+
+function connect() {
+  if (pending) return
+  const current = ++attempt
+  pending = true
+  retry.hidden = true
+  status.textContent = 'Connecting to your desktop…'
+  video.pause()
+  for (const media of [video, image]) {
+    media.onerror = null
+    media.hidden = true
+    media.removeAttribute('src')
+  }
+  video.load()
+
+  const fail = (message) => {
+    if (attempt !== current) return
+    pending = false
+    status.textContent = message
+    retry.hidden = false
+  }
+  const timeout = setTimeout(() => {
+    fail('Your desktop did not respond. Open xNet, check that hosting is on, then try again.')
+    // Ignore a late response; only a new click can start another attempt.
+    attempt++
+  }, 30000)
+  chrome.runtime.sendMessage({ op: 'play', id }, (response) => {
+    const error = chrome.runtime.lastError
+    if (attempt !== current) return
+    clearTimeout(timeout)
+    if (error) {
+      fail(
+        'Desktop bridge unavailable. Open xNet and check the browser connection, then try again.'
+      )
+      return
+    }
+    try {
+      const session = playbackResponse(response, id)
+      const media = session.kind === 'image' ? image : video
+      pending = false
+      media.hidden = false
+      media.onerror = () =>
+        fail('Playback stopped. Check desktop hosting and peer availability, then try again.')
+      media.src = session.url
+      if (session.kind === 'image') image.alt = session.title
+      status.textContent = `${session.title} · through your desktop peer`
+    } catch (error) {
+      fail(error.message)
+    }
+  })
+}
+
+retry.addEventListener('click', connect)
 if (!/^[a-f0-9]{64}$/.test(id)) {
   status.textContent = 'Invalid content link.'
 } else {
-  chrome.runtime.sendMessage({ op: 'play', id }, (response) => {
-    if (chrome.runtime.lastError || !response?.ok) {
-      status.textContent =
-        response?.error ||
-        chrome.runtime.lastError?.message ||
-        'Start the desktop app and enable hosting.'
-      return
-    }
-    const { url, item } = response.result
-    const parsed = new URL(url)
-    if (
-      parsed.hostname !== '127.0.0.1' ||
-      parsed.protocol !== 'http:' ||
-      parsed.pathname !== `/media/${id}`
-    ) {
-      status.textContent = 'Unexpected playback address.'
-      return
-    }
-    const media = document.getElementById(item.record.payload.kind === 'image' ? 'image' : 'video')
-    media.hidden = false
-    media.src = url
-    media.addEventListener('error', () => {
-      status.textContent =
-        'Playback stopped. Check desktop hosting, peer availability and codec support.'
-    })
-    status.textContent = `${item.record.payload.title} · through your desktop peer`
-  })
+  connect()
 }

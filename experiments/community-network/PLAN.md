@@ -29,6 +29,9 @@ flowchart LR
 - [x] Negative tests for tampering, unauthorized rooms, wrong bridge credentials, invalid ranges and paused access.
 - [x] Drive the native UI and public registry browser flow; record evidence and limitations in `VERIFICATION.md`.
 - [x] Preserve peer ports across same-network restarts; test private chat reconnecting and history remaining intact.
+- [x] Test extension request/response boundaries, including forged frames, mismatched IDs and remote media URLs.
+- [x] Verify the native bridge denies playback while the desktop UI is paused and serves bytes after resuming.
+- [ ] Verify the new player retry UI in Chrome, including unavailable desktop, pause/resume and a late response.
 
 ## Prototype boundaries
 

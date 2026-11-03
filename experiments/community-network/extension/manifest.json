@@ -5,7 +5,7 @@
   "description": "Watch community media through your participating local desktop. Local experiment only.",
   "permissions": ["nativeMessaging"],
   "host_permissions": ["http://127.0.0.1/*"],
-  "background": { "service_worker": "background.js" },
+  "background": { "service_worker": "background.js", "type": "module" },
   "content_scripts": [{ "matches": ["http://127.0.0.1/*"], "js": ["content.js"] }],
   "web_accessible_resources": [
     { "resources": ["player.html", "player.js", "player.css"], "matches": ["http://127.0.0.1/*"] }

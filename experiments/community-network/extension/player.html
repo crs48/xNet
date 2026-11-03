@@ -4,10 +4,11 @@
     <meta charset="utf-8" />
     <title>xNet peer player</title>
     <link rel="stylesheet" href="player.css" />
-    <script src="player.js" defer></script>
+    <script src="player.js" type="module"></script>
   </head>
   <body>
     <p id="status" role="status">Connecting to your desktop…</p>
+    <button id="retry" type="button" hidden>Try again</button>
     <video id="video" controls playsinline hidden></video
     ><img id="image" alt="Shared community image" hidden />
     <p class="small">
