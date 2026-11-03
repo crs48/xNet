@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  conversationInstructions,
   readConversationResponse,
   streamedConversationReply,
   streamedConversationProgress
@@ -10,8 +11,27 @@ const extension = {
   summary: 'Films in this chat',
   source: 'export default () => ({type:"text",text:"Films"})'
 }
+// The response validator must enforce the limit we actually advertise to the agent.
+const advertisedSourceLimit = Number(
+  /source at most ([\d,]+)/.exec(conversationInstructions)?.[1].replaceAll(',', '')
+)
 
 describe('conversational agent output', () => {
+  it('accepts the advertised source limit and rejects the next character', () => {
+    expect(Number.isSafeInteger(advertisedSourceLimit)).toBe(true)
+    expect(advertisedSourceLimit).toBeGreaterThan(0)
+    const source = 'x'.repeat(advertisedSourceLimit)
+    expect(
+      readConversationResponse(
+        JSON.stringify({ reply: 'Ready', extension: { ...extension, source } })
+      ).extension?.source
+    ).toBe(source)
+    expect(() =>
+      readConversationResponse(
+        JSON.stringify({ reply: 'Ready', extension: { ...extension, source: `${source}x` } })
+      )
+    ).toThrow('oversized extension draft')
+  })
   it('keeps ordinary replies separate from optional extension source', () => {
     expect(readConversationResponse(JSON.stringify({ reply: 'Hello!', extension: null }))).toEqual({
       reply: 'Hello!'
@@ -29,7 +49,6 @@ describe('conversational agent output', () => {
     JSON.stringify({ reply: 'Hello!' }),
     JSON.stringify({ reply: 'Hello!', extension: null, execute: 'command' }),
     JSON.stringify({ reply: 'Ready', extension: { ...extension, permissions: ['network'] } }),
-    JSON.stringify({ reply: 'Ready', extension: { ...extension, source: 'x'.repeat(24_001) } }),
     JSON.stringify({ reply: 'Ready', extension: { ...extension, title: 'x'.repeat(121) } }),
     JSON.stringify({ reply: 'Ready', extension: { ...extension, summary: 'x'.repeat(2001) } })
   ])('rejects malformed, truncated, or overprivileged output %#', (text) => {

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "xNet Community",
+  "version": "0.1.0",
+  "identifier": "fyi.xnet.community.experiment",
+  "build": { "frontendDist": "../../../dist", "devUrl": "http://127.0.0.1:4381" },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "xNet · Community network",
+        "width": 1180,
+        "height": 820,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "capabilities": ["main"],
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost; img-src 'self' data: http://127.0.0.1:*; media-src http://127.0.0.1:*; object-src 'none'; base-uri 'none'; frame-src 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app"],
+    "category": "SocialNetworking",
+    "shortDescription": "A local community network experiment",
+    "icon": []
+  }
+}

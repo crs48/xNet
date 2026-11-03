@@ -20,6 +20,9 @@ vi.mock('electron', () => ({
   shell: {}
 }))
 vi.mock('./profile', () => ({ dataPath: '/test/data', profile: 'test' }))
+vi.mock('./workspace-windows', () => ({
+  workspaceWindows: () => [{ isDestroyed: () => false, webContents: { send: mocks.send } }]
+}))
 vi.mock('./library-ipc', () => ({ freezeLibrary: mocks.freeze, thawLibrary: mocks.thaw }))
 vi.mock('./renderer-flush', () => ({ flushRenderers: mocks.flush, resumeRenderers: mocks.resume }))
 vi.mock('./social-import-ipc', () => ({ hasActiveSocialImports: () => false }))

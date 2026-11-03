@@ -1,0 +1,7 @@
+/target/
+node_modules/
+dist/
+.local/
+apps/desktop/src-tauri/gen/
+*.log
+__pycache__/

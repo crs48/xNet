@@ -1,0 +1,11 @@
+[package]
+name = "community-registry"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+community-network = { path = "../network" }
+anyhow.workspace = true
+tokio.workspace = true
+clap.workspace = true

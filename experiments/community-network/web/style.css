@@ -1,0 +1,148 @@
+:root {
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: #25272c;
+  background: #f8f9fb;
+  color-scheme: light;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+header {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  border-bottom: 1px solid #e3e5e9;
+  padding: 22px 5%;
+}
+header strong {
+  font-size: 25px;
+}
+header span,
+footer,
+.eyebrow {
+  color: #6d7480;
+  font-size: 12px;
+}
+main {
+  max-width: 980px;
+  padding: 64px 24px;
+  margin: auto;
+}
+h1 {
+  font-size: 46px;
+  letter-spacing: -2px;
+  margin: 12px 0;
+}
+h2 {
+  font-size: 22px;
+}
+.intro {
+  max-width: 650px;
+  color: #686e78;
+  line-height: 1.7;
+}
+input,
+button {
+  font: inherit;
+  padding: 12px 16px;
+  border: 1px solid #dcdfe4;
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+  box-shadow: 0 2px 4px #00000008;
+}
+button:hover {
+  background: #eff1f5;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #778899;
+  outline-offset: 3px;
+}
+form {
+  display: flex;
+  gap: 10px;
+  margin: 30px 0;
+}
+form input {
+  flex: 1;
+  min-width: 0;
+}
+#content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+article {
+  background: #fff;
+  border: 1px solid #e0e3e8;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px #00000004;
+}
+.placeholder {
+  height: 100px;
+  background: linear-gradient(135deg, #e9ecf0, #f6f7f9);
+  display: grid;
+  place-items: center;
+  color: #747b87;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+.card {
+  padding: 24px;
+}
+.card p {
+  line-height: 1.6;
+  color: #656c78;
+}
+.eyebrow {
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+a {
+  color: #39434f;
+}
+label {
+  display: block;
+  font-size: 12px;
+  margin-top: 24px;
+}
+label input {
+  width: 100%;
+  margin-top: 8px;
+  font-size: 12px;
+}
+.notice {
+  padding: 12px;
+  background: #f5f6f8;
+  border-radius: 10px;
+}
+footer {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 25px;
+  line-height: 1.7;
+}
+iframe {
+  width: 100%;
+  min-height: 360px;
+  border: 0;
+  margin-top: 20px;
+}
+#status {
+  font-size: 13px;
+  color: #6d7480;
+}

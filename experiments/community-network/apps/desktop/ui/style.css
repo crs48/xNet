@@ -1,0 +1,454 @@
+@import 'tailwindcss';
+@layer base {
+  :root {
+    font-family:
+      Inter,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      sans-serif;
+    color: #27292f;
+    background: white;
+    font-size: 14px;
+    color-scheme: light;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+  }
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  input,
+  textarea {
+    width: 100%;
+    border: 1px solid #dfe2e7;
+    border-radius: 10px;
+    padding: 11px 13px;
+    background: #fff;
+    color: inherit;
+  }
+  input:focus,
+  textarea:focus {
+    outline: 2px solid #a2aaba;
+    outline-offset: 1px;
+  }
+  button:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid #778597;
+    outline-offset: 3px;
+  }
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+  h1,
+  h2,
+  h3,
+  p {
+    margin: 0;
+  }
+  h1 {
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: -0.4px;
+  }
+  h2 {
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: -0.3px;
+  }
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  label input,
+  label textarea {
+    margin-top: 8px;
+  }
+  fieldset {
+    border: 0;
+    padding: 20px 0;
+  }
+  legend {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  code {
+    overflow-wrap: anywhere;
+    font-size: 11px;
+  }
+}
+@layer components {
+  .shell {
+    @apply flex h-screen overflow-hidden bg-white;
+  }
+  .sidebar {
+    @apply flex w-[224px] shrink-0 flex-col border-r border-slate-200/70 bg-[#f7f8fa] p-3;
+  }
+  .brand {
+    @apply flex items-center gap-3 px-2 pt-2 pb-7;
+  }
+  .brand img {
+    width: 75px;
+    height: 28px;
+  }
+  .brand span {
+    @apply text-[11px] text-slate-500;
+  }
+  .nav-item {
+    @apply mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[13px] text-slate-600 hover:bg-slate-200/40;
+  }
+  .selected {
+    @apply bg-white text-slate-950 shadow-sm ring-1 ring-black/5;
+  }
+  .count {
+    @apply ml-auto text-[11px] text-slate-400;
+  }
+  .section-label {
+    @apply mt-7 mb-2 flex items-center justify-between px-3 text-[11px] text-slate-400;
+  }
+  .room-list {
+    @apply min-h-0 flex-1 overflow-y-auto;
+  }
+  .room-link {
+    @apply my-1 flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-200/40;
+  }
+  .room-link span {
+    @apply truncate;
+  }
+  .empty-label {
+    @apply px-3 leading-6;
+  }
+  .profile {
+    @apply mt-3 flex items-center gap-2.5 border-t border-slate-200 px-2 pt-4 pb-2;
+  }
+  .profile strong {
+    @apply block max-w-[130px] truncate text-xs font-medium;
+  }
+  .profile p {
+    @apply mt-1 text-[10px] text-slate-400;
+  }
+  .avatar {
+    @apply flex size-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-xs;
+  }
+  .dot {
+    @apply ml-auto size-1.5 rounded-full bg-slate-300;
+  }
+  .dot.active {
+    @apply bg-slate-600;
+  }
+  .workspace {
+    @apply relative flex min-w-0 flex-1 flex-col;
+  }
+  .toolbar {
+    @apply flex shrink-0 items-center justify-between gap-4 border-b border-slate-100 px-7 py-5;
+  }
+  .toolbar p {
+    @apply mt-1 text-xs text-slate-500;
+  }
+  .actions {
+    @apply flex items-center gap-2;
+  }
+  .button {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50;
+  }
+  .button.primary {
+    @apply border-[#27292f] bg-[#27292f] text-white hover:bg-[#3c3f47];
+  }
+  .icon-button {
+    @apply inline-flex size-7 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100;
+  }
+  .wide {
+    @apply w-full;
+  }
+  .content {
+    @apply flex-1 overflow-y-auto px-7 py-6;
+  }
+  .narrow {
+    @apply mx-auto w-full max-w-[800px];
+  }
+  .search {
+    @apply flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 shadow-sm;
+  }
+  .search input {
+    @apply border-0 bg-transparent px-0 py-3.5 text-sm outline-none;
+  }
+  .section-heading {
+    @apply mt-7 mb-4 flex items-center justify-between;
+  }
+  .section-heading h2 {
+    @apply text-sm;
+  }
+  .cards {
+    @apply grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4;
+  }
+  .media-card {
+    @apply overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm transition-shadow hover:shadow-md;
+  }
+  .media-placeholder {
+    @apply flex h-32 flex-col items-center justify-center gap-3 bg-gradient-to-br from-slate-100 to-slate-50 text-slate-400;
+  }
+  .media-placeholder span {
+    @apply text-[10px] tracking-widest;
+  }
+  .card-body {
+    @apply p-4;
+  }
+  .card-body p {
+    @apply mt-2 line-clamp-2 min-h-9 text-xs leading-5 text-slate-500;
+  }
+  .card-footer {
+    @apply mt-4 flex items-center justify-between text-[11px] text-slate-400;
+  }
+  .empty {
+    @apply flex flex-1 flex-col items-center justify-center gap-4 py-20 text-center text-slate-400;
+  }
+  .empty h2 {
+    @apply text-slate-700;
+  }
+  .empty p {
+    @apply max-w-sm text-sm leading-6 text-slate-500;
+  }
+  .footnote {
+    @apply mt-5 px-1 pb-2 text-[10px] leading-5 text-slate-400;
+  }
+  .muted {
+    @apply text-slate-500 leading-6;
+  }
+  .small {
+    @apply text-xs leading-5;
+  }
+  .eyebrow {
+    @apply text-[10px] font-medium uppercase tracking-widest text-slate-400;
+  }
+  .notice {
+    @apply flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600;
+  }
+  .notice.top {
+    @apply mx-6 mt-3 shrink-0;
+  }
+  .notice .icon-button {
+    @apply ml-auto;
+  }
+  .participation-banner {
+    @apply flex shrink-0 items-center gap-2 border-b border-slate-200 bg-slate-50 px-7 py-3 text-xs text-slate-600;
+  }
+  .participation-banner button {
+    @apply ml-auto flex items-center gap-1 font-medium underline;
+  }
+  .preview {
+    @apply w-[350px] shrink-0 overflow-y-auto border-l border-slate-200 bg-slate-50/50;
+  }
+  .preview-head {
+    @apply flex items-center justify-between border-b border-slate-200 p-4 text-xs text-slate-500;
+  }
+  .player {
+    @apply mt-6 max-h-[370px] w-full bg-black;
+  }
+  .preview-body {
+    @apply space-y-4 p-5;
+  }
+  .preview-body > p:not(.eyebrow) {
+    @apply text-xs leading-6 text-slate-500;
+  }
+  .preview-body .button {
+    @apply mr-2;
+  }
+  .chat {
+    @apply flex min-h-0 flex-1 flex-col px-7;
+  }
+  .chat-context {
+    @apply flex shrink-0 items-center justify-between py-4;
+  }
+  .chat-context > span {
+    @apply flex items-center gap-2 text-[10px] text-slate-400;
+  }
+  .messages {
+    @apply min-h-0 flex-1 overflow-y-auto py-2;
+  }
+  .message {
+    @apply mx-auto flex max-w-[720px] gap-3 py-4;
+  }
+  .small-avatar {
+    @apply size-7 text-[10px];
+  }
+  .message-author {
+    @apply flex items-center gap-3 text-xs font-medium;
+  }
+  .message-author time {
+    @apply text-[10px] font-normal text-slate-400;
+  }
+  .message p {
+    @apply mt-1 whitespace-pre-wrap break-words text-sm leading-6;
+  }
+  .message.mine p {
+    @apply rounded-xl bg-slate-100 px-3 py-2;
+  }
+  .composer {
+    @apply mx-auto mt-4 w-full max-w-[760px] rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_3px_16px_#00000008];
+  }
+  .composer textarea {
+    @apply min-h-16 resize-none border-0 p-1 text-sm outline-none;
+  }
+  .composer > div {
+    @apply flex items-center justify-between;
+  }
+  .composer span {
+    @apply text-[10px] text-slate-400;
+  }
+  .send {
+    @apply grid size-8 place-items-center rounded-full bg-[#27292f] text-white;
+  }
+  .hosting-status {
+    @apply flex items-start gap-4 py-4;
+  }
+  .hosting-status p {
+    @apply mt-2 text-xs;
+  }
+  .metrics {
+    @apply my-6 grid grid-cols-3 gap-3;
+  }
+  .metrics > div {
+    @apply rounded-xl border border-slate-200 bg-slate-50/50 p-4;
+  }
+  .metrics span {
+    @apply block text-xs text-slate-500;
+  }
+  .metrics strong {
+    @apply mt-2 block text-xl font-medium;
+  }
+  .settings {
+    @apply space-y-5 rounded-xl border border-slate-200 p-5;
+  }
+  .subheading {
+    @apply mt-8 mb-3 text-sm;
+  }
+  .library-row {
+    @apply flex items-center gap-3 border-b border-slate-100 py-3 text-xs;
+  }
+  .library-row > span {
+    @apply flex-1;
+  }
+  .library-row small {
+    @apply mt-1 block text-slate-400;
+  }
+  .details {
+    @apply mt-7 text-xs leading-6 text-slate-500;
+  }
+  .details summary {
+    @apply cursor-pointer;
+  }
+  .details p {
+    @apply mt-3;
+  }
+  .share-box {
+    @apply absolute bottom-4 left-6 right-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-lg;
+  }
+  .share-box label {
+    @apply flex-1 text-xs;
+  }
+  .share-box input {
+    @apply text-xs;
+  }
+  .onboarding {
+    @apply mx-auto flex min-h-screen max-w-[510px] flex-col justify-center gap-5 px-8 py-10;
+  }
+  .onboarding > img {
+    width: 100px;
+    height: 38px;
+    margin-bottom: 8px;
+  }
+  .onboarding h1 {
+    @apply text-4xl font-semibold leading-tight tracking-[-1.5px];
+  }
+  .onboarding form {
+    @apply space-y-5;
+  }
+  .check {
+    @apply flex items-start gap-3 text-xs leading-5 font-normal;
+  }
+  .check input {
+    @apply mt-1 w-4 shrink-0;
+  }
+  .check small {
+    @apply block text-slate-500 leading-5;
+  }
+  .loading {
+    @apply grid min-h-screen place-content-center gap-4 text-center text-slate-500;
+  }
+  .loading strong {
+    @apply text-3xl text-slate-800;
+  }
+  dialog {
+    margin: auto;
+    width: min(480px, calc(100vw - 40px));
+    max-height: 90vh;
+    overflow: auto;
+    border: 1px solid #e0e3e8;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 24px 80px #0002;
+  }
+  dialog::backdrop {
+    background: #1a202c55;
+    backdrop-filter: blur(3px);
+  }
+  .dialog-head {
+    @apply mb-5 flex items-center justify-between;
+  }
+  dialog form {
+    @apply space-y-5;
+  }
+  .spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid #cbd0d8;
+    border-top-color: #434a54;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .spinner {
+      animation: none;
+    }
+  }
+  @media (max-width: 1050px) {
+    .preview {
+      width: 300px;
+    }
+    .sidebar {
+      width: 195px;
+    }
+    .toolbar {
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+    .content,
+    .chat {
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+  }
+}
