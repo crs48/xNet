@@ -17,7 +17,7 @@ export function playbackRequest(message, sender, extensionId, playerUrl) {
   try {
     page = new URL(sender.tab?.url)
   } catch {
-    throw new Error('Open this video on the paired registry first.')
+    throw new Error('Open this media on the paired registry first.')
   }
   if (
     page.origin !== registryOrigin ||
@@ -25,7 +25,7 @@ export function playbackRequest(message, sender, extensionId, playerUrl) {
     page.password ||
     page.pathname !== `/watch/${message.id}`
   ) {
-    throw new Error('Open this video on the paired registry first.')
+    throw new Error('Open this media on the paired registry first.')
   }
   return { op: 'play', id: message.id }
 }
@@ -57,7 +57,7 @@ export function playbackResponse(response, id) {
     [...address.searchParams].length !== 1 ||
     !isContentId(address.searchParams.get('ticket')) ||
     !item ||
-    !['image', 'video'].includes(item.kind) ||
+    !['image', 'video', 'audio'].includes(item.kind) ||
     typeof item.title !== 'string'
   ) {
     throw new Error('Desktop returned an unexpected playback session.')

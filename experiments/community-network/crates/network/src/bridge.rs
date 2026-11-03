@@ -39,6 +39,15 @@ pub enum Command {
     },
     Catalog {
         query: String,
+        #[serde(default)]
+        kind: Option<String>,
+    },
+    PublishPost {
+        body: String,
+        reply_to: Option<String>,
+    },
+    PostThread {
+        id: String,
     },
     Publish {
         path: String,
@@ -111,7 +120,19 @@ impl Bridge {
                 node.configure(settings).await?;
                 serde_json::to_value(node.snapshot()?)?
             }
-            Command::Catalog { query } => serde_json::to_value(node.catalog(&query).await?)?,
+            Command::Catalog { query, kind } => {
+                serde_json::to_value(node.catalog_filtered(&query, kind.as_deref(), None).await?)?
+            }
+            Command::PublishPost { body, reply_to } => {
+                serde_json::to_value(node.publish_post(body, reply_to).await?)?
+            }
+            Command::PostThread { id } => {
+                node.require_active()?;
+                let item = node.lookup(&id).await?;
+                ensure!(item.record.payload.kind == "post", "Not a public post");
+                let replies = node.catalog_filtered("", Some("post"), Some(&id)).await?;
+                serde_json::json!({"post":item,"replies":replies})
+            }
             Command::Publish {
                 path,
                 title,
@@ -122,7 +143,13 @@ impl Bridge {
             )?,
             Command::Play { id } => {
                 let item = node.media(&id).await?;
-                ensure!(item.record.payload.kind != "room", "Not media");
+                ensure!(
+                    matches!(
+                        item.record.payload.kind.as_str(),
+                        "video" | "image" | "audio"
+                    ),
+                    "Not media"
+                );
                 let ticket = hex::encode(rand::random::<[u8; 32]>());
                 let mut tickets = self.tickets.lock().unwrap();
                 tickets.retain(|_, (_, expiry)| *expiry > now());

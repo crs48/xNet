@@ -146,3 +146,7 @@ iframe {
   font-size: 13px;
   color: #6d7480;
 }
+.body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -9,14 +9,22 @@ async fn perform(bridge: State<'_, Bridge>, command: Command) -> Result<serde_js
     bridge.execute(command).await.map_err(|e| e.to_string())
 }
 #[tauri::command]
-async fn select_media(app: tauri::AppHandle) -> Result<Option<String>, String> {
+async fn select_media(
+    app: tauri::AppHandle,
+    kind: Option<String>,
+) -> Result<Option<String>, String> {
+    let (label, extensions): (&str, &[&str]) = match kind.as_deref() {
+        Some("audio") => ("Music", &["mp3", "wav"]),
+        None | Some("visual") => (
+            "Images and video",
+            &["mp4", "webm", "png", "jpg", "jpeg", "webp"],
+        ),
+        _ => return Err("Unsupported media category".into()),
+    };
     tauri::async_runtime::spawn_blocking(move || {
         app.dialog()
             .file()
-            .add_filter(
-                "Images and video",
-                &["mp4", "webm", "png", "jpg", "jpeg", "webp"],
-            )
+            .add_filter(label, extensions)
             .blocking_pick_file()
             .map(|f| f.into_path().map(|p| p.to_string_lossy().into_owned()))
             .transpose()

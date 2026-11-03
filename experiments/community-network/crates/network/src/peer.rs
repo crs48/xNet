@@ -171,10 +171,25 @@ impl Node {
         Ok(())
     }
     pub async fn catalog(&self, query: &str) -> Result<Vec<CatalogItem>> {
+        self.catalog_filtered(query, None, None).await
+    }
+    pub async fn catalog_filtered(
+        &self,
+        query: &str,
+        kind: Option<&str>,
+        reply_to: Option<&str>,
+    ) -> Result<Vec<CatalogItem>> {
+        if kind == Some("post") {
+            self.require_active()?;
+        }
         let items: Vec<CatalogItem> = self
             .client
             .get(format!("{}/api/catalog", self.registry))
-            .query(&[("q", query)])
+            .query(&[
+                ("q", query),
+                ("kind", kind.unwrap_or("")),
+                ("reply_to", reply_to.unwrap_or("")),
+            ])
             .send()
             .await?
             .error_for_status()?
@@ -186,6 +201,46 @@ impl Node {
             item.record.payload.validate()?;
         }
         Ok(items)
+    }
+    pub async fn publish_post(
+        &self,
+        body: String,
+        reply_to: Option<String>,
+    ) -> Result<Signed<Record>> {
+        self.require_active()?;
+        let body = body.trim().to_string();
+        text(&body, 1120)?;
+        ensure!(
+            body.chars().count() <= 280,
+            "Posts are limited to 280 characters"
+        );
+        if let Some(id) = &reply_to {
+            ensure!(
+                self.lookup(id).await?.record.payload.kind == "post",
+                "Reply to a public post"
+            );
+        }
+        let record = Record {
+            id: digest(&rand::random::<[u8; 32]>()),
+            kind: "post".into(),
+            title: body.chars().take(32).collect(),
+            description: body,
+            owner_name: self.snapshot()?.profile.context("Create account")?.name,
+            created: now(),
+            size: 0,
+            mime: String::new(),
+            chunks: vec![],
+            reply_to,
+        };
+        record.validate()?;
+        let signed = Signed::new(record, &self.key)?;
+        // Only successful announcements enter the background re-announcement queue.
+        self.announce(signed.clone()).await?;
+        self.store
+            .lock()
+            .unwrap()
+            .set(&format!("published:{}", signed.payload.id), &signed)?;
+        Ok(signed)
     }
     pub async fn lookup(&self, id: &str) -> Result<CatalogItem> {
         ensure!(valid_id(id), "Invalid content ID");
@@ -302,7 +357,21 @@ impl Node {
             "png" if signature[..8] == [137, 80, 78, 71, 13, 10, 26, 10] => "image/png",
             "jpg" | "jpeg" if signature[..3] == [0xff, 0xd8, 0xff] => "image/jpeg",
             "webp" if &signature[..4] == b"RIFF" && &signature[8..12] == b"WEBP" => "image/webp",
-            _ => bail!("Supported files: MP4, WebM, PNG, JPEG, WebP; file signature must match"),
+            "mp3"
+                if n >= 3
+                    && (&signature[..3] == b"ID3"
+                        || (signature[0] == 0xff
+                            && signature[1] & 0xe0 == 0xe0
+                            && signature[1] & 0x06 != 0)) =>
+            {
+                "audio/mpeg"
+            }
+            "wav" if n >= 12 && &signature[..4] == b"RIFF" && &signature[8..12] == b"WAVE" => {
+                "audio/wav"
+            }
+            _ => bail!(
+                "Supported files: MP4, WebM, PNG, JPEG, WebP, MP3, WAV; file signature must match"
+            ),
         };
         use sha2::{Digest, Sha256};
         let mut hash = Sha256::new();
@@ -320,12 +389,7 @@ impl Node {
         let name = self.snapshot()?.profile.context("Create account")?.name;
         let record = Record {
             id: id.clone(),
-            kind: if mime.starts_with("video") {
-                "video"
-            } else {
-                "image"
-            }
-            .into(),
+            kind: mime.split('/').next().context("Invalid media type")?.into(),
             title,
             description,
             owner_name: name,
@@ -333,6 +397,7 @@ impl Node {
             size,
             mime: mime.into(),
             chunks,
+            reply_to: None,
         };
         record.validate()?;
         file.seek(SeekFrom::Start(0))?;
@@ -460,7 +525,13 @@ impl Node {
     }
     pub async fn retain(&self, id: &str) -> Result<()> {
         let item = self.lookup(id).await?;
-        ensure!(item.record.payload.kind != "room", "Not media");
+        ensure!(
+            matches!(
+                item.record.payload.kind.as_str(),
+                "video" | "image" | "audio"
+            ),
+            "Not media"
+        );
         use sha2::{Digest, Sha256};
         let mut hash = Sha256::new();
         for index in 0..item.record.payload.chunks.len() {
@@ -704,6 +775,7 @@ impl Node {
                     size: 0,
                     mime: String::new(),
                     chunks: vec![],
+                    reply_to: None,
                 },
                 &self.key,
             )?;

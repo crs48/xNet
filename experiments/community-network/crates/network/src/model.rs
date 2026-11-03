@@ -71,6 +71,9 @@ pub struct Record {
     pub size: u64,
     pub mime: String,
     pub chunks: Vec<String>,
+    // Omitting absent fields preserves signatures on existing media and room records.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reply_to: Option<String>,
 }
 impl Record {
     pub fn validate(&self) -> Result<()> {
@@ -82,15 +85,17 @@ impl Record {
             "Invalid metadata"
         );
         match self.kind.as_str() {
-            "video" | "image" => {
+            "video" | "image" | "audio" => {
                 ensure!(
                     self.size > 0 && self.size <= MAX_MEDIA,
                     "Media limit is 100 MB"
                 );
                 ensure!(
                     matches!(
-                        self.mime.as_str(),
-                        "video/mp4" | "video/webm" | "image/png" | "image/jpeg" | "image/webp"
+                        (self.kind.as_str(), self.mime.as_str()),
+                        ("video", "video/mp4" | "video/webm")
+                            | ("image", "image/png" | "image/jpeg" | "image/webp")
+                            | ("audio", "audio/mpeg" | "audio/wav")
                     ),
                     "Unsupported media format"
                 );
@@ -104,8 +109,29 @@ impl Record {
                 self.size == 0 && self.chunks.is_empty() && self.mime.is_empty(),
                 "Invalid room record"
             ),
+            "post" => {
+                text(&self.description, 1120)?;
+                ensure!(
+                    self.description.chars().count() <= 280,
+                    "Posts are limited to 280 characters"
+                );
+                ensure!(
+                    self.size == 0 && self.chunks.is_empty() && self.mime.is_empty(),
+                    "Invalid post record"
+                );
+                ensure!(
+                    self.reply_to
+                        .as_ref()
+                        .is_none_or(|id| valid_id(id) && id != &self.id),
+                    "Invalid reply target"
+                );
+            }
             _ => bail!("Unknown record kind"),
         }
+        ensure!(
+            self.kind == "post" || self.reply_to.is_none(),
+            "Only public posts can be replies"
+        );
         Ok(())
     }
 }
@@ -271,6 +297,23 @@ pub fn byte_range(header: Option<&str>, length: u64) -> Result<(u64, u64, bool)>
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn existing_records_keep_their_signed_bytes() {
+        // This is the exact pre-replies field order, signed before deserializing the new type.
+        let legacy = format!(
+            r#"{{"id":"{}","kind":"room","title":"Garden","description":"Public room","owner_name":"Maya","created":1,"size":0,"mime":"","chunks":[]}}"#,
+            digest(b"legacy")
+        );
+        let key = SecretKey::generate();
+        let record = Signed::<Record> {
+            author: key.public().to_string(),
+            signature: hex::encode(key.sign(legacy.as_bytes()).to_bytes()),
+            payload: serde_json::from_str(&legacy).unwrap(),
+        };
+        record.payload.validate().unwrap();
+        record.verify().unwrap();
+        assert_eq!(serde_json::to_string(&record.payload).unwrap(), legacy);
+    }
     #[test]
     fn range_boundaries() {
         assert_eq!(byte_range(Some("bytes=2-4"), 10).unwrap(), (2, 4, true));

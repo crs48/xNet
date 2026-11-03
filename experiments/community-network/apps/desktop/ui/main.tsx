@@ -1,6 +1,8 @@
 import { invoke } from '@tauri-apps/api/core'
 import {
   Film,
+  Music2,
+  MessagesSquare,
   MessageCircle,
   HardDrive,
   Plus,
@@ -23,19 +25,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './style.css'
 
-type RecordData = {
-  id: string
-  kind: string
-  title: string
-  description: string
-  owner_name: string
-  created: number
-  size: number
-  mime: string
-  chunks: string[]
-}
-type Signed<T> = { author: string; payload: T; signature: string }
-type Item = { record: Signed<RecordData>; providers: unknown[] }
+import { api, errorText, type RecordData, type Signed, type Item } from './api'
+import { PublicFeed } from './PublicFeed'
+
 type Room = {
   id: string
   title: string
@@ -57,10 +49,8 @@ type Snapshot = {
   library: Signed<RecordData>[]
 }
 type Playback = { url: string; item: Item }
-const api = <T,>(command: object) => invoke<T>('perform', { command })
 const size = (bytes: number) =>
   bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(0)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
-const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 function Button({
   children,
@@ -126,7 +116,9 @@ function Modal({
 }
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
-  const [tab, setTab] = useState<'discover' | 'chats' | 'hosting'>('discover')
+  const [tab, setTab] = useState<'discover' | 'music' | 'posts' | 'chats' | 'hosting'>('discover')
+  const [postId, setPostId] = useState<string | null>(null)
+  const catalogRequest = useRef(0)
   const [items, setItems] = useState<Item[]>([])
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
@@ -158,7 +150,13 @@ function App() {
     return state
   }
   const search = async () => {
-    setItems(await api<Item[]>({ op: 'catalog', query }))
+    const request = ++catalogRequest.current
+    const result = await api<Item[]>({
+      op: 'catalog',
+      query,
+      kind: tab === 'music' ? 'audio' : 'visual'
+    })
+    if (request === catalogRequest.current) setItems(result)
   }
   async function run(label: string, work: () => Promise<void>) {
     setBusy(label)
@@ -179,12 +177,25 @@ function App() {
         setUpload(state.participation.upload_mb)
       })
       .catch((e) => setStatus(errorText(e)))
-    api<Item[]>({ op: 'catalog', query: '' })
-      .then(setItems)
-      .catch((e) => setStatus(errorText(e)))
     const timer = setInterval(() => refresh().catch((e) => setStatus(errorText(e))), 2500)
     return () => clearInterval(timer)
   }, [])
+  useEffect(() => {
+    const request = ++catalogRequest.current
+    setItems([])
+    setQuery('')
+    if (tab !== 'discover' && tab !== 'music') return
+    api<Item[]>({ op: 'catalog', query: '', kind: tab === 'music' ? 'audio' : 'visual' })
+      .then((result) => {
+        if (request === catalogRequest.current) setItems(result)
+      })
+      .catch((e) => {
+        if (request === catalogRequest.current) setStatus(errorText(e))
+      })
+    return () => {
+      catalogRequest.current++
+    }
+  }, [tab])
   const room = snapshot?.rooms.find((r) => r.id === roomId)
   useEffect(() => {
     setMessages([])
@@ -226,11 +237,12 @@ function App() {
   })
   const openRoom = (room: Room) => {
     setTab('chats')
+    setStatus('')
     setRoomId(room.id)
     setPlayback(null)
     setShare('')
   }
-  const showPost = async (item: Item) => {
+  const openItem = async (item: Item) => {
     if (item.record.payload.kind === 'room') {
       const r = await api<Room>({
         op: 'join',
@@ -341,15 +353,19 @@ function App() {
           {(
             [
               { key: 'discover', label: 'Discover', icon: Film },
+              { key: 'music', label: 'Music', icon: Music2 },
+              { key: 'posts', label: 'Posts', icon: MessagesSquare },
               { key: 'chats', label: 'Chats', icon: MessageCircle },
               { key: 'hosting', label: 'Your contribution', icon: HardDrive }
             ] as const
           ).map((n) => (
             <button
               key={n.key}
+              aria-current={tab === n.key ? 'page' : undefined}
               className={`nav-item ${tab === n.key ? 'selected' : ''}`}
               onClick={() => {
                 setTab(n.key)
+                setStatus('')
                 setPlayback(null)
                 setShare('')
               }}
@@ -419,27 +435,35 @@ function App() {
             <h1>
               {tab === 'discover'
                 ? 'Discover'
-                : tab === 'hosting'
-                  ? 'Your contribution'
-                  : room?.title || 'Chats'}
+                : tab === 'music'
+                  ? 'Music'
+                  : tab === 'posts'
+                    ? 'Posts'
+                    : tab === 'hosting'
+                      ? 'Your contribution'
+                      : room?.title || 'Chats'}
             </h1>
             <p>
               {tab === 'discover'
                 ? 'From this community, in the order it was shared.'
-                : tab === 'hosting'
-                  ? 'Useful work, within limits you choose.'
-                  : room
-                    ? room.private
-                      ? 'Private · invitation only'
-                      : 'Public · discoverable in the registry'
-                    : 'A place to make things together.'}
+                : tab === 'music'
+                  ? 'Sounds worth sharing. Hosted by the people who listen.'
+                  : tab === 'posts'
+                    ? 'Little updates. Open conversations. A chronological feed.'
+                    : tab === 'hosting'
+                      ? 'Useful work, within limits you choose.'
+                      : room
+                        ? room.private
+                          ? 'Private · invitation only'
+                          : 'Public · discoverable in the registry'
+                        : 'A place to make things together.'}
             </p>
           </div>
           <div className="actions">
-            {tab === 'discover' ? (
+            {tab === 'discover' || tab === 'music' ? (
               <Button primary onClick={publishModal} disabled={!snapshot.active}>
                 <Plus size={16} />
-                Share something
+                {tab === 'music' ? 'Share music' : 'Share something'}
               </Button>
             ) : tab === 'chats' ? (
               <Button
@@ -457,7 +481,7 @@ function App() {
         {!snapshot.active && (
           <div className="participation-banner">
             <Pause size={16} />
-            <span>{snapshot.reason}. Resume hosting to watch, publish, and chat.</span>
+            <span>{snapshot.reason}. Resume hosting to listen, watch, publish, and chat.</span>
             <button onClick={() => setTab('hosting')}>
               Manage hosting
               <ChevronRight size={15} />
@@ -478,7 +502,7 @@ function App() {
           </div>
         )}
 
-        {tab === 'discover' && (
+        {(tab === 'discover' || tab === 'music') && (
           <div className="content">
             <form
               className="search"
@@ -492,7 +516,11 @@ function App() {
                 aria-label="Search community"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Find a film, an image, a conversation…"
+                placeholder={
+                  tab === 'music'
+                    ? 'Find a track, a mix, a sound…'
+                    : 'Find a film, an image, a conversation…'
+                }
               />
               <button aria-label="Search" className="icon-button">
                 <ArrowUpRight size={17} />
@@ -506,14 +534,16 @@ function App() {
             </div>
             {items.length === 0 ? (
               <div className="empty">
-                <Film size={30} />
+                {tab === 'music' ? <Music2 size={30} /> : <Film size={30} />}
                 <h2>The first thing can be yours.</h2>
                 <p>
-                  Share a short film or an image. This registry stores the details; your desktop
-                  serves the actual file.
+                  {tab === 'music'
+                    ? 'Share a track you made, a jam, or a sound you love. MP3 and WAV, up to 100 MB.'
+                    : 'Share a short film or an image.'}{' '}
+                  Your desktop serves the file; this registry stores the details.
                 </p>
                 <Button onClick={publishModal} disabled={!snapshot.active}>
-                  Share something
+                  {tab === 'music' ? 'Share music' : 'Share something'}
                 </Button>
               </div>
             ) : (
@@ -524,12 +554,14 @@ function App() {
                     <button
                       key={r.id}
                       className="media-card"
-                      onClick={() => run('Connecting to a peer…', () => showPost(item))}
+                      onClick={() => run('Connecting to a peer…', () => openItem(item))}
                       disabled={!snapshot.active}
                     >
                       <div className="media-placeholder">
                         {r.kind === 'room' ? (
                           <MessageCircle size={28} />
+                        ) : r.kind === 'audio' ? (
+                          <Music2 size={28} />
                         ) : r.kind === 'image' ? (
                           <Image size={28} />
                         ) : (
@@ -538,7 +570,9 @@ function App() {
                         <span>
                           {r.kind === 'room'
                             ? 'Public conversation'
-                            : r.mime.replace('video/', '').replace('image/', '').toUpperCase()}
+                            : r.mime === 'audio/mpeg'
+                              ? 'MP3'
+                              : r.mime.split('/')[1].toUpperCase()}
                         </span>
                       </div>
                       <div className="card-body">
@@ -560,6 +594,16 @@ function App() {
               Public metadata only · {snapshot.registry} · up to 100 results · hosts may go offline
             </p>
           </div>
+        )}
+
+        {tab === 'posts' && (
+          <PublicFeed
+            name={snapshot.profile.name}
+            active={snapshot.active}
+            selected={postId}
+            select={setPostId}
+            share={(id) => void copy(`${snapshot.registry}/post/${id}`)}
+          />
         )}
 
         {tab === 'chats' &&
@@ -789,7 +833,7 @@ function App() {
             ) : (
               snapshot.library.map((record) => (
                 <div className="library-row" key={record.payload.id}>
-                  <Film size={18} />
+                  {record.payload.kind === 'audio' ? <Music2 size={18} /> : <Film size={18} />}
                   <span>
                     {record.payload.title}
                     <small>{size(record.payload.size)}</small>
@@ -845,7 +889,9 @@ function App() {
       {playback && (
         <aside className="preview">
           <div className="preview-head">
-            <span>Now viewing</span>
+            <span>
+              {playback.item.record.payload.kind === 'audio' ? 'Now listening' : 'Now viewing'}
+            </span>
             <button
               className="icon-button"
               aria-label="Close preview"
@@ -854,7 +900,22 @@ function App() {
               <X size={18} />
             </button>
           </div>
-          {playback.item.record.payload.kind === 'image' ? (
+          {playback.item.record.payload.kind === 'audio' ? (
+            <div className="audio-player">
+              <Music2 size={56} aria-hidden="true" />
+              <audio
+                key={playback.url}
+                src={playback.url}
+                controls
+                aria-label={`Play ${playback.item.record.payload.title}`}
+                onError={() =>
+                  setStatus(
+                    'Audio playback failed. Check peer availability, hosting, and the file format.'
+                  )
+                }
+              />
+            </div>
+          ) : playback.item.record.payload.kind === 'image' ? (
             <img
               className="player"
               src={playback.url}
@@ -905,7 +966,11 @@ function App() {
       )}
 
       {modal === 'publish' && (
-        <Modal feedback={busy || status} title="Share something" close={() => setModal(null)}>
+        <Modal
+          feedback={busy || status}
+          title={tab === 'music' ? 'Share music' : 'Share something'}
+          close={() => setModal(null)}
+        >
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -920,13 +985,17 @@ function App() {
             }}
           >
             <p className="muted">
-              A public image or short film. Up to 100 MB. Keep your desktop online so others can
-              find a copy.
+              {tab === 'music'
+                ? 'Share an MP3 or WAV you have permission to share.'
+                : 'A public image or short film.'}{' '}
+              Up to 100 MB. Keep your desktop online so others can find a copy.
             </p>
             <Button
               onClick={() =>
                 run('Choosing media…', async () => {
-                  const selected = await invoke<string | null>('select_media')
+                  const selected = await invoke<string | null>('select_media', {
+                    kind: tab === 'music' ? 'audio' : 'visual'
+                  })
                   if (selected) {
                     setFile(selected)
                     if (!title)
@@ -941,7 +1010,11 @@ function App() {
               }
             >
               <Plus size={16} />
-              {file ? file.split('/').pop() : 'Choose a video or image'}
+              {file
+                ? file.split('/').pop()
+                : tab === 'music'
+                  ? 'Choose an audio file'
+                  : 'Choose a video or image'}
             </Button>
             <label>
               Title
@@ -953,7 +1026,7 @@ function App() {
               />
             </label>
             <label>
-              About this post
+              Description
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -1038,10 +1111,24 @@ function App() {
             onSubmit={(e) => {
               e.preventDefault()
               run('Resolving your link…', async () => {
-                if (link.includes('/watch/')) {
-                  const id = link.split('/watch/')[1].split(/[?#]/)[0]
-                  setPlayback(await api<Playback>({ op: 'play', id }))
-                  setTab('discover')
+                const address = new URL(link.trim())
+                if (
+                  address.origin !== new URL(snapshot.registry).origin ||
+                  address.username ||
+                  address.password
+                )
+                  throw new Error('Open a link from this registry.')
+                const match = address.pathname.match(/^\/(watch|post)\/([a-f0-9]{64})$/)
+                if (match?.[1] === 'post') {
+                  await api({ op: 'post_thread', id: match[2] })
+                  setPostId(match[2])
+                  setTab('posts')
+                  setPlayback(null)
+                  setShare('')
+                } else if (match?.[1] === 'watch') {
+                  const result = await api<Playback>({ op: 'play', id: match[2] })
+                  setPlayback(result)
+                  setTab(result.item.record.payload.kind === 'audio' ? 'music' : 'discover')
                 } else {
                   const r = await api<Room>({ op: 'join', link })
                   await refresh()
@@ -1052,7 +1139,7 @@ function App() {
             }}
           >
             <p className="muted">
-              Paste a video link, public conversation, or private invitation from this registry.
+              Paste a music, video, post, or conversation link from this registry.
             </p>
             <label>
               Link

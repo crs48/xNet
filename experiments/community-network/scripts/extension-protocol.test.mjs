@@ -38,6 +38,7 @@ test('rejects malformed messages and unsupported native operations', () => {
     'play',
     { op: 'status' },
     { op: 'publish', id },
+    { op: 'publish_post', id },
     { op: 'play', id: '../secret' }
   ]) {
     assert.throws(() => validate(message))
@@ -71,8 +72,8 @@ test('rejects another registry, content ID, malformed URL or absent tab', () => 
   assert.throws(() => validate(request, { ...sender, tab: undefined }))
 })
 
-test('accepts scoped loopback playback for images and videos', () => {
-  for (const kind of ['video', 'image']) {
+test('accepts scoped loopback playback for images, videos and audio', () => {
+  for (const kind of ['video', 'image', 'audio']) {
     const value = response(undefined, kind)
     assert.deepEqual(playbackResponse(value, id), {
       url: value.result.url,
@@ -108,6 +109,8 @@ test('preserves desktop denials and rejects incomplete or unexpected metadata', 
     {},
     { ok: true },
     response(undefined, 'html'),
+    response(undefined, 'post'),
+    response(undefined, 'room'),
     { ...response(), result: { url: response().result.url } }
   ]) {
     assert.throws(() => playbackResponse(value, id))

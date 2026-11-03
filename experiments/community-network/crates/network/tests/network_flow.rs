@@ -9,7 +9,17 @@ use std::sync::Arc;
 use tempfile::TempDir;
 
 async fn member(root: &TempDir, name: &str, registry: &str) -> Result<Arc<Node>> {
-    let node = Node::start(root.path().join(name), registry.into()).await?;
+    let profile = root.path().join(name);
+    community_network::store::private_dir(&profile)?;
+    // These tests exercise independent peers on one machine. Use loopback explicitly,
+    // rather than depending on whichever VPN/LAN interfaces this host advertises.
+    let store = community_network::store::Store::open(&profile.join("state.sqlite"))?;
+    store.set(
+        "transport:sockets",
+        &vec!["127.0.0.1:0".parse::<std::net::SocketAddr>()?],
+    )?;
+    drop(store);
+    let node = Node::start(profile, registry.into()).await?;
     node.create_profile(name.into())?;
     node.configure(Participation {
         enabled: true,
@@ -25,6 +35,225 @@ fn video(root: &TempDir) -> Result<std::path::PathBuf> {
     bytes[4..8].copy_from_slice(b"ftyp");
     std::fs::write(&path, bytes)?;
     Ok(path)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn music_and_public_posts_across_three_peers() -> Result<()> {
+    let root = TempDir::new()?;
+    let database = root.path().join("registry.sqlite");
+    // Start from the previous schema; opening again must not repeat ALTER TABLE.
+    let old = rusqlite::Connection::open(&database)?;
+    old.execute_batch("CREATE TABLE catalog(id TEXT PRIMARY KEY,author TEXT NOT NULL,title TEXT NOT NULL,description TEXT NOT NULL,kind TEXT NOT NULL,created INTEGER NOT NULL,data TEXT NOT NULL);")?;
+    drop(old);
+    drop(registry::router(&database)?);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+    let registry_url = format!("http://{}", listener.local_addr()?);
+    let router = registry::router(&database)?;
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let alice = member(&root, "Alice", &registry_url).await?;
+    let bob = member(&root, "Bob", &registry_url).await?;
+    let charlie = member(&root, "Charlie", &registry_url).await?;
+    let bridge = Bridge::start(bob.clone()).await?;
+    let http = reqwest::Client::new();
+
+    let path = root.path().join("song.wav");
+    let mut bytes = vec![0u8; CHUNK + 44];
+    bytes[..4].copy_from_slice(b"RIFF");
+    bytes[8..12].copy_from_slice(b"WAVE");
+    std::fs::write(&path, &bytes)?;
+    let track = alice
+        .publish_file(&path, "A shared song".into(), "Original recording".into())
+        .await?;
+    assert_eq!(track.payload.kind, "audio");
+    assert_eq!(track.payload.mime, "audio/wav");
+    let mp3 = root.path().join("song.mp3");
+    std::fs::write(&mp3, b"ID3\x04\0\0\0\0\0\0test")?;
+    assert_eq!(
+        alice
+            .publish_file(&mp3, "A mix".into(), String::new())
+            .await?
+            .payload
+            .mime,
+        "audio/mpeg"
+    );
+    let invalid = root.path().join("renamed.wav");
+    std::fs::write(&invalid, b"<html>not audio</html>")?;
+    assert!(
+        alice
+            .publish_file(&invalid, "Invalid".into(), String::new())
+            .await
+            .is_err()
+    );
+
+    let post = alice
+        .publish_post("Who wants to make music together? 🎵".into(), None)
+        .await?;
+    let reply = bob
+        .publish_post("Count me in.".into(), Some(post.payload.id.clone()))
+        .await?;
+    let roots = charlie
+        .catalog_filtered("music", Some("post"), None)
+        .await?;
+    assert_eq!(roots.len(), 1);
+    assert_eq!(roots[0].record.payload.id, post.payload.id);
+    assert_eq!(
+        charlie
+            .catalog_filtered("", Some("audio"), None)
+            .await?
+            .len(),
+        2
+    );
+    assert!(
+        charlie
+            .catalog_filtered("", Some("visual"), None)
+            .await?
+            .is_empty()
+    );
+    let thread = bridge
+        .execute(Command::PostThread {
+            id: post.payload.id.clone(),
+        })
+        .await?;
+    assert_eq!(
+        thread["replies"][0]["record"]["payload"]["id"],
+        reply.payload.id
+    );
+    assert_eq!(
+        thread["replies"][0]["record"]["author"],
+        bob.key.public().to_string()
+    );
+    assert!(
+        http.get(format!("{registry_url}/post/{}", post.payload.id))
+            .send()
+            .await?
+            .status()
+            .is_success()
+    );
+    let private = alice.create_room("Not public".into(), true).await?;
+    for target in [&track.payload.id, &private.id, &digest(b"missing")] {
+        assert!(
+            alice
+                .publish_post("Must not publish".into(), Some(target.clone()))
+                .await
+                .is_err()
+        );
+    }
+    for body in [
+        String::new(),
+        "  ".into(),
+        "a".repeat(281),
+        "🪴".repeat(281),
+        "bad\0text".into(),
+    ] {
+        assert!(alice.publish_post(body, None).await.is_err());
+    }
+    let unicode = alice.publish_post("🪴".repeat(280), None).await?;
+    assert_eq!(unicode.payload.description.chars().count(), 280);
+    assert!(
+        bridge
+            .execute(Command::Play {
+                id: post.payload.id.clone()
+            })
+            .await
+            .is_err()
+    );
+    assert!(bob.retain(&post.payload.id).await.is_err());
+
+    // Registry validation must work even if a modified client bypasses desktop checks.
+    for invalid_parent in [track.payload.id.clone(), private.id.clone()] {
+        let mut record = post.payload.clone();
+        record.id = digest(invalid_parent.as_bytes());
+        record.reply_to = Some(invalid_parent);
+        let announcement = Signed::new(
+            Announcement {
+                record: Signed::new(record, &alice.key)?,
+                address: alice.endpoint.addr(),
+                expires: now() + 60,
+            },
+            &alice.key,
+        )?;
+        assert!(
+            !http
+                .post(format!("{registry_url}/api/announce"))
+                .json(&announcement)
+                .send()
+                .await?
+                .status()
+                .is_success()
+        );
+    }
+    let mut forged = post.clone();
+    forged.payload.description = "Forged body".into();
+    let announcement = Signed::new(
+        Announcement {
+            record: forged,
+            address: bob.endpoint.addr(),
+            expires: now() + 60,
+        },
+        &bob.key,
+    )?;
+    assert!(
+        !http
+            .post(format!("{registry_url}/api/announce"))
+            .json(&announcement)
+            .send()
+            .await?
+            .status()
+            .is_success()
+    );
+
+    bob.retain(&track.payload.id).await?;
+    alice
+        .configure(Participation {
+            enabled: false,
+            storage_mb: 10,
+            upload_mb: 10,
+        })
+        .await?;
+    assert!(alice.publish_post("Paused".into(), None).await.is_err());
+    charlie.retain(&track.payload.id).await?;
+    assert_eq!(charlie.snapshot()?.counters.downloaded, track.payload.size);
+    assert!(bob.snapshot()?.counters.uploaded >= track.payload.size);
+    let playback = bridge
+        .execute(Command::Play {
+            id: track.payload.id.clone(),
+        })
+        .await?;
+    let response = http
+        .get(playback["url"].as_str().unwrap())
+        .header("Range", "bytes=0-43")
+        .send()
+        .await?;
+    assert_eq!(response.status(), 206);
+    assert_eq!(response.headers()["content-type"], "audio/wav");
+    assert_eq!(response.bytes().await?.as_ref(), &bytes[..44]);
+    // Public text persists independently of a publisher's current hosting lease.
+    assert_eq!(
+        charlie
+            .lookup(&post.payload.id)
+            .await?
+            .record
+            .payload
+            .description,
+        post.payload.description
+    );
+    let saved: String = rusqlite::Connection::open(&database)?.query_row(
+        "SELECT data FROM catalog WHERE id=?",
+        [&reply.payload.id],
+        |r| r.get(0),
+    )?;
+    serde_json::from_str::<Signed<Record>>(&saved)?.verify()?;
+    let local = community_network::store::Store::open(&alice.root.join("state.sqlite"))?;
+    let saved: Signed<Record> = local
+        .get(&format!("published:{}", post.payload.id))?
+        .context("Local post missing")?;
+    saved.verify()?;
+    assert_eq!(saved.payload.description, post.payload.description);
+    for node in [&alice, &bob, &charlie] {
+        node.endpoint.close().await;
+    }
+    server.abort();
+    Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

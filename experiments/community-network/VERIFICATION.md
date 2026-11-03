@@ -57,3 +57,35 @@ The restart test closes the private room owner, releases its profile lock, start
 5. **Durability:** owner-hosted rooms need their owner online for new messages. Address changes can require a new link. Retained media has no cache eviction UI yet. The registry is a local SQLite service, not deployed infrastructure.
 
 Nothing was pushed, merged, published, or deployed. The existing product remains in place, and the experiment is isolated under `experiments/community-network`.
+
+## Music and Posts pass · November 2
+
+The native app now has separate **Music** and **Posts** destinations. Music uses the existing peer media path, with MP3/WAV signatures, scoped playback tickets, byte ranges, retention and re-seeding. Posts is a registry-backed chronological public feed with signed 280-code-point text, search, replies and public links. Private room messages remain outside the registry.
+
+Fresh verification for this pass:
+
+- `cargo test -p community-network -p community-node`: **9 passed** (5 core units, 3 real-peer integration tests, 1 native framing test).
+- `pnpm test:extension`: **7 passed**, now including audio playback and rejection of public-post operations/media-kind confusion.
+- `pnpm build`: TypeScript and Vite passed; 254.86 KB application JS, 79.48 KB gzip.
+- `cargo build --workspace --features tauri/custom-protocol`: passed, including the final native UI cleanup.
+- `cargo fmt --all --check`: passed.
+- `scripts/check-native-host.py` against Leo and the real audio ID: passed. The probe fetched an actual audio byte range and rejected `publish_post` and `post_thread`, as well as existing private/control operations.
+- `graphify update .`: completed; the large graph's optional HTML visualization was skipped by its configured size limit.
+
+The new network test verifies MP3/WAV publication, a second peer retaining audio, a third peer downloading after the origin pauses, audio MIME/range bytes, feed filtering, signed cross-peer replies, nonexistent/private/media reply targets, length and Unicode limits, forged post bodies, local/public record persistence, and an additive migration from the previous catalog schema. A separate regression test signs the exact old record bytes and verifies they still validate with the optional reply field added.
+
+A rerun reproduced the pre-existing peer timeout in all three network tests, and a focused music run also timed out. These tests had been choosing the host's LAN/VPN interfaces despite testing only processes on one machine. The fixture now binds each real Iroh endpoint explicitly to `127.0.0.1:0`, and the saved assigned port still exercises restart behavior. The full suite then passed. This stabilizes the same-machine test boundary; it does not claim to fix production WAN discovery or the previously noted cold-start issue.
+
+Native UI evidence:
+
+1. Published the generated, original twelve-second **Garden loop** WAV from Maya using the audio-only native picker.
+2. Opened Music in Leo, played the track, observed elapsed playback and the decoded twelve-second duration, then kept a full copy. The UI reported **two hosts**.
+3. Pasted 281 characters into the Posts composer and observed the disabled Post button. Replaced it with a short update and published it as Maya.
+4. Read that post in Leo, opened its thread, published a reply, and observed the signed Leo reply in Maya's thread.
+5. Copied the public post link, opened it in the registry browser page, and pasted it into the desktop's **Open a link** flow. It resolved to the same conversation.
+6. Quit and reopened both native profiles. The retained music, original post and reply remained available. Existing film and room listings also remained present.
+7. Checked that switching from a music share action to Posts clears the previous tab's status and share box. Thread navigation moves keyboard focus to its heading; the composer has an explicit public label, counter, and invalid state above the length limit.
+
+Screenshots: `.local/evidence/music-peer-playback.png` and `.local/evidence/public-post-thread.png`. These contain fictional demo profiles and public local-only test content.
+
+The web player now includes an audio element and validates audio responses, but actual Chrome-extension audio interaction remains unverified for the same browser setup reasons listed above. Public posts do not yet have follows, likes, editing, deletion, moderation or peer-only replication. The public registry remains local and undeployed. This pass is recorded here as prototype notes, not a public release announcement.

@@ -10,7 +10,7 @@ The user's November 2 decision supersedes 0499's optional-hosting recommendation
 flowchart LR
   Browser[Public link / Chrome extension] -->|scoped playback request| Desktop[Tauri + Rust peer]
   Desktop <-->|authenticated QUIC; chunks and room messages| Peer[Another desktop peer]
-  Desktop -->|signed metadata only| Registry[SQLite public registry]
+  Desktop -->|signed public records| Registry[SQLite public registry]
   Browser -->|public metadata| Registry
   Desktop --> Local[Private identity, chunks, conversations]
 ```
@@ -37,10 +37,22 @@ flowchart LR
 
 Start with a device-key account and chosen name. Social OAuth needs configured provider registrations and a separately reviewed account/device recovery flow. Do not pretend provider buttons work. Private rooms use authenticated encrypted peer transport and explicit member admission; this is not Signal's double ratchet or an audited MLS group protocol. Local files are protected by OS permissions, not a new at-rest encryption claim.
 
-The first registry runs locally. No videos, chat bodies, private room descriptors, or private invitation secrets go to it. There are no transcoding workers or public deployments in this pass. Browser/native codec support is reported honestly. A working local peer demo is not proof of WAN/NAT performance or readiness for minors and strangers.
+The first registry runs locally. No videos, audio files, room-chat bodies, private room descriptors, or private invitation secrets go to it. The Music and Posts pass adds signed public text and reply references to the registry. There are no transcoding workers or public deployments in this pass. Browser/native codec support is reported honestly. A working local peer demo is not proof of WAN/NAT performance or readiness for minors and strangers.
 
 ## Sources consulted
 
 - [Iroh 1.4.1](https://docs.rs/iroh/1.4.1/iroh/): authenticated QUIC endpoints and direct/relay addressing.
 - [Tauri capabilities](https://v2.tauri.app/security/capabilities/): local window permissions and command exposure.
 - [Chrome native messaging](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging): extension allowlisting, framed control messages; media travels over a scoped loopback URL.
+
+## Music and public posts · November 2
+
+- [x] Add Music and Posts navigation while keeping public posts separate from private chats.
+- [x] Support MP3/WAV publication, peer playback, retention, and share links.
+- [x] Add signed 280-character public posts, search, direct reply threads, and `/post/` links.
+- [x] Migrate the existing registry additively and preserve old signed-record bytes.
+- [x] Extend the browser player contract to audio, without adding publishing/chat permissions.
+- [x] Drive native publication, second-profile listening/re-seeding, replies, length limits and shared links.
+- [x] Finish fresh automated checks and native restart verification before the local commit.
+
+Public post bodies are intentionally stored by the registry. This slice does not add likes, follows, notifications, moderation, edit/delete, audio transcoding, or a peer-only public text protocol.

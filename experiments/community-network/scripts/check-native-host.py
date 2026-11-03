@@ -32,6 +32,8 @@ assert status['ok'], status.get('error')
 assert set(status['result']) == {'active', 'reason'}, 'Native status leaked profile data'
 for operation in ['snapshot', 'messages', 'publish', 'participation', 'send']:
     assert request({'op': operation})['ok'] is False, f'Extension unexpectedly allowed {operation}'
+assert request({'op': 'publish_post', 'body': 'Must not publish from the browser', 'reply_to': None})['ok'] is False
+assert request({'op': 'post_thread', 'id': args.media})['ok'] is False
 assert request({'op': 'play', 'id': '../identity.key'})['ok'] is False
 play = request({'op': 'play', 'id': args.media})
 if args.expect_paused:

@@ -43,11 +43,25 @@ type Registry = Arc<Mutex<Store>>;
 pub struct Search {
     pub q: Option<String>,
     pub kind: Option<String>,
+    pub reply_to: Option<String>,
 }
 
 pub fn router(path: &FsPath) -> Result<Router> {
     let store = Store::open(path)?;
     store.db.execute_batch("CREATE TABLE IF NOT EXISTS catalog(id TEXT PRIMARY KEY,author TEXT NOT NULL,title TEXT NOT NULL,description TEXT NOT NULL,kind TEXT NOT NULL,created INTEGER NOT NULL,data TEXT NOT NULL); CREATE TABLE IF NOT EXISTS providers(id TEXT NOT NULL,peer TEXT NOT NULL,expires INTEGER NOT NULL,address TEXT NOT NULL,PRIMARY KEY(id,peer));")?;
+    let has_replies: bool = store.db.query_row(
+        "SELECT EXISTS(SELECT 1 FROM pragma_table_info('catalog') WHERE name='reply_to')",
+        [],
+        |r| r.get(0),
+    )?;
+    if !has_replies {
+        store
+            .db
+            .execute_batch("ALTER TABLE catalog ADD COLUMN reply_to TEXT;")?;
+    }
+    store.db.execute_batch(
+        "CREATE INDEX IF NOT EXISTS catalog_feed ON catalog(kind,reply_to,created DESC);",
+    )?;
     Ok(Router::new()
         .route("/api/catalog", get(catalog))
         .route("/api/items/{id}", get(item))
@@ -55,6 +69,7 @@ pub fn router(path: &FsPath) -> Result<Router> {
         .route("/", get(page))
         .route("/watch/{id}", get(page))
         .route("/room/{id}", get(page))
+        .route("/post/{id}", get(page))
         .route(
             "/registry.js",
             get(|| async {
@@ -104,6 +119,17 @@ async fn announce(
         .map_err(|_| anyhow::anyhow!("Registry lock failed"))?;
     let record = &value.payload.record;
     let r = &record.payload;
+    if let Some(parent) = &r.reply_to {
+        let public_post: bool = store.db.query_row(
+            "SELECT EXISTS(SELECT 1 FROM catalog WHERE id=? AND kind='post')",
+            [parent],
+            |r| r.get(0),
+        )?;
+        ensure!(
+            public_post,
+            "Replies must reference an existing public post"
+        );
+    }
     let existing: Option<String> = store
         .db
         .query_row("SELECT author FROM catalog WHERE id=?", [&r.id], |r| {
@@ -124,7 +150,7 @@ async fn announce(
         "Prototype registry is full"
     );
     store.db.execute(
-        "INSERT INTO catalog VALUES(?1,?2,?3,?4,?5,?6,?7) ON CONFLICT(id) DO NOTHING",
+        "INSERT INTO catalog(id,author,title,description,kind,created,data,reply_to) VALUES(?1,?2,?3,?4,?5,?6,?7,?8) ON CONFLICT(id) DO NOTHING",
         params![
             r.id,
             record.author,
@@ -132,7 +158,8 @@ async fn announce(
             r.description,
             r.kind,
             r.created as i64,
-            serde_json::to_string(record)?
+            serde_json::to_string(record)?,
+            r.reply_to
         ],
     )?;
     store
@@ -171,11 +198,17 @@ async fn catalog(
     let store = state
         .lock()
         .map_err(|_| anyhow::anyhow!("Registry lock failed"))?;
-    let mut q=store.db.prepare("SELECT data FROM catalog WHERE (instr(lower(title),lower(?1))>0 OR instr(lower(description),lower(?1))>0) AND (?2='' OR kind=?2) ORDER BY created DESC LIMIT 100")?;
+    let parent = search.reply_to.unwrap_or_default();
+    ensure!(
+        parent.is_empty() || valid_id(&parent),
+        "Invalid reply target"
+    );
+    let mut q=store.db.prepare("SELECT data FROM catalog WHERE (instr(lower(title),lower(?1))>0 OR instr(lower(description),lower(?1))>0) AND (?2='' OR kind=?2 OR (?2='visual' AND kind IN ('video','image','room'))) AND ((?3='' AND reply_to IS NULL) OR reply_to=?3) ORDER BY created DESC,rowid DESC LIMIT 100")?;
     let rows = q.query_map(
         params![
             search.q.unwrap_or_default(),
-            search.kind.unwrap_or_default()
+            search.kind.unwrap_or_default(),
+            parent
         ],
         |r| r.get::<_, String>(0),
     )?;

@@ -13,7 +13,9 @@ On this Mac, open the generated `.local/xNet Maya.app` and `.local/xNet Leo.app`
 3. Choose **Keep a full copy**. Once all chunks verify, Leo advertises its copy too. A third peer can fetch from Leo when Maya pauses.
 4. Create a public conversation in Maya. Join it from Leo's discovery page and exchange replies.
 5. Create a private conversation, copy **Invite**, and paste it into **Open a link** in Leo. It does not appear in public discovery. Treat the invitation as a bearer secret.
-6. Open **Your contribution** to change storage/upload caps or pause. Pausing stops serving and blocks new network playback and messaging; resuming enables them again. Already buffered or previously downloaded information cannot be made unreadable by a client policy.
+6. Open **Music**, choose **Share music**, and publish an MP3 or WAV. Another peer can listen, keep a full copy, and share the track link just like a video. The demo includes a generated twelve-second **Garden loop**.
+7. Open **Posts** to publish a short public update. Open **Reply & discuss** from another profile, reply, and share the `/post/<id>` link. **Open a link** resolves it directly into the conversation.
+8. Open **Your contribution** to change storage/upload caps or pause. Pausing stops serving and blocks new network playback and messaging; resuming enables them again. Already buffered or previously downloaded information cannot be made unreadable by a client policy.
 
 The supplied film is a six-second generated test pattern, not somebody's uploaded personal media. Both demo names are fictional local profiles. The current demo also contains **Open studio** and **Garden friends** conversations.
 
@@ -68,11 +70,11 @@ Remove the native manifest printed by the registration script to disconnect the 
 
 ```mermaid
 flowchart LR
-  Link[Public content link] --> Index[Public registry\nSQLite metadata + search]
+  Link[Public content link] --> Index[Public registry\nSQLite public posts + media metadata]
   Link --> Extension[Chrome extension]
   Extension -->|native messaging: public play only| A[Tauri peer A\nRust + SQLite]
   A <-->|Iroh authenticated QUIC| B[Tauri peer B\nRust + SQLite]
-  A -->|signed records + expiring provider address| Index
+  A -->|signed public records + expiring provider address| Index
   B -->|signed provider lease| Index
   A --> CacheA[Verified local chunks]
   B --> CacheB[Verified local chunks]
@@ -81,7 +83,7 @@ flowchart LR
 | Directory         | Responsibility                                                           |
 | ----------------- | ------------------------------------------------------------------------ |
 | `crates/network`  | Signed records, local state, peers, media chunks, rooms, loopback bridge |
-| `crates/registry` | Metadata service executable and public link/search website               |
+| `crates/registry` | Public record registry and link/search website                           |
 | `crates/node`     | Headless peer, local control client, Chrome native messaging executable  |
 | `apps/desktop`    | Tauri shell and React frontend; no legacy xNet package dependency        |
 | `web`             | Public metadata pages; no centralized media endpoint                     |
@@ -96,8 +98,9 @@ Branding uses the existing `site/public/wordmark.svg` for the interface and the 
 
 - **Identity:** persistent Ed25519 device key plus a chosen display name. Names are not unique or social-account verified. No Bluesky/Google/X OAuth, account recovery, device linking or password UX yet.
 - **Participation:** explicit consent, storage cap and persistent upload allowance. A peer must answer an authenticated reverse ping before receiving another peer's data. This proves a reachable cooperating endpoint, not useful contribution, a fair ratio, human identity, or an unmodifiable client. Limits count payload bytes reserved for transfer, not IP/QUIC overhead or receiver-confirmed accounting. There is no rate limit in MB/s, monthly reset, battery detector or cache eviction yet.
-- **Media:** MP4, WebM, PNG, JPEG and WebP, at most 100 MB each. Basic file signature checks, SHA-256 content/chunk integrity, 256 KB chunks, HTTP range streaming, verified caching and whole-file re-seeding. Native codecs do the decoding; no arbitrary executables or transcoding. File signatures and hashes do not prove that media is harmless. A production media pipeline still needs decoder hardening and resource testing.
-- **Registry:** signed metadata and signed expiring provider leases; refreshed once per minute, expires after three minutes. Up to 10,000 items, 64 providers per item, and 100 search results. Search covers titles and descriptions using SQLite; no global index, recommendation engine or full-text scale claim. Listings indicate advertised hosts, not guaranteed availability. The registry stores no media bytes, chat bodies, private room descriptors or invitation secrets.
+- **Media:** MP4, WebM, PNG, JPEG, WebP, MP3 and WAV, at most 100 MB each. Basic file signature checks, SHA-256 content/chunk integrity, 256 KB chunks, HTTP range streaming, verified caching and whole-file re-seeding. Native codecs do the decoding; no arbitrary executables or transcoding. File signatures and hashes do not prove that media is harmless. A production media pipeline still needs decoder hardening and resource testing.
+- **Registry:** signed metadata and signed expiring provider leases; refreshed once per minute, expires after three minutes. Up to 10,000 items, 64 providers per item, and 100 search results. Search covers titles and descriptions using SQLite; no global index, recommendation engine or full-text scale claim. Listings indicate advertised hosts, not guaranteed availability. The registry stores public post/reply bodies, but no media bytes, room-chat bodies, private room descriptors or invitation secrets.
+- **Public posts:** signed plain-text updates up to 280 Unicode code points, a newest-first root feed, search, and reply threads. Threads show the latest 100 direct replies in chronological order. The UI refreshes every ten seconds. Posting and replies require active desktop participation; public links remain readable in a browser. Replies can target only existing public posts. The registry retains public text independently of provider leases, and the author keeps a local signed copy. This is registry-backed microblogging, not peer-only text replication. No likes, follows, notifications, editing, deletion or moderation controls yet. Names remain chosen device names, not verified social handles.
 - **Transport:** direct Iroh endpoints only. There is no relay configured and no background STUN/discovery service in this slice. Demonstrated on one Mac with independent processes, not across two physical devices or difficult NATs. A relay/discovery design and WAN verification are still required. Peers and the registry can observe advertised network addresses.
 - **Conversations:** signed messages over authenticated encrypted peer transport. Public rooms are listed; private rooms admit identities through an invitation. A room owner hosts and sequences its history; members poll and keep local copies. This is not leaderless/offline group synchronization, MLS or Signal's double ratchet. Latest 200 messages shown; up to 10,000 stored messages per profile. Owner availability is required to receive new messages. Profiles retain their UDP ports, and same-network owner restart is tested. If the network address changes, recipients may still need a fresh invitation/link; private address recovery is not implemented.
 - **Privacy:** private history stays with participants, but their machines can read it. Directory/file permissions protect local state; no extra at-rest encryption, forward secrecy, disappearing-message guarantee or remote deletion promise. Do not use this experiment for sensitive real conversations.
@@ -117,7 +120,7 @@ python3 scripts/check-native-host.py --data .local/leo --media CONTENT_ID_FROM_D
 
 For the contribution-denial check, pause the selected profile in the desktop UI and run the native-host check with `--expect-paused`. It must report inactive status and reject playback without issuing a ticket. Resume in the UI and rerun without that flag; it validates the real response against the extension contract and reads a byte range through the desktop.
 
-The network integration test starts three independent Iroh endpoints and a temporary registry. It covers publication/search, real chunk transfer, verified re-seeding from the second peer after the first pauses, public/private messages, an uninvited reader, bad invitations, forged sender signatures, tampered registry records, corrupted chunks, bridge authorization, HTTP ranges and paused access. Unit tests cover signature/range boundaries, profile locking, persistent identities/records, corruption handling and truncated native framing.
+The network integration tests start three independent Iroh endpoints and a temporary registry. It covers publication/search, real chunk transfer, verified re-seeding from the second peer after the first pauses, public/private messages, an uninvited reader, bad invitations, forged sender signatures, tampered registry records, corrupted chunks, bridge authorization, HTTP ranges and paused access. The music/post test covers audio re-seeding and range delivery, public reply validation, Unicode length limits, tampering, record persistence, and the additive registry migration. Loopback-only test bindings keep these same-machine checks independent of host VPN/LAN routes. Unit tests also verify that pre-replies records retain their exact signed bytes. Other unit tests cover signature/range boundaries, profile locking, persistent identities/records, corruption handling and truncated native framing.
 
 The native UI pass created two accounts, published and played the generated MP4, exchanged public and private messages and exercised invitations. An initial cold integration run hit a peer timeout; subsequent runs passed without a proven root-cause fix. Keep that startup reliability issue open rather than treating local success as proof of WAN readiness.
 

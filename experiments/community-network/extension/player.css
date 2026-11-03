@@ -9,6 +9,7 @@ body {
   color: #404650;
 }
 video,
+audio,
 img {
   display: block;
   max-width: 100%;
@@ -17,6 +18,7 @@ img {
   background: #111;
   border-radius: 12px;
 }
+audio[hidden],
 video[hidden],
 img[hidden] {
   display: none;

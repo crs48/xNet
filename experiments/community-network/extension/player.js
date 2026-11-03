@@ -4,6 +4,7 @@ const status = document.getElementById('status')
 const retry = document.getElementById('retry')
 const video = document.getElementById('video')
 const image = document.getElementById('image')
+const audio = document.getElementById('audio')
 const id = location.hash.slice(1)
 let attempt = 0
 let pending = false
@@ -15,12 +16,14 @@ function connect() {
   retry.hidden = true
   status.textContent = 'Connecting to your desktop…'
   video.pause()
-  for (const media of [video, image]) {
+  audio.pause()
+  for (const media of [video, image, audio]) {
     media.onerror = null
     media.hidden = true
     media.removeAttribute('src')
   }
   video.load()
+  audio.load()
 
   const fail = (message) => {
     if (attempt !== current) return
@@ -45,7 +48,7 @@ function connect() {
     }
     try {
       const session = playbackResponse(response, id)
-      const media = session.kind === 'image' ? image : video
+      const media = session.kind === 'image' ? image : session.kind === 'audio' ? audio : video
       pending = false
       media.hidden = false
       media.onerror = () =>
