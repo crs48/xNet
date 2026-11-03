@@ -58,8 +58,9 @@ md.renderer.rules.fence = (ts, i, options, env, self) => {
 let content = md.renderer.render(tokens, md.options, {})
 if (diagramIndex !== diagrams.length) throw new Error('Diagram count mismatch')
 content = content.replace(
-  /<li>\[ \] /g,
-  '<li class="task-item"><span class="task-box" aria-label="Not implemented">□</span> '
+  /<li>\[([ x])\] /g,
+  (_, checked) =>
+    `<li class="task-item"><span class="task-box" aria-label="${checked === 'x' ? 'Verified locally' : 'Not yet verified'}">${checked === 'x' ? '✓' : '□'}</span> `
 )
 content = content.replace(/<p>\[!(TIP|NOTE|IMPORTANT|WARNING)\]\n/g, '<p>')
 content = content

@@ -1,7 +1,7 @@
 ---
 title: Moderation with agency
-status: draft
-last_updated: 2026-11-02
+status: in-progress
+last_updated: 2026-11-03
 review: 2026-12-02
 decider: Chris
 door: two-way
@@ -13,9 +13,9 @@ tags: [moderation, community, privacy, federation, research]
 > [!TIP]
 > Build a network where people can speak, find their people, and decide what reaches them. Separate personal filters, community rules, discovery policies, and hosting decisions. Give every consequential restriction a reason, a scope, and a way to challenge it.
 
-This is a research proposal for the new Rust/Tauri experiment, not a description of moderation it already provides. The [interactive website](web/0500/index.html) renders this document and adds two fictional, local-only simulations. Published platform documentation was checked on November 2, 2026. Recommendations below are our design judgments; published features are not evidence that a platform executes them well in every case.
+This research informed the first local moderation implementation in the Rust/Tauri experiment on November 3, 2026. The checked items below are implemented and verified locally; the remaining architecture is a proposal. See the [implementation notes](../../experiments/community-network/README.md#moderation-boundaries) and [verification record](../../experiments/community-network/VERIFICATION.md). The [interactive website](web/0500/index.html) renders this document and adds two fictional, local-only simulations. Published platform documentation was checked on November 2, 2026. Recommendations below are our design judgments; published features are not evidence that a platform executes them well in every case.
 
-Chris should re-decide this proposal on December 2, or before opening the prototype to strangers, whichever comes first. The next decision is whether to implement a small accountable moderation system—not whether to adopt a permanent network constitution. Public protocol and privacy commitments will need their own ADRs and tripwires before implementation.
+Chris should re-decide this proposal on December 2, or before opening the prototype to strangers, whichever comes first. The next decision is whether this small moderation prototype is ready for a staffed community pilot, rather than adopting a permanent network constitution. Public protocol and privacy commitments will need their own ADRs and tripwires before implementation.
 
 ## The question worth answering
 
@@ -265,17 +265,17 @@ Maintain small append-only decision records, but keep deletable sensitive eviden
 
 ### Where this fits the code that exists
 
-The new prototype already has signed records, a registry, peer transfer, and public/private room routes. It does **not** yet have the controls proposed here. Its private rooms use authenticated encrypted transport with owner-hosted history; they are not an MLS/Signal-style E2EE group implementation. [Prototype README](../../experiments/community-network/README.md)
+The first local pass now connects signed registry policy, personal controls, room moderation, encrypted report cases and appeals. Private rooms still use authenticated encrypted transport with owner-hosted history; they are not an MLS/Signal-style E2EE group implementation. [Prototype README](../../experiments/community-network/README.md)
 
-| Seam                                                                                 | Current responsibility                          | Proposed addition                                                     | Status      |
-| ------------------------------------------------------------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------- | ----------- |
-| [model.rs](../../experiments/community-network/crates/network/src/model.rs)          | Records, announcements and peer requests        | Typed subjects, scoped moderation records and policy versions         | ⬜ Proposed |
-| [registry.rs](../../experiments/community-network/crates/network/src/registry.rs)    | Announce, catalog and direct item lookup        | Consistent decisions across search, pages, replies and direct IDs     | ⬜ Proposed |
-| [peer.rs](../../experiments/community-network/crates/network/src/peer.rs)            | Retain, announce, chunks and room authorization | Serving refusal, provider withdrawal, membership revocation           | ⬜ Proposed |
-| [bridge.rs](../../experiments/community-network/crates/network/src/bridge.rs)        | Local commands, stream tickets and media ranges | Apply policy at ticket creation and subsequent serving                | ⬜ Proposed |
-| [store.rs](../../experiments/community-network/crates/network/src/store.rs)          | Local persistent state                          | Private case store and rebuildable decision views                     | ⬜ Proposed |
-| [PublicFeed.tsx](../../experiments/community-network/apps/desktop/ui/PublicFeed.tsx) | Public posts and replies                        | Mute, block, report, decision receipts and appeals                    | ⬜ Proposed |
-| [registry.js](../../experiments/community-network/web/registry.js)                   | Public landing and content pages                | Avoid leaking restricted bodies through link previews or direct pages | ⬜ Proposed |
+| Seam                                                                                  | Implemented responsibility                                                              | Boundary                                                                         |
+| ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [moderation.rs](../../experiments/community-network/crates/network/src/moderation.rs) | Typed subjects, restrictions, cases, notices, appeals and bounded evidence              | Experimental model; no independent label subscriptions                           |
+| [registry.rs](../../experiments/community-network/crates/network/src/registry.rs)     | Configured reviewer authority; consistent catalog, reply and direct-ID decisions        | Public-room restrictions delist discovery; room hosts retain admission authority |
+| [peer.rs](../../experiments/community-network/crates/network/src/peer.rs)             | Explicit retention approval, serving refusal and membership enforcement                 | Existing copies cannot be recalled; modified clients can ignore policy           |
+| [bridge.rs](../../experiments/community-network/crates/network/src/bridge.rs)         | Policy checks for playback and ranges; confirmed private reports; paused safety history | Browser extension retains its narrow playback-only interface                     |
+| [store.rs](../../experiments/community-network/crates/network/src/store.rs)           | Independently encrypted case storage and durable restrictions                           | Key resides beside the database; evidence is scrubbed on access after expiry     |
+| [Moderation.tsx](../../experiments/community-network/apps/desktop/ui/Moderation.tsx)  | Safety center, contextual controls, disclosure review, case review and room management  | No automated independent-review assignment or formal accessibility certification |
+| [registry.js](../../experiments/community-network/web/registry.js)                    | Existing public pages consume the now-filtered APIs                                     | Previously downloaded public text cannot be remotely deleted                     |
 
 A registry stores public post bodies as well as metadata, while media is served by peers. “We only host an index” is not an accurate description of every current data path. A fresh device key and display name are not a scarce human identity, so free key generation also cannot be the basis of an abuse-resistant reputation system.
 
@@ -323,17 +323,19 @@ This is consistent with sovereignty: power is explicit, bounded, and replaceable
 
 ### Stage 1: make the first community manageable
 
-- [ ] Publish short operator and community rules, including what remains a personal preference.
-- [ ] Add local mute, topic filtering, block-contact and report actions with clear scopes.
-- [ ] Implement report receipts, a private queue, temporary actions, notices and appeals.
-- [ ] Enforce restrictions in catalog queries, direct record lookup, peer serving and bridge ranges.
-- [ ] Add hosting policies, explicit retention approval and an emergency contribution pause.
-- [ ] Support room removal, role changes and invitation rotation; accurately describe current privacy.
+- [x] Publish short operator and community rules, including what remains a personal preference.
+- [x] Add local mute, topic filtering, block-contact and report actions with clear scopes.
+- [x] Implement report receipts, a private queue, temporary actions, notices and appeals.
+- [x] Enforce restrictions in catalog queries, direct record lookup, peer serving and bridge ranges.
+- [x] Add hosting policies, explicit retention approval and an emergency contribution pause.
+- [x] Support room removal, role changes and invitation rotation; accurately describe current privacy.
 - [ ] Assign an actual operator and reviewer before onboarding strangers; define incident escalation.
+
+Local verification used fictional profiles on one Mac. Public-room registry removals delist discovery; the room owner remains the admission authority. Private-report evidence has a fixed 30-day expiry, scrubbed on access, rather than configurable retention or remote deletion. Operator staffing, independent appeals and real-community testing remain open.
 
 ### Stage 2: let communities govern themselves
 
-- [ ] Add visible room rules, newcomer review, slow mode and time-limited restrictions.
+- [x] Add visible room rules, newcomer review, slow mode and time-limited restrictions.
 - [ ] Offer selective private-evidence disclosure with recipient preview and retention controls.
 - [ ] Add dry-run policy changes and correction propagation across local materialized views.
 - [ ] Test owner-abuse reporting and appeal conflicts with a second real community.
@@ -348,18 +350,18 @@ This is consistent with sovereignty: power is explicit, bounded, and replaceable
 
 ## Tests that could change this recommendation
 
-These are product acceptance checks for future implementation. The website model is a smaller illustration and does not establish network security.
+Checked acceptance items have local implementation evidence; unchecked items still need implementation or broader validation. The website model is a smaller illustration and does not establish network security.
 
-- [ ] A personal filter hides a post without banning its author or changing another person's feed.
+- [x] A personal filter hides a post without banning its author or changing another person's feed.
 - [ ] An optional labeler's action cannot grant itself registry, room or hosting authority.
-- [ ] A user cannot override another operator's removal by selecting “show.”
+- [x] A user cannot override another operator's removal by selecting “show.”
 - [ ] Quoted abuse, reclaimed language, political criticism and graphic news receive context-sensitive review.
-- [ ] A coordinated report campaign cannot turn report count alone into a confirmed violation.
-- [ ] A revoked room member cannot receive future protected content; old-copy limits are explained.
-- [ ] A private report sends exactly the selected evidence and no unapproved attachments or history.
-- [ ] Direct IDs, previews, old stream tickets and chunk requests cannot bypass the relevant enforcement.
-- [ ] Expired assertions, forged moderator keys and unavailable services produce explicit correct states.
-- [ ] An appeal reversal propagates without leaving a permanent misleading label or silently restarting downloads.
+- [x] A coordinated report campaign cannot turn report count alone into a confirmed violation.
+- [x] A revoked room member cannot receive future protected content; old-copy limits are explained.
+- [x] A private report sends exactly the selected evidence and no unapproved attachments or history.
+- [x] Direct IDs, previews, old stream tickets and chunk requests cannot bypass the relevant enforcement.
+- [x] Expired registry policy, forged moderator keys and unavailable services produce explicit correct states. Independent label assertions remain Stage 3.
+- [x] An appeal reversal propagates without leaving a permanent misleading label or silently restarting downloads.
 - [ ] Blocking, leaving, reporting and appeal notices work with keyboard and assistive technology.
 - [ ] Two independently operated registries can disagree without leaking private content or forcing replication.
 
@@ -371,4 +373,4 @@ For **platform behavior**, start with [YouTube policies](https://www.youtube.com
 
 For **an implementation reference**, start with [Ozone](https://github.com/bluesky-social/ozone), [PeerTube](https://docs.joinpeertube.org/admin/moderation), [Mastodon](https://docs.joinmastodon.org/admin/moderation), and [Draupnir](https://github.com/the-draupnir-project/Draupnir). For **fair process and evidence**, read the [Santa Clara Principles](https://santaclaraprinciples.org/) and the [community-norms field experiment](https://pmc.ncbi.nlm.nih.gov/articles/PMC6525516/).
 
-This review examines published capabilities and one bounded empirical result. It does not audit platform enforcement accuracy, resolve jurisdiction-specific legal obligations, establish classifier benchmarks, or certify any proposed encryption protocol. Those are separate investigations. The concrete next step is the Stage 1 pilot, with people able to challenge the rules and with enough observability to discover where our assumptions fail.
+This review examines published capabilities and one bounded empirical result. It does not audit platform enforcement accuracy, resolve jurisdiction-specific legal obligations, establish classifier benchmarks, or certify any proposed encryption protocol. Those are separate investigations. The concrete next step is reviewing the local implementation before a staffed Stage 1 pilot, with people able to challenge the rules and with enough observability to discover where our assumptions fail.

@@ -212,7 +212,27 @@ pub struct Room {
     pub owner: EndpointAddr,
     pub members: Vec<String>,
     pub invite: String,
+    #[serde(default = "default_room_rules")]
+    pub rules: String,
+    #[serde(default)]
+    pub moderators: Vec<String>,
+    #[serde(default)]
+    pub banned: Vec<String>,
+    #[serde(default)]
+    pub past_members: Vec<String>,
+    #[serde(default)]
+    pub pending: Vec<String>,
+    #[serde(default)]
+    pub slow_seconds: u64,
+    #[serde(default)]
+    pub review_new_members: bool,
+    #[serde(default)]
+    pub epoch: u64,
 }
+fn default_room_rules() -> String {
+    crate::moderation::RULES.into()
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Invitation {
     pub room: String,
@@ -244,10 +264,24 @@ impl Message {
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum PeerRequest {
     Ping,
-    Chunk { id: String, index: usize },
-    Join { room: String, secret: String },
-    Messages { room: String, after: u64 },
-    Send { message: Signed<Message> },
+    Moderation {
+        request: Signed<crate::moderation_peer::RoomRequest>,
+    },
+    Chunk {
+        id: String,
+        index: usize,
+    },
+    Join {
+        room: String,
+        secret: String,
+    },
+    Messages {
+        room: String,
+        after: u64,
+    },
+    Send {
+        message: Signed<Message>,
+    },
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PeerEnvelope {
@@ -258,6 +292,7 @@ pub struct PeerEnvelope {
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum PeerResponse {
     Ready,
+    Moderation { result: serde_json::Value },
     Chunk { bytes: String },
     Room { room: Room },
     Messages { messages: Vec<Signed<Message>> },

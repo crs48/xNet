@@ -5,6 +5,7 @@ use std::{fs::OpenOptions, io::Write, path::Path};
 
 pub struct Store {
     pub db: Connection,
+    evidence_key: [u8; 32],
 }
 pub fn lock_profile(root: &Path) -> Result<std::fs::File> {
     let mut options = OpenOptions::new();
@@ -23,7 +24,65 @@ impl Store {
     pub fn open(path: &Path) -> Result<Self> {
         let db = Connection::open(path)?;
         db.execute_batch("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS kv(key TEXT PRIMARY KEY,data TEXT NOT NULL); CREATE TABLE IF NOT EXISTS messages(id TEXT PRIMARY KEY,room TEXT NOT NULL,sequence INTEGER NOT NULL,data TEXT NOT NULL); CREATE INDEX IF NOT EXISTS room_messages ON messages(room,sequence);")?;
-        Ok(Self { db })
+        db.execute_batch("CREATE TABLE IF NOT EXISTS moderation_nonces(id TEXT PRIMARY KEY,created INTEGER NOT NULL)")?;
+        let evidence_key = read_key(&path.with_extension("evidence.key"))?.to_bytes();
+        Ok(Self { db, evidence_key })
+    }
+    pub fn secret_set<T: Serialize>(&self, key: &str, value: &T) -> Result<()> {
+        use aes_gcm::{
+            Aes256Gcm, KeyInit,
+            aead::{Aead, Payload},
+        };
+        let cipher = Aes256Gcm::new_from_slice(&self.evidence_key)
+            .map_err(|_| anyhow::anyhow!("Invalid evidence key"))?;
+        let nonce = rand::random::<[u8; 12]>();
+        let bytes = serde_json::to_vec(value)?;
+        let ciphertext = cipher
+            .encrypt(
+                (&nonce).into(),
+                Payload {
+                    msg: &bytes,
+                    aad: key.as_bytes(),
+                },
+            )
+            .map_err(|_| anyhow::anyhow!("Evidence encryption failed"))?;
+        self.set(key, &(hex::encode(nonce), hex::encode(ciphertext)))
+    }
+    pub fn secret_get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
+        use aes_gcm::{
+            Aes256Gcm, KeyInit,
+            aead::{Aead, Payload},
+        };
+        let Some((nonce, ciphertext)) = self.get::<(String, String)>(key)? else {
+            return Ok(None);
+        };
+        let nonce: [u8; 12] = hex::decode(nonce)?
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Invalid evidence nonce"))?;
+        let bytes = hex::decode(ciphertext)?;
+        let cipher = Aes256Gcm::new_from_slice(&self.evidence_key)
+            .map_err(|_| anyhow::anyhow!("Invalid evidence key"))?;
+        let plaintext = cipher
+            .decrypt(
+                (&nonce).into(),
+                Payload {
+                    msg: &bytes,
+                    aad: key.as_bytes(),
+                },
+            )
+            .map_err(|_| anyhow::anyhow!("Evidence authentication failed"))?;
+        Ok(Some(serde_json::from_slice(&plaintext)?))
+    }
+    pub fn secret_list<T: DeserializeOwned>(&self, prefix: &str) -> Result<Vec<T>> {
+        let mut query = self
+            .db
+            .prepare("SELECT key FROM kv WHERE key LIKE ? ORDER BY key")?;
+        let keys = query
+            .query_map([format!("{prefix}%")], |row| row.get::<_, String>(0))?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        keys.into_iter()
+            .map(|key| self.secret_get(&key)?.context("Missing evidence case"))
+            .collect()
     }
     pub fn get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
         let raw: Option<String> = self

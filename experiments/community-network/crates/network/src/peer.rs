@@ -1,4 +1,9 @@
-use crate::{model::*, store::*};
+use crate::{
+    model::*,
+    moderation::{self, Preferences},
+    moderation_peer::RoomAction,
+    store::*,
+};
 use anyhow::{Context, Result, bail, ensure};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use iroh::{Endpoint, EndpointAddr, SecretKey, endpoint::presets};
@@ -20,6 +25,7 @@ pub struct Node {
     pub registry: String,
     pub client: reqwest::Client,
     slots: Arc<Semaphore>,
+    pub(crate) policy_refresh: tokio::sync::Mutex<()>,
     _profile_lock: std::fs::File,
 }
 #[derive(Clone, Serialize, Deserialize)]
@@ -34,6 +40,9 @@ pub struct Snapshot {
     pub address: EndpointAddr,
     pub rooms: Vec<Room>,
     pub library: Vec<Signed<Record>>,
+    pub preferences: Preferences,
+    pub departed_rooms: Vec<Room>,
+    pub hosting: Vec<String>,
 }
 impl Node {
     pub async fn start(root: PathBuf, registry: String) -> Result<Arc<Self>> {
@@ -83,6 +92,7 @@ impl Node {
                 .timeout(Duration::from_secs(10))
                 .build()?,
             slots: Arc::new(Semaphore::new(16)),
+            policy_refresh: tokio::sync::Mutex::new(()),
             _profile_lock: profile_lock,
         });
         {
@@ -147,6 +157,24 @@ impl Node {
             address: self.endpoint.addr(),
             rooms: store.list("room:")?,
             library: store.list("media:")?,
+            departed_rooms: store.list("departed-room:")?,
+            preferences: store.get("moderation:preferences")?.unwrap_or_default(),
+            hosting: store
+                .list::<Signed<Record>>("media:")?
+                .into_iter()
+                .filter_map(|record| {
+                    match store.get::<bool>(&format!("hosting:{}", record.payload.id)) {
+                        Ok(value) => {
+                            if value.unwrap_or(record.author == self.endpoint.id().to_string()) {
+                                Some(Ok(record.payload.id))
+                            } else {
+                                None
+                            }
+                        }
+                        Err(error) => Some(Err(error)),
+                    }
+                })
+                .collect::<Result<Vec<_>>>()?,
         })
     }
     pub fn require_active(&self) -> Result<()> {
@@ -200,7 +228,11 @@ impl Node {
             item.record.verify()?;
             item.record.payload.validate()?;
         }
-        Ok(items)
+        let preferences = self.preferences()?;
+        Ok(items
+            .into_iter()
+            .filter(|item| !preferences.hides(&item.record))
+            .collect())
     }
     pub async fn publish_post(
         &self,
@@ -259,6 +291,11 @@ impl Node {
             "Registry returned the wrong record"
         );
         ensure!(item.providers.len() <= 64, "Too many providers");
+        self.public_allowed(&item.record).await?;
+        ensure!(
+            !self.preferences()?.hides(&item.record),
+            "Hidden by your personal filters. Undo in Safety & moderation to view it."
+        );
         self.store
             .lock()
             .unwrap()
@@ -267,6 +304,13 @@ impl Node {
     }
     pub async fn announce(&self, record: Signed<Record>) -> Result<()> {
         self.require_active()?;
+        self.public_allowed(&record).await?;
+        if !record.payload.chunks.is_empty() {
+            ensure!(
+                self.hosting_allowed(&record.payload.id, &record.author)?,
+                "Hosting has not been approved for this item"
+            );
+        }
         let announcement = Signed::new(
             Announcement {
                 record,
@@ -285,7 +329,19 @@ impl Node {
     }
     pub async fn announce_all(&self) -> Result<()> {
         let records: Vec<Signed<Record>> = self.store.lock().unwrap().list("published:")?;
+        if records.is_empty() {
+            return Ok(());
+        }
+        let policy = self.registry_policy(true).await?;
         for record in records {
+            if policy.permits(&record.payload.id, &record.author).is_err() {
+                continue;
+            }
+            if !record.payload.chunks.is_empty()
+                && !self.hosting_allowed(&record.payload.id, &record.author)?
+            {
+                continue;
+            }
             self.announce(record).await?;
         }
         Ok(())
@@ -409,6 +465,7 @@ impl Node {
         let signed = Signed::new(record, &self.key)?;
         {
             let store = self.store.lock().unwrap();
+            store.set(&format!("hosting:{id}"), &true)?;
             store.set(&format!("media:{id}"), &signed)?;
             store.set(&format!("published:{id}"), &signed)?;
         }
@@ -419,29 +476,34 @@ impl Node {
     }
     pub async fn media(&self, id: &str) -> Result<CatalogItem> {
         self.require_active()?;
-        if let Some(item) = self
-            .store
-            .lock()
-            .unwrap()
-            .get::<CatalogItem>(&format!("catalog:{id}"))?
-        {
-            return Ok(item);
-        }
-        if let Some(record) = self
-            .store
-            .lock()
-            .unwrap()
-            .get::<Signed<Record>>(&format!("media:{id}"))?
-        {
-            return Ok(CatalogItem {
-                record,
-                providers: vec![self.endpoint.addr()],
-            });
-        }
-        self.lookup(id).await
+        ensure!(valid_id(id), "Invalid content ID");
+        let local = {
+            let store = self.store.lock().unwrap();
+            store.get::<CatalogItem>(&format!("catalog:{id}"))?.or(store
+                .get::<Signed<Record>>(&format!("media:{id}"))?
+                .map(|record| CatalogItem {
+                    record,
+                    providers: vec![self.endpoint.addr()],
+                }))
+        };
+        let item = match local {
+            Some(item) => item,
+            None => self.lookup(id).await?,
+        };
+        self.public_allowed(&item.record).await?;
+        ensure!(
+            !self.preferences()?.hides(&item.record),
+            "Hidden by your personal filters. Undo in Safety & moderation to view it."
+        );
+        Ok(item)
     }
     pub async fn chunk(&self, item: &CatalogItem, index: usize) -> Result<Vec<u8>> {
         self.require_active()?;
+        self.public_allowed(&item.record).await?;
+        ensure!(
+            !self.preferences()?.hides(&item.record),
+            "Hidden by your personal filters"
+        );
         let record = &item.record.payload;
         let path = self.chunk_path(&record.id, index)?;
         match std::fs::read(&path) {
@@ -489,6 +551,9 @@ impl Node {
     }
     async fn advertise_complete(&self, record: &Signed<Record>) -> Result<()> {
         let id = &record.payload.id;
+        if !self.hosting_allowed(id, &record.author)? {
+            return Ok(());
+        }
         if self
             .store
             .lock()
@@ -525,6 +590,10 @@ impl Node {
     }
     pub async fn retain(&self, id: &str) -> Result<()> {
         let item = self.lookup(id).await?;
+        self.store
+            .lock()
+            .unwrap()
+            .set(&format!("hosting:{id}"), &true)?;
         ensure!(
             matches!(
                 item.record.payload.kind.as_str(),
@@ -552,7 +621,9 @@ impl Node {
         address: EndpointAddr,
         request: PeerRequest,
     ) -> Result<PeerResponse> {
-        self.require_active()?;
+        if !matches!(request, PeerRequest::Moderation { .. }) {
+            self.require_active()?;
+        }
         tokio::time::timeout(Duration::from_secs(15), async {
             let connection = self.endpoint.connect(address, ALPN).await?;
             let (mut send, mut recv) = connection.open_bi().await?;
@@ -584,7 +655,7 @@ impl Node {
                     let connection = incoming.await?;
                     let peer = connection.remote_id().to_string();
                     let (mut send, mut recv) = connection.accept_bi().await?;
-                    let bytes = recv.read_to_end(32 * 1024).await?;
+                    let bytes = recv.read_to_end(96 * 1024).await?;
                     let result = async {
                         let envelope: PeerEnvelope = serde_json::from_slice(&bytes)?;
                         ensure!(
@@ -592,7 +663,10 @@ impl Node {
                                 && envelope.address.addrs.len() <= 12,
                             "Peer address does not match authenticated identity"
                         );
-                        if !matches!(envelope.request, PeerRequest::Ping) {
+                        if !matches!(
+                            envelope.request,
+                            PeerRequest::Ping | PeerRequest::Moderation { .. }
+                        ) {
                             ensure!(
                                 matches!(
                                     node.request(envelope.address, PeerRequest::Ping).await?,
@@ -601,7 +675,7 @@ impl Node {
                                 "Peer must expose an active hosting endpoint"
                             );
                         }
-                        node.handle_peer(&peer, envelope.request)
+                        node.handle_peer(&peer, envelope.request).await
                     }
                     .await;
                     let response = result.unwrap_or_else(|e| PeerResponse::Error {
@@ -621,15 +695,47 @@ impl Node {
             });
         }
     }
-    fn handle_peer(&self, peer: &str, request: PeerRequest) -> Result<PeerResponse> {
+    async fn handle_peer(&self, peer: &str, request: PeerRequest) -> Result<PeerResponse> {
+        if let PeerRequest::Moderation { request } = request {
+            return Ok(PeerResponse::Moderation {
+                result: self.handle_room_command(peer, request)?,
+            });
+        }
         self.require_active()?;
+        if matches!(request, PeerRequest::Join { .. } | PeerRequest::Send { .. }) {
+            ensure!(
+                !self
+                    .preferences()?
+                    .blocked_contacts
+                    .iter()
+                    .any(|id| id == peer),
+                "Contact blocked by this recipient"
+            );
+        }
+        if matches!(request, PeerRequest::Chunk { .. }) {
+            self.registry_policy(false).await?;
+        }
         match request {
+            PeerRequest::Moderation { .. } => unreachable!("handled above"),
             PeerRequest::Ping => Ok(PeerResponse::Ready),
             PeerRequest::Chunk { id, index } => {
                 let store = self.store.lock().unwrap();
                 let record: Signed<Record> = store
                     .get(&format!("media:{id}"))?
                     .context("Unknown media")?;
+                ensure!(
+                    store
+                        .get::<bool>(&format!("hosting:{id}"))?
+                        .unwrap_or(record.author == self.endpoint.id().to_string()),
+                    "This device has not approved seeding this item"
+                );
+                let policy: Signed<moderation::RegistryPolicy> = store
+                    .get("moderation:registry-policy")?
+                    .context("Registry safety policy unavailable")?;
+                policy.payload.permits(&id, &record.author)?;
+                policy
+                    .payload
+                    .permits("", &self.endpoint.id().to_string())?;
                 ensure!(index < record.payload.chunks.len(), "Unknown chunk");
                 let bytes = std::fs::read(self.chunk_path(&id, index)?)?;
                 ensure!(
@@ -660,18 +766,42 @@ impl Node {
                     !r.private || (!secret.is_empty() && secret == r.invite),
                     "Invitation not accepted"
                 );
-                ensure!(r.members.len() < 64, "Prototype group is full");
+                ensure!(
+                    !r.banned.iter().any(|id| id == peer),
+                    "Removed from this room; an old invitation cannot restore membership"
+                );
+                moderation::permits(&store, &format!("room-{room}"), "", peer)?;
+                ensure!(
+                    r.members.len() < 64 && r.pending.len() < 64,
+                    "Prototype group is full"
+                );
                 if !r.members.iter().any(|m| m == peer) {
-                    r.members.push(peer.into());
+                    if r.review_new_members {
+                        if !r.pending.iter().any(|id| id == peer) {
+                            r.pending.push(peer.into());
+                        }
+                    } else {
+                        r.members.push(peer.into());
+                    }
                     store.set(&format!("room:{room}"), &r)?;
                 }
                 r.invite.clear();
+                r.banned.clear();
+                r.past_members.clear();
+                r.pending.retain(|id| id == peer);
+                if !r.members.iter().any(|id| id == peer) {
+                    r.members.clear();
+                    r.moderators.clear();
+                }
                 Ok(PeerResponse::Room { room: r })
             }
             PeerRequest::Messages { room, after } => {
                 self.authorize_room(peer, &room)?;
                 Ok(PeerResponse::Messages {
-                    messages: self.messages_local(&room, after)?,
+                    messages: {
+                        let _ = after;
+                        self.room_visible_messages(&room)?
+                    },
                 })
             }
             PeerRequest::Send { message } => {
@@ -682,6 +812,21 @@ impl Node {
                     "Sender does not match transport identity"
                 );
                 self.authorize_room(peer, &message.payload.room)?;
+                let store = self.store.lock().unwrap();
+                let room: Room = store
+                    .get(&format!("room:{}", message.payload.room))?
+                    .context("Room unavailable")?;
+                let key = format!("last-message:{}:{peer}", room.id);
+                let last = store.get::<u64>(&key)?.unwrap_or(0);
+                ensure!(
+                    room.slow_seconds == 0
+                        || room.owner.id.to_string() == peer
+                        || room.moderators.iter().any(|id| id == peer)
+                        || last + room.slow_seconds <= now(),
+                    "Slow mode: wait before sending another message"
+                );
+                store.set(&key, &now())?;
+                drop(store);
                 self.insert_message(&message)?;
                 Ok(PeerResponse::Sent)
             }
@@ -697,9 +842,18 @@ impl Node {
             .context("Room unavailable")?;
         ensure!(room.owner.id == self.endpoint.id(), "Room owner required");
         ensure!(
-            room.members.iter().any(|m| m == peer),
-            "Join this room first"
+            !room.banned.iter().any(|id| id == peer),
+            "You were removed from this room. Open Room settings for the decision and appeal."
         );
+        ensure!(
+            !room.pending.iter().any(|id| id == peer),
+            "Your request is waiting for a room moderator. Messages unlock after approval."
+        );
+        ensure!(
+            room.members.iter().any(|m| m == peer),
+            "You are not a member of this room. Notices and appeals remain available in Room settings."
+        );
+        moderation::permits(&self.store.lock().unwrap(), &format!("room-{id}"), "", peer)?;
         Ok(())
     }
     fn insert_message(&self, message: &Signed<Message>) -> Result<()> {
@@ -734,7 +888,7 @@ impl Node {
         )?;
         Ok(())
     }
-    fn messages_local(&self, room: &str, after: u64) -> Result<Vec<Signed<Message>>> {
+    pub(crate) fn messages_local(&self, room: &str, after: u64) -> Result<Vec<Signed<Message>>> {
         let store = self.store.lock().unwrap();
         let mut q=store.db.prepare("SELECT data FROM messages WHERE room=?1 AND sequence>?2 ORDER BY sequence DESC LIMIT 200")?;
         let mut values = q
@@ -757,6 +911,14 @@ impl Node {
             owner: self.endpoint.addr(),
             members: vec![self.endpoint.id().to_string()],
             invite: hex::encode(rand::random::<[u8; 32]>()),
+            rules: moderation::RULES.into(),
+            moderators: vec![],
+            banned: vec![],
+            past_members: vec![],
+            pending: vec![],
+            slow_seconds: 0,
+            review_new_members: false,
+            epoch: 0,
         };
         self.store
             .lock()
@@ -871,6 +1033,20 @@ impl Node {
             .get(&format!("room:{id}"))?
             .context("Join this room first")?;
         if room.owner.id != self.endpoint.id() {
+            let latest: Room =
+                serde_json::from_value(self.room_command(id, RoomAction::Info).await?)?;
+            ensure!(
+                latest.id == id && latest.owner.id == room.owner.id,
+                "Room identity mismatch"
+            );
+            {
+                let store = self.store.lock().unwrap();
+                ensure!(
+                    store.get::<Room>(&format!("room:{id}"))?.is_some(),
+                    "You left this room"
+                );
+                store.set(&format!("room:{id}"), &latest)?;
+            }
             match self
                 .request(
                     room.owner,
@@ -883,16 +1059,40 @@ impl Node {
             {
                 PeerResponse::Messages { messages } => {
                     ensure!(messages.len() <= 200, "Too many messages");
+                    let received = messages.clone();
                     for message in messages {
                         ensure!(message.payload.room == id, "Wrong room in response");
                         self.insert_message(&message)?;
                     }
+                    let preferences = self.preferences()?;
+                    return Ok(received
+                        .into_iter()
+                        .filter(|m| !preferences.hides_message(m))
+                        .collect());
                 }
                 PeerResponse::Error { message } => bail!(message),
                 _ => bail!("Invalid sync response"),
             }
         }
-        self.messages_local(id, 0)
+        let preferences = self.preferences()?;
+        Ok(self
+            .room_visible_messages(id)?
+            .into_iter()
+            .filter(|m| !preferences.hides_message(m))
+            .collect())
+    }
+    fn room_visible_messages(&self, id: &str) -> Result<Vec<Signed<Message>>> {
+        let messages = self.messages_local(id, 0)?;
+        let restrictions =
+            moderation::restrictions(&self.store.lock().unwrap(), &format!("room-{id}"))?;
+        Ok(messages
+            .into_iter()
+            .filter(|m| {
+                !restrictions
+                    .iter()
+                    .any(|r| r.active() && r.kind == "message" && r.target == m.payload.id)
+            })
+            .collect())
     }
     pub async fn send_message(&self, id: &str, body: String) -> Result<()> {
         self.require_active()?;

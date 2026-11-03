@@ -5,6 +5,9 @@ struct Args {
     bind: std::net::SocketAddr,
     #[arg(long, default_value = ".local/registry.sqlite")]
     database: std::path::PathBuf,
+    /// Device identities allowed to review this registry’s reports. Repeat for multiple people.
+    #[arg(long)]
+    moderator: Vec<String>,
 }
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -12,5 +15,6 @@ async fn main() -> anyhow::Result<()> {
     if let Some(parent) = args.database.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    community_network::registry::serve(&args.database, args.bind).await
+    community_network::registry::serve_with_moderators(&args.database, args.bind, args.moderator)
+        .await
 }

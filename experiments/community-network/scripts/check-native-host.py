@@ -30,7 +30,7 @@ def request(value):
 status = request({'op': 'status'})
 assert status['ok'], status.get('error')
 assert set(status['result']) == {'active', 'reason'}, 'Native status leaked profile data'
-for operation in ['snapshot', 'messages', 'publish', 'participation', 'send']:
+for operation in ['snapshot', 'messages', 'publish', 'participation', 'send', 'moderation', 'preferences', 'hosting', 'registry_action', 'room_action', 'report_preview', 'report_messages', 'leave_room', 'safety_history']:
     assert request({'op': operation})['ok'] is False, f'Extension unexpectedly allowed {operation}'
 assert request({'op': 'publish_post', 'body': 'Must not publish from the browser', 'reply_to': None})['ok'] is False
 assert request({'op': 'post_thread', 'id': args.media})['ok'] is False

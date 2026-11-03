@@ -1,17 +1,22 @@
 import { ArrowLeft, ArrowUp, Globe2, Link, MessageCircle, RefreshCw, Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { api, errorText, type Item } from './api'
+import { ContentControls } from './Moderation'
 
 type Thread = { post: Item; replies: Item[] }
 
 function Post({
   item,
   open,
-  share
+  share,
+  onReport,
+  changed
 }: {
   item: Item
   open: (id: string) => void
   share: (id: string) => void
+  onReport: (item: Item) => void
+  changed: () => void
 }) {
   const r = item.record.payload
   return (
@@ -46,6 +51,13 @@ function Post({
           </button>
         </div>
       </div>
+      <ContentControls
+        id={r.id}
+        author={item.record.author}
+        name={`${r.owner_name}’s post`}
+        onReport={() => onReport(item)}
+        changed={changed}
+      />
     </article>
   )
 }
@@ -124,13 +136,17 @@ export function PublicFeed({
   active,
   selected,
   select,
-  share
+  share,
+  onReport,
+  changed
 }: {
   name: string
   active: boolean
   selected: string | null
   select: (id: string | null) => void
   share: (id: string) => void
+  onReport: (item: Item) => void
+  changed: () => void
 }) {
   const [items, setItems] = useState<Item[]>([])
   const [thread, setThread] = useState<Thread | null>(null)
@@ -171,7 +187,11 @@ export function PublicFeed({
         }
         if (live) setError('')
       } catch (e) {
-        if (live) setError(errorText(e))
+        if (live) {
+          setThread(null)
+          setItems([])
+          setError(errorText(e))
+        }
       } finally {
         pending = false
         if (live) setLoading(false)
@@ -248,7 +268,15 @@ export function PublicFeed({
           Loading posts…
         </p>
       )}
-      {selected && thread && <Post item={thread.post} open={select} share={share} />}
+      {selected && thread && (
+        <Post
+          item={thread.post}
+          open={select}
+          share={share}
+          onReport={onReport}
+          changed={changed}
+        />
+      )}
       {(!selected || thread) && (
         <Composer
           key={selected || 'feed'}
@@ -263,7 +291,14 @@ export function PublicFeed({
       )}
       <div aria-label={selected ? 'Public replies' : 'Recent public posts'} aria-busy={loading}>
         {(selected ? thread?.replies || [] : items).map((item) => (
-          <Post key={item.record.payload.id} item={item} open={select} share={share} />
+          <Post
+            key={item.record.payload.id}
+            item={item}
+            open={select}
+            share={share}
+            onReport={onReport}
+            changed={changed}
+          />
         ))}
       </div>
       {!loading &&

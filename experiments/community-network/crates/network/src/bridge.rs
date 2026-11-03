@@ -1,4 +1,11 @@
-use crate::{model::*, peer::Node, registry::ApiError, store::write_secret};
+use crate::{
+    model::*,
+    moderation::{CaseAction, Preferences},
+    moderation_peer::RoomAction,
+    peer::Node,
+    registry::ApiError,
+    store::write_secret,
+};
 use anyhow::{Context, Result, ensure};
 use axum::{
     Json, Router,
@@ -31,6 +38,49 @@ pub struct Bridge {
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum Command {
     Snapshot,
+    Moderation,
+    SafetyHistory {
+        room: String,
+    },
+    Preferences {
+        preferences: Preferences,
+    },
+    Hosting {
+        id: String,
+        allowed: bool,
+    },
+    RegistryAction {
+        command: CaseAction,
+    },
+    RoomAction {
+        id: String,
+        command: RoomAction,
+    },
+    LeaveRoom {
+        id: String,
+    },
+    ReportPublic {
+        id: String,
+        category: String,
+        details: String,
+    },
+    ReportPreview {
+        room: String,
+        target: String,
+        selected: Vec<String>,
+        category: String,
+        details: String,
+        destination: String,
+    },
+    ReportMessages {
+        room: String,
+        target: String,
+        selected: Vec<String>,
+        category: String,
+        details: String,
+        destination: String,
+        confirmation: String,
+    },
     Account {
         name: String,
     },
@@ -112,6 +162,80 @@ impl Bridge {
         let node = &self.node;
         Ok(match command {
             Command::Snapshot => serde_json::to_value(node.snapshot()?)?,
+            Command::SafetyHistory { room } => {
+                node.room_any(&room)?;
+                serde_json::to_value(node.messages_local(&room, 0)?)?
+            }
+            Command::Moderation => serde_json::to_value(node.moderation_view().await?)?,
+            Command::Preferences { preferences } => {
+                node.set_preferences(preferences)?;
+                serde_json::json!({"saved":true})
+            }
+            Command::Hosting { id, allowed } => {
+                node.set_hosting(&id, allowed).await?;
+                serde_json::json!({"saved":true})
+            }
+            Command::RegistryAction { command } => {
+                ensure!(
+                    !matches!(command, CaseAction::Report { .. }),
+                    "Use the report flow to approve evidence disclosure"
+                );
+                node.registry_command(command).await?
+            }
+            Command::RoomAction { id, command } => {
+                ensure!(
+                    !matches!(command, RoomAction::Report { .. }),
+                    "Use the report flow to approve evidence disclosure"
+                );
+                node.room_command(&id, command).await?
+            }
+            Command::LeaveRoom { id } => node.leave_room(&id).await?,
+            Command::ReportPublic {
+                id,
+                category,
+                details,
+            } => node.report_record(&id, category, details).await?,
+            Command::ReportPreview {
+                room,
+                target,
+                selected,
+                category,
+                details,
+                destination,
+            } => {
+                ensure!(
+                    destination == "room" || destination == "registry",
+                    "Choose a report recipient"
+                );
+                let report = node.report_preview(&room, &target, selected, category, details)?;
+                let confirmation = digest(&serde_json::to_vec(&(&destination, &report))?);
+                serde_json::json!({"report":report,"destination":destination,"confirmation":confirmation})
+            }
+            Command::ReportMessages {
+                room,
+                target,
+                selected,
+                category,
+                details,
+                destination,
+                confirmation,
+            } => {
+                ensure!(
+                    destination == "room" || destination == "registry",
+                    "Choose a report recipient"
+                );
+                let report = node.report_preview(&room, &target, selected, category, details)?;
+                ensure!(
+                    confirmation == digest(&serde_json::to_vec(&(&destination, &report))?),
+                    "Evidence changed; review the disclosure again"
+                );
+                if destination == "room" {
+                    node.room_command(&room, RoomAction::Report { report })
+                        .await?
+                } else {
+                    node.registry_command(CaseAction::Report { report }).await?
+                }
+            }
             Command::Account { name } => {
                 node.create_profile(name)?;
                 serde_json::to_value(node.snapshot()?)?

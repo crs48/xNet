@@ -89,3 +89,41 @@ Native UI evidence:
 Screenshots: `.local/evidence/music-peer-playback.png` and `.local/evidence/public-post-thread.png`. These contain fictional demo profiles and public local-only test content.
 
 The web player now includes an audio element and validates audio responses, but actual Chrome-extension audio interaction remains unverified for the same browser setup reasons listed above. Public posts do not yet have follows, likes, editing, deletion, moderation or peer-only replication. The public registry remains local and undeployed. This pass is recorded here as prototype notes, not a public release announcement.
+
+## Moderation integration — November 3, 2026
+
+Local Rust/Tauri prototype only. No push, PR, merge or deployment.
+
+### Automated evidence
+
+- `cargo +stable test -p community-network -p community-node -- --nocapture`: 12 tests passed (five model/store, three existing real-network flows, three new moderation flows, one native framing test); doc-test runner passed with no examples. Both `RUSTC` and `RUSTDOC` were set to the stable x86_64 toolchain because the shell otherwise resolves an older rustdoc.
+- `pnpm build`: TypeScript and Vite production build passed. `cargo +stable build --workspace --features tauri/custom-protocol`: native workspace build passed.
+- `pnpm test:extension`: seven browser/native contract tests passed. `scripts/check-native-host.py` passed against Leo for active range playback and paused denial, including rejection of all new moderation/safety commands from the browser extension. This does not claim an actual Chrome playback pass.
+- Research website rebuild and its 14 policy/disclosure simulation checks passed. Simulations are distinct from the Rust/network security checks.
+- `git diff --check` and Prettier checks passed for changed application files. `graphify update .` completed; graph export uses an aggregate view because the repository exceeds its detailed HTML limit.
+
+New real-peer assertions cover: playback caching without hosting consent; explicit retain and stop-sharing/provider withdrawal; forged reviewer identity, unauthorized review, signed-request replay and wrong registry audience; catalog/direct-ID removal; cached media, old bridge tickets and direct chunk denial; author notices without reporter evidence; appeals while paused and reversal history; persisted personal hides and encrypted cases; unexpected authority-key replacement and stale policy when the registry disappears; independent case restrictions; private evidence selection/confirmation and tamper rejection; room newcomer approval, slow mode, removal and invitation invalidation; blocked-contact safety exceptions; cross-room case rejection; self-promotion denial; removed-member appeals and restoration; cached safety history while paused; leaving while retaining case access.
+
+### Native UI evidence
+
+Drove the compiled macOS Tauri applications via computer use, using the existing fictional **Maya** and **Leo** profiles. Maya’s public device key was explicitly configured as the local registry reviewer.
+
+1. Leo hid the generated video, saw it disappear, opened Safety, undid the filter and saw it return.
+2. Leo submitted a clearly labeled test report and received a receipt. Maya opened the queue, applied a temporary content-only restriction with a reason, and Leo’s refreshed discovery removed the video.
+3. Leo paused hosting, opened the case and submitted an appeal. Maya saw the appeal and restored access. The public record and complete decision/appeal history survived restarting both apps and the registry.
+4. In **Garden friends**, Leo selected one private message, previewed the recipient and exact disclosure, explicitly confirmed, and received a receipt. Maya’s review showed exactly one excerpt. The harmless test case was closed with “No violation found.”
+5. Maya saved visible room rules and newcomer approval, removed Leo with a reason, and saw an appealable membership case. Leo lost access to messages but could still open the room’s rules and notices. Maya restored membership and Leo’s conversation resumed. The invitation was rotated by removal.
+6. Retested the final two-step disclosure UI after rebuilding: the preview has its own screen, focus moves to its heading, Tab reaches the consent checkbox, Space toggles it, returning to selection resets consent, and Send remains disabled until fresh consent. Escape closes the modal.
+7. While Leo was paused, cached messages remained available explicitly for safety review with the live composer disabled. The normal browser-native player still denied playback while paused.
+
+The UI pass found and corrected the long disclosure form, vague removed-member error, stale restricted-message display and missing paused safety-history affordance. Native accessibility trees and limited keyboard flows were inspected. VoiceOver, comprehensive focus restoration, 200% zoom and formal WCAG conformance are not claimed.
+
+### Repository hook evidence
+
+The first pre-commit run hit the existing web demo-seeding test's ten-second timeout (912 passed, one timeout). Its isolated rerun passed all seven tests, and the full rerun passed all 913 tests across 119 files. All 102 affected typecheck/build tasks succeeded. The first commit-message attempt then failed the 100-character body-line rule; the message was wrapped before retrying. No hook bypass was used.
+
+### Remaining boundaries
+
+The registry policy signer is pinned on first use; this still needs authenticated production bootstrap/key rotation. Fresh policy is an availability dependency for public media. A registry delists public rooms; their independent hosts retain room-admission authority. Registry-wide restrictions do not reach private chat policy. Existing copied bytes cannot be recalled and modified clients can ignore policy.
+
+Reports are encrypted separately, with an owner-only key beside the database. This is not whole-device encryption. Evidence expires after 30 days and is scrubbed on access, not by a guaranteed background deletion job; backups and recipient copies remain outside that promise. Private chats still use the original host-readable group protocol. Report queues are bounded and have no archive UI; independent review assignment, operational escalation, Sybil-resistant abuse controls, policy dry-runs, labeler federation and youth-specific designs remain future work. The research checklist preserves these as open items.

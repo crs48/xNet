@@ -19,23 +19,32 @@ import {
   Radio,
   ChevronRight,
   Download,
-  RefreshCw
+  RefreshCw,
+  Shield
 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './style.css'
 
-import { api, errorText, type RecordData, type Signed, type Item } from './api'
+import {
+  api,
+  errorText,
+  type RecordData,
+  type Signed,
+  type Item,
+  type Room,
+  type Message,
+  type Preferences
+} from './api'
+import {
+  ContentControls,
+  ReportDialog,
+  SafetyCenter,
+  RoomManager,
+  type ReportTarget
+} from './Moderation'
 import { PublicFeed } from './PublicFeed'
 
-type Room = {
-  id: string
-  title: string
-  private: boolean
-  owner: { id: string }
-  members: string[]
-}
-type Message = Signed<{ id: string; room: string; name: string; body: string; created: number }>
 type Settings = { enabled: boolean; storage_mb: number; upload_mb: number }
 type Snapshot = {
   id: string
@@ -45,6 +54,9 @@ type Snapshot = {
   active: boolean
   reason: string
   registry: string
+  preferences: Preferences
+  hosting: string[]
+  departed_rooms: Room[]
   rooms: Room[]
   library: Signed<RecordData>[]
 }
@@ -116,7 +128,12 @@ function Modal({
 }
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
-  const [tab, setTab] = useState<'discover' | 'music' | 'posts' | 'chats' | 'hosting'>('discover')
+  const [tab, setTab] = useState<'discover' | 'music' | 'posts' | 'chats' | 'hosting' | 'safety'>(
+    'discover'
+  )
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null)
+  const [manageRoom, setManageRoom] = useState<Room | null>(null)
+  const [safetyRevision, setSafetyRevision] = useState(0)
   const [postId, setPostId] = useState<string | null>(null)
   const catalogRequest = useRef(0)
   const [items, setItems] = useState<Item[]>([])
@@ -157,6 +174,16 @@ function App() {
       kind: tab === 'music' ? 'audio' : 'visual'
     })
     if (request === catalogRequest.current) setItems(result)
+  }
+  const safetyChanged = () => {
+    setSafetyRevision((v) => v + 1)
+    setPlayback(null)
+    void refresh().catch((e) => setStatus(errorText(e)))
+    if (tab === 'discover' || tab === 'music')
+      void search().catch((e) => {
+        setItems([])
+        setStatus(errorText(e))
+      })
   }
   async function run(label: string, work: () => Promise<void>) {
     setBusy(label)
@@ -200,7 +227,23 @@ function App() {
   useEffect(() => {
     setMessages([])
     setSyncError('')
-    if (!roomId || !snapshot?.active) return
+    if (!roomId) return
+    if (!snapshot?.active) {
+      let live = true
+      api<Message[]>({ op: 'safety_history', room: roomId })
+        .then((data) => {
+          if (live) {
+            setMessages(data)
+            setSyncError('Saved messages for safety review. Live chat is paused.')
+          }
+        })
+        .catch((e) => {
+          if (live) setSyncError(errorText(e))
+        })
+      return () => {
+        live = false
+      }
+    }
     let live = true
     let pending = false
     const sync = () => {
@@ -214,7 +257,10 @@ function App() {
           }
         })
         .catch((e) => {
-          if (live) setSyncError(errorText(e))
+          if (live) {
+            setMessages([])
+            setSyncError(errorText(e))
+          }
         })
         .finally(() => {
           pending = false
@@ -226,7 +272,7 @@ function App() {
       live = false
       clearInterval(timer)
     }
-  }, [roomId, snapshot?.active])
+  }, [roomId, snapshot?.active, safetyRevision])
   useEffect(() => {
     messageEnd.current?.scrollIntoView({ block: 'nearest' })
   }, [messages.length])
@@ -356,7 +402,8 @@ function App() {
               { key: 'music', label: 'Music', icon: Music2 },
               { key: 'posts', label: 'Posts', icon: MessagesSquare },
               { key: 'chats', label: 'Chats', icon: MessageCircle },
-              { key: 'hosting', label: 'Your contribution', icon: HardDrive }
+              { key: 'hosting', label: 'Your contribution', icon: HardDrive },
+              { key: 'safety', label: 'Safety & moderation', icon: Shield }
             ] as const
           ).map((n) => (
             <button
@@ -441,7 +488,9 @@ function App() {
                     ? 'Posts'
                     : tab === 'hosting'
                       ? 'Your contribution'
-                      : room?.title || 'Chats'}
+                      : tab === 'safety'
+                        ? 'Safety & moderation'
+                        : room?.title || 'Chats'}
             </h1>
             <p>
               {tab === 'discover'
@@ -452,11 +501,13 @@ function App() {
                     ? 'Little updates. Open conversations. A chronological feed.'
                     : tab === 'hosting'
                       ? 'Useful work, within limits you choose.'
-                      : room
-                        ? room.private
-                          ? 'Private · invitation only'
-                          : 'Public · discoverable in the registry'
-                        : 'A place to make things together.'}
+                      : tab === 'safety'
+                        ? 'Your controls, reports, and appeals.'
+                        : room
+                          ? room.private
+                            ? 'Private · invitation only'
+                            : 'Public · discoverable in the registry'
+                          : 'A place to make things together.'}
             </p>
           </div>
           <div className="actions">
@@ -481,7 +532,10 @@ function App() {
         {!snapshot.active && (
           <div className="participation-banner">
             <Pause size={16} />
-            <span>{snapshot.reason}. Resume hosting to listen, watch, publish, and chat.</span>
+            <span>
+              {snapshot.reason}. Resume hosting to listen, watch, publish, and chat. Safety controls
+              remain available.
+            </span>
             <button onClick={() => setTab('hosting')}>
               Manage hosting
               <ChevronRight size={15} />
@@ -551,41 +605,50 @@ function App() {
                 {items.map((item) => {
                   const r = item.record.payload
                   return (
-                    <button
-                      key={r.id}
-                      className="media-card"
-                      onClick={() => run('Connecting to a peer…', () => openItem(item))}
-                      disabled={!snapshot.active}
-                    >
-                      <div className="media-placeholder">
-                        {r.kind === 'room' ? (
-                          <MessageCircle size={28} />
-                        ) : r.kind === 'audio' ? (
-                          <Music2 size={28} />
-                        ) : r.kind === 'image' ? (
-                          <Image size={28} />
-                        ) : (
-                          <Play size={28} />
-                        )}
-                        <span>
-                          {r.kind === 'room'
-                            ? 'Public conversation'
-                            : r.mime === 'audio/mpeg'
-                              ? 'MP3'
-                              : r.mime.split('/')[1].toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="card-body">
-                        <h3>{r.title}</h3>
-                        <p>{r.description || 'Shared with this community.'}</p>
-                        <div className="card-footer">
-                          <span>{r.owner_name}</span>
+                    <article className="media-tile" key={r.id}>
+                      <button
+                        className="media-card"
+                        onClick={() => run('Connecting to a peer…', () => openItem(item))}
+                        disabled={!snapshot.active}
+                      >
+                        <div className="media-placeholder">
+                          {r.kind === 'room' ? (
+                            <MessageCircle size={28} />
+                          ) : r.kind === 'audio' ? (
+                            <Music2 size={28} />
+                          ) : r.kind === 'image' ? (
+                            <Image size={28} />
+                          ) : (
+                            <Play size={28} />
+                          )}
                           <span>
-                            {item.providers.length} {item.providers.length === 1 ? 'host' : 'hosts'}
+                            {r.kind === 'room'
+                              ? 'Public conversation'
+                              : r.mime === 'audio/mpeg'
+                                ? 'MP3'
+                                : r.mime.split('/')[1].toUpperCase()}
                           </span>
                         </div>
-                      </div>
-                    </button>
+                        <div className="card-body">
+                          <h3>{r.title}</h3>
+                          <p>{r.description || 'Shared with this community.'}</p>
+                          <div className="card-footer">
+                            <span>{r.owner_name}</span>
+                            <span>
+                              {item.providers.length}{' '}
+                              {item.providers.length === 1 ? 'host' : 'hosts'}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                      <ContentControls
+                        id={r.id}
+                        author={item.record.author}
+                        name={r.title}
+                        onReport={() => setReportTarget({ item })}
+                        changed={safetyChanged}
+                      />
+                    </article>
                   )
                 })}
               </div>
@@ -598,6 +661,9 @@ function App() {
 
         {tab === 'posts' && (
           <PublicFeed
+            key={safetyRevision}
+            onReport={(item) => setReportTarget({ item })}
+            changed={safetyChanged}
             name={snapshot.profile.name}
             active={snapshot.active}
             selected={postId}
@@ -610,6 +676,10 @@ function App() {
           (room ? (
             <div className="chat">
               <div className="chat-context">
+                <Button onClick={() => setManageRoom(room)}>
+                  <Shield size={14} />
+                  Room settings
+                </Button>
                 <span>
                   {room.private ? <Lock size={14} /> : <Users size={14} />}Authenticated peer
                   transport · latest 200 messages
@@ -638,7 +708,7 @@ function App() {
                 aria-label="Conversation messages"
                 aria-live="polite"
               >
-                {!messages.length && (
+                {!messages.length && !syncError && (
                   <div className="empty">
                     <MessageCircle size={28} />
                     <h2>Start with a hello.</h2>
@@ -669,6 +739,13 @@ function App() {
                       </div>
                       <p>{m.payload.body}</p>
                     </div>
+                    <ContentControls
+                      id={m.payload.id}
+                      author={m.author}
+                      name={`message from ${m.payload.name}`}
+                      onReport={() => setReportTarget({ message: m, room, messages })}
+                      changed={safetyChanged}
+                    />
                   </div>
                 ))}
                 <div ref={messageEnd} />
@@ -690,7 +767,7 @@ function App() {
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   maxLength={4000}
-                  disabled={!snapshot.active}
+                  disabled={!snapshot.active || !room.members.includes(snapshot.id)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
@@ -703,7 +780,12 @@ function App() {
                   <button
                     className="send"
                     aria-label="Send message"
-                    disabled={!draft.trim() || !!busy || !snapshot.active}
+                    disabled={
+                      !draft.trim() ||
+                      !!busy ||
+                      !snapshot.active ||
+                      !room.members.includes(snapshot.id)
+                    }
                   >
                     <ArrowUp size={17} />
                   </button>
@@ -803,9 +885,9 @@ function App() {
                 />
               </label>
               <p className="small muted">
-                This prototype counts a persistent total, not a monthly allowance. Cached public
-                files can be served while hosting is enabled. No background startup or automatic
-                mobile hosting.
+                This prototype counts a persistent total, not a monthly allowance. Publishing or
+                choosing “Keep a full copy” approves hosting for that file. Watching alone does not.
+                No background startup or automatic mobile hosting.
               </p>
               <div className="actions">
                 <button className="button" disabled={!!busy}>
@@ -836,8 +918,31 @@ function App() {
                   {record.payload.kind === 'audio' ? <Music2 size={18} /> : <Film size={18} />}
                   <span>
                     {record.payload.title}
-                    <small>{size(record.payload.size)}</small>
+                    <small>
+                      {size(record.payload.size)} ·{' '}
+                      {snapshot.hosting.includes(record.payload.id)
+                        ? 'Approved for sharing'
+                        : 'Stored only'}
+                    </small>
                   </span>
+                  <Button
+                    onClick={() =>
+                      run('Updating file hosting…', async () => {
+                        await api({
+                          op: 'hosting',
+                          id: record.payload.id,
+                          allowed: !snapshot.hosting.includes(record.payload.id)
+                        })
+                      })
+                    }
+                    disabled={
+                      !!busy || (!snapshot.active && !snapshot.hosting.includes(record.payload.id))
+                    }
+                  >
+                    {snapshot.hosting.includes(record.payload.id)
+                      ? 'Stop sharing'
+                      : 'Approve hosting'}
+                  </Button>
                   <Button
                     title={`Play ${record.payload.title}`}
                     onClick={() =>
@@ -860,10 +965,33 @@ function App() {
               <p>
                 Direct Iroh connections; no hosted relay enabled in this local experiment. Keys and
                 data stay in this profile's folder with owner-only directory permissions. Social
-                sign-in, key recovery, moderation and mobile power controls are not implemented yet.
+                sign-in, key recovery and mobile power controls are not implemented yet.
               </p>
             </details>
           </div>
+        )}
+        {tab === 'safety' && (
+          <SafetyCenter
+            preferences={snapshot.preferences}
+            self={snapshot.id}
+            rooms={[...snapshot.rooms, ...snapshot.departed_rooms]}
+            changed={safetyChanged}
+          />
+        )}
+        {reportTarget && (
+          <ReportDialog
+            target={reportTarget}
+            close={() => setReportTarget(null)}
+            submitted={() => setStatus('Report received. Track it in Safety & moderation.')}
+          />
+        )}
+        {manageRoom && (
+          <RoomManager
+            initial={manageRoom}
+            self={snapshot.id}
+            close={() => setManageRoom(null)}
+            changed={safetyChanged}
+          />
         )}
         {share && (
           <div className="share-box">
