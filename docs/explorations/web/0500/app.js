@@ -51,7 +51,8 @@ function renderPolicy() {
 }
 controls.addEventListener('change', renderPolicy)
 controls.addEventListener('submit', (event) => event.preventDefault())
-controls.addEventListener('reset', () => queueMicrotask(renderPolicy))
+// The reset event precedes the browser restoring the controls' default values.
+controls.addEventListener('reset', () => setTimeout(renderPolicy, 0))
 renderPolicy()
 
 for (const message of fictionalMessages) {
