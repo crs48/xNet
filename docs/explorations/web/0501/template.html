@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta
+      name="description"
+      content="An xNet exploration of Polis, public deliberation, large community decisions and accountable collective action."
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Collective sensemaking · xNet field notes</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #fff;
+        --bg: #f6f7f9;
+        --ink: #242933;
+        --muted: #5b6573;
+        --line: #dce1e8;
+        --soft: #eff2f6;
+        --link: #304e70;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-padding-top: 28px;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.7 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      a {
+        color: var(--link);
+        text-underline-offset: 3px;
+      }
+      :focus-visible {
+        outline: 3px solid var(--link);
+        outline-offset: 4px;
+      }
+      button {
+        font: inherit;
+        border: 1px solid var(--line);
+        background: var(--paper);
+        color: var(--ink);
+        padding: 8px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: var(--soft);
+      }
+      .skip {
+        position: absolute;
+        top: -100px;
+        left: 16px;
+        padding: 10px;
+        background: var(--paper);
+        z-index: 5;
+      }
+      .skip:focus {
+        top: 12px;
+      }
+      .top {
+        max-width: 1360px;
+        margin: auto;
+        padding: 26px 40px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .top > div {
+        min-width: 0;
+        max-width: 100%;
+      }
+      .brand svg {
+        width: 91px;
+        height: 35px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        gap: 44px;
+        max-width: 1280px;
+        padding: 28px 32px 80px;
+        margin: auto;
+      }
+      aside {
+        position: sticky;
+        top: 28px;
+        align-self: start;
+        max-height: calc(100vh - 56px);
+        overflow: auto;
+        padding: 0 10px 15px 0;
+      }
+      .eyebrow {
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-size: 11px;
+        font-weight: 650;
+      }
+      nav {
+        display: grid;
+        gap: 4px;
+        margin-top: 14px;
+      }
+      nav a {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 13px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        line-height: 1.45;
+      }
+      nav a:hover {
+        color: var(--ink);
+        background: var(--soft);
+      }
+      main {
+        min-width: 0;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 48px 52px;
+      }
+      header {
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 32px;
+        padding-bottom: 32px;
+      }
+      h1 {
+        font-size: clamp(34px, 4vw, 54px);
+        line-height: 1.1;
+        letter-spacing: -0.04em;
+        font-weight: 620;
+        margin: 18px 0 20px;
+      }
+      .dek {
+        font-size: 20px;
+        line-height: 1.55;
+        color: var(--muted);
+        max-width: 630px;
+      }
+      .meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 24px;
+      }
+      h2 {
+        font-size: 26px;
+        line-height: 1.3;
+        letter-spacing: -0.02em;
+        margin: 54px 0 20px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+      }
+      h3 {
+        font-size: 19px;
+        line-height: 1.4;
+        margin: 30px 0 12px;
+      }
+      p {
+        margin: 16px 0;
+      }
+      li {
+        margin: 9px 0;
+      }
+      ul,
+      ol {
+        padding-left: 24px;
+      }
+      blockquote {
+        margin: 24px 0;
+        padding: 4px 20px;
+        border-left: 3px solid var(--ink);
+        background: var(--bg);
+        border-radius: 0 10px 10px 0;
+      }
+      blockquote p {
+        font-size: 17px;
+      }
+      .table-wrap {
+        max-width: 100%;
+        overflow: auto;
+        margin: 24px 0;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        line-height: 1.5;
+        min-width: 570px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        background: var(--bg);
+        font-weight: 650;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      figure {
+        margin: 30px 0;
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--bg);
+      }
+      figcaption {
+        font-weight: 650;
+        margin-bottom: 18px;
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        list-style-position: inside;
+        padding: 0;
+        counter-reset: step;
+      }
+      .flow li {
+        margin: 0;
+        padding: 14px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-size: 13px;
+      }
+      .flow-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        font-size: 14px;
+      }
+      .flow-grid > div {
+        padding: 14px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      .flow-grid p {
+        margin: 8px 0 0;
+      }
+      dt {
+        font-weight: 650;
+        margin-top: 12px;
+      }
+      dd {
+        margin-left: 0;
+        font-size: 14px;
+      }
+      code {
+        font:
+          0.86em ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+        overflow-wrap: anywhere;
+      }
+      pre {
+        white-space: pre;
+        max-width: 100%;
+        overflow: auto;
+        background: var(--bg);
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-size: 12px;
+      }
+      pre code {
+        overflow-wrap: normal;
+      }
+      details {
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+        margin-top: 24px;
+      }
+      summary {
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .local-reference {
+        color: var(--muted);
+        text-decoration: underline dotted;
+      }
+      .task {
+        list-style: none;
+        position: relative;
+      }
+      .task > span {
+        position: absolute;
+        left: -23px;
+      }
+      footer {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 42px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+      }
+      #download-status {
+        font-size: 12px;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+      @media (max-width: 960px) {
+        .layout {
+          grid-template-columns: 1fr;
+          max-width: 830px;
+          gap: 22px;
+          padding: 16px;
+        }
+        aside {
+          position: static;
+          max-height: none;
+        }
+        nav {
+          grid-template-columns: 1fr 1fr;
+        }
+        main {
+          padding: 34px;
+        }
+        .top {
+          padding: 20px 24px;
+        }
+      }
+      @media (max-width: 560px) {
+        .top {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .brand {
+          gap: 14px;
+        }
+        .layout {
+          padding: 12px;
+        }
+        main {
+          padding: 25px 20px;
+          border-radius: 14px;
+        }
+        h2 {
+          font-size: 23px;
+        }
+        .dek {
+          font-size: 18px;
+        }
+        .flow,
+        .flow-grid {
+          grid-template-columns: 1fr;
+        }
+        figure {
+          padding: 18px;
+        }
+        nav a {
+          padding: 6px;
+          font-size: 12px;
+        }
+      }
+      @media print {
+        body {
+          background: white;
+        }
+        .top,
+        aside,
+        .skip {
+          display: none;
+        }
+        .layout {
+          display: block;
+          padding: 0;
+        }
+        main {
+          border: 0;
+          padding: 0;
+        }
+        h2 {
+          break-after: avoid;
+        }
+        .table-wrap {
+          overflow: visible;
+        }
+        table {
+          min-width: 0;
+        }
+        a {
+          color: inherit;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to research</a>
+    <div class="top">
+      <div class="brand">
+        <span role="img" aria-label="xNet"><!-- WORDMARK --></span><span>Field notes / 0501</span>
+      </div>
+      <div>
+        <div class="actions">
+          <button type="button" id="download-site">Save website</button
+          ><button type="button" id="download-source">Download Markdown</button>
+        </div>
+        <div id="download-status" role="status"></div>
+      </div>
+    </div>
+    <div class="layout">
+      <aside>
+        <div class="eyebrow">Inside this exploration</div>
+        <nav aria-label="Research chapters"><!-- NAV --></nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <header>
+          <div class="eyebrow">Research & proposal · November 4, 2026</div>
+          <h1>What can we<br />figure out together?</h1>
+          <p class="dek">
+            Collective sensemaking for large communities. From a shared question to an informed
+            decision—and a public record of what happens next.
+          </p>
+          <div class="meta">
+            Polis · public deliberation · community decisions · accountable action
+          </div>
+        </header>
+        <article><!-- CONTENT --></article>
+        <footer>
+          Local exploration. No live consultation, votes or analytics. Product proposals remain
+          unimplemented. External sources are linked throughout.
+        </footer>
+      </main>
+    </div>
+    <script>
+      /* SOURCE */
+      const save = (filename, content, type) => {
+        const url = URL.createObjectURL(new Blob([content], { type }))
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.append(link)
+        link.click()
+        link.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        document.getElementById('download-status').textContent = 'Download requested: ' + filename
+      }
+      document
+        .getElementById('download-source')
+        .addEventListener('click', () =>
+          save(sourceDocument.filename, sourceDocument.source, 'text/markdown')
+        )
+      document.getElementById('download-site').addEventListener('click', () => {
+        const copy = document.documentElement.cloneNode(true)
+        copy.querySelector('#download-status').textContent = ''
+        save('xnet-collective-sensemaking.html', '<!doctype html>\n' + copy.outerHTML, 'text/html')
+      })
+    </script>
+  </body>
+</html>

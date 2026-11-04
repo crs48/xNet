@@ -1,0 +1,1930 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta
+      name="description"
+      content="An xNet exploration of Polis, public deliberation, large community decisions and accountable collective action."
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Collective sensemaking · xNet field notes</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #fff;
+        --bg: #f6f7f9;
+        --ink: #242933;
+        --muted: #5b6573;
+        --line: #dce1e8;
+        --soft: #eff2f6;
+        --link: #304e70;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-padding-top: 28px;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.7 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      a {
+        color: var(--link);
+        text-underline-offset: 3px;
+      }
+      :focus-visible {
+        outline: 3px solid var(--link);
+        outline-offset: 4px;
+      }
+      button {
+        font: inherit;
+        border: 1px solid var(--line);
+        background: var(--paper);
+        color: var(--ink);
+        padding: 8px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: var(--soft);
+      }
+      .skip {
+        position: absolute;
+        top: -100px;
+        left: 16px;
+        padding: 10px;
+        background: var(--paper);
+        z-index: 5;
+      }
+      .skip:focus {
+        top: 12px;
+      }
+      .top {
+        max-width: 1360px;
+        margin: auto;
+        padding: 26px 40px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .top > div {
+        min-width: 0;
+        max-width: 100%;
+      }
+      .brand svg {
+        width: 91px;
+        height: 35px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        gap: 44px;
+        max-width: 1280px;
+        padding: 28px 32px 80px;
+        margin: auto;
+      }
+      aside {
+        position: sticky;
+        top: 28px;
+        align-self: start;
+        max-height: calc(100vh - 56px);
+        overflow: auto;
+        padding: 0 10px 15px 0;
+      }
+      .eyebrow {
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-size: 11px;
+        font-weight: 650;
+      }
+      nav {
+        display: grid;
+        gap: 4px;
+        margin-top: 14px;
+      }
+      nav a {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 13px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        line-height: 1.45;
+      }
+      nav a:hover {
+        color: var(--ink);
+        background: var(--soft);
+      }
+      main {
+        min-width: 0;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 48px 52px;
+      }
+      header {
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 32px;
+        padding-bottom: 32px;
+      }
+      h1 {
+        font-size: clamp(34px, 4vw, 54px);
+        line-height: 1.1;
+        letter-spacing: -0.04em;
+        font-weight: 620;
+        margin: 18px 0 20px;
+      }
+      .dek {
+        font-size: 20px;
+        line-height: 1.55;
+        color: var(--muted);
+        max-width: 630px;
+      }
+      .meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 24px;
+      }
+      h2 {
+        font-size: 26px;
+        line-height: 1.3;
+        letter-spacing: -0.02em;
+        margin: 54px 0 20px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+      }
+      h3 {
+        font-size: 19px;
+        line-height: 1.4;
+        margin: 30px 0 12px;
+      }
+      p {
+        margin: 16px 0;
+      }
+      li {
+        margin: 9px 0;
+      }
+      ul,
+      ol {
+        padding-left: 24px;
+      }
+      blockquote {
+        margin: 24px 0;
+        padding: 4px 20px;
+        border-left: 3px solid var(--ink);
+        background: var(--bg);
+        border-radius: 0 10px 10px 0;
+      }
+      blockquote p {
+        font-size: 17px;
+      }
+      .table-wrap {
+        max-width: 100%;
+        overflow: auto;
+        margin: 24px 0;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        line-height: 1.5;
+        min-width: 570px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        background: var(--bg);
+        font-weight: 650;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      figure {
+        margin: 30px 0;
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--bg);
+      }
+      figcaption {
+        font-weight: 650;
+        margin-bottom: 18px;
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        list-style-position: inside;
+        padding: 0;
+        counter-reset: step;
+      }
+      .flow li {
+        margin: 0;
+        padding: 14px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-size: 13px;
+      }
+      .flow-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        font-size: 14px;
+      }
+      .flow-grid > div {
+        padding: 14px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      .flow-grid p {
+        margin: 8px 0 0;
+      }
+      dt {
+        font-weight: 650;
+        margin-top: 12px;
+      }
+      dd {
+        margin-left: 0;
+        font-size: 14px;
+      }
+      code {
+        font:
+          0.86em ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+        overflow-wrap: anywhere;
+      }
+      pre {
+        white-space: pre;
+        max-width: 100%;
+        overflow: auto;
+        background: var(--bg);
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-size: 12px;
+      }
+      pre code {
+        overflow-wrap: normal;
+      }
+      details {
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+        margin-top: 24px;
+      }
+      summary {
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .local-reference {
+        color: var(--muted);
+        text-decoration: underline dotted;
+      }
+      .task {
+        list-style: none;
+        position: relative;
+      }
+      .task > span {
+        position: absolute;
+        left: -23px;
+      }
+      footer {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 42px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+      }
+      #download-status {
+        font-size: 12px;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+      @media (max-width: 960px) {
+        .layout {
+          grid-template-columns: 1fr;
+          max-width: 830px;
+          gap: 22px;
+          padding: 16px;
+        }
+        aside {
+          position: static;
+          max-height: none;
+        }
+        nav {
+          grid-template-columns: 1fr 1fr;
+        }
+        main {
+          padding: 34px;
+        }
+        .top {
+          padding: 20px 24px;
+        }
+      }
+      @media (max-width: 560px) {
+        .top {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .brand {
+          gap: 14px;
+        }
+        .layout {
+          padding: 12px;
+        }
+        main {
+          padding: 25px 20px;
+          border-radius: 14px;
+        }
+        h2 {
+          font-size: 23px;
+        }
+        .dek {
+          font-size: 18px;
+        }
+        .flow,
+        .flow-grid {
+          grid-template-columns: 1fr;
+        }
+        figure {
+          padding: 18px;
+        }
+        nav a {
+          padding: 6px;
+          font-size: 12px;
+        }
+      }
+      @media print {
+        body {
+          background: white;
+        }
+        .top,
+        aside,
+        .skip {
+          display: none;
+        }
+        .layout {
+          display: block;
+          padding: 0;
+        }
+        main {
+          border: 0;
+          padding: 0;
+        }
+        h2 {
+          break-after: avoid;
+        }
+        .table-wrap {
+          overflow: visible;
+        }
+        table {
+          min-width: 0;
+        }
+        a {
+          color: inherit;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to research</a>
+    <div class="top">
+      <div class="brand">
+        <span role="img" aria-label="xNet"
+          ><svg
+            aria-hidden="true"
+            focusable="false"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 226.147927 86"
+            fill="currentColor"
+            role="img"
+            aria-label="xNet"
+          >
+            <path
+              fill-rule="evenodd"
+              transform="translate(-2.709592 18.261837) scale(0.644478)"
+              d="M23 10 C19.410149 6.410149 13.589851 6.410149 10 10 C6.410149 13.589851 6.410149 19.410149 10 23 L20 33 C24.25 37.25 28.5 41.5 28.5 50 C28.5 58.5 24.25 62.75 20 67 L10 77 C6.410149 80.589851 6.410149 86.410149 10 90 C13.589851 93.589851 19.410149 93.589851 23 90 L33 80 C37.25 75.75 41.5 71.5 50 71.5 C58.5 71.5 62.75 75.75 67 80 L77 90 C80.589851 93.589851 86.410149 93.589851 90 90 C93.589851 86.410149 93.589851 80.589851 90 77 L80 67 C75.75 62.75 71.5 58.5 71.5 50 C71.5 41.5 75.75 37.25 80 33 L90 23 C93.589851 19.410149 93.589851 13.589851 90 10 C86.410149 6.410149 80.589851 6.410149 77 10 L67 20 C62.75 24.25 58.5 28.5 50 28.5 C41.5 28.5 37.25 24.25 33 20 L23 10 Z M56.768436 56.768436 C54.4611 59.075771 52.153765 61.383107 50 61.383107 C47.846235 61.383107 45.5389 59.075771 43.231564 56.768436 C40.924229 54.4611 38.616893 52.153765 38.616893 50 C38.616893 47.846235 40.924229 45.5389 43.231564 43.231564 C45.5389 40.924229 47.846235 38.616893 50 38.616893 C52.153765 38.616893 54.4611 40.924229 56.768436 43.231564 C59.075771 45.5389 61.383107 47.846235 61.383107 50 C61.383107 52.153765 59.075771 54.4611 56.768436 56.768436 Z"
+            />
+            <path
+              d="M118.481583 6Q121.065224 6 122.688599 7.731739Q124.303772 9.453674 124.303772 12.026381V71.464149Q124.303772 74.245941 122.426743 76.122971Q120.549713 78 117.767921 78Q116.391235 78 114.965652 77.524811Q113.507195 77.038651 112.736839 76.158089Q112.731445 76.151932 112.726379 76.1455L75.877151 29.356701V71.973618Q75.877151 74.549316 74.207817 76.272057Q72.533401 78 69.850769 78Q67.266129 78 65.642754 76.268265Q64.028572 74.546265 64.028572 71.973618V12.535852Q64.028572 9.754056 65.905598 7.877028Q67.782623 6 70.56443 6Q72.048058 6 73.630356 6.580412Q75.251457 7.174009 76.023232 8.376584L112.557289 54.978981V12.026381Q112.557289 9.453736 114.171463 7.731743Q115.794846 6 118.481583 6Z"
+            />
+            <path
+              d="M158.860901 79.019936Q150.112137 79.019936 143.666931 75.358727Q137.216446 71.695518 133.75853 65.397034Q130.303772 59.107063 130.303772 51.175453Q130.303772 41.915348 134.066879 35.3685Q137.831375 28.819975 143.919937 25.311119Q150.009003 21.802561 156.822037 21.802561Q162.091492 21.802561 166.793488 23.972721Q171.486725 26.138823 175.096527 29.903065Q178.704865 33.665741 180.817993 38.613434Q182.932907 43.566624 182.932907 49.136578Q182.932907 49.143192 182.932632 49.149796Q182.824692 51.737495 180.881989 53.355892Q178.958115 54.958775 176.397064 54.958775H143.131485Q143.689377 57.4883 144.91127 59.525696Q147.160736 63.275146 150.705429 65.222206Q154.252945 67.170364 158.249344 67.170364Q161.979385 67.170364 164.181473 66.569977Q166.378952 65.970848 167.714752 65.129707Q169.099945 64.257111 170.229645 63.640812Q170.234695 63.638065 170.239822 63.635498Q172.142426 62.68523 173.847717 62.68523Q176.225235 62.68523 177.797546 64.310257Q179.364624 65.931992 179.364624 68.099052Q179.364624 71.00457 176.393326 73.340462Q173.698669 75.618973 168.856064 77.319Q164.01268 79.019936 158.860901 79.019936ZM143.237015 44.130135H169.248657V43.744637Q169.049622 40.893745 167.229233 38.630466Q165.387161 36.340221 162.646332 34.99548Q159.909256 33.651138 156.822037 33.651138Q153.81189 33.651138 151.206024 34.452869Q148.630859 35.245441 146.749771 37.126541Q144.863831 39.011505 143.766632 42.205132Q143.458817 43.099812 143.237015 44.130135Z"
+            />
+            <path
+              d="M192.95929 23.84144H197.332489V17.633549Q197.332489 14.851746 199.209511 12.97472Q201.086533 11.097695 203.868347 11.097695Q206.65564 11.097695 208.43158 12.981421Q210.199997 14.857183 210.199997 17.633549V23.84144H217.121552Q219.700165 23.84144 221.42453 25.565823Q223.147934 27.289211 223.147934 29.867821Q223.147934 32.347275 221.420975 34.020679Q219.697174 35.690018 217.121552 35.690018H210.199997V63.00235Q210.199997 64.340332 210.714401 65.181007Q211.222137 66.011711 212.096268 66.379433Q213.005829 66.762993 214.063721 66.762993Q215.218719 66.762993 216.175552 66.332039Q217.25769 65.845146 218.65097 65.845146Q220.221115 65.845146 221.488358 67.277344Q222.740555 68.692558 222.740555 71.157867Q222.740555 74.193542 219.475296 76.121269Q216.291275 78 212.636414 78Q210.473801 78 207.852417 77.640221Q205.188156 77.274551 202.838821 75.864357Q200.469238 74.443642 198.898483 71.511818Q197.332489 68.586998 197.332489 63.511826V35.690018H192.95929Q190.381729 35.690018 188.657349 33.96669Q186.932907 32.242245 186.932907 29.663637Q186.932907 27.185175 188.660843 25.51078Q190.384659 23.84144 192.95929 23.84144Z"
+            />
+          </svg> </span
+        ><span>Field notes / 0501</span>
+      </div>
+      <div>
+        <div class="actions">
+          <button type="button" id="download-site">Save website</button
+          ><button type="button" id="download-source">Download Markdown</button>
+        </div>
+        <div id="download-status" role="status"></div>
+      </div>
+    </div>
+    <div class="layout">
+      <aside>
+        <div class="eyebrow">Inside this exploration</div>
+        <nav aria-label="Research chapters">
+          <a href="#1-the-opportunity-a-social-space-that-can-arrive-somewhere"
+            >1. The opportunity: a social space that can arrive somewhere</a
+          >
+          <a href="#2-what-to-borrow-from-existing-tools">2. What to borrow from existing tools</a>
+          <a href="#3-a-complete-large-group-journey">3. A complete large-group journey</a>
+          <a href="#4-governance-belongs-in-the-product-model"
+            >4. Governance belongs in the product model</a
+          >
+          <a href="#5-what-the-mathematics-can-and-cannot-say"
+            >5. What the mathematics can and cannot say</a
+          >
+          <a href="#6-participation-privacy-and-political-safety"
+            >6. Participation, privacy and political safety</a
+          >
+          <a href="#7-ai-as-a-facilitator-with-bounded-authority"
+            >7. AI as a facilitator with bounded authority</a
+          >
+          <a href="#8-integration-choices">8. Integration choices</a>
+          <a href="#9-architecture-for-the-new-application"
+            >9. Architecture for the new application</a
+          >
+          <a href="#10-a-staged-path-to-a-credible-product"
+            >10. A staged path to a credible product</a
+          >
+          <a href="#11-validation-participation-that-changes-something"
+            >11. Validation: participation that changes something</a
+          >
+          <a href="#12-recommendation-and-unresolved-decisions"
+            >12. Recommendation and unresolved decisions</a
+          >
+        </nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <header>
+          <div class="eyebrow">Research & proposal · November 4, 2026</div>
+          <h1>What can we<br />figure out together?</h1>
+          <p class="dek">
+            Collective sensemaking for large communities. From a shared question to an informed
+            decision—and a public record of what happens next.
+          </p>
+          <div class="meta">
+            Polis · public deliberation · community decisions · accountable action
+          </div>
+        </header>
+        <article>
+          <blockquote>
+            <p>
+              Build a public deliberation layer into xNet: people can raise a shared question,
+              contribute perspectives, understand disagreement, develop proposals, and track what
+              happens next. Use Polis as the first serious integration for large-group opinion
+              mapping, with explicit decision rules and follow-through around it.
+            </p>
+          </blockquote>
+          <p>
+            This is a general-purpose product capability for large communities and collective
+            political action. It is not limited to decisions about xNet. The starting scale is
+            hundreds to tens of thousands of participants, with larger deployments treated as a
+            measured engineering goal.
+          </p>
+          <p>
+            <a href="#main">Read the website edition</a>. This Markdown is canonical; the website is
+            a reading interface, not a working product feature. Research checked November 4, 2026.
+            Revisit November 18 after a bounded Polis integration investigation and feedback from an
+            experienced facilitator; that is a decision checkpoint, not a delivery promise.
+          </p>
+          <h2 id="1-the-opportunity-a-social-space-that-can-arrive-somewhere">
+            1. The opportunity: a social space that can arrive somewhere
+          </h2>
+          <p>
+            A large conversation can produce thousands of messages without producing a usable shared
+            understanding. A poll can produce a winner without revealing why people disagree. An AI
+            summary can sound coherent while omitting the objection that matters most.
+          </p>
+          <p>
+            xNet could connect these activities into a process people can follow. A question begins
+            in a community, a public post, a video discussion, or an organizing group. It gets its
+            own address and a clear invitation to participate. People can contribute without reading
+            every reply. The result preserves areas of agreement, important disagreements, missing
+            evidence, and a record of who is responsible for the next step.
+          </p>
+          <p>
+            The distinctive opportunity is the connection between
+            <strong
+              >public discussion, collective understanding, authorized decisions, and continued
+              collaboration</strong
+            >. A community should be able to stay together after the consultation closes.
+          </p>
+          <p>Consider three independent uses:</p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Community</th>
+                  <th>Shared question</th>
+                  <th>What success could mean</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Thousands of residents</td>
+                  <td>Which changes would improve access to local public services?</td>
+                  <td>
+                    A documented set of priorities, dissent and a published response from the
+                    responsible body
+                  </td>
+                </tr>
+                <tr>
+                  <td>A large cooperative or association</td>
+                  <td>What should our next annual plan prioritize?</td>
+                  <td>Broad input followed by a member decision under its existing rules</td>
+                </tr>
+                <tr>
+                  <td>A civic coalition</td>
+                  <td>Which shared demands and voluntary projects can we support together?</td>
+                  <td>
+                    A public platform with explicit endorsements, separate opt-in working groups and
+                    progress updates
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            These require different authority and eligibility arrangements. A single interface can
+            support them if it makes those arrangements visible. An open discussion of a policy is
+            not a representative sample, a member ballot, or permission to act in every
+            participant's name.
+          </p>
+          <p>
+            <strong>Proposed product language:</strong> use <strong>Questions</strong> as the
+            persistent object and <strong>Start a discussion</strong> as its entry action. Within a
+            question, show
+            <strong>Overview · Participate · Findings · Proposals · Outcomes</strong> as those
+            stages become relevant. “Assembly” can name a recurring community institution later.
+            Avoid making people learn deliberative theory before contributing.
+          </p>
+          <h2 id="2-what-to-borrow-from-existing-tools">2. What to borrow from existing tools</h2>
+          <h3 id="polis-make-many-perspectives-legible">Polis: make many perspectives legible</h3>
+          <p>
+            Polis collects participant-written statements and agree/disagree/pass responses, then
+            identifies patterns in those responses. It can surface statements supported across
+            different opinion groups. Its structured response format lets people contribute without
+            writing an argument or entering a reply battle.
+            <a href="https://compdemocracy.org/polis/">Polis overview</a>
+          </p>
+          <p>
+            The underlying data is a sparse participant-by-statement matrix; most people do not
+            respond to most statements. The classic method uses dimensionality reduction and
+            clustering. These are models of observed response patterns, not natural political
+            categories or tests of factual truth.
+            <a href="https://compdemocracy.org/polis-opinion-matrix/">Opinion matrix</a>,
+            <a href="https://www.demdis.sk/content/files/2022/11/Polis-manusript.pdf"
+              >methods paper, Small et al., 2021</a
+            >
+          </p>
+          <p>
+            Polis is especially relevant to the larger scale requested here. Its own FAQ cautions
+            against using it for groups below roughly 50–100 people. That is a product guideline,
+            not a statistical guarantee once the counter reaches 100. Representation, response
+            overlap and the diversity of participation still matter.
+            <a href="https://compdemocracy.org/faq/">Polis FAQ</a>
+          </p>
+          <p>
+            <strong>Borrow:</strong> low-friction statements, cross-group agreement, and visibility
+            into disagreement. Keep ordinary chat alongside the exercise rather than turning every
+            statement into an endless nested thread.
+          </p>
+          <h3 id="loomio-make-the-decision-process-explicit">
+            Loomio: make the decision process explicit
+          </h3>
+          <p>
+            Loomio distinguishes advice, sense checks, consent and consensus, with proposals
+            embedded in discussions. Its outcome record connects a proposal to what the group will
+            do next. Those distinctions would help xNet avoid interpreting every positive response
+            as a binding vote.
+            <a href="https://www.loomio.com/docs/en/user_manual/polls/proposals">Proposal types</a>,
+            <a href="https://www.loomio.com/docs/en/user_manual/polls/outcomes">outcomes</a>
+          </p>
+          <p>
+            Consent is useful for a bounded experiment when the group has agreed how to address
+            material objections. It is not a universal solution for a public audience of ten
+            thousand people. Large groups also need a legitimate way to decide who examines
+            objections and how that judgment can be challenged.
+            <a href="https://www.loomio.com/docs/en/guides/making_decisions/consent_process"
+              >Loomio consent process</a
+            >
+          </p>
+          <p>
+            <strong>Borrow:</strong> a declared decision procedure, proposal revisions and an
+            accountable outcome. Begin with advisory consultations; add consequential voting only
+            with a defined electorate and a validated voting system.
+          </p>
+          <h3 id="decidim-connect-participation-to-institutions-and-delivery">
+            Decidim: connect participation to institutions and delivery
+          </h3>
+          <p>
+            Decidim separates participatory processes from assemblies and provides components for
+            proposals, debates and results. Its accountability component tracks implementation
+            through milestones and change history.
+            <a href="https://decidim.org/features">Features</a>,
+            <a href="https://docs.decidim.org/en/develop/admin/components/accountability.html"
+              >accountability</a
+            >
+          </p>
+          <p>
+            <strong>Borrow:</strong> the promise made before participation, the institution
+            responsible for answering, and the public record afterward. A beautifully rendered
+            consultation with no response is an unfinished experience.
+          </p>
+          <h3 id="vtaiwan-the-software-sits-inside-a-human-process">
+            vTaiwan: the software sits inside a human process
+          </h3>
+          <p>
+            vTaiwan describes a process involving stakeholder engagement, online consultation and
+            facilitated meetings. Its examples place Polis within that wider sequence. This supports
+            using a map to prepare a productive discussion rather than expecting a map to decide a
+            policy. The project's site reports its own outcomes; those accounts are not independent
+            causal evidence that a particular algorithm produced them.
+            <a href="https://info.vtaiwan.tw/">vTaiwan</a>
+          </p>
+          <p>
+            <strong>Borrow:</strong> move between broad participation and smaller, facilitated work,
+            then return the resulting proposals to the wider group.
+          </p>
+          <h3 id="kialo-and-community-notes-useful-adjacent-patterns">
+            Kialo and Community Notes: useful adjacent patterns
+          </h3>
+          <p>
+            Kialo's claim trees make supporting and opposing reasons navigable. That is useful when
+            a disputed claim needs evidence, although requiring an argument map for every
+            contribution would raise the participation burden.
+            <a href="https://support.kialo-edu.com/en/hc/getting-started-with-kialo-for-educators/"
+              >Kialo introduction</a
+            >
+          </p>
+          <p>
+            Community Notes seeks support across differing rating patterns and publishes its scoring
+            approach. It illustrates why cross-perspective support can be more useful than raw
+            popularity, but its objective is note helpfulness, not authorization to make collective
+            decisions.
+            <a href="https://communitynotes.x.com/guide/en/under-the-hood/ranking-notes"
+              >Ranking documentation</a
+            >
+          </p>
+          <p>
+            <strong>Borrow:</strong> evidence links, identifiable unresolved claims and support that
+            crosses disagreement. Do not import a single global credibility score for people.
+          </p>
+          <h3 id="evidence-that-should-temper-our-confidence">
+            Evidence that should temper our confidence
+          </h3>
+          <p>
+            A 2026 preprint examines 119 Polis conversations with at least 100 participants. It
+            reports that developer choices, conveners and participation patterns shape results, and
+            raises reproducibility concerns with exported clustering because of warm-path
+            computation. This is one observational preprint, not a definitive verdict on every
+            deployment. It is a strong reason to record analysis versions and test reproducibility
+            rather than assuming an export is enough.
+            <a href="https://arxiv.org/abs/2608.28368">Gelauff, August 2026</a>
+          </p>
+          <p>
+            The OECD's guidance for representative deliberative processes emphasizes inclusive
+            recruitment, appropriate evidence, facilitation and a public response to
+            recommendations. Open online participation and a representative citizens' panel are
+            different methods. Combining them can be valuable, but their results should remain
+            distinguishable.
+            <a
+              href="https://www.oecd.org/en/publications/evaluation-guidelines-for-representative-deliberative-processes_10ccbfcb-en/full-report/component-9.html"
+              >OECD principles</a
+            >
+          </p>
+          <h2 id="3-a-complete-large-group-journey">3. A complete large-group journey</h2>
+          <figure>
+            <figcaption>One question, a process people can follow.</figcaption>
+            <ol class="flow">
+              <li>Declare the question and the commitment</li>
+              <li>Invite broad participation</li>
+              <li>Examine patterns, evidence and disagreement</li>
+              <li>Develop proposals with facilitation</li>
+              <li>Return for review or an authorized decision</li>
+              <li>Publish an outcome and response</li>
+              <li>Organize voluntary follow-through</li>
+              <li>Review what happened and reopen questions</li>
+            </ol>
+            <p>
+              Findings can send the group back to participation. No decision is also a valid
+              outcome.
+            </p>
+            <details>
+              <summary>Mermaid source</summary>
+              <pre>
+flowchart LR
+    A[Shared question and process commitment] --&gt; B[Open participation]
+    B --&gt; C[Patterns, evidence and unresolved concerns]
+    C --&gt; D[Facilitated proposal development]
+    D --&gt; E[Wider review or authorized decision]
+    E --&gt; F[Published outcome and response]
+    F --&gt; G[Voluntary working groups and progress]
+    G --&gt; H[Review what happened]
+    H --&gt; A
+    C --&gt; B
+</pre
+              >
+            </details>
+          </figure>
+          <h3 id="arrive-through-an-ordinary-link">Arrive through an ordinary link</h3>
+          <p>
+            The page first answers: what is the question, who convened it, who can participate, what
+            is private, when does it close, and what will happen with the results? Show the sponsor
+            or funder, moderators, decision owner and declared conflicts. If nobody has committed to
+            respond, label it an <strong>open discussion</strong>, not an official consultation.
+          </p>
+          <p>
+            A short, accessible brief holds the question, constraints, competing explanations and
+            evidence sources. Participants can flag an omission in the brief. Audio and video can
+            supplement text, but participation must work without playing media.
+          </p>
+          <p>
+            <strong>A consequential product recommendation:</strong> allow browser participation
+            without installing the desktop app or donating bandwidth. The current contribution
+            requirement would exclude people using shared devices, limited data, constrained
+            networks or unsupported hardware. Desktop hosting can be a voluntary contribution with
+            transparent limits. This explicitly reopens the earlier mandatory-seeding idea for civic
+            participation; it does not change that rule in the current application.
+          </p>
+          <p>
+            If the requirement is retained, describe the audience as participating xNet users, not
+            the wider community. A technical access rule changes who gets heard.
+          </p>
+          <h3 id="contribute-in-a-few-minutes-return-when-useful">
+            Contribute in a few minutes, return when useful
+          </h3>
+          <p>
+            The initial activity is simple: read a statement; agree, disagree, or pass; optionally
+            write one perspective the discussion is missing. Explain that pass is a response and
+            that an unseen statement has no response. Let people revise their own responses while
+            the round is open.
+          </p>
+          <p>
+            Give people a natural stopping point: “You have responded to 12 statements. You can stop
+            here and return later.” The number is a proposed session length to test, not a reward or
+            obligation. No streaks, public participation rankings, or pressure to respond to
+            everything.
+          </p>
+          <p>
+            Offer clarification and evidence separately. A participant can say a statement is
+            unclear without treating it as abusive. A link or chat discussion can explain a
+            perspective, while the rated statement remains concise and versioned.
+          </p>
+          <h3 id="understand-the-landscape">Understand the landscape</h3>
+          <p>The default findings page should be a readable account with source links:</p>
+          <ul>
+            <li>Areas of support across observed groups.</li>
+            <li>Points of disagreement, with their strongest submitted reasons.</li>
+            <li>Important concerns with little exposure or little support.</li>
+            <li>Questions where people frequently pass or request clarification.</li>
+            <li>Who participated, which audience was invited, and what is missing.</li>
+          </ul>
+          <p>
+            An opinion map is an optional view with a text/table equivalent. Avoid a permanent dot
+            labeled with each person's identity. Groups can change between rounds; they should not
+            become factions, profile attributes or targeting audiences.
+          </p>
+          <p>
+            A local hide or mute should protect a reader without silently altering the published
+            aggregate. If a person hides a statement, show that something is omitted from their view
+            and allow inspection of the common report. Personal preferences and the shared
+            analytical dataset are separate controls.
+          </p>
+          <h3 id="develop-proposals-and-test-the-tradeoffs">
+            Develop proposals and test the tradeoffs
+          </h3>
+          <p>
+            A facilitator, working group or participant can draft a proposal linked to the
+            statements and evidence it addresses. Show which objections it accommodates and which
+            remain. Participants can challenge a summary or offer an alternative proposal.
+          </p>
+          <p>
+            Smaller working groups can explore competing paths. Their composition and mandate are
+            visible. A self-selected working group does not automatically speak for the public; a
+            representative panel needs its own recruitment and facilitation process.
+          </p>
+          <p>
+            Revisions need a new version and a new response opportunity. A vote on “try this for six
+            weeks” must never carry forward automatically to “adopt this permanently.”
+          </p>
+          <h3 id="decide-explain-act-and-revisit">Decide, explain, act, and revisit</h3>
+          <p>Every process declares one of three initial modes:</p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mode</th>
+                  <th>What participation authorizes</th>
+                  <th>Required outcome</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Open exploration</td>
+                  <td>Learning about participating perspectives</td>
+                  <td>A findings report, including disagreement and limitations</td>
+                </tr>
+                <tr>
+                  <td>Advisory consultation</td>
+                  <td>Advice to a named person or body</td>
+                  <td>
+                    Their response: accepted, modified, declined or awaiting action, with reasons
+                  </td>
+                </tr>
+                <tr>
+                  <td>Member decision</td>
+                  <td>A decision under an organization's agreed rules</td>
+                  <td>
+                    A validated decision record with electorate, rule, turnout, objections and
+                    review path
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            For member decisions, refer consequential ballots to an appropriate integrated system
+            until xNet has a separately reviewed voting design. A response matrix is not an election
+            system.
+          </p>
+          <p>
+            For political action, an outcome can connect to public event pages, project tasks, local
+            discussions and voluntary working groups. Endorsing a statement does
+            <strong>not</strong> enroll someone in an organization, subscribe them to campaign
+            messages, disclose their contact details, or authorize action in their name. Each
+            commitment requires its own explicit opt-in.
+          </p>
+          <p>
+            The outcome remains attached to its question: who will do what, by when, with what
+            resources, and when the group will review it. Missing the response date should produce a
+            visible “Response overdue,” not a silent archive.
+          </p>
+          <h2 id="4-governance-belongs-in-the-product-model">
+            4. Governance belongs in the product model
+          </h2>
+          <p>Before opening a round, save a readable <strong>process agreement</strong>:</p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Why it matters</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Question and scope</td>
+                  <td>Prevent a narrow consultation from becoming a mandate on unrelated issues</td>
+                </tr>
+                <tr>
+                  <td>Convener, funder and decision owner</td>
+                  <td>Reveal who frames the process and who can act</td>
+                </tr>
+                <tr>
+                  <td>Audience and eligibility</td>
+                  <td>Distinguish open public input from residents, members or a selected panel</td>
+                </tr>
+                <tr>
+                  <td>Dates, late submissions and outage policy</td>
+                  <td>Prevent a convenient closing time from silently changing the result</td>
+                </tr>
+                <tr>
+                  <td>Moderation rubric and review route</td>
+                  <td>Make exclusion and editorial choices contestable</td>
+                </tr>
+                <tr>
+                  <td>Data visibility, retention and exports</td>
+                  <td>Explain who can access responses and how they may be reused</td>
+                </tr>
+                <tr>
+                  <td>Analytical method and publication rules</td>
+                  <td>Prevent selective presentation of favorable findings</td>
+                </tr>
+                <tr>
+                  <td>Decision procedure and response commitment</td>
+                  <td>Establish what the result means before it is known</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Freeze the applicable version when a round opens. Material changes pause or restart the
+            round with a notice. Editing a description typo and changing voter eligibility are
+            different operations.
+          </p>
+          <p>
+            <strong>Separate roles:</strong> convener, facilitator, moderator, eligibility steward,
+            analyst and decision owner. One person may hold multiple roles in a small pilot, but
+            show that concentration rather than hiding it. A device hosting the process is not
+            automatically authorized to rewrite its rules.
+          </p>
+          <p>
+            Disagreement alone is not grounds for exclusion. A clear conduct rule can still prohibit
+            harassment or disclosure of private information. Moderation changes the analytical
+            dataset, so record exclusion counts and reasons, support appeals and flag an outcome
+            that depends on a contested exclusion. Public records need not reproduce harmful content
+            or identify reporters.
+          </p>
+          <p>
+            If removing a member changes eligibility or a result, stop finalization pending the
+            defined review. Do not silently shrink the denominator until a preferred answer wins.
+            Urgent safety restrictions can protect a room immediately while the process separately
+            addresses their decision consequences.
+          </p>
+          <p>
+            There must be a legitimate <strong>no decision</strong> state: insufficient
+            participation, unresolved objections, a faulty process, or no authorized body willing to
+            act. Producing closure at any cost is not success.
+          </p>
+          <h2 id="5-what-the-mathematics-can-and-cannot-say">
+            5. What the mathematics can and cannot say
+          </h2>
+          <h3 id="keep-the-denominators-visible">Keep the denominators visible</h3>
+          <p>
+            Suppose an eligible group contains 1,000 people. For one statement, 80 agree, 20
+            disagree, 100 pass and 800 have not responded.
+          </p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Measure</th>
+                  <th>Value</th>
+                  <th>Interpretation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Agreement among agree/disagree responses</td>
+                  <td>80 / 100 = 80%</td>
+                  <td>Support among people who expressed one of those positions</td>
+                </tr>
+                <tr>
+                  <td>Agreement among all responses including pass</td>
+                  <td>80 / 200 = 40%</td>
+                  <td>A different denominator, explicitly labeled</td>
+                </tr>
+                <tr>
+                  <td>Response coverage of the eligible group</td>
+                  <td>200 / 1,000 = 20%</td>
+                  <td>How much of this electorate responded to this statement</td>
+                </tr>
+                <tr>
+                  <td>Observed agreement as a share of eligible people</td>
+                  <td>80 / 1,000 = 8%</td>
+                  <td>Not an estimate of the opinions of the missing 800</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Do not headline this “80% of the community agrees.” In an open public consultation,
+            there may be no known eligible denominator at all. Report participating accounts and
+            response counts; do not manufacture turnout.
+          </p>
+          <p>
+            Likewise, “not responded” does not prove “not seen.” Record exposures only if required
+            for a declared routing audit, with limited retention; otherwise use the honest label.
+            Preserve pass separately from missing data even if a particular analysis maps both into
+            internal numerical representations.
+          </p>
+          <h3 id="cross-group-support-is-a-useful-signal-not-a-mandate">
+            Cross-group support is a useful signal, not a mandate
+          </h3>
+          <p>
+            The classic Polis approach groups similar response patterns and looks for statements
+            with support across those groups. Its documentation describes clustering choices,
+            including selecting a group count. That model should stay inspectable and replaceable.
+            <a href="https://compdemocracy.org/opinion-groups/">Opinion groups</a>
+          </p>
+          <p>
+            A statement accepted across groups may be vague, easy to agree with, or based on shared
+            misinformation. A minority objection may reveal a severe consequence that aggregate
+            support misses. Present evidence, specificity, feasibility and affected perspectives
+            alongside support; keep those judgments distinct.
+          </p>
+          <p>
+            Do not invent our own “consensus score” for the first integration. Import the chosen
+            engine's results with method/version metadata. Use plain counts where the engine cannot
+            produce a defensible map. Show “Not enough information to map perspectives” for sparse
+            or unstable data; a scatterplot is not a required success screen.
+          </p>
+          <p>
+            Minimum cohort size, overlap, uncertainty and stability checks must be validated on real
+            fixtures. A proposed starting rule such as “at least 100 participants” can trigger an
+            analysis attempt, but cannot certify validity. Any thresholds for suppressing small
+            groups must also account for repeated releases and differencing attacks; a minimum count
+            alone does not establish anonymity.
+          </p>
+          <h3 id="exposure-and-moderation-are-part-of-the-analysis">
+            Exposure and moderation are part of the analysis
+          </h3>
+          <p>
+            Statement selection affects what participants can respond to. Polis documents routing
+            that favors informative statements rather than simple uniform selection.
+            <a href="https://compdemocracy.org/semi-randomly/">Routing</a>
+          </p>
+          <p>
+            For xNet, record the routing method, changes and aggregate exposure coverage. Check
+            whether late statements, minority concerns and different languages receive enough
+            opportunities to be assessed. Avoid showing only already-popular ideas. Keep the
+            analysis role distinct from a recommendation feed optimized for engagement.
+          </p>
+          <p>
+            Moderators may remove spam or redundant statements, but a near-duplicate can contain a
+            crucial distinction. Preserve separate versions and authorship; never transfer votes
+            from a merged or rewritten statement. Polis's own guidance shows how editorial choices
+            shape the statement set.
+            <a href="https://compdemocracy.org/moderation/">Moderation guidance</a>
+          </p>
+          <h3 id="reproducible-findings-with-privacy-limits">
+            Reproducible findings, with privacy limits
+          </h3>
+          <p>
+            A frozen report should identify its input cutoff, accepted record set, exclusion policy,
+            engine revision, configuration, random seeds and any required warm state. Recompute from
+            that declared state, or explicitly label an imported report as not independently
+            reproduced.
+          </p>
+          <p>
+            For public data, publish enough to permit the agreed audit. For restricted responses,
+            reproducibility may be available only to authorized independent reviewers. Do not
+            publish a person-by-statement matrix merely to make an attractive “open data” claim.
+            Even without names, political responses can be identifiable.
+          </p>
+          <p>
+            Historical reports are artifacts of what was published at that point, not current
+            aggregate truth. Live counts remain derived views; record correction notices and
+            superseding reports when inputs change.
+          </p>
+          <h2 id="6-participation-privacy-and-political-safety">
+            6. Participation, privacy and political safety
+          </h2>
+          <p>
+            The current prototype has device keys and display names. A key proves control of a key.
+            It does not prove a unique human, membership, residency or a right to vote. A Bluesky or
+            Google sign-in would not establish those things either.
+          </p>
+          <p>Use distinct participation modes:</p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mode</th>
+                  <th>Useful for</th>
+                  <th>What we can honestly claim</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Open participation</td>
+                  <td>Discovery and broad public input</td>
+                  <td>Accounts contributed; duplication and selection bias remain possible</td>
+                </tr>
+                <tr>
+                  <td>Verified member/resident access</td>
+                  <td>A defined community consultation</td>
+                  <td>A configured issuer checked a declared eligibility condition</td>
+                </tr>
+                <tr>
+                  <td>Recruited panel</td>
+                  <td>Deliberation with a designed recruitment process</td>
+                  <td>
+                    The reported recruitment method, participation and attrition—not automatic
+                    representation
+                  </td>
+                </tr>
+                <tr>
+                  <td>Secret or consequential ballot</td>
+                  <td>Formal member decisions, elections or sensitive choices</td>
+                  <td>Only the guarantees of a separately reviewed ballot system</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            An eligibility steward can issue a process-scoped credential and maintain a separate
+            identity register. Keep one active credential per eligible participant, support
+            revocation/recovery and prevent duplicate enrollment across providers. This is a future
+            mechanism, not something the existing device identity implements. The steward still sees
+            identifying data; ordinary tokens are not cryptographic anonymity.
+          </p>
+          <p>
+            Prefer process-specific pseudonyms over a universal political profile. Show precisely
+            who can see raw responses. Distinguish “other participants cannot see your name” from
+            “the operator cannot identify you.” Host-visible timestamps, network addresses,
+            invitation records and writing style can also identify participants.
+          </p>
+          <p>
+            Public, member-visible and restricted material need independent access checks.
+            Publication is a deliberate export with a preview of the report and its audience. An
+            aggregate can still reveal something sensitive about a small group. Changing a question
+            from private to public must not retroactively expose its raw records.
+          </p>
+          <p>
+            The prototype's room owner can read private chats. Do not label a private consultation
+            end-to-end encrypted or suitable for high-risk organizing on that basis. Private
+            political participation needs a dedicated threat model before deployment: coercion,
+            employer or state surveillance, insider access, device compromise, metadata and retained
+            copies. Signing and hash chains do not solve these problems.
+          </p>
+          <p>
+            Youth participation deserves a separate policy: understandable consent, protected
+            identity, accessible language and safeguards against coercion. Avoid permanent opinion
+            profiles and public rankings. Eligibility, guardian involvement and institutional
+            obligations vary by setting; this exploration does not establish compliance or authorize
+            deployment to minors.
+          </p>
+          <p>
+            <strong>Exit and correction:</strong> people can withdraw a response while a round is
+            open. Explain retention before submission, including what happens after publication.
+            Restricted raw records should have a deletion schedule and auditable cleanup.
+            Cryptographic commitments should not contain predictable low-entropy answers that an
+            observer could guess. An archive that cannot forget anyone's political views is a cost,
+            not an inherent benefit of decentralization.
+          </p>
+          <h2 id="7-ai-as-a-facilitator-with-bounded-authority">
+            7. AI as a facilitator with bounded authority
+          </h2>
+          <p>
+            Agents can make participation easier: explain the process, translate with the original
+            alongside it, suggest a clearer statement, find relevant sources, draft a summary, and
+            organize proposed follow-up tasks.
+          </p>
+          <p>
+            Keep the person in charge of what they contribute. Translation can change meaning; edits
+            and summaries remain reviewable. A draft statement needs author approval before joining
+            the rated set. Material edits create a new statement version.
+          </p>
+          <p>
+            An AI synthesis should link each claim to statements and evidence, show contradictory
+            material and identify what it cannot establish. A separate “What is missing or
+            misrepresented?” action lets participants propose corrections. Preserve those challenges
+            alongside the accepted report.
+          </p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Agent action</th>
+                  <th>Proposed authority</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Read a public brief or report</td>
+                  <td>Ordinary public read access</td>
+                </tr>
+                <tr>
+                  <td>Read restricted responses</td>
+                  <td>Explicit, bounded authorization and declared processing destination</td>
+                </tr>
+                <tr>
+                  <td>Draft statements, proposals or summaries</td>
+                  <td>Draft only; attributable model/run provenance</td>
+                </tr>
+                <tr>
+                  <td>Publish a synthesis</td>
+                  <td>Human review under the process's publication policy</td>
+                </tr>
+                <tr>
+                  <td>Cast responses or votes as a participant</td>
+                  <td>No agent authority in the initial design</td>
+                </tr>
+                <tr>
+                  <td>Change eligibility, close a round or enforce an outcome</td>
+                  <td>No agent authority in the initial design</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            A local coding agent may call a remote model. “Running on your computer” does not
+            guarantee that deliberation data stays there. Show the actual destination before sharing
+            restricted material. Treat submitted statements, URLs and imported reports as untrusted
+            content, never as instructions granting the agent tools or access.
+          </p>
+          <p>
+            Do not generate fake participants or apparent public support. Keep opinion clusters out
+            of political persuasion targeting. Political action features should support transparent,
+            voluntary coordination; analytics should describe a process, not build individual
+            persuasion profiles.
+          </p>
+          <p>
+            AI is optional. The core participation, counts, procedure and outcome must remain usable
+            if the agent is unavailable or the community declines model access.
+          </p>
+          <h2 id="8-integration-choices">8. Integration choices</h2>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Approach</th>
+                  <th>Benefits</th>
+                  <th>Costs and limits</th>
+                  <th>Recommendation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Link to a Polis conversation</td>
+                  <td>Fastest honest trial; existing participation experience</td>
+                  <td>
+                    Separate navigation and identity; metadata/results integration still needed
+                  </td>
+                  <td>First technical investigation and facilitator trial</td>
+                </tr>
+                <tr>
+                  <td>Integrate a self-hosted Polis service</td>
+                  <td>
+                    Native question context, control of hosting, proven analytical starting point
+                  </td>
+                  <td>
+                    Operate an additional service; verify authentication, exports, privacy and
+                    upgrades
+                  </td>
+                  <td>Preferred route for a large-group pilot</td>
+                </tr>
+                <tr>
+                  <td>Write a Polis-like Rust engine now</td>
+                  <td>One runtime and freedom to redesign</td>
+                  <td>Numerical, methodological and social validity become our responsibility</td>
+                  <td>Defer until a measured limitation justifies it</td>
+                </tr>
+                <tr>
+                  <td>Adopt an entire civic platform</td>
+                  <td>Rich governance and workflow infrastructure</td>
+                  <td>Larger operational footprint and overlapping social UX</td>
+                  <td>
+                    Offer links/adapters; use Decidim directly when an institution needs its full
+                    workflow
+                  </td>
+                </tr>
+                <tr>
+                  <td>AI-only chat summarization</td>
+                  <td>Low implementation effort</td>
+                  <td>
+                    Cannot establish participation, procedural legitimacy or reliable minority
+                    representation
+                  </td>
+                  <td>Optional aid, insufficient foundation</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            The Polis repository is AGPLv3 with an additional section-7 permission and contains a
+            multi-service deployment. Inspect the exact license and component dependencies before
+            incorporating or distributing code. Its current edge README describes a Python math
+            worker; older documentation describes a Clojure math service. Pin a tested revision and
+            deployment configuration rather than assuming a stable runtime or client SDK.
+            <a href="https://github.com/compdemocracy/polis">Repository</a>,
+            <a href="https://github.com/compdemocracy/polis/blob/edge/README.md">edge setup</a>,
+            <a href="https://github.com/compdemocracy/polis/blob/edge/LICENSE">license</a>
+          </p>
+          <p>
+            <strong>Recommendation:</strong> xNet should own the question, process agreement,
+            permissions, social context, proposal links and outcomes. Delegate opinion mapping
+            through an explicit adapter initially. Do not bundle the full Polis deployment into
+            every Tauri client. A community can operate the service itself or choose a host; no
+            xNet-operated hub is inherently required, although an available service is.
+          </p>
+          <p>
+            Before promising a seamless adapter, verify creation, identity integration, updates,
+            exports and deletion against a pinned deployment. Link-out participation is an
+            acceptable pilot result if the API does not support a trustworthy native flow. No
+            private chat history should be sent to a Polis host by opening a question.
+          </p>
+          <p>
+            In the first adapter, Polis remains authoritative for its statements and responses; xNet
+            stores the surrounding process and explicitly versioned imports. Avoid dual-writing a
+            response to both systems and hoping they agree. The native commands below describe a
+            later contract, not a second response database to build during the link-out pilot. If
+            upstream cannot provide a verifiable cutoff or receipt, disclose that limitation on the
+            imported report; do not present it as a transactionally verified final decision.
+          </p>
+          <h2 id="9-architecture-for-the-new-application">
+            9. Architecture for the new application
+          </h2>
+          <h3 id="existing-seams-inspected-november-4">Existing seams, inspected November 4</h3>
+          <p>
+            The relevant code is the independent Rust/Tauri experiment, not the legacy CRDT package
+            stack.
+          </p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Existing file</th>
+                  <th>Available foundation</th>
+                  <th>Missing for this feature</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>experiments/community-network/crates/network/src/model.rs</code></td>
+                  <td>Signed records, room membership and simple messages</td>
+                  <td>
+                    Questions, statement versions, process rules, eligibility, responses and
+                    outcomes
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>experiments/community-network/crates/network/src/peer.rs</code></td>
+                  <td>Authenticated Iroh requests and owner-hosted room history</td>
+                  <td>
+                    Deliberation synchronization, large result pagination and public participant
+                    access
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>experiments/community-network/crates/network/src/moderation_peer.rs</code>
+                  </td>
+                  <td>Scoped moderator actions, notices and appeals</td>
+                  <td>Deliberation-specific exclusion reasons and review consequences</td>
+                </tr>
+                <tr>
+                  <td><code>experiments/community-network/crates/network/src/store.rs</code></td>
+                  <td>
+                    SQLite, transactions available through its connection, protected report evidence
+                  </td>
+                  <td>
+                    Normalized deliberation tables, retention jobs, analytical exports and recovery
+                    tests
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>experiments/community-network/crates/network/src/registry.rs</code></td>
+                  <td>Public metadata/posts and policy enforcement</td>
+                  <td>
+                    Public question pages, search by question and restricted publication workflow
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>experiments/community-network/crates/network/src/bridge.rs</code></td>
+                  <td>Typed local control commands</td>
+                  <td>Narrow question/response/proposal commands and agent capabilities</td>
+                </tr>
+                <tr>
+                  <td><code>experiments/community-network/apps/desktop/ui/main.tsx</code></td>
+                  <td>Navigation and chat entry points</td>
+                  <td>Question cards, participation view, findings and outcomes</td>
+                </tr>
+                <tr>
+                  <td><code>experiments/community-network/apps/desktop/ui/Moderation.tsx</code></td>
+                  <td>Case workflow and explicit evidence disclosure</td>
+                  <td>Deliberation review states and independent process reviewers</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            No collective sensemaking feature exists in these files today. The product still has
+            owner-online room dependency, device-only identities, limited history, no general
+            browser participant client and no production federation. The preceding
+            <a
+              title="Repository reference: 0500_%5B_%5D_MODERATION_WITH_AGENCY.md"
+              class="local-reference"
+              >moderation exploration</a
+            >
+            supplies useful boundaries, not a ready-made governance engine.
+          </p>
+          <h3 id="put-an-available-service-behind-a-portable-process">
+            Put an available service behind a portable process
+          </h3>
+          <figure>
+            <figcaption>A portable process with an available coordinator.</figcaption>
+            <div class="flow-grid">
+              <div>
+                <b>Participation</b>
+                <p>
+                  Browser and Tauri clients → gateway and eligibility checks → durable process
+                  service.
+                </p>
+              </div>
+              <div>
+                <b>Analysis</b>
+                <p>
+                  Authorized inputs → Polis adapter and worker → versioned findings → process
+                  service.
+                </p>
+              </div>
+              <div>
+                <b>Public access</b>
+                <p>Reviewed reports and outcomes → registry and optional mirrors.</p>
+              </div>
+              <div>
+                <b>Restricted access</b>
+                <p>
+                  Bounded export → authorized reviewers. Iroh copies stay within their access scope.
+                </p>
+              </div>
+            </div>
+            <details>
+              <summary>Mermaid source</summary>
+              <pre>
+flowchart TB
+    W[Public browser participant] --&gt; G[Process gateway and eligibility checks]
+    D[Tauri participant] --&gt; G
+    D &lt;--&gt;|Iroh: authorized local copies| P[Other community peers]
+    G --&gt; S[Process service: durable records and policy]
+    S --&gt; A[Polis adapter and analysis worker]
+    A --&gt; R[Versioned findings with provenance]
+    R --&gt; S
+    S --&gt; O[Reviewed public report and outcomes]
+    O --&gt; C[Public registry and mirrors]
+    S --&gt; X[Restricted export for authorized review]
+</pre
+              >
+            </details>
+          </figure>
+          <p>
+            For a large consultation, choose one declared coordinator for acceptance, ordering and
+            close-of-round cutoffs. Run it on community infrastructure rather than depending on a
+            laptop remaining open. Separate the public gateway, eligibility register, raw response
+            store, analyst access and public report.
+          </p>
+          <p>
+            SQLite can support a bounded single-host pilot. A busy multi-worker service should use a
+            transactional database such as PostgreSQL and measured limits. This is a proposed
+            evolution; the experiment does not have that service or migration today. Keep analytical
+            computation out of the UI thread and submission transaction.
+          </p>
+          <p>
+            Public briefs and reviewed reports can be cached or mirrored. Restricted responses
+            should not be seeded to arbitrary peers. Federation can publish questions and outcomes
+            between communities while keeping separate credentials, policies and electorates. A fork
+            creates a new process; it cannot claim the original participants endorsed a changed
+            question.
+          </p>
+          <p>
+            <strong>Peer-to-peer benefit:</strong> authorized offline reading, locally retained
+            public records, portable community ownership, and optional distribution of public
+            artifacts. <strong>Service benefit:</strong> durable acceptance, recoverable deadlines,
+            browser access, moderation operations and consistent results. Pure peer replication
+            neither supplies a legitimate electorate nor resolves two competing final decisions.
+          </p>
+          <h3 id="proposed-records-and-commands">Proposed records and commands</h3>
+          <figure>
+            <figcaption>Records preserve the meaning of participation.</figcaption>
+            <dl>
+              <dt>Question</dt>
+              <dd>Contains rounds and proposal versions.</dd>
+              <dt>Round</dt>
+              <dd>
+                Freezes its process agreement, admits eligible participants and offers statement
+                versions.
+              </dd>
+              <dt>Response</dt>
+              <dd>Belongs to an eligible participant and an exact statement version.</dd>
+              <dt>Analysis artifact</dt>
+              <dd>Describes a round at an identified cutoff, using a declared method.</dd>
+              <dt>Outcome</dt>
+              <dd>Connects a proposal version to an authorized decision and its commitments.</dd>
+            </dl>
+            <details>
+              <summary>Mermaid source</summary>
+              <pre>
+erDiagram
+    QUESTION ||--o{ ROUND : contains
+    ROUND ||--|| PROCESS_AGREEMENT : freezes
+    ROUND ||--o{ STATEMENT_VERSION : offers
+    ROUND ||--o{ ELIGIBILITY : admits
+    ELIGIBILITY ||--o{ RESPONSE : submits
+    STATEMENT_VERSION ||--o{ RESPONSE : receives
+    ROUND ||--o{ ANALYSIS_ARTIFACT : describes
+    QUESTION ||--o{ PROPOSAL_VERSION : develops
+    PROPOSAL_VERSION ||--o{ OUTCOME : leads_to
+    OUTCOME ||--o{ COMMITMENT : tracks
+</pre
+              >
+            </details>
+          </figure>
+          <p>
+            These are conceptual records, not an accepted public API. Give every mutation its
+            process/round scope, actor capability, operation ID and expected version. Keep an
+            explicit statement-content hash on each response.
+          </p>
+          <pre><code class="language-text">create_question(draft, audience, process_agreement)
+open_round(question_id, expected_version)
+submit_statement(round_id, text, sources, operation_id)
+respond(round_id, statement_version, choice, previous_revision, operation_id)
+withdraw_response(round_id, statement_version, previous_revision, operation_id)
+review_statement(round_id, statement_version, reason, action)
+close_round(round_id, expected_version)
+import_analysis(round_id, cutoff, method_manifest, restricted_artifact)
+publish_findings(round_id, reviewed_export, expected_version)
+propose(question_id, text, supporting_refs, unresolved_concerns)
+record_outcome(proposal_version, authority, rationale, commitments, review_date)
+</code></pre>
+          <p>
+            One active response per participant credential and statement version. A unique operation
+            ID makes retries idempotent. Compare-and-set revisions resolve two devices attempting to
+            change the same response; return a visible conflict rather than silently picking a
+            timestamp winner. Device linking and participant credentials need to exist before
+            claiming multi-device support.
+          </p>
+          <p>
+            The coordinator accepts or rejects a mutation in a transaction and issues a scoped
+            receipt. Local drafts can be offline, but a pending response is not counted until
+            acknowledged. Closing a round atomically establishes the accepted sequence cutoff. A
+            response queued before the deadline but received afterward follows the published
+            late-arrival rule; client clocks do not decide acceptance.
+          </p>
+          <p>
+            Publish a signed close record, and make interrupted or disputed closure visible. Do not
+            automatically finalize while the coordinator is unavailable. Replicated receipt and
+            close records can help reveal inconsistency; signatures alone cannot prevent operator
+            omissions, selective denial or equivocation. Recovery, independent audit and a challenge
+            period are part of consequential use.
+          </p>
+          <p>
+            CRDTs could later help collaboratively edit a brief or proposal draft. They should not
+            decide eligibility, vote validity or finality. Signed revisions and durable transactions
+            provide the useful initial boundaries without reintroducing the entire legacy data
+            stack.
+          </p>
+          <h3 id="capacity-and-operating-costs">Capacity and operating costs</h3>
+          <p>
+            An illustrative workload of 100,000 participants giving 40 responses each contains four
+            million response records. At an assumed 0.5–1.5 KB per accepted record, that is about
+            2–6 GB before indexes, revisions, logs, backups or analysis copies. These are planning
+            assumptions, not benchmarks or a price quote. Updates and withdrawal history can
+            increase the total materially.
+          </p>
+          <p>
+            If all four million responses arrived within an hour, average acceptance would be about
+            1,111 responses/second, before burst allowance. Test the intended peak explicitly. Avoid
+            rebuilding a dense participant-by-statement matrix on every write; batch analytics and
+            publish a visible input cutoff and update time.
+          </p>
+          <p>
+            Moderation and facilitation can dominate the cost even when text storage is cheap. Rate
+            limits, statement budgets and routing need a transparent policy; a flood of generated
+            statements should not consume the whole group's attention. Restrict automated
+            submissions and test limits against newcomers and multilingual participants.
+          </p>
+          <p>
+            Proposed pilot acceptance targets, to validate on a named machine: 1,000 concurrent
+            participant sessions, 100 accepted responses/second for 30 minutes, p95 acknowledgment
+            under one second, no lost acknowledged responses after restart, and a full
+            reconciliation report. This first test is intentionally below the illustrative
+            100,000-person surge. Do not advertise that larger capacity until its own benchmark and
+            operational rehearsal pass.
+          </p>
+          <p>
+            Scale separately: static public reading, transactional participation, analysis workers
+            and human review. Avoid an expensive all-or-nothing deployment just to show a question
+            card in chat.
+          </p>
+          <h2 id="10-a-staged-path-to-a-credible-product">
+            10. A staged path to a credible product
+          </h2>
+          <h3 id="stage-a-establish-a-real-polis-boundary">
+            Stage A — establish a real Polis boundary
+          </h3>
+          <ul>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Pin a Polis revision; inspect
+              license/dependency obligations and reproduce its deployment, including the math
+              worker.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Verify supported authentication,
+              participant IDs, response updates, exports and deletion; record unsupported operations
+              honestly.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Create a public xNet question
+              page with process agreement and explicit participation destination.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Link or embed a test Polis
+              conversation without passing private chat content or xNet control credentials.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Import a frozen report with
+              method metadata and mark any unverified reproduction limits.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Have a facilitator review the
+              process, not just the software screens.
+            </li>
+          </ul>
+          <h3 id="stage-b-integrated-public-consultation">
+            Stage B — integrated public consultation
+          </h3>
+          <ul>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Add browser participation and
+              decide explicitly how civic access relates to the contribution requirement.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Implement process-scoped
+              permissions, retention, statement review and participant correction requests.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Add Findings, proposal
+              revisions, response commitments and an outcome record inside xNet.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Provide accessible text
+              equivalents, language review and low-bandwidth participation.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Run a nonbinding pilot with
+              several hundred participants recruited through an openly documented process.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Publish who participated, known
+              selection limits, moderation effects and what the organizers did with the result.
+            </li>
+          </ul>
+          <h3 id="stage-c-larger-and-more-consequential-processes">
+            Stage C — larger and more consequential processes
+          </h3>
+          <ul>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Benchmark the declared workload,
+              burst behavior, worker failures, backup restore and duplicate-delivery handling.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Add eligibility adapters,
+              independent audit roles and a tested challenge/appeal procedure.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Integrate a reviewed voting
+              system where an actual member ballot is needed.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Exercise sponsor/operator
+              conflicts, disputed exclusions, hostile submissions and coordinator outages.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Evaluate independent hosting,
+              public report federation and privacy-preserving export options.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Consider a native analytical
+              engine only after an observed limitation and a conformance/validation plan.
+            </li>
+          </ul>
+          <p>
+            These stages do not authorize product implementation or a live political consultation in
+            this turn. There is no new revenue model or accepted wire-format decision here. A stable
+            protocol, licensing choice or consequential voting guarantee would require a separate
+            ADR with a tripwire.
+          </p>
+          <h2 id="11-validation-participation-that-changes-something">
+            11. Validation: participation that changes something
+          </h2>
+          <p>
+            Test with organizers, participants who speak often, people who rarely speak, and people
+            who disagree with the majority. Record recruitment and attrition; do not generalize a
+            convenience pilot to a whole population.
+          </p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dimension</th>
+                  <th>Evidence to seek</th>
+                  <th>A misleading substitute</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Comprehension</td>
+                  <td>People can explain what their response will and will not authorize</td>
+                  <td>High click-through</td>
+                </tr>
+                <tr>
+                  <td>Inclusion</td>
+                  <td>Known participation gaps and barriers are identified and reduced</td>
+                  <td>A large raw account count</td>
+                </tr>
+                <tr>
+                  <td>Minority fidelity</td>
+                  <td>
+                    Participants recognize their concerns in the report, including unsupported
+                    concerns
+                  </td>
+                  <td>A polished summary</td>
+                </tr>
+                <tr>
+                  <td>Procedural trust</td>
+                  <td>People can identify the rules, decision owner and appeal path</td>
+                  <td>An attractive opinion map</td>
+                </tr>
+                <tr>
+                  <td>Integrity</td>
+                  <td>
+                    Replays, late writes, exclusions and amendments produce the declared result
+                  </td>
+                  <td>A signed JSON blob</td>
+                </tr>
+                <tr>
+                  <td>Accountability</td>
+                  <td>A public response and later evidence of action or a reasoned refusal</td>
+                  <td>Closing the poll</td>
+                </tr>
+                <tr>
+                  <td>Portability</td>
+                  <td>Another authorized host can reconstruct the process and export boundaries</td>
+                  <td>Downloading screenshots</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ul>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> A user can reach the question,
+              understand the invitation and contribute with a keyboard and screen reader.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> A reader can distinguish
+              disagreement, pass, missing responses and unknown population coverage.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Sparse, unstable or one-sided
+              data produces an honest limited report rather than fabricated groups.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Changed statements cannot
+              inherit old responses; duplicate operations cannot add extra responses.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Concurrent updates, revocation,
+              deadline races and coordinator restart have explicit tested outcomes.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> No new device, linked social
+              account or automated agent silently creates an additional eligible person.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Restricted responses never
+              appear in public search, mirrors, browser extension APIs or unapproved model calls.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Removing a statement or changing
+              eligibility exposes its effect on the analysis and finalization.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> A report can be challenged,
+              corrected and superseded without silently rewriting its history.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> Analysis reproduction is
+              verified from a declared input/method bundle, or its limits are visible.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> A participant can decline
+              follow-up organizing without losing their ability to take part in the consultation.
+            </li>
+            <li class="task">
+              <span aria-label="Proposed, not implemented">□</span> The group receives the promised
+              response, including when the result is inconvenient to the convener.
+            </li>
+          </ul>
+          <h2 id="12-recommendation-and-unresolved-decisions">
+            12. Recommendation and unresolved decisions
+          </h2>
+          <p>
+            The strongest product direction is
+            <strong
+              >a place where a large community can turn conversation into shared understanding and
+              accountable action</strong
+            >. People enter through familiar social interactions; a question gives their
+            contributions a durable structure; Polis helps reveal patterns; explicit institutions
+            and procedures determine what follows.
+          </p>
+          <p>
+            Start with a self-hostable Polis integration and a well-designed public question page.
+            Add proposals and outcomes around it. Preserve competing interpretations and the ability
+            to say that no decision was reached. This is a more credible initial contribution than
+            inventing another consensus algorithm or calling an AI summary collective intelligence.
+          </p>
+          <p>Before implementation, resolve five product choices:</p>
+          <ol>
+            <li>
+              Whether browser participation can be independent of desktop hosting. Recommended: yes,
+              for public deliberation.
+            </li>
+            <li>
+              Whether the first release is explicitly advisory. Recommended: yes; formal ballots
+              remain a separate integration.
+            </li>
+            <li>
+              Who operates the first process and responds to it. Require a named convener and a
+              published commitment; do not default xNet into that authority.
+            </li>
+            <li>
+              Which raw records are visible to whom. Default to minimal public data and an explicit
+              analysis/export agreement, not universal replication.
+            </li>
+            <li>
+              Whether the first adapter is a link, embed or native participant interface. Decide
+              after verifying a pinned Polis deployment; favor a truthful link-out over a misleading
+              seamless surface.
+            </li>
+          </ol>
+          <details>
+            <summary>Source and scope notes</summary>
+            <p>
+              All external claims above link to primary project documentation, the original methods
+              paper, a clearly labeled research preprint, or OECD guidance. Sources describe
+              different versions and contexts. In particular, older Polis identity/math
+              documentation must not be treated as a current integration contract. No live Polis
+              service was deployed or benchmarked for this exploration.
+            </p>
+            <p>
+              The architecture, product names, participation rules, scale estimates and proposed
+              validation targets are design recommendations. They are not features already
+              implemented in xNet or empirical claims about political outcomes. Existing code was
+              read in the local <code>codex/community-network-tauri</code> worktree; no application
+              code was changed.
+            </p>
+          </details>
+        </article>
+        <footer>
+          Local exploration. No live consultation, votes or analytics. Product proposals remain
+          unimplemented. External sources are linked throughout.
+        </footer>
+      </main>
+    </div>
+    <script>
+      const sourceDocument = {
+        filename: '0501_[_]_COLLECTIVE_SENSEMAKING_AT_COMMUNITY_SCALE.md',
+        source:
+          "---\ntitle: Collective sensemaking at community scale\nstatus: draft\nlast_updated: 2026-11-04\nreview: 2026-11-18\ndecider: Chris\ndoor: two-way\ntags: [community, deliberation, governance, polis, participation, tauri]\n---\n\n# Collective sensemaking at community scale\n\n> [!TIP]\n> Build a public deliberation layer into xNet: people can raise a shared question, contribute perspectives, understand disagreement, develop proposals, and track what happens next. Use Polis as the first serious integration for large-group opinion mapping, with explicit decision rules and follow-through around it.\n\nThis is a general-purpose product capability for large communities and collective political action. It is not limited to decisions about xNet. The starting scale is hundreds to tens of thousands of participants, with larger deployments treated as a measured engineering goal.\n\n[Read the website edition](web/0501/index.html). This Markdown is canonical; the website is a reading interface, not a working product feature. Research checked November 4, 2026. Revisit November 18 after a bounded Polis integration investigation and feedback from an experienced facilitator; that is a decision checkpoint, not a delivery promise.\n\n## 1. The opportunity: a social space that can arrive somewhere\n\nA large conversation can produce thousands of messages without producing a usable shared understanding. A poll can produce a winner without revealing why people disagree. An AI summary can sound coherent while omitting the objection that matters most.\n\nxNet could connect these activities into a process people can follow. A question begins in a community, a public post, a video discussion, or an organizing group. It gets its own address and a clear invitation to participate. People can contribute without reading every reply. The result preserves areas of agreement, important disagreements, missing evidence, and a record of who is responsible for the next step.\n\nThe distinctive opportunity is the connection between **public discussion, collective understanding, authorized decisions, and continued collaboration**. A community should be able to stay together after the consultation closes.\n\nConsider three independent uses:\n\n| Community                          | Shared question                                                      | What success could mean                                                                           |\n| ---------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |\n| Thousands of residents             | Which changes would improve access to local public services?         | A documented set of priorities, dissent and a published response from the responsible body        |\n| A large cooperative or association | What should our next annual plan prioritize?                         | Broad input followed by a member decision under its existing rules                                |\n| A civic coalition                  | Which shared demands and voluntary projects can we support together? | A public platform with explicit endorsements, separate opt-in working groups and progress updates |\n\nThese require different authority and eligibility arrangements. A single interface can support them if it makes those arrangements visible. An open discussion of a policy is not a representative sample, a member ballot, or permission to act in every participant's name.\n\n**Proposed product language:** use **Questions** as the persistent object and **Start a discussion** as its entry action. Within a question, show **Overview · Participate · Findings · Proposals · Outcomes** as those stages become relevant. “Assembly” can name a recurring community institution later. Avoid making people learn deliberative theory before contributing.\n\n## 2. What to borrow from existing tools\n\n### Polis: make many perspectives legible\n\nPolis collects participant-written statements and agree/disagree/pass responses, then identifies patterns in those responses. It can surface statements supported across different opinion groups. Its structured response format lets people contribute without writing an argument or entering a reply battle. [Polis overview](https://compdemocracy.org/polis/)\n\nThe underlying data is a sparse participant-by-statement matrix; most people do not respond to most statements. The classic method uses dimensionality reduction and clustering. These are models of observed response patterns, not natural political categories or tests of factual truth. [Opinion matrix](https://compdemocracy.org/polis-opinion-matrix/), [methods paper, Small et al., 2021](https://www.demdis.sk/content/files/2022/11/Polis-manusript.pdf)\n\nPolis is especially relevant to the larger scale requested here. Its own FAQ cautions against using it for groups below roughly 50–100 people. That is a product guideline, not a statistical guarantee once the counter reaches 100. Representation, response overlap and the diversity of participation still matter. [Polis FAQ](https://compdemocracy.org/faq/)\n\n**Borrow:** low-friction statements, cross-group agreement, and visibility into disagreement. Keep ordinary chat alongside the exercise rather than turning every statement into an endless nested thread.\n\n### Loomio: make the decision process explicit\n\nLoomio distinguishes advice, sense checks, consent and consensus, with proposals embedded in discussions. Its outcome record connects a proposal to what the group will do next. Those distinctions would help xNet avoid interpreting every positive response as a binding vote. [Proposal types](https://www.loomio.com/docs/en/user_manual/polls/proposals), [outcomes](https://www.loomio.com/docs/en/user_manual/polls/outcomes)\n\nConsent is useful for a bounded experiment when the group has agreed how to address material objections. It is not a universal solution for a public audience of ten thousand people. Large groups also need a legitimate way to decide who examines objections and how that judgment can be challenged. [Loomio consent process](https://www.loomio.com/docs/en/guides/making_decisions/consent_process)\n\n**Borrow:** a declared decision procedure, proposal revisions and an accountable outcome. Begin with advisory consultations; add consequential voting only with a defined electorate and a validated voting system.\n\n### Decidim: connect participation to institutions and delivery\n\nDecidim separates participatory processes from assemblies and provides components for proposals, debates and results. Its accountability component tracks implementation through milestones and change history. [Features](https://decidim.org/features), [accountability](https://docs.decidim.org/en/develop/admin/components/accountability.html)\n\n**Borrow:** the promise made before participation, the institution responsible for answering, and the public record afterward. A beautifully rendered consultation with no response is an unfinished experience.\n\n### vTaiwan: the software sits inside a human process\n\nvTaiwan describes a process involving stakeholder engagement, online consultation and facilitated meetings. Its examples place Polis within that wider sequence. This supports using a map to prepare a productive discussion rather than expecting a map to decide a policy. The project's site reports its own outcomes; those accounts are not independent causal evidence that a particular algorithm produced them. [vTaiwan](https://info.vtaiwan.tw/)\n\n**Borrow:** move between broad participation and smaller, facilitated work, then return the resulting proposals to the wider group.\n\n### Kialo and Community Notes: useful adjacent patterns\n\nKialo's claim trees make supporting and opposing reasons navigable. That is useful when a disputed claim needs evidence, although requiring an argument map for every contribution would raise the participation burden. [Kialo introduction](https://support.kialo-edu.com/en/hc/getting-started-with-kialo-for-educators/)\n\nCommunity Notes seeks support across differing rating patterns and publishes its scoring approach. It illustrates why cross-perspective support can be more useful than raw popularity, but its objective is note helpfulness, not authorization to make collective decisions. [Ranking documentation](https://communitynotes.x.com/guide/en/under-the-hood/ranking-notes)\n\n**Borrow:** evidence links, identifiable unresolved claims and support that crosses disagreement. Do not import a single global credibility score for people.\n\n### Evidence that should temper our confidence\n\nA 2026 preprint examines 119 Polis conversations with at least 100 participants. It reports that developer choices, conveners and participation patterns shape results, and raises reproducibility concerns with exported clustering because of warm-path computation. This is one observational preprint, not a definitive verdict on every deployment. It is a strong reason to record analysis versions and test reproducibility rather than assuming an export is enough. [Gelauff, August 2026](https://arxiv.org/abs/2608.28368)\n\nThe OECD's guidance for representative deliberative processes emphasizes inclusive recruitment, appropriate evidence, facilitation and a public response to recommendations. Open online participation and a representative citizens' panel are different methods. Combining them can be valuable, but their results should remain distinguishable. [OECD principles](https://www.oecd.org/en/publications/evaluation-guidelines-for-representative-deliberative-processes_10ccbfcb-en/full-report/component-9.html)\n\n## 3. A complete large-group journey\n\n```mermaid\nflowchart LR\n    A[Shared question and process commitment] --> B[Open participation]\n    B --> C[Patterns, evidence and unresolved concerns]\n    C --> D[Facilitated proposal development]\n    D --> E[Wider review or authorized decision]\n    E --> F[Published outcome and response]\n    F --> G[Voluntary working groups and progress]\n    G --> H[Review what happened]\n    H --> A\n    C --> B\n```\n\n### Arrive through an ordinary link\n\nThe page first answers: what is the question, who convened it, who can participate, what is private, when does it close, and what will happen with the results? Show the sponsor or funder, moderators, decision owner and declared conflicts. If nobody has committed to respond, label it an **open discussion**, not an official consultation.\n\nA short, accessible brief holds the question, constraints, competing explanations and evidence sources. Participants can flag an omission in the brief. Audio and video can supplement text, but participation must work without playing media.\n\n**A consequential product recommendation:** allow browser participation without installing the desktop app or donating bandwidth. The current contribution requirement would exclude people using shared devices, limited data, constrained networks or unsupported hardware. Desktop hosting can be a voluntary contribution with transparent limits. This explicitly reopens the earlier mandatory-seeding idea for civic participation; it does not change that rule in the current application.\n\nIf the requirement is retained, describe the audience as participating xNet users, not the wider community. A technical access rule changes who gets heard.\n\n### Contribute in a few minutes, return when useful\n\nThe initial activity is simple: read a statement; agree, disagree, or pass; optionally write one perspective the discussion is missing. Explain that pass is a response and that an unseen statement has no response. Let people revise their own responses while the round is open.\n\nGive people a natural stopping point: “You have responded to 12 statements. You can stop here and return later.” The number is a proposed session length to test, not a reward or obligation. No streaks, public participation rankings, or pressure to respond to everything.\n\nOffer clarification and evidence separately. A participant can say a statement is unclear without treating it as abusive. A link or chat discussion can explain a perspective, while the rated statement remains concise and versioned.\n\n### Understand the landscape\n\nThe default findings page should be a readable account with source links:\n\n- Areas of support across observed groups.\n- Points of disagreement, with their strongest submitted reasons.\n- Important concerns with little exposure or little support.\n- Questions where people frequently pass or request clarification.\n- Who participated, which audience was invited, and what is missing.\n\nAn opinion map is an optional view with a text/table equivalent. Avoid a permanent dot labeled with each person's identity. Groups can change between rounds; they should not become factions, profile attributes or targeting audiences.\n\nA local hide or mute should protect a reader without silently altering the published aggregate. If a person hides a statement, show that something is omitted from their view and allow inspection of the common report. Personal preferences and the shared analytical dataset are separate controls.\n\n### Develop proposals and test the tradeoffs\n\nA facilitator, working group or participant can draft a proposal linked to the statements and evidence it addresses. Show which objections it accommodates and which remain. Participants can challenge a summary or offer an alternative proposal.\n\nSmaller working groups can explore competing paths. Their composition and mandate are visible. A self-selected working group does not automatically speak for the public; a representative panel needs its own recruitment and facilitation process.\n\nRevisions need a new version and a new response opportunity. A vote on “try this for six weeks” must never carry forward automatically to “adopt this permanently.”\n\n### Decide, explain, act, and revisit\n\nEvery process declares one of three initial modes:\n\n| Mode                  | What participation authorizes                   | Required outcome                                                                       |\n| --------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------- |\n| Open exploration      | Learning about participating perspectives       | A findings report, including disagreement and limitations                              |\n| Advisory consultation | Advice to a named person or body                | Their response: accepted, modified, declined or awaiting action, with reasons          |\n| Member decision       | A decision under an organization's agreed rules | A validated decision record with electorate, rule, turnout, objections and review path |\n\nFor member decisions, refer consequential ballots to an appropriate integrated system until xNet has a separately reviewed voting design. A response matrix is not an election system.\n\nFor political action, an outcome can connect to public event pages, project tasks, local discussions and voluntary working groups. Endorsing a statement does **not** enroll someone in an organization, subscribe them to campaign messages, disclose their contact details, or authorize action in their name. Each commitment requires its own explicit opt-in.\n\nThe outcome remains attached to its question: who will do what, by when, with what resources, and when the group will review it. Missing the response date should produce a visible “Response overdue,” not a silent archive.\n\n## 4. Governance belongs in the product model\n\nBefore opening a round, save a readable **process agreement**:\n\n| Field                                      | Why it matters                                                            |\n| ------------------------------------------ | ------------------------------------------------------------------------- |\n| Question and scope                         | Prevent a narrow consultation from becoming a mandate on unrelated issues |\n| Convener, funder and decision owner        | Reveal who frames the process and who can act                             |\n| Audience and eligibility                   | Distinguish open public input from residents, members or a selected panel |\n| Dates, late submissions and outage policy  | Prevent a convenient closing time from silently changing the result       |\n| Moderation rubric and review route         | Make exclusion and editorial choices contestable                          |\n| Data visibility, retention and exports     | Explain who can access responses and how they may be reused               |\n| Analytical method and publication rules    | Prevent selective presentation of favorable findings                      |\n| Decision procedure and response commitment | Establish what the result means before it is known                        |\n\nFreeze the applicable version when a round opens. Material changes pause or restart the round with a notice. Editing a description typo and changing voter eligibility are different operations.\n\n**Separate roles:** convener, facilitator, moderator, eligibility steward, analyst and decision owner. One person may hold multiple roles in a small pilot, but show that concentration rather than hiding it. A device hosting the process is not automatically authorized to rewrite its rules.\n\nDisagreement alone is not grounds for exclusion. A clear conduct rule can still prohibit harassment or disclosure of private information. Moderation changes the analytical dataset, so record exclusion counts and reasons, support appeals and flag an outcome that depends on a contested exclusion. Public records need not reproduce harmful content or identify reporters.\n\nIf removing a member changes eligibility or a result, stop finalization pending the defined review. Do not silently shrink the denominator until a preferred answer wins. Urgent safety restrictions can protect a room immediately while the process separately addresses their decision consequences.\n\nThere must be a legitimate **no decision** state: insufficient participation, unresolved objections, a faulty process, or no authorized body willing to act. Producing closure at any cost is not success.\n\n## 5. What the mathematics can and cannot say\n\n### Keep the denominators visible\n\nSuppose an eligible group contains 1,000 people. For one statement, 80 agree, 20 disagree, 100 pass and 800 have not responded.\n\n| Measure                                          | Value             | Interpretation                                            |\n| ------------------------------------------------ | ----------------- | --------------------------------------------------------- |\n| Agreement among agree/disagree responses         | 80 / 100 = 80%    | Support among people who expressed one of those positions |\n| Agreement among all responses including pass     | 80 / 200 = 40%    | A different denominator, explicitly labeled               |\n| Response coverage of the eligible group          | 200 / 1,000 = 20% | How much of this electorate responded to this statement   |\n| Observed agreement as a share of eligible people | 80 / 1,000 = 8%   | Not an estimate of the opinions of the missing 800        |\n\nDo not headline this “80% of the community agrees.” In an open public consultation, there may be no known eligible denominator at all. Report participating accounts and response counts; do not manufacture turnout.\n\nLikewise, “not responded” does not prove “not seen.” Record exposures only if required for a declared routing audit, with limited retention; otherwise use the honest label. Preserve pass separately from missing data even if a particular analysis maps both into internal numerical representations.\n\n### Cross-group support is a useful signal, not a mandate\n\nThe classic Polis approach groups similar response patterns and looks for statements with support across those groups. Its documentation describes clustering choices, including selecting a group count. That model should stay inspectable and replaceable. [Opinion groups](https://compdemocracy.org/opinion-groups/)\n\nA statement accepted across groups may be vague, easy to agree with, or based on shared misinformation. A minority objection may reveal a severe consequence that aggregate support misses. Present evidence, specificity, feasibility and affected perspectives alongside support; keep those judgments distinct.\n\nDo not invent our own “consensus score” for the first integration. Import the chosen engine's results with method/version metadata. Use plain counts where the engine cannot produce a defensible map. Show “Not enough information to map perspectives” for sparse or unstable data; a scatterplot is not a required success screen.\n\nMinimum cohort size, overlap, uncertainty and stability checks must be validated on real fixtures. A proposed starting rule such as “at least 100 participants” can trigger an analysis attempt, but cannot certify validity. Any thresholds for suppressing small groups must also account for repeated releases and differencing attacks; a minimum count alone does not establish anonymity.\n\n### Exposure and moderation are part of the analysis\n\nStatement selection affects what participants can respond to. Polis documents routing that favors informative statements rather than simple uniform selection. [Routing](https://compdemocracy.org/semi-randomly/)\n\nFor xNet, record the routing method, changes and aggregate exposure coverage. Check whether late statements, minority concerns and different languages receive enough opportunities to be assessed. Avoid showing only already-popular ideas. Keep the analysis role distinct from a recommendation feed optimized for engagement.\n\nModerators may remove spam or redundant statements, but a near-duplicate can contain a crucial distinction. Preserve separate versions and authorship; never transfer votes from a merged or rewritten statement. Polis's own guidance shows how editorial choices shape the statement set. [Moderation guidance](https://compdemocracy.org/moderation/)\n\n### Reproducible findings, with privacy limits\n\nA frozen report should identify its input cutoff, accepted record set, exclusion policy, engine revision, configuration, random seeds and any required warm state. Recompute from that declared state, or explicitly label an imported report as not independently reproduced.\n\nFor public data, publish enough to permit the agreed audit. For restricted responses, reproducibility may be available only to authorized independent reviewers. Do not publish a person-by-statement matrix merely to make an attractive “open data” claim. Even without names, political responses can be identifiable.\n\nHistorical reports are artifacts of what was published at that point, not current aggregate truth. Live counts remain derived views; record correction notices and superseding reports when inputs change.\n\n## 6. Participation, privacy and political safety\n\nThe current prototype has device keys and display names. A key proves control of a key. It does not prove a unique human, membership, residency or a right to vote. A Bluesky or Google sign-in would not establish those things either.\n\nUse distinct participation modes:\n\n| Mode                            | Useful for                                              | What we can honestly claim                                                                |\n| ------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |\n| Open participation              | Discovery and broad public input                        | Accounts contributed; duplication and selection bias remain possible                      |\n| Verified member/resident access | A defined community consultation                        | A configured issuer checked a declared eligibility condition                              |\n| Recruited panel                 | Deliberation with a designed recruitment process        | The reported recruitment method, participation and attrition—not automatic representation |\n| Secret or consequential ballot  | Formal member decisions, elections or sensitive choices | Only the guarantees of a separately reviewed ballot system                                |\n\nAn eligibility steward can issue a process-scoped credential and maintain a separate identity register. Keep one active credential per eligible participant, support revocation/recovery and prevent duplicate enrollment across providers. This is a future mechanism, not something the existing device identity implements. The steward still sees identifying data; ordinary tokens are not cryptographic anonymity.\n\nPrefer process-specific pseudonyms over a universal political profile. Show precisely who can see raw responses. Distinguish “other participants cannot see your name” from “the operator cannot identify you.” Host-visible timestamps, network addresses, invitation records and writing style can also identify participants.\n\nPublic, member-visible and restricted material need independent access checks. Publication is a deliberate export with a preview of the report and its audience. An aggregate can still reveal something sensitive about a small group. Changing a question from private to public must not retroactively expose its raw records.\n\nThe prototype's room owner can read private chats. Do not label a private consultation end-to-end encrypted or suitable for high-risk organizing on that basis. Private political participation needs a dedicated threat model before deployment: coercion, employer or state surveillance, insider access, device compromise, metadata and retained copies. Signing and hash chains do not solve these problems.\n\nYouth participation deserves a separate policy: understandable consent, protected identity, accessible language and safeguards against coercion. Avoid permanent opinion profiles and public rankings. Eligibility, guardian involvement and institutional obligations vary by setting; this exploration does not establish compliance or authorize deployment to minors.\n\n**Exit and correction:** people can withdraw a response while a round is open. Explain retention before submission, including what happens after publication. Restricted raw records should have a deletion schedule and auditable cleanup. Cryptographic commitments should not contain predictable low-entropy answers that an observer could guess. An archive that cannot forget anyone's political views is a cost, not an inherent benefit of decentralization.\n\n## 7. AI as a facilitator with bounded authority\n\nAgents can make participation easier: explain the process, translate with the original alongside it, suggest a clearer statement, find relevant sources, draft a summary, and organize proposed follow-up tasks.\n\nKeep the person in charge of what they contribute. Translation can change meaning; edits and summaries remain reviewable. A draft statement needs author approval before joining the rated set. Material edits create a new statement version.\n\nAn AI synthesis should link each claim to statements and evidence, show contradictory material and identify what it cannot establish. A separate “What is missing or misrepresented?” action lets participants propose corrections. Preserve those challenges alongside the accepted report.\n\n| Agent action                                            | Proposed authority                                                  |\n| ------------------------------------------------------- | ------------------------------------------------------------------- |\n| Read a public brief or report                           | Ordinary public read access                                         |\n| Read restricted responses                               | Explicit, bounded authorization and declared processing destination |\n| Draft statements, proposals or summaries                | Draft only; attributable model/run provenance                       |\n| Publish a synthesis                                     | Human review under the process's publication policy                 |\n| Cast responses or votes as a participant                | No agent authority in the initial design                            |\n| Change eligibility, close a round or enforce an outcome | No agent authority in the initial design                            |\n\nA local coding agent may call a remote model. “Running on your computer” does not guarantee that deliberation data stays there. Show the actual destination before sharing restricted material. Treat submitted statements, URLs and imported reports as untrusted content, never as instructions granting the agent tools or access.\n\nDo not generate fake participants or apparent public support. Keep opinion clusters out of political persuasion targeting. Political action features should support transparent, voluntary coordination; analytics should describe a process, not build individual persuasion profiles.\n\nAI is optional. The core participation, counts, procedure and outcome must remain usable if the agent is unavailable or the community declines model access.\n\n## 8. Integration choices\n\n| Approach                              | Benefits                                                                      | Costs and limits                                                                          | Recommendation                                                                         |\n| ------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |\n| Link to a Polis conversation          | Fastest honest trial; existing participation experience                       | Separate navigation and identity; metadata/results integration still needed               | First technical investigation and facilitator trial                                    |\n| Integrate a self-hosted Polis service | Native question context, control of hosting, proven analytical starting point | Operate an additional service; verify authentication, exports, privacy and upgrades       | Preferred route for a large-group pilot                                                |\n| Write a Polis-like Rust engine now    | One runtime and freedom to redesign                                           | Numerical, methodological and social validity become our responsibility                   | Defer until a measured limitation justifies it                                         |\n| Adopt an entire civic platform        | Rich governance and workflow infrastructure                                   | Larger operational footprint and overlapping social UX                                    | Offer links/adapters; use Decidim directly when an institution needs its full workflow |\n| AI-only chat summarization            | Low implementation effort                                                     | Cannot establish participation, procedural legitimacy or reliable minority representation | Optional aid, insufficient foundation                                                  |\n\nThe Polis repository is AGPLv3 with an additional section-7 permission and contains a multi-service deployment. Inspect the exact license and component dependencies before incorporating or distributing code. Its current edge README describes a Python math worker; older documentation describes a Clojure math service. Pin a tested revision and deployment configuration rather than assuming a stable runtime or client SDK. [Repository](https://github.com/compdemocracy/polis), [edge setup](https://github.com/compdemocracy/polis/blob/edge/README.md), [license](https://github.com/compdemocracy/polis/blob/edge/LICENSE)\n\n**Recommendation:** xNet should own the question, process agreement, permissions, social context, proposal links and outcomes. Delegate opinion mapping through an explicit adapter initially. Do not bundle the full Polis deployment into every Tauri client. A community can operate the service itself or choose a host; no xNet-operated hub is inherently required, although an available service is.\n\nBefore promising a seamless adapter, verify creation, identity integration, updates, exports and deletion against a pinned deployment. Link-out participation is an acceptable pilot result if the API does not support a trustworthy native flow. No private chat history should be sent to a Polis host by opening a question.\n\nIn the first adapter, Polis remains authoritative for its statements and responses; xNet stores the surrounding process and explicitly versioned imports. Avoid dual-writing a response to both systems and hoping they agree. The native commands below describe a later contract, not a second response database to build during the link-out pilot. If upstream cannot provide a verifiable cutoff or receipt, disclose that limitation on the imported report; do not present it as a transactionally verified final decision.\n\n## 9. Architecture for the new application\n\n### Existing seams, inspected November 4\n\nThe relevant code is the independent Rust/Tauri experiment, not the legacy CRDT package stack.\n\n| Existing file                                                         | Available foundation                                                             | Missing for this feature                                                              |\n| --------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |\n| `experiments/community-network/crates/network/src/model.rs`           | Signed records, room membership and simple messages                              | Questions, statement versions, process rules, eligibility, responses and outcomes     |\n| `experiments/community-network/crates/network/src/peer.rs`            | Authenticated Iroh requests and owner-hosted room history                        | Deliberation synchronization, large result pagination and public participant access   |\n| `experiments/community-network/crates/network/src/moderation_peer.rs` | Scoped moderator actions, notices and appeals                                    | Deliberation-specific exclusion reasons and review consequences                       |\n| `experiments/community-network/crates/network/src/store.rs`           | SQLite, transactions available through its connection, protected report evidence | Normalized deliberation tables, retention jobs, analytical exports and recovery tests |\n| `experiments/community-network/crates/network/src/registry.rs`        | Public metadata/posts and policy enforcement                                     | Public question pages, search by question and restricted publication workflow         |\n| `experiments/community-network/crates/network/src/bridge.rs`          | Typed local control commands                                                     | Narrow question/response/proposal commands and agent capabilities                     |\n| `experiments/community-network/apps/desktop/ui/main.tsx`              | Navigation and chat entry points                                                 | Question cards, participation view, findings and outcomes                             |\n| `experiments/community-network/apps/desktop/ui/Moderation.tsx`        | Case workflow and explicit evidence disclosure                                   | Deliberation review states and independent process reviewers                          |\n\nNo collective sensemaking feature exists in these files today. The product still has owner-online room dependency, device-only identities, limited history, no general browser participant client and no production federation. The preceding [moderation exploration](0500_[_]_MODERATION_WITH_AGENCY.md) supplies useful boundaries, not a ready-made governance engine.\n\n### Put an available service behind a portable process\n\n```mermaid\nflowchart TB\n    W[Public browser participant] --> G[Process gateway and eligibility checks]\n    D[Tauri participant] --> G\n    D \u003c-->|Iroh: authorized local copies| P[Other community peers]\n    G --> S[Process service: durable records and policy]\n    S --> A[Polis adapter and analysis worker]\n    A --> R[Versioned findings with provenance]\n    R --> S\n    S --> O[Reviewed public report and outcomes]\n    O --> C[Public registry and mirrors]\n    S --> X[Restricted export for authorized review]\n```\n\nFor a large consultation, choose one declared coordinator for acceptance, ordering and close-of-round cutoffs. Run it on community infrastructure rather than depending on a laptop remaining open. Separate the public gateway, eligibility register, raw response store, analyst access and public report.\n\nSQLite can support a bounded single-host pilot. A busy multi-worker service should use a transactional database such as PostgreSQL and measured limits. This is a proposed evolution; the experiment does not have that service or migration today. Keep analytical computation out of the UI thread and submission transaction.\n\nPublic briefs and reviewed reports can be cached or mirrored. Restricted responses should not be seeded to arbitrary peers. Federation can publish questions and outcomes between communities while keeping separate credentials, policies and electorates. A fork creates a new process; it cannot claim the original participants endorsed a changed question.\n\n**Peer-to-peer benefit:** authorized offline reading, locally retained public records, portable community ownership, and optional distribution of public artifacts. **Service benefit:** durable acceptance, recoverable deadlines, browser access, moderation operations and consistent results. Pure peer replication neither supplies a legitimate electorate nor resolves two competing final decisions.\n\n### Proposed records and commands\n\n```mermaid\nerDiagram\n    QUESTION ||--o{ ROUND : contains\n    ROUND ||--|| PROCESS_AGREEMENT : freezes\n    ROUND ||--o{ STATEMENT_VERSION : offers\n    ROUND ||--o{ ELIGIBILITY : admits\n    ELIGIBILITY ||--o{ RESPONSE : submits\n    STATEMENT_VERSION ||--o{ RESPONSE : receives\n    ROUND ||--o{ ANALYSIS_ARTIFACT : describes\n    QUESTION ||--o{ PROPOSAL_VERSION : develops\n    PROPOSAL_VERSION ||--o{ OUTCOME : leads_to\n    OUTCOME ||--o{ COMMITMENT : tracks\n```\n\nThese are conceptual records, not an accepted public API. Give every mutation its process/round scope, actor capability, operation ID and expected version. Keep an explicit statement-content hash on each response.\n\n```text\ncreate_question(draft, audience, process_agreement)\nopen_round(question_id, expected_version)\nsubmit_statement(round_id, text, sources, operation_id)\nrespond(round_id, statement_version, choice, previous_revision, operation_id)\nwithdraw_response(round_id, statement_version, previous_revision, operation_id)\nreview_statement(round_id, statement_version, reason, action)\nclose_round(round_id, expected_version)\nimport_analysis(round_id, cutoff, method_manifest, restricted_artifact)\npublish_findings(round_id, reviewed_export, expected_version)\npropose(question_id, text, supporting_refs, unresolved_concerns)\nrecord_outcome(proposal_version, authority, rationale, commitments, review_date)\n```\n\nOne active response per participant credential and statement version. A unique operation ID makes retries idempotent. Compare-and-set revisions resolve two devices attempting to change the same response; return a visible conflict rather than silently picking a timestamp winner. Device linking and participant credentials need to exist before claiming multi-device support.\n\nThe coordinator accepts or rejects a mutation in a transaction and issues a scoped receipt. Local drafts can be offline, but a pending response is not counted until acknowledged. Closing a round atomically establishes the accepted sequence cutoff. A response queued before the deadline but received afterward follows the published late-arrival rule; client clocks do not decide acceptance.\n\nPublish a signed close record, and make interrupted or disputed closure visible. Do not automatically finalize while the coordinator is unavailable. Replicated receipt and close records can help reveal inconsistency; signatures alone cannot prevent operator omissions, selective denial or equivocation. Recovery, independent audit and a challenge period are part of consequential use.\n\nCRDTs could later help collaboratively edit a brief or proposal draft. They should not decide eligibility, vote validity or finality. Signed revisions and durable transactions provide the useful initial boundaries without reintroducing the entire legacy data stack.\n\n### Capacity and operating costs\n\nAn illustrative workload of 100,000 participants giving 40 responses each contains four million response records. At an assumed 0.5–1.5 KB per accepted record, that is about 2–6 GB before indexes, revisions, logs, backups or analysis copies. These are planning assumptions, not benchmarks or a price quote. Updates and withdrawal history can increase the total materially.\n\nIf all four million responses arrived within an hour, average acceptance would be about 1,111 responses/second, before burst allowance. Test the intended peak explicitly. Avoid rebuilding a dense participant-by-statement matrix on every write; batch analytics and publish a visible input cutoff and update time.\n\nModeration and facilitation can dominate the cost even when text storage is cheap. Rate limits, statement budgets and routing need a transparent policy; a flood of generated statements should not consume the whole group's attention. Restrict automated submissions and test limits against newcomers and multilingual participants.\n\nProposed pilot acceptance targets, to validate on a named machine: 1,000 concurrent participant sessions, 100 accepted responses/second for 30 minutes, p95 acknowledgment under one second, no lost acknowledged responses after restart, and a full reconciliation report. This first test is intentionally below the illustrative 100,000-person surge. Do not advertise that larger capacity until its own benchmark and operational rehearsal pass.\n\nScale separately: static public reading, transactional participation, analysis workers and human review. Avoid an expensive all-or-nothing deployment just to show a question card in chat.\n\n## 10. A staged path to a credible product\n\n### Stage A — establish a real Polis boundary\n\n- [ ] Pin a Polis revision; inspect license/dependency obligations and reproduce its deployment, including the math worker.\n- [ ] Verify supported authentication, participant IDs, response updates, exports and deletion; record unsupported operations honestly.\n- [ ] Create a public xNet question page with process agreement and explicit participation destination.\n- [ ] Link or embed a test Polis conversation without passing private chat content or xNet control credentials.\n- [ ] Import a frozen report with method metadata and mark any unverified reproduction limits.\n- [ ] Have a facilitator review the process, not just the software screens.\n\n### Stage B — integrated public consultation\n\n- [ ] Add browser participation and decide explicitly how civic access relates to the contribution requirement.\n- [ ] Implement process-scoped permissions, retention, statement review and participant correction requests.\n- [ ] Add Findings, proposal revisions, response commitments and an outcome record inside xNet.\n- [ ] Provide accessible text equivalents, language review and low-bandwidth participation.\n- [ ] Run a nonbinding pilot with several hundred participants recruited through an openly documented process.\n- [ ] Publish who participated, known selection limits, moderation effects and what the organizers did with the result.\n\n### Stage C — larger and more consequential processes\n\n- [ ] Benchmark the declared workload, burst behavior, worker failures, backup restore and duplicate-delivery handling.\n- [ ] Add eligibility adapters, independent audit roles and a tested challenge/appeal procedure.\n- [ ] Integrate a reviewed voting system where an actual member ballot is needed.\n- [ ] Exercise sponsor/operator conflicts, disputed exclusions, hostile submissions and coordinator outages.\n- [ ] Evaluate independent hosting, public report federation and privacy-preserving export options.\n- [ ] Consider a native analytical engine only after an observed limitation and a conformance/validation plan.\n\nThese stages do not authorize product implementation or a live political consultation in this turn. There is no new revenue model or accepted wire-format decision here. A stable protocol, licensing choice or consequential voting guarantee would require a separate ADR with a tripwire.\n\n## 11. Validation: participation that changes something\n\nTest with organizers, participants who speak often, people who rarely speak, and people who disagree with the majority. Record recruitment and attrition; do not generalize a convenience pilot to a whole population.\n\n| Dimension         | Evidence to seek                                                                    | A misleading substitute   |\n| ----------------- | ----------------------------------------------------------------------------------- | ------------------------- |\n| Comprehension     | People can explain what their response will and will not authorize                  | High click-through        |\n| Inclusion         | Known participation gaps and barriers are identified and reduced                    | A large raw account count |\n| Minority fidelity | Participants recognize their concerns in the report, including unsupported concerns | A polished summary        |\n| Procedural trust  | People can identify the rules, decision owner and appeal path                       | An attractive opinion map |\n| Integrity         | Replays, late writes, exclusions and amendments produce the declared result         | A signed JSON blob        |\n| Accountability    | A public response and later evidence of action or a reasoned refusal                | Closing the poll          |\n| Portability       | Another authorized host can reconstruct the process and export boundaries           | Downloading screenshots   |\n\n- [ ] A user can reach the question, understand the invitation and contribute with a keyboard and screen reader.\n- [ ] A reader can distinguish disagreement, pass, missing responses and unknown population coverage.\n- [ ] Sparse, unstable or one-sided data produces an honest limited report rather than fabricated groups.\n- [ ] Changed statements cannot inherit old responses; duplicate operations cannot add extra responses.\n- [ ] Concurrent updates, revocation, deadline races and coordinator restart have explicit tested outcomes.\n- [ ] No new device, linked social account or automated agent silently creates an additional eligible person.\n- [ ] Restricted responses never appear in public search, mirrors, browser extension APIs or unapproved model calls.\n- [ ] Removing a statement or changing eligibility exposes its effect on the analysis and finalization.\n- [ ] A report can be challenged, corrected and superseded without silently rewriting its history.\n- [ ] Analysis reproduction is verified from a declared input/method bundle, or its limits are visible.\n- [ ] A participant can decline follow-up organizing without losing their ability to take part in the consultation.\n- [ ] The group receives the promised response, including when the result is inconvenient to the convener.\n\n## 12. Recommendation and unresolved decisions\n\nThe strongest product direction is **a place where a large community can turn conversation into shared understanding and accountable action**. People enter through familiar social interactions; a question gives their contributions a durable structure; Polis helps reveal patterns; explicit institutions and procedures determine what follows.\n\nStart with a self-hostable Polis integration and a well-designed public question page. Add proposals and outcomes around it. Preserve competing interpretations and the ability to say that no decision was reached. This is a more credible initial contribution than inventing another consensus algorithm or calling an AI summary collective intelligence.\n\nBefore implementation, resolve five product choices:\n\n1. Whether browser participation can be independent of desktop hosting. Recommended: yes, for public deliberation.\n2. Whether the first release is explicitly advisory. Recommended: yes; formal ballots remain a separate integration.\n3. Who operates the first process and responds to it. Require a named convener and a published commitment; do not default xNet into that authority.\n4. Which raw records are visible to whom. Default to minimal public data and an explicit analysis/export agreement, not universal replication.\n5. Whether the first adapter is a link, embed or native participant interface. Decide after verifying a pinned Polis deployment; favor a truthful link-out over a misleading seamless surface.\n\n\u003cdetails>\n\u003csummary>Source and scope notes\u003c/summary>\n\nAll external claims above link to primary project documentation, the original methods paper, a clearly labeled research preprint, or OECD guidance. Sources describe different versions and contexts. In particular, older Polis identity/math documentation must not be treated as a current integration contract. No live Polis service was deployed or benchmarked for this exploration.\n\nThe architecture, product names, participation rules, scale estimates and proposed validation targets are design recommendations. They are not features already implemented in xNet or empirical claims about political outcomes. Existing code was read in the local `codex/community-network-tauri` worktree; no application code was changed.\n\n\u003c/details>\n"
+      }
+      const save = (filename, content, type) => {
+        const url = URL.createObjectURL(new Blob([content], { type }))
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.append(link)
+        link.click()
+        link.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        document.getElementById('download-status').textContent = 'Download requested: ' + filename
+      }
+      document
+        .getElementById('download-source')
+        .addEventListener('click', () =>
+          save(sourceDocument.filename, sourceDocument.source, 'text/markdown')
+        )
+      document.getElementById('download-site').addEventListener('click', () => {
+        const copy = document.documentElement.cloneNode(true)
+        copy.querySelector('#download-status').textContent = ''
+        save('xnet-collective-sensemaking.html', '<!doctype html>\n' + copy.outerHTML, 'text/html')
+      })
+    </script>
+  </body>
+</html>
