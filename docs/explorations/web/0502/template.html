@@ -1,0 +1,997 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta
+      name="description"
+      content="A synthesis for Chris and Nikki: building the conditions for shared understanding, voluntary cooperation, and collective action."
+    />
+    <title>From attention to shared agency · xNet exploration</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #202730;
+        --muted: #596471;
+        --line: #dce0e5;
+        --paper: #fff;
+        --wash: #f4f5f7;
+        --blue: #355a82;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 96px;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          16px/1.65 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      a {
+        color: var(--blue);
+        text-underline-offset: 4px;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+      a,
+      button {
+        -webkit-tap-highlight-color: transparent;
+      }
+      :focus-visible {
+        outline: 3px solid var(--blue);
+        outline-offset: 4px;
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.45;
+      }
+      .skip {
+        position: fixed;
+        top: -90px;
+        left: 20px;
+        z-index: 20;
+        background: white;
+        padding: 12px 18px;
+      }
+      .skip:focus {
+        top: 10px;
+      }
+      .topbar {
+        height: 76px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.96);
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 0 36px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        text-decoration: none;
+        color: var(--ink);
+      }
+      .brand svg {
+        width: 91px;
+        height: auto;
+        max-height: 32px;
+      }
+      .brand span {
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        border-left: 1px solid var(--line);
+        padding-left: 24px;
+      }
+      .tools {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .button {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: white;
+        padding: 8px 13px;
+        color: var(--ink);
+        font-size: 13px;
+        text-decoration: none;
+        box-shadow: 0 1px 2px #162b4010;
+      }
+      .button:hover {
+        background: var(--wash);
+      }
+      .button.primary {
+        background: var(--ink);
+        color: white;
+        border-color: var(--ink);
+      }
+      .status {
+        font-size: 12px;
+        color: var(--muted);
+        margin-right: 10px;
+      }
+      .hero {
+        max-width: 1450px;
+        margin: auto;
+        padding: 64px 7vw 56px;
+      }
+      .eyebrow {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.17em;
+        font-weight: 650;
+        color: var(--muted);
+      }
+      .hero-title {
+        display: grid;
+        grid-template-columns: 1.35fr 1fr;
+        align-items: end;
+        gap: 60px;
+        padding: 20px 0 38px;
+      }
+      h1 {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-weight: 400;
+        font-size: clamp(44px, 5.8vw, 86px);
+        line-height: 1.05;
+        letter-spacing: -0.055em;
+        margin: 0;
+      }
+      .intro {
+        max-width: 410px;
+      }
+      .intro p {
+        margin: 0 0 23px;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.65;
+      }
+      .intro a {
+        display: inline-block;
+        font-size: 14px;
+        color: var(--ink);
+      }
+      .hero-art {
+        margin: 0;
+      }
+      .hero-art img {
+        width: 100%;
+        height: clamp(260px, 36vw, 490px);
+        object-fit: cover;
+        border-radius: 5px;
+        display: block;
+      }
+      .hero-art figcaption {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 12px;
+      }
+      .thesis {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 28px;
+        padding: 34px 0 0;
+      }
+      .thesis div {
+        border-top: 1px solid var(--line);
+        padding-top: 16px;
+      }
+      .thesis span {
+        color: var(--blue);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+      }
+      .thesis h2 {
+        margin: 8px 0 5px;
+        font-size: 18px;
+        font-weight: 550;
+        letter-spacing: -0.02em;
+      }
+      .thesis p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .walkthrough {
+        padding: 58px 7vw;
+        background: var(--wash);
+        border-block: 1px solid var(--line);
+      }
+      .walk-inner {
+        max-width: 1240px;
+        margin: auto;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 36px;
+        margin-bottom: 25px;
+      }
+      .section-head h2 {
+        font:
+          400 36px/1.2 Georgia,
+          serif;
+        letter-spacing: -0.025em;
+        margin: 8px 0 0;
+      }
+      .section-head p {
+        max-width: 365px;
+        color: var(--muted);
+        font-size: 13px;
+        margin: 0;
+      }
+      .step-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+      .step-buttons button {
+        background: transparent;
+        border: 1px solid #cdd3db;
+        border-radius: 99px;
+        padding: 9px 15px;
+        font-size: 13px;
+        color: #46515e;
+      }
+      .step-buttons button[aria-pressed='true'] {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: white;
+      }
+      .step-panel {
+        border: 1px solid var(--line);
+        background: white;
+        border-radius: 12px;
+        display: grid;
+        grid-template-columns: 0.92fr 1.08fr;
+        overflow: hidden;
+        min-height: 305px;
+        box-shadow: 0 5px 25px #1d304108;
+      }
+      .step-copy {
+        padding: 30px;
+        border-right: 1px solid var(--line);
+      }
+      .step-copy h3 {
+        font-size: 24px;
+        font-weight: 550;
+        line-height: 1.3;
+        letter-spacing: -0.035em;
+        margin: 12px 0;
+      }
+      .step-copy p {
+        color: var(--muted);
+        font-size: 15px;
+        margin: 0;
+      }
+      .example {
+        padding: 30px;
+        background: #fcfcfd;
+      }
+      .example .note {
+        color: var(--muted);
+        font-size: 12px;
+        margin: 0 0 12px;
+      }
+      .example h4 {
+        font-size: 17px;
+        margin: 8px 0 17px;
+        font-weight: 550;
+      }
+      .example ul {
+        padding: 0;
+        list-style: none;
+        margin: 0;
+      }
+      .example li {
+        border-top: 1px solid var(--line);
+        padding: 11px 0;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .step-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .step-footer p {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 0;
+      }
+      .reader {
+        max-width: 1370px;
+        margin: auto;
+        padding: 65px 6vw 90px;
+        display: grid;
+        grid-template-columns: 240px minmax(0, 800px);
+        gap: 75px;
+      }
+      .contents {
+        position: sticky;
+        top: 108px;
+        align-self: start;
+        max-height: calc(100vh - 140px);
+        overflow-y: auto;
+        scrollbar-width: thin;
+        padding: 0 8px 12px 0;
+      }
+      .contents h2 {
+        font-size: 11px;
+        color: var(--muted);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        margin: 0 0 17px;
+        font-weight: 600;
+      }
+      .contents a {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        text-decoration: none;
+        color: #616b78;
+        font-size: 12px;
+        line-height: 1.5;
+        padding: 8px 5px;
+        border-radius: 5px;
+      }
+      .contents a span {
+        color: #7a8591;
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      .contents a:hover,
+      .contents a[aria-current='location'] {
+        color: var(--ink);
+        background: var(--wash);
+      }
+      .contents a[aria-current='location'] span {
+        color: var(--blue);
+      }
+      article {
+        min-width: 0;
+        font-size: 16px;
+      }
+      article > p:first-of-type {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      article h2 {
+        font:
+          400 32px/1.25 Georgia,
+          serif;
+        letter-spacing: -0.025em;
+        padding-top: 36px;
+        margin: 35px 0 22px;
+        border-top: 1px solid var(--line);
+      }
+      article h3 {
+        font-size: 18px;
+        margin: 30px 0 14px;
+      }
+      article p {
+        margin: 0 0 20px;
+      }
+      article ul,
+      article ol {
+        padding-left: 23px;
+      }
+      article li {
+        margin-bottom: 8px;
+      }
+      article strong {
+        font-weight: 620;
+      }
+      article img {
+        width: 100%;
+        height: auto;
+        border-radius: 6px;
+      }
+      article img + em {
+        font-size: 12px;
+      }
+      article blockquote {
+        background: var(--wash);
+        border-left: 3px solid var(--blue);
+        margin: 0 0 30px;
+        padding: 23px 27px;
+        font-size: 17px;
+      }
+      article blockquote p {
+        margin: 0;
+      }
+      .local-reference {
+        color: inherit;
+        text-decoration: underline dotted;
+        cursor: help;
+      }
+      .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        margin: 24px 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 13px;
+        line-height: 1.65;
+        min-width: 530px;
+      }
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        padding: 14px 15px;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        font-weight: 600;
+        background: var(--wash);
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      .diagram {
+        margin: 30px 0;
+        padding: 23px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+      .diagram figcaption {
+        font-weight: 600;
+        margin-bottom: 18px;
+      }
+      .diagram p {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .flow {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+      .flow li {
+        background: var(--wash);
+        padding: 9px 12px;
+        border-radius: 5px;
+        font-size: 12px;
+        margin: 0;
+      }
+      .flow li:not(:last-child)::after {
+        content: ' →';
+        color: var(--blue);
+      }
+      details {
+        margin: 24px 0;
+        padding: 15px 18px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      details summary {
+        cursor: pointer;
+        font-weight: 550;
+      }
+      details[open] summary {
+        margin-bottom: 15px;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .task {
+        list-style: none;
+      }
+      .task span {
+        margin-left: -20px;
+        margin-right: 7px;
+      }
+      footer {
+        padding: 28px 6vw;
+        border-top: 1px solid var(--line);
+        background: var(--wash);
+        color: var(--muted);
+        font-size: 12px;
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .live-status {
+        min-height: 1.4em;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      @media (max-width: 1000px) {
+        .reader {
+          grid-template-columns: 190px minmax(0, 1fr);
+          gap: 35px;
+          padding-inline: 5vw;
+        }
+        .hero-title {
+          gap: 30px;
+        }
+        .brand span {
+          display: none;
+        }
+        .status {
+          display: none;
+        }
+      }
+      @media (max-width: 720px) {
+        html {
+          scroll-padding-top: 90px;
+        }
+        .topbar {
+          height: 68px;
+          padding: 0 18px;
+          gap: 12px;
+        }
+        .brand svg {
+          width: 72px;
+        }
+        .button {
+          font-size: 12px;
+          padding: 8px 10px;
+        }
+        .hero {
+          padding: 32px 22px 35px;
+        }
+        .hero-title {
+          grid-template-columns: 1fr;
+          gap: 22px;
+          padding-bottom: 27px;
+        }
+        h1 {
+          font-size: 50px;
+        }
+        .intro p {
+          font-size: 16px;
+          margin-bottom: 13px;
+        }
+        .hero-art img {
+          height: 280px;
+        }
+        .hero-art figcaption {
+          display: block;
+          font-size: 10px;
+        }
+        .hero-art figcaption span {
+          display: block;
+        }
+        .thesis {
+          gap: 19px;
+          grid-template-columns: 1fr;
+          padding-top: 24px;
+        }
+        .thesis h2 {
+          margin-top: 4px;
+        }
+        .thesis div {
+          padding-top: 12px;
+        }
+        .walkthrough {
+          padding: 35px 22px;
+        }
+        .section-head {
+          display: block;
+        }
+        .section-head h2 {
+          font-size: 31px;
+        }
+        .section-head p {
+          margin-top: 15px;
+        }
+        .step-panel {
+          grid-template-columns: 1fr;
+        }
+        .step-copy {
+          padding: 23px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .example {
+          padding: 23px;
+        }
+        .step-buttons button {
+          padding: 7px 11px;
+          font-size: 12px;
+        }
+        .step-footer {
+          align-items: start;
+        }
+        .step-footer p {
+          max-width: 205px;
+        }
+        .reader {
+          display: block;
+          padding: 35px 22px 55px;
+        }
+        .contents {
+          position: static;
+          max-height: none;
+          padding: 0 0 22px;
+          margin-bottom: 25px;
+          border-bottom: 1px solid var(--line);
+        }
+        .contents nav {
+          columns: 2;
+          column-gap: 15px;
+        }
+        .contents a {
+          break-inside: avoid;
+          padding: 6px 0;
+          font-size: 11px;
+        }
+        article h2 {
+          font-size: 29px;
+        }
+        article blockquote {
+          padding: 20px;
+          font-size: 16px;
+        }
+        footer {
+          flex-direction: column;
+          padding: 25px 22px;
+          gap: 9px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+      @media print {
+        .topbar,
+        .contents,
+        .tools,
+        .step-buttons,
+        .step-footer,
+        .skip {
+          display: none !important;
+        }
+        .hero,
+        .reader,
+        .walkthrough {
+          display: block;
+          padding: 20px 0;
+        }
+        .hero-title {
+          display: block;
+        }
+        h1 {
+          font-size: 46px;
+        }
+        .hero-art img {
+          height: 250px;
+        }
+        .reader article {
+          font-size: 11pt;
+        }
+        article h2 {
+          break-after: avoid;
+        }
+        .table-wrap {
+          overflow: visible;
+        }
+        table {
+          min-width: 0;
+          font-size: 9pt;
+        }
+        img,
+        figure {
+          break-inside: avoid;
+        }
+        .step-panel {
+          min-height: 0;
+        }
+        footer {
+          background: white;
+        }
+      }
+    </style>
+  </head>
+  <body id="top">
+    <a class="skip" href="#research">Skip to the exploration</a>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="xNet exploration, back to top"
+        ><!-- WORDMARK --><span>Explorations / 0502</span></a
+      >
+      <div class="tools">
+        <span class="status">A working draft · Nov 6, 2026</span
+        ><button class="button" id="save-markdown">Markdown ↓</button
+        ><button class="button primary" id="save-page">Save website ↓</button>
+      </div>
+    </header>
+    <main>
+      <section class="hero" aria-labelledby="title">
+        <div class="eyebrow">A synthesis for Chris & Nikki</div>
+        <div class="hero-title">
+          <h1 id="title">From attention<br />to shared agency.</h1>
+          <div class="intro">
+            <p>
+              The internet can help us find each other. Can it also help us do something together?
+            </p>
+            <a href="#walkthrough">Explore the idea <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+        <figure class="hero-art">
+          <img
+            src="HERO_IMAGE"
+            width="1536"
+            height="1024"
+            alt="A paper model of people around a shared table, with distinct blue and charcoal paths connecting gardens and unfinished buildings."
+          />
+          <figcaption>
+            <span>Common ground is something we make together.</span
+            ><span>AI-generated conceptual illustration · not a product screenshot</span>
+          </figcaption>
+        </figure>
+        <div class="thesis">
+          <div>
+            <span>01 / RELATIONSHIP</span>
+            <h2>Make room to be heard.</h2>
+            <p>
+              A place to pause, explain what matters, and correct how your words are understood.
+            </p>
+          </div>
+          <div>
+            <span>02 / UNDERSTANDING</span>
+            <h2>Keep the differences visible.</h2>
+            <p>
+              Shared concerns, conflicting proposals, and the questions nobody has answered yet.
+            </p>
+          </div>
+          <div>
+            <span>03 / FOLLOW-THROUGH</span>
+            <h2>Give cooperation a place.</h2>
+            <p>Small offers, explicit commitments, and a return to see what actually happened.</p>
+          </div>
+        </div>
+      </section>
+      <section class="walkthrough" id="walkthrough" aria-labelledby="walk-title">
+        <div class="walk-inner">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">An interaction to think with</div>
+              <h2>One question. A way forward.</h2>
+            </div>
+            <p>
+              Illustrative walkthrough, not a live consultation. All examples below are invented; no
+              votes are collected or simulated.
+            </p>
+          </div>
+          <div class="step-buttons" role="group" aria-label="Explore the proposed process">
+            <button aria-pressed="true" data-step="0">1. Concern</button
+            ><button aria-pressed="false" data-step="1">2. Perspectives</button
+            ><button aria-pressed="false" data-step="2">3. Common ground</button
+            ><button aria-pressed="false" data-step="3">4. Proposal</button
+            ><button aria-pressed="false" data-step="4">5. Follow-through</button>
+          </div>
+          <div class="step-panel" id="step-panel" aria-live="polite" aria-atomic="true">
+            <div class="step-copy">
+              <div class="eyebrow" id="step-kicker">01 / START SOMEWHERE REAL</div>
+              <h3 id="step-title">A concern becomes a shared question.</h3>
+              <p id="step-description">
+                Give the discussion a scope, an audience, and a reason to exist. People should know
+                what their participation might change.
+              </p>
+            </div>
+            <div class="example">
+              <p class="note">Fictional example · an exploratory local group</p>
+              <h4 id="example-title">How might our group use AI responsibly?</h4>
+              <ul id="example-list">
+                <li>Scope: the tools this group chooses to use.</li>
+                <li>Purpose: learn together and consider a small trial.</li>
+                <li>Authority: no claim to speak for a wider public.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="step-footer">
+            <p id="step-caption">A clear question makes room for a clear boundary.</p>
+            <button class="button" id="next-step">Next step →</button>
+          </div>
+        </div>
+      </section>
+      <div class="reader">
+        <aside class="contents">
+          <h2>Inside the exploration</h2>
+          <nav aria-label="Chapters"><!-- NAV --></nav>
+        </aside>
+        <article id="research" tabindex="-1" aria-label="Full exploration">
+          <!-- CONTENT -->
+        </article>
+      </div>
+    </main>
+    <footer>
+      <div>
+        From a conversation on November 6, 2026.<br />Research and proposed design; no application
+        features changed.
+      </div>
+      <div>
+        Two AI-generated illustrations · portable HTML · no analytics<br /><span
+          class="live-status"
+          id="download-status"
+          role="status"
+        ></span>
+      </div>
+    </footer>
+    <script>
+      /* SOURCE */
+      const stages = [
+        {
+          kicker: '01 / START SOMEWHERE REAL',
+          title: 'A concern becomes a shared question.',
+          description:
+            'Give the discussion a scope, an audience, and a reason to exist. People should know what their participation might change.',
+          example: 'How might our group use AI responsibly?',
+          lines: [
+            'Scope: the tools this group chooses to use.',
+            'Purpose: learn together and consider a small trial.',
+            'Authority: no claim to speak for a wider public.'
+          ],
+          caption: 'A clear question makes room for a clear boundary.'
+        },
+        {
+          kicker: '02 / GO ONE LEVEL DEEPER',
+          title: 'Make room for what matters.',
+          description:
+            'Invite people to explain their concerns without requiring personal disclosure. AI suggestions remain drafts until the person confirms them.',
+          example: 'Different positions. Possible shared concerns.',
+          lines: [
+            '“I want to try new tools.” Possible concern: room to create.',
+            '“I worry about private information.” Possible concern: control over disclosure.',
+            'These are invented examples, not inferred profiles of real people.'
+          ],
+          caption: 'A person can edit, decline, or leave a suggested interpretation unanswered.'
+        },
+        {
+          kicker: '03 / KEEP THE COMPLEXITY',
+          title: 'Show overlap without hiding dissent.',
+          description:
+            'A useful map makes the unresolved parts easier to understand. It does not turn similarities into a vote or a mandate.',
+          example: 'A map someone could question.',
+          lines: [
+            'Possible overlap to check: people should choose what data they share.',
+            'Open disagreement: which uses, if any, should the group permit?',
+            'Missing evidence: what does each tool retain, and who can access it?'
+          ],
+          caption: 'No invented agreement score. No implication that the group has decided.'
+        },
+        {
+          kicker: '04 / MAKE IT SAFE TO TRY',
+          title: 'A proposal people can actually respond to.',
+          description:
+            'Describe one bounded experiment. State who decides, how objections are handled, and when the group will review it.',
+          example: 'A possible two-week trial.',
+          lines: [
+            'Use only materials explicitly approved for the trial.',
+            'Record concerns before anyone decides whether to participate.',
+            'If there is no agreed process or feasible scope, pause and revise.'
+          ],
+          caption: 'Support for an idea does not automatically volunteer someone to do the work.'
+        },
+        {
+          kicker: '05 / CLOSE THE LOOP',
+          title: 'Offers become agreements. Then learning.',
+          description:
+            'Make it easy to contribute within a limit, accept the exact scope, and return to what happened. A useful outcome can include stopping.',
+          example: 'The digital gift shelf.',
+          lines: [
+            'Offer: one hour to compare the selected tools.',
+            'Acceptance: confirm scope and audience with the person offering.',
+            'At review: what happened, who carried the work, and what should change?'
+          ],
+          caption: 'Sharing the lessons lets another group begin further along.'
+        }
+      ]
+      let currentStage = 0
+      const stageButtons = [...document.querySelectorAll('[data-step]')]
+      function showStage(index) {
+        currentStage = index
+        const stage = stages[index]
+        document.getElementById('step-kicker').textContent = stage.kicker
+        document.getElementById('step-title').textContent = stage.title
+        document.getElementById('step-description').textContent = stage.description
+        document.getElementById('example-title').textContent = stage.example
+        document.getElementById('example-list').replaceChildren(
+          ...stage.lines.map((line) => {
+            const li = document.createElement('li')
+            li.textContent = line
+            return li
+          })
+        )
+        document.getElementById('step-caption').textContent = stage.caption
+        stageButtons.forEach((button, i) =>
+          button.setAttribute('aria-pressed', String(i === index))
+        )
+        document.getElementById('next-step').textContent =
+          index === stages.length - 1 ? 'Start again ↺' : 'Next step →'
+      }
+      stageButtons.forEach((button) =>
+        button.addEventListener('click', () => showStage(Number(button.dataset.step)))
+      )
+      document
+        .getElementById('next-step')
+        .addEventListener('click', () => showStage((currentStage + 1) % stages.length))
+      function download(content, type, filename) {
+        const url = URL.createObjectURL(new Blob([content], { type }))
+        const anchor = document.createElement('a')
+        anchor.href = url
+        anchor.download = filename
+        document.body.append(anchor)
+        anchor.click()
+        anchor.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 10000)
+        document.getElementById('download-status').textContent = 'Download requested: ' + filename
+      }
+      document
+        .getElementById('save-markdown')
+        .addEventListener('click', () =>
+          download(sourceDocument.source, 'text/markdown', sourceDocument.filename)
+        )
+      document.getElementById('save-page').addEventListener('click', () => {
+        const clone = document.documentElement.cloneNode(true)
+        clone.querySelector('#download-status').textContent = ''
+        clone
+          .querySelectorAll('[aria-current]')
+          .forEach((node) => node.removeAttribute('aria-current'))
+        download(
+          '<!doctype html>\n' + clone.outerHTML,
+          'text/html',
+          'xnet-from-attention-to-shared-agency.html'
+        )
+      })
+      const chapterLinks = [...document.querySelectorAll('.contents nav a')]
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const visible = entries.filter((entry) => entry.isIntersecting)
+          if (!visible.length) return
+          const id = visible[0].target.id
+          chapterLinks.forEach((link) => {
+            if (link.hash === '#' + id) link.setAttribute('aria-current', 'location')
+            else link.removeAttribute('aria-current')
+          })
+        },
+        { rootMargin: '-15% 0px -65% 0px' }
+      )
+      document.querySelectorAll('article h2').forEach((heading) => observer.observe(heading))
+      document
+        .querySelector('.skip')
+        .addEventListener('click', () => document.getElementById('research').focus())
+      showStage(0)
+    </script>
+  </body>
+</html>
