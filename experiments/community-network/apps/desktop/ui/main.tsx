@@ -36,6 +36,7 @@ import {
   type Message,
   type Preferences
 } from './api'
+import { DesktopUpdates } from './DesktopUpdates'
 import {
   ContentControls,
   ReportDialog,
@@ -467,6 +468,7 @@ function App() {
           <Link size={16} />
           Open a link
         </button>
+        <DesktopUpdates />
         <div className="profile">
           <div className="avatar">{snapshot.profile.name.slice(0, 1).toUpperCase()}</div>
           <div>

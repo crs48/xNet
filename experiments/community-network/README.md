@@ -4,6 +4,8 @@ A separate Rust + Tauri prototype for a community that hosts its own media and c
 
 Branch: `codex/community-network-tauri`. Local only. No deployment, GitHub publication, or migration of the existing xNet product.
 
+For desktop installers, private-room testing and signed updates, see the [friends beta guide](BETA.md).
+
 ## Try the current demo
 
 On this Mac, open the generated `.local/xNet Maya.app` and `.local/xNet Leo.app` launchers. Each has an independent identity, database, cache, upload budget and peer endpoint. The registry is at <http://127.0.0.1:4380>.
