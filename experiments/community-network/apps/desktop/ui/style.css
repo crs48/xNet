@@ -1,4 +1,25 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--foreground);
+  --color-accent: var(--secondary);
+  --color-accent-foreground: var(--foreground);
+  --color-popover: var(--background);
+  --color-popover-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: #b42328;
+}
+
 @layer base {
   :root {
     font-family:
@@ -7,9 +28,18 @@
       BlinkMacSystemFont,
       'Segoe UI',
       sans-serif;
-    color: #27292f;
+    --background: #fff;
+    --foreground: #202126;
+    --primary: #24252a;
+    --primary-foreground: #fafafa;
+    --secondary: #f1f1f3;
+    --muted-foreground: #62646c;
+    --border: #e4e4e7;
+    --input: #d4d4d8;
+    --ring: #82848e;
+    color: var(--foreground);
     background: white;
-    font-size: 14px;
+    font-size: 16px;
     color-scheme: light;
   }
   * {
@@ -30,19 +60,12 @@
     opacity: 0.45;
     cursor: not-allowed;
   }
-  input,
-  textarea {
-    width: 100%;
-    border: 1px solid #dfe2e7;
-    border-radius: 10px;
-    padding: 11px 13px;
-    background: #fff;
-    color: inherit;
+  * {
+    border-color: var(--border);
   }
-  input:focus,
-  textarea:focus {
-    outline: 2px solid #a2aaba;
-    outline-offset: 1px;
+  input[type='radio'],
+  input[type='checkbox'] {
+    accent-color: var(--primary);
   }
   button:focus-visible,
   summary:focus-visible {
@@ -157,7 +180,7 @@
     @apply flex h-screen overflow-hidden bg-white;
   }
   .sidebar {
-    @apply flex w-[224px] shrink-0 flex-col border-r border-slate-200/70 bg-[#f7f8fa] p-3;
+    @apply flex w-[224px] shrink-0 flex-col border-r border-border bg-[#f8f8fa] p-3;
   }
   .brand {
     @apply flex items-center gap-3 px-2 pt-2 pb-7;
@@ -172,8 +195,9 @@
   .nav-item {
     @apply mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[13px] text-slate-600 hover:bg-slate-200/40;
   }
-  .selected {
-    @apply bg-white text-slate-950 shadow-sm ring-1 ring-black/5;
+  .selected,
+  .selected:hover {
+    @apply bg-white text-foreground shadow-xs ring-1 ring-black/5;
   }
   .count {
     @apply ml-auto text-[11px] text-slate-400;
@@ -222,18 +246,6 @@
   }
   .actions {
     @apply flex items-center gap-2;
-  }
-  .button {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50;
-  }
-  .button.primary {
-    @apply border-[#27292f] bg-[#27292f] text-white hover:bg-[#3c3f47];
-  }
-  .icon-button {
-    @apply inline-flex size-7 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100;
-  }
-  .wide {
-    @apply w-full;
   }
   .content {
     @apply flex-1 overflow-y-auto px-7 py-6;
@@ -301,7 +313,7 @@
   .notice.top {
     @apply mx-6 mt-3 shrink-0;
   }
-  .notice .icon-button {
+  .notice [data-slot='button'] {
     @apply ml-auto;
   }
   .participation-banner {
@@ -325,7 +337,7 @@
   .preview-body > p:not(.eyebrow) {
     @apply text-xs leading-6 text-slate-500;
   }
-  .preview-body .button {
+  .preview-body [data-slot='button'] {
     @apply mr-2;
   }
   .chat {
@@ -370,9 +382,6 @@
   .composer span {
     @apply text-[10px] text-slate-400;
   }
-  .send {
-    @apply grid size-8 place-items-center rounded-full bg-[#27292f] text-white;
-  }
   .hosting-status {
     @apply flex items-start gap-4 py-4;
   }
@@ -415,15 +424,6 @@
   .details p {
     @apply mt-3;
   }
-  .share-box {
-    @apply absolute bottom-4 left-6 right-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-lg;
-  }
-  .share-box label {
-    @apply flex-1 text-xs;
-  }
-  .share-box input {
-    @apply text-xs;
-  }
   .onboarding {
     @apply mx-auto flex min-h-screen max-w-[510px] flex-col justify-center gap-5 px-8 py-10;
   }
@@ -453,25 +453,13 @@
   .loading img {
     @apply mx-auto;
   }
-  dialog {
-    margin: auto;
-    width: min(480px, calc(100vw - 40px));
-    max-height: 90vh;
-    overflow: auto;
-    border: 1px solid #e0e3e8;
-    border-radius: 18px;
-    padding: 24px;
-    box-shadow: 0 24px 80px #0002;
-  }
-  dialog::backdrop {
-    background: #1a202c55;
-    backdrop-filter: blur(3px);
-  }
-  .dialog-head {
-    @apply mb-5 flex items-center justify-between;
-  }
-  dialog form {
+  [data-slot='dialog-content'] form {
     @apply space-y-5;
+  }
+  .search:focus-within,
+  .composer:focus-within,
+  .post-composer:focus-within {
+    @apply border-ring ring-[3px] ring-ring/25;
   }
   .spinner {
     width: 12px;
@@ -528,57 +516,6 @@
   position: relative;
   flex: 0 0 auto;
   margin-left: auto;
-}
-.content-controls summary {
-  list-style: none;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid #e4e5e9;
-  border-radius: 9px;
-  background: #fff;
-  cursor: pointer;
-}
-.content-controls summary::-webkit-details-marker {
-  display: none;
-}
-.content-controls details[open] {
-  z-index: 5;
-  position: relative;
-}
-.content-menu {
-  position: absolute;
-  right: 0;
-  top: 35px;
-  width: 230px;
-  z-index: 10;
-  background: #fff;
-  border: 1px solid #e4e5e9;
-  border-radius: 12px;
-  padding: 6px;
-  box-shadow: 0 8px 28px #17203020;
-}
-.content-menu button {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 10px;
-  border: 0;
-  background: transparent;
-  text-align: left;
-  border-radius: 7px;
-  cursor: pointer;
-}
-.content-menu button:hover {
-  background: #f3f4f6;
-}
-.content-menu small {
-  display: block;
-  color: #626975;
-  padding: 8px 10px;
-  line-height: 1.5;
 }
 .safety-center {
   max-width: 900px;
@@ -802,5 +739,13 @@ blockquote small {
   .topic-form {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='dialog-overlay'],
+  [data-slot='dialog-content'],
+  [data-slot='dropdown-menu-content'] {
+    animation: none;
   }
 }

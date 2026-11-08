@@ -1,3 +1,7 @@
+import { AppDialog } from './components/app-dialog'
+import { Button } from './components/ui/button'
+import { Input } from './components/ui/input'
+import { Textarea } from './components/ui/textarea'
 import { invoke } from '@tauri-apps/api/core'
 import {
   Film,
@@ -22,7 +26,7 @@ import {
   RefreshCw,
   Shield
 } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './style.css'
 
@@ -65,68 +69,6 @@ type Playback = { url: string; item: Item }
 const size = (bytes: number) =>
   bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(0)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
 
-function Button({
-  children,
-  onClick,
-  disabled = false,
-  primary = false,
-  title
-}: {
-  children: ReactNode
-  onClick?: () => void
-  disabled?: boolean
-  primary?: boolean
-  title?: string
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      aria-label={title}
-      onClick={onClick}
-      disabled={disabled}
-      className={`button ${primary ? 'primary' : ''}`}
-    >
-      {children}
-    </button>
-  )
-}
-function Modal({
-  title,
-  children,
-  close,
-  feedback
-}: {
-  title: string
-  children: ReactNode
-  close: () => void
-  feedback?: string
-}) {
-  const ref = useRef<HTMLDialogElement>(null)
-  useEffect(() => {
-    const previous = document.activeElement
-    ref.current?.showModal()
-    return () => {
-      if (previous instanceof HTMLElement) previous.focus()
-    }
-  }, [])
-  return (
-    <dialog ref={ref} onCancel={close} aria-labelledby="dialog-title">
-      <div className="dialog-head">
-        <h2 id="dialog-title">{title}</h2>
-        <button className="icon-button" aria-label="Close dialog" onClick={close}>
-          <X size={18} />
-        </button>
-      </div>
-      {children}
-      {feedback && (
-        <p role="status" className="notice dialog-feedback">
-          {feedback}
-        </p>
-      )}
-    </dialog>
-  )
-}
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [tab, setTab] = useState<'discover' | 'music' | 'posts' | 'chats' | 'hosting' | 'safety'>(
@@ -349,7 +291,7 @@ function App() {
         >
           <label>
             Your name
-            <input
+            <Input
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -373,10 +315,14 @@ function App() {
             Peers may see your network address. Pausing hosting also pauses network playback and
             messaging. No social account is required for this local demo.
           </p>
-          <button className="button primary wide" disabled={!consent || !name.trim() || !!busy}>
+          <Button
+            variant="default"
+            className="w-full"
+            disabled={!consent || !name.trim() || !!busy}
+          >
             {busy || 'Create account & join the network'}
             <ArrowUpRight size={16} />
-          </button>
+          </Button>
         </form>
         {status && (
           <p role="alert" className="notice">
@@ -390,7 +336,17 @@ function App() {
     )
 
   return (
-    <div className="shell">
+    <div
+      className="shell"
+      onClickCapture={(event) => {
+        // WebKit leaves pointer-activated buttons unfocused. Keep the dialog’s return target.
+        if (event.target instanceof Element) {
+          event.target
+            .closest<HTMLElement>('button[aria-haspopup="dialog"]')
+            ?.focus({ preventScroll: true })
+        }
+      }}
+    >
       <aside className="sidebar">
         <div className="brand">
           <img src="/wordmark.svg" alt="xNet" />
@@ -407,10 +363,12 @@ function App() {
               { key: 'safety', label: 'Safety & moderation', icon: Shield }
             ] as const
           ).map((n) => (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               key={n.key}
               aria-current={tab === n.key ? 'page' : undefined}
-              className={`nav-item ${tab === n.key ? 'selected' : ''}`}
+              className={`nav-item w-full justify-start gap-2.5 ${tab === n.key ? 'selected' : ''}`}
               onClick={() => {
                 setTab(n.key)
                 setStatus('')
@@ -421,14 +379,16 @@ function App() {
               <n.icon size={17} />
               {n.label}
               {n.key === 'chats' && <span className="count">{snapshot.rooms.length}</span>}
-            </button>
+            </Button>
           ))}
         </nav>
         <div className="section-label">
           <span>Your conversations</span>
-          <button
+          <Button
+            aria-haspopup="dialog"
             aria-label="New conversation"
-            className="icon-button"
+            variant="ghost"
+            size="icon-sm"
             onClick={() => {
               setTitle('')
               setPrivateRoom(true)
@@ -436,7 +396,7 @@ function App() {
             }}
           >
             <Plus size={15} />
-          </button>
+          </Button>
         </div>
         <div className="room-list">
           {snapshot.rooms.length === 0 ? (
@@ -447,19 +407,24 @@ function App() {
             </p>
           ) : (
             snapshot.rooms.map((r) => (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 key={r.id}
-                className={`room-link ${r.id === roomId && tab === 'chats' ? 'selected' : ''}`}
+                className={`room-link w-full justify-start gap-2.5 ${r.id === roomId && tab === 'chats' ? 'selected' : ''}`}
                 onClick={() => openRoom(r)}
               >
                 {r.private ? <Lock size={14} /> : <Radio size={14} />}
                 <span>{r.title}</span>
-              </button>
+              </Button>
             ))
           )}
         </div>
-        <button
-          className="nav-item"
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-haspopup="dialog"
+          className="nav-item w-full justify-start gap-2.5"
           onClick={() => {
             setLink('')
             openModal('join')
@@ -467,7 +432,7 @@ function App() {
         >
           <Link size={16} />
           Open a link
-        </button>
+        </Button>
         <DesktopUpdates />
         <div className="profile">
           <div className="avatar">{snapshot.profile.name.slice(0, 1).toUpperCase()}</div>
@@ -514,12 +479,21 @@ function App() {
           </div>
           <div className="actions">
             {tab === 'discover' || tab === 'music' ? (
-              <Button primary onClick={publishModal} disabled={!snapshot.active}>
+              <Button
+                type="button"
+                aria-haspopup="dialog"
+                variant="default"
+                onClick={publishModal}
+                disabled={!snapshot.active}
+              >
                 <Plus size={16} />
                 {tab === 'music' ? 'Share music' : 'Share something'}
               </Button>
             ) : tab === 'chats' ? (
               <Button
+                type="button"
+                aria-haspopup="dialog"
+                variant="outline"
                 onClick={() => {
                   setTitle('')
                   openModal('room')
@@ -548,13 +522,14 @@ function App() {
           <div className={`notice top ${busy ? 'working' : ''}`} role={busy ? 'status' : 'alert'}>
             {busy && <span className="spinner" />}
             {busy || status}
-            <button
-              className="icon-button"
+            <Button
+              variant="ghost"
+              size="icon-sm"
               aria-label="Dismiss update"
               onClick={() => setStatus('')}
             >
               <X size={14} />
-            </button>
+            </Button>
           </div>
         )}
 
@@ -568,7 +543,8 @@ function App() {
               }}
             >
               <Search size={17} />
-              <input
+              <Input
+                className="border-0 shadow-none focus-visible:ring-0"
                 aria-label="Search community"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -578,13 +554,19 @@ function App() {
                     : 'Find a film, an image, a conversation…'
                 }
               />
-              <button aria-label="Search" className="icon-button">
+              <Button aria-label="Search" variant="ghost" size="icon-sm">
                 <ArrowUpRight size={17} />
-              </button>
+              </Button>
             </form>
             <div className="section-heading">
               <h2>Recently shared</h2>
-              <Button title="Refresh registry" onClick={() => run('Refreshing…', search)}>
+              <Button
+                type="button"
+                variant="outline"
+                aria-label="Refresh registry"
+                title="Refresh registry"
+                onClick={() => run('Refreshing…', search)}
+              >
                 <RefreshCw size={14} />
               </Button>
             </div>
@@ -598,7 +580,13 @@ function App() {
                     : 'Share a short film or an image.'}{' '}
                   Your desktop serves the file; this registry stores the details.
                 </p>
-                <Button onClick={publishModal} disabled={!snapshot.active}>
+                <Button
+                  type="button"
+                  aria-haspopup="dialog"
+                  variant="outline"
+                  onClick={publishModal}
+                  disabled={!snapshot.active}
+                >
                   {tab === 'music' ? 'Share music' : 'Share something'}
                 </Button>
               </div>
@@ -678,7 +666,12 @@ function App() {
           (room ? (
             <div className="chat">
               <div className="chat-context">
-                <Button onClick={() => setManageRoom(room)}>
+                <Button
+                  type="button"
+                  aria-haspopup="dialog"
+                  variant="outline"
+                  onClick={() => setManageRoom(room)}
+                >
                   <Shield size={14} />
                   Room settings
                 </Button>
@@ -687,6 +680,9 @@ function App() {
                   transport · latest 200 messages
                 </span>
                 <Button
+                  type="button"
+                  aria-haspopup="dialog"
+                  variant="outline"
                   onClick={() =>
                     run('Making your invitation…', async () => {
                       const result = await api<{ link: string }>({ op: 'invite', id: room.id })
@@ -763,7 +759,8 @@ function App() {
                   })
                 }}
               >
-                <textarea
+                <Textarea
+                  className="resize-none border-0 shadow-none focus-visible:ring-0"
                   aria-label="Message"
                   placeholder={`Message ${room.title}…`}
                   value={draft}
@@ -779,8 +776,10 @@ function App() {
                 />
                 <div>
                   <span>Enter to send · Shift + Enter for a new line</span>
-                  <button
-                    className="send"
+                  <Button
+                    variant="default"
+                    size="icon-sm"
+                    className="rounded-full"
                     aria-label="Send message"
                     disabled={
                       !draft.trim() ||
@@ -790,7 +789,7 @@ function App() {
                     }
                   >
                     <ArrowUp size={17} />
-                  </button>
+                  </Button>
                 </div>
               </form>
               <p className="footnote">
@@ -806,7 +805,9 @@ function App() {
               <p>Create a private group, open an invitation, or discover a public room.</p>
               <div className="actions">
                 <Button
-                  primary
+                  type="button"
+                  aria-haspopup="dialog"
+                  variant="default"
                   onClick={() => {
                     setTitle('')
                     openModal('room')
@@ -815,6 +816,9 @@ function App() {
                   Start a conversation
                 </Button>
                 <Button
+                  type="button"
+                  aria-haspopup="dialog"
+                  variant="outline"
                   onClick={() => {
                     setLink('')
                     openModal('join')
@@ -868,7 +872,7 @@ function App() {
             >
               <label>
                 Storage limit (MB)
-                <input
+                <Input
                   type="number"
                   value={storage}
                   min={1}
@@ -878,7 +882,7 @@ function App() {
               </label>
               <label>
                 Peer upload budget (MB)
-                <input
+                <Input
                   type="number"
                   value={upload}
                   min={1}
@@ -892,11 +896,12 @@ function App() {
                 No background startup or automatic mobile hosting.
               </p>
               <div className="actions">
-                <button className="button" disabled={!!busy}>
+                <Button variant="outline" disabled={!!busy}>
                   Save limits
-                </button>
+                </Button>
                 <Button
-                  primary
+                  type="button"
+                  variant="default"
                   onClick={() =>
                     run('Updating hosting…', async () => {
                       await api({
@@ -928,6 +933,8 @@ function App() {
                     </small>
                   </span>
                   <Button
+                    type="button"
+                    variant="outline"
                     onClick={() =>
                       run('Updating file hosting…', async () => {
                         await api({
@@ -946,6 +953,9 @@ function App() {
                       : 'Approve hosting'}
                   </Button>
                   <Button
+                    type="button"
+                    variant="outline"
+                    aria-label={`Play ${record.payload.title}`}
                     title={`Play ${record.payload.title}`}
                     onClick={() =>
                       run('Opening your copy…', async () => {
@@ -996,24 +1006,27 @@ function App() {
           />
         )}
         {share && (
-          <div className="share-box">
+          <AppDialog
+            title={tab === 'chats' ? 'Share an invitation' : 'Share this link'}
+            close={() => setShare('')}
+            feedback={status}
+          >
             <label>
-              Share this link
-              <input
+              {tab === 'chats' && room ? room.title : 'Link'}
+              <Input
+                data-initial-focus
                 aria-label="Shareable link"
                 readOnly
                 value={share}
-                onFocus={(e) => e.target.select()}
+                onFocus={(event) => event.target.select()}
               />
             </label>
-            <button
-              className="icon-button"
-              aria-label="Close shared link"
-              onClick={() => setShare('')}
-            >
-              <X size={16} />
-            </button>
-          </div>
+            <div className="flex justify-end">
+              <Button variant="default" type="button" onClick={() => void copy(share)}>
+                <Link /> Copy link
+              </Button>
+            </div>
+          </AppDialog>
         )}
       </main>
       {playback && (
@@ -1022,13 +1035,14 @@ function App() {
             <span>
               {playback.item.record.payload.kind === 'audio' ? 'Now listening' : 'Now viewing'}
             </span>
-            <button
-              className="icon-button"
+            <Button
+              variant="ghost"
+              size="icon-sm"
               aria-label="Close preview"
               onClick={() => setPlayback(null)}
             >
               <X size={18} />
-            </button>
+            </Button>
           </div>
           {playback.item.record.payload.kind === 'audio' ? (
             <div className="audio-player">
@@ -1073,6 +1087,8 @@ function App() {
               within your storage limit.
             </p>
             <Button
+              type="button"
+              variant="outline"
               onClick={() =>
                 run('Saving a complete copy and announcing this host…', async () => {
                   await api({ op: 'retain', id: playback.item.record.payload.id })
@@ -1086,6 +1102,9 @@ function App() {
               Keep a full copy
             </Button>
             <Button
+              type="button"
+              aria-haspopup="dialog"
+              variant="outline"
               onClick={() => copy(`${snapshot.registry}/watch/${playback.item.record.payload.id}`)}
             >
               <Link size={15} />
@@ -1096,7 +1115,7 @@ function App() {
       )}
 
       {modal === 'publish' && (
-        <Modal
+        <AppDialog
           feedback={busy || status}
           title={tab === 'music' ? 'Share music' : 'Share something'}
           close={() => setModal(null)}
@@ -1121,6 +1140,8 @@ function App() {
               Up to 100 MB. Keep your desktop online so others can find a copy.
             </p>
             <Button
+              type="button"
+              variant="outline"
               onClick={() =>
                 run('Choosing media…', async () => {
                   const selected = await invoke<string | null>('select_media', {
@@ -1148,7 +1169,7 @@ function App() {
             </Button>
             <label>
               Title
-              <input
+              <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={160}
@@ -1157,7 +1178,7 @@ function App() {
             </label>
             <label>
               Description
-              <textarea
+              <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 maxLength={2000}
@@ -1167,15 +1188,23 @@ function App() {
               Public · your name, caption, file manifest and peer address are discoverable. No
               transcoding is performed.
             </p>
-            <button className="button primary wide" disabled={!file || !title.trim() || !!busy}>
+            <Button
+              variant="default"
+              className="w-full"
+              disabled={!file || !title.trim() || !!busy}
+            >
               Publish & host
               <ArrowUpRight size={16} />
-            </button>
+            </Button>
           </form>
-        </Modal>
+        </AppDialog>
       )}
       {modal === 'room' && (
-        <Modal feedback={busy || status} title="A new conversation" close={() => setModal(null)}>
+        <AppDialog
+          feedback={busy || status}
+          title="A new conversation"
+          close={() => setModal(null)}
+        >
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -1189,8 +1218,8 @@ function App() {
           >
             <label>
               Name
-              <input
-                autoFocus
+              <Input
+                data-initial-focus
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={160}
@@ -1225,18 +1254,23 @@ function App() {
                 </span>
               </label>
             </fieldset>
-            <button
-              className="button primary wide"
+            <Button
+              variant="default"
+              className="w-full"
               disabled={!title.trim() || !!busy || !snapshot.active}
             >
               Create conversation
               <ChevronRight size={15} />
-            </button>
+            </Button>
           </form>
-        </Modal>
+        </AppDialog>
       )}
       {modal === 'join' && (
-        <Modal feedback={busy || status} title="Open a shared link" close={() => setModal(null)}>
+        <AppDialog
+          feedback={busy || status}
+          title="Open a shared link"
+          close={() => setModal(null)}
+        >
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -1273,23 +1307,24 @@ function App() {
             </p>
             <label>
               Link
-              <input
-                autoFocus
+              <Input
+                data-initial-focus
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
                 placeholder="http://127.0.0.1:4380/…"
                 required
               />
             </label>
-            <button
-              className="button primary wide"
+            <Button
+              variant="default"
+              className="w-full"
               disabled={!link.trim() || !!busy || !snapshot.active}
             >
               Open in xNet
               <ArrowUpRight size={16} />
-            </button>
+            </Button>
           </form>
-        </Modal>
+        </AppDialog>
       )}
     </div>
   )

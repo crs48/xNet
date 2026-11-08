@@ -8,7 +8,10 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@/*": ["./apps/desktop/ui/*"]
+    }
   },
   "include": ["apps/desktop/ui"]
 }

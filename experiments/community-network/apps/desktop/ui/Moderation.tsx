@@ -1,5 +1,5 @@
-import { Shield, X, Flag, MoreHorizontal, EyeOff, UserRoundX, Ban, RotateCcw } from 'lucide-react'
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { Shield, Flag, MoreHorizontal, EyeOff, UserRoundX, Ban, RotateCcw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import {
   api,
   errorText,
@@ -13,6 +13,17 @@ import {
   type CaseList,
   type Policy
 } from './api'
+import { AppDialog } from './components/app-dialog'
+import { Button } from './components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from './components/ui/dropdown-menu'
+import { Input } from './components/ui/input'
+import { Textarea } from './components/ui/textarea'
 
 const short = (value: string) => `${value.slice(0, 8)}…${value.slice(-4)}`
 const date = (value: number) => new Date(value * 1000).toLocaleString()
@@ -21,36 +32,6 @@ const labels: Record<string, string> = {
   remove: 'Content restricted',
   restrict_author: 'Participation restricted',
   restore: 'Access restored'
-}
-export function SafetyDialog({
-  title,
-  close,
-  children
-}: {
-  title: string
-  close: () => void
-  children: ReactNode
-}) {
-  const ref = useRef<HTMLDialogElement>(null)
-  const heading = useId()
-  useEffect(() => {
-    const previous = document.activeElement
-    ref.current?.showModal()
-    return () => {
-      if (previous instanceof HTMLElement) previous.focus()
-    }
-  }, [])
-  return (
-    <dialog ref={ref} className="safety-dialog" onCancel={close} aria-labelledby={heading}>
-      <div className="dialog-head">
-        <h2 id={heading}>{title}</h2>
-        <button className="icon-button" aria-label="Close safety dialog" onClick={close}>
-          <X size={18} />
-        </button>
-      </div>
-      {children}
-    </dialog>
-  )
 }
 export type ReportTarget = { item: Item } | { message: Message; room: Room; messages: Message[] }
 export function ContentControls({
@@ -68,6 +49,8 @@ export function ContentControls({
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const menuTrigger = useRef<HTMLButtonElement>(null)
+  const openingReport = useRef(false)
   const change = async (key: 'hidden' | 'muted_authors' | 'blocked_contacts', value: string) => {
     setBusy(true)
     setError('')
@@ -86,31 +69,53 @@ export function ContentControls({
   }
   return (
     <div className="content-controls">
-      <details>
-        <summary aria-label={`Controls for ${name}`}>
-          <MoreHorizontal size={16} />
-          <span className="sr-only">Content controls</span>
-        </summary>
-        <div className="content-menu">
-          <button disabled={busy} onClick={() => void change('hidden', id)}>
-            <EyeOff size={14} />
-            Hide from me
-          </button>
-          <button disabled={busy} onClick={() => void change('muted_authors', author)}>
-            <UserRoundX size={14} />
-            Mute this person
-          </button>
-          <button disabled={busy} onClick={() => void change('blocked_contacts', author)}>
-            <Ban size={14} />
-            Block contact
-          </button>
-          <button disabled={busy} onClick={onReport}>
-            <Flag size={14} />
-            Report a problem
-          </button>
-          <small>Personal controls can be undone in Safety.</small>
-        </div>
-      </details>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            ref={menuTrigger}
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Controls for ${name}`}
+          >
+            <MoreHorizontal />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          className="w-56"
+          onCloseAutoFocus={(event) => {
+            if (openingReport.current) {
+              event.preventDefault()
+              openingReport.current = false
+              // Open the report after the menu releases its focus trap.
+              menuTrigger.current?.focus()
+              onReport()
+            }
+          }}
+        >
+          <DropdownMenuItem disabled={busy} onSelect={() => void change('hidden', id)}>
+            <EyeOff /> Hide from me
+          </DropdownMenuItem>
+          <DropdownMenuItem disabled={busy} onSelect={() => void change('muted_authors', author)}>
+            <UserRoundX /> Mute this person
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={busy}
+            onSelect={() => void change('blocked_contacts', author)}
+          >
+            <Ban /> Block contact
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            disabled={busy}
+            onSelect={() => {
+              openingReport.current = true
+            }}
+          >
+            <Flag /> Report a problem
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       {error && (
         <p role="alert" className="notice">
           {error}
@@ -190,7 +195,11 @@ export function ReportDialog({
     }
   }
   return (
-    <SafetyDialog title={receipt ? 'Report received' : 'Report a problem'} close={close}>
+    <AppDialog
+      className="safety-dialog sm:max-w-2xl"
+      title={receipt ? 'Report received' : 'Report a problem'}
+      close={close}
+    >
       {receipt ? (
         <>
           <p>
@@ -201,9 +210,9 @@ export function ReportDialog({
             Follow its progress in Safety &amp; moderation. You can also hide the content or block
             contact separately.
           </p>
-          <button className="button primary" onClick={close}>
+          <Button variant="default" onClick={close}>
             Done
-          </button>
+          </Button>
         </>
       ) : (
         <form
@@ -237,7 +246,7 @@ export function ReportDialog({
               </label>
               <label>
                 Your explanation
-                <textarea
+                <Textarea
                   value={details}
                   maxLength={1000}
                   required
@@ -337,24 +346,25 @@ export function ReportDialog({
             </div>
           )}
           {preview && (
-            <button className="button" type="button" disabled={busy} onClick={invalidate}>
+            <Button variant="outline" type="button" disabled={busy} onClick={invalidate}>
               Back to selection
-            </button>
+            </Button>
           )}
           {error && (
             <p className="notice" role="alert">
               {error}
             </p>
           )}
-          <button
-            className="button primary wide"
+          <Button
+            variant="default"
+            className="w-full"
             disabled={busy || !details.trim() || (!!preview && !consent)}
           >
             {busy ? 'Working…' : privateReport && !preview ? 'Preview disclosure' : 'Send report'}
-          </button>
+          </Button>
         </form>
       )}
-    </SafetyDialog>
+    </AppDialog>
   )
 }
 
@@ -493,7 +503,7 @@ function CaseCard({
           </label>
           <label>
             Rule
-            <input
+            <Input
               value={rule}
               required
               maxLength={160}
@@ -502,7 +512,7 @@ function CaseCard({
           </label>
           <label>
             Reason shown to the affected person
-            <textarea
+            <Textarea
               value={reason}
               required
               maxLength={500}
@@ -526,9 +536,9 @@ function CaseCard({
             {scope === 'registry' ? 'this registry and participating clients' : 'this room'}.
             Existing copies cannot be recalled. Appeals remain available.
           </p>
-          <button className="button primary" disabled={busy || !reason.trim() || !rule.trim()}>
+          <Button variant="default" disabled={busy || !reason.trim() || !rule.trim()}>
             Save decision & notify
-          </button>
+          </Button>
         </form>
       )}
       {canAppeal && (
@@ -540,7 +550,7 @@ function CaseCard({
         >
           <label>
             Ask for another review
-            <textarea
+            <Textarea
               maxLength={1000}
               value={appeal}
               required
@@ -548,9 +558,9 @@ function CaseCard({
               placeholder="What should the reviewer reconsider?"
             />
           </label>
-          <button className="button" disabled={busy || !appeal.trim()}>
+          <Button variant="outline" disabled={busy || !appeal.trim()}>
             Send appeal
-          </button>
+          </Button>
         </form>
       )}
       {ownAppeal && (
@@ -607,8 +617,8 @@ export function Cases({
       )}
       <div className="actions">
         {data.offset > 0 && (
-          <button
-            className="button"
+          <Button
+            variant="outline"
             onClick={() =>
               void execute({
                 action: scope === 'registry' ? 'list' : 'cases',
@@ -617,17 +627,17 @@ export function Cases({
             }
           >
             Previous cases
-          </button>
+          </Button>
         )}
         {data.next !== null && (
-          <button
-            className="button"
+          <Button
+            variant="outline"
             onClick={() =>
               void execute({ action: scope === 'registry' ? 'list' : 'cases', offset: data.next })
             }
           >
             More cases
-          </button>
+          </Button>
         )}
       </div>
     </>
@@ -738,8 +748,8 @@ export function SafetyCenter({
               preferences[key].map((value) => (
                 <div className="filter-row" key={value}>
                   <code>{key === 'topics' ? value : short(value)}</code>
-                  <button
-                    className="button"
+                  <Button
+                    variant="outline"
                     onClick={() =>
                       void update({
                         ...preferences,
@@ -749,7 +759,7 @@ export function SafetyCenter({
                   >
                     <RotateCcw size={13} />
                     Undo
-                  </button>
+                  </Button>
                 </div>
               ))
             )}
@@ -770,24 +780,24 @@ export function SafetyCenter({
         >
           <label>
             Mute a phrase
-            <input
+            <Input
               value={topic}
               maxLength={80}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="A topic you want a break from"
             />
           </label>
-          <button className="button" disabled={!topic.trim()}>
+          <Button variant="outline" disabled={!topic.trim()}>
             Mute phrase
-          </button>
+          </Button>
         </form>
       </section>
       <section className="safety-section">
         <div className="section-heading">
           <h3>Reports &amp; appeals</h3>
-          <button className="button" disabled={busy} onClick={() => void load()}>
+          <Button variant="outline" disabled={busy} onClick={() => void load()}>
             {busy ? 'Refreshing…' : 'Refresh'}
-          </button>
+          </Button>
         </div>
         <label>
           Review space
@@ -893,7 +903,7 @@ export function RoomManager({
     }
   }
   return (
-    <SafetyDialog title={room.title} close={close}>
+    <AppDialog className="safety-dialog sm:max-w-2xl" title={room.title} close={close}>
       <p className="muted">
         {room.private ? 'Invitation-only conversation' : 'Public conversation'} ·{' '}
         {room.members.includes(self)
@@ -914,7 +924,7 @@ export function RoomManager({
           >
             <label>
               What makes this a good place?
-              <textarea
+              <Textarea
                 value={rules}
                 maxLength={2000}
                 required
@@ -939,9 +949,9 @@ export function RoomManager({
               />
               <span>Approve new members before they can read or send messages.</span>
             </label>
-            <button className="button primary" disabled={busy || !rules.trim()}>
+            <Button variant="default" disabled={busy || !rules.trim()}>
               Save room settings
-            </button>
+            </Button>
           </form>
         ) : (
           <p>{room.rules}</p>
@@ -956,7 +966,7 @@ export function RoomManager({
           </p>
           <label>
             Reason for a membership change
-            <input
+            <Input
               value={reason}
               maxLength={500}
               onChange={(e) => setReason(e.target.value)}
@@ -979,8 +989,8 @@ export function RoomManager({
               {id !== room.owner.id && id !== self && (
                 <div className="actions">
                   {owner && (
-                    <button
-                      className="button"
+                    <Button
+                      variant="outline"
                       disabled={busy || !reason.trim()}
                       onClick={() =>
                         void act(
@@ -995,11 +1005,11 @@ export function RoomManager({
                       }
                     >
                       {room.moderators.includes(id) ? 'Make member' : 'Make moderator'}
-                    </button>
+                    </Button>
                   )}
                   {(owner || !room.moderators.includes(id)) && (
-                    <button
-                      className="button"
+                    <Button
+                      variant="outline"
                       disabled={busy || !reason.trim()}
                       onClick={() =>
                         void act(
@@ -1009,7 +1019,7 @@ export function RoomManager({
                       }
                     >
                       Remove
-                    </button>
+                    </Button>
                   )}
                 </div>
               )}
@@ -1019,8 +1029,8 @@ export function RoomManager({
           {room.pending.map((id) => (
             <div className="member-row" key={id}>
               <code>{short(id)}</code>
-              <button
-                className="button"
+              <Button
+                variant="outline"
                 disabled={busy || !reason.trim()}
                 onClick={() =>
                   void act(
@@ -1030,11 +1040,11 @@ export function RoomManager({
                 }
               >
                 Admit
-              </button>
+              </Button>
             </div>
           ))}
-          <button
-            className="button"
+          <Button
+            variant="outline"
             disabled={busy}
             onClick={() =>
               void act(
@@ -1044,7 +1054,7 @@ export function RoomManager({
             }
           >
             Replace invitation link
-          </button>
+          </Button>
         </section>
       )}
       {error && (
@@ -1064,8 +1074,8 @@ export function RoomManager({
         </section>
       )}
       {!owner && (
-        <button
-          className="button"
+        <Button
+          variant="outline"
           disabled={busy}
           onClick={async () => {
             setBusy(true)
@@ -1083,8 +1093,8 @@ export function RoomManager({
           }}
         >
           Leave this conversation
-        </button>
+        </Button>
       )}
-    </SafetyDialog>
+    </AppDialog>
   )
 }

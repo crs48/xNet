@@ -3,6 +3,7 @@ import { relaunch } from '@tauri-apps/plugin-process'
 import { check, type Update } from '@tauri-apps/plugin-updater'
 import { useEffect, useRef, useState } from 'react'
 import { errorText } from './api'
+import { Button } from './components/ui/button'
 
 /** Download a verified update while chatting. Restart only when the user asks. */
 export function DesktopUpdates() {
@@ -61,9 +62,16 @@ export function DesktopUpdates() {
   }
   return (
     <div>
-      <button type="button" className="nav-item" disabled={installing} onClick={install}>
+      <Button
+        variant="ghost"
+        size="sm"
+        type="button"
+        className="nav-item w-full justify-start gap-2.5"
+        disabled={installing}
+        onClick={install}
+      >
         {installing ? 'Installing update…' : `Restart to update to ${version}`}
-      </button>
+      </Button>
       {error && (
         <p className="small" role="alert">
           {error}

@@ -1,6 +1,9 @@
 import { ArrowLeft, ArrowUp, Globe2, Link, MessageCircle, RefreshCw, Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { api, errorText, type Item } from './api'
+import { Button } from './components/ui/button'
+import { Input } from './components/ui/input'
+import { Textarea } from './components/ui/textarea'
 import { ContentControls } from './Moderation'
 
 type Thread = { post: Item; replies: Item[] }
@@ -46,7 +49,11 @@ function Post({
           <button onClick={() => open(r.id)} aria-label={`Replies to ${r.owner_name}'s post`}>
             <MessageCircle size={15} /> Reply & discuss
           </button>
-          <button onClick={() => share(r.id)} aria-label={`Share ${r.owner_name}'s post`}>
+          <button
+            aria-haspopup="dialog"
+            onClick={() => share(r.id)}
+            aria-label={`Share ${r.owner_name}'s post`}
+          >
             <Link size={15} /> Share
           </button>
         </div>
@@ -99,7 +106,8 @@ function Composer({
       <label htmlFor="public-draft">
         {parent ? 'Add to the conversation' : `What’s on your mind, ${name}?`}
       </label>
-      <textarea
+      <Textarea
+        className="resize-none border-0 shadow-none focus-visible:ring-0"
         id="public-draft"
         value={body}
         onChange={(e) => setBody(e.target.value)}
@@ -117,10 +125,10 @@ function Composer({
         <span id="post-length" className={count > 280 ? 'over-limit' : ''}>
           {count}/280
         </span>
-        <button className="button primary" disabled={!active || busy || count === 0 || count > 280}>
+        <Button variant="default" disabled={!active || busy || count === 0 || count > 280}>
           <ArrowUp size={14} />
           {busy ? 'Publishing…' : parent ? 'Reply' : 'Post'}
-        </button>
+        </Button>
       </div>
       {error && (
         <p className="notice" role="alert">
@@ -208,25 +216,27 @@ export function PublicFeed({
     <div className="content public-feed">
       <div className="feed-heading">
         {selected && (
-          <button
-            className="icon-button"
+          <Button
+            variant="ghost"
+            size="icon-sm"
             aria-label="Back to public feed"
             onClick={() => select(null)}
           >
             <ArrowLeft size={18} />
-          </button>
+          </Button>
         )}
         <h2 ref={heading} tabIndex={-1}>
           {selected ? 'Conversation' : 'The public square'}
         </h2>
-        <button
-          className="icon-button"
+        <Button
+          variant="ghost"
+          size="icon-sm"
           aria-label="Refresh posts"
           onClick={refresh}
           disabled={!active || loading}
         >
           <RefreshCw size={16} />
-        </button>
+        </Button>
       </div>
       {!selected && (
         <form
@@ -238,24 +248,25 @@ export function PublicFeed({
           }}
         >
           <Search size={16} />
-          <input
+          <Input
+            className="border-0 shadow-none focus-visible:ring-0"
             aria-label="Search public posts"
             placeholder="Search ideas and conversations…"
             value={query}
             maxLength={100}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <button className="icon-button" aria-label="Search posts">
+          <Button variant="ghost" size="icon-sm" aria-label="Search posts">
             <ArrowUp size={16} />
-          </button>
+          </Button>
         </form>
       )}
       {error && (
         <p className="notice" role="alert">
           {error}{' '}
-          <button className="button" onClick={refresh}>
+          <Button variant="outline" onClick={refresh}>
             Try again
-          </button>
+          </Button>
         </p>
       )}
       {confirmation && (
