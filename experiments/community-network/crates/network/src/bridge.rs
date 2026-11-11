@@ -84,6 +84,17 @@ pub enum Command {
     Account {
         name: String,
     },
+    RoomRetention {
+        id: String,
+        latest_only: bool,
+    },
+    FollowPosts {
+        author: String,
+        follow: bool,
+    },
+    PostBudget {
+        mb: u64,
+    },
     Participation {
         settings: Participation,
     },
@@ -254,6 +265,18 @@ impl Bridge {
             Command::Account { name } => {
                 node.create_profile(name)?;
                 serde_json::to_value(node.snapshot()?)?
+            }
+            Command::RoomRetention { id, latest_only } => {
+                node.room_limit(&id, latest_only)?;
+                serde_json::json!(true)
+            }
+            Command::FollowPosts { author, follow } => {
+                node.follow_posts(&author, follow)?;
+                serde_json::json!(true)
+            }
+            Command::PostBudget { mb } => {
+                node.post_budget(mb)?;
+                serde_json::json!(true)
             }
             Command::Participation { settings } => {
                 node.configure(settings).await?;

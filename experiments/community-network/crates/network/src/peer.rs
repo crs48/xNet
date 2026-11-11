@@ -6,7 +6,7 @@ use crate::{
 use anyhow::{Context, Result, bail, ensure};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use iroh::{Endpoint, EndpointAddr, SecretKey, endpoint::presets};
-use rusqlite::{OptionalExtension, params};
+use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::{
     io::Read,
@@ -29,6 +29,9 @@ pub struct Node {
     pub(crate) membership_changed: Arc<tokio::sync::Notify>,
     last_direct_route: Mutex<Option<(EndpointAddr, std::time::Instant)>>,
     slots: Arc<Semaphore>,
+    pub(crate) post_session: String,
+    pub(crate) post_sync: tokio::sync::Mutex<()>,
+    pub(crate) post_wake: Arc<tokio::sync::Notify>,
     pub(crate) history_refresh: tokio::sync::Mutex<()>,
     pub(crate) policy_refresh: tokio::sync::Mutex<()>,
     _profile_lock: std::fs::File,
@@ -48,6 +51,8 @@ pub struct Snapshot {
     pub preferences: Preferences,
     pub departed_rooms: Vec<Room>,
     pub hosting: Vec<String>,
+    pub room_copies: std::collections::BTreeMap<String, crate::retention::RoomCopy>,
+    pub post_storage: crate::replication::PostStorage,
 }
 impl Node {
     pub async fn start(root: PathBuf, registry: String) -> Result<Arc<Self>> {
@@ -56,6 +61,8 @@ impl Node {
         private_dir(&root.join("chunks"))?;
         let key = read_key(&root.join("identity.key"))?;
         let store = Store::open(&root.join("state.sqlite"))?;
+        crate::retention::init(&store)?;
+        crate::replication::init(&store)?;
         let relay = crate::hub::relay_url(&registry)?;
         let mut builder = Endpoint::builder(presets::Minimal)
             .secret_key(key.clone())
@@ -123,6 +130,9 @@ impl Node {
             membership_changed: Default::default(),
             last_direct_route: Mutex::new(None),
             history_refresh: Default::default(),
+            post_session: digest(&rand::random::<[u8; 32]>()),
+            post_sync: Default::default(),
+            post_wake: Default::default(),
             slots: Arc::new(Semaphore::new(16)),
             policy_refresh: tokio::sync::Mutex::new(()),
             _profile_lock: profile_lock,
@@ -162,6 +172,8 @@ impl Node {
                 }
             }
         });
+        Self::start_room_copies(&node);
+        Self::start_post_copies(&node);
         Ok(node)
     }
     pub fn snapshot(&self) -> Result<Snapshot> {
@@ -180,6 +192,8 @@ impl Node {
             reason,
             registry: self.registry.clone(),
             address: self.routing_address(),
+            room_copies: crate::retention::room_copies(&store)?,
+            post_storage: crate::replication::status(&store)?,
             rooms: store.list("room:")?,
             library: store.list("media:")?,
             departed_rooms: store.list("departed-room:")?,
@@ -202,7 +216,7 @@ impl Node {
                 .collect::<Result<Vec<_>>>()?,
         })
     }
-    fn participation_state(
+    pub(crate) fn participation_state(
         store: &Store,
     ) -> Result<(Option<Profile>, Participation, Counters, String)> {
         let profile = store.get::<Profile>("profile")?;
@@ -341,10 +355,12 @@ impl Node {
             !self.preferences()?.hides(&item.record),
             "Hidden by your personal filters. Undo in Safety & moderation to view it."
         );
-        self.store
-            .lock()
-            .unwrap()
-            .set(&format!("catalog:{id}"), &item)?;
+        if item.record.payload.kind != "post" {
+            self.store
+                .lock()
+                .unwrap()
+                .set(&format!("catalog:{id}"), &item)?;
+        }
         Ok(item)
     }
     pub async fn announce(&self, record: Signed<Record>) -> Result<()> {
@@ -382,7 +398,27 @@ impl Node {
         Ok(())
     }
     pub async fn announce_all(&self) -> Result<()> {
-        let records: Vec<Signed<Record>> = self.store.lock().unwrap().list("published:")?;
+        let records: Vec<Signed<Record>> = {
+            let s = self.store.lock().unwrap();
+            // New trackers renew original posts in the same compact inventory as volunteer
+            // copies. Rotate one full original per tick so a restored index can heal, too.
+
+            let mut records=s.db.prepare("SELECT data FROM kv WHERE key GLOB 'published:*' AND json_extract(data,'$.payload.kind')<>'post'")?.query_map([],|r|r.get::<_,String>(0))?.map(|raw|Ok(serde_json::from_str(&raw?)?)).collect::<Result<Vec<_>>>()?;
+            let cursor = s.get::<String>("original-audit")?.unwrap_or_default();
+            let id: Option<String> = s.db.query_row(
+                "SELECT min(id) FROM post_originals WHERE id>?",
+                [cursor],
+                |r| r.get(0),
+            )?;
+            s.set("original-audit", &id.as_deref().unwrap_or(""))?;
+            if let Some(id) = id {
+                records.push(
+                    s.get(&format!("published:{id}"))?
+                        .context("Missing published post")?,
+                );
+            }
+            records
+        };
         self.refresh_private_shares().await?;
         if records.is_empty() {
             return Ok(());
@@ -864,6 +900,30 @@ impl Node {
         }
         match request {
             PeerRequest::Moderation { .. } => unreachable!("handled above"),
+            PeerRequest::PostRoute { id } => {
+                self.readable_post(&id).await?;
+                Ok(PeerResponse::MediaRoute {
+                    address: self
+                        .direct_endpoint
+                        .as_ref()
+                        .context("Already direct")?
+                        .addr(),
+                })
+            }
+            PeerRequest::PublicPost { id } => {
+                let record = self.readable_post(&id).await?;
+                let bytes = serde_json::to_vec(&record)?.len() as u64;
+                let store = self.store.lock().unwrap();
+                let (_, settings, mut counters, reason) = Self::participation_state(&store)?;
+                ensure!(
+                    reason == "Hosting enabled"
+                        && counters.uploaded + bytes <= settings.upload_mb * 1024 * 1024,
+                    "Upload budget reached"
+                );
+                counters.uploaded += bytes;
+                store.set("counters", &counters)?;
+                Ok(PeerResponse::PublicPost { record })
+            }
             PeerRequest::MediaRoute { id } => {
                 ensure!(valid_id(&id), "Invalid media ID");
                 let media = self
@@ -1079,39 +1139,8 @@ impl Node {
         Ok(())
     }
     pub(crate) fn insert_message(&self, message: &Signed<Message>) -> Result<()> {
-        message.verify()?;
-        message.payload.validate()?;
-        let store = self.store.lock().unwrap();
-        let existing: Option<String> = store
-            .db
-            .query_row(
-                "SELECT json_extract(data,'$.signature') FROM messages WHERE id=?",
-                [&message.payload.id],
-                |r| r.get(0),
-            )
-            .optional()?;
-        if let Some(signature) = existing {
-            ensure!(
-                signature == message.signature,
-                "Conflicting signed messages with the same ID"
-            );
-            return Ok(());
-        }
-        let seq: i64 = store.db.query_row(
-            "SELECT coalesce(max(sequence),0)+1 FROM messages",
-            [],
-            |r| r.get(0),
-        )?;
-        store.db.execute(
-            "INSERT OR IGNORE INTO messages VALUES(?1,?2,?3,?4)",
-            params![
-                message.payload.id,
-                message.payload.room,
-                seq,
-                serde_json::to_string(message)?
-            ],
-        )?;
-        Ok(())
+        let room = self.joined_room(&message.payload.room)?;
+        self.write_history(&room, &[(message, None)])
     }
     pub(crate) fn messages_local(&self, room: &str, after: u64) -> Result<Vec<Signed<Message>>> {
         let store = self.store.lock().unwrap();
@@ -1338,6 +1367,7 @@ pub(crate) fn enforce_transport(request: &PeerRequest, direct_only: bool) -> Res
     let direct_required = matches!(
         request,
         PeerRequest::Chunk { .. }
+            | PeerRequest::PublicPost { .. }
             | PeerRequest::PrivateChunk { .. }
             | PeerRequest::Messages { .. }
             | PeerRequest::HistoryPage { .. }

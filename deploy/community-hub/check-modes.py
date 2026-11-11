@@ -44,6 +44,8 @@ def verify(staged, mode):
             tracker = mode in ('tracker','both')
             relay = mode in ('relay','both')
             check(call('/api/catalog')[0] == (200 if tracker else 404), 'Incorrect tracker routing')
+            check(call('/api/post-author?author=' + '0' * 64 + '&after=0')[0] == (200 if tracker else 404), 'Incorrect author archive routing')
+            check(call('/api/post-replicas', b'{}')[0] == (422 if tracker else 404), 'Incorrect replica heartbeat routing')
             check(call('/capabilities')[0] == (200 if relay else 404), 'Incorrect relay routing')
             check(call('/media/' + '0' * 64)[0] == 404, 'Hub exposed a file endpoint')
             if tracker:

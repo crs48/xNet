@@ -29,6 +29,8 @@ New messages and connection setup may use the encrypted relay. Chat history and 
 
 Open a room and use **Earlier messages** to read older pages. A desktop can serve its own verified copy after checking the room owner's signed permission. While the owner is unreachable, a permission lasts at most five minutes from issuance. Both the reader and the serving member must be listed. The last known message restrictions still apply. An online refusal takes effect on the next check. A disconnected member can miss a removal until the permission expires. Previously received copies remain on recipients' devices. The owner must be online to admit new members or accept new messages.
 
+The tracker also coordinates [voluntary replicas of public text posts](../../experiments/community-network/RETENTION.md). Three recent seeders is the target; a pending assignment never counts as an available copy. No room history enters the allocator.
+
 ## Operating the service
 
 Use one replica with its volume mounted at `/data`. It holds SQLite in WAL mode, the registry signing and evidence keys, and the relay admission and budget journal. Losing the registry signing key breaks the trust pin on existing clients. Preserve the entire directory in snapshots. Railway daily volume backups are enabled on the hosted instance. To rehearse recovery, restore a backup to an isolated instance, check readiness and compare the registry policy key and a known record before routing clients to it. [Railway volume backups](https://docs.railway.com/volumes/backups)

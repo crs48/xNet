@@ -12,6 +12,8 @@ macro_rules! ensure {
         }
     };
 }
+#[path = "post_tracker.rs"]
+mod post_tracker;
 use axum::{
     Json, Router,
     extract::{DefaultBodyLimit, Path, Query, State},
@@ -83,6 +85,7 @@ pub fn router_with_moderators(path: &FsPath, moderators: Vec<String>) -> Result<
     store.db.execute_batch(
         "CREATE TABLE IF NOT EXISTS private_routes(handle TEXT PRIMARY KEY,expires INTEGER NOT NULL,route TEXT NOT NULL,readers TEXT NOT NULL); CREATE INDEX IF NOT EXISTS private_expiry ON private_routes(expires); CREATE INDEX IF NOT EXISTS providers_expiry ON providers(expires); CREATE INDEX IF NOT EXISTS catalog_feed ON catalog(kind,reply_to,created DESC);",
     )?;
+    post_tracker::init(&store)?;
     let public_relay: Option<iroh::RelayUrl> = std::env::var("TRACKER_RELAY_URL")
         .ok()
         .map(|url| url.parse())
@@ -102,6 +105,7 @@ pub fn router_with_moderators(path: &FsPath, moderators: Vec<String>) -> Result<
         None
     };
     Ok(Router::new()
+        .merge(post_tracker::routes())
         .route("/api/catalog", get(catalog))
         .route("/join", get(page))
         .route("/private/{id}", get(page))
@@ -338,14 +342,14 @@ async fn announce(
     ensure!(others < 64, "Prototype provider limit reached");
     // On a public hub publish only the operator's rendezvous address. LAN candidates
     // are exchanged by authenticated peers after discovery.
-    tx.execute("INSERT INTO providers VALUES(?1,?2,?3,?4) ON CONFLICT(id,peer) DO UPDATE SET expires=excluded.expires,address=excluded.address",params![r.id,value.author,value.payload.expires as i64,serde_json::to_string(&address)?])?;
+    tx.execute("INSERT INTO providers VALUES(?1,?2,?3,?4) ON CONFLICT(id,peer) DO UPDATE SET expires=excluded.expires,address=excluded.address",params![r.id,value.author,value.payload.expires.min(now()+180) as i64,serde_json::to_string(&address)?])?;
     tx.commit()?;
     Ok(Json(serde_json::json!({"accepted":true,"id":r.id})))
 }
 fn with_providers(store: &Store, record: Signed<Record>) -> Result<CatalogItem> {
     let mut q = store
         .db
-        .prepare("SELECT address FROM providers WHERE id=?1 AND expires>?2 LIMIT 64")?;
+        .prepare("SELECT address FROM (SELECT address,peer FROM providers WHERE id=?1 AND expires>?2 UNION SELECT n.address,h.peer FROM replica_haves h JOIN replica_nodes n USING(peer) WHERE h.id=?1 AND n.seen>?2-180) GROUP BY peer ORDER BY random() LIMIT 64")?;
     let providers = q
         .query_map(params![record.payload.id, now() as i64], |r| {
             r.get::<_, String>(0)
@@ -518,6 +522,18 @@ async fn moderate(
                 )?;
             }
             if decision == "restrict_author" {
+                store.db.execute(
+                    "DELETE FROM replica_nodes WHERE peer=?",
+                    [&updated.report.subject.author],
+                )?;
+                store.db.execute(
+                    "DELETE FROM replica_haves WHERE peer=?",
+                    [&updated.report.subject.author],
+                )?;
+                store.db.execute(
+                    "DELETE FROM replica_offers WHERE peer=?",
+                    [&updated.report.subject.author],
+                )?;
                 store.db.execute("DELETE FROM providers WHERE peer=? OR id IN (SELECT id FROM catalog WHERE author=?)", [&updated.report.subject.author, &updated.report.subject.author])?;
             }
             serde_json::to_value(updated)?
@@ -531,6 +547,10 @@ async fn moderate(
             store
                 .db
                 .execute("DELETE FROM providers WHERE id=? AND peer=?", [&id, actor])?;
+            store.db.execute(
+                "DELETE FROM replica_haves WHERE id=? AND peer=?",
+                [&id, actor],
+            )?;
             serde_json::json!({"withdrawn":true})
         }
     };

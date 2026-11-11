@@ -1,5 +1,7 @@
 # xNet community network experiment
 
+[What this device keeps: chat history, follows, and volunteer post storage](RETENTION.md)
+
 A separate Rust + Tauri prototype for a community that hosts its own media and conversations. The first slice is intentionally small: two desktops, one public metadata registry, one shared film, and public or invitation-only conversations.
 
 The hosted beta runs its relay and tracker together at [iroh.xnet.fyi](https://iroh.xnet.fyi/). To connect two desktops, share a file, or configure the service, see the [community hub guide](../../deploy/community-hub/README.md).

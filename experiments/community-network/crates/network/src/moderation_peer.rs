@@ -558,7 +558,10 @@ impl Node {
     }
 }
 
-async fn bounded_response(mut response: reqwest::Response, limit: usize) -> Result<Vec<u8>> {
+pub(crate) async fn bounded_response(
+    mut response: reqwest::Response,
+    limit: usize,
+) -> Result<Vec<u8>> {
     let mut bytes = Vec::new();
     while let Some(chunk) = response.chunk().await? {
         ensure!(

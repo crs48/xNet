@@ -683,3 +683,335 @@ async fn paged_history_from_another_member_expires_without_the_owner() -> Result
     reader.endpoint.close().await;
     Ok(())
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn full_and_bounded_member_history_are_independent() -> Result<()> {
+    let root = TempDir::new()?;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+    let url = format!("http://{}", listener.local_addr()?);
+    let router = registry::router(&root.path().join("catalog.sqlite"))?;
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let host = member(&root, "Host", &url).await?;
+    let guest = member(&root, "Guest", &url).await?;
+    let room = host.create_room("Workshop".into(), false).await?;
+    let joined = guest.join_link(&host.invitation(&room.id)?).await?;
+    for i in 0..507 {
+        host.send_message(&room.id, format!("Note {i}")).await?;
+    }
+    for _ in 0..3 {
+        guest.catch_up_room(&joined).await?;
+    }
+    assert_eq!(guest.snapshot()?.room_copies[&room.id].messages, 507);
+    guest.room_limit(&room.id, true)?;
+    assert_eq!(guest.snapshot()?.room_copies[&room.id].messages, 500);
+    assert_eq!(host.snapshot()?.room_copies[&room.id].messages, 507);
+    // Browsing an older page must not displace newer signed history.
+    let oldest = guest.history_page(&room.id, Some(8), None, None).await?;
+    assert_eq!(oldest.messages[0].payload.body, "Note 0");
+    {
+        let s = guest.store.lock().unwrap();
+        assert_eq!(
+            s.db.query_row(
+                "SELECT min(sequence) FROM history_receipts WHERE room=?",
+                [&room.id],
+                |r| r.get::<_, i64>(0)
+            )?,
+            8
+        );
+        assert_eq!(
+            s.db.query_row(
+                "SELECT count(*) FROM messages WHERE room=?",
+                [&room.id],
+                |r| r.get::<_, i64>(0)
+            )?,
+            500
+        );
+    }
+    guest.room_limit(&room.id, false)?;
+    for _ in 0..3 {
+        guest.catch_up_room(&joined).await?;
+    }
+    assert_eq!(guest.snapshot()?.room_copies[&room.id].messages, 507);
+    host.room_limit(&room.id, true)?;
+    assert_eq!(host.snapshot()?.room_copies[&room.id].messages, 500);
+    host.room_limit(&room.id, false)?;
+    for _ in 0..3 {
+        host.catch_up_room(&room).await?;
+    }
+    assert_eq!(host.snapshot()?.room_copies[&room.id].messages, 507);
+    let private = host.create_room("Just us".into(), true).await?;
+    assert!(host.room_limit(&private.id, true).is_err());
+    server.abort();
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn follows_donations_and_offline_repair_across_devices() -> Result<()> {
+    let root = TempDir::new()?;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+    let database = root.path().join("directory.sqlite");
+    let url = format!("http://{}", listener.local_addr()?);
+    let router = registry::router(&database)?;
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let author = member(&root, "Author", &url).await?;
+    let friend = member(&root, "Friend", &url).await?;
+    let donor = member(&root, "Donor", &url).await?;
+    let spare = member(&root, "Spare", &url).await?;
+    let post = author
+        .publish_post("The ferry is running".into(), None)
+        .await?;
+    let reply = author
+        .publish_post("Meet at four?".into(), Some(post.payload.id.clone()))
+        .await?;
+    let other = donor.publish_post("A community note".into(), None).await?;
+    friend.follow_posts(&post.author, true)?;
+    friend.sync_posts().await?;
+    let kept = friend.snapshot()?.post_storage;
+    assert_eq!((kept.followed_posts, kept.community_posts), (2, 0));
+    assert!(author.snapshot()?.post_storage.follows.is_empty());
+    // A published signature is unchanged when served directly by its follower.
+    let read = spare
+        .request(
+            friend.endpoint.addr(),
+            PeerRequest::PublicPost {
+                id: reply.payload.id.clone(),
+            },
+        )
+        .await?;
+    assert!(matches!(read,PeerResponse::PublicPost{record} if record.signature==reply.signature));
+    donor.post_budget(1)?;
+    donor.sync_posts().await?;
+    donor.sync_posts().await?;
+    assert_eq!(donor.snapshot()?.post_storage.community_posts, 2);
+    assert_eq!(spare.lookup(&post.payload.id).await?.providers.len(), 3);
+    spare.post_budget(1)?;
+    spare.sync_posts().await?;
+    assert_eq!(spare.snapshot()?.post_storage.community_posts, 1); // only the donor's own post is scarce
+    let db = rusqlite::Connection::open(&database)?;
+    donor.post_budget(0)?;
+    donor.sync_posts().await?;
+    assert_eq!(donor.snapshot()?.post_storage.community_posts, 0);
+    assert_eq!(spare.lookup(&post.payload.id).await?.providers.len(), 2);
+    // Expire the publisher too. The real tracker offers repair using the one remaining follower.
+    db.execute(
+        "UPDATE providers SET expires=0 WHERE peer=?",
+        [&post.author],
+    )?;
+    spare.sync_posts().await?;
+    spare.sync_posts().await?;
+    assert_eq!(spare.snapshot()?.post_storage.community_posts, 3);
+    assert_eq!(spare.lookup(&post.payload.id).await?.providers.len(), 2);
+    friend.post_budget(1)?;
+    friend.sync_posts().await?;
+    assert!(friend.snapshot()?.post_storage.community_bytes > 0);
+    friend.post_budget(0)?;
+    friend.sync_posts().await?;
+    assert_eq!(
+        (
+            friend.snapshot()?.post_storage.followed_posts,
+            friend.snapshot()?.post_storage.community_bytes
+        ),
+        (2, 0)
+    );
+    assert!(
+        !spare
+            .lookup(&other.payload.id)
+            .await?
+            .providers
+            .iter()
+            .any(|p| p.id == friend.endpoint.id())
+    );
+    friend.follow_posts(&post.author, false)?;
+    assert_eq!(friend.snapshot()?.post_storage.followed_posts, 0);
+    assert!(matches!(
+        spare
+            .request(
+                friend.endpoint.addr(),
+                PeerRequest::PublicPost {
+                    id: post.payload.id
+                }
+            )
+            .await?,
+        PeerResponse::Error { .. }
+    ));
+    server.abort();
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn tracker_reservations_diversify_time_slots_and_rebalance_a_full_peer() -> Result<()> {
+    use community_network::replication::{Beat, Plan};
+    let root = TempDir::new()?;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+    let path = root.path().join("tracker.sqlite");
+    let url = format!("http://{}", listener.local_addr()?);
+    let router = registry::router(&path)?;
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let a = member(&root, "East", &url).await?;
+    let b = member(&root, "West", &url).await?;
+    let p = a.publish_post("East!".into(), None).await?;
+    let q = b.publish_post("West!".into(), None).await?;
+    let db = rusqlite::Connection::open(&path)?;
+    let donor = member(&root, "Volunteer", &url).await?;
+    let time = now() as i64;
+    let slot = (time / 14400) % 6;
+    for (peer, hour) in [(&p.author, slot), (&q.author, (slot + 1) % 6)] {
+        db.execute(
+            "INSERT OR REPLACE INTO replica_hours VALUES(?,?,?)",
+            rusqlite::params![peer, hour, time],
+        )?;
+    }
+    let registry = a.registry_policy(false).await?.registry_id;
+    let session = digest(b"tracker fixture session");
+    let signed = |free, inventory: Vec<String>, replaceable| {
+        Signed::new(
+            Beat {
+                registry: registry.clone(),
+                nonce: digest(&rand::random::<[u8; 32]>()),
+                created: now(),
+                address: donor.endpoint.addr(),
+                free,
+                session: session.clone(),
+                changes: vec![],
+                after: "".into(),
+                inventory,
+                end: true,
+                replaceable,
+            },
+            &donor.key,
+        )
+    };
+    let endpoint = format!("{url}/api/post-replicas");
+    let http = reqwest::Client::new();
+    let bytes = serde_json::to_vec(&q)?.len() as u64;
+    let report = signed(bytes, vec![], vec![])?;
+    let offer: Plan = http
+        .post(&endpoint)
+        .json(&report)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+    assert_eq!(offer.offers.len(), 1);
+    assert_eq!(
+        offer.offers[0].id, q.payload.id,
+        "prefer the publisher with a complementary schedule"
+    );
+    assert_eq!(
+        a.lookup(&q.payload.id).await?.providers.len(),
+        1,
+        "a reservation does not count"
+    );
+    assert!(
+        http.post(&endpoint)
+            .json(&report)
+            .send()
+            .await?
+            .status()
+            .is_client_error()
+    );
+    let retry: Plan = http
+        .post(&endpoint)
+        .json(&signed(bytes, vec![], vec![])?)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+    assert!(retry.offers.is_empty(), "outstanding offers reserve bytes");
+    // Add another confirmed provider of the West post; a full donor can now spare its copy.
+    a.follow_posts(&q.author, true)?;
+    a.sync_posts().await?;
+    let full = signed(0, vec![q.payload.id.clone()], vec![q.payload.id.clone()])?;
+    let repair: Plan = http
+        .post(&endpoint)
+        .json(&full)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+    assert_eq!(repair.offers.len(), 1);
+    assert_eq!(repair.offers[0].id, p.payload.id);
+    assert_eq!(repair.offers[0].replace.as_ref(), Some(&q.payload.id));
+    db.execute(
+        "UPDATE replica_nodes SET seen=? WHERE peer=?",
+        rusqlite::params![time - 181, donor.endpoint.id().to_string()],
+    )?;
+    assert_eq!(
+        a.lookup(&q.payload.id).await?.providers.len(),
+        2,
+        "an expired desktop does not count"
+    );
+    db.execute("UPDATE replica_offers SET expires=0", [])?;
+    let next = signed(bytes, vec![], vec![])?;
+    let repair: Plan = http
+        .post(&endpoint)
+        .json(&next)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+    assert_eq!(
+        repair.offers[0].id, p.payload.id,
+        "a timed-out reservation becomes available for repair"
+    );
+    server.abort();
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn publishers_renew_in_batches_and_the_public_index_can_reseed_text() -> Result<()> {
+    let root = TempDir::new()?;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+    let url = format!("http://{}", listener.local_addr()?);
+    let path = root.path().join("tracker.sqlite");
+    let router = registry::router(&path)?;
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let owner = member(&root, "Originals", &url).await?;
+    let next = member(&root, "Volunteer", &url).await?;
+    let mut originals = vec![];
+    for i in 0..12 {
+        originals.push(owner.publish_post(format!("Field note {i}"), None).await?);
+    }
+    let db = rusqlite::Connection::open(path)?;
+    db.execute("DELETE FROM providers", [])?;
+    owner.announce_all().await?;
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM providers", [], |r| r.get::<_, i64>(0))?,
+        1,
+        "a refresh sends at most one complete original"
+    );
+    owner.sync_posts().await?;
+    for r in &originals {
+        assert_eq!(
+            next.lookup(&r.payload.id).await?.providers.len(),
+            1,
+            "all originals renewed without individual uploads"
+        );
+    }
+    db.execute("DELETE FROM providers", [])?;
+    db.execute("UPDATE replica_nodes SET seen=0", [])?;
+    owner.endpoint.close().await;
+    next.post_budget(1)?;
+    next.sync_posts().await?;
+    next.sync_posts().await?;
+    let storage = next.snapshot()?.post_storage;
+    assert_eq!(
+        storage.community_posts, 12,
+        "public text can be recovered from the searchable index with zero peer sources"
+    );
+    let local = next.store.lock().unwrap();
+    let saved: String = local.db.query_row(
+        "SELECT data FROM post_copies WHERE id=?",
+        [&originals[0].payload.id],
+        |r| r.get(0),
+    )?;
+    let saved: Signed<Record> = serde_json::from_str(&saved)?;
+    saved.verify()?;
+    assert_eq!(saved.signature, originals[0].signature);
+    server.abort();
+    Ok(())
+}

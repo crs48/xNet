@@ -59,10 +59,12 @@ const routes = new Set([
   '/style.css',
   '/registry.js',
   '/api/catalog',
+  '/api/post-author',
   '/api/moderation/policy'
 ])
 const writes = new Set([
   '/api/announce',
+  '/api/post-replicas',
   '/api/moderation',
   '/api/private/announce',
   '/api/private/resolve'

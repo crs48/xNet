@@ -274,6 +274,12 @@ impl Message {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum PeerRequest {
+    PublicPost {
+        id: String,
+    },
+    PostRoute {
+        id: String,
+    },
     PrivateManifest {
         handle: String,
     },
@@ -327,6 +333,9 @@ pub struct PeerEnvelope {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum PeerResponse {
+    PublicPost {
+        record: Signed<Record>,
+    },
     Manifest {
         record: Signed<Record>,
         nonce: String,

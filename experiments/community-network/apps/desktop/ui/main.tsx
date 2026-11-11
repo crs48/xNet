@@ -52,7 +52,10 @@ import {
 import { PublicFeed } from './PublicFeed'
 
 type Settings = { enabled: boolean; storage_mb: number; upload_mb: number }
+import { PostContribution, RoomStorage, type PostStorage, type RoomCopy } from './LocalStorage'
 type Snapshot = {
+  post_storage: PostStorage
+  room_copies: Record<string, RoomCopy>
   id: string
   profile: { name: string } | null
   participation: Settings
@@ -725,6 +728,7 @@ function App() {
         {tab === 'posts' && (
           <PublicFeed
             key={safetyRevision}
+            storage={{ id: snapshot.id, follows: snapshot.post_storage.follows, update: refresh }}
             onReport={(item) => setReportTarget({ item })}
             changed={safetyChanged}
             name={snapshot.profile.name}
@@ -767,6 +771,12 @@ function App() {
                   Invite
                 </Button>
               </div>
+              <RoomStorage
+                key={room.id}
+                room={room}
+                copy={snapshot.room_copies[room.id]}
+                update={refresh}
+              />
               {snapshot.active && (earlier || pageCursor) && (
                 <nav aria-label="Chat history" className="flex justify-center gap-2 pb-2">
                   <Button
@@ -905,7 +915,7 @@ function App() {
               <p className="footnote">
                 {room.private
                   ? 'Private to admitted members. Prototype group protocol; no forward secrecy or offline mailbox yet.'
-                  : 'Public conversation. The room owner must be online for synchronization.'}
+                  : 'Public conversation. The owner must be online to accept new messages.'}
               </p>
             </div>
           ) : (
@@ -955,7 +965,7 @@ function App() {
             </div>
             <div className="metrics">
               <div>
-                <span>Stored here</span>
+                <span>Media stored here</span>
                 <strong>{size(snapshot.counters.stored)}</strong>
               </div>
               <div>
@@ -1026,6 +1036,7 @@ function App() {
                 </Button>
               </div>
             </form>
+            <PostContribution state={snapshot.post_storage} update={refresh} />
             <h2 className="subheading">Your local library</h2>
             {snapshot.library.length === 0 ? (
               <p className="muted">Published and downloaded media appears here.</p>

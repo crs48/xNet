@@ -1853,3 +1853,9 @@ The community prototype reserves HTTPS share links for public catalog records, o
 The community desktop fetches room history over authenticated direct connections. The room owner signs each message’s sequence and the current list of permitted devices and hidden messages. Readers and serving peers check with the owner for each page. If the owner is unreachable, both may use their signed permission for up to 300 seconds from issuance. Relays may forward live sends and connection setup. History pages stay on participants’ devices. A disconnected member may continue reading during the remainder of its grant following a removal.
 
 **Tripwire:** Revisit this choice before extending the five-minute window, allowing offline grants to admit new members, or storing or forwarding history on a hosted service. A page returned to an unauthorized device or after its permission expires blocks rollout.
+
+## ADR-66: Coordinate public post copies separately from room history
+
+The community tracker accepts signed, expiring inventories for public text posts. Offers reserve replica slots without advertising an available source. The receiving desktop controls its byte budget, verifies the original author's signature, and chooses which followed authors to retain. Room history and membership never enter this inventory. Existing room reads continue to require an authorized peer. An online seeder count is a recent claim, not a durability guarantee.
+
+**Tripwire:** Revisit the protocol before indexing private inventories, treating a claimed copy as a paid storage commitment, or using automatic placement for large media. If three recent claims repeatedly produce no reachable source, measure reachability and add independent verification before increasing the replica target.

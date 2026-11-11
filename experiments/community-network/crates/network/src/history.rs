@@ -32,7 +32,7 @@ impl HistoryPermission {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryReceipt {
     room: String,
-    sequence: i64,
+    pub(crate) sequence: i64,
     signature: String,
 }
 
@@ -48,7 +48,7 @@ pub struct HistoryPage {
 }
 
 impl Node {
-    fn joined_room(&self, id: &str) -> Result<Room> {
+    pub(crate) fn joined_room(&self, id: &str) -> Result<Room> {
         ensure!(valid_id(id), "Invalid room ID");
         self.store
             .lock()
@@ -243,7 +243,10 @@ impl Node {
             .collect::<rusqlite::Result<Vec<_>>>()?;
         let more = rows.len() > PAGE_SIZE;
         rows.truncate(PAGE_SIZE);
-        let earlier = rows.last().filter(|_| more).map(|r| r.0 as u64);
+        let trimmed = store
+            .get::<bool>(&format!("trimmed-room:{id}"))?
+            .unwrap_or(false);
+        let earlier = rows.last().filter(|_| more || trimmed).map(|r| r.0 as u64);
         let hidden: HashSet<_> = policy.hidden.iter().collect();
         let mut visible = Vec::new();
         for (sequence, raw, proof) in rows.into_iter().rev() {
@@ -379,7 +382,18 @@ impl Node {
             let mut page = self.serve_history(id, &mine, before, known).await?;
             page.messages.retain(|m| !preferences.hides_message(m));
             page.proofs.clear();
-            return Ok(page);
+            if before.is_none()
+                || !page.messages.is_empty()
+                || !self
+                    .store
+                    .lock()
+                    .unwrap()
+                    .get::<bool>(&format!("trimmed-room:{id}"))?
+                    .unwrap_or(false)
+                || room.members.len() < 2
+            {
+                return Ok(page);
+            }
         }
         let (policy, online) = self.history_permission(&room).await?;
         // A changed visibility policy invalidates the client's conditional read.
@@ -420,7 +434,7 @@ impl Node {
         let lookup = async {
             let mut best = None;
             if let Some((owner, page)) = get(primary).await {
-                if owner || page.unchanged || !page.messages.is_empty() {
+                if (owner && before.is_none()) || page.unchanged || !page.messages.is_empty() {
                     return Some(page);
                 }
                 best = Some(page);
@@ -428,7 +442,7 @@ impl Node {
             let mut others = stream::iter(peers.map(get)).buffer_unordered(3);
             while let Some(candidate) = others.next().await {
                 if let Some((owner, page)) = candidate {
-                    if owner || page.unchanged || !page.messages.is_empty() {
+                    if (owner && before.is_none()) || page.unchanged || !page.messages.is_empty() {
                         return Some(page);
                     }
                     best = Some(page);
@@ -450,14 +464,14 @@ impl Node {
             );
         }
         let hidden: HashSet<_> = policy.hidden.iter().collect();
-        for (message, proof) in page.messages.iter().zip(&page.proofs) {
-            if hidden.contains(&message.payload.id) {
-                continue;
-            }
-            self.insert_message(message)?;
-            self.store.lock().unwrap().db.execute("INSERT INTO history_receipts VALUES (?,?,?,?) ON CONFLICT(room,sequence) DO NOTHING",
-                params![id,proof.payload.sequence,message.payload.id,serde_json::to_string(proof)?])?;
-        }
+        let rows = page
+            .messages
+            .iter()
+            .zip(&page.proofs)
+            .filter(|(m, _)| !hidden.contains(&m.payload.id))
+            .map(|(m, p)| (m, Some(p)))
+            .collect::<Vec<_>>();
+        self.write_history(&room, &rows)?;
         page.proofs.clear();
         page.messages
             .retain(|m| !hidden.contains(&m.payload.id) && !preferences.hides_message(m));

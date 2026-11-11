@@ -6,21 +6,27 @@ import { Input } from './components/ui/input'
 import { Textarea } from './components/ui/textarea'
 import { ContentControls } from './Moderation'
 
+type FollowState = { id: string; follows: string[]; update: () => Promise<unknown> }
 type Thread = { post: Item; replies: Item[] }
 
 function Post({
+  storage,
   item,
   open,
   share,
   onReport,
   changed
 }: {
+  storage: FollowState
   item: Item
   open: (id: string) => void
   share: (id: string) => void
   onReport: (item: Item) => void
   changed: () => void
 }) {
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const following = storage.follows.includes(item.record.author)
   const r = item.record.payload
   return (
     <article className="post-card">
@@ -30,6 +36,29 @@ function Post({
       <div className="post-content">
         <div className="post-author">
           <strong title={`Device identity: ${item.record.author}`}>{r.owner_name}</strong>
+          {item.record.author !== storage.id && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-pressed={following}
+              disabled={saving}
+              title="Keep this author’s public posts on your device"
+              onClick={async () => {
+                setSaving(true)
+                setError('')
+                try {
+                  await api({ op: 'follow_posts', author: item.record.author, follow: !following })
+                  await storage.update()
+                } catch (e) {
+                  setError(errorText(e))
+                } finally {
+                  setSaving(false)
+                }
+              }}
+            >
+              {following ? 'Following' : 'Follow'}
+            </Button>
+          )}
           <time dateTime={new Date(r.created * 1000).toISOString()}>
             {new Date(r.created * 1000).toLocaleString([], {
               month: 'short',
@@ -39,6 +68,7 @@ function Post({
             })}
           </time>
         </div>
+        {error && <p role="alert">{error}</p>}
         {r.reply_to && (
           <button className="parent-link" onClick={() => open(r.reply_to!)}>
             Replying to a post
@@ -46,6 +76,12 @@ function Post({
         )}
         <p className="post-body">{r.description}</p>
         <div className="post-actions">
+          <span
+            className="small muted"
+            title="Devices recently reporting a copy; reachability can change"
+          >
+            {item.providers.length} recent {item.providers.length === 1 ? 'seeder' : 'seeders'}
+          </span>
           <button onClick={() => open(r.id)} aria-label={`Replies to ${r.owner_name}'s post`}>
             <MessageCircle size={15} /> Reply & discuss
           </button>
@@ -140,6 +176,7 @@ function Composer({
 }
 
 export function PublicFeed({
+  storage,
   name,
   active,
   selected,
@@ -148,6 +185,7 @@ export function PublicFeed({
   onReport,
   changed
 }: {
+  storage: FollowState
   name: string
   active: boolean
   selected: string | null
@@ -281,6 +319,7 @@ export function PublicFeed({
       )}
       {selected && thread && (
         <Post
+          storage={storage}
           item={thread.post}
           open={select}
           share={share}
@@ -303,6 +342,7 @@ export function PublicFeed({
       <div aria-label={selected ? 'Public replies' : 'Recent public posts'} aria-busy={loading}>
         {(selected ? thread?.replies || [] : items).map((item) => (
           <Post
+            storage={storage}
             key={item.record.payload.id}
             item={item}
             open={select}
