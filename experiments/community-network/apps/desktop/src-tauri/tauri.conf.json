@@ -23,6 +23,7 @@
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost; img-src 'self' data: http://127.0.0.1:*; media-src http://127.0.0.1:*; object-src 'none'; base-uri 'none'; frame-src 'none'"
     }
   },
+  "plugins": { "deep-link": { "desktop": { "schemes": ["xnet-community"] } } },
   "bundle": {
     "active": true,
     "category": "SocialNetworking",

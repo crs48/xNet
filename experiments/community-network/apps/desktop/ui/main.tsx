@@ -1,8 +1,7 @@
 import { AppDialog } from './components/app-dialog'
 import { Button } from './components/ui/button'
-import { Input } from './components/ui/input'
-import { Textarea } from './components/ui/textarea'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke, isTauri } from '@tauri-apps/api/core'
+import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link'
 import {
   Film,
   Music2,
@@ -40,6 +39,8 @@ import {
   type Message,
   type Preferences
 } from './api'
+import { Input } from './components/ui/input'
+import { Textarea } from './components/ui/textarea'
 import { DesktopUpdates } from './DesktopUpdates'
 import {
   ContentControls,
@@ -65,7 +66,7 @@ type Snapshot = {
   rooms: Room[]
   library: Signed<RecordData>[]
 }
-type Playback = { url: string; item: Item }
+type Playback = { url: string; item: Item; privateLink?: string }
 const size = (bytes: number) =>
   bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(0)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
 
@@ -95,6 +96,7 @@ function App() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [file, setFile] = useState('')
+  const [audience, setAudience] = useState('')
   const [privateRoom, setPrivateRoom] = useState(true)
   const [link, setLink] = useState('')
   const [storage, setStorage] = useState(1024)
@@ -104,6 +106,41 @@ function App() {
     setStatus('')
     setModal(next)
   }
+  useEffect(() => {
+    if (!isTauri()) return
+    let mounted = true
+    let unsubscribe: (() => void) | undefined
+    const receive = (urls: string[]) => {
+      if (!mounted) return
+      const prefix = 'xnet-community://open/#'
+      const url = urls.find((value) => value.startsWith(prefix) && value.length < 20000)
+      if (!url) return
+      try {
+        const target = new URL(decodeURIComponent(url.slice(prefix.length)))
+        if (!['http:', 'https:'].includes(target.protocol)) throw Error()
+        setLink(target.href)
+        setStatus('')
+        setModal('join')
+      } catch {
+        setStatus('This invitation link could not be read.')
+      }
+    }
+    void (async () => {
+      const off = await onOpenUrl(receive)
+      if (!mounted) {
+        off()
+        return
+      }
+      unsubscribe = off
+      receive((await getCurrent()) ?? [])
+    })().catch(() => {
+      if (mounted) setStatus('Paste a shared link using Open a link.')
+    })
+    return () => {
+      mounted = false
+      unsubscribe?.()
+    }
+  }, [])
   const refresh = async () => {
     const state = await api<Snapshot>({ op: 'snapshot' })
     setSnapshot(state)
@@ -257,6 +294,7 @@ function App() {
     setTitle('')
     setDescription('')
     setFile('')
+    setAudience('')
     openModal('publish')
   }
   if (!snapshot)
@@ -1083,29 +1121,37 @@ function App() {
             <h2>{playback.item.record.payload.title}</h2>
             <p>{playback.item.record.payload.description}</p>
             <p className="small muted">
-              Streamed through your local Rust peer. Chunks are verified before playback and cached
-              within your storage limit.
+              {playback.privateLink
+                ? 'Private room file. The seeder checks your device before sending each chunk.'
+                : 'Streamed through your local peer and verified before playback.'}
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() =>
-                run('Saving a complete copy and announcing this host…', async () => {
-                  await api({ op: 'retain', id: playback.item.record.payload.id })
-                  setStatus('Complete copy verified. Your desktop is now listed as a host.')
-                  await search()
-                })
-              }
-              disabled={!!busy || !snapshot.active}
-            >
-              <Download size={15} />
-              Keep a full copy
-            </Button>
+            {!playback.privateLink && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  run('Saving a complete copy and announcing this host…', async () => {
+                    await api({ op: 'retain', id: playback.item.record.payload.id })
+                    setStatus('Complete copy verified. Your desktop is now listed as a host.')
+                    await search()
+                  })
+                }
+                disabled={!!busy || !snapshot.active}
+              >
+                <Download size={15} />
+                Keep a full copy
+              </Button>
+            )}
             <Button
               type="button"
               aria-haspopup="dialog"
               variant="outline"
-              onClick={() => copy(`${snapshot.registry}/watch/${playback.item.record.payload.id}`)}
+              onClick={() =>
+                copy(
+                  playback.privateLink ??
+                    `${snapshot.registry}/watch/${playback.item.record.payload.id}`
+                )
+              }
             >
               <Link size={15} />
               Share link
@@ -1124,6 +1170,18 @@ function App() {
             onSubmit={(e) => {
               e.preventDefault()
               run('Preparing chunks and publishing metadata…', async () => {
+                if (audience) {
+                  const { link: privateLink } = await api<{ link: string }>({
+                    op: 'share_private',
+                    path: file,
+                    title,
+                    description,
+                    room: audience
+                  })
+                  setModal(null)
+                  await copy(privateLink)
+                  return
+                }
                 await api({ op: 'publish', path: file, title, description })
                 setModal(null)
                 setStatus(
@@ -1184,16 +1242,32 @@ function App() {
                 maxLength={2000}
               />
             </label>
+            {snapshot.registry.startsWith('https:') && (
+              <label>
+                Share with
+                <select value={audience} onChange={(e) => setAudience(e.target.value)}>
+                  <option value="">Everyone</option>
+                  {snapshot.rooms
+                    .filter((r) => r.private && r.owner.id === snapshot.id)
+                    .map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.title} · private room
+                      </option>
+                    ))}
+                </select>
+              </label>
+            )}
             <p className="small muted">
-              Public · your name, caption, file manifest and peer address are discoverable. No
-              transcoding is performed.
+              {audience
+                ? 'Only current members can open this link while your desktop is hosting.'
+                : 'Your name, caption and seeding device will appear in the public tracker.'}
             </p>
             <Button
               variant="default"
               className="w-full"
               disabled={!file || !title.trim() || !!busy}
             >
-              Publish & host
+              {audience ? 'Create private link' : 'Publish & host'}
               <ArrowUpRight size={16} />
             </Button>
           </form>
@@ -1282,16 +1356,20 @@ function App() {
                   address.password
                 )
                   throw new Error('Open a link from this registry.')
-                const match = address.pathname.match(/^\/(watch|post)\/([a-f0-9]{64})$/)
+                const match = address.pathname.match(/^\/(watch|post|private)\/([a-f0-9]{64})$/)
                 if (match?.[1] === 'post') {
                   await api({ op: 'post_thread', id: match[2] })
                   setPostId(match[2])
                   setTab('posts')
                   setPlayback(null)
                   setShare('')
-                } else if (match?.[1] === 'watch') {
-                  const result = await api<Playback>({ op: 'play', id: match[2] })
-                  setPlayback(result)
+                } else if (match?.[1] === 'watch' || match?.[1] === 'private') {
+                  const privateFile = match[1] === 'private'
+                  const result = await api<Playback>({
+                    op: privateFile ? 'play_private' : 'play',
+                    id: match[2]
+                  })
+                  setPlayback(privateFile ? { ...result, privateLink: address.href } : result)
                   setTab(result.item.record.payload.kind === 'audio' ? 'music' : 'discover')
                 } else {
                   const r = await api<Room>({ op: 'join', link })
@@ -1311,7 +1389,7 @@ function App() {
                 data-initial-focus
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
-                placeholder="http://127.0.0.1:4380/…"
+                placeholder={snapshot.registry + '/…'}
                 required
               />
             </label>

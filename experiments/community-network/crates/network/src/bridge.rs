@@ -32,7 +32,7 @@ pub struct BridgeInfo {
 pub struct Bridge {
     pub node: Arc<Node>,
     pub info: BridgeInfo,
-    tickets: Arc<Mutex<HashMap<String, (String, u64)>>>,
+    tickets: Arc<Mutex<HashMap<String, (String, u64, bool)>>>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
@@ -97,6 +97,15 @@ pub enum Command {
         reply_to: Option<String>,
     },
     PostThread {
+        id: String,
+    },
+    SharePrivate {
+        path: String,
+        title: String,
+        description: String,
+        room: String,
+    },
+    PlayPrivate {
         id: String,
     },
     Publish {
@@ -265,8 +274,21 @@ impl Bridge {
                 node.publish_file(&PathBuf::from(path), title, description)
                     .await?,
             )?,
-            Command::Play { id } => {
-                let item = node.media(&id).await?;
+            Command::SharePrivate {
+                path,
+                title,
+                description,
+                room,
+            } => {
+                serde_json::json!({"link":node.share_private(&PathBuf::from(path),title,description,&room).await?})
+            }
+            Command::PlayPrivate { ref id } | Command::Play { ref id } => {
+                let private = matches!(command, Command::PlayPrivate { .. });
+                let item = if private {
+                    node.open_private(id).await?
+                } else {
+                    node.media(id).await?
+                };
                 ensure!(
                     matches!(
                         item.record.payload.kind.as_str(),
@@ -276,9 +298,9 @@ impl Bridge {
                 );
                 let ticket = hex::encode(rand::random::<[u8; 32]>());
                 let mut tickets = self.tickets.lock().unwrap();
-                tickets.retain(|_, (_, expiry)| *expiry > now());
+                tickets.retain(|_, (_, expiry, _)| *expiry > now());
                 ensure!(tickets.len() < 128, "Too many playback sessions");
-                tickets.insert(ticket.clone(), (id.clone(), now() + 600));
+                tickets.insert(ticket.clone(), (id.clone(), now() + 600, private));
                 serde_json::json!({"url":format!("http://127.0.0.1:{}/media/{id}?ticket={ticket}",self.info.port),"item":item})
             }
             Command::Retain { id } => {
@@ -289,7 +311,11 @@ impl Bridge {
                 serde_json::to_value(node.create_room(title, private).await?)?
             }
             Command::Join { link } => serde_json::to_value(node.join_link(&link).await?)?,
-            Command::Invite { id } => serde_json::json!({"link":node.invitation(&id)?}),
+            Command::Invite { id } => {
+                let link = node.invitation(&id)?;
+                node.register_relay(None).await?;
+                serde_json::json!({"link":link})
+            }
             Command::Messages { id } => serde_json::to_value(node.sync_room(&id).await?)?,
             Command::Send { id, body } => {
                 node.send_message(&id, body).await?;
@@ -338,17 +364,22 @@ async fn media(
     headers: HeaderMap,
     method: axum::http::Method,
 ) -> Result<Response, ApiError> {
-    let valid = bridge
+    let private = bridge
         .tickets
         .lock()
         .unwrap()
         .get(&ticket.ticket)
-        .is_some_and(|(content, expiry)| content == &id && *expiry > now());
-    if !valid {
+        .filter(|(content, expiry, _)| content == &id && *expiry > now())
+        .map(|(_, _, private)| *private);
+    let Some(private) = private else {
         return Ok((StatusCode::FORBIDDEN, "Playback session expired").into_response());
-    }
+    };
     bridge.node.require_active()?;
-    let item = bridge.node.media(&id).await?;
+    let item = if private {
+        bridge.node.open_private(&id).await?
+    } else {
+        bridge.node.media(&id).await?
+    };
     let record = &item.record.payload;
     let range = byte_range(
         headers.get(header::RANGE).and_then(|h| h.to_str().ok()),
@@ -383,7 +414,7 @@ async fn media(
     let node = bridge.node.clone();
     let stream = async_stream::try_stream! {
         for index in (start/CHUNK as u64)..=(end/CHUNK as u64){
-            let bytes=node.chunk(&item,index as usize).await.map_err(std::io::Error::other)?;
+            let bytes=if private {node.private_chunk(&id,&item,index as usize).await} else {node.chunk(&item,index as usize).await}.map_err(std::io::Error::other)?;
             let base=index*CHUNK as u64;let first=start.saturating_sub(base) as usize;let last=((end-base+1).min(bytes.len() as u64)) as usize;
             yield Bytes::copy_from_slice(&bytes[first..last]);
         }

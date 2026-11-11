@@ -521,3 +521,30 @@ async fn three_peers_media_chat_and_security_boundaries() -> Result<()> {
     );
     Ok(())
 }
+
+#[tokio::test]
+async fn hosted_control_endpoint_refuses_media_bytes() -> Result<()> {
+    let root = TempDir::new()?;
+    let publisher = member(&root, "Publisher", "https://127.0.0.1:9").await?;
+    let viewer = member(&root, "Viewer", "http://127.0.0.1:9").await?;
+    let addr = iroh::EndpointAddr::new(publisher.endpoint.id())
+        .with_ip_addr(publisher.endpoint.bound_sockets()[0]);
+    for request in [
+        PeerRequest::Chunk {
+            id: "a".repeat(64),
+            index: 0,
+        },
+        PeerRequest::PrivateChunk {
+            handle: "b".repeat(64),
+            index: 0,
+        },
+    ] {
+        let response = viewer.request(addr.clone(), request).await?;
+        assert!(
+            matches!(response, PeerResponse::Error { message } if message.contains("direct connection"))
+        );
+    }
+    viewer.endpoint.close().await;
+    publisher.endpoint.close().await;
+    Ok(())
+}

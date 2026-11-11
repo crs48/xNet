@@ -19,11 +19,16 @@ use tokio::sync::Semaphore;
 
 pub struct Node {
     pub endpoint: Endpoint,
+    pub(crate) admitted: std::sync::atomic::AtomicBool,
+    pub(crate) relay: Option<iroh::RelayUrl>,
+    pub(crate) direct_media: Option<Endpoint>,
     pub key: SecretKey,
     pub root: PathBuf,
     pub store: Mutex<Store>,
     pub registry: String,
     pub client: reqwest::Client,
+    pub(crate) membership_changed: Arc<tokio::sync::Notify>,
+    last_media_route: Mutex<Option<(EndpointAddr, std::time::Instant)>>,
     slots: Arc<Semaphore>,
     pub(crate) policy_refresh: tokio::sync::Mutex<()>,
     _profile_lock: std::fs::File,
@@ -51,6 +56,7 @@ impl Node {
         private_dir(&root.join("chunks"))?;
         let key = read_key(&root.join("identity.key"))?;
         let store = Store::open(&root.join("state.sqlite"))?;
+        let relay = crate::hub::relay_url(&registry)?;
         let mut builder = Endpoint::builder(presets::Minimal)
             .secret_key(key.clone())
             .alpns(vec![ALPN.to_vec()]);
@@ -64,12 +70,32 @@ impl Node {
                 builder = builder.bind_addr(socket)?;
             }
         }
+        if let Some(url) = &relay {
+            builder = builder.relay_mode(iroh::RelayMode::custom([url.clone()]));
+            if std::env::var("XNET_COMMUNITY_RELAY_ONLY").as_deref() == Ok("1") {
+                builder = builder.clear_ip_transports();
+            }
+        }
         let endpoint = builder
             .bind()
             .await
             .context("Unable to bind this profile's peer ports")?;
         // Keep existing invitations usable across restarts on the same network.
-        store.set("transport:sockets", &endpoint.bound_sockets())?;
+        if !endpoint.bound_sockets().is_empty() {
+            store.set("transport:sockets", &endpoint.bound_sockets())?;
+        }
+        let direct_media = if relay.is_some() {
+            Some(
+                Endpoint::builder(presets::Minimal)
+                    .secret_key(key.clone())
+                    .relay_mode(iroh::RelayMode::Disabled)
+                    .alpns(vec![ALPN.to_vec()])
+                    .bind()
+                    .await?,
+            )
+        } else {
+            None
+        };
         let mut counters = store.get::<Counters>("counters")?.unwrap_or_default();
         counters.stored = std::fs::read_dir(root.join("chunks"))?.try_fold(
             0u64,
@@ -83,6 +109,9 @@ impl Node {
         store.set("counters", &counters)?;
         let node = Arc::new(Self {
             endpoint,
+            relay,
+            direct_media,
+            admitted: false.into(),
             key,
             root,
             store: Mutex::new(store),
@@ -91,6 +120,8 @@ impl Node {
                 .redirect(reqwest::redirect::Policy::none())
                 .timeout(Duration::from_secs(10))
                 .build()?,
+            membership_changed: Default::default(),
+            last_media_route: Mutex::new(None),
             slots: Arc::new(Semaphore::new(16)),
             policy_refresh: tokio::sync::Mutex::new(()),
             _profile_lock: profile_lock,
@@ -99,25 +130,32 @@ impl Node {
             let store = node.store.lock().unwrap();
             for mut room in store.list::<Room>("room:")? {
                 if room.owner.id == node.endpoint.id() {
-                    room.owner = node.endpoint.addr();
+                    room.owner = node.routing_address();
                     store.set(&format!("room:{}", room.id), &room)?;
                 }
             }
         }
-        let acceptor = node.clone();
-        tokio::spawn(async move {
-            acceptor.accept().await;
-        });
+        tokio::spawn(node.clone().accept(node.endpoint.clone(), false));
+        if let Some(media) = &node.direct_media {
+            tokio::spawn(node.clone().accept(media.clone(), true));
+        }
+        let changed = node.membership_changed.clone();
         let announcer = Arc::downgrade(&node);
         tokio::spawn(async move {
             let mut refresh = tokio::time::interval(Duration::from_secs(60));
             loop {
-                refresh.tick().await;
+                let membership =
+                    tokio::select! { _ = refresh.tick()=> false, _ = changed.notified()=> true };
                 let Some(node) = announcer.upgrade() else {
                     break;
                 };
                 if node.require_active().is_ok() {
-                    if let Err(e) = node.announce_all().await {
+                    let result = if membership {
+                        node.refresh_private_shares().await
+                    } else {
+                        node.announce_all().await
+                    };
+                    if let Err(e) = result {
                         eprintln!("Registry refresh failed: {e}");
                     }
                 }
@@ -130,21 +168,7 @@ impl Node {
             .store
             .lock()
             .map_err(|_| anyhow::anyhow!("Local store lock failed"))?;
-        let profile = store.get::<Profile>("profile")?;
-        let participation = store
-            .get::<Participation>("participation")?
-            .unwrap_or_default();
-        let counters = store.get::<Counters>("counters")?.unwrap_or_default();
-        let reason = if profile.is_none() {
-            "Create your local account"
-        } else if !participation.enabled {
-            "Hosting paused"
-        } else if counters.uploaded >= participation.upload_mb * 1024 * 1024 {
-            "Upload budget reached"
-        } else {
-            "Hosting enabled"
-        }
-        .to_string();
+        let (profile, participation, counters, reason) = Self::participation_state(&store)?;
         let active = reason == "Hosting enabled";
         Ok(Snapshot {
             id: self.endpoint.id().to_string(),
@@ -154,7 +178,7 @@ impl Node {
             active,
             reason,
             registry: self.registry.clone(),
-            address: self.endpoint.addr(),
+            address: self.routing_address(),
             rooms: store.list("room:")?,
             library: store.list("media:")?,
             departed_rooms: store.list("departed-room:")?,
@@ -177,12 +201,32 @@ impl Node {
                 .collect::<Result<Vec<_>>>()?,
         })
     }
+    fn participation_state(
+        store: &Store,
+    ) -> Result<(Option<Profile>, Participation, Counters, String)> {
+        let profile = store.get::<Profile>("profile")?;
+        let participation = store
+            .get::<Participation>("participation")?
+            .unwrap_or_default();
+        let counters = store.get::<Counters>("counters")?.unwrap_or_default();
+        let reason = if profile.is_none() {
+            "Create your local account"
+        } else if !participation.enabled {
+            "Hosting paused"
+        } else if counters.uploaded >= participation.upload_mb * 1024 * 1024 {
+            "Upload budget reached"
+        } else {
+            "Hosting enabled"
+        }
+        .to_string();
+        Ok((profile, participation, counters, reason))
+    }
     pub fn require_active(&self) -> Result<()> {
-        let s = self.snapshot()?;
+        let (_, _, _, reason) = Self::participation_state(&self.store.lock().unwrap())?;
         ensure!(
-            s.active,
+            reason == "Hosting enabled",
             "{} · resume contribution to use the network",
-            s.reason
+            reason
         );
         Ok(())
     }
@@ -311,10 +355,11 @@ impl Node {
                 "Hosting has not been approved for this item"
             );
         }
+        self.register_relay(None).await?;
         let announcement = Signed::new(
             Announcement {
                 record,
-                address: self.endpoint.addr(),
+                address: self.routing_address(),
                 expires: now() + 180,
             },
             &self.key,
@@ -327,8 +372,17 @@ impl Node {
             .error_for_status()?;
         Ok(())
     }
+    async fn refresh_private_shares(&self) -> Result<()> {
+        let private: Vec<crate::private_media::Share> =
+            self.store.lock().unwrap().list("private-share:")?;
+        for share in private {
+            self.announce_private(&share).await?;
+        }
+        Ok(())
+    }
     pub async fn announce_all(&self) -> Result<()> {
         let records: Vec<Signed<Record>> = self.store.lock().unwrap().list("published:")?;
+        self.refresh_private_shares().await?;
         if records.is_empty() {
             return Ok(());
         }
@@ -346,7 +400,7 @@ impl Node {
         }
         Ok(())
     }
-    fn chunk_path(&self, id: &str, index: usize) -> Result<PathBuf> {
+    pub(crate) fn chunk_path(&self, id: &str, index: usize) -> Result<PathBuf> {
         ensure!(
             valid_id(id) && index < MAX_MEDIA.div_ceil(CHUNK as u64) as usize,
             "Invalid chunk address"
@@ -387,6 +441,25 @@ impl Node {
         Ok(())
     }
     pub async fn publish_file(
+        &self,
+        path: &Path,
+        title: String,
+        description: String,
+    ) -> Result<Signed<Record>> {
+        let signed = self.prepare_file(path, title, description)?;
+        let id = &signed.payload.id;
+        {
+            let store = self.store.lock().unwrap();
+            store.set(&format!("hosting:{id}"), &true)?;
+            store.set(&format!("media:{id}"), &signed)?;
+            store.set(&format!("published:{id}"), &signed)?;
+        }
+        self.announce(signed.clone())
+            .await
+            .context("Saved locally, but registry publication failed. Resume hosting to retry.")?;
+        Ok(signed)
+    }
+    pub(crate) fn prepare_file(
         &self,
         path: &Path,
         title: String,
@@ -462,17 +535,7 @@ impl Node {
             file.read_exact(&mut buffer[..len])?;
             self.cache_chunk(&record, i, &buffer[..len], false)?;
         }
-        let signed = Signed::new(record, &self.key)?;
-        {
-            let store = self.store.lock().unwrap();
-            store.set(&format!("hosting:{id}"), &true)?;
-            store.set(&format!("media:{id}"), &signed)?;
-            store.set(&format!("published:{id}"), &signed)?;
-        }
-        self.announce(signed.clone())
-            .await
-            .context("Saved locally, but registry publication failed. Resume hosting to retry.")?;
-        Ok(signed)
+        Signed::new(record, &self.key)
     }
     pub async fn media(&self, id: &str) -> Result<CatalogItem> {
         self.require_active()?;
@@ -483,7 +546,7 @@ impl Node {
                 .get::<Signed<Record>>(&format!("media:{id}"))?
                 .map(|record| CatalogItem {
                     record,
-                    providers: vec![self.endpoint.addr()],
+                    providers: vec![self.routing_address()],
                 }))
         };
         let item = match local {
@@ -522,16 +585,7 @@ impl Node {
             if address.id == self.endpoint.id() {
                 continue;
             }
-            match self
-                .request(
-                    address.clone(),
-                    PeerRequest::Chunk {
-                        id: record.id.clone(),
-                        index,
-                    },
-                )
-                .await
-            {
+            match self.fetch_chunk(address, &record.id, index).await {
                 Ok(PeerResponse::Chunk { bytes }) => {
                     let bytes = STANDARD.decode(bytes)?;
                     self.cache_chunk(record, index, &bytes, true)?;
@@ -616,8 +670,78 @@ impl Node {
             .set(&format!("published:{id}"), &item.record)?;
         self.announce(item.record).await
     }
+    async fn fetch_chunk(
+        &self,
+        provider: &EndpointAddr,
+        id: &str,
+        index: usize,
+    ) -> Result<PeerResponse> {
+        let chunk = PeerRequest::Chunk {
+            id: id.to_owned(),
+            index,
+        };
+        if self.direct_media.is_none() {
+            return self.request(provider.clone(), chunk).await;
+        }
+        self.direct_request(provider, PeerRequest::MediaRoute { id: id.into() }, chunk)
+            .await
+    }
+    pub(crate) async fn direct_request(
+        &self,
+        provider: &EndpointAddr,
+        lookup: PeerRequest,
+        chunk: PeerRequest,
+    ) -> Result<PeerResponse> {
+        let media = self
+            .direct_media
+            .as_ref()
+            .context("Direct media unavailable")?;
+        let cached = self
+            .last_media_route
+            .lock()
+            .unwrap()
+            .as_ref()
+            .filter(|(addr, at)| addr.id == provider.id && at.elapsed() < Duration::from_secs(45))
+            .map(|(addr, _)| addr.clone());
+        if let Some(address) = cached {
+            if let Ok(response) = self.request_on(media, address, chunk.clone()).await {
+                return Ok(response);
+            }
+        }
+        match self.request(provider.clone(), lookup).await? {
+            PeerResponse::MediaRoute { address } => {
+                ensure!(
+                    address.id == provider.id
+                        && !address.addrs.is_empty()
+                        && address.addrs.len() <= 12
+                        && address.addrs.iter().all(|a| a.is_ip()),
+                    "Invalid direct media route"
+                );
+                let response = self
+                    .request_on(media, address.clone(), chunk)
+                    .await
+                    .context("No direct media connection to this seeder")?;
+                *self.last_media_route.lock().unwrap() = Some((address, std::time::Instant::now()));
+                Ok(response)
+            }
+            PeerResponse::Error { message } => bail!(message),
+            _ => bail!("Seeder does not support direct media"),
+        }
+    }
     pub async fn request(
         &self,
+        address: EndpointAddr,
+        request: PeerRequest,
+    ) -> Result<PeerResponse> {
+        let address = match &self.relay {
+            Some(url) => EndpointAddr::new(address.id).with_relay_url(url.clone()),
+            None => address,
+        };
+        self.request_on(&self.endpoint, address, request).await
+    }
+    async fn request_on(
+        &self,
+        transport: &Endpoint,
         address: EndpointAddr,
         request: PeerRequest,
     ) -> Result<PeerResponse> {
@@ -625,10 +749,10 @@ impl Node {
             self.require_active()?;
         }
         tokio::time::timeout(Duration::from_secs(15), async {
-            let connection = self.endpoint.connect(address, ALPN).await?;
+            let connection = transport.connect(address, ALPN).await?;
             let (mut send, mut recv) = connection.open_bi().await?;
             send.write_all(&serde_json::to_vec(&PeerEnvelope {
-                address: self.endpoint.addr(),
+                address: self.routing_address(),
                 request,
             })?)
             .await?;
@@ -642,8 +766,8 @@ impl Node {
         .await
         .context("Peer request timed out")?
     }
-    async fn accept(self: Arc<Self>) {
-        while let Some(incoming) = self.endpoint.accept().await {
+    async fn accept(self: Arc<Self>, endpoint: Endpoint, media_only: bool) {
+        while let Some(incoming) = endpoint.accept().await {
             let Ok(permit) = self.slots.clone().try_acquire_owned() else {
                 incoming.refuse();
                 continue;
@@ -663,6 +787,17 @@ impl Node {
                                 && envelope.address.addrs.len() <= 12,
                             "Peer address does not match authenticated identity"
                         );
+                        if node.direct_media.is_some() {
+                            ensure!(
+                                media_only
+                                    == matches!(
+                                        envelope.request,
+                                        PeerRequest::Chunk { .. }
+                                            | PeerRequest::PrivateChunk { .. }
+                                    ),
+                                "Media bytes require a direct connection"
+                            );
+                        }
                         if !matches!(
                             envelope.request,
                             PeerRequest::Ping | PeerRequest::Moderation { .. }
@@ -717,6 +852,27 @@ impl Node {
         }
         match request {
             PeerRequest::Moderation { .. } => unreachable!("handled above"),
+            PeerRequest::MediaRoute { id } => {
+                ensure!(valid_id(&id), "Invalid media ID");
+                let media = self
+                    .direct_media
+                    .as_ref()
+                    .context("Direct media is unavailable")?;
+                let record: Signed<Record> = self
+                    .store
+                    .lock()
+                    .unwrap()
+                    .get(&format!("media:{id}"))?
+                    .context("Unknown media")?;
+                ensure!(
+                    self.hosting_allowed(&id, &record.author)?,
+                    "Hosting is disabled for this item"
+                );
+                self.public_allowed(&record).await?;
+                Ok(PeerResponse::MediaRoute {
+                    address: media.addr(),
+                })
+            }
             PeerRequest::Ping => Ok(PeerResponse::Ready),
             PeerRequest::Chunk { id, index } => {
                 let store = self.store.lock().unwrap();
@@ -736,25 +892,28 @@ impl Node {
                 policy
                     .payload
                     .permits("", &self.endpoint.id().to_string())?;
-                ensure!(index < record.payload.chunks.len(), "Unknown chunk");
-                let bytes = std::fs::read(self.chunk_path(&id, index)?)?;
-                ensure!(
-                    digest(&bytes) == record.payload.chunks[index],
-                    "Corrupt chunk"
-                );
-                let mut counters = store.get::<Counters>("counters")?.unwrap_or_default();
-                let settings = store
-                    .get::<Participation>("participation")?
-                    .unwrap_or_default();
-                ensure!(
-                    counters.uploaded + bytes.len() as u64 <= settings.upload_mb * 1024 * 1024,
-                    "Upload budget reached"
-                );
-                counters.uploaded += bytes.len() as u64;
-                store.set("counters", &counters)?;
-                Ok(PeerResponse::Chunk {
-                    bytes: STANDARD.encode(bytes),
+                self.serve_chunk(&store, &record, index)
+            }
+            PeerRequest::PrivateRoute { handle } => {
+                self.authorized_share(&handle, peer)?;
+                Ok(PeerResponse::MediaRoute {
+                    address: self
+                        .direct_media
+                        .as_ref()
+                        .context("Direct media unavailable")?
+                        .addr(),
                 })
+            }
+            PeerRequest::PrivateManifest { handle } => {
+                let share = self.authorized_share(&handle, peer)?;
+                Ok(PeerResponse::Manifest {
+                    record: share.record,
+                    nonce: share.nonce,
+                })
+            }
+            PeerRequest::PrivateChunk { handle, index } => {
+                let record = self.authorized_share(&handle, peer)?.record;
+                self.serve_chunk(&self.store.lock().unwrap(), &record, index)
             }
             PeerRequest::Join { room, secret } => {
                 let store = self.store.lock().unwrap();
@@ -784,6 +943,7 @@ impl Node {
                         r.members.push(peer.into());
                     }
                     store.set(&format!("room:{room}"), &r)?;
+                    self.membership_changed.notify_one();
                 }
                 r.invite.clear();
                 r.banned.clear();
@@ -832,7 +992,33 @@ impl Node {
             }
         }
     }
-    fn authorize_room(&self, peer: &str, id: &str) -> Result<()> {
+    fn serve_chunk(
+        &self,
+        store: &Store,
+        record: &Signed<Record>,
+        index: usize,
+    ) -> Result<PeerResponse> {
+        ensure!(index < record.payload.chunks.len(), "Unknown chunk");
+        let bytes = std::fs::read(self.chunk_path(&record.payload.id, index)?)?;
+        ensure!(
+            digest(&bytes) == record.payload.chunks[index],
+            "Corrupt chunk"
+        );
+        let mut counters = store.get::<Counters>("counters")?.unwrap_or_default();
+        let settings = store
+            .get::<Participation>("participation")?
+            .unwrap_or_default();
+        ensure!(
+            counters.uploaded + bytes.len() as u64 <= settings.upload_mb * 1024 * 1024,
+            "Upload budget reached"
+        );
+        counters.uploaded += bytes.len() as u64;
+        store.set("counters", &counters)?;
+        Ok(PeerResponse::Chunk {
+            bytes: STANDARD.encode(bytes),
+        })
+    }
+    pub(crate) fn authorize_room(&self, peer: &str, id: &str) -> Result<()> {
         ensure!(valid_id(id), "Invalid room ID");
         let room: Room = self
             .store
@@ -908,7 +1094,7 @@ impl Node {
             id: id.clone(),
             title: title.clone(),
             private,
-            owner: self.endpoint.addr(),
+            owner: self.routing_address(),
             members: vec![self.endpoint.id().to_string()],
             invite: hex::encode(rand::random::<[u8; 32]>()),
             rules: moderation::RULES.into(),
@@ -960,8 +1146,12 @@ impl Node {
             room.owner.id == self.endpoint.id(),
             "Only the room owner can invite"
         );
-        room.owner = self.endpoint.addr();
+        room.owner = self.routing_address();
         let invitation = Invitation {
+            admission: self
+                .relay
+                .as_ref()
+                .map(|_| crate::hub::admission(&self.key)),
             room: room.id,
             owner: room.owner,
             secret: room.invite,
@@ -993,12 +1183,20 @@ impl Node {
                 .find(|p| p.id.to_string() == item.record.author)
                 .context("Room owner is offline")?;
             Invitation {
+                admission: None,
                 room: id.into(),
                 owner,
                 secret: String::new(),
             }
         };
         ensure!(valid_id(&invitation.room), "Invalid invitation");
+        if let Some(grant) = &invitation.admission {
+            ensure!(
+                grant.parent == invitation.owner.id.to_string(),
+                "Invitation issuer mismatch"
+            );
+        }
+        self.register_relay(invitation.admission.as_ref()).await?;
         match self
             .request(
                 invitation.owner.clone(),

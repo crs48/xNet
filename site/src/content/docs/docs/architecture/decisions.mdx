@@ -1841,3 +1841,9 @@ limitations. A preview is untrusted presentation, not proof of a site's identity
 fetching, arbitrary provider embeds, or durable background retries. Require
 two-device blob-delivery evidence before promising offline availability to every
 conversation member.
+
+## ADR-64: Separate community file delivery from hosted discovery
+
+The community prototype reserves HTTPS share links for public catalog records, opaque private file handles and room invitations. A single hub can run tracker and relay roles on the same origin. Public seeder leases expire. A private lookup requires a device signature, and the serving desktop checks room membership for each private chunk. Iroh can relay chat and connection setup. The desktop sends media on a direct-only endpoint. One volume backup preserves the hub's authorities, admission state and catalog.
+
+**Tripwire:** Reopen the direct-only media choice if invited peers on separate residential networks regularly succeed at chat but fail at playback. Measure failed direct routes and price an explicitly budgeted media relay before changing the default.

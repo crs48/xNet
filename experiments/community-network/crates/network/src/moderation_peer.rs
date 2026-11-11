@@ -452,6 +452,7 @@ impl Node {
             "Room membership limit reached"
         );
         store.set(&format!("room:{id}"), &room)?;
+        self.membership_changed.notify_one();
         remember_request(&store, &request.payload.nonce)?;
         tx.commit()?;
         Ok(result)

@@ -44,7 +44,15 @@ fn updates_enabled(app: tauri::AppHandle) -> bool {
 }
 
 fn main() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.set_focus();
+        }
+    }));
+    builder
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
@@ -55,8 +63,26 @@ fn main() {
             let root = std::env::var_os("XNET_COMMUNITY_DATA")
                 .map(std::path::PathBuf::from)
                 .unwrap_or(app.path().app_data_dir()?);
-            let registry =
-                std::env::var("XNET_COMMUNITY_REGISTRY").unwrap_or("http://127.0.0.1:4380".into());
+            let registry = std::env::var("XNET_COMMUNITY_REGISTRY")
+                .ok()
+                .map(Ok)
+                .unwrap_or_else(|| {
+                    let origin = root.join("registry-origin");
+                    match std::fs::read_to_string(&origin) {
+                        Ok(value) => Ok(value),
+                        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                            let registry = if root.join("state.sqlite").exists() {
+                                "http://127.0.0.1:4380"
+                            } else {
+                                community_network::hub::COMMUNITY_HUB
+                            };
+                            std::fs::create_dir_all(&root)?;
+                            std::fs::write(origin, registry)?;
+                            Ok(registry.to_owned())
+                        }
+                        Err(e) => Err(e),
+                    }
+                })?;
             let bridge = tauri::async_runtime::block_on(async {
                 let node = Node::start(root, registry).await?;
                 Bridge::start(node).await

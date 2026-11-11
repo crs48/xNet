@@ -234,7 +234,18 @@ fn default_room_rules() -> String {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct RelayAdmission {
+    pub parent: String,
+    pub nonce: String,
+    pub expires: u64,
+    #[serde(rename = "maxUses")]
+    pub max_uses: u8,
+    pub signature: String,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Invitation {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub admission: Option<RelayAdmission>,
     pub room: String,
     pub owner: EndpointAddr,
     pub secret: String,
@@ -263,7 +274,20 @@ impl Message {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum PeerRequest {
+    PrivateManifest {
+        handle: String,
+    },
+    PrivateRoute {
+        handle: String,
+    },
+    PrivateChunk {
+        handle: String,
+        index: usize,
+    },
     Ping,
+    MediaRoute {
+        id: String,
+    },
     Moderation {
         request: Signed<crate::moderation_peer::RoomRequest>,
     },
@@ -291,13 +315,30 @@ pub struct PeerEnvelope {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum PeerResponse {
+    Manifest {
+        record: Signed<Record>,
+        nonce: String,
+    },
     Ready,
-    Moderation { result: serde_json::Value },
-    Chunk { bytes: String },
-    Room { room: Room },
-    Messages { messages: Vec<Signed<Message>> },
+    MediaRoute {
+        address: EndpointAddr,
+    },
+    Moderation {
+        result: serde_json::Value,
+    },
+    Chunk {
+        bytes: String,
+    },
+    Room {
+        room: Room,
+    },
+    Messages {
+        messages: Vec<Signed<Message>>,
+    },
     Sent,
-    Error { message: String },
+    Error {
+        message: String,
+    },
 }
 
 /// A single RFC 9110 byte range. Unsupported/malformed ranges fail closed.

@@ -150,3 +150,23 @@ iframe {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+details {
+  margin-block: 1rem;
+}
+code {
+  overflow-wrap: anywhere;
+}
+[hidden] {
+  display: none !important;
+}
+
+.open-app {
+  display: inline-block;
+  margin: 0.5rem 0.8rem 0.5rem 0;
+  padding: 0.65rem 1rem;
+  color: white;
+  background: #282d34;
+  border-radius: 0.6rem;
+  text-decoration: none;
+}
