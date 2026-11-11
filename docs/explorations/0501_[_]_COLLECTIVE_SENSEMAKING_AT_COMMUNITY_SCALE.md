@@ -1,7 +1,7 @@
 ---
 title: Collective sensemaking at community scale
 status: draft
-last_updated: 2026-11-04
+last_updated: 2026-11-11
 review: 2026-11-18
 decider: Chris
 door: two-way
@@ -15,7 +15,7 @@ tags: [community, deliberation, governance, polis, participation, tauri]
 
 This is a general-purpose product capability for large communities and collective political action. It is not limited to decisions about xNet. The starting scale is hundreds to tens of thousands of participants, with larger deployments treated as a measured engineering goal.
 
-[Read the website edition](web/0501/index.html). This Markdown is canonical; the website is a reading interface, not a working product feature. Research checked November 4, 2026. Revisit November 18 after a bounded Polis integration investigation and feedback from an experienced facilitator; that is a decision checkpoint, not a delivery promise.
+[Read the website edition](web/0501/index.html). This Markdown is canonical; the website is a reading interface, not a working product feature. The original research was checked November 4, 2026. The [coordination and epistemics field guide](#field-guide-to-coordination-and-epistemics) was added November 11. Revisit November 18 after a bounded Polis integration investigation and feedback from an experienced facilitator; that is a decision checkpoint, not a delivery promise.
 
 ## 1. The opportunity: a social space that can arrive somewhere
 
@@ -82,6 +82,45 @@ Community Notes seeks support across differing rating patterns and publishes its
 A 2026 preprint examines 119 Polis conversations with at least 100 participants. It reports that developer choices, conveners and participation patterns shape results, and raises reproducibility concerns with exported clustering because of warm-path computation. This is one observational preprint, not a definitive verdict on every deployment. It is a strong reason to record analysis versions and test reproducibility rather than assuming an export is enough. [Gelauff, August 2026](https://arxiv.org/abs/2608.28368)
 
 The OECD's guidance for representative deliberative processes emphasizes inclusive recruitment, appropriate evidence, facilitation and a public response to recommendations. Open online participation and a representative citizens' panel are different methods. Combining them can be valuable, but their results should remain distinguishable. [OECD principles](https://www.oecd.org/en/publications/evaluation-guidelines-for-representative-deliberative-processes_10ccbfcb-en/full-report/component-9.html)
+
+## Field guide to coordination and epistemics
+
+Suppose a city can fund one new late-night bus route. A nurse at the hospital wants a departure after the last shift. A warehouse worker wants a connection to the first morning train. Before anyone votes, the city has two questions to answer. **What do residents need?** And **what evidence would tell us which route will serve them?** These questions call for different tools.
+
+### Coordination tools
+
+**Hear the room.** With **Polis**, residents write statements in their own words and respond to one another’s statements. Clusters form from patterns of agreement and disagreement. An organizer can see whether “I need a safe place to wait after midnight” finds support across groups, then invite people to explain what a safe stop means on their route. [Polis](https://compdemocracy.org/polis/)
+
+If the city already has hundreds of written comments or interview transcripts, **Talk to the City** offers another starting point. Its open-source software groups related arguments into a report and lets readers trace a theme back to the voices behind it. That matters when a summary like “later service” hides two incompatible timetables. [Talk to the City project](https://ai.objectives.institute/talk-to-the-city-1)
+
+| When people are contributing | Tool and method |
+| --- | --- |
+| Neighbors can sit around a table | **Cortico** records small-group conversations. Organizers and participants can listen back to excerpts and draw out themes across groups. [Cortico](https://cortico.ai/) |
+| Many tables are talking at once | **Dembrane** lets each group record its discussion on a phone. Facilitators can bring an emerging theme back into the room for correction before writing the report. [How Dembrane works](https://www.dembrane.com/faq) · [Participant walkthrough](https://docs.dembrane.com/users/participant/what-to-expect.html) |
+| People need a fair turn to speak on video | Stanford’s **Deliberative Democracy Lab Online Deliberation Platform** manages a speaking queue and timed turns in small groups. A large event can run many such groups in parallel. [Stanford’s platform](https://deliberation.stanford.edu/tools-resources/online-deliberation-platform) |
+| A research team wants fast feedback from a large group | **Remesh** runs moderated online conversations where people answer prompts and evaluate others’ responses. Its market and employee research practice is useful to study for rapid comparison of open-ended answers. [Remesh](https://www.remesh.ai/) |
+| Participants have different schedules or need follow-up questions | **Harmonica** conducts individual AI-facilitated conversations and synthesizes recurring themes and tensions. Someone coming off a late shift can contribute on their own time. [Harmonica](https://harmonica.chat/) |
+
+**Draft common ground.** In Google DeepMind’s **Habermas Machine** study, participants wrote their views, rated candidate group statements and critiqued the wording. The mediator used that feedback to produce another draft. An xNet exercise could show the most-endorsed wording beside an objection it still leaves open. A participant should be able to recognize both. [Original study](https://deepmind.google/research/publications/65220/)
+
+**Choose priorities.** **Basalt** explored liquid democracy for crowdsourcing priorities across a network. People could delegate judgment to someone whose expertise they trusted. For a transport decision, it would matter whether someone delegated on route planning alone or on the whole budget. The contributed notes describe Basalt as inactive. Its designer’s archived interface is available to inspect. [Basalt design](https://dribbble.com/shots/10006291-Basalt-Web-App)
+
+### Epistemics tools
+
+Turn a contested prediction into a question somebody can settle. For the bus proposal, the city could ask, “Will the pilot average at least 80 boardings per service night in its first eight full weeks?” Publish the dates, the source of the counts and what happens if the pilot is cancelled. Residents can then record their estimates before the first bus runs.
+
+| What the group wants to do | Tools to explore |
+| --- | --- |
+| Pool forecasts | **Metaculus** aggregates probability estimates submitted by forecasters. **Polymarket**, **Manifold** and **Kalshi** show prices formed by people trading on outcomes. On either kind of platform, read the exact resolution criteria before comparing numbers. [Metaculus FAQ](https://www.metaculus.com/faq/) · [Polymarket](https://docs.polymarket.com/) · [Manifold](https://manifold.markets/) · [Kalshi](https://kalshi.com/) |
+| Inspect the case for a claim | **Rootclaim** lays out competing explanations for contested questions and assesses how evidence changes their relative likelihood. **Epistemic Check** is described in the contributed notes as an AI bot prototype that weighs pros and cons and produces a confidence score. For either approach, show which piece of evidence would change the conclusion. [Rootclaim](https://www.rootclaim.com/) |
+| Model uncertainty | **Squiggle** is a programming language for estimates expressed as distributions. A planner could model a range of night-shift workers and a range of likely uptake. **Estimaker** was designed to show a chain of assumptions as a probability tree. Nathan Young’s tree with Katja Grace makes the individual assumptions in an AI forecast inspectable. [Squiggle](https://www.squiggle-language.com/) · [Estimaker project notes](https://manifund.org/projects/new-forecasting-tools) · [Katja Grace example and interview notes](https://www.lesswrong.com/posts/mZ46CJQvgiTgaNwDm/ai-probability-trees-katja-grace) |
+| Learn from past estimates | Two projects from **Sage** support different habits. **Fatebook** records a prediction so the group can resolve it later. **Quantified Intuitions** offers exercises for practicing forecasting and calibration, including whether events assigned 70% confidence happen about seven times in ten. [Fatebook](https://fatebook.io/) · [Quantified Intuitions](https://www.quantifiedintuitions.org/) · [Sage](https://sage-future.org/) |
+
+The contributed list also names **Futur**. A similarly named prediction market, **Futuur**, publishes an explanation of its markets. The intended reference is unconfirmed. [Futuur’s market guide](https://futuur.com/i/how-it-works/)
+
+### What to carry into xNet
+
+On the bus question page, give residents three things they can come back to. **What we heard** includes the shift workers’ original words where they consent to share them. **What we expect** records the ridership forecast, its reasoning and its resolution date. **What we decided** names who chose the route, why, and when they owe residents the actual counts. If ridership comes in below forecast but the pilot provides the only accessible ride home for one neighborhood, people can revisit both the evidence and the value they place on that service. Both belong in the record.
 
 ## 3. A complete large-group journey
 
@@ -458,7 +497,7 @@ Before implementation, resolve five product choices:
 <details>
 <summary>Source and scope notes</summary>
 
-All external claims above link to primary project documentation, the original methods paper, a clearly labeled research preprint, or OECD guidance. Sources describe different versions and contexts. In particular, older Polis identity/math documentation must not be treated as a current integration contract. No live Polis service was deployed or benchmarked for this exploration.
+Project descriptions link to primary sources where available. The field guide labels details supplied only in the contributed notes. Sources describe different versions and contexts. In particular, older Polis identity/math documentation must not be treated as a current integration contract. No live Polis service was deployed or benchmarked for this exploration.
 
 The architecture, product names, participation rules, scale estimates and proposed validation targets are design recommendations. They are not features already implemented in xNet or empirical claims about political outcomes. Existing code was read in the local `codex/community-network-tauri` worktree; no application code was changed.
 

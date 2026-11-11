@@ -2,7 +2,7 @@
 
 Canonical research: [exploration 0501](../../0501_[_]_COLLECTIVE_SENSEMAKING_AT_COMMUNITY_SCALE.md).
 
-This is a portable reading interface with 12 chapters, primary-source citations and three
+This is a portable reading interface with 12 numbered chapters, a coordination and epistemics field guide, and three
 semantic diagram renderings. It contains no product mockup, live poll or simulated political
 participants. All product implementation and validation items remain unchecked.
 
