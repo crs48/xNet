@@ -25,7 +25,9 @@ sequenceDiagram
 
 Public listings contain a device and a manifest. Private leases hold an opaque handle, its owner route, expiry and per-file hashes of eligible device IDs. An operator who already knows a device ID can correlate these hashes. Private titles, manifests and room history stay on the desktops. The tracker and the seeder each check access. The receiver authenticates the seeder, verifies the signed manifest and checks each chunk. Clients renew every minute and their leases expire after three minutes. A listing is a recent claim of availability.
 
-Chat can use the encrypted relay when a direct connection is unavailable. Media uses a separate Iroh endpoint with relays disabled. Two devices behind restrictive NATs can exchange messages even when they cannot exchange media. The beta has no offline mailbox.
+New messages and connection setup may use the encrypted relay. Chat history and media use a separate Iroh endpoint with relays disabled. The tracker holds no chat history, and its volume backups cannot restore a conversation. If direct connections are blocked, sending a new message can still work while reading history is unavailable.
+
+Open a room and use **Earlier messages** to read older pages. A desktop can serve its own verified copy after checking the room owner's signed permission. While the owner is unreachable, a permission lasts at most five minutes from issuance. Both the reader and the serving member must be listed. The last known message restrictions still apply. An online refusal takes effect on the next check. A disconnected member can miss a removal until the permission expires. Previously received copies remain on recipients' devices. The owner must be online to admit new members or accept new messages.
 
 ## Operating the service
 

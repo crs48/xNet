@@ -1847,3 +1847,9 @@ conversation member.
 The community prototype reserves HTTPS share links for public catalog records, opaque private file handles and room invitations. A single hub can run tracker and relay roles on the same origin. Public seeder leases expire. A private lookup requires a device signature, and the serving desktop checks room membership for each private chunk. Iroh can relay chat and connection setup. The desktop sends media on a direct-only endpoint. One volume backup preserves the hub's authorities, admission state and catalog.
 
 **Tripwire:** Reopen the direct-only media choice if invited peers on separate residential networks regularly succeed at chat but fail at playback. Measure failed direct routes and price an explicitly budgeted media relay before changing the default.
+
+## ADR-65: Let room peers share history with a five-minute permission
+
+The community desktop fetches room history over authenticated direct connections. The room owner signs each message’s sequence and the current list of permitted devices and hidden messages. Readers and serving peers check with the owner for each page. If the owner is unreachable, both may use their signed permission for up to 300 seconds from issuance. Relays may forward live sends and connection setup. History pages stay on participants’ devices. A disconnected member may continue reading during the remainder of its grant following a removal.
+
+**Tripwire:** Revisit this choice before extending the five-minute window, allowing offline grants to admit new members, or storing or forwarding history on a hosted service. A page returned to an unauthorized device or after its permission expires blocks rollout.

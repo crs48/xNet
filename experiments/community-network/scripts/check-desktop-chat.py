@@ -110,6 +110,12 @@ def check(binary, directory, loopback):
         guest.call('send', id=pair, body='Welcome back.')
         require(messages(owner, pair) == expected + ['Welcome back.'], 'Restart lost history')
         print('Identity, invitation, and history survived restarting the room owner.', flush=True)
+        guest.close()  # Guest owns the three-person room.
+        page = friend.call('history_page', id=group)
+        require(page['source'] == identities[0] and page['offline_until'] is not None
+                and [m['payload']['body'] for m in page['messages']] == ['Alex', 'Sam', 'Jo'],
+                'Another member did not serve the owner-authorized group history')
+        print('A third desktop read history directly from a member with the group owner offline.', flush=True)
     finally:
         for peer in reversed(desktops):
             peer.close()

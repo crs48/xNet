@@ -66,6 +66,15 @@ type Snapshot = {
   rooms: Room[]
   library: Signed<RecordData>[]
 }
+type HistoryCursor = { before: number; source: string }
+type HistoryPage = {
+  source: string
+  earlier: number | null
+  revision: string
+  offline_until: number | null
+  unchanged: boolean
+  messages: Message[]
+}
 type Playback = { url: string; item: Item; privateLink?: string }
 const size = (bytes: number) =>
   bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(0)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
@@ -88,6 +97,10 @@ function App() {
   const [playback, setPlayback] = useState<Playback | null>(null)
   const [roomId, setRoomId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
+  const [historyCursors, setHistoryCursors] = useState<HistoryCursor[]>([])
+  const [earlier, setEarlier] = useState<HistoryCursor | null>(null)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const pageCursor = historyCursors.at(-1)
   const [syncError, setSyncError] = useState('')
   const [draft, setDraft] = useState('')
   const [share, setShare] = useState('')
@@ -206,19 +219,25 @@ function App() {
   const room = snapshot?.rooms.find((r) => r.id === roomId)
   useEffect(() => {
     setMessages([])
+    setEarlier(null)
     setSyncError('')
-    if (!roomId) return
+    setHistoryLoading(Boolean(roomId))
+    if (!roomId || tab !== 'chats') return
     if (!snapshot?.active) {
       let live = true
       api<Message[]>({ op: 'safety_history', room: roomId })
         .then((data) => {
           if (live) {
             setMessages(data)
+            setHistoryLoading(false)
             setSyncError('Saved messages for safety review. Live chat is paused.')
           }
         })
         .catch((e) => {
-          if (live) setSyncError(errorText(e))
+          if (live) {
+            setSyncError(errorText(e))
+            setHistoryLoading(false)
+          }
         })
       return () => {
         live = false
@@ -226,19 +245,34 @@ function App() {
     }
     let live = true
     let pending = false
+    let revision: string | null = null
     const sync = () => {
       if (!live || pending) return
       pending = true
-      api<Message[]>({ op: 'messages', id: roomId })
+      api<HistoryPage>({
+        op: 'history_page',
+        id: roomId,
+        before: pageCursor?.before,
+        source: pageCursor?.source,
+        known: revision
+      })
         .then((data) => {
           if (live) {
-            setMessages(data)
-            setSyncError('')
+            if (!data.unchanged) setMessages(data.messages)
+            revision = data.revision
+            setEarlier(data.earlier === null ? null : { before: data.earlier, source: data.source })
+            setHistoryLoading(false)
+            setSyncError(
+              data.offline_until ? 'Reading from a room member while the owner is offline.' : ''
+            )
           }
         })
         .catch((e) => {
           if (live) {
+            revision = null
             setMessages([])
+            setEarlier(null)
+            setHistoryLoading(false)
             setSyncError(errorText(e))
           }
         })
@@ -247,15 +281,15 @@ function App() {
         })
     }
     sync()
-    const timer = setInterval(sync, 1500)
+    const timer = setInterval(sync, 3000)
     return () => {
       live = false
       clearInterval(timer)
     }
-  }, [roomId, snapshot?.active, safetyRevision])
+  }, [roomId, pageCursor, tab, snapshot?.active, safetyRevision])
   useEffect(() => {
-    messageEnd.current?.scrollIntoView({ block: 'nearest' })
-  }, [messages.length])
+    if (!pageCursor) messageEnd.current?.scrollIntoView({ block: 'nearest' })
+  }, [messages.length, pageCursor])
   const settings = (enabled: boolean): Settings => ({
     enabled,
     storage_mb: storage,
@@ -264,6 +298,7 @@ function App() {
   const openRoom = (room: Room) => {
     setTab('chats')
     setStatus('')
+    setHistoryCursors([])
     setRoomId(room.id)
     setPlayback(null)
     setShare('')
@@ -714,8 +749,7 @@ function App() {
                   Room settings
                 </Button>
                 <span>
-                  {room.private ? <Lock size={14} /> : <Users size={14} />}Authenticated peer
-                  transport · latest 200 messages
+                  {room.private ? <Lock size={14} /> : <Users size={14} />}History from room peers
                 </span>
                 <Button
                   type="button"
@@ -733,6 +767,39 @@ function App() {
                   Invite
                 </Button>
               </div>
+              {snapshot.active && (earlier || pageCursor) && (
+                <nav aria-label="Chat history" className="flex justify-center gap-2 pb-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!earlier}
+                    onClick={() => {
+                      if (earlier) setHistoryCursors((pages) => [...pages, earlier])
+                    }}
+                  >
+                    Earlier messages
+                  </Button>
+                  {pageCursor && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setHistoryCursors((pages) => pages.slice(0, -1))}
+                    >
+                      Newer messages
+                    </Button>
+                  )}
+                  {historyCursors.length > 1 && (
+                    <Button variant="ghost" size="sm" onClick={() => setHistoryCursors([])}>
+                      Latest
+                    </Button>
+                  )}
+                </nav>
+              )}
+              {historyLoading && (
+                <p className="notice" role="status">
+                  Checking for shared history…
+                </p>
+              )}
               {syncError && (
                 <p className="notice" role="status">
                   {syncError}
@@ -744,10 +811,14 @@ function App() {
                 aria-label="Conversation messages"
                 aria-live="polite"
               >
-                {!messages.length && !syncError && (
+                {!messages.length && !syncError && !historyLoading && (
                   <div className="empty">
                     <MessageCircle size={28} />
-                    <h2>Start with a hello.</h2>
+                    <h2>
+                      {pageCursor || earlier
+                        ? 'No visible messages on this page.'
+                        : 'No shared messages yet.'}
+                    </h2>
                     <p>
                       {room.private
                         ? 'Only invited peer identities can join this room.'
@@ -793,7 +864,8 @@ function App() {
                   run('Sending to the room owner…', async () => {
                     await api({ op: 'send', id: room.id, body: draft })
                     setDraft('')
-                    setMessages(await api<Message[]>({ op: 'messages', id: room.id }))
+                    setHistoryCursors([])
+                    setSafetyRevision((revision) => revision + 1)
                   })
                 }}
               >

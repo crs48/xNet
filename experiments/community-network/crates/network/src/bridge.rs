@@ -129,6 +129,12 @@ pub enum Command {
     Invite {
         id: String,
     },
+    HistoryPage {
+        id: String,
+        before: Option<u64>,
+        source: Option<String>,
+        known: Option<String>,
+    },
     Messages {
         id: String,
     },
@@ -316,6 +322,15 @@ impl Bridge {
                 node.register_relay(None).await?;
                 serde_json::json!({"link":link})
             }
+            Command::HistoryPage {
+                id,
+                before,
+                source,
+                known,
+            } => serde_json::to_value(
+                node.history_page(&id, before, source.as_deref(), known.as_deref())
+                    .await?,
+            )?,
             Command::Messages { id } => serde_json::to_value(node.sync_room(&id).await?)?,
             Command::Send { id, body } => {
                 node.send_message(&id, body).await?;

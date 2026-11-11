@@ -1,0 +1,8 @@
+{
+  "id": "2026-11-11-read-chat-history-directly-from-room-mem",
+  "date": "November 11, 2026",
+  "title": "Read chat history directly from room members",
+  "summary": "Browse older messages from another desktop. If the room owner goes offline, members can share approved history for up to five minutes.",
+  "highlights": [],
+  "tags": ["app", "sync"]
+}

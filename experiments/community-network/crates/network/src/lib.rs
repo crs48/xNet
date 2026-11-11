@@ -1,4 +1,5 @@
 pub mod bridge;
+pub mod history;
 pub mod hub;
 pub mod model;
 pub mod peer;

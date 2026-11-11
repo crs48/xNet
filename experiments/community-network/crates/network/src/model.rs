@@ -284,6 +284,18 @@ pub enum PeerRequest {
         handle: String,
         index: usize,
     },
+    HistoryRoute {
+        room: String,
+    },
+    HistoryPage {
+        room: String,
+        before: Option<u64>,
+        known: Option<String>,
+    },
+    HistoryPermission {
+        room: String,
+        known: Option<String>,
+    },
     Ping,
     MediaRoute {
         id: String,
@@ -318,6 +330,13 @@ pub enum PeerResponse {
     Manifest {
         record: Signed<Record>,
         nonce: String,
+    },
+    HistoryPage {
+        page: crate::history::HistoryPage,
+    },
+    PermissionCurrent,
+    HistoryPermission {
+        permission: Signed<crate::history::HistoryPermission>,
     },
     Ready,
     MediaRoute {

@@ -509,11 +509,27 @@ impl Node {
             selected.len() <= 5 && selected.iter().any(|id| id == target),
             "Select the reported message and up to four context messages"
         );
-        let messages = self.messages_local(room_id, 0)?;
-        let evidence: Vec<_> = messages
-            .into_iter()
-            .filter(|message| selected.contains(&message.payload.id))
-            .collect();
+        let store = self.store.lock().unwrap();
+        let mut read = store
+            .db
+            .prepare_cached("SELECT data FROM messages WHERE room=? AND id=?")?;
+        let evidence = selected
+            .iter()
+            .map(|id| {
+                let json: String = read
+                    .query_row(rusqlite::params![room_id, id], |r| r.get(0))
+                    .context("Selected evidence is missing")?;
+                Ok(serde_json::from_str::<Signed<Message>>(&json)?)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        ensure!(
+            selected
+                .iter()
+                .collect::<std::collections::HashSet<_>>()
+                .len()
+                == selected.len(),
+            "Duplicate evidence"
+        );
         ensure!(
             evidence.len() == selected.len(),
             "Selected evidence is missing or duplicated"

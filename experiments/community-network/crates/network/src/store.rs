@@ -23,8 +23,9 @@ pub fn lock_profile(root: &Path) -> Result<std::fs::File> {
 impl Store {
     pub fn open(path: &Path) -> Result<Self> {
         let db = Connection::open(path)?;
-        db.execute_batch("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS kv(key TEXT PRIMARY KEY,data TEXT NOT NULL); CREATE TABLE IF NOT EXISTS messages(id TEXT PRIMARY KEY,room TEXT NOT NULL,sequence INTEGER NOT NULL,data TEXT NOT NULL); CREATE INDEX IF NOT EXISTS room_messages ON messages(room,sequence);")?;
+        db.execute_batch("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS kv(key TEXT PRIMARY KEY,data TEXT NOT NULL); CREATE TABLE IF NOT EXISTS messages(id TEXT PRIMARY KEY,room TEXT NOT NULL,sequence INTEGER NOT NULL,data TEXT NOT NULL); CREATE INDEX IF NOT EXISTS room_messages ON messages(room,sequence); CREATE INDEX IF NOT EXISTS message_sequence ON messages(sequence);")?;
         db.execute_batch("CREATE TABLE IF NOT EXISTS moderation_nonces(id TEXT PRIMARY KEY,created INTEGER NOT NULL)")?;
+        db.execute_batch("CREATE TABLE IF NOT EXISTS history_receipts(room TEXT NOT NULL, sequence INTEGER NOT NULL, id TEXT NOT NULL, proof TEXT NOT NULL, PRIMARY KEY(room,sequence), UNIQUE(room,id))")?;
         let evidence_key = read_key(&path.with_extension("evidence.key"))?.to_bytes();
         Ok(Self { db, evidence_key })
     }

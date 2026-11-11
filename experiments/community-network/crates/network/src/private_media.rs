@@ -41,7 +41,7 @@ impl Node {
         room_id: &str,
     ) -> Result<String> {
         ensure!(
-            self.direct_media.is_some(),
+            self.direct_endpoint.is_some(),
             "Private files require the hosted hub"
         );
         let room: Room = self
@@ -118,7 +118,7 @@ impl Node {
     pub async fn open_private(&self, id: &str) -> Result<CatalogItem> {
         self.require_active()?;
         ensure!(
-            valid_id(id) && self.direct_media.is_some(),
+            valid_id(id) && self.direct_endpoint.is_some(),
             "Invalid private file link"
         );
         let response = self

@@ -523,13 +523,22 @@ async fn three_peers_media_chat_and_security_boundaries() -> Result<()> {
 }
 
 #[tokio::test]
-async fn hosted_control_endpoint_refuses_media_bytes() -> Result<()> {
+async fn hosted_control_endpoint_refuses_media_and_history() -> Result<()> {
     let root = TempDir::new()?;
     let publisher = member(&root, "Publisher", "https://127.0.0.1:9").await?;
     let viewer = member(&root, "Viewer", "http://127.0.0.1:9").await?;
     let addr = iroh::EndpointAddr::new(publisher.endpoint.id())
         .with_ip_addr(publisher.endpoint.bound_sockets()[0]);
     for request in [
+        PeerRequest::Messages {
+            room: "c".repeat(64),
+            after: 0,
+        },
+        PeerRequest::HistoryPage {
+            room: "c".repeat(64),
+            before: None,
+            known: None,
+        },
         PeerRequest::Chunk {
             id: "a".repeat(64),
             index: 0,
@@ -546,5 +555,131 @@ async fn hosted_control_endpoint_refuses_media_bytes() -> Result<()> {
     }
     viewer.endpoint.close().await;
     publisher.endpoint.close().await;
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn paged_history_from_another_member_expires_without_the_owner() -> Result<()> {
+    use community_network::{history::HistoryPermission, moderation_peer::RoomAction};
+    let root = TempDir::new()?;
+    let url = "http://127.0.0.1:9";
+    let host = member(&root, "Host", url).await?;
+    let mirror = member(&root, "Mirror", url).await?;
+    let reader = member(&root, "Reader", url).await?;
+    let removed = member(&root, "Former", url).await?;
+    let room = host.create_room("Shared history".into(), true).await?;
+    let invite = host.invitation(&room.id)?;
+    for peer in [&mirror, &reader, &removed] {
+        peer.join_link(&invite).await?;
+    }
+    for i in 0..227 {
+        host.send_message(&room.id, format!("message {i}")).await?;
+    }
+    let latest = mirror.history_page(&room.id, None, None, None).await?;
+    assert_eq!(latest.messages.len(), 48);
+    let idle = mirror
+        .history_page(&room.id, None, None, Some(&latest.revision))
+        .await?;
+    assert!(idle.unchanged && idle.messages.is_empty());
+    let mut collected = latest.messages;
+    let mut older = latest.earlier;
+    while let Some(before) = older {
+        let mut page = mirror
+            .history_page(&room.id, Some(before), Some(&latest.source), None)
+            .await?;
+        page.messages.append(&mut collected);
+        collected = page.messages;
+        older = page.earlier;
+    }
+    assert_eq!(
+        collected
+            .iter()
+            .map(|m| m.payload.body.clone())
+            .collect::<Vec<_>>(),
+        (0..227).map(|i| format!("message {i}")).collect::<Vec<_>>()
+    );
+
+    reader.history_page(&room.id, None, None, None).await?;
+    removed.history_page(&room.id, None, None, None).await?;
+    host.room_command(
+        &room.id,
+        RoomAction::Member {
+            member: removed.key.public().to_string(),
+            role: "remove".into(),
+            reason: "Membership ended".into(),
+        },
+    )
+    .await?;
+    let request = PeerRequest::HistoryPage {
+        room: room.id.clone(),
+        before: None,
+        known: None,
+    };
+    assert!(matches!(
+        removed
+            .request(mirror.endpoint.addr(), request.clone())
+            .await?,
+        PeerResponse::Error { .. }
+    ));
+    assert!(
+        removed
+            .history_page(&room.id, None, None, None)
+            .await
+            .is_err()
+    );
+    host.endpoint.close().await;
+    let mut before = None;
+    let mut seen = Vec::new();
+    loop {
+        let peer = reader
+            .history_page(
+                &room.id,
+                before,
+                Some(&mirror.key.public().to_string()),
+                None,
+            )
+            .await?;
+        assert_eq!(peer.source, mirror.key.public().to_string());
+        assert!(peer.offline_until.is_some());
+        let mut batch = peer.messages;
+        batch.append(&mut seen);
+        seen = batch;
+        before = peer.earlier;
+        if before.is_none() {
+            break;
+        }
+    }
+    assert_eq!(
+        seen.iter().map(|m| &m.signature).collect::<Vec<_>>(),
+        collected.iter().map(|m| &m.signature).collect::<Vec<_>>()
+    );
+    // A valid owner signature still stops working exactly at expiry on the serving peer.
+    let key = format!("history-permission:{}", room.id);
+    {
+        let store = mirror.store.lock().unwrap();
+        let mut lease = store
+            .get::<Signed<HistoryPermission>>(&key)?
+            .unwrap()
+            .payload;
+        lease.expires = now();
+        lease.issued = lease.expires - 300;
+        store.set(&key, &Signed::new(lease, &host.key)?)?;
+    }
+    assert!(
+        matches!(reader.request(mirror.endpoint.addr(),request.clone()).await?,PeerResponse::Error{message} if message.contains("expired"))
+    );
+    assert!(matches!(
+        removed.request(mirror.endpoint.addr(), request).await?,
+        PeerResponse::Error { .. }
+    ));
+    mirror.endpoint.close().await;
+    removed.endpoint.close().await;
+    assert!(
+        reader
+            .history_page(&room.id, None, None, None)
+            .await
+            .is_err()
+    );
+    reader.endpoint.close().await;
     Ok(())
 }

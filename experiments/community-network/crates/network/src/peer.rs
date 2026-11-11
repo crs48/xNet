@@ -1,13 +1,12 @@
 use crate::{
     model::*,
     moderation::{self, Preferences},
-    moderation_peer::RoomAction,
     store::*,
 };
 use anyhow::{Context, Result, bail, ensure};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use iroh::{Endpoint, EndpointAddr, SecretKey, endpoint::presets};
-use rusqlite::params;
+use rusqlite::{OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use std::{
     io::Read,
@@ -21,15 +20,16 @@ pub struct Node {
     pub endpoint: Endpoint,
     pub(crate) admitted: std::sync::atomic::AtomicBool,
     pub(crate) relay: Option<iroh::RelayUrl>,
-    pub(crate) direct_media: Option<Endpoint>,
+    pub(crate) direct_endpoint: Option<Endpoint>,
     pub key: SecretKey,
     pub root: PathBuf,
     pub store: Mutex<Store>,
     pub registry: String,
     pub client: reqwest::Client,
     pub(crate) membership_changed: Arc<tokio::sync::Notify>,
-    last_media_route: Mutex<Option<(EndpointAddr, std::time::Instant)>>,
+    last_direct_route: Mutex<Option<(EndpointAddr, std::time::Instant)>>,
     slots: Arc<Semaphore>,
+    pub(crate) history_refresh: tokio::sync::Mutex<()>,
     pub(crate) policy_refresh: tokio::sync::Mutex<()>,
     _profile_lock: std::fs::File,
 }
@@ -84,7 +84,7 @@ impl Node {
         if !endpoint.bound_sockets().is_empty() {
             store.set("transport:sockets", &endpoint.bound_sockets())?;
         }
-        let direct_media = if relay.is_some() {
+        let direct_endpoint = if relay.is_some() {
             Some(
                 Endpoint::builder(presets::Minimal)
                     .secret_key(key.clone())
@@ -110,7 +110,7 @@ impl Node {
         let node = Arc::new(Self {
             endpoint,
             relay,
-            direct_media,
+            direct_endpoint,
             admitted: false.into(),
             key,
             root,
@@ -121,7 +121,8 @@ impl Node {
                 .timeout(Duration::from_secs(10))
                 .build()?,
             membership_changed: Default::default(),
-            last_media_route: Mutex::new(None),
+            last_direct_route: Mutex::new(None),
+            history_refresh: Default::default(),
             slots: Arc::new(Semaphore::new(16)),
             policy_refresh: tokio::sync::Mutex::new(()),
             _profile_lock: profile_lock,
@@ -136,7 +137,7 @@ impl Node {
             }
         }
         tokio::spawn(node.clone().accept(node.endpoint.clone(), false));
-        if let Some(media) = &node.direct_media {
+        if let Some(media) = &node.direct_endpoint {
             tokio::spawn(node.clone().accept(media.clone(), true));
         }
         let changed = node.membership_changed.clone();
@@ -680,7 +681,7 @@ impl Node {
             id: id.to_owned(),
             index,
         };
-        if self.direct_media.is_none() {
+        if self.direct_endpoint.is_none() {
             return self.request(provider.clone(), chunk).await;
         }
         self.direct_request(provider, PeerRequest::MediaRoute { id: id.into() }, chunk)
@@ -690,21 +691,21 @@ impl Node {
         &self,
         provider: &EndpointAddr,
         lookup: PeerRequest,
-        chunk: PeerRequest,
+        operation: PeerRequest,
     ) -> Result<PeerResponse> {
         let media = self
-            .direct_media
+            .direct_endpoint
             .as_ref()
-            .context("Direct media unavailable")?;
+            .context("Direct peer connection unavailable")?;
         let cached = self
-            .last_media_route
+            .last_direct_route
             .lock()
             .unwrap()
             .as_ref()
             .filter(|(addr, at)| addr.id == provider.id && at.elapsed() < Duration::from_secs(45))
             .map(|(addr, _)| addr.clone());
         if let Some(address) = cached {
-            if let Ok(response) = self.request_on(media, address, chunk.clone()).await {
+            if let Ok(response) = self.request_on(media, address, operation.clone()).await {
                 return Ok(response);
             }
         }
@@ -715,17 +716,18 @@ impl Node {
                         && !address.addrs.is_empty()
                         && address.addrs.len() <= 12
                         && address.addrs.iter().all(|a| a.is_ip()),
-                    "Invalid direct media route"
+                    "Invalid direct peer address"
                 );
                 let response = self
-                    .request_on(media, address.clone(), chunk)
+                    .request_on(media, address.clone(), operation)
                     .await
-                    .context("No direct media connection to this seeder")?;
-                *self.last_media_route.lock().unwrap() = Some((address, std::time::Instant::now()));
+                    .context("Cannot reach this peer directly")?;
+                *self.last_direct_route.lock().unwrap() =
+                    Some((address, std::time::Instant::now()));
                 Ok(response)
             }
             PeerResponse::Error { message } => bail!(message),
-            _ => bail!("Seeder does not support direct media"),
+            _ => bail!("Peer does not support direct transfers"),
         }
     }
     pub async fn request(
@@ -766,7 +768,7 @@ impl Node {
         .await
         .context("Peer request timed out")?
     }
-    async fn accept(self: Arc<Self>, endpoint: Endpoint, media_only: bool) {
+    async fn accept(self: Arc<Self>, endpoint: Endpoint, direct_only: bool) {
         while let Some(incoming) = endpoint.accept().await {
             let Ok(permit) = self.slots.clone().try_acquire_owned() else {
                 incoming.refuse();
@@ -787,30 +789,40 @@ impl Node {
                                 && envelope.address.addrs.len() <= 12,
                             "Peer address does not match authenticated identity"
                         );
-                        if node.direct_media.is_some() {
-                            ensure!(
-                                media_only
-                                    == matches!(
-                                        envelope.request,
-                                        PeerRequest::Chunk { .. }
-                                            | PeerRequest::PrivateChunk { .. }
-                                    ),
-                                "Media bytes require a direct connection"
-                            );
+                        if node.direct_endpoint.is_some() {
+                            enforce_transport(&envelope.request, direct_only)?;
                         }
+                        // Room history already authenticates both ends of this connection and
+                        // checks membership. Dialing back here can stall a relayed rendezvous.
                         if !matches!(
                             envelope.request,
-                            PeerRequest::Ping | PeerRequest::Moderation { .. }
+                            PeerRequest::Ping
+                                | PeerRequest::Moderation { .. }
+                                | PeerRequest::HistoryPermission { .. }
+                                | PeerRequest::HistoryRoute { .. }
+                                | PeerRequest::HistoryPage { .. }
                         ) {
                             ensure!(
                                 matches!(
-                                    node.request(envelope.address, PeerRequest::Ping).await?,
+                                    node.request(envelope.address.clone(), PeerRequest::Ping)
+                                        .await?,
                                     PeerResponse::Ready
                                 ),
                                 "Peer must expose an active hosting endpoint"
                             );
                         }
-                        node.handle_peer(&peer, envelope.request).await
+                        let joined = match &envelope.request {
+                            PeerRequest::Join { room, .. } => Some(room.clone()),
+                            _ => None,
+                        };
+                        let response = node.handle_peer(&peer, envelope.request).await?;
+                        if let Some(room) = joined {
+                            node.store
+                                .lock()
+                                .unwrap()
+                                .set(&format!("history-peer:{room}:{peer}"), &envelope.address)?;
+                        }
+                        Ok(response)
                     }
                     .await;
                     let response = result.unwrap_or_else(|e| PeerResponse::Error {
@@ -855,7 +867,7 @@ impl Node {
             PeerRequest::MediaRoute { id } => {
                 ensure!(valid_id(&id), "Invalid media ID");
                 let media = self
-                    .direct_media
+                    .direct_endpoint
                     .as_ref()
                     .context("Direct media is unavailable")?;
                 let record: Signed<Record> = self
@@ -873,6 +885,33 @@ impl Node {
                     address: media.addr(),
                 })
             }
+            PeerRequest::HistoryRoute { room } => {
+                self.permission_to_share(&room, peer).await?;
+                Ok(PeerResponse::MediaRoute {
+                    address: self
+                        .direct_endpoint
+                        .as_ref()
+                        .context("Direct transport already in use")?
+                        .addr(),
+                })
+            }
+            PeerRequest::HistoryPermission { room, known } => {
+                let permission = self.issue_history_permission(&room, peer)?;
+                if known.as_ref() == Some(&permission.signature) {
+                    Ok(PeerResponse::PermissionCurrent)
+                } else {
+                    Ok(PeerResponse::HistoryPermission { permission })
+                }
+            }
+            PeerRequest::HistoryPage {
+                room,
+                before,
+                known,
+            } => Ok(PeerResponse::HistoryPage {
+                page: self
+                    .serve_history(&room, peer, before, known.as_deref())
+                    .await?,
+            }),
             PeerRequest::Ping => Ok(PeerResponse::Ready),
             PeerRequest::Chunk { id, index } => {
                 let store = self.store.lock().unwrap();
@@ -898,9 +937,9 @@ impl Node {
                 self.authorized_share(&handle, peer)?;
                 Ok(PeerResponse::MediaRoute {
                     address: self
-                        .direct_media
+                        .direct_endpoint
                         .as_ref()
-                        .context("Direct media unavailable")?
+                        .context("Direct peer connection unavailable")?
                         .addr(),
                 })
             }
@@ -958,10 +997,7 @@ impl Node {
             PeerRequest::Messages { room, after } => {
                 self.authorize_room(peer, &room)?;
                 Ok(PeerResponse::Messages {
-                    messages: {
-                        let _ = after;
-                        self.room_visible_messages(&room)?
-                    },
+                    messages: { self.room_visible_messages(&room, after)? },
                 })
             }
             PeerRequest::Send { message } => {
@@ -1042,22 +1078,25 @@ impl Node {
         moderation::permits(&self.store.lock().unwrap(), &format!("room-{id}"), "", peer)?;
         Ok(())
     }
-    fn insert_message(&self, message: &Signed<Message>) -> Result<()> {
+    pub(crate) fn insert_message(&self, message: &Signed<Message>) -> Result<()> {
         message.verify()?;
         message.payload.validate()?;
         let store = self.store.lock().unwrap();
-        let existing: i64 = store.db.query_row(
-            "SELECT count(*) FROM messages WHERE id=?",
-            [&message.payload.id],
-            |r| r.get(0),
-        )?;
-        if existing > 0 {
+        let existing: Option<String> = store
+            .db
+            .query_row(
+                "SELECT json_extract(data,'$.signature') FROM messages WHERE id=?",
+                [&message.payload.id],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if let Some(signature) = existing {
+            ensure!(
+                signature == message.signature,
+                "Conflicting signed messages with the same ID"
+            );
             return Ok(());
         }
-        let count: i64 = store
-            .db
-            .query_row("SELECT count(*) FROM messages", [], |r| r.get(0))?;
-        ensure!(count < 10000, "Prototype message storage limit reached");
         let seq: i64 = store.db.query_row(
             "SELECT coalesce(max(sequence),0)+1 FROM messages",
             [],
@@ -1216,6 +1255,13 @@ impl Node {
                     .lock()
                     .unwrap()
                     .set(&format!("room:{}", room.id), &room)?;
+                // Joining succeeds against older owners too. A current owner also supplies
+                // permission to read another member's copy if it goes offline after joining.
+                if room.members.contains(&self.endpoint.id().to_string()) {
+                    if let Err(error) = self.history_permission(&room).await {
+                        eprintln!("Joined room; history permission awaits the owner: {error}");
+                    }
+                }
                 Ok(room)
             }
             PeerResponse::Error { message } => bail!(message),
@@ -1223,64 +1269,21 @@ impl Node {
         }
     }
     pub async fn sync_room(&self, id: &str) -> Result<Vec<Signed<Message>>> {
-        self.require_active()?;
-        let room: Room = self
-            .store
-            .lock()
-            .unwrap()
-            .get(&format!("room:{id}"))?
-            .context("Join this room first")?;
-        if room.owner.id != self.endpoint.id() {
-            let latest: Room =
-                serde_json::from_value(self.room_command(id, RoomAction::Info).await?)?;
-            ensure!(
-                latest.id == id && latest.owner.id == room.owner.id,
-                "Room identity mismatch"
-            );
-            {
-                let store = self.store.lock().unwrap();
-                ensure!(
-                    store.get::<Room>(&format!("room:{id}"))?.is_some(),
-                    "You left this room"
-                );
-                store.set(&format!("room:{id}"), &latest)?;
-            }
-            match self
-                .request(
-                    room.owner,
-                    PeerRequest::Messages {
-                        room: id.into(),
-                        after: 0,
-                    },
-                )
-                .await?
-            {
-                PeerResponse::Messages { messages } => {
-                    ensure!(messages.len() <= 200, "Too many messages");
-                    let received = messages.clone();
-                    for message in messages {
-                        ensure!(message.payload.room == id, "Wrong room in response");
-                        self.insert_message(&message)?;
-                    }
-                    let preferences = self.preferences()?;
-                    return Ok(received
-                        .into_iter()
-                        .filter(|m| !preferences.hides_message(m))
-                        .collect());
-                }
-                PeerResponse::Error { message } => bail!(message),
-                _ => bail!("Invalid sync response"),
-            }
+        let mut page = self.history_page(id, None, None, None).await?;
+        let mut result = page.messages;
+        while result.len() < 200 {
+            let Some(before) = page.earlier else { break };
+            page = self
+                .history_page(id, Some(before), Some(&page.source), None)
+                .await?;
+            let mut older = page.messages;
+            older.append(&mut result);
+            result = older;
         }
-        let preferences = self.preferences()?;
-        Ok(self
-            .room_visible_messages(id)?
-            .into_iter()
-            .filter(|m| !preferences.hides_message(m))
-            .collect())
+        Ok(result.split_off(result.len().saturating_sub(200)))
     }
-    fn room_visible_messages(&self, id: &str) -> Result<Vec<Signed<Message>>> {
-        let messages = self.messages_local(id, 0)?;
+    fn room_visible_messages(&self, id: &str, after: u64) -> Result<Vec<Signed<Message>>> {
+        let messages = self.messages_local(id, after)?;
         let restrictions =
             moderation::restrictions(&self.store.lock().unwrap(), &format!("room-{id}"))?;
         Ok(messages
@@ -1328,4 +1331,20 @@ impl Node {
         }
         self.insert_message(&message)
     }
+}
+
+// The control endpoint can move onto the relay at any point during a connection.
+pub(crate) fn enforce_transport(request: &PeerRequest, direct_only: bool) -> Result<()> {
+    let direct_required = matches!(
+        request,
+        PeerRequest::Chunk { .. }
+            | PeerRequest::PrivateChunk { .. }
+            | PeerRequest::Messages { .. }
+            | PeerRequest::HistoryPage { .. }
+    );
+    ensure!(
+        direct_only == direct_required,
+        "Media and chat history require a direct connection to a peer"
+    );
+    Ok(())
 }

@@ -26,7 +26,7 @@ def make_sound(path, hz=220):
 
 
 def run(binary, directory, hub, leave_open):
-    # Disable IP on both control endpoints. A successful chat must use the public relay.
+    # Disable IP on both control endpoints. Live sends use the relay. History and media have a separate direct endpoint.
     os.environ.update(XNET_COMMUNITY_REGISTRY=hub, XNET_COMMUNITY_RELAY_ONLY='1')
     owner, guest = [Desktop(binary, directory, name, False) for name in ('Host', 'Guest')]
     complete = False
@@ -56,7 +56,7 @@ def run(binary, directory, hub, leave_open):
         require(desktop_tools['messages'](guest, room) == desktop_tools['messages'](owner, room)
                 and len(desktop_tools['messages'](owner, room)) == 2, 'Chat did not converge')
         require(room not in urlopen(hub + '/api/catalog').read().decode(), 'Private room listed publicly')
-        print('Private link verified. Invalid room secret rejected. Bidirectional chat used the relay.', flush=True)
+        print('Private link verified. Invalid room secret rejected. Live sends used the relay and history was fetched directly.', flush=True)
 
         path = directory / 'community-test-tone.wav'
         make_sound(path)
