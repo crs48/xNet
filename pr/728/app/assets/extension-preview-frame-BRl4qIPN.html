@@ -1,0 +1,40 @@
+<!doctype html>
+<meta
+  http-equiv="Content-Security-Policy"
+  content="default-src 'none'; script-src 'unsafe-inline' blob:; worker-src blob:; connect-src 'none'; img-src 'none'; style-src 'none'; base-uri 'none'; form-action 'none';"
+/>
+<script>
+  window.addEventListener(
+    'message',
+    (event) => {
+      if (event.source !== parent || event.data !== 'xnet-preview-connect' || !event.ports[0])
+        return
+      const port = event.ports[0]
+      const worker = new Worker(
+        URL.createObjectURL(
+          new Blob(
+            [
+              "self.onmessage = async ({ data }) => {\n  try {\n    const url = URL.createObjectURL(new Blob([data.code], { type: 'text/javascript' }));\n    const mod = await import(url);\n    if (typeof mod.default !== 'function') throw new Error('Export a default preview function.');\n    const tree = await mod.default(data.input);\n    const serialized = JSON.stringify(tree);\n    if (!serialized || serialized.length > 64000) throw new Error('View exceeds the output limit.');\n    self.postMessage({ ok: true, tree: JSON.parse(serialized) });\n    URL.revokeObjectURL(url);\n  } catch (error) { self.postMessage({ ok: false, error: String(error).slice(0, 1000) }); }\n}"
+            ],
+            { type: 'text/javascript' }
+          )
+        )
+      )
+      worker.onmessage = (event) => {
+        port.postMessage(event.data)
+        worker.terminate()
+      }
+      worker.onerror = (event) => {
+        port.postMessage({
+          ok: false,
+          error: event.message || 'The preview worker could not load its program.'
+        })
+        worker.terminate()
+      }
+      port.onmessage = (event) => worker.postMessage(event.data)
+      port.start()
+      port.postMessage({ ready: true })
+    },
+    { once: true }
+  )
+</script>

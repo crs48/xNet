@@ -1,0 +1,18 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 96 96"
+  role="img"
+  aria-label="Codex, AI co-author"
+>
+  <!-- Original xNet bracket glyph; not a vendor logo. -->
+  <circle cx="48" cy="48" r="48" fill="#193b39" />
+  <path
+    d="M35 28 17 48l18 20M61 28l18 20-18 20"
+    fill="none"
+    stroke="#bde6d8"
+    stroke-width="6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="48" cy="48" r="4" fill="#f8dba8" />
+</svg>
