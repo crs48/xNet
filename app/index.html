@@ -1,41 +1,22 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#000000" />
-    <!--
-      `connect-src` here is NOT an allowlist, despite appearances: the bare
-      `https://*` and `wss://*` subsume every host named after them. Both are
-      load-bearing — a user-configured custom hub receives crash-report ingest
-      over https (0341) and carries its sync socket over wss, and the AI
-      cloud-key tier accepts a self-hosted OpenAI-compatible base URL. Those
-      origins are typed by the user at runtime, so no static policy can name
-      them; dropping the wildcard would remove custom-hub support from the web
-      build (investigated in 0394 — the Electron shell has no wildcard and so
-      already cannot reach custom hubs).
-
-      The named hosts below are kept as the documented intent, and as the
-      basis for any future tightening. Egress from injected AI content is
-      contained by the plan-first tool contract and `guardedFetch`, not here.
-    -->
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws://localhost:* http://localhost:* ws://127.0.0.1:* http://127.0.0.1:* wss://* https://* https://hub.xnet.fyi https://cloud.xnet.fyi https://*.xnet.fyi https://demo-bucket.protomaps.com https://tiles.openfreemap.org https://www.youtube.com https://publish.twitter.com https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; font-src 'self' data:; worker-src 'self' blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://w.soundcloud.com https://platform.twitter.com https://www.instagram.com https://instagram.com https://www.tiktok.com https://codepen.io https://codesandbox.io https://stackblitz.com https://figma.com https://www.figma.com"
-    />
-    <link rel="manifest" href="/app/manifest.json" />
-    <link rel="icon" type="image/x-icon" href="/app/favicon.ico" />
-    <link rel="icon" type="image/svg+xml" sizes="any" href="/app/favicon.svg" />
-    <link rel="apple-touch-icon" href="/app/apple-touch-icon.png" />
-    <title>xNet</title>
-    <script type="module" crossorigin src="/app/assets/index-CTNoNpJE.js"></script>
-    <link rel="modulepreload" crossorigin href="/app/assets/editor-vendor-C-1lVN3U.js">
-    <link rel="modulepreload" crossorigin href="/app/assets/katex-DnQqM7F8.js">
-    <link rel="stylesheet" crossorigin href="/app/assets/editor-vendor-BY0IWM8j.css">
-    <link rel="stylesheet" crossorigin href="/app/assets/katex-DwyKY2XU.css">
-    <link rel="stylesheet" crossorigin href="/app/assets/index-BYAPOZTt.css">
-  <link rel="manifest" href="/app/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/app/registerSW.js"></script></head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>
+<!DOCTYPE html><html lang="en" class="scroll-smooth" data-astro-cid-5hce7sga> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="The earlier xNet workspace and developer documentation are preserved in the source archive."><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="canonical" href="https://xnet.fyi/app/"><meta property="og:type" content="website"><meta property="og:site_name" content="xNet"><meta property="og:title" content="An earlier chapter — xNet"><meta property="og:description" content="The earlier xNet workspace and developer documentation are preserved in the source archive."><meta property="og:url" content="https://xnet.fyi/app/"><meta property="og:image" content="https://xnet.fyi/blog/covers/the-worlds-greatest-record-store.webp"><meta property="og:image:alt" content="A community record shop, from the xNet essays"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="An earlier chapter — xNet"><meta name="twitter:description" content="The earlier xNet workspace and developer documentation are preserved in the source archive."><meta name="twitter:image" content="https://xnet.fyi/blog/covers/the-worlds-greatest-record-store.webp"><meta name="twitter:image:alt" content="A community record shop, from the xNet essays"><title>An earlier chapter — xNet</title><!-- Inline script to prevent flash: read localStorage, fallback to system preference --><script>
+      ;(function () {
+        var storedTheme = localStorage.getItem('xnet-lp-theme')
+        var theme =
+          storedTheme ||
+          (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        if (theme === 'light') {
+          document.documentElement.classList.remove('dark')
+        }
+      })()
+    </script><link rel="stylesheet" href="/_astro/_legacy_.CjtExL2R.css">
+<style>.archive-page[data-astro-cid-sb7hujhc]{padding-top:6rem;padding-bottom:6rem;max-width:780px}.archive-actions[data-astro-cid-sb7hujhc]{display:flex;gap:1rem;flex-wrap:wrap;margin-top:2rem}
+</style></head> <body class="marketing-site antialiased font-sans leading-relaxed" data-astro-cid-5hce7sga>   <a href="#main-content" class="skip-link" data-astro-cid-rxxavq4o>
+Skip to content
+</a> <header class="site-nav" data-astro-cid-rxxavq4o> <nav class="m-wrap nav-inner" aria-label="Main navigation" data-astro-cid-rxxavq4o> <a href="/" aria-label="xNet home" class="nav-brand" data-astro-cid-rxxavq4o> <span class="brand-wordmark" role="img" aria-label="xNet" data-astro-cid-cjwf4qpa></span>  </a> <div class="nav-links" data-astro-cid-rxxavq4o> <a href="/#how-it-works" data-astro-cid-rxxavq4o> How it works </a><a href="/why" data-astro-cid-rxxavq4o> Vision </a><a href="/blog" data-astro-cid-rxxavq4o> Blog </a> </div> <div class="nav-tools" data-astro-cid-rxxavq4o> <button id="lp-theme-toggle" class="rounded-lg border border-border p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:border-gray-400 dark:hover:border-gray-500 transition-colors" aria-label="Toggle theme"> <!-- Sun icon (shown in dark mode) --> <svg class="h-4 w-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path> </svg> <!-- Moon icon (shown in light mode) --> <svg class="h-4 w-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path> </svg> </button> <script type="module">const t=document.getElementById("lp-theme-toggle");t?.addEventListener("click",()=>{const e=document.documentElement.classList.toggle("dark");localStorage.setItem("xnet-lp-theme",e?"dark":"light")});</script> <a class="m-button nav-try" href="/download" data-astro-cid-rxxavq4o>
+Get xNet <span aria-hidden="true" data-astro-cid-rxxavq4o>↗</span> </a> <details class="mobile-menu" data-astro-cid-rxxavq4o> <summary aria-label="Open navigation" data-astro-cid-rxxavq4o>
+Menu <span aria-hidden="true" data-astro-cid-rxxavq4o>+</span> </summary> <div data-astro-cid-rxxavq4o> <a href="/#how-it-works" data-astro-cid-rxxavq4o> How it works </a><a href="/why" data-astro-cid-rxxavq4o> Vision </a><a href="/blog" data-astro-cid-rxxavq4o> Blog </a> <a href="/download" data-astro-cid-rxxavq4o>Get xNet</a> </div> </details> </div> </nav> </header> <script type="module">const e=document.querySelector(".mobile-menu");e?.querySelectorAll("a").forEach(c=>{c.addEventListener("click",()=>{e.open=!1})});</script>  <main id="main-content" class="m-wrap archive-page" data-astro-cid-sb7hujhc> <p class="m-note" data-astro-cid-sb7hujhc>From the workspace era</p> <h1 class="m-title" data-astro-cid-sb7hujhc>An earlier chapter of xNet.</h1> <p class="m-lede" data-astro-cid-sb7hujhc>This page described the previous workspace and developer toolkit. xNet now focuses on a desktop community network for conversations, music, video, and public posts.</p> <p class="m-copy" data-astro-cid-sb7hujhc>The old source and documentation are preserved. They do not describe the current app. Your old local data is not converted or deleted by this change.</p> <div class="archive-actions" data-astro-cid-sb7hujhc><a class="m-button" href="https://github.com/crs48/xNet/blob/legacy-sdk-2026-11-18/README.md" data-astro-cid-sb7hujhc>Read the archived page ↗</a><a class="m-button secondary" href="/" data-astro-cid-sb7hujhc>Meet the current xNet</a></div> </main> <footer class="site-footer" data-astro-cid-scinlfmn> <div class="m-wrap" data-astro-cid-scinlfmn> <div class="footer-grid" data-astro-cid-scinlfmn> <div class="footer-brand" data-astro-cid-scinlfmn> <a href="/" aria-label="xNet home" data-astro-cid-scinlfmn> <span class="brand-wordmark" role="img" aria-label="xNet" data-astro-cid-cjwf4qpa></span>  </a> <p data-astro-cid-scinlfmn>
+A network of our own.
+<br data-astro-cid-scinlfmn>
+Peer to peer. Open source.
+</p> <a class="m-text-link" href="https://github.com/crs48/xNet" data-astro-cid-scinlfmn>
+Source on GitHub <span aria-hidden="true" data-astro-cid-scinlfmn>↗</span> </a> </div> <div data-astro-cid-scinlfmn> <h2 data-astro-cid-scinlfmn>xNet</h2> <ul data-astro-cid-scinlfmn> <li data-astro-cid-scinlfmn> <a href="/download" data-astro-cid-scinlfmn>Get the app</a> </li><li data-astro-cid-scinlfmn> <a href="/why" data-astro-cid-scinlfmn>Vision</a> </li><li data-astro-cid-scinlfmn> <a href="/privacy" data-astro-cid-scinlfmn>Privacy</a> </li> </ul> </div><div data-astro-cid-scinlfmn> <h2 data-astro-cid-scinlfmn>Ideas</h2> <ul data-astro-cid-scinlfmn> <li data-astro-cid-scinlfmn> <a href="/blog" data-astro-cid-scinlfmn>Blog</a> </li><li data-astro-cid-scinlfmn> <a href="/changelog" data-astro-cid-scinlfmn>What’s new</a> </li><li data-astro-cid-scinlfmn> <a href="/blog/rss.xml" data-astro-cid-scinlfmn>RSS</a> </li> </ul> </div><div data-astro-cid-scinlfmn> <h2 data-astro-cid-scinlfmn>In the open</h2> <ul data-astro-cid-scinlfmn> <li data-astro-cid-scinlfmn> <a href="https://github.com/crs48/xNet" data-astro-cid-scinlfmn>Source code</a> </li><li data-astro-cid-scinlfmn> <a href="https://github.com/crs48/xNet/blob/main/LEGACY.md" data-astro-cid-scinlfmn>The earlier chapter</a> </li> </ul> </div> </div> <div class="footer-bottom" data-astro-cid-scinlfmn> <p data-astro-cid-scinlfmn>© 2026 xNet · Made in the open.</p> <div data-astro-cid-scinlfmn> <a href="/privacy" data-astro-cid-scinlfmn>Privacy</a> <a href="https://github.com/crs48/xNet/discussions" data-astro-cid-scinlfmn>Say hello ↗</a> <a href="/blog/rss.xml" data-astro-cid-scinlfmn>RSS ↗</a> </div> </div> </div> </footer>   <script type="module">const o=new IntersectionObserver(e=>{e.forEach(t=>{t.isIntersecting&&(t.target.classList.add("visible"),o.unobserve(t.target))})},{threshold:.1,rootMargin:"0px 0px -40px 0px"});document.querySelectorAll(".animate-on-scroll").forEach(e=>o.observe(e));document.querySelectorAll(".copy-btn").forEach(e=>{e.addEventListener("click",async()=>{const t=e.dataset.copy||e.closest(".relative")?.querySelector("code")?.textContent||"";await navigator.clipboard.writeText(t.trim()),e.textContent="Copied!",e.classList.add("copied"),setTimeout(()=>{e.textContent="Copy",e.classList.remove("copied")},2e3)})});</script> </body> </html> 

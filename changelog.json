@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-11-18-xnet-begins-a-new-chapter-as-a-community",
+      "url": "https://xnet.fyi/changelog#2026-11-18-xnet-begins-a-new-chapter-as-a-community",
+      "title": "xNet begins a new chapter as a community network",
+      "content_text": "The desktop community app is now the focus, while earlier essays and code remain accessible in an archive.\n",
+      "date_published": "2026-11-18T16:55:12Z",
+      "tags": [
+        "app",
+        "platform"
+      ],
+      "_xnet": {
+        "date": "November 18, 2026",
+        "summary": "The desktop community app is now the focus, while earlier essays and code remain accessible in an archive.",
+        "highlights": [],
+        "mergedAt": "2026-11-18T16:55:12Z",
+        "pr": 733,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-10-22-what-desire-builds-explores-eros-and-sof",
       "url": "https://xnet.fyi/changelog#2026-10-22-what-desire-builds-explores-eros-and-sof",
       "title": "What Desire Builds explores Eros and software",
