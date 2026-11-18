@@ -20,7 +20,7 @@ const tags = [
 
 <Base
   title="Blog — xNet"
-  description="Essays on owning your data, local-first software, and the open web."
+  description="Essays on sovereignty, community, and an internet we can shape together."
 >
   <Nav />
   <main id="main-content">
@@ -39,6 +39,10 @@ const tags = [
       </div>
     </header>
     <section class="m-section">
+      <div class="m-wrap mb-10">
+        <p class="m-note">A new chapter, the same questions</p>
+        <p class="m-copy mt-3">xNet is now a desktop community network. These earlier essays remain part of its foundation: sovereignty, digital Legos, consent, and making things together. Posts labeled <strong>Workspace era</strong> refer to the earlier implementation. <a class="underline" href="/why">Read about the current direction</a>.</p>
+      </div>
       <div class="m-wrap">
         <div class="journal-controls">
           <h2 class="text-lg font-semibold">All {posts.length} essays</h2>
@@ -77,7 +81,7 @@ const tags = [
                     </span>
                   )}
                   <time datetime={post.pubDate}>{formatPostDate(post.pubDate)}</time> ·{' '}
-                  {post.readingMinutes} min
+                  {post.readingMinutes} min · {(post.era ?? 'workspace') === 'workspace' ? 'Workspace era' : 'Community network'}
                 </p>
                 <h3 class="mt-2 text-lg font-semibold leading-snug">
                   <a

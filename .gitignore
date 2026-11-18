@@ -1,66 +1,19 @@
-# IDE
-.clj-kondo/
-.lsp/
-.history/
-.idea/
-.vscode/
-*.swp
-*.swo
-.playwright-cli/
-.playwright-mcp/
-.exports/
-
-# Build artifacts
-dist/
-dist-mobile/
-storybook-static/
-*.tsbuildinfo
-.turbo/
-.fallow/
-
-# Dependencies
 node_modules/
-
-# Test
-coverage/
-__screenshots__/
-
-# OS
-.DS_Store
-tmp/
-
-# Logs
+/target/
+dist/
+.local/
+output/
+.astro/
 *.log
-npm-debug.log*
-pnpm-debug.log*
-
-# graphify local runtime state
-.codex/hooks.json
-graphify-out/
-
-# Secrets / local env — NEVER commit filled-in env files.
-# The committed templates end in `.example`; your real copies do not.
+__pycache__/
+.DS_Store
 .env
 .env.*
 !.env.example
-!.env.*.example
-*.env.local
-.env.secrets
-
-# design-sync (claude.ai/design system sync)
-.ds-sync/
-ds-bundle/
-.design-sync/sb-reference/
-.design-sync/learnings/
-.design-sync/.cache/
-.design-sync/node_modules
-
-# SwiftPM build artifacts (apps/electron/native/*)
-.build/
-
-# API Extractor scratch output; the committed report lives in packages/*/etc/
-packages/*/temp/
-
-# Ad-hoc Playwright/browser captures taken while verifying UI locally.
-*-screenshot.png
-footer-social.png
+*.key
+*.pem
+*.p12
+*.sqlite*
+.husky/_/
+graphify-out/
+apps/desktop/src-tauri/gen/

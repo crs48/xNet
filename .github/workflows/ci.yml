@@ -1,477 +1,129 @@
 name: CI
-
-# KEEP IN SYNC: the `paths-ignore` lists below must exactly mirror the
-# `paths:` list in ci-docs-noop.yml — the no-op twin that reports the required
-# lint/typecheck/test/editor-ux contexts on docs-only PRs, which would
-# otherwise stay BLOCKED because this workflow never runs for them.
-
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - '*.md'
-      - '**/*.md'
-      - 'docs/**'
-      - '.github/*.md'
   pull_request:
     branches: [main]
-    paths-ignore:
-      - '*.md'
-      - '**/*.md'
-      - 'docs/**'
-      - '.github/*.md'
-  # Manual trigger, and the probe for the fail-closed event dispatch below
-  # (0372): `workflow_dispatch` is deliberately an event none of the jobs name,
-  # so running it by hand exercises the unknown-event path end to end. Every
-  # gate in this file must do real work under it — a green dispatch run that
-  # executed nothing is the bug, not the pass.
   workflow_dispatch:
-
-# Cancel superseded PR runs (group keyed on the PR number). Pushes to main key
-# on the commit SHA so each merge gets a unique group — never cancelled, never
-# queued behind the previous merge's run. (Exploration 0193.)
+permissions:
+  contents: read
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
-
 jobs:
-  # Fast checks that need NO build: prettier, eslint (not type-aware), and the
-  # cloud license-boundary grep. Kept under the name `lint` so the existing
-  # required status check still resolves. These used to sit serially behind the
-  # ~250s build+typecheck step; now a formatting/lint failure surfaces in under
-  # a minute instead of after the build (exploration 0193).
-  lint:
-    runs-on: ubuntu-latest
+  quality:
+    runs-on: ubuntu-24.04
     steps:
-      # fetch-depth: 0 — check:exploration-fallow dates each exploration from
-      # the commit that introduced it. A shallow clone has no such commit, so
-      # draft ages would be unreadable. Keep enough history for an honest report;
-      # staleness itself is informational and never a merge gate.
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: ./.github/actions/setup
-
-      - name: Format check
-        run: pnpm prettier --check "packages/**/*.{ts,tsx}" "apps/**/*.{ts,tsx}"
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Cloud license boundary
-        run: pnpm check:cloud-boundary
-
-      - name: Plugin license policy (0196)
-        run: pnpm check:plugin-licenses
-
-      # The negative control for the values-as-code gates (0430). Their green
-      # state is otherwise unfalsifiable: a regex that stopped matching after a
-      # rename looks exactly like a clean tree, and a footprint metric that
-      # stopped being measurable looks exactly like a lean app. This plants
-      # violations they MUST flag, so green means something.
-      - name: Gate negative controls (0430)
-        run: pnpm check:gate-controls
-
-      - name: Motion vocabulary (0199)
-        run: pnpm check:motion-vocab
-
-      - name: Surface tokens (0299)
-        run: pnpm check:surface-tokens
-
-      - name: Humane patterns (0234)
-        run: pnpm check:humane-patterns
-
-      # POSSE's machine-checkable half (0432): a syndicated post is a mirror,
-      # so every announced post must carry a link home to xnet.fyi, fit
-      # Bluesky's 300-grapheme budget, and have link facets whose byte ranges
-      # actually decode to their URL.
-      - name: Syndication invariants (0432)
-        run: pnpm check:syndication
-
-      # Charter §Agency's second half: a capability you cannot see is not a
-      # degree of freedom you have. Every other check here asks whether the
-      # code is correct — none asks whether a shipped capability is findable,
-      # so a feature can land reachable-but-invisible and nothing notices.
-      # Advisory for now; goes --strict once the flag population has held
-      # green for a release. (0428.)
-      - name: Capability surfaces (0428)
-        run: pnpm check:capability-surface
-
-      # Every agent lane must build its retrieval. The omission is invisible in
-      # review — the call reads fine, it is what it doesn't pass that drops the
-      # lane to a keyword scan with no graph stage. (0415.)
-      - name: AI surfaces wire retrieval (0415)
-        run: pnpm check:ai-retrieval
-
-      # The dev-only point-and-change source stamp must never reach a
-      # production bundle — it would publish the repo's directory layout in the
-      # DOM of every page. A diff cannot show that; this can. (0399.)
-      - name: Source stamp is dev-only (0399)
-        run: pnpm guard:no-source-stamp
-
-      # Exploration status lives in the filename, so checking a doc off renames
-      # it and silently breaks every reference spelling the old name. 25 had
-      # rotted before this check existed — including four public site/ legal
-      # pages and three package READMEs. Absolute, not a ratchet: zero is
-      # reachable today, so every new break is a fresh mistake. (0421.)
-      - name: Exploration references resolve (0421)
-        run: pnpm check:exploration-links
-
-      # Draft age is a derived status, not a deadline to renew or close work.
-      # Publish the current report for readers of the job summary; no stale-count
-      # threshold applies. Generation errors still surface as errors. (0421.)
-      - name: Exploration age report (0421)
-        run: |
-          pnpm check:exploration-fallow
-          cat docs/explorations/STALE.md >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Publish closure (0220)
-        run: pnpm check:publish-closure
-
-      # `changeset version` only runs on push to main, so a malformed changeset
-      # lands green on its own PR and reds the *release* instead — the Version
-      # Packages PR stops refreshing and nothing publishes. Four changesets
-      # mixing ignored and publishable packages did exactly that for 12 days.
-      # changesets aborts on the first offender, so this reports all of them.
-      - name: Changesets assemble into a release plan (0265)
-        run: pnpm check:changesets
-
-      # site/public/llms-full.txt is generated from the docs but committed, and
-      # CI does not build site/ on pull requests — so an MDX edit that skips the
-      # regeneration ships a stale artifact and nothing says so. Commit 4c00be2c7
-      # renumbered an exploration reference in decisions.mdx and left the file
-      # quoting the dead number until an unrelated commit happened to regenerate
-      # it. Byte equality against a fresh render; the fix is one command.
-      - name: llms-full.txt matches the docs
-        run: pnpm check:llms-full
-
-      # The hub Dockerfile hand-lists the packages it COPYs. A dependency added
-      # three packages away silently staled that list, and nothing failed until
-      # a six-minute image build died on "Cannot find module" — the same build
-      # Railway runs, so the first symptom can be a failed deploy. (0415.)
-      - name: Hub image copies its dependency closure (0415)
-        run: pnpm check:hub-image
-
-      - name: Electron parity (0238)
-        run: pnpm check:electron-parity
-
-      # The storybook plugins shim must mirror every @xnetjs/plugins name the
-      # story bundle imports; drift broke Visual UI Capture three times (0279,
-      # 0280, #412) six minutes into an optional job. Fail here in seconds
-      # instead — visual-capture is continue-on-error by contract. (0283.)
-      - name: Storybook plugins shim conformance (0283)
-        run: pnpm check:storybook-shim
-
-      # Workflow files themselves: an unparseable workflow made GitHub emit a
-      # phantom failed run on EVERY push for weeks (exploration 0283). Severity
-      # floor `warning` keeps shellcheck's style/info pedantry out of the gate.
-      - name: Lint workflow files (actionlint, 0283)
-        env:
-          SHELLCHECK_OPTS: --severity=warning
-        run: |
-          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
-          ./actionlint -color
-
-  # Validate changelog fragments and dry-run PR-number resolution on PRs, so a
-  # malformed entry (which would otherwise fail only the production deploy and
-  # freeze the whole changelog) or one that would ship numberless fails the PR
-  # instead (exploration 0203). Deliberately light: plain Node + on-the-fly tsx,
-  # no workspace install — both scripts are dependency-free / type-only.
-  changelog:
-    runs-on: ubuntu-latest
-    # Fail-closed (0372): named as an EXCLUSION of the one event we mean to
-    # skip, not an allow-list of two. `push` has no PR to validate against;
-    # every other event — known or not — runs the check rather than skipping
-    # into a green it did not earn. See CHANGELOG_BASE_REF below: this job has
-    # a second fail-open mouth, and flipping the gate without feeding it would
-    # only move the silent pass one level down.
-    if: github.event_name != 'push'
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.97.1'
+          components: rustfmt
+      - run: pnpm lint
+      - run: node scripts/check-repository.mjs --selftest
+      - run: pnpm build
+      - run: pnpm test:js
+      - name: Validate workflow syntax
+        uses: docker://rhysd/actionlint:1.7.7
+        with:
+          args: -shellcheck=
+  network:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
         with:
-          fetch-depth: 0
+          toolchain: '1.97.1'
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --locked -p community-network -p community-node -p community-registry
+  native:
+    name: Native (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            bundle: app
+            binary: target/debug/community-desktop
+          - os: windows-2022
+            bundle: nsis
+            binary: target/debug/community-desktop.exe
+          - os: ubuntu-24.04
+            bundle: deb
+            binary: target/debug/community-desktop
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Linux native prerequisites
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.97.1'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: native-${{ matrix.os }}
+      - run: pnpm build
+      - name: Build a development installer
+        working-directory: apps/desktop
+        run: pnpm exec tauri build --debug --bundles ${{ matrix.bundle }}
+      - name: Test native private and group conversations
+        if: runner.os != 'Linux'
+        run: python scripts/check-desktop-chat.py ${{ matrix.binary }} --loopback
+      - name: Test Linux native conversations
+        if: runner.os == 'Linux'
+        run: xvfb-run -a python scripts/check-desktop-chat.py ${{ matrix.binary }} --loopback
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xnet-development-${{ matrix.os }}
+          path: target/debug/bundle/
+          if-no-files-found: error
+          retention-days: 7
+  desktop:
+    if: always()
+    needs: [native]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every native target
+        env:
+          NATIVE_RESULT: ${{ needs.native.result }}
+        run: test "$NATIVE_RESULT" = success
+  site:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
       - uses: actions/setup-node@v4
         with:
-          node-version: '23'
-
-      - name: Validate changelog fragments
-        run: npx --yes tsx site/scripts/validate-changelog.ts
-
-      - name: Dry-run PR-number resolution
-        run: node scripts/changelog/resolve-prs.mjs --check
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          # Fail-closed (0372): resolve-prs.mjs treats an EMPTY base ref as
-          # "local run" and downgrades every unresolved fragment from an error
-          # to a warning — so on a non-PR event this step would exit 0 having
-          # gated nothing. `pull_request` is undefined off a PR, hence the
-          # fallback chain, ending at `origin/main` (available because the
-          # checkout above is fetch-depth: 0).
-          CHANGELOG_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || 'origin/main' }}
-
-  # The heavy half of the old lint job: build the workspace and typecheck it.
-  # typecheck genuinely needs `^build` (turbo builds dependencies first), so it
-  # stays coupled to the build. Runs in parallel with `lint`, `test`, and
-  # `editor-ux`; it is the pipeline's long pole.
-  typecheck:
-    runs-on: ubuntu-latest
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+      - run: pnpm --dir site install --frozen-lockfile
+      - run: pnpm --dir site build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: consumer-site
+          path: site/dist
+          if-no-files-found: error
+          retention-days: 7
+  hub:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-
-      - name: Build & Type check
-        run: pnpm turbo run build typecheck
-
-      # The committed API reports (packages/*/etc/*.api.md) are the record of
-      # what we promise to keep working. api-extractor fails when the built
-      # surface no longer matches the report, so a change to what we export
-      # cannot land without showing up as a reviewable diff. Must run AFTER the
-      # build -- it reads dist/*.d.ts, which is why it is not in `lint` (that
-      # job is deliberately build-free, exploration 0193). (0370)
-      - name: API report drift (0370)
-        run: pnpm check:api-report
-
-      # publint over every publishable package: can a consumer actually install
-      # and import this? Upstream of any versioning promise -- a correct semver
-      # bump on a package whose export map doesn't resolve is worth nothing.
-      # Errors only; the suggestion tier is unpassable by design. (0370)
-      - name: Packaging validity (0370)
-        run: pnpm check:packaging
-
-      # Charter §7 "Floor": software is how working computers become waste, so
-      # a change that raises what a first load costs is a change that retires
-      # someone's hardware. Ratchets the critical-path bytes against
-      # footprint-baseline.json. Lives here rather than in `lint` for the same
-      # reason check:api-report does -- it reads build output, and `lint` is
-      # deliberately build-free (0193). Its negative control runs in `lint`
-      # beside the other gate controls. (0434)
-      - name: Footprint budget (0434)
-        run: pnpm check:footprint-budget
-
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        shard: [1/3, 2/3, 3/3]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/setup
-
-      # No build step: vitest.config.ts aliases every @xnetjs/* import to the
-      # package's src/, and no test imports from dist/, so the workspace build
-      # is dead weight for the test run (exploration 0193). better-sqlite3 — the
-      # only native dependency tests touch — is rebuilt in the setup composite.
-
-      # No --coverage: CI never enforced thresholds (vitest.config.ts skips
-      # them when CI=true because shards see partial coverage) and the codecov
-      # upload had no consumer — no badge, no gate (exploration 0294). Local
-      # full runs still enforce the configured thresholds.
-      # FAIL-CLOSED EVENT DISPATCH (0372). This used to be two mutually
-      # exclusive `if:` gates — `push` → full run, `pull_request` → changed-only.
-      # On ANY other event (merge_group, workflow_call, workflow_dispatch,
-      # schedule) neither matched, both steps were skipped, and the job
-      # SUCCEEDED having executed zero tests. `test (1/3..3/3)` are required
-      # checks in the `Protect main` ruleset and GitHub counts a skipped job as
-      # passing, so the gate reported green on an untested tree — it failed
-      # safe-looking, which is worse than failing loudly.
-      #
-      # The scope is now resolved in ONE place with the unknown event falling
-      # through to the FULL suite. An unforeseen trigger costs CI minutes; it
-      # never costs a false green. Narrowing (`--changed`) must be opted into
-      # by name, never arrived at by default.
-      - name: Resolve test scope
-        id: scope
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          case "$EVENT_NAME" in
-            pull_request) echo "args=--changed=origin/$BASE_REF --passWithNoTests" >> "$GITHUB_OUTPUT" ;;
-            *)            echo "args=" >> "$GITHUB_OUTPUT" ;;
-          esac
-
-      - name: Run tests (shard ${{ matrix.shard }})
-        run: pnpm vitest run --shard=${{ matrix.shard }} ${{ steps.scope.outputs.args }}
-
-  editor-ux:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    # Fail-closed (0372): `editor-ux` is a REQUIRED check, so a skip reports
-    # green. Excluding `push` (where the merged result is already covered by
-    # the full `test` run) leaves every other event running the suite. Nothing
-    # in this job reads PR context, so the unknown-event path is sound as-is.
-    if: github.event_name != 'push'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-
-      - name: Build packages
-        run: pnpm turbo run build --filter='./packages/*'
-
-      # Cache the Playwright browser binaries (~/.cache/ms-playwright), keyed on
-      # the pinned @playwright/test version and the browser set this job needs.
-      # The big cost is the browser download; OS deps are not in this path, so
-      # on a cache hit we still run `install-deps` (apt only) to keep webkit's
-      # libraries present. (Exploration 0193.)
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-1.58.1-chromium-webkit
-
-      - name: Install Playwright browsers (cache miss)
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @xnetjs/e2e-tests exec playwright install --with-deps chromium webkit
-
-      - name: Install Playwright system deps (cache hit)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --filter @xnetjs/e2e-tests exec playwright install-deps chromium webkit
-
-      - name: Run focused editor interaction tests
-        run: pnpm --filter @xnetjs/editor exec vitest run src/blocknote/collab-convergence.test.tsx src/blocknote/doc-utils.test.ts src/blocknote/legacy-import.test.ts
-
-      - name: Start web app
-        run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &
-
-      - name: Wait for web app
-        run: for _ in {1..60}; do curl -fsS http://127.0.0.1:5173 >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; exit 1
-
-      - name: Run editor UX smoke tests (desktop + mobile)
-        run: pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-ux.spec.ts src/editor-ux-mobile.spec.ts src/safety-ui.spec.ts --project=chromium --project=mobile-chromium --fail-on-flaky-tests
-        env:
-          CI: 'true'
-          PLAYWRIGHT_TEST_BASE_URL: 'http://127.0.0.1:5173'
-
-      # Desktop only: the mobile shell doesn't render sections at all (0388
-      # open question), so this spec has nothing to assert under mobile-chromium.
-      - name: Run left-nav section tests (desktop)
-        run: pnpm --filter @xnetjs/e2e-tests exec playwright test src/left-nav.spec.ts --project=chromium --fail-on-flaky-tests
-        env:
-          CI: 'true'
-          PLAYWRIGHT_TEST_BASE_URL: 'http://127.0.0.1:5173'
-
-      # Preserve the screenshots these smoke specs already take (they were
-      # written to tmp/playwright and discarded). The richer changed-UI gallery
-      # lives in the visual-capture workflow; this just keeps debug evidence.
-      - name: Upload editor UX screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: editor-ux-screenshots
-          # Playwright runs with cwd=tests/e2e, so screenshots land there; the
-          # root glob is a fallback for any spec run from the repo root.
-          path: |
-            tests/e2e/tmp/playwright/**/*.png
-            tmp/playwright/**/*.png
-          if-no-files-found: ignore
-          retention-days: 14
-
-  # Electron desktop e2e (exploration 0238, L2 + L3): the cross-client
-  # convergence matrix (web↔web · electron↔web · electron↔electron, over ws and
-  # best-effort webrtc, incl. offline→reconnect) and the `_electron.launch()` app
-  # smoke (launch, no-console-errors, SQLite persist across restart, xnet://
-  # deep-link routing, core canvas flow). Headless under xvfb.
-  #
-  # Native-module ABI: `deps:electron` rebuilds the shared better-sqlite3 for
-  # Electron's ABI so the unpacked app can load it — which means plain Node can't.
-  # The in-process hub therefore runs under Electron's OWN Node runtime
-  # (ELECTRON_RUN_AS_NODE via XNET_HUB_ELECTRON_BIN), so the hub and the app share
-  # the one Electron-ABI copy. `electron-cache: 'true'` caches ~/.cache/electron so
-  # the rebuild is paid once. `--fail-on-flaky-tests` quarantines flakes.
-  electron-e2e:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    # Fail-closed (0372): same shape as `editor-ux` — skip only the `push`
-    # case we deliberately exempt, run on everything else. This job reads no
-    # PR context either (fetch-depth: 0 is for history, not for a base ref).
-    if: github.event_name != 'push'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/setup
-        with:
-          electron-cache: 'true'
-
-      - name: Build packages + Electron renderer/main
-        run: pnpm turbo run build --filter=xnet-desktop --filter=@xnetjs/hub
-
-      - name: Rebuild native modules for Electron (unpacked app)
-        run: pnpm --filter xnet-desktop run deps:electron
-
-      - name: Install desktop test services
-        run: sudo apt-get update && sudo apt-get install -y xvfb dbus-x11 gnome-keyring libsecret-1-0
-
-      - name: Cache Playwright browser
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-1.58.1-chromium
-
-      - name: Install Playwright Chromium (cache miss)
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @xnetjs/e2e-tests exec playwright install --with-deps chromium
-
-      - name: Install Playwright system deps (cache hit)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --filter @xnetjs/e2e-tests exec playwright install-deps chromium
-
-      # Resolve the Electron binary and expose it as the hub's Node runtime, then
-      # smoke the two ABI-sensitive paths before the full run: better-sqlite3 must
-      # load under Electron's ABI, and the hub must start under ELECTRON_RUN_AS_NODE.
-      - name: Probe Electron launch (diagnostic)
-        run: |
-          ELECTRON_BIN=$(cd apps/electron && node -e "process.stdout.write(require('electron'))")
-          echo "electron binary: $ELECTRON_BIN"
-          echo "XNET_HUB_ELECTRON_BIN=$ELECTRON_BIN" >> "$GITHUB_ENV"
-          echo "--- better-sqlite3 under Electron ABI ---"
-          (cd apps/electron && ELECTRON_RUN_AS_NODE=1 "$ELECTRON_BIN" -e "new (require('better-sqlite3'))(':memory:'); console.log('better-sqlite3 OK under Electron')") \
-            || echo "PROBE FAILED: better-sqlite3 cannot load under Electron"
-          echo "--- hub starts under ELECTRON_RUN_AS_NODE ---"
-          ELECTRON_RUN_AS_NODE=1 timeout 25 "$ELECTRON_BIN" --import tsx packages/hub/src/cli.ts \
-            --port 39997 --no-auth --storage memory 2>&1 | head -25 || true
-
-      - name: Run convergence matrix + Electron app smoke (xvfb)
-        run: |
-          bash scripts/with-linux-test-keyring.sh \
-            xvfb-run --auto-servernum pnpm --filter @xnetjs/e2e-tests exec \
-            playwright test src/sync-matrix.spec.ts src/electron-smoke.spec.ts \
-            --project=chromium --project=electron --fail-on-flaky-tests
-        env:
-          CI: 'true'
-          XNET_ELECTRON_NO_SANDBOX: '1'
-
-      - name: Upload Electron e2e artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: electron-e2e-artifacts
-          path: |
-            tests/e2e/test-results/**
-            tests/e2e/tmp/**
-          if-no-files-found: ignore
-          retention-days: 14
-
-  # Rust core conformance (exploration 0257): the portable kernel in
-  # rust/xnet-core must reproduce the shared golden vectors in conformance/vectors
-  # byte-for-byte — the same L0–L3 set the TypeScript core is gated on. Without
-  # this job a non-TS implementation can drift from the protocol undetected.
-  # cargo is preinstalled on ubuntu-latest runners, so no toolchain action needed.
-  conformance-rust:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            rust/xnet-core/target
-          key: cargo-${{ runner.os }}-${{ hashFiles('rust/xnet-core/Cargo.lock') }}
-      - name: Rust kernel conformance vectors
-        run: cargo test --manifest-path rust/xnet-core/Cargo.toml --locked
+      - run: sh deploy/hub/stage.sh /tmp/xnet-hub
+      - name: Build the exact deploy context
+        run: docker build -t xnet-hub:test /tmp/xnet-hub
+      - name: Verify modes, quotas, and no media hosting
+        run: >-
+          docker run --rm --entrypoint sh -v "$PWD/deploy/hub:/checks:ro" xnet-hub:test -c
+          'apt-get update && apt-get install -y --no-install-recommends python3 && python3 /checks/check-modes.py /app'

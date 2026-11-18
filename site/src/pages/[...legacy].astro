@@ -1,0 +1,22 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Footer from '../components/sections/Footer.astro'
+import routes from '../data/legacy-docs.json'
+export function getStaticPaths() {
+  return routes.map((route) => ({ params: { legacy: route.route }, props: { source: route.source } }))
+}
+const url = `https://github.com/crs48/xNet/blob/legacy-sdk-2026-11-18/${Astro.props.source}`
+---
+<Base title="An earlier chapter — xNet" description="The earlier xNet workspace and developer documentation are preserved in the source archive.">
+  <Nav />
+  <main id="main-content" class="m-wrap archive-page">
+    <p class="m-note">From the workspace era</p>
+    <h1 class="m-title">An earlier chapter of xNet.</h1>
+    <p class="m-lede">This page described the previous workspace and developer toolkit. xNet now focuses on a desktop community network for conversations, music, video, and public posts.</p>
+    <p class="m-copy">The old source and documentation are preserved. They do not describe the current app. Your old local data is not converted or deleted by this change.</p>
+    <div class="archive-actions"><a class="m-button" href={url}>Read the archived page ↗</a><a class="m-button secondary" href="/">Meet the current xNet</a></div>
+  </main>
+  <Footer />
+</Base>
+<style>.archive-page{padding-top:6rem;padding-bottom:6rem;max-width:780px}.archive-actions{display:flex;gap:1rem;flex-wrap:wrap;margin-top:2rem}</style>

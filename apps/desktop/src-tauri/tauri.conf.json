@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "xNet Community",
+  "version": "0.1.1",
+  "identifier": "fyi.xnet.community.experiment",
+  "build": {
+    "frontendDist": "../../../dist",
+    "devUrl": "http://127.0.0.1:4381",
+    "beforeDevCommand": "pnpm --dir ../.. dev:ui"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "xNet \u00b7 Community network",
+        "width": 1180,
+        "height": 820,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "capabilities": [
+        "main"
+      ],
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost; img-src 'self' data: http://127.0.0.1:*; media-src http://127.0.0.1:*; object-src 'none'; base-uri 'none'; frame-src 'none'"
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "xnet-community"
+        ]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "category": "SocialNetworking",
+    "shortDescription": "Private conversations and media shared by your community",
+    "icon": [
+      "icons/icon.icns",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ]
+  }
+}

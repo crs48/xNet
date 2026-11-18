@@ -1,1 +1,0 @@
-export { SchemaHistoryPanel } from './SchemaHistoryPanel'

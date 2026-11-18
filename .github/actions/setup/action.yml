@@ -1,83 +1,14 @@
-name: 'Setup xNet'
-description: 'Checkout, install pnpm, Node.js, and dependencies'
-
-inputs:
-  pnpm-version:
-    description: 'pnpm version'
-    default: '10.30.3'
-  node-version:
-    description: 'Node.js version'
-    default: '23'
-  turbo-cache:
-    description: 'Enable Turbo cache persistence'
-    default: 'true'
-  electron-cache:
-    description: 'Cache Electron and electron-builder binaries'
-    default: 'false'
-
+name: Set up xNet
+description: Pinned Node and pnpm with a frozen application lockfile
 runs:
-  using: 'composite'
+  using: composite
   steps:
     - uses: pnpm/action-setup@v4
       with:
-        version: ${{ inputs.pnpm-version }}
-
+        version: 10.30.3
     - uses: actions/setup-node@v4
       with:
-        node-version: ${{ inputs.node-version }}
-        cache: 'pnpm'
-
-    - if: inputs.turbo-cache == 'true'
-      uses: actions/cache@v4
-      with:
-        path: .turbo
-        key: turbo-${{ runner.os }}-${{ github.sha }}
-        restore-keys: turbo-${{ runner.os }}-
-
-    - if: inputs.electron-cache == 'true'
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/electron
-          ~/.cache/electron-builder
-        key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('apps/electron/package.json') }}
-        restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
-
-    # Setup Python with setuptools for native module builds (node-gyp requires distutils)
-    # Python 3.12+ removed distutils from stdlib, so we need setuptools which provides it
-    - if: runner.os == 'Windows' || runner.os == 'macOS'
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-
-    - if: runner.os == 'Windows' || runner.os == 'macOS'
-      run: python -m pip install setuptools
-      shell: bash
-
-    - run: pnpm install --frozen-lockfile
-      shell: bash
-
-    # Cache the compiled better-sqlite3 native binary so we don't re-fetch /
-    # rebuild it in every job. The .node ABI is fixed by (OS, arch, Node major),
-    # and the resolved version by the lockfile — keying on all four guarantees a
-    # restored binary matches this runner, so a hit is always safe to use.
-    # (Exploration 0193.)
-    - name: Cache better-sqlite3 build
-      id: sqlite-cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build
-          node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/prebuilds
-        key: bsqlite-${{ runner.os }}-${{ runner.arch }}-node${{ inputs.node-version }}-${{ hashFiles('pnpm-lock.yaml') }}
-
-    - name: Rebuild better-sqlite3 for correct Node version
-      if: steps.sqlite-cache.outputs.cache-hit != 'true'
-      run: |
-        echo "Node version: $(node --version)"
-        echo "Removing cached better-sqlite3 binary..."
-        rm -rf node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build
-        rm -rf node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/prebuilds
-        echo "Rebuilding better-sqlite3..."
-        cd node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3 && npx --yes prebuild-install || npm run build-release
-      shell: bash
+        node-version: 24
+        cache: pnpm
+    - shell: bash
+      run: pnpm install --frozen-lockfile

@@ -1,0 +1,39 @@
+name: Prepare Desktop Installers
+# Explicit development builds only. No release upload, signing secrets, or feed mutation.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            bundle: dmg
+          - os: windows-2022
+            bundle: nsis
+          - os: ubuntu-24.04
+            bundle: deb
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Linux native prerequisites
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.97.1'
+      - uses: Swatinem/rust-cache@v2
+      - run: pnpm build
+      - working-directory: apps/desktop
+        run: pnpm exec tauri build --bundles ${{ matrix.bundle }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xnet-unsigned-${{ matrix.os }}
+          path: target/release/bundle/
+          if-no-files-found: error
+          retention-days: 14

@@ -8,6 +8,7 @@ export interface BlogArt {
 }
 
 const descriptions: Record<string, string> = {
+  'an-internet-we-can-change': 'Friends gather around a shared table, imagining software and a community they can shape together.',
   'what-desire-builds':
     'A painterly close view of adult hands resting in warm bath water, with soft light on the ripples.',
   'atoms-for-the-ballot': 'A hand places a folded paper ballot into a wooden ballot box.',

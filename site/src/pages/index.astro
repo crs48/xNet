@@ -1,27 +1,38 @@
 ---
 import Base from '../layouts/Base.astro'
 import Nav from '../components/sections/Nav.astro'
-import Hero from '../components/sections/Hero.astro'
-import TheApp from '../components/sections/TheApp.astro'
-import ForDevelopers from '../components/sections/ForDevelopers.astro'
-import HumaneByDesign from '../components/sections/HumaneByDesign.astro'
-import Roadmap from '../components/sections/Roadmap.astro'
-import GetStarted from '../components/sections/GetStarted.astro'
 import Footer from '../components/sections/Footer.astro'
 ---
-
-<Base
-  title="xNet — A workspace you own"
-  description="Documents, databases, canvases, and a personal library. A local-first workspace with open building blocks for your own tools."
->
-  <Nav />
-  <main id="main-content">
-    <Hero />
-    <TheApp />
-    <ForDevelopers />
-    <HumaneByDesign />
-    <Roadmap />
-    <GetStarted />
-  </main>
-  <Footer />
+<Base title="xNet — a network of our own" description="Private conversations, public ideas, music, and video. An open desktop network kept by the people who use it.">
+<Nav />
+<main id="main-content">
+  <section class="m-wrap home-hero">
+    <p class="eyebrow">Open source · Peer to peer · Early beta</p>
+    <h1>A network<br />of our own.</h1>
+    <p class="m-lede">Talk with friends. Share something worth keeping. Help keep it online.</p>
+    <p class="m-copy intro">xNet brings private conversations, public posts, video, and music into one desktop app. Your community contributes the storage and connections that make it work.</p>
+    <div class="actions"><a class="m-button" href="/download">Get to know the beta <span aria-hidden="true">↗</span></a><a class="m-text-link" href="#how-it-works">How it works ↓</a></div>
+  </section>
+  <section id="how-it-works" class="m-section">
+    <div class="m-wrap">
+      <p class="eyebrow">One app. A few useful things.</p>
+      <div class="feature-grid">
+        <article><span class="number">01</span><h2>Conversations with your people.</h2><p>Private rooms and group chats, with history kept on your device. Share an invitation to bring someone in.</p></article>
+        <article><span class="number">02</span><h2>Music, video, and public ideas.</h2><p>Share a file or a post. A public link helps people find it; peers supply the media directly.</p></article>
+        <article><span class="number">03</span><h2>A network you take part in.</h2><p>Choose your storage and bandwidth budget. Keep the people you follow close, and contribute spare room for public posts.</p></article>
+      </div>
+    </div>
+  </section>
+  <section class="m-section"><div class="m-wrap explanation">
+    <div><p class="eyebrow">What lives where</p><h2>Small hubs.<br />Real connections.</h2></div>
+    <div class="m-copy"><p>A hub helps peers find each other and indexes public metadata and text. It does not keep your private chat history or host the music and video files.</p><p>Media and history come from an online peer. When a direct connection is unavailable, a relay can carry small live messages. If nobody with an authorized copy is online, the history or file has to wait.</p><p>This is an early beta. We’re working toward a dependable everyday app, and we’ll be clear about what works along the way.</p><a class="m-text-link" href="/download">Read the beta limits ↗</a></div>
+  </div></section>
+  <section class="m-section"><div class="m-wrap explanation">
+    <div><p class="eyebrow">A long-running idea</p><h2>The internet should<br />belong to its people.</h2></div>
+    <div class="m-copy"><p>The tools change. The aim stays: software that gives people more say over their digital lives and helps communities make things together.</p><p>Our essays on sovereignty, living systems, and digital Legos remain here. They tell the story of how we got to this chapter.</p><a class="m-text-link" href="/blog">Explore the essays ↗</a></div>
+  </div></section>
+</main><Footer />
 </Base>
+<style>
+.home-hero{padding-top:clamp(5rem,10vw,9rem);padding-bottom:6rem}.eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1.5rem}.home-hero h1{font-size:clamp(3.8rem,8vw,7.5rem);line-height:1;letter-spacing:-.065em;font-weight:550;margin:0 0 2rem}.intro{max-width:630px;margin-top:1.5rem}.actions{display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;margin-top:2rem}.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3rem;margin-top:3rem}.number{font-size:.75rem;color:var(--muted)}h2{font-size:1.6rem;line-height:1.25;letter-spacing:-.035em;margin:1rem 0}article p,.explanation p{line-height:1.8;color:var(--muted)}.explanation{display:grid;grid-template-columns:1fr 1.4fr;gap:5rem}.explanation h2{font-size:2.25rem}.explanation .m-copy p+p{margin-top:1rem}@media(max-width:700px){.feature-grid,.explanation{grid-template-columns:1fr;gap:2rem}.home-hero{padding-bottom:4rem}}
+</style>

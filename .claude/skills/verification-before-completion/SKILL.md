@@ -6,8 +6,8 @@ description: >-
   checklist, before renaming an exploration's filename checkbox, before
   committing, and before opening or merging a PR.
 license: MIT
-compatibility: Requires pnpm, turbo and git
-allowed-tools: Bash(pnpm:*) Bash(turbo:*) Bash(git:*) Read
+compatibility: Requires pnpm, Rust and git
+allowed-tools: Bash(pnpm:*) Bash(cargo:*) Bash(git:*) Read
 metadata:
   source: https://github.com/obra/superpowers/blob/main/skills/verification-before-completion/SKILL.md
   local-changes: >-
@@ -28,8 +28,8 @@ If you have not run the command in this turn, you cannot say it passes.
 | Claim                     | What proves it                                          | Not sufficient                                                     |
 | ------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
 | Tests pass                | `pnpm test` output, 0 failures                          | A previous run; "should pass"                                      |
-| One package's tests pass  | `pnpm exec vitest run --project <name> <path>`          | `pnpm --filter <pkg> test` — the root config runs every project    |
-| Types clean               | `pnpm turbo run typecheck` exit 0                       | `tsc` on one file                                                  |
+| One package's tests pass  | `cargo test --locked -p <crate>`          | A test run against the retired SDK    |
+| Types clean               | `pnpm check` exit 0                       | An editor tooltip                                                  |
 | Lint clean                | `pnpm lint` exit 0                                      | The editor showing no squiggles                                    |
 | A checklist item is `[x]` | The named artifact exists **and is wired** — re-read it | The edit succeeded                                                 |
 | An exploration is `[x]`   | Every item verified individually                        | "most of it landed"                                                |

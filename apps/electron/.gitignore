@@ -1,9 +1,0 @@
-# Build output
-out/
-dist/
-
-# Electron packaged app
-release/
-
-# Logs
-*.log
