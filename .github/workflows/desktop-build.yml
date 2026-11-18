@@ -43,11 +43,11 @@ jobs:
         include:
           - os: macos-15
             platform: macos-arm64
-            bundle: dmg
+            bundle: app,dmg
             binary: target/release/community-desktop
           - os: macos-15-intel
             platform: macos-x64
-            bundle: dmg
+            bundle: app,dmg
             binary: target/release/community-desktop
           - os: windows-2022
             platform: windows-x64
@@ -74,6 +74,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: release-${{ matrix.platform }}
+          cache-on-failure: true
       - name: Build and sign beta update artifacts
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -135,6 +136,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      pages: write
     concurrency:
       group: pages-production
       cancel-in-progress: false
@@ -180,3 +182,7 @@ jobs:
           # Keep any previous locally hosted version directories intact.
           exclude: '*/'
           commit-message: 'release(desktop): publish verified beta download and update metadata'
+      - name: Request Pages deployment of the beta feed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"

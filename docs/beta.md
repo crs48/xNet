@@ -33,7 +33,7 @@ pnpm install --frozen-lockfile
 pnpm desktop:build --bundles dmg # macOS; nsis on Windows; deb,appimage on Linux
 ```
 
-Ordinary local builds have no updater endpoint. For a beta build, set `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, then add `--config src-tauri/beta.conf.json`. Set `APPLE_SIGNING_IDENTITY=-` for the intentionally ad-hoc Mac beta. Keep secrets out of source and shell history.
+Ordinary local builds have no updater endpoint. For a beta build, set `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, then add `--config src-tauri/beta.conf.json`. On Mac, request `--bundles app,dmg` so Tauri retains the app and generates its updater archive. Set `APPLE_SIGNING_IDENTITY=-` for the intentionally ad-hoc Mac beta. Keep secrets out of source and shell history.
 
 ## Publish the next beta
 

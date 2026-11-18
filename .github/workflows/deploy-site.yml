@@ -9,6 +9,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+  pages: write
 concurrency:
   group: pages-production
   cancel-in-progress: false
@@ -46,3 +47,8 @@ jobs:
             visuals-baseline
             visuals
           commit-message: 'deploy(site): publish the xNet consumer site'
+      # GITHUB_TOKEN branch pushes do not trigger legacy Pages builds.
+      - name: Request consumer site deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"
