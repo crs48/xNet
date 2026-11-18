@@ -44,25 +44,39 @@ fn updates_enabled(app: tauri::AppHandle) -> bool {
 }
 
 fn main() {
+    let profile_root = std::env::var_os("XNET_COMMUNITY_DATA").map(std::path::PathBuf::from);
+    let mut context = tauri::generate_context!();
+    if let Some(root) = &profile_root {
+        community_network::store::private_dir(root).expect("Unable to prepare desktop profile");
+        context.config_mut().app.app_directories_override =
+            Some(tauri::utils::config::AppDirectoriesOverride::Root(
+                root.canonicalize()
+                    .expect("Unable to resolve desktop profile"),
+            ));
+    }
     let builder = tauri::Builder::default();
     #[cfg(any(target_os = "windows", target_os = "linux"))]
-    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
-        if let Some(window) = app.get_webview_window("main") {
-            let _ = window.set_focus();
-        }
-    }));
+    let builder = if profile_root.is_none() {
+        builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_focus();
+            }
+        }))
+    } else {
+        // Explicit profiles are independent clients. Node's exclusive profile
+        // lock still rejects two processes opening the same database.
+        builder
+    };
     builder
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
-        .setup(|app| {
+        .setup(move |app| {
             if app.config().plugins.0.contains_key("updater") {
                 app.handle()
                     .plugin(tauri_plugin_updater::Builder::new().build())?;
             }
-            let root = std::env::var_os("XNET_COMMUNITY_DATA")
-                .map(std::path::PathBuf::from)
-                .unwrap_or(app.path().app_data_dir()?);
+            let root = profile_root.unwrap_or(app.path().app_data_dir()?);
             let registry = std::env::var("XNET_COMMUNITY_REGISTRY")
                 .ok()
                 .map(Ok)
@@ -101,6 +115,6 @@ fn main() {
             select_media,
             updates_enabled
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("Desktop runtime failed");
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Start three isolated packaged desktops and exercise their real local control bridges."""
 import argparse
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -22,17 +23,26 @@ class Desktop:
         self.process = None
         if loopback:
             self.directory.mkdir(mode=0o700)
-            with sqlite3.connect(self.directory / 'state.sqlite') as db:
+            with closing(sqlite3.connect(self.directory / 'state.sqlite')) as db, db:
                 db.execute('CREATE TABLE kv(key TEXT PRIMARY KEY, data TEXT NOT NULL)')
                 db.execute('INSERT INTO kv VALUES (?, ?)', ('transport:sockets', '["127.0.0.1:0"]'))
+
+    def environment(self):
+        return {
+            **os.environ, 'XNET_COMMUNITY_DATA': str(self.directory),
+            'XNET_COMMUNITY_LABEL': f'xNet test · {self.name}',
+        }
+
+    def require_exclusive_profile(self):
+        duplicate = subprocess.run([self.binary], env=self.environment(),
+                                   capture_output=True, text=True, timeout=45)
+        require(duplicate.returncode != 0 and 'This profile is already open' in duplicate.stderr,
+                'A second process must refuse the already-open profile')
 
     def start(self):
         previous = self.directory / 'bridge.json'
         old_info = previous.read_bytes() if previous.exists() else None
-        self.process = subprocess.Popen([self.binary], env={
-            **os.environ, 'XNET_COMMUNITY_DATA': str(self.directory),
-            'XNET_COMMUNITY_LABEL': f'xNet test · {self.name}',
-        })
+        self.process = subprocess.Popen([self.binary], env=self.environment())
         deadline = time.monotonic() + 45
         while time.monotonic() < deadline:
             if self.process.poll() is not None:
@@ -60,7 +70,16 @@ class Desktop:
 
     def close(self):
         if self.process is not None and self.process.poll() is None:
-            self.process.terminate()
+            if os.name == 'nt':
+                # WebView2 children can retain profile files after the parent
+                # exits. Only terminate the tree rooted at our own test PID.
+                result = subprocess.run(
+                    ['taskkill', '/PID', str(self.process.pid), '/T', '/F'],
+                    capture_output=True, text=True)
+                if result.returncode and self.process.poll() is None:
+                    raise RuntimeError(f'Unable to stop {self.name}: {result.stderr}')
+            else:
+                self.process.terminate()
             try:
                 self.process.wait(10)
             except subprocess.TimeoutExpired:
@@ -87,6 +106,8 @@ def check(binary, directory, loopback):
             peer.call('account', name=peer.name)
             peer.call('participation', settings={'enabled': True, 'storage_mb': 10, 'upload_mb': 10})
         require(len(set(identities)) == 3, 'Profiles must have distinct device keys')
+        owner.require_exclusive_profile()
+        print('Independent profiles run together; duplicate profile access is rejected.', flush=True)
         pair = owner.call('create_room', title='A private conversation', private=True)['id']
         guest.call('join', link=owner.call('invite', id=pair)['link'])
         owner.call('send', id=pair, body='Can you see this?')
