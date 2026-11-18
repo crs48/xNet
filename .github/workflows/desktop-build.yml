@@ -25,11 +25,12 @@ jobs:
           PUBLISH: ${{ inputs.publish }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "$PUBLISH" = true ] && [ "$GITHUB_REF" != refs/heads/main ]; then
-            echo 'Public releases must come from main.' >&2
+          if [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo 'Signed builds must come from protected main.' >&2
             exit 1
           fi
           python3 scripts/desktop-release.py --selftest
+          python3 scripts/publish-desktop-release.py --selftest
       - id: version
         run: |
           version=$(node -p "require('./package.json').version")
@@ -37,6 +38,7 @@ jobs:
           echo "tag=community-v$version" >> "$GITHUB_OUTPUT"
   build:
     needs: prepare
+    environment: desktop-beta-release
     strategy:
       fail-fast: false
       matrix:
@@ -158,7 +160,6 @@ jobs:
           git fetch origin gh-pages --depth=1
           if git cat-file -e FETCH_HEAD:releases/community/beta/latest.json 2>/dev/null; then
             git show FETCH_HEAD:releases/community/beta/latest.json > current-channel.json
-            python3 scripts/desktop-release.py check-channel --current current-channel.json
           fi
           cat > notes.md <<EOF_NOTES
           Early xNet Community beta for macOS (Apple silicon and Intel), Windows x64, and Linux x64.
@@ -171,9 +172,7 @@ jobs:
 
           Source: $GITHUB_SHA
           EOF_NOTES
-          gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "xNet Community beta $RELEASE_VERSION" --notes-file notes.md --draft --prerelease --latest=false
-          gh release upload "$RELEASE_TAG" release/artifacts/* release/verified/*
-          gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false
+          python3 scripts/publish-desktop-release.py --directory release --source "$GITHUB_SHA" --notes notes.md
           mkdir feed
           cp release/verified/latest.json release/verified/downloads.json feed/
       - name: Advance the verified beta feed

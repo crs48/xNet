@@ -4,7 +4,7 @@ Download at [xnet.fyi/download](https://xnet.fyi/download/). The beta supports A
 
 ## Signing and installation
 
-Every installer has an adjacent `.sig` and a SHA-256 entry in the release's `SHA256SUMS`. Signatures use the existing xNet beta updater key; the matching private key is held in the repository's encrypted `TAURI_SIGNING_PRIVATE_KEY` secret and backed up outside the repository. Never rotate it just to make a build pass.
+Every installer has an adjacent `.sig` and a SHA-256 entry in the release's `SHA256SUMS`. Signatures use the existing xNet beta updater key; the matching private key is held in the `desktop-beta-release` environment’s encrypted `TAURI_SIGNING_PRIVATE_KEY` secret (restricted to `main`) and backed up outside the repository. Never rotate it just to make a build pass.
 
 These are self-signed beta downloads, not verified-publisher releases:
 
@@ -40,13 +40,13 @@ Ordinary local builds have no updater endpoint. For a beta build, set `TAURI_SIG
 The manual **Release Desktop Beta** workflow owns releases. A main merge alone never advances the update channel.
 
 1. Bump `package.json`, the Cargo workspace and its lockfile entries, and `tauri.conf.json` to the same unused version. Merge through normal required CI.
-2. Dispatch `desktop-build.yml` on `main` with `publish=false` for a rehearsal, or `publish=true` to release. A publishing dispatch on another branch is rejected.
+2. Dispatch `desktop-build.yml` on `main` with `publish=false` for a rehearsal, or `publish=true` to release. Any signed-build dispatch on another branch is rejected, including rehearsals; the environment branch rule also prevents access to the production signing key.
 3. Four native runners build real release binaries and exercise private/group messaging, restart persistence, and profile isolation. Every installer and updater payload is signed. macOS disk images receive an additional detached xNet signature.
 4. The verification job requires the complete asset set, verifies every signature with the pinned public key, and checks its signed version. Missing or extra files and mismatched versions fail the release. Its `--selftest` runs negative controls in memory.
 5. Publishing creates a draft GitHub prerelease named `community-v<version>`, uploads all files and checksums, then makes it public. Only afterward does it advance the small `latest.json` and `downloads.json` files at `https://xnet.fyi/releases/community/beta/`. Binary assets live on GitHub Releases, not in the website Git history.
 6. Check the live download page and download an installer. The site reads the release manifest at runtime, so future releases do not require changing the page. It shows a clear unavailable state rather than broken buttons when no complete release is available.
 
-Assets and version tags are immutable. If publishing fails after creating a draft, inspect that draft and the run before retrying; do not overwrite a published artifact. Use a new patch version for a changed binary. Keep old releases available for in-progress downloads. The existing update URL, public key, URI scheme, and application identifier remain stable.
+Assets and version tags are immutable. If publishing fails after creating a draft or uploading assets, rerun the failed publication job. It resumes only the same source commit and byte-identical assets, uploads missing draft files, and never replaces an existing asset. A matching published release can resume feed/site deployment, including when the feed already advanced. A different commit, altered asset, unexpected file, or channel rollback fails for inspection. Use a new patch version for a changed binary. Keep old releases available for in-progress downloads. The existing update URL, public key, URI scheme, and application identifier remain stable.
 
 While a beta app is open, it checks on launch, on reconnection, and every six hours. It downloads a newer verified update in the background and waits for **Restart to update**. Closed apps do not poll. Linux system packages can ask for administrator authorization. Installing updates is a separate check from building packages; the release runtime tests alone do not verify OS installation or an in-place upgrade on every platform.
 
