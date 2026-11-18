@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-11-18-find-the-right-desktop-download-at-a-gla",
+      "url": "https://xnet.fyi/changelog#2026-11-18-find-the-right-desktop-download-at-a-gla",
+      "title": "Find the right desktop download at a glance",
+      "content_text": "Find the right installer for your computer, check its download size, and get installation help.\n",
+      "date_published": "2026-11-18T23:28:07Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "November 18, 2026",
+        "summary": "Find the right installer for your computer, check its download size, and get installation help.",
+        "highlights": [],
+        "mergedAt": "2026-11-18T23:28:07Z",
+        "pr": 736,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-11-18-download-the-desktop-beta-for-mac-window",
       "url": "https://xnet.fyi/changelog#2026-11-18-download-the-desktop-beta-for-mac-window",
       "title": "Download the desktop beta for Mac, Windows, and Linux",
