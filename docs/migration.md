@@ -18,8 +18,9 @@ flowchart LR
 - [x] Preserve every published blog URL and brand asset; retire the developer portal.
 - [x] Replace SDK/Electron automation with native, site, and hub checks.
 - [x] Verify local builds, core tests, and native messaging after the move.
-- [ ] Pass macOS, Windows, Linux, and hub CI; update required checks.
-- [ ] Merge the reviewed transition and verify the deployed consumer site.
+Cross-platform CI, the required-check cutover, and production verification are
+tracked in [migration PR #733](https://github.com/crs48/xNet/pull/733). Its check
+results and merge record are the authoritative completion status.
 
 Public installer publication and update-feed promotion are separate from this
 migration. Existing Windows runtime and signing limitations remain documented.
@@ -43,5 +44,5 @@ on November 18. Its deployment and volume remain intact; the new service at
 - Gitleaks found no secrets in the archival additions or the staged new tree.
 - The archive matches all 237 unfinished source paths; original worktree untouched.
 
-Cross-platform CI and the production site check are still pending. A local Mac
-check does not imply Windows or Linux runtime verification.
+The local evidence above does not imply Windows or Linux runtime verification;
+see the native CI results on the migration PR for those platforms.
