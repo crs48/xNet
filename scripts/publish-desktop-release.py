@@ -45,10 +45,25 @@ def lookup(tag):
 
 
 def check_feed(previous, previous_downloads, latest, downloads, published):
+    if previous is None and previous_downloads is None:
+        return
+    if previous is None or previous_downloads is None:
+        raise ValueError('Existing channel is incomplete; both feed documents are required')
+    if previous['version'] != previous_downloads['version']:
+        raise ValueError('Existing channel documents disagree about the current version')
     if previous['version'] != latest['version'] or not published:
         release_tools.check_channel(previous['version'], latest['version'])
     elif previous != latest or previous_downloads != downloads:
         raise ValueError('Existing same-version feed differs from the verified release')
+
+
+def read_feed(path):
+    if not path.exists():
+        return None
+    value = json.loads(path.read_text())
+    if not isinstance(value, dict):
+        raise ValueError(f'Invalid channel document: {path.name}')
+    return value
 
 
 def publish(directory, source, notes, channel):
@@ -84,13 +99,9 @@ def publish(directory, source, notes, channel):
                    '--output', str(remote))
                 if release_tools.digest(remote) != release_tools.digest(files[name]):
                     raise ValueError(f'Immutable release asset differs: {name}; use a new version')
-    if (channel / 'latest.json').exists():
-        previous = json.loads((channel / 'latest.json').read_text())
-        previous_downloads = (json.loads((channel / 'downloads.json').read_text())
-                              if (channel / 'downloads.json').exists() else None)
-        check_feed(previous, previous_downloads,
-                   json.loads(files['latest.json'].read_text()), manifest,
-                   bool(existing and not existing['draft']))
+    check_feed(read_feed(channel / 'latest.json'), read_feed(channel / 'downloads.json'),
+               json.loads(files['latest.json'].read_text()), manifest,
+               bool(existing and not existing['draft']))
     if existing is None:
         gh('release', 'create', tag, '--repo', 'crs48/xNet', '--target', source,
            '--title', f'xNet Community beta {version}', '--notes-file', str(notes),
@@ -117,11 +128,16 @@ def selftest():
     latest = {'version': '0.1.2', 'platforms': {'mac': 'signed-url'}}
     downloads = {'version': '0.1.2', 'source': source}
     check_feed(latest, downloads, latest, downloads, True)
+    check_feed(None, None, latest, downloads, False)
+    check_feed({'version': '0.1.1'}, {'version': '0.1.1'}, latest, downloads, False)
     for operation in [
         lambda: select_release([[draft], [draft]], tag),
         lambda: check_feed({**latest, 'platforms': {}}, downloads, latest, downloads, True),
         lambda: check_feed(latest, {**downloads, 'source': 'b' * 40}, latest, downloads, True),
         lambda: check_feed(latest, None, latest, downloads, True),
+        lambda: check_feed(None, downloads, latest, downloads, True),
+        lambda: check_feed(None, {**downloads, 'version': '0.1.3'}, latest, downloads, True),
+        lambda: check_feed({'version': '0.1.1'}, downloads, latest, downloads, False),
         lambda: check_feed(latest, downloads, latest, downloads, False),
         lambda: check_feed({'version': '0.1.3'}, downloads, latest, downloads, True),
     ]:
