@@ -96,9 +96,11 @@ jobs:
           done
           codesign --verify --deep --strict 'target/release/bundle/macos/xNet Community.app'
       - name: Test release private and group conversations
+        timeout-minutes: 5
         if: runner.os != 'Linux'
         run: python scripts/check-desktop-chat.py ${{ matrix.binary }} --loopback
       - name: Test Linux release conversations
+        timeout-minutes: 5
         if: runner.os == 'Linux'
         run: xvfb-run -a python scripts/check-desktop-chat.py ${{ matrix.binary }} --loopback
       - name: Collect only expected signed files

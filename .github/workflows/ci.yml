@@ -74,9 +74,11 @@ jobs:
       - name: Build a development installer
         run: pnpm desktop:build --debug --bundles ${{ matrix.bundle }}
       - name: Test native private and group conversations
+        timeout-minutes: 5
         if: runner.os != 'Linux'
         run: python scripts/check-desktop-chat.py ${{ matrix.binary }} --loopback
       - name: Test Linux native conversations
+        timeout-minutes: 5
         if: runner.os == 'Linux'
         run: xvfb-run -a python scripts/check-desktop-chat.py ${{ matrix.binary }} --loopback
       - uses: actions/upload-artifact@v4

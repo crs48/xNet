@@ -153,5 +153,18 @@ if __name__ == '__main__':
         import plistlib
         plist = plistlib.loads((binary / 'Contents/Info.plist').read_bytes())
         binary = binary / 'Contents/MacOS' / plist['CFBundleExecutable']
-    with tempfile.TemporaryDirectory(prefix='xnet-desktop-check-') as scratch:
-        check(binary, Path(scratch), args.loopback)
+    scratch = tempfile.TemporaryDirectory(prefix='xnet-desktop-check-')
+    try:
+        check(binary, Path(scratch.name), args.loopback)
+    finally:
+        # WebView2 can release mapped BrowserMetrics files shortly after
+        # taskkill returns. Retry only this test's directory, never hide a
+        # persistent lock or remove data outside the disposable profile tree.
+        for attempt in range(41):
+            try:
+                scratch.cleanup()
+                break
+            except PermissionError:
+                if os.name != 'nt' or attempt == 40:
+                    raise
+                time.sleep(.25)
