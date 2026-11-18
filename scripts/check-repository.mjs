@@ -16,10 +16,10 @@ const required = [
   '.github/workflows/ci.yml'
 ]
 const retired = [
-  'packages',
-  'apps/electron',
-  'apps/web',
-  'apps/expo',
+  'packages/data/package.json',
+  'apps/electron/package.json',
+  'apps/web/package.json',
+  'apps/expo/package.json',
   'pnpm-workspace.yaml',
   '.github/workflows/electron-release.yml',
   '.github/workflows/npm-release.yml'

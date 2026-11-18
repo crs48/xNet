@@ -346,7 +346,7 @@ function App() {
     return (
       <main className="onboarding">
         <img src="/wordmark.svg" alt="xNet" />
-        <p className="eyebrow">Community network · experiment</p>
+        <p className="eyebrow">Community network · early beta</p>
         <h1>
           A little internet,
           <br />
@@ -384,12 +384,12 @@ function App() {
             />
             <span>
               Enable hosting on this device. Use up to 1 GB storage and 1 GB peer upload in this
-              prototype. I can pause or adjust these limits.
+              beta. I can pause or adjust these limits.
             </span>
           </label>
           <p className="small muted">
             Peers may see your network address. Pausing hosting also pauses network playback and
-            messaging. No social account is required for this local demo.
+            messaging. No social account is required.
           </p>
           <Button
             variant="default"
@@ -1011,9 +1011,9 @@ function App() {
                 />
               </label>
               <p className="small muted">
-                This prototype counts a persistent total, not a monthly allowance. Publishing or
-                choosing “Keep a full copy” approves hosting for that file. Watching alone does not.
-                No background startup or automatic mobile hosting.
+                This beta counts a persistent total, not a monthly allowance. Publishing or choosing
+                “Keep a full copy” approves hosting for that file. Watching alone does not. No
+                background startup or automatic mobile hosting.
               </p>
               <div className="actions">
                 <Button variant="outline" disabled={!!busy}>
@@ -1091,14 +1091,14 @@ function App() {
               ))
             )}
             <details className="details">
-              <summary>Device & prototype details</summary>
+              <summary>Device & beta details</summary>
               <p>
                 Identity: <code>{snapshot.id}</code>
               </p>
               <p>
-                Direct Iroh connections; no hosted relay enabled in this local experiment. Keys and
-                data stay in this profile's folder with owner-only directory permissions. Social
-                sign-in, key recovery and mobile power controls are not implemented yet.
+                Media and history travel directly between peers. Small live messages may use a
+                relay. Keys and retained data live in this device's profile folder. Social sign-in,
+                key recovery and mobile power controls are not implemented yet.
               </p>
             </details>
           </div>
