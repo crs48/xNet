@@ -24,6 +24,7 @@ jobs:
       - run: node scripts/check-repository.mjs --selftest
       - run: pnpm build
       - run: pnpm test:js
+      - run: python3 scripts/desktop-release.py --selftest
       - name: Validate workflow syntax
         uses: docker://rhysd/actionlint:1.7.7
         with:

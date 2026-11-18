@@ -815,7 +815,7 @@ dependencies = [
 
 [[package]]
 name = "community-desktop"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "community-network",
@@ -833,7 +833,7 @@ dependencies = [
 
 [[package]]
 name = "community-network"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -857,7 +857,7 @@ dependencies = [
 
 [[package]]
 name = "community-node"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -869,7 +869,7 @@ dependencies = [
 
 [[package]]
 name = "community-registry"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "clap",

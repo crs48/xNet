@@ -2,19 +2,79 @@
 import Base from '../layouts/Base.astro'
 import Nav from '../components/sections/Nav.astro'
 import Footer from '../components/sections/Footer.astro'
+const downloads = [
+  { platform: 'macos-arm64', format: 'dmg', title: 'Mac · Apple silicon', detail: 'M1, M2, M3, M4 and later · macOS 11+' },
+  { platform: 'macos-x64', format: 'dmg', title: 'Mac · Intel', detail: 'Intel processor · macOS 10.15+' },
+  { platform: 'windows-x64', format: 'exe', title: 'Windows', detail: '64-bit Intel / AMD · Windows 10 or 11' },
+  { platform: 'linux-x64', format: 'deb', title: 'Linux · Debian package', detail: '64-bit Intel / AMD · Ubuntu 24.04 or compatible' },
+  { platform: 'linux-x64', format: 'AppImage', title: 'Linux · AppImage', detail: '64-bit Intel / AMD · glibc 2.39+ · FUSE 2' },
+]
 ---
-<Base title="Get xNet — early beta" description="The desktop community app is in early beta for macOS, Windows, and Linux."><Nav />
+<Base title="Download xNet — desktop beta" description="Download xNet for Apple silicon and Intel Macs, Windows, and Linux. An open-source community app with signed updates."><Nav />
 <main id="main-content" class="m-wrap beta-page">
-<p class="m-note">Desktop first · Early beta</p><h1 class="m-title">Try the next chapter.</h1>
-<p class="m-lede">xNet is becoming a place for private conversations, public posts, music, and video shared by peers.</p>
-<p class="m-copy">We’re preparing a small friends beta for macOS, Windows, and Linux. Public signed installers and an update channel are not available here yet. The old Electron downloads describe a different app.</p>
-<a class="m-button mt-8" href="https://github.com/crs48/xNet">Build the current app ↗</a>
-<section><h2>Before you try it</h2><ul>
-<li>Sharing requires an online peer with an authorized copy. There is no server copy of private chat history.</li>
-<li>The room owner must be online for new messages. A member may serve history using a permission that lasts up to five minutes.</li>
-<li>There is no account recovery or automatic import from the old workspace.</li>
-<li>The group protocol does not yet have a forward-secret ratchet. This beta is not ready for highly sensitive conversations.</li>
-<li>Development installers may be unsigned. A successful build alone is not a verified installation or update.</li>
-</ul><p class="m-copy">Current packaging and testing notes are in the <a class="underline" href="https://github.com/crs48/xNet/blob/main/docs/beta.md">beta guide</a>.</p></section>
+  <p class="m-note">Desktop first · Early beta</p>
+  <h1 class="m-title">A place for your people.</h1>
+  <p class="m-lede">Private conversations, public posts, music, and video shared by peers. Start with a friend.</p>
+  <div class="release-status"><span class="status-dot" aria-hidden="true"></span><p id="release-status" role="status">Checking for the latest beta…</p></div>
+  <div class="downloads">
+    {downloads.map(({ platform, format, title, detail }) => <article class="download-card">
+      <div><h2>{title}</h2><p>{detail}</p></div>
+      <a class="m-button download-link" data-platform={platform} data-format={format} hidden>Download .{format}</a>
+      <p class="download-pending">Available when the release is verified</p>
+    </article>)}
+  </div>
+  <p class="release-links"><a id="release-notes" href="https://github.com/crs48/xNet/releases?q=community-v">All beta releases ↗</a><a id="checksums" hidden>Checksums ↗</a></p>
+  <noscript><p>JavaScript is off. Download the appropriate installer from <a class="underline" href="https://github.com/crs48/xNet/releases?q=community-v">GitHub’s beta releases</a>.</p></noscript>
+  <aside class="beta-notice"><h2>An independent, self-signed beta</h2><p>These builds aren’t Apple-notarized or signed by a verified Windows publisher. Your computer may warn you before opening them. Downloads and automatic updates have xNet signatures; that is separate from operating-system approval.</p><p>iOS, Android, and ARM versions of Windows and Linux aren’t available yet.</p></aside>
+  <section aria-labelledby="installation"><h2 id="installation">Install once. Updates come to you.</h2>
+    <details><summary>On a Mac</summary><p>Open the disk image and drag xNet Community into Applications. Eject the image, then open the app from Applications. If macOS blocks it because the developer is unverified, review the warning in System Settings → Privacy &amp; Security. Use Open Anyway only if you trust this beta. You don’t need to turn off Gatekeeper.</p></details>
+    <details><summary>On Windows</summary><p>Run the downloaded installer. SmartScreen may say the publisher is unknown; review the source before choosing More info → Run anyway. Managed computers may block unverified installers. The installer will offer WebView2 if it isn’t already installed.</p></details>
+    <details><summary>On Linux</summary><p>Ubuntu 24.04 is the tested baseline. For the Debian package, install with your package manager so it resolves GTK and WebKit dependencies:</p><pre><code id="linux-install">sudo apt install ./xnet-community-VERSION-linux-x64.deb</code></pre><p>For AppImage, mark the file executable and open it. AppImage requires FUSE 2 and a compatible distribution; it does not make older Linux libraries compatible.</p></details>
+    <p class="m-copy update-copy">While the app is open, it checks for updates and downloads verified builds in the background. Choose <strong>Restart to update</strong> when you’re ready. Linux system packages may ask for administrator authorization.</p>
+  </section>
+  <section><h2>Before you invite your friends</h2><ul>
+    <li>Keep an authorized peer online for history and shared media. The server doesn’t keep a copy of private chat history.</li>
+    <li>The room owner must be online for new messages. Another member can share history with permission that lasts up to five minutes.</li>
+    <li>There is no account recovery or automatic import from the old workspace.</li>
+    <li>The group protocol doesn’t yet have a forward-secret ratchet. This beta isn’t ready for highly sensitive conversations.</li>
+  </ul><p class="m-copy">More detail in the <a class="underline" href="https://github.com/crs48/xNet/blob/main/docs/beta.md">beta guide</a>. The retired Electron app is a separate product.</p></section>
 </main><Footer /></Base>
-<style>.beta-page{max-width:800px;padding-top:5rem;padding-bottom:5rem}.beta-page>.m-copy{margin-top:1.5rem}section{margin-top:4rem}h2{font-size:1.5rem;margin-bottom:1rem}ul{list-style:disc;padding-left:1.25rem;line-height:1.8;margin-bottom:1.5rem}li+li{margin-top:.75rem}</style>
+<script>
+  const status = document.querySelector<HTMLParagraphElement>('#release-status')!
+  async function loadDownloads() {
+    try {
+      const response = await fetch('/releases/community/beta/downloads.json', { cache: 'no-cache' })
+      if (!response.ok) throw new Error('Release metadata unavailable')
+      const release = await response.json()
+      if (!/^\d+\.\d+\.\d+$/.test(release.version) || release.tag !== `community-v${release.version}` || !Array.isArray(release.files)) throw new Error('Invalid release metadata')
+      const prefix = `https://github.com/crs48/xNet/releases/download/${release.tag}/`
+      const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('.download-link'))
+      // Validate the complete download set before showing any links.
+      const targets = links.map((link) => {
+        const name = `xnet-community-${release.version}-${link.dataset.platform}.${link.dataset.format}`
+        const matches = release.files.filter((entry: { name?: string }) => entry.name === name)
+        if (matches.length !== 1 || matches[0].url !== prefix + name) throw new Error('Incomplete release')
+        return { link, url: prefix + name }
+      })
+      for (const { link, url } of targets) {
+        link.href = url
+        link.hidden = false
+        link.parentElement?.querySelector('.download-pending')?.remove()
+      }
+      status.textContent = `Beta ${release.version} · xNet-signed updates`
+      const notes = document.querySelector<HTMLAnchorElement>('#release-notes')!
+      notes.href = `https://github.com/crs48/xNet/releases/tag/${release.tag}`
+      notes.textContent = 'Release notes ↗'
+      const sums = document.querySelector<HTMLAnchorElement>('#checksums')!
+      sums.href = prefix + 'SHA256SUMS'
+      sums.hidden = false
+      document.querySelector('#linux-install')!.textContent = `sudo apt install ./xnet-community-${release.version}-linux-x64.deb`
+    } catch {
+      status.textContent = 'Downloads aren’t available here yet. Check the beta releases below.'
+    }
+  }
+  void loadDownloads()
+</script>
+<style>
+.beta-page{max-width:860px;padding-top:5rem;padding-bottom:5rem}.release-status{display:flex;align-items:center;gap:.6rem;margin:2rem 0 1rem;font-size:.85rem;color:var(--m-muted)}.status-dot{height:6px;width:6px;border-radius:50%;background:currentColor}.downloads{display:grid;gap:.75rem}.download-card{padding:1.25rem 1.5rem;border:1px solid var(--m-border,#e5e7eb);border-radius:16px;display:flex;align-items:center;justify-content:space-between;gap:1rem;box-shadow:0 2px 4px #00000004}.download-card h2{font-size:1rem;font-weight:600;margin:0 0 .35rem}.download-card p{font-size:.8rem;color:var(--m-muted);margin:0}.download-card .m-button{font-size:.85rem;white-space:nowrap}.download-link[hidden],a[hidden]{display:none}.release-links{display:flex;gap:1.5rem;font-size:.85rem;margin-top:1.25rem;text-decoration:underline;text-underline-offset:3px}.beta-notice{margin-top:2.5rem;padding:1.5rem;border-radius:16px;background:var(--m-bg-soft,#f4f4f5)}.beta-notice h2{font-size:1rem;margin:0 0 .5rem}.beta-notice p{font-size:.9rem;line-height:1.7;color:var(--m-muted)}.beta-notice p+p{margin-top:.6rem}section{margin-top:3.5rem}section>h2{font-size:1.5rem;margin-bottom:1.25rem}details{border-bottom:1px solid var(--m-border,#e5e7eb);padding:1rem 0}summary{cursor:pointer;font-weight:500}details p{margin-top:1rem;line-height:1.7;color:var(--m-muted)}pre{margin-top:1rem;padding:1rem;background:var(--m-bg-soft,#f4f4f5);border-radius:8px;overflow:auto;font-size:.8rem}.update-copy{margin-top:1.5rem}ul{list-style:disc;padding-left:1.25rem;line-height:1.8;margin-bottom:1.5rem}li+li{margin-top:.75rem}@media(max-width:600px){.download-card{align-items:flex-start;flex-direction:column}.beta-page{padding-top:3rem}.download-pending{font-size:.75rem}}
+</style>

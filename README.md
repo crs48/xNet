@@ -7,6 +7,8 @@ on your device, connect directly to other people, and choose how much storage
 and bandwidth to contribute. The same app has private rooms, community chats,
 public posts, video, and music.
 
+[Download for macOS, Windows, or Linux](https://xnet.fyi/download/).
+
 **Early beta.** The Tauri app is now the primary product. This repository no
 longer maintains the Electron workspace or publishes the old TypeScript SDK.
 The vision, essays, branding, and previous source remain available:
