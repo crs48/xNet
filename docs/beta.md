@@ -1,10 +1,10 @@
 # Friends beta: desktop installers
 
-The first test is a conversation between two devices, followed by an invite-only group. macOS uses an Apple silicon disk image; Windows uses an x64 NSIS installer; Debian and Ubuntu use an amd64 Debian package. The Linux build targets Debian 12 with WebKitGTK 4.1. This is a local test release; there is no public download or live update feed yet.
+The first test is a conversation between two devices, followed by an invite-only group. macOS uses an Apple silicon disk image; Windows uses an x64 NSIS installer; Debian and Ubuntu use an amd64 Debian package. Current CI targets Ubuntu 24.04 with WebKitGTK 4.1; compatibility with older Linux distributions needs separate verification. This is a local test release; there is no public download or live update feed yet.
 
 ## Try messaging
 
-1. Install the build for your computer. On Mac, copy the app from the disk image into Applications before updating. On Linux, use the package manager (for example, `sudo apt install ./xnet-community-0.1.0-linux-amd64.deb`) so it resolves the WebKitGTK and GTK dependencies.
+1. Install the build for your computer. On Mac, copy the app from the disk image into Applications before updating. On Linux, use the package manager (for example, `sudo apt install ./xnet-community-0.1.1-linux-amd64.deb`) so it resolves the WebKitGTK and GTK dependencies.
 2. Open the app, choose a local name and review the hosting setting. Each installation generates its own device identity. Use builds with community hub support and enable hosting. An admitted device can invite a new one over the public relay. See the [hub and sharing guide](../deploy/hub/README.md).
 3. Under **Chats**, make an invite-only room. Copy the invitation and send it directly to the intended recipient. They can paste the full link into **Open a link** in the app. The hosted link offers **Open in xNet** and carries the room invitation in its URL fragment. Opening the link leaves joining up to the recipient.
 4. Message in both directions, then try a separate room with three people. Quit and reopen the owner’s app and send again. Everyone with an invitation can potentially join: a room with two people is not a recipient-bound DM. The owner can require approval or rotate the invitation.
@@ -20,7 +20,7 @@ pnpm install --frozen-lockfile
 pnpm desktop:build
 ```
 
-This produces a build without an update endpoint. On Windows use the x64 MSVC toolchain and WebView2; on Debian/Ubuntu provide the WebKitGTK 4.1 development libraries. Outputs are under the Cargo target directory, in `release/bundle` (or `<triple>/release/bundle` for explicit targets). Linux builds only a Debian package for this beta. For Windows from a Mac see [Tauri’s NSIS cross-compilation instructions](https://v2.tauri.app/distribute/windows-installer/); check the resulting installer on real Windows before inviting a Windows user.
+This produces a build without an update endpoint. On Windows use the x64 MSVC toolchain and WebView2; on Debian/Ubuntu provide the WebKitGTK 4.1 development libraries. Outputs are under the Cargo target directory, in `release/bundle` (or `<triple>/release/bundle` for explicit targets). For this beta use `--bundles deb` on Linux, `--bundles nsis` on Windows, or `--bundles dmg` on macOS. For Windows from a Mac see [Tauri’s NSIS cross-compilation instructions](https://v2.tauri.app/distribute/windows-installer/); check the resulting installer on real Windows before inviting a Windows user.
 
 For the beta edition, give the build process `TAURI_SIGNING_PRIVATE_KEY` (a path to the beta signing key) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, then run:
 
@@ -38,8 +38,8 @@ Run the following with Python 3 and [minisign](https://jedisct1.github.io/minisi
 
 ```sh
 python3 scripts/prepare-beta-feed.py --output /path/to/new-release-directory \
-  --mac '/build/macos/xNet Community.app.tar.gz' --dmg '/build/dmg/xNet Community_0.1.0_aarch64.dmg' \
-  --windows '/build/nsis/xNet Community_0.1.0_x64-setup.exe' --linux '/build/deb/xNet Community_0.1.0_amd64.deb'
+  --mac '/build/macos/xNet Community.app.tar.gz' --dmg '/build/dmg/xNet Community_0.1.1_aarch64.dmg' \
+  --windows '/build/nsis/xNet Community_0.1.1_x64-setup.exe' --linux '/build/deb/xNet Community_0.1.1_amd64.deb'
 ```
 
 Preparing the folder does not publish anything. To enable updates later, serve the version directory under the configured HTTPS path, then replace `latest.json` last. Keep previous version directories so an in-progress download remains valid. While the signed-in app is running it checks on launch, when connectivity returns, and every six hours. Newer signed builds download without interrupting chat; **Restart to update** installs them when the user chooses. A closed app does not poll. Linux may ask for OS authorization to replace a system package.

@@ -44,7 +44,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - os: macos-15
             bundle: app
             binary: target/debug/community-desktop
           - os: windows-2022
@@ -70,10 +70,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: native-${{ matrix.os }}
-      - run: pnpm build
       - name: Build a development installer
-        working-directory: apps/desktop
-        run: pnpm exec tauri build --debug --bundles ${{ matrix.bundle }}
+        run: pnpm desktop:build --debug --bundles ${{ matrix.bundle }}
       - name: Test native private and group conversations
         if: runner.os != 'Linux'
         run: python scripts/check-desktop-chat.py ${{ matrix.binary }} --loopback

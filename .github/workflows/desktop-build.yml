@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - os: macos-15
             bundle: dmg
           - os: windows-2022
             bundle: nsis
@@ -28,9 +28,7 @@ jobs:
         with:
           toolchain: '1.97.1'
       - uses: Swatinem/rust-cache@v2
-      - run: pnpm build
-      - working-directory: apps/desktop
-        run: pnpm exec tauri build --bundles ${{ matrix.bundle }}
+      - run: pnpm desktop:build --bundles ${{ matrix.bundle }}
       - uses: actions/upload-artifact@v4
         with:
           name: xnet-unsigned-${{ matrix.os }}
