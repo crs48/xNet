@@ -44,6 +44,7 @@ class Desktop:
         old_info = previous.read_bytes() if previous.exists() else None
         self.process = subprocess.Popen([self.binary], env=self.environment())
         deadline = time.monotonic() + 45
+        last_error = None
         while time.monotonic() < deadline:
             if self.process.poll() is not None:
                 raise RuntimeError(f'{self.name} exited with {self.process.returncode}')
@@ -54,8 +55,14 @@ class Desktop:
                     return self.call('snapshot')
             except (FileNotFoundError, json.JSONDecodeError, URLError):
                 pass
+            except PermissionError as error:
+                if os.name != 'nt':
+                    raise
+                # Windows can briefly lock the discovery file while replacing
+                # it on restart. Keep the existing readiness deadline.
+                last_error = error
             time.sleep(.1)
-        raise TimeoutError(f'{self.name} desktop did not start')
+        raise TimeoutError(f'{self.name} desktop did not start') from last_error
 
     def call(self, op, **arguments):
         request = Request(f'http://127.0.0.1:{self.bridge["port"]}/control',
