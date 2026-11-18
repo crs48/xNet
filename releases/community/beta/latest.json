@@ -1,0 +1,27 @@
+{
+  "version": "0.1.2",
+  "pub_date": "2026-11-18T18:41:11.629632+00:00",
+  "notes": "xNet Community beta 0.1.2. Self-signed early beta; see xnet.fyi/download.",
+  "platforms": {
+    "darwin-aarch64-app": {
+      "url": "https://github.com/crs48/xNet/releases/download/community-v0.1.2/xnet-community-0.1.2-macos-arm64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTNjd5b08rNGo2RVVkemRETk5zSjMwSUJFU3g3cSs1eUhLMnkxMjBLblZlQVBhdFliZXZ2bmRzWGFQdk16ZHNSWldGUGxmakY3Nit1WmpuK1M3Z0tqV3Z3U3Z3QUp2WXc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MDI2NTI0CWZpbGU6eE5ldCBDb21tdW5pdHkuYXBwLnRhci5negl2ZXJzaW9uOjAuMS4yCklnSmpoUlo4Z2F3U05LOCtrY2JyZ3djejZaa2p3azkybGZ1Z3dOVnNuSHBLeVhYTkRDZlFweHVCOFlNVmtKbWxYOEVybDNidEovOTNmVW9SczFnNUJRPT0K"
+    },
+    "darwin-x86_64-app": {
+      "url": "https://github.com/crs48/xNet/releases/download/community-v0.1.2/xnet-community-0.1.2-macos-x64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTNjd5b08rNGo2RVNiSWh0S3NvTjUxVW9vWnJpSDlPOXM1U3VxNXFIaFRyNStLK3pURG9OSUZWZlNUUEZHUHVtZFZwUzFFWGMwR2hmZHBrK1J1WjkwRDlVSE04a1ZzY2dBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MDI2OTI5CWZpbGU6eE5ldCBDb21tdW5pdHkuYXBwLnRhci5negl2ZXJzaW9uOjAuMS4yClQ1OXlCemlyZnBaSlZNNTNMa0VXcHhYRWdYUXhncnhWVnJMd0VHb3JadlBEdmRpVmVyRThLaTNla2s0cDRFdEVCbjNJVGZyYkxmL0UrRmp0R1NuTEF3PT0K"
+    },
+    "windows-x86_64-nsis": {
+      "url": "https://github.com/crs48/xNet/releases/download/community-v0.1.2/xnet-community-0.1.2-windows-x64.exe",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTNjd5b08rNGo2RWJWRkNZWWdPWGhaQUlSTkZEc2dkbURldGFKdWxDTmk2RXVzVnlvalpiUjlibnB6MWNZWjJSQUE3RFd5L3JGUzRoQkt4WmtIbEphYmUzL21DRHA5M1FRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MDI2NTg4CWZpbGU6eE5ldCBDb21tdW5pdHlfMC4xLjJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuMS4yCldReFJCOUlOY1RqYkV0WjZyYTdMZjlxdzhyUUplWnV2S2dNUVhpVHVLN1hKaTE0U05zNGlydmROOHBKTCtSL0E4cFBtcmZ6SGlCcUI5cUs2ZVFpTURRPT0K"
+    },
+    "linux-x86_64-deb": {
+      "url": "https://github.com/crs48/xNet/releases/download/community-v0.1.2/xnet-community-0.1.2-linux-x64.deb",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTNjd5b08rNGo2RWFRRUw4Z2pRMXc1M1NNd1k1ODREbnhzY2FkbU5CVkFmVThJK1hmQ0NyMXdDelhOSWlOcU5HNkt5V01Ed2t3Ui9NdWF4OHNhR0s3dGhYUTRmNUp1YWdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MDI2Mzk0CWZpbGU6eE5ldCBDb21tdW5pdHlfMC4xLjJfYW1kNjQuZGViCXZlcnNpb246MC4xLjIKZnBsaW0wQjRHN1VXVWZrYldNS3c0UmNuZFp6eEcwekVLT25KUDJVTk93b09Nd3AyVkxjNDJMWmk4MDRqdjYydzdlOEVIT3d6eEZ5OU8va0pLY3FJRFE9PQo="
+    },
+    "linux-x86_64-appimage": {
+      "url": "https://github.com/crs48/xNet/releases/download/community-v0.1.2/xnet-community-0.1.2-linux-x64.AppImage",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTNjd5b08rNGo2RVR2Z09Uc1NjaCtIbWJ4YVVINWNVSDdHYkY1TjlmbEFEa1dSK0RtYXdMQ0FSK2Mrb0V5QXRkT3lhNHZKMTNoRnAwbUJNeDZTUVdGNzZ6eHIrZGpWQUFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MDI2Mzk0CWZpbGU6eE5ldCBDb21tdW5pdHlfMC4xLjJfYW1kNjQuQXBwSW1hZ2UJdmVyc2lvbjowLjEuMgpNQk9LSFY4Z1BLdkI4b3JSYTAreXpCUXFCeDFBWmsxTS9DdEhML1dYZjdDc2Z1ZGMwU3lFbzR3S0hIL2NQWFA1NnF4T2ZKTURrdjMyck94UU9QQytDUT09Cg=="
+    }
+  }
+}

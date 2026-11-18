@@ -1,0 +1,66 @@
+{
+  "version": "0.1.2",
+  "tag": "community-v0.1.2",
+  "source": "f9a0a9d0ebf3b8d5759751271d20f5c7daa104fe",
+  "releasedAt": "2026-11-18T18:41:11.629632+00:00",
+  "publisherVerified": false,
+  "releaseUrl": "https://github.com/crs48/xNet/releases/tag/community-v0.1.2",
+  "files": [
+    {
+      "name": "xnet-community-0.1.2-macos-arm64.app.tar.gz",
+      "platform": "macos-arm64",
+      "format": "app.tar.gz",
+      "size": 9093915,
+      "sha256": "18df7c01a8c2bef16878ca5d2ee06ef79ae4bd4d1eafc4c298980215ef78e5be",
+      "url": "https://github.com/crs48/xNet/releases/download/community-v0.1.2/xnet-community-0.1.2-macos-arm64.app.tar.gz"
+    },
+    {
+      "name": "xnet-community-0.1.2-macos-arm64.dmg",
+      "platform": "macos-arm64",
+      "format": "dmg",
+      "size": 8824609,
+      "sha256": "ca2391fb409f107bc36f92f00830dcdeac02f48e77c5f359ae0cdd9c03e3b818",
+      "url": "https://github.com/crs48/xNet/releases/download/community-v0.1.2/xnet-community-0.1.2-macos-arm64.dmg"
+    },
+    {
+      "name": "xnet-community-0.1.2-macos-x64.app.tar.gz",
+      "platform": "macos-x64",
+      "format": "app.tar.gz",
+      "size": 9437455,
+      "sha256": "5f76a31fd322c037204eeddca5f79caea4a5e37b879919937367f983460aec23",
+      "url": "https://github.com/crs48/xNet/releases/download/community-v0.1.2/xnet-community-0.1.2-macos-x64.app.tar.gz"
+    },
+    {
+      "name": "xnet-community-0.1.2-macos-x64.dmg",
+      "platform": "macos-x64",
+      "format": "dmg",
+      "size": 9254152,
+      "sha256": "42b5138d1d36f1032ce6dcdca87320e4fd06dc75fe909c744f42a1355c3ec5f1",
+      "url": "https://github.com/crs48/xNet/releases/download/community-v0.1.2/xnet-community-0.1.2-macos-x64.dmg"
+    },
+    {
+      "name": "xnet-community-0.1.2-windows-x64.exe",
+      "platform": "windows-x64",
+      "format": "exe",
+      "size": 5887681,
+      "sha256": "271b708d22af86c30caab50b6678ddfe4b8972bffab991a6b02a285b62ba3cf8",
+      "url": "https://github.com/crs48/xNet/releases/download/community-v0.1.2/xnet-community-0.1.2-windows-x64.exe"
+    },
+    {
+      "name": "xnet-community-0.1.2-linux-x64.deb",
+      "platform": "linux-x64",
+      "format": "deb",
+      "size": 9887278,
+      "sha256": "9a1cb65f3689ee27ccbef3a8f531652313fa7283b1ac6eccfb86bf01d47d5f1a",
+      "url": "https://github.com/crs48/xNet/releases/download/community-v0.1.2/xnet-community-0.1.2-linux-x64.deb"
+    },
+    {
+      "name": "xnet-community-0.1.2-linux-x64.AppImage",
+      "platform": "linux-x64",
+      "format": "AppImage",
+      "size": 87652856,
+      "sha256": "daa739e1b9230d17574b5a50abdeb743962220065db8eec5814cae0ef4f27369",
+      "url": "https://github.com/crs48/xNet/releases/download/community-v0.1.2/xnet-community-0.1.2-linux-x64.AppImage"
+    }
+  ]
+}
