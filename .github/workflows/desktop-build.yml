@@ -158,9 +158,12 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin gh-pages --depth=1
-          if git cat-file -e FETCH_HEAD:releases/community/beta/latest.json 2>/dev/null; then
-            git show FETCH_HEAD:releases/community/beta/latest.json > current-channel.json
-          fi
+          mkdir current-channel
+          for metadata in latest.json downloads.json; do
+            if git cat-file -e "FETCH_HEAD:releases/community/beta/$metadata" 2>/dev/null; then
+              git show "FETCH_HEAD:releases/community/beta/$metadata" > "current-channel/$metadata"
+            fi
+          done
           cat > notes.md <<EOF_NOTES
           Early xNet Community beta for macOS (Apple silicon and Intel), Windows x64, and Linux x64.
 

@@ -30,15 +30,25 @@ def gh(*args):
     return subprocess.check_output(['gh', *args], text=True)
 
 
+def select_release(pages, tag):
+    matches = [release for page in pages for release in page if release['tag_name'] == tag]
+    if len(matches) > 1:
+        raise ValueError('Multiple releases use this tag; inspect before resuming')
+    return matches[0] if matches else None
+
+
 def lookup(tag):
-    response = subprocess.run(['gh', 'api', f'repos/crs48/xNet/releases/tags/{tag}'],
-                              capture_output=True, text=True)
-    if response.returncode == 0:
-        return json.loads(response.stdout)
-    error = json.loads(response.stdout)
-    if str(error.get('status')) == '404':
-        return None
-    raise RuntimeError(f'Release lookup failed: {response.stderr}')
+    # Listing includes drafts for this write-capable token; the tag endpoint does not.
+    listing = gh('api', '--paginate', 'repos/crs48/xNet/releases?per_page=100',
+                 '--jq', '.[] | tojson')
+    return select_release([[json.loads(line) for line in listing.splitlines()]], tag)
+
+
+def check_feed(previous, previous_downloads, latest, downloads, published):
+    if previous['version'] != latest['version'] or not published:
+        release_tools.check_channel(previous['version'], latest['version'])
+    elif previous != latest or previous_downloads != downloads:
+        raise ValueError('Existing same-version feed differs from the verified release')
 
 
 def publish(directory, source, notes, channel):
@@ -74,11 +84,13 @@ def publish(directory, source, notes, channel):
                    '--output', str(remote))
                 if release_tools.digest(remote) != release_tools.digest(files[name]):
                     raise ValueError(f'Immutable release asset differs: {name}; use a new version')
-    if channel.exists():
-        previous = json.loads(channel.read_text())['version']
-        same_verified_release = existing and not existing['draft'] and previous == version
-        if not same_verified_release:
-            release_tools.check_channel(previous, version)
+    if (channel / 'latest.json').exists():
+        previous = json.loads((channel / 'latest.json').read_text())
+        previous_downloads = (json.loads((channel / 'downloads.json').read_text())
+                              if (channel / 'downloads.json').exists() else None)
+        check_feed(previous, previous_downloads,
+                   json.loads(files['latest.json'].read_text()), manifest,
+                   bool(existing and not existing['draft']))
     if existing is None:
         gh('release', 'create', tag, '--repo', 'crs48/xNet', '--target', source,
            '--title', f'xNet Community beta {version}', '--notes-file', str(notes),
@@ -98,6 +110,26 @@ def selftest():
     assert plan(base, expected, source) == ['manifest', 'signature']
     complete = {**base, 'draft': False, 'assets': [{'name': name} for name in expected]}
     assert plan(complete, expected, source) == []
+    tag = 'community-v0.1.2'
+    draft = {**base, 'tag_name': tag}
+    assert select_release([[{'tag_name': 'other'}], [draft]], tag) == draft
+    assert select_release([[]], tag) is None
+    latest = {'version': '0.1.2', 'platforms': {'mac': 'signed-url'}}
+    downloads = {'version': '0.1.2', 'source': source}
+    check_feed(latest, downloads, latest, downloads, True)
+    for operation in [
+        lambda: select_release([[draft], [draft]], tag),
+        lambda: check_feed({**latest, 'platforms': {}}, downloads, latest, downloads, True),
+        lambda: check_feed(latest, {**downloads, 'source': 'b' * 40}, latest, downloads, True),
+        lambda: check_feed(latest, None, latest, downloads, True),
+        lambda: check_feed(latest, downloads, latest, downloads, False),
+        lambda: check_feed({'version': '0.1.3'}, downloads, latest, downloads, True),
+    ]:
+        try:
+            operation()
+        except ValueError:
+            continue
+        raise AssertionError('Release recovery accepted ambiguous drafts or changed feeds')
     for bad in [dict(base, target_commitish='b' * 40), dict(base, draft=False),
                 dict(base, assets=[{'name': 'unexpected'}]),
                 dict(base, assets=[{'name': 'installer'}, {'name': 'installer'}])]:
@@ -115,7 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('--directory', type=Path)
     parser.add_argument('--source')
     parser.add_argument('--notes', type=Path)
-    parser.add_argument('--channel', type=Path, default=Path('current-channel.json'))
+    parser.add_argument('--channel', type=Path, default=Path('current-channel'))
     args = vars(parser.parse_args())
     if args.pop('selftest'):
         selftest()
