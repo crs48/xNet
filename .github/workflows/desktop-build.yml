@@ -1,37 +1,192 @@
-name: Prepare Desktop Installers
-# Explicit development builds only. No release upload, signing secrets, or feed mutation.
+name: Release Desktop Beta
+# Only an explicit dispatch can publish installers or advance the beta feed.
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish this main commit as a public beta and advance signed updates
+        type: boolean
+        default: false
 permissions:
   contents: read
+concurrency:
+  group: desktop-beta-release
+  cancel-in-progress: false
 jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release request
+        env:
+          PUBLISH: ${{ inputs.publish }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo 'Signed builds must come from protected main.' >&2
+            exit 1
+          fi
+          python3 scripts/desktop-release.py --selftest
+          python3 scripts/publish-desktop-release.py --selftest
+      - id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=community-v$version" >> "$GITHUB_OUTPUT"
   build:
+    needs: prepare
+    environment: desktop-beta-release
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: macos-15
-            bundle: dmg
+            platform: macos-arm64
+            bundle: app,dmg
+            binary: target/release/community-desktop
+          - os: macos-15-intel
+            platform: macos-x64
+            bundle: app,dmg
+            binary: target/release/community-desktop
           - os: windows-2022
+            platform: windows-x64
             bundle: nsis
+            binary: target/release/community-desktop.exe
           - os: ubuntu-24.04
-            bundle: deb
+            platform: linux-x64
+            bundle: deb,appimage
+            binary: target/release/community-desktop
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Linux native prerequisites
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb libfuse2
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: '1.97.1'
       - uses: Swatinem/rust-cache@v2
-      - run: pnpm desktop:build --bundles ${{ matrix.bundle }}
+        with:
+          key: release-${{ matrix.platform }}
+          cache-on-failure: true
+      - name: Build and sign beta update artifacts
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+          # Ad-hoc code signing is intentional for this unnotarized beta.
+          APPLE_SIGNING_IDENTITY: '-'
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+          NO_STRIP: '1'
+        run: pnpm desktop:build --config src-tauri/beta.conf.json --bundles ${{ matrix.bundle }}
+      - name: Sign the downloadable Mac disk image too
+        if: runner.os == 'macOS'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          for image in target/release/bundle/dmg/*.dmg; do
+            pnpm exec tauri signer sign --app-version "$RELEASE_VERSION" "$image"
+          done
+          codesign --verify --deep --strict 'target/release/bundle/macos/xNet Community.app'
+      - name: Test release private and group conversations
+        timeout-minutes: 5
+        if: runner.os != 'Linux'
+        run: python scripts/check-desktop-chat.py ${{ matrix.binary }} --loopback
+      - name: Test Linux release conversations
+        timeout-minutes: 5
+        if: runner.os == 'Linux'
+        run: xvfb-run -a python scripts/check-desktop-chat.py ${{ matrix.binary }} --loopback
+      - name: Collect only expected signed files
+        run: python scripts/desktop-release.py collect --platform ${{ matrix.platform }} --bundle target/release/bundle --output release-assets
       - uses: actions/upload-artifact@v4
         with:
-          name: xnet-unsigned-${{ matrix.os }}
-          path: target/release/bundle/
+          name: release-${{ matrix.platform }}
+          path: release-assets/
           if-no-files-found: error
           retention-days: 14
+  verify:
+    needs: [prepare, build]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: artifacts
+      - run: sudo apt-get update && sudo apt-get install -y minisign
+      - name: Verify every signature and its bound version
+        run: python3 scripts/desktop-release.py assemble --artifacts artifacts --output verified --source "$GITHUB_SHA"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-release
+          path: |
+            artifacts/
+            verified/
+          if-no-files-found: error
+          retention-days: 14
+  publish:
+    if: inputs.publish
+    needs: [prepare, verify]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pages: write
+    concurrency:
+      group: pages-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-release
+          path: release
+      - name: Publish immutable beta assets before the update feed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages --depth=1
+          mkdir current-channel
+          for metadata in latest.json downloads.json; do
+            if git cat-file -e "FETCH_HEAD:releases/community/beta/$metadata" 2>/dev/null; then
+              git show "FETCH_HEAD:releases/community/beta/$metadata" > "current-channel/$metadata"
+            fi
+          done
+          cat > notes.md <<EOF_NOTES
+          Early xNet Community beta for macOS (Apple silicon and Intel), Windows x64, and Linux x64.
+
+          Installers and updates are signed with xNet's existing update key. macOS is ad-hoc signed, not notarized; Windows has no verified publisher certificate. Expect OS security warnings. This is separate from the retired Electron app.
+
+          Native private/group messaging, restart, and profile-isolation checks passed on all four build runners. Every download has a SHA-256 checksum and an adjacent xNet signature.
+
+          See https://xnet.fyi/download/ for installation instructions and beta limitations. Keep an authorized peer online for history; the room owner must be online for new messages. This beta has no account recovery or forward-secret ratchet.
+
+          Source: $GITHUB_SHA
+          EOF_NOTES
+          python3 scripts/publish-desktop-release.py --directory release --source "$GITHUB_SHA" --notes notes.md
+          mkdir feed
+          cp release/verified/latest.json release/verified/downloads.json feed/
+      - name: Advance the verified beta feed
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          source: feed
+          target: releases/community/beta
+          # Keep any previous locally hosted version directories intact.
+          exclude: '*/'
+          commit-message: 'release(desktop): publish verified beta download and update metadata'
+      - name: Request Pages deployment of the beta feed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"

@@ -24,8 +24,10 @@ jobs:
       - run: node scripts/check-repository.mjs --selftest
       - run: pnpm build
       - run: pnpm test:js
+      - run: python3 scripts/desktop-release.py --selftest
+      - run: python3 scripts/publish-desktop-release.py --selftest
       - name: Validate workflow syntax
-        uses: docker://rhysd/actionlint:1.7.7
+        uses: docker://rhysd/actionlint:1.7.12
         with:
           args: -shellcheck=
   network:
@@ -73,9 +75,11 @@ jobs:
       - name: Build a development installer
         run: pnpm desktop:build --debug --bundles ${{ matrix.bundle }}
       - name: Test native private and group conversations
+        timeout-minutes: 5
         if: runner.os != 'Linux'
         run: python scripts/check-desktop-chat.py ${{ matrix.binary }} --loopback
       - name: Test Linux native conversations
+        timeout-minutes: 5
         if: runner.os == 'Linux'
         run: xvfb-run -a python scripts/check-desktop-chat.py ${{ matrix.binary }} --loopback
       - uses: actions/upload-artifact@v4
