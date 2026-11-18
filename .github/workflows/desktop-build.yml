@@ -151,6 +151,11 @@ jobs:
           RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
+          git fetch origin gh-pages --depth=1
+          if git cat-file -e FETCH_HEAD:releases/community/beta/latest.json 2>/dev/null; then
+            git show FETCH_HEAD:releases/community/beta/latest.json > current-channel.json
+            python3 scripts/desktop-release.py check-channel --current current-channel.json
+          fi
           cat > notes.md <<EOF_NOTES
           Early xNet Community beta for macOS (Apple silicon and Intel), Windows x64, and Linux x64.
 

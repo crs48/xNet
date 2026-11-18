@@ -121,6 +121,13 @@ def assemble(artifacts, output, source):
     print(f'Verified {len(files)} signed artifacts and {len(platforms)} updater targets for {tag}.')
 
 
+def check_channel(previous, release):
+    if not re.fullmatch(r'\d+\.\d+\.\d+', previous):
+        raise ValueError('Existing beta channel has an unsupported version')
+    if tuple(map(int, release.split('.'))) <= tuple(map(int, previous.split('.'))):
+        raise ValueError('A public beta must advance the existing channel version')
+
+
 def selftest():
     # Consumer: CI quality and release preparation. Controls live only in memory.
     files = [{'name': name, 'size': 10, 'sha256': 'a' * 64} for name in expected('1.2.3')]
@@ -144,6 +151,13 @@ def selftest():
         except ValueError:
             continue
         raise AssertionError('Release accepted a mismatched signed version')
+    check_channel('0.1.1', '0.1.2')
+    for previous in ['0.1.2', '0.1.3', '0.10.0', 'invalid']:
+        try:
+            check_channel(previous, '0.1.2')
+        except ValueError:
+            continue
+        raise AssertionError('Release allowed a rollback or malformed channel')
     print('Release negative controls passed (in memory).')
 
 
@@ -159,6 +173,8 @@ if __name__ == '__main__':
     all_builds.add_argument('--artifacts', type=Path, required=True)
     all_builds.add_argument('--output', type=Path, required=True)
     all_builds.add_argument('--source', required=True)
+    guard = commands.add_parser('check-channel')
+    guard.add_argument('--current', type=Path, required=True)
     args = vars(parser.parse_args())
     testing = args.pop('selftest')
     command = args.pop('command')
@@ -168,5 +184,7 @@ if __name__ == '__main__':
         collect(**args)
     elif command == 'assemble':
         assemble(**args)
+    elif command == 'check-channel':
+        check_channel(json.loads(args['current'].read_text())['version'], version())
     else:
         parser.error('Choose collect, assemble, or --selftest')
