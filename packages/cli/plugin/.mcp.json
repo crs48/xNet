@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "xnet": {
-      "command": "xnet",
-      "args": ["mcp", "serve"],
-      "env": { "XNET_READONLY": "1" }
-    }
-  }
-}

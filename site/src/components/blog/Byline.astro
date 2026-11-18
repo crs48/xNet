@@ -96,3 +96,11 @@ const avatarSize = compact ? 18 : 24
 </div>
 
 {!compact && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+
+{!compact && <p class="not-prose mt-3 text-sm text-gray-500 dark:text-gray-400">
+  {(post.era ?? 'workspace') === 'workspace' ? <>
+    From the workspace era · This essay predates the desktop community network.
+    <a class="underline" href="https://github.com/crs48/xNet/tree/legacy-sdk-2026-11-18">Earlier source</a>
+    <span aria-hidden="true"> · </span><a class="underline" href="/why">The current direction</a>
+  </> : <>From the community-network era · <a class="underline" href="https://github.com/crs48/xNet">Current source</a></>}
+</p>}

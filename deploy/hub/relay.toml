@@ -1,0 +1,14 @@
+http_bind_addr = "127.0.0.1:3340"
+enable_quic_addr_discovery = false
+enable_metrics = false
+
+[limits]
+accept_conn_limit = 2.0
+accept_conn_burst = 4
+
+[limits.client.rx]
+bytes_per_second = 4096
+max_burst_bytes = 8192
+
+[access.http]
+url = "http://127.0.0.1:3341/access"

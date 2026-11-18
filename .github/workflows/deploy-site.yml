@@ -1,115 +1,48 @@
 name: Deploy Site to GitHub Pages
-
 on:
   push:
     branches: [main]
     paths:
       - 'site/**'
-      - 'apps/web/**'
-      - 'apps/demos/**'
-      - 'packages/**'
-      - 'registry/**'
-      - '!packages/**/*.md'
-      - '!apps/web/*.md'
+      - '.github/workflows/deploy-site.yml'
+      - '.github/actions/publish-gh-pages/**'
   workflow_dispatch:
-
 permissions:
   contents: write
-
-# Own concurrency group: sharing one group with the PR preview workflows let a
-# "Remove PR Preview" run (fired by the same merge) cancel the production deploy.
 concurrency:
   group: pages-production
   cancel-in-progress: false
-
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
-          # Full history so resolve-prs can find each fragment's merge commit.
           fetch-depth: 0
-
-      - uses: ./.github/actions/setup
-
-      - name: Build packages
-        run: pnpm build
-
-      - name: Build web app (with hash router for GitHub Pages)
-        run: pnpm --filter xnet-web build
-        env:
-          VITE_BASE_PATH: '/app/'
-          VITE_USE_HASH_ROUTER: 'true'
-          # Hosted demo only: enables consent-gated error reporting + cookieless
-          # analytics. Self-host/preview builds omit these and phone nothing home (0210).
-          VITE_XNET_TELEMETRY: 'on'
-          VITE_SENTRY_DSN: ${{ vars.WEB_SENTRY_DSN }}
-          # First-party debug-report ingest (0315), e.g. https://cloud.xnet.fyi.
-          # Unset → the diagnostics client is never constructed.
-          VITE_DIAGNOSTICS_URL: ${{ vars.WEB_DIAGNOSTICS_URL }}
-          VITE_ANALYTICS_DOMAIN: ${{ vars.PUBLIC_ANALYTICS_DOMAIN }}
-
-      - name: Build demos app (live multiplayer demos, exploration 0314)
-        run: pnpm --filter xnet-demos build
-        env:
-          VITE_BASE_PATH: '/play/'
-
-      - name: Cache Astro build
-        uses: actions/cache@v4
+      - uses: pnpm/action-setup@v4
         with:
-          path: site/.astro
-          key: astro-${{ hashFiles('site/pnpm-lock.yaml', 'site/src/**', 'site/astro.config.mjs') }}
-          restore-keys: astro-
-
-      - name: Install site dependencies
-        run: pnpm install --ignore-workspace
-        working-directory: site
-
-      # Fill in each changelog fragment's PR number — git history first, then the
-      # GitHub API (merge-method-proof) for anything git can't resolve (0202).
-      # Edits the workspace only — nothing committed.
-      - name: Resolve changelog PR numbers
+          version: 10.30.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+      - run: pnpm --dir site install --frozen-lockfile
+      - name: Resolve changelog attribution
         run: node scripts/changelog/resolve-prs.mjs
         env:
           GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Build site
-        run: pnpm build
-        working-directory: site
-        env:
-          # Cookieless analytics on the marketing + docs pages. Off until the
-          # PUBLIC_ANALYTICS_DOMAIN repo variable is set (no code change to toggle).
-          # PUBLIC_ANALYTICS_SRC optionally swaps Plausible cloud for self-hosted (0210).
-          PUBLIC_ANALYTICS_DOMAIN: ${{ vars.PUBLIC_ANALYTICS_DOMAIN }}
-          PUBLIC_ANALYTICS_SRC: ${{ vars.PUBLIC_ANALYTICS_SRC }}
-
-      - name: Prepare production site tree
-        run: |
-          rm -rf /tmp/xnet-pages-root
-          mkdir -p /tmp/xnet-pages-root/app /tmp/xnet-pages-root/play
-          cp -R site/dist/. /tmp/xnet-pages-root/
-          cp -R apps/web/dist/. /tmp/xnet-pages-root/app/
-          cp /tmp/xnet-pages-root/app/index.html /tmp/xnet-pages-root/app/404.html
-          # Demo app (apps/demos) lives at /play/; the site's /demos page frames it.
-          cp -R apps/demos/dist/. /tmp/xnet-pages-root/play/
-          cp /tmp/xnet-pages-root/play/index.html /tmp/xnet-pages-root/play/404.html
-          cp site/public/CNAME /tmp/xnet-pages-root/CNAME
-          touch /tmp/xnet-pages-root/.nojekyll
-
-      - name: Publish production site to gh-pages
+      - run: pnpm --dir site build
+      - name: Publish verified consumer site
         uses: ./.github/actions/publish-gh-pages
         with:
-          source: /tmp/xnet-pages-root
+          source: site/dist
           target: .
-          # These gh-pages dirs are owned by other workflows; the root sync's
-          # --delete must not wipe them. visuals-baseline holds the Visual UI
-          # Capture baseline that PR diffs compare against; visuals/ holds the
-          # durable per-PR UI captures (exploration 0189) so merged-PR galleries
-          # survive PR-preview cleanup.
+          # Signed feeds and retained preview evidence have independent owners.
           exclude: |
+            releases
             pr
             branch
             visuals-baseline
             visuals
-          commit-message: 'deploy(site): publish production site'
+          commit-message: 'deploy(site): publish the xNet consumer site'

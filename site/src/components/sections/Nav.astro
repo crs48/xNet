@@ -2,12 +2,9 @@
 import BrandWordmark from '../BrandWordmark.astro'
 import ThemeToggle from '../ui/ThemeToggle.astro'
 const links = [
-  { href: '/#app', label: 'App' },
-  { href: '/#developers', label: 'Developers' },
+  { href: '/#how-it-works', label: 'How it works' },
   { href: '/why', label: 'Vision' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/agents', label: 'Agents' },
-  { href: '/docs/introduction/', label: 'Docs' }
+  { href: '/blog', label: 'Blog' }
 ]
 const active = (href: string) => Astro.url.pathname.replace(/\/$/, '') === href
 ---
@@ -30,7 +27,7 @@ const active = (href: string) => Astro.url.pathname.replace(/\/$/, '') === href
     <div class="nav-tools">
       <ThemeToggle />
       <a class="m-button nav-try" href="/download">
-        Try xNet <span aria-hidden="true">↗</span>
+        Get xNet <span aria-hidden="true">↗</span>
       </a>
       <details class="mobile-menu">
         <summary aria-label="Open navigation">
@@ -42,8 +39,8 @@ const active = (href: string) => Astro.url.pathname.replace(/\/$/, '') === href
               {link.label}
             </a>
           ))}
-          <a href="/roadmap">Roadmap</a>
-          <a href="/build-with">Build with xNet</a>
+
+
           <a href="/download">Get xNet</a>
         </div>
       </details>

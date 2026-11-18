@@ -1,66 +1,55 @@
-# IDE
+node_modules/
+target/
+dist/
+.local/
+output/
+.astro/
+*.log
+__pycache__/
+.DS_Store
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.sqlite*
+.husky/_/
+graphify-out/
+apps/desktop/src-tauri/gen/
+
+# Preserve local state when an existing workspace checks out the new product.
+.claude/worktrees/
+.claude/settings.local.json
+.codex/hooks.json
 .clj-kondo/
 .lsp/
 .history/
 .idea/
 .vscode/
-*.swp
-*.swo
+.exports/
+.fallow/
 .playwright-cli/
 .playwright-mcp/
-.exports/
-
-# Build artifacts
-dist/
-dist-mobile/
-storybook-static/
-*.tsbuildinfo
 .turbo/
-.fallow/
-
-# Dependencies
-node_modules/
-
-# Test
+.build/
+.swiftpm/
+*.tsbuildinfo
 coverage/
 __screenshots__/
-
-# OS
-.DS_Store
 tmp/
-
-# Logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-
-# graphify local runtime state
-.codex/hooks.json
-graphify-out/
-
-# Secrets / local env — NEVER commit filled-in env files.
-# The committed templates end in `.example`; your real copies do not.
-.env
-.env.*
-!.env.example
-!.env.*.example
-*.env.local
-.env.secrets
-
-# design-sync (claude.ai/design system sync)
 .ds-sync/
 ds-bundle/
-.design-sync/sb-reference/
-.design-sync/learnings/
-.design-sync/.cache/
-.design-sync/node_modules
-
-# SwiftPM build artifacts (apps/electron/native/*)
-.build/
-
-# API Extractor scratch output; the committed report lives in packages/*/etc/
+.design-sync/
+apps/electron/out/
+apps/electron/release/
+apps/expo/.expo/
+apps/expo/android/
+apps/expo/ios/
+apps/mobile/.expo/
+apps/mobile/android/
+apps/mobile/ios/
+apps/web/.tanstack/
 packages/*/temp/
-
-# Ad-hoc Playwright/browser captures taken while verifying UI locally.
-*-screenshot.png
-footer-social.png
+tests/e2e/test-results/
+tests/e2e/playwright-report/

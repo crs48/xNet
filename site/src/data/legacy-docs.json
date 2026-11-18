@@ -1,0 +1,350 @@
+[
+  {
+    "route": "docs",
+    "source": "README.md"
+  },
+  {
+    "route": "docs/introduction",
+    "source": "site/src/content/docs/docs/introduction.mdx"
+  },
+  {
+    "route": "docs/quickstart",
+    "source": "site/src/content/docs/docs/quickstart.mdx"
+  },
+  {
+    "route": "docs/core-concepts",
+    "source": "site/src/content/docs/docs/core-concepts.mdx"
+  },
+  {
+    "route": "docs/contributing/testing",
+    "source": "site/src/content/docs/docs/contributing/testing.mdx"
+  },
+  {
+    "route": "docs/contributing/getting-started",
+    "source": "site/src/content/docs/docs/contributing/getting-started.mdx"
+  },
+  {
+    "route": "docs/contributing/code-style",
+    "source": "site/src/content/docs/docs/contributing/code-style.mdx"
+  },
+  {
+    "route": "docs/protocol/overview",
+    "source": "site/src/content/docs/docs/protocol/overview.mdx"
+  },
+  {
+    "route": "docs/protocol/conformance",
+    "source": "site/src/content/docs/docs/protocol/conformance.mdx"
+  },
+  {
+    "route": "docs/protocol/authorization",
+    "source": "site/src/content/docs/docs/protocol/authorization.mdx"
+  },
+  {
+    "route": "docs/protocol/data-model",
+    "source": "site/src/content/docs/docs/protocol/data-model.mdx"
+  },
+  {
+    "route": "docs/protocol/replication",
+    "source": "site/src/content/docs/docs/protocol/replication.mdx"
+  },
+  {
+    "route": "docs/protocol/implement-in-your-language",
+    "source": "site/src/content/docs/docs/protocol/implement-in-your-language.mdx"
+  },
+  {
+    "route": "docs/schemas/overview",
+    "source": "site/src/content/docs/docs/schemas/overview.mdx"
+  },
+  {
+    "route": "docs/schemas/relations",
+    "source": "site/src/content/docs/docs/schemas/relations.mdx"
+  },
+  {
+    "route": "docs/schemas/type-inference",
+    "source": "site/src/content/docs/docs/schemas/type-inference.mdx"
+  },
+  {
+    "route": "docs/schemas/defineschema",
+    "source": "site/src/content/docs/docs/schemas/defineschema.mdx"
+  },
+  {
+    "route": "docs/schemas/property-types",
+    "source": "site/src/content/docs/docs/schemas/property-types.mdx"
+  },
+  {
+    "route": "docs/schemas/extending-schemas",
+    "source": "site/src/content/docs/docs/schemas/extending-schemas.mdx"
+  },
+  {
+    "route": "docs/languages/rust",
+    "source": "site/src/content/docs/docs/languages/rust.mdx"
+  },
+  {
+    "route": "docs/languages/overview",
+    "source": "site/src/content/docs/docs/languages/overview.mdx"
+  },
+  {
+    "route": "docs/languages/swift",
+    "source": "site/src/content/docs/docs/languages/swift.mdx"
+  },
+  {
+    "route": "docs/architecture/overview",
+    "source": "site/src/content/docs/docs/architecture/overview.mdx"
+  },
+  {
+    "route": "docs/architecture/package-graph",
+    "source": "site/src/content/docs/docs/architecture/package-graph.mdx"
+  },
+  {
+    "route": "docs/architecture/decisions",
+    "source": "site/src/content/docs/docs/architecture/decisions.mdx"
+  },
+  {
+    "route": "docs/guides/editor",
+    "source": "site/src/content/docs/docs/guides/editor.mdx"
+  },
+  {
+    "route": "docs/guides/offline",
+    "source": "site/src/content/docs/docs/guides/offline.mdx"
+  },
+  {
+    "route": "docs/guides/plugins",
+    "source": "site/src/content/docs/docs/guides/plugins.mdx"
+  },
+  {
+    "route": "docs/guides/devtools",
+    "source": "site/src/content/docs/docs/guides/devtools.mdx"
+  },
+  {
+    "route": "docs/guides/frameworks",
+    "source": "site/src/content/docs/docs/guides/frameworks.mdx"
+  },
+  {
+    "route": "docs/guides/tasks",
+    "source": "site/src/content/docs/docs/guides/tasks.mdx"
+  },
+  {
+    "route": "docs/guides/server",
+    "source": "site/src/content/docs/docs/guides/server.mdx"
+  },
+  {
+    "route": "docs/guides/hub",
+    "source": "site/src/content/docs/docs/guides/hub.mdx"
+  },
+  {
+    "route": "docs/guides/quiet-shell",
+    "source": "site/src/content/docs/docs/guides/quiet-shell.mdx"
+  },
+  {
+    "route": "docs/guides/testing",
+    "source": "site/src/content/docs/docs/guides/testing.mdx"
+  },
+  {
+    "route": "docs/guides/electron",
+    "source": "site/src/content/docs/docs/guides/electron.mdx"
+  },
+  {
+    "route": "docs/guides/forms",
+    "source": "site/src/content/docs/docs/guides/forms.mdx"
+  },
+  {
+    "route": "docs/guides/versioning",
+    "source": "site/src/content/docs/docs/guides/versioning.mdx"
+  },
+  {
+    "route": "docs/guides/chat-and-calls",
+    "source": "site/src/content/docs/docs/guides/chat-and-calls.mdx"
+  },
+  {
+    "route": "docs/guides/canvas",
+    "source": "site/src/content/docs/docs/guides/canvas.mdx"
+  },
+  {
+    "route": "docs/guides/collaboration",
+    "source": "site/src/content/docs/docs/guides/collaboration.mdx"
+  },
+  {
+    "route": "docs/guides/authorization",
+    "source": "site/src/content/docs/docs/guides/authorization.mdx"
+  },
+  {
+    "route": "docs/guides/sync",
+    "source": "site/src/content/docs/docs/guides/sync.mdx"
+  },
+  {
+    "route": "docs/guides/workbench",
+    "source": "site/src/content/docs/docs/guides/workbench.mdx"
+  },
+  {
+    "route": "docs/guides/cloud-connect",
+    "source": "site/src/content/docs/docs/guides/cloud-connect.mdx"
+  },
+  {
+    "route": "docs/guides/identity",
+    "source": "site/src/content/docs/docs/guides/identity.mdx"
+  },
+  {
+    "route": "docs/guides/notifications",
+    "source": "site/src/content/docs/docs/guides/notifications.mdx"
+  },
+  {
+    "route": "docs/guides/coding-agents",
+    "source": "site/src/content/docs/docs/guides/coding-agents.mdx"
+  },
+  {
+    "route": "docs/guides/dashboards",
+    "source": "site/src/content/docs/docs/guides/dashboards.mdx"
+  },
+  {
+    "route": "docs/guides/agent-interfaces",
+    "source": "site/src/content/docs/docs/guides/agent-interfaces.mdx"
+  },
+  {
+    "route": "docs/ai/understanding-xnet",
+    "source": "site/src/content/docs/docs/ai/understanding-xnet.mdx"
+  },
+  {
+    "route": "docs/hooks/useidentity",
+    "source": "site/src/content/docs/docs/hooks/useidentity.mdx"
+  },
+  {
+    "route": "docs/hooks/overview",
+    "source": "site/src/content/docs/docs/hooks/overview.mdx"
+  },
+  {
+    "route": "docs/hooks/usequery",
+    "source": "site/src/content/docs/docs/hooks/usequery.mdx"
+  },
+  {
+    "route": "docs/hooks/usenode",
+    "source": "site/src/content/docs/docs/hooks/usenode.mdx"
+  },
+  {
+    "route": "docs/hooks/usemutate",
+    "source": "site/src/content/docs/docs/hooks/usemutate.mdx"
+  },
+  {
+    "route": "docs/hooks/patterns",
+    "source": "site/src/content/docs/docs/hooks/patterns.mdx"
+  },
+  {
+    "route": "docs/concepts/sync-architecture",
+    "source": "site/src/content/docs/docs/concepts/sync-architecture.mdx"
+  },
+  {
+    "route": "docs/concepts/local-first",
+    "source": "site/src/content/docs/docs/concepts/local-first.mdx"
+  },
+  {
+    "route": "docs/concepts/crdts",
+    "source": "site/src/content/docs/docs/concepts/crdts.mdx"
+  },
+  {
+    "route": "docs/concepts/cryptography",
+    "source": "site/src/content/docs/docs/concepts/cryptography.mdx"
+  },
+  {
+    "route": "docs/concepts/identity-model",
+    "source": "site/src/content/docs/docs/concepts/identity-model.mdx"
+  },
+  {
+    "route": "docs/concepts/network",
+    "source": "site/src/content/docs/docs/concepts/network.mdx"
+  },
+  {
+    "route": "docs/concepts/data-model",
+    "source": "site/src/content/docs/docs/concepts/data-model.mdx"
+  },
+  {
+    "route": "workspace",
+    "source": "site/src/pages/workspace.astro"
+  },
+  {
+    "route": "acceptable-use",
+    "source": "site/src/pages/acceptable-use.astro"
+  },
+  {
+    "route": "plugins",
+    "source": "site/src/pages/plugins.astro"
+  },
+  {
+    "route": "terms",
+    "source": "site/src/pages/terms.astro"
+  },
+  {
+    "route": "privacy-by-design",
+    "source": "site/src/pages/privacy-by-design.astro"
+  },
+  {
+    "route": "subprocessors",
+    "source": "site/src/pages/subprocessors.astro"
+  },
+  {
+    "route": "commitments",
+    "source": "site/src/pages/commitments.astro"
+  },
+  {
+    "route": "marketplace-terms",
+    "source": "site/src/pages/marketplace-terms.astro"
+  },
+  {
+    "route": "demos",
+    "source": "site/src/pages/demos.astro"
+  },
+  {
+    "route": "dpa",
+    "source": "site/src/pages/dpa.astro"
+  },
+  {
+    "route": "compare",
+    "source": "site/src/pages/compare.astro"
+  },
+  {
+    "route": "status",
+    "source": "site/src/pages/status.astro"
+  },
+  {
+    "route": "mobile",
+    "source": "site/src/pages/mobile.astro"
+  },
+  {
+    "route": "devtool",
+    "source": "site/src/pages/devtool.astro"
+  },
+  {
+    "route": "open",
+    "source": "site/src/pages/open.astro"
+  },
+  {
+    "route": "agents",
+    "source": "site/src/pages/agents.astro"
+  },
+  {
+    "route": "react",
+    "source": "site/src/pages/react.astro"
+  },
+  {
+    "route": "roadmap",
+    "source": "site/src/pages/roadmap.astro"
+  },
+  {
+    "route": "build-with",
+    "source": "site/src/pages/build-with.astro"
+  },
+  {
+    "route": "cloud",
+    "source": "site/src/pages/cloud/index.astro"
+  },
+  {
+    "route": "cloud/pricing",
+    "source": "site/src/pages/cloud/pricing.astro"
+  },
+  {
+    "route": "app",
+    "source": "README.md"
+  },
+  {
+    "route": "play",
+    "source": "README.md"
+  }
+]

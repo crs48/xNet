@@ -108,9 +108,21 @@ export interface BlogPost {
   hero?: { src: string; alt: string }
   /** Hide from index + feed while authoring. */
   draft?: boolean
+  /** The architecture discussed, independent of publication date. */
+  era?: 'workspace' | 'community'
 }
 
 const posts: BlogPost[] = [
+  {
+    slug: 'an-internet-we-can-change',
+    title: 'An Internet We Can Change',
+    description: 'From dinner parties and shared workspaces to software that communities can shape together.',
+    pubDate: '',
+    authors: ['crs48', 'codex'],
+    tags: ['essay', 'personal', 'philosophy'],
+    readingMinutes: 9,
+    draft: true
+  },
   {
     slug: 'what-desire-builds',
     title: 'What Desire Builds',

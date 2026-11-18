@@ -1,0 +1,14 @@
+{
+  "identifier": "main",
+  "description": "Only the bundled desktop window may call the experiment commands.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "deep-link:default",
+    "allow-perform",
+    "allow-select-media",
+    "allow-updates-enabled",
+    "updater:default",
+    "process:allow-restart"
+  ]
+}

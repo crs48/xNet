@@ -25,12 +25,12 @@ const analyticsSrc = import.meta.env.PUBLIC_ANALYTICS_SRC || 'https://plausible.
 // workbench screenshot is the fallback for everything else.
 const siteOrigin = Astro.site ?? 'https://xnet.fyi'
 const canonicalUrl = new URL(Astro.url.pathname, siteOrigin)
-const ogImage = new URL(image ?? '/images/workbench-light.png', siteOrigin)
-const ogImageAlt = imageAlt ?? (image ? undefined : 'The xNet workbench')
+const ogImage = new URL(image ?? '/blog/covers/the-worlds-greatest-record-store.webp', siteOrigin)
+const ogImageAlt = imageAlt ?? (image ? undefined : 'A community record shop, from the xNet essays')
 ---
 
 <!doctype html>
-<html lang="en" class="dark scroll-smooth">
+<html lang="en" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

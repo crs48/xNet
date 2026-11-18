@@ -32,7 +32,7 @@ the surface that owns it).
 
 > A `.claude/rules/*.md` **without** `paths:` loads at launch with the same cost
 > as the root file. Splitting a big file into rule files with no `paths:` buys
-> nothing and adds places to drift. `pnpm check:agent-docs` fails on it.
+> nothing and adds places to drift. `node scripts/check-repository.mjs` fails on it.
 
 ## One source, always
 
@@ -83,7 +83,7 @@ to disagree. Pick the layer that owns it and link from the others.
 ## Verify
 
 ```bash
-pnpm check:agent-docs
+node scripts/check-repository.mjs
 ```
 
 ## Related

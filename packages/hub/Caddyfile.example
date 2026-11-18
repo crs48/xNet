@@ -1,6 +1,0 @@
-# Replace hub.example.com with your domain.
-# Caddy obtains TLS certificates automatically via Let's Encrypt.
-
-hub.example.com {
-    reverse_proxy hub:4444
-}

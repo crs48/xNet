@@ -1,41 +1,9 @@
 ---
 import BrandWordmark from '../BrandWordmark.astro'
 const groups = [
-  {
-    title: 'Workspace',
-    links: [
-      ['The workspace', '/workspace'],
-      ['Download', '/download'],
-      ['Browser demo', 'https://xnet.fyi/app/'],
-      ['What’s new', '/changelog'],
-      ['Roadmap', '/roadmap'],
-      ['Mobile demo', '/mobile']
-    ]
-  },
-  {
-    title: 'Project',
-    links: [
-      ['Vision', '/why'],
-      ['Blog', '/blog'],
-      ['Our commitments', '/commitments'],
-      ['Open metrics', '/open'],
-      ['Cloud & hosting', '/cloud'],
-      ['Hosting prices', '/cloud/pricing']
-    ]
-  },
-  {
-    title: 'Developers',
-    links: [
-      ['Developer overview', '/build-with'],
-      ['Documentation', '/docs/introduction/'],
-      ['React SDK', '/react'],
-      ['Agent tools', '/agents'],
-      ['Plugins', '/plugins'],
-      ['Live demos', '/demos'],
-      ['DevTools', '/devtool'],
-      ['Compare', '/compare']
-    ]
-  }
+  { title: 'xNet', links: [['Get the app', '/download'], ['Vision', '/why'], ['Privacy', '/privacy']] },
+  { title: 'Ideas', links: [['Blog', '/blog'], ['What’s new', '/changelog'], ['RSS', '/blog/rss.xml']] },
+  { title: 'In the open', links: [['Source code', 'https://github.com/crs48/xNet'], ['The earlier chapter', 'https://github.com/crs48/xNet/blob/main/LEGACY.md']] }
 ]
 ---
 
@@ -47,9 +15,9 @@ const groups = [
           <BrandWordmark />
         </a>
         <p>
-          A workspace of your own.
+          A network of our own.
           <br />
-          Local-first. Open source.
+          Peer to peer. Open source.
         </p>
         <a class="m-text-link" href="https://github.com/crs48/xNet">
           Source on GitHub <span aria-hidden="true">↗</span>
@@ -72,9 +40,9 @@ const groups = [
       <p>© {new Date().getFullYear()} xNet · Made in the open.</p>
       <div>
         <a href="/privacy">Privacy</a>
-        <a href="/terms">Terms</a>
-        <a href="/acceptable-use">Acceptable use</a>
-        <a href="/status">Status</a>
+
+
+
         <a href="https://github.com/crs48/xNet/discussions">Say hello ↗</a>
         <a href="/blog/rss.xml">RSS ↗</a>
       </div>
