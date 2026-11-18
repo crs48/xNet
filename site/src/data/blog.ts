@@ -21,8 +21,9 @@
  *     was opened. Take it from the merge commit rather than rounding to a tidy hour,
  *     and never post-date a post: a future `pubDate` pins it to the top of the index
  *     and the feed until the clock catches up.
- *   - `draft: true` hides a post from the index and the feed (still reachable by URL
- *     during authoring). Production never lists drafts.
+ *   - `draft: true` hides a post from the public index and feed. Drafts use an
+ *     empty `pubDate` until publication. Development and explicit local preview
+ *     builds may show them in the index; feeds always exclude them.
  *
  * Essay backlog (candidates researched but not yet written):
  *   - "The Railroad and the Airline" — frontier economics without enclosure:
@@ -46,7 +47,7 @@ export type BlogTag =
   | 'personal'
 
 /** Registered blog authors; posts reference these by id (exploration 0269). */
-export type BlogAuthorId = 'crs48' | 'claude'
+export type BlogAuthorId = 'crs48' | 'claude' | 'codex'
 
 export interface BlogAuthor {
   id: BlogAuthorId
@@ -65,6 +66,12 @@ export interface BlogAuthor {
 }
 
 const AUTHORS: Record<BlogAuthorId, BlogAuthor> = {
+  codex: {
+    id: 'codex',
+    name: 'Codex',
+    avatar: '/blog/authors/codex.svg',
+    ai: true
+  },
   crs48: {
     id: 'crs48',
     name: 'crs48',
@@ -87,7 +94,7 @@ export interface BlogPost {
   title: string
   /** One-line deck shown under the title and used as the feed description. */
   description: string
-  /** ISO-8601 UTC instant the post was published. */
+  /** ISO-8601 UTC publication instant; empty for an unpublished draft. */
   pubDate: string
   /** Authors shown in the byline, humans first. */
   authors: BlogAuthorId[]
@@ -100,11 +107,33 @@ export interface BlogPost {
    * (see `postSocialImage`).
    */
   hero?: { src: string; alt: string }
-  /** Hide from index + feed while authoring. */
+  /** Hide from the public index and feed; local previews can list drafts. */
   draft?: boolean
 }
 
 const posts: BlogPost[] = [
+  {
+    slug: 'an-internet-we-can-change',
+    title: 'An Internet We Can Change',
+    description:
+      'From dinner parties and shared workspaces to software that communities can shape together.',
+    pubDate: '',
+    authors: ['crs48', 'codex'],
+    tags: ['essay', 'personal', 'philosophy'],
+    readingMinutes: 9,
+    draft: true
+  },
+  {
+    slug: 'what-desire-builds',
+    title: 'What Desire Builds',
+    description:
+      'A bath became a way to listen to my body. That small change opened a larger question: ' +
+      'what might we make if desire, tenderness, and the whole of being human had a say in our software?',
+    pubDate: '2026-10-22T20:51:29Z',
+    authors: ['crs48', 'codex'],
+    tags: ['essay', 'personal', 'philosophy'],
+    readingMinutes: 11
+  },
   {
     slug: 'atoms-for-the-ballot',
     title: 'Atoms for the Ballot',

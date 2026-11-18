@@ -1,0 +1,13 @@
+{
+  "id": "2026-10-24-extensions-can-prototype-3d-multiplayer-",
+  "date": "October 24, 2026",
+  "title": "Extensions can prototype 3D multiplayer games",
+  "summary": "Desktop extensions can use Three.js and ask to host or join a temporary peer-to-peer game. A new arena example supports local practice and invitation-based play, with clear controls to leave or stop.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "ai",
+    "plugins"
+  ],
+  "pr": 728
+}

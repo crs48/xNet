@@ -1,3 +1,4 @@
+import type { ExtensionCheckReport } from './extension-check-contract'
 import type { DevelopmentHistory, DevelopmentRecord } from './extension-development'
 /** Desktop IPC contract. Provider session IDs and credentials never cross this boundary. */
 export interface CommunityAgentDelegation {
@@ -44,6 +45,7 @@ export interface CommunityAgentRun {
   owner: string
   status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
   text: string
+  previewCheck?: ExtensionCheckReport
   extension?: CommunityAgentExtension
   baseRevisionId?: string
   baseVersionId?: string
@@ -84,6 +86,7 @@ export interface CommunityAgentPort {
     messageId: string
     contextIds: string[]
     extensionRevisionId?: string
+    extensionRunId?: string
   }): Promise<string>
   cancel(runId: string): Promise<void>
   retry(runId: string): Promise<string>

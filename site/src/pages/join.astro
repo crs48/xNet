@@ -1,0 +1,57 @@
+---
+// Invitations carry capabilities. Keep this page independent of analytics and third-party scripts.
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'none'; img-src 'self'; base-uri 'none'; form-action 'none'" />
+    <title>Your invitation · xNet</title>
+    <link rel="icon" href="/favicon.svg" />
+  </head>
+  <body>
+    <main>
+      <a href="/" class="brand" aria-label="xNet home">xNet</a>
+      <p class="eyebrow">A conversation starts here</p>
+      <h1 id="destination">You’ve been invited</h1>
+      <p id="description">Open xNet to review the invitation and choose how you’d like to introduce yourself.</p>
+      <p id="status" role="status"></p>
+      <div id="actions" hidden>
+        <a id="open" class="primary">Open in xNet</a>
+        <button id="copy" type="button">Copy invitation</button>
+        <section>
+          <h2>New to xNet?</h2>
+          <ol>
+            <li><a href="/download" target="_blank" rel="noopener noreferrer">Download and install xNet ↗</a></li>
+            <li>Return to this tab and choose <strong>Open in xNet</strong>.</li>
+            <li>Choose a name or connect Bluesky, then review the invitation.</li>
+          </ol>
+          <p class="small">Keep this tab open while installing. If your browser can’t open xNet, copy the invitation and paste it into the app’s “I have an invitation” field.</p>
+        </section>
+      </div>
+      <noscript>Enable JavaScript to open this invitation, or paste the complete link into xNet.</noscript>
+      <p class="small">Your invitation is checked in the desktop app before you connect. Only share this link with the person you want to invite.</p>
+    </main>
+  </body>
+</html>
+<script is:inline src="/join.js" defer></script>
+<style>
+  :global(*) { box-sizing: border-box; }
+  :global(body) { margin: 0; background: #fafafa; color: #171717; font: 16px/1.6 system-ui, sans-serif; }
+  main { max-width: 560px; margin: auto; padding: 64px 24px; }
+  .brand { display: block; color: inherit; font-size: 28px; font-weight: 650; text-decoration: none; margin-bottom: 64px; }
+  .eyebrow, .small { color: #646464; font-size: 13px; }
+  h1 { font-size: 32px; line-height: 1.2; letter-spacing: -.03em; overflow-wrap: anywhere; }
+  h2 { font-size: 18px; }
+  a { color: inherit; text-underline-offset: 4px; }
+  button, .primary { display: inline-block; padding: 12px 18px; border: 1px solid #ccc; border-radius: 10px; background: transparent; color: inherit; font: inherit; cursor: pointer; text-decoration: none; margin: 8px 8px 8px 0; }
+  .primary { background: #171717; color: white; border-color: #171717; }
+  section { margin: 32px 0; border-block: 1px solid #ddd; padding: 16px 0; }
+  li { padding: 5px 0; }
+  :focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+  [hidden] { display: none !important; }
+  @media (prefers-color-scheme: dark) { :global(body) { background: #111; color: #f4f4f4; } .small, .eyebrow { color: #aaa; } .primary { background: #f4f4f4; color: #111; } section { border-color: #333; } }
+</style>

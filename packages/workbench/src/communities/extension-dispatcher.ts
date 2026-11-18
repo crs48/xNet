@@ -13,7 +13,8 @@ type Reply =
 /** A dispatcher belongs to one host-bound MessagePort; requests cannot choose another caller. */
 export function createExtensionDispatcher(
   request: (input: ExtensionRequest, signal: AbortSignal) => Promise<unknown>,
-  send: (reply: Reply) => void
+  send: (reply: Reply) => void,
+  authorize?: (input: ExtensionRequest, signal: AbortSignal) => Promise<void>
 ) {
   const pending = new Map<
     string,
@@ -37,7 +38,8 @@ export function createExtensionDispatcher(
         return
       }
       const controller = new AbortController()
-      const timer = setTimeout(() => {
+      let awaitingApproval = !!authorize
+      const timeout = () => {
         controller.abort()
         pending.delete(value.id)
         send({
@@ -46,18 +48,33 @@ export function createExtensionDispatcher(
           error: encodeExtensionFailure(
             new ExtensionAccessError(
               'timeout',
-              value.operation === 'data.query'
-                ? 'Loading data timed out. Reload this page.'
-                : 'The operation timed out. An accepted edit may have committed; refresh before retrying.'
+              awaitingApproval
+                ? 'Access was not approved in time. Try the action again.'
+                : value.operation === 'data.query'
+                  ? 'Loading data timed out. Reload this page.'
+                  : 'The operation timed out. An accepted edit may have committed; refresh before retrying.'
             )
           )
         })
-      }, EXTENSION_OPERATIONS[value.operation].deadlineMs)
+      }
+      let timer = setTimeout(
+        timeout,
+        authorize ? 120_000 : EXTENSION_OPERATIONS[value.operation].deadlineMs
+      )
       pending.set(value.id, { controller, timer })
       void Promise.resolve()
-        .then(() => {
+        .then(async () => {
           if (controller.signal.aborted)
             throw new ExtensionAccessError('cancelled', 'The request was cancelled.')
+          if (authorize) {
+            await authorize(value, controller.signal)
+            if (controller.signal.aborted)
+              throw new ExtensionAccessError('cancelled', 'The request was cancelled.')
+            awaitingApproval = false
+            clearTimeout(timer)
+            timer = setTimeout(timeout, EXTENSION_OPERATIONS[value.operation].deadlineMs)
+            pending.set(value.id, { controller, timer })
+          }
           return request(value, controller.signal)
         })
         .then(

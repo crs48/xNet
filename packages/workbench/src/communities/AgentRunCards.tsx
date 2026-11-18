@@ -157,6 +157,32 @@ function RunTimeline({ run }: { run: CommunityAgentRun }) {
       ) : (
         <p>Step details weren’t recorded for this request.</p>
       )}
+      {run.previewCheck && (
+        <details className="rounded-xl border border-border p-3" open={running || undefined}>
+          <summary className="cursor-pointer font-medium text-foreground">
+            {run.previewCheck.status === 'passed'
+              ? 'Preview checked'
+              : run.previewCheck.status === 'running'
+                ? 'Testing the preview'
+                : 'Preview needs review'}{' '}
+            · {run.previewCheck.actions} actions
+          </summary>
+          <p className="mt-2">{run.previewCheck.summary}</p>
+          <p className="mt-1">Test copy only. Personal data and data writes were not tested.</p>
+          <ol className="my-2 list-inside list-decimal space-y-1">
+            {run.previewCheck.steps.map((step, index) => (
+              <li key={index}>{step}</li>
+            ))}
+          </ol>
+          {run.previewCheck.screenshot && (
+            <img
+              className="mt-2 max-h-96 rounded-lg border border-border"
+              alt="Latest screenshot from the extension test copy"
+              src={run.previewCheck.screenshot}
+            />
+          )}
+        </details>
+      )}
       <p>
         {run.contextCount} {run.contextCount === 1 ? 'message' : 'messages'} supplied for this
         request. Runs through your {providerName(run)} login.
@@ -187,7 +213,7 @@ export function AgentRunReceipt({ run }: { run: CommunityAgentRun }) {
           {run.status === 'completed' ? <Check size={12} /> : <Square size={10} />}
         </span>
         {run.finishedAt && run.status === 'completed'
-          ? `Worked for ${agentDuration(run.startedAt, run.finishedAt)}`
+          ? `${run.previewCheck ? (run.previewCheck.status === 'passed' ? 'Preview checked · ' : 'Preview needs review · ') : ''}Worked for ${agentDuration(run.startedAt, run.finishedAt)}`
           : `${agentRunLabel(run)} · activity`}
         <ChevronRight
           size={12}

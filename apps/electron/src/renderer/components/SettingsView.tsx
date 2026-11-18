@@ -7,9 +7,13 @@
 import type { RecoveryStatus } from '../../preload'
 import { MeetingEngineSettings } from '@xnetjs/views'
 import { Settings, Palette, Puzzle, Database, Mic, Wifi, ChevronRight } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useState } from 'react'
 import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { PluginManager } from './PluginManager'
+
+const LocalDataInspector = lazy(() =>
+  import('./LocalDataInspector').then((m) => ({ default: m.LocalDataInspector }))
+)
 
 type SettingsSection = 'general' | 'appearance' | 'dictation' | 'plugins' | 'data' | 'network'
 
@@ -198,6 +202,7 @@ function AppearanceSettings() {
 // ─── Data Settings ────────────────────────────────────────────────────────────
 
 function DataSettings() {
+  const [inspecting, setInspecting] = useState(false)
   const [recoveryPassword, setRecoveryPassword] = useState('')
   const [exported, setExported] = useState<string | null>(null)
   const [status, setStatus] = useState<RecoveryStatus | null>(null)
@@ -221,8 +226,23 @@ function DataSettings() {
   }
   const buttonClass =
     'bg-secondary hover:bg-accent border border-border px-3 py-1.5 rounded-md text-sm disabled:opacity-50'
+  if (inspecting)
+    return (
+      <Suspense fallback={<p role="status">Loading local data…</p>}>
+        <LocalDataInspector onClose={() => setInspecting(false)} />
+      </Suspense>
+    )
   return (
     <div className="space-y-6 max-w-3xl">
+      <section className="rounded-lg border border-border p-4 space-y-3">
+        <h2 className="text-lg font-medium">Inspect local data</h2>
+        <p className="text-sm text-muted-foreground">
+          Browse the xNet records saved on this device. The node table is read-only.
+        </p>
+        <button className={buttonClass} onClick={() => setInspecting(true)}>
+          Open node table
+        </button>
+      </section>
       <div>
         <h2 className="text-lg font-medium mb-1">Local recovery</h2>
         <p className="text-sm text-muted-foreground">

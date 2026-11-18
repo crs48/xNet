@@ -12,7 +12,8 @@
  */
 
 import type { NodeData, NodeStoreAPI, SchemaData, SchemaRegistryAPI } from '@xnetjs/plugins/node'
-import { BrowserWindow, ipcMain } from 'electron'
+import { ipcMain } from 'electron'
+import { workspaceWindows } from './workspace-windows'
 
 /** How long a single renderer round trip may take before we give up on it. */
 const REQUEST_TIMEOUT_MS = 30_000
@@ -20,7 +21,7 @@ const REQUEST_TIMEOUT_MS = 30_000
 let requestId = 0
 const pendingRequests = new Map<
   number,
-  { resolve: (value: unknown) => void; reject: (error: Error) => void }
+  { senderId: number; resolve: (value: unknown) => void; reject: (error: Error) => void }
 >()
 
 /**
@@ -34,7 +35,7 @@ export async function sendStoreRequest<T>(
   operation: string,
   params: Record<string, unknown>
 ): Promise<T> {
-  const win = BrowserWindow.getAllWindows()[0]
+  const win = workspaceWindows()[0]
   if (!win) throw new Error('No window available')
 
   const id = ++requestId
@@ -45,6 +46,7 @@ export async function sendStoreRequest<T>(
     }, REQUEST_TIMEOUT_MS)
 
     pendingRequests.set(id, {
+      senderId: win.webContents.id,
       resolve: (value) => {
         clearTimeout(timeout)
         pendingRequests.delete(id)
@@ -74,9 +76,14 @@ export function setupStoreResponseHandler(): void {
   responseHandlerInstalled = true
   ipcMain.on(
     'xnet:localapi:store-response',
-    (_, response: { id: number; result?: unknown; error?: string }) => {
+    (event, response: { id: number; result?: unknown; error?: string }) => {
       const pending = pendingRequests.get(response.id)
-      if (!pending) return
+      if (
+        !pending ||
+        pending.senderId !== event.sender.id ||
+        event.senderFrame !== event.sender.mainFrame
+      )
+        return
       if (response.error) pending.reject(new Error(response.error))
       else pending.resolve(response.result)
     }

@@ -1,11 +1,10 @@
 import type { ResolveChatLink } from './chat-media'
 import type { BlobService, BlobTransferQueue, FileRef } from '@xnetjs/data'
-import { Download, File, Image, Video, X, Expand, Loader2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { Download, File, Image, Video, Expand, Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { fileMimeType, previewKind } from './chat-media'
 import { bytesLabel } from './model'
-import { IconButton } from './primitives'
+import { IconButton, Modal } from './primitives'
 
 export interface AttachmentServices {
   blobs: BlobService | null
@@ -116,7 +115,7 @@ export function Attachment({
   }
   return (
     <div
-      className={`my-2 overflow-hidden rounded-xl border border-border bg-background text-foreground ${compact ? 'max-w-md' : 'max-w-xl'}`}
+      className={`my-2 overflow-hidden rounded-xl border border-border bg-background text-foreground shadow-sm ${compact ? 'max-w-md' : 'max-w-xl'}`}
     >
       {url && kind === 'image' && (
         <button
@@ -177,59 +176,21 @@ export function Attachment({
           {error}
         </p>
       )}
-      {expanded &&
-        createPortal(
-          <FilePreviewDialog name={file.name} onClose={() => setExpanded(false)}>
-            {busy ? (
-              <p role="status" className="p-8">
-                Loading preview…
-              </p>
-            ) : error ? (
-              <p role="alert" className="p-8">
-                {error}
-              </p>
-            ) : (
-              preview
-            )}
-          </FilePreviewDialog>,
-          document.body
-        )}
+      {expanded && (
+        <Modal title={`Preview ${file.name}`} size="wide" onClose={() => setExpanded(false)}>
+          {busy ? (
+            <p role="status" className="p-8">
+              Loading preview…
+            </p>
+          ) : error ? (
+            <p role="alert" className="p-8">
+              {error}
+            </p>
+          ) : (
+            preview
+          )}
+        </Modal>
+      )}
     </div>
-  )
-}
-
-function FilePreviewDialog({
-  name,
-  children,
-  onClose
-}: {
-  name: string
-  children: React.ReactNode
-  onClose: () => void
-}) {
-  const ref = useRef<HTMLDialogElement>(null)
-  useEffect(() => {
-    const dialog = ref.current
-    dialog?.showModal()
-    return () => dialog?.close()
-  }, [])
-  return (
-    <dialog
-      ref={ref}
-      aria-label={`Preview ${name}`}
-      onCancel={(event) => {
-        event.preventDefault()
-        onClose()
-      }}
-      className="community-modal m-auto w-[min(960px,90vw)] rounded-xl border border-border bg-background p-0 text-foreground shadow-xl backdrop:bg-black/50"
-    >
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2">
-        <h2 className="truncate text-sm font-medium">{name}</h2>
-        <IconButton label="Close preview" onClick={onClose}>
-          <X size={18} />
-        </IconButton>
-      </div>
-      <div className="max-h-[80vh] overflow-auto p-3">{children}</div>
-    </dialog>
   )
 }

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, open, readFile, realpath, rm } from 'node:fs/promises'
 import { join, sep } from 'node:path'
-import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from 'electron'
+import { app, dialog, ipcMain, safeStorage, shell } from 'electron'
 import { validateDesktopSettings } from '../shared/desktop-settings'
 import { createCheckpointSchedule } from '../storage/checkpoint-policy'
 import {
@@ -19,6 +19,7 @@ import { freezeLibrary, thawLibrary } from './library-ipc'
 import { dataPath, profile } from './profile'
 import { flushRenderers, resumeRenderers } from './renderer-flush'
 import { hasActiveSocialImports } from './social-import-ipc'
+import { workspaceWindows } from './workspace-windows'
 
 export const recoveryPath = join(app.getPath('userData'), 'xnet-recovery')
 let inFlight: Promise<CheckpointManifest> | null = null
@@ -47,7 +48,7 @@ export async function withWorkspaceWriteBarrier<T>(write: () => Promise<T>): Pro
 
 function reportFailure(message: string | null): void {
   lastFailure = message
-  for (const window of BrowserWindow.getAllWindows())
+  for (const window of workspaceWindows())
     if (!window.isDestroyed()) window.webContents.send('xnet:recovery:error', message)
 }
 

@@ -111,6 +111,17 @@ export function codexAppServerChatAgent(
     onFrame: (frame: AgentFrame) => void
   ): Promise<StreamTurnResult> {
     turn.signal?.throwIfAborted()
+    if (
+      turn.images &&
+      (turn.images.length > 4 ||
+        turn.images.some(
+          (image) =>
+            !['image/png', 'image/jpeg'].includes(image.mimeType) ||
+            !/^[A-Za-z0-9+/]+={0,2}$/.test(image.data) ||
+            image.data.length > 4_000_000
+        ))
+    )
+      throw new Error('Invalid or oversized inline image input')
     const proc = runner.spawn(
       options.command ?? 'codex',
       options.args ?? ['app-server', '--stdio'],
@@ -209,7 +220,13 @@ export function codexAppServerChatAgent(
       const started = record(
         await session.request('turn/start', {
           threadId,
-          input: [{ type: 'text', text: turn.prompt }],
+          input: [
+            { type: 'text', text: turn.prompt },
+            ...(turn.images ?? []).map((image) => ({
+              type: 'image',
+              url: `data:${image.mimeType};base64,${image.data}`
+            }))
+          ],
           ...(turn.outputSchema ? { outputSchema: turn.outputSchema } : {})
         })
       )

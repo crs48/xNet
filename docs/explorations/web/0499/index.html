@@ -1,0 +1,2236 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Explore a complete xNet journey: shared links, identity, participation, native apps, community hosting, publishing and discovery."
+    />
+    <title>From a link to a shared network · xNet</title>
+    <style>
+      :root {
+        --bg: #f7f8fa;
+        --paper: #fff;
+        --ink: #242a33;
+        --muted: #657080;
+        --line: #dfe4eb;
+        --soft: #f0f3f7;
+        --accent: #435b83;
+        --accent-soft: #eaf0fa;
+        --good: #315e4a;
+        --good-bg: #eaf4ee;
+        --warn: #8b541c;
+        --warn-bg: #fff3e3;
+        --shadow: 0 3px 18px #26344d07;
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--bg);
+        font:
+          16px/1.65 system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      html {
+        scroll-padding-top: 28px;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+      button,
+      a {
+        touch-action: manipulation;
+      }
+      a {
+        color: var(--accent);
+        text-underline-offset: 4px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button,
+      select,
+      input[type='text'],
+      textarea {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+        padding: 10px 13px;
+      }
+      button:hover {
+        background: var(--soft);
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+      .primary {
+        background: var(--ink);
+        color: var(--paper);
+        border-color: var(--ink);
+      }
+      .primary:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .selected {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      :focus-visible {
+        outline: 3px solid #7793be;
+        outline-offset: 3px;
+      }
+      .skip {
+        position: absolute;
+        top: -100px;
+        left: 20px;
+        background: var(--paper);
+        padding: 14px;
+        z-index: 10;
+      }
+      .skip:focus {
+        top: 10px;
+      }
+      .top {
+        max-width: 1360px;
+        margin: auto;
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        padding: 24px 38px;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        font-size: 26px;
+        font-weight: 750;
+        letter-spacing: -1px;
+        text-decoration: none;
+        color: var(--ink);
+      }
+      .top small {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .top nav {
+        margin-left: auto;
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        font-size: 12px;
+      }
+      .top button {
+        font-size: 12px;
+        padding: 7px 11px;
+      }
+      .hero {
+        max-width: 1180px;
+        padding: 60px 30px 40px;
+        margin: auto;
+      }
+      .eyebrow {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      h1 {
+        font-size: clamp(38px, 5vw, 64px);
+        line-height: 1.08;
+        letter-spacing: -0.045em;
+        font-weight: 640;
+        margin: 18px 0 22px;
+        max-width: 900px;
+      }
+      .hero p.lead {
+        font-size: 20px;
+        max-width: 800px;
+        color: var(--muted);
+      }
+      .summary-line {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 26px;
+      }
+      .summary-line span {
+        border-left: 2px solid var(--line);
+        padding-left: 12px;
+      }
+      #journey {
+        max-width: 1300px;
+        margin: 0 auto 70px;
+        padding: 0 30px;
+      }
+      .journey-shell {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        overflow: hidden;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+      .toolbar {
+        padding: 18px 22px;
+        background: var(--soft);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .toolbar label {
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .toolbar select {
+        font-size: 12px;
+        padding: 7px 10px;
+        max-width: 240px;
+      }
+      .demo-tag {
+        font-size: 11px;
+        color: var(--muted);
+        max-width: 210px;
+        line-height: 1.5;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 218px minmax(0, 1fr) 245px;
+      }
+      .steps {
+        border-right: 1px solid var(--line);
+        padding: 16px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .steps button {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        border-color: transparent;
+        text-align: left;
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 11px 9px;
+        background: transparent;
+      }
+      .steps button span {
+        font-size: 10px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+      }
+      .steps button[aria-current='step'] {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .steps button[aria-current='step'] span {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      .stage {
+        min-width: 0;
+        padding: 28px;
+      }
+      .stage h2 {
+        font-size: 25px;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        margin: 6px 0 12px;
+      }
+      .stage > p {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 0 0 22px;
+      }
+      .stage small {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .stage .kicker {
+        font-size: 10px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+      }
+      .side-note {
+        border-left: 1px solid var(--line);
+        background: var(--bg);
+        padding: 25px 20px;
+        font-size: 12px;
+      }
+      .side-note h3 {
+        font-size: 13px;
+        margin: 0 0 12px;
+      }
+      .side-note dl {
+        margin: 0;
+      }
+      .side-note dt {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 600;
+        color: var(--muted);
+        margin: 22px 0 5px;
+      }
+      .side-note dd {
+        margin: 0;
+        line-height: 1.6;
+      }
+      .side-note .status {
+        font-size: 12px;
+        margin-top: 24px;
+      }
+      .journey-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-top: 1px solid var(--line);
+        padding: 16px 22px;
+        font-size: 12px;
+      }
+      .journey-footer button {
+        font-size: 12px;
+      }
+      .footer-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .journey-footer a {
+        font-size: 12px;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+        margin: 16px 0;
+      }
+      .card-body {
+        padding: 17px;
+      }
+      .card-body h3 {
+        margin: 0 0 5px;
+        font-size: 19px;
+        letter-spacing: -0.02em;
+      }
+      .card-body p {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 8px 0;
+      }
+      .poster {
+        height: 160px;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(160deg, #dbe8e2 0%, #e9efdd 60%, #b9ccc0 60%);
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-evenly;
+        padding: 16px 28px;
+      }
+      .sprout {
+        height: 80px;
+        width: 4px;
+        background: #68836e;
+        border-radius: 3px;
+        position: relative;
+        transform: rotate(-5deg);
+      }
+      .sprout:before,
+      .sprout:after {
+        content: '';
+        position: absolute;
+        width: 29px;
+        height: 18px;
+        background: #7d9b75;
+        border-radius: 30px 3px 30px 3px;
+        top: 24px;
+        left: -27px;
+        transform: rotate(8deg);
+      }
+      .sprout:after {
+        top: 7px;
+        left: 2px;
+        transform: rotate(-5deg);
+        background: #91ac86;
+      }
+      .sprout:nth-child(2) {
+        height: 110px;
+        transform: rotate(7deg);
+      }
+      .sprout:nth-child(3) {
+        height: 65px;
+      }
+      .poster > small {
+        position: absolute;
+        top: 12px;
+        left: 14px;
+        font-size: 10px;
+        color: #42614d;
+        background: #ffffff9e;
+        padding: 3px 7px;
+        border-radius: 5px;
+      }
+      .post-meta {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 18px 0;
+      }
+      .actions button {
+        font-size: 12px;
+      }
+      .status {
+        border-radius: 9px;
+        padding: 12px 14px;
+        background: var(--soft);
+        font-size: 13px;
+        margin: 16px 0;
+        line-height: 1.55;
+      }
+      .status.good {
+        background: var(--good-bg);
+        color: var(--good);
+      }
+      .status.warn {
+        background: var(--warn-bg);
+        color: var(--warn);
+      }
+      .status strong {
+        display: block;
+      }
+      .notice {
+        font-size: 12px;
+        color: var(--muted);
+        border-left: 2px solid var(--line);
+        padding-left: 12px;
+        margin: 18px 0;
+      }
+      .choice-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+        margin: 14px 0;
+      }
+      .choice-grid button {
+        text-align: left;
+        font-size: 13px;
+      }
+      .form-row {
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+        margin: 15px 0;
+      }
+      .form-row input,
+      .form-row select,
+      .form-row textarea {
+        width: 100%;
+        min-width: 0;
+      }
+      .check-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        font-size: 12px;
+        margin: 13px 0;
+      }
+      .check-row input {
+        width: 16px;
+        height: 16px;
+        margin-top: 3px;
+        flex-shrink: 0;
+        accent-color: var(--accent);
+      }
+      input[type='range'] {
+        accent-color: var(--accent);
+        width: 100%;
+      }
+      .chip {
+        display: inline-block;
+        font-size: 10px;
+        background: var(--soft);
+        color: var(--muted);
+        border: 1px solid var(--line);
+        padding: 3px 7px;
+        border-radius: 20px;
+        margin: 3px 4px 3px 0;
+      }
+      .plain-list {
+        padding: 0;
+        list-style: none;
+        margin: 16px 0;
+      }
+      .plain-list li {
+        font-size: 13px;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .step-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 0;
+        list-style: none;
+        margin: 18px 0;
+      }
+      .step-list li {
+        font-size: 10px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        background: var(--soft);
+        color: var(--muted);
+      }
+      .step-list li.done {
+        background: var(--good-bg);
+        color: var(--good);
+      }
+      .result {
+        padding: 14px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .result h3 {
+        font-size: 14px;
+        line-height: 1.35;
+        margin: 0 0 6px;
+      }
+      .result p {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 4px 0;
+      }
+      .result .why {
+        font-size: 11px;
+        color: var(--accent);
+      }
+      .locked {
+        padding: 25px;
+        background: var(--soft);
+        border-radius: 10px;
+        text-align: center;
+      }
+      .locked h3 {
+        font-size: 17px;
+      }
+      .locked p {
+        font-size: 13px;
+      }
+      .link-box {
+        display: block;
+        word-break: break-all;
+        padding: 12px;
+        background: var(--soft);
+        border-radius: 7px;
+        font-size: 11px;
+        margin: 14px 0;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 70px;
+      }
+      .draft-note {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .mobile-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+      }
+      #report {
+        max-width: 1180px;
+        margin: auto;
+        padding: 0 30px 90px;
+      }
+      .report-title {
+        border-top: 1px solid var(--line);
+        padding-top: 36px;
+        margin-bottom: 30px;
+      }
+      .report-title h2 {
+        font-size: 32px;
+        letter-spacing: -0.03em;
+        margin: 8px 0;
+      }
+      .report-title p {
+        color: var(--muted);
+        max-width: 730px;
+      }
+      .report-layout {
+        display: grid;
+        grid-template-columns: 210px minmax(0, 1fr);
+        gap: 45px;
+      }
+      .report-nav {
+        align-self: start;
+        position: sticky;
+        top: 24px;
+        display: grid;
+        gap: 8px;
+      }
+      .report-nav a {
+        font-size: 12px;
+        line-height: 1.5;
+        text-decoration: none;
+        padding: 7px 0;
+        color: var(--muted);
+      }
+      .report-nav a:hover {
+        color: var(--accent);
+      }
+      article {
+        min-width: 0;
+        max-width: 850px;
+      }
+      article > h2 {
+        font-size: 27px;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        margin: 54px 0 20px;
+        border-top: 1px solid var(--line);
+        padding-top: 24px;
+      }
+      article p,
+      article li {
+        font-size: 15px;
+      }
+      article li {
+        margin: 9px 0;
+      }
+      article blockquote {
+        background: var(--accent-soft);
+        margin: 0 0 24px;
+        border-left: 3px solid var(--accent);
+        padding: 9px 20px;
+        border-radius: 0 10px 10px 0;
+      }
+      article blockquote p {
+        font-size: 15px;
+      }
+      .table-wrap {
+        overflow: auto;
+        margin: 25px 0;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      table {
+        border-collapse: collapse;
+        font-size: 12px;
+        width: 100%;
+        min-width: 580px;
+      }
+      th,
+      td {
+        padding: 13px;
+        vertical-align: top;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        background: var(--soft);
+        font-weight: 650;
+      }
+      tr:last-child td {
+        border: 0;
+      }
+      pre {
+        background: var(--soft);
+        padding: 17px;
+        border-radius: 10px;
+        overflow: auto;
+        font-size: 12px;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 0.88em;
+      }
+      p code,
+      li code,
+      td code {
+        background: var(--soft);
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+      .local-reference {
+        color: var(--muted);
+        text-decoration: underline dotted;
+      }
+      .architecture {
+        background: var(--paper);
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        margin: 28px 0;
+        text-align: center;
+        font-size: 13px;
+      }
+      .architecture p {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .architecture ol {
+        text-align: left;
+      }
+      .architecture li {
+        font-size: 13px;
+      }
+      .diagram-row,
+      .pipeline {
+        display: flex;
+        gap: 8px;
+      }
+      .diagram-row span,
+      .pipeline span {
+        background: var(--soft);
+        border-radius: 7px;
+        padding: 12px;
+        flex: 1;
+        font-size: 12px;
+      }
+      .pipeline {
+        flex-wrap: wrap;
+      }
+      .pipeline span {
+        min-width: 80px;
+      }
+      details {
+        padding: 12px 15px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        margin: 20px 0;
+        text-align: left;
+      }
+      summary {
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .endnote {
+        max-width: 1180px;
+        margin: auto;
+        padding: 0 30px 40px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #171b21;
+          --paper: #1d232c;
+          --ink: #e5eaf2;
+          --muted: #a6b2c3;
+          --line: #35404e;
+          --soft: #293341;
+          --accent: #b5cbee;
+          --accent-soft: #2b3b52;
+          --good: #bad9c9;
+          --good-bg: #273e34;
+          --warn: #efd1a9;
+          --warn-bg: #443625;
+          --shadow: none;
+          color-scheme: dark;
+        }
+        .primary {
+          background: #dce5f3;
+          color: #18212d;
+          border-color: #dce5f3;
+        }
+        .primary:hover {
+          color: #18212d;
+        }
+        .steps button[aria-current='step'] span {
+          color: #172031;
+        }
+      }
+      @media (max-width: 1100px) {
+        .layout {
+          grid-template-columns: 190px minmax(0, 1fr);
+        }
+        .side-note {
+          grid-column: 1/-1;
+          border-left: 0;
+          border-top: 1px solid var(--line);
+          padding: 20px;
+        }
+        .side-note dl {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+        }
+        .side-note dt {
+          margin-top: 0;
+        }
+        .side-note .status {
+          margin-bottom: 0;
+        }
+        .stage {
+          padding: 24px;
+        }
+        .toolbar {
+          flex-wrap: wrap;
+        }
+        .demo-tag {
+          max-width: none;
+        }
+      }
+      @media (max-width: 760px) {
+        .top {
+          padding: 17px 18px;
+          gap: 13px;
+          flex-wrap: wrap;
+        }
+        .top nav {
+          gap: 10px;
+        }
+        .top small {
+          display: none;
+        }
+        .top nav a {
+          font-size: 11px;
+        }
+        .top button {
+          font-size: 10px;
+        }
+        .hero {
+          padding: 35px 20px 26px;
+        }
+        .hero p.lead {
+          font-size: 17px;
+        }
+        h1 {
+          font-size: 40px;
+        }
+        #journey {
+          padding: 0 12px;
+        }
+        .toolbar {
+          padding: 15px;
+        }
+        .toolbar label {
+          width: 100%;
+          justify-content: space-between;
+        }
+        .toolbar select {
+          max-width: 220px;
+        }
+        .layout {
+          display: block;
+        }
+        .steps {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          gap: 3px;
+          padding: 10px;
+        }
+        .steps button {
+          font-size: 11px;
+          padding: 8px 5px;
+          gap: 7px;
+        }
+        .steps button span {
+          width: 21px;
+          height: 21px;
+        }
+        .stage {
+          padding: 22px 18px;
+        }
+        .stage h2 {
+          font-size: 24px;
+        }
+        .side-note dl {
+          display: block;
+        }
+        .side-note dt {
+          margin-top: 18px;
+        }
+        .side-note h3 {
+          margin-bottom: 4px;
+        }
+        .journey-footer {
+          padding: 14px;
+          flex-wrap: wrap;
+        }
+        .journey-footer > a {
+          display: none;
+        }
+        .journey-footer button {
+          font-size: 11px;
+        }
+        .report-layout {
+          display: block;
+        }
+        .report-nav {
+          position: static;
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
+          margin: 20px 0 35px;
+        }
+        .report-nav a {
+          font-size: 11px;
+        }
+        #report {
+          padding: 0 20px 50px;
+        }
+        article > h2 {
+          font-size: 24px;
+        }
+        .diagram-row {
+          flex-direction: column;
+        }
+        .top nav {
+          margin-left: auto;
+        }
+        .poster {
+          height: 140px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto;
+        }
+      }
+      @media print {
+        .top nav,
+        .toolbar,
+        .steps,
+        .journey-footer,
+        .report-nav {
+          display: none;
+        }
+        .layout,
+        .report-layout {
+          display: block;
+        }
+        .side-note {
+          border: 0;
+        }
+        .hero,
+        #journey,
+        #report {
+          padding: 0;
+        }
+        .hero {
+          margin-bottom: 30px;
+        }
+        body {
+          background: white;
+          color: black;
+        }
+        .table-wrap {
+          overflow: visible;
+        }
+        article h2 {
+          break-after: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#journey">Skip to the interactive journey</a>
+    <header class="top">
+      <a class="brand" href="#top">xNet</a><small>FIELD GUIDE / 0499</small>
+      <nav aria-label="Page navigation">
+        <a href="#journey">Try the journey</a><a href="#report">Read the exploration</a
+        ><button id="download-html">Save website</button>
+      </nav>
+    </header>
+    <main id="top">
+      <section class="hero">
+        <p class="eyebrow">A link is the beginning</p>
+        <h1>From a shared link<br />to a shared network.</h1>
+        <p class="lead">
+          You came to watch something a friend made. What makes you stay, join in, create something
+          yourself—and eventually help keep this place available?
+        </p>
+        <div class="summary-line">
+          <span>Open public links</span><span>Familiar identities</span
+          ><span>Bounded contribution</span><span>Discovery you can choose</span>
+        </div>
+      </section>
+      <section id="journey" aria-label="Interactive user journey">
+        <div class="journey-shell">
+          <div class="toolbar">
+            <div class="demo-tag">
+              <strong>LOCAL CONCEPT PROTOTYPE</strong><br />Example content. No real sign-in,
+              uploads, payments, or peer connections.
+            </div>
+            <label for="device"
+              >Device<select id="device">
+                <option value="web">Web browser</option>
+                <option value="desktop">Desktop app</option>
+                <option value="phone">Phone app</option>
+              </select></label
+            ><label for="policy"
+              >Access policy<select id="policy">
+                <option value="open">Open viewing · optional hosting</option>
+                <option value="required">Compare mandatory seeding</option>
+              </select></label
+            >
+          </div>
+          <div class="layout">
+            <nav class="steps" id="steps" aria-label="Journey steps"></nav>
+            <section class="stage" id="scene" aria-label="Current journey step"></section>
+            <aside class="side-note" id="notes" aria-label="How this step works"></aside>
+          </div>
+          <div class="journey-footer">
+            <button id="reset">Reset example</button
+            ><a href="#report">Explore the architecture ↓</a>
+            <div class="footer-actions">
+              <button id="back">← Back</button
+              ><button id="next" class="primary">Next step →</button>
+            </div>
+          </div>
+        </div>
+        <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+      </section>
+      <section id="report">
+        <div class="report-title">
+          <p class="eyebrow">The full exploration</p>
+          <h2>Design the invitation and the obligations together.</h2>
+          <p>
+            The proposed journey, the tradeoffs behind it, and an implementation path. Research
+            checked November 2, 2026. These are proposals, not claims about a running network.
+          </p>
+          <button id="download-md">Download the Markdown</button>
+        </div>
+        <div class="report-layout">
+          <nav class="report-nav" aria-label="Exploration chapters"><a href="#1-start-with-the-thing-someone-came-to-see">1. Start with the thing someone came to see</a>
+<a href="#2-should-contributing-be-mandatory">2. Should contributing be mandatory?</a>
+<a href="#3-join-without-starting-over">3. Join without starting over</a>
+<a href="#4-social-actions-need-audiences-and-receipts">4. Social actions need audiences and receipts</a>
+<a href="#5-install-because-it-helps-and-arrive-where-you-left-off">5. Install because it helps, and arrive where you left off</a>
+<a href="#6-contribute-within-the-limits-of-this-device">6. Contribute within the limits of this device</a>
+<a href="#7-create-and-publish-with-honest-stages">7. Create and publish with honest stages</a>
+<a href="#8-search-has-scopes-not-a-magical-view-of-everything">8. Search has scopes, not a magical view of everything</a>
+<a href="#9-recommendations-people-can-understand-and-change">9. Recommendations people can understand and change</a>
+<a href="#10-what-can-run-peer-to-peer-and-what-needs-a-host">10. What can run peer-to-peer, and what needs a host?</a>
+<a href="#11-funding-discovery-without-charging-rent-on-relationships">11. Funding discovery without charging rent on relationships</a>
+<a href="#12-ground-this-in-the-repository-and-ship-a-narrow-journey">12. Ground this in the repository and ship a narrow journey</a></nav>
+          <article><blockquote>
+<p>Let a public link work immediately. Invite people to join with a familiar identity, take their community into a native app, and contribute storage within limits they choose. Keep local discovery available to everyone; make broader public indexes replaceable services that communities can fund or users can subscribe to.</p>
+</blockquote>
+<p>This follows <a title="Repository reference: 0498_%5B_%5D_TWO_APPS_AND_A_COMMUNITY_SEED_NETWORK.md" class="local-reference">0498: Two apps, one community network</a>. That proposal chose two interoperable web starters, durable media origins, and gradual peer assistance. This exploration follows a person through that system, including the reasons they might stop, decline a permission, or leave.</p>
+<p>The <a href="#journey">interactive journey</a> is a concept prototype. Its identities, content, posts, permissions, uploads, and indexes are simulated locally. It does not sign anyone in, install software, publish content, move money, or seed files. The document is canonical; the website carries a guided example and the full text.</p>
+<p><strong>Recommendation under review, not an adopted policy:</strong> open public reading with voluntary, prominently invited contribution. The prototype also lets us inspect a strict mandatory-seeding alternative. Revisit December 2 after testing both explanations with prospective community members. Chris decides. A public protocol or revenue policy needs an ADR and a tripwire before adoption; this draft changes neither the charter nor the existing application.</p>
+<h2 id="1-start-with-the-thing-someone-came-to-see">1. Start with the thing someone came to see</h2>
+<p>Someone sends you a garden video. You tap the link, see the creator and caption, and press play. The first screen explains the content. It does not require you to understand federation, install an application, or decide how many gigabytes to donate.</p>
+<p>An ordinary HTTPS link is the public entry point. A small server-rendered page exposes public metadata and a player, with a clear content-unavailable state. It works through HTTPS origin/mirror delivery before any peer connection. A quiet <strong>Open in app</strong> action sits beside <strong>Keep watching here</strong>. Later, saving something for offline use or returning to a group gives the installation invitation a concrete purpose.</p>
+<p>Public link previews may include the title and thumbnail. A private invitation must not leak its title, participants, thumbnail, or transcript to social preview crawlers. Show a generic invitation card until the visitor proves the required access. An unlisted URL is not a private room: anyone who receives the URL may forward it.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Arrival</th>
+<th>First screen</th>
+<th>Before showing private content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public post</td>
+<td>Content, creator, play/read, public comments, share</td>
+<td>Nothing; HTTPS viewing is available to guests</td>
+</tr>
+<tr>
+<td>Private item</td>
+<td>Generic invitation or sign-in destination</td>
+<td>Authenticate, check membership, verify/decrypt on the device</td>
+</tr>
+<tr>
+<td>Approval-required group</td>
+<td>Inviter-approved public description and request action</td>
+<td>Show pending status; no history while awaiting approval</td>
+</tr>
+<tr>
+<td>Missing or unavailable item</td>
+<td>Distinguish removed, inaccessible, and temporarily offline where disclosure is safe</td>
+<td>Do not reveal a private object's existence to unauthorized visitors</td>
+</tr>
+</tbody>
+</table></div>
+<p>Public reading has a real hosting cost. Operators can rate-limit abuse, cap preview bandwidth, and set published retention limits. That is more honest than promising that every anonymous visit can be served forever at no cost. An ordinary visitor should not become an uploader without knowing it.</p>
+<h2 id="2-should-contributing-be-mandatory">2. Should contributing be mandatory?</h2>
+<p>There are three different requirements hidden inside that question: installing a native client, accepting a future contribution policy, and actually uploading useful bytes right now. None proves the others. A desktop client may have no reachable consumers, be offline, be on a hotspot, or possess only already well-replicated files.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>What it gains</th>
+<th>What it costs</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Seed before viewing</td>
+<td>Strong participation norm in a closed, managed group</td>
+<td>Breaks public links; excludes many phones and constrained networks; easy to fake contributions; exposes network metadata</td>
+<td>Do not use for the public network</td>
+</tr>
+<tr>
+<td>Native app required, help when able</td>
+<td>Easier contribution controls and persistent storage</td>
+<td>Installation wall still interrupts discovery; “when able” needs exceptions</td>
+<td>Test only for communities that choose this membership model</td>
+</tr>
+<tr>
+<td>Public viewing plus an explicit hosting invitation</td>
+<td>Links work; contribution is understandable and revocable</td>
+<td>Requires funded baseline hosting and active recruitment of dependable hosts</td>
+<td><strong>Default</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>I would make contribution part of the culture and the native onboarding, with a visible <strong>Not on this device</strong> choice. Do not turn it into a debt meter. An upload/download ratio is a poor measure of value: a new or unpopular file may be worth retaining even when nobody requests it. People who make, curate, translate, or moderate are also contributing.</p>
+<p>A private cooperative could agree that certain members operate hosts. That policy should state retention commitments, costs, exceptions, and withdrawal procedures before admission. Keep a person's export and recovery rights outside that bargain. Never force their computer to upload after they pause it, even if the community decides to suspend some service entitlement.</p>
+<p>The strict policy in the prototype intentionally shows its consequences: a guest browser cannot view, and a member on battery loses access when mandatory seeding pauses. This is a comparison model, not the recommended product behavior. A softer “contribute when able” requirement is closer to the voluntary model once it handles those cases honestly.</p>
+<h2 id="3-join-without-starting-over">3. Join without starting over</h2>
+<p>The person clicks <strong>Follow</strong> or writes a comment. Ask for an account at that moment, preserve the pending intent, and return to the same post after sign-in. Resume a draft comment, but let the person press <strong>Post publicly</strong> themselves. Do not turn an authentication callback into an accidental publication.</p>
+<p>Use one stable application account ID with separately verified login methods. Display names, email addresses, social handles, devices, and encryption keys are different things. Linking two providers requires proving control of both; matching email text must not silently merge accounts.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Sign-in choice</th>
+<th>Proposed implementation</th>
+<th>What it must not imply</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bluesky</td>
+<td>AT Protocol OAuth using a maintained SDK; retain the DID as the provider subject and resolve the current handle</td>
+<td>No automatic import, follow, post, or access to private messaging keys</td>
+</tr>
+<tr>
+<td>Google</td>
+<td>OpenID Connect with validated issuer, audience, subject, state, and nonce as appropriate to the flow</td>
+<td>No Gmail, contacts, or Drive access</td>
+</tr>
+<tr>
+<td>X / Twitter</td>
+<td>Provider adapter using its supported user authorization flow and minimum working scopes</td>
+<td>No promise of free API access, universal OIDC compatibility, or automatic cross-posting</td>
+</tr>
+<tr>
+<td>Email and password</td>
+<td>A maintained authentication service, verified email, abuse limits, secure password storage, reset and session management</td>
+<td>A password reset is not recovery of encrypted history</td>
+</tr>
+</tbody>
+</table></div>
+<p>Google documents OpenID Connect login. AT Protocol has its own OAuth profile, including distributed provider discovery and proof-of-possession behavior; it should not be treated as a generic OIDC button. X documents authorization-code flow with PKCE. Each provider needs configured redirects and an independently tested adapter. <a href="https://developers.google.com/identity/openid-connect/openid-connect">Google OIDC</a>, <a href="https://atproto.com/guides/oauth-patterns">AT OAuth patterns</a>, <a href="https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code">X authorization code flow</a>.</p>
+<p>Implement Bluesky and a provider-independent account option first; add Google and X behind capability checks. Do not show working-looking buttons for unconfigured providers. The journey prototype shows all four as <strong>simulated choices</strong>, not a claim that those integrations ship.</p>
+<p>For native apps, authorize in the system browser with PKCE and validated callbacks. Bind the callback to a short-lived initiating transaction. Keep provider tokens out of shared URLs, logs, renderer-wide state, and ordinary exports. <a href="https://www.rfc-editor.org/info/rfc8252/">OAuth for native apps, RFC 8252</a>.</p>
+<p>Offer a second recovery method after the first useful interaction. If a provider closes an account or is unavailable, people with another method should still reach their application account. Explain separately how to verify a new device and restore encryption keys. Reconnecting Google or Bluesky does not recreate lost private keys.</p>
+<h2 id="4-social-actions-need-audiences-and-receipts">4. Social actions need audiences and receipts</h2>
+<p>Use <strong>Follow</strong> for creator updates, <strong>Support</strong> for voluntary funding, and <strong>Subscribe to search</strong> for a paid service. The word “subscribe” should not ambiguously authorize payment, storage, or public social disclosure.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Default audience</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Save</td>
+<td>Private to the person</td>
+<td>Store a reference in their collection; download is a separate choice</td>
+</tr>
+<tr>
+<td>Like a public post</td>
+<td>Clearly labeled by the platform's policy</td>
+<td>Make public visibility explicit; never also turn on seeding</td>
+</tr>
+<tr>
+<td>Comment on a public post</td>
+<td>Public</td>
+<td>Label the composer and final action; offer edit/delete and report/block</td>
+</tr>
+<tr>
+<td>Follow</td>
+<td>Explain whether the social record is public</td>
+<td>Update a feed preference; no automatic upload commitment or DM access</td>
+</tr>
+<tr>
+<td>Send in a chat</td>
+<td>Named conversation</td>
+<td>Resolve access before sending; offer reference, permitted copy, or request access</td>
+</tr>
+<tr>
+<td>React inside an encrypted room</td>
+<td>That room</td>
+<td>Use the room protocol; do not forward the reaction into a public social graph</td>
+</tr>
+</tbody>
+</table></div>
+<p>An optimistic UI can show a pending like or message immediately, but it needs a receipt before claiming the service accepted it. Use idempotency/event identities for retries. If a write fails, retain the draft and show the failure. Offline actions stay queued; they are not public merely because a local icon changed.</p>
+<p>Where a public action is written to AT Protocol, its record follows that protocol's visibility and persistence rules. Do not label it private because the current Bluesky client hides a particular list. During the first MVP, retain the native record identity from whichever service owns the action, as 0498 proposes. Cross-posting is a separate consented write with a separate receipt.</p>
+<p>Messaging starts with requests, membership checks, and blocking. A public handle or a follow is not permission to open an unrestricted private channel. Defaults should keep low-stakes encouragement easy without making the recipient's inbox an unbounded queue.</p>
+<h2 id="5-install-because-it-helps-and-arrive-where-you-left-off">5. Install because it helps, and arrive where you left off</h2>
+<p>The installation prompt should explain a benefit the person has just asked for: keep a collection offline, get reliable desktop notifications, use a local agent, or help retain community media. Avoid repeated takeover banners.</p>
+<figure class="architecture"><ol class="sequence"><li>Open the original public link or private invitation.</li><li>Install if useful; keep a copy of the link.</li><li>Authenticate the native session, then verify private-data access separately.</li><li>Return to the same destination before offering optional hosting.</li></ol><details><summary>Diagram source</summary><pre>sequenceDiagram
+  participant V as Visitor
+  participant W as Public website
+  participant A as Native application
+  participant I as Identity and room services
+  V-&gt;&gt;W: Open shared content link
+  W--&gt;&gt;V: Public preview or generic private invitation
+  V-&gt;&gt;W: Open in app
+  W--&gt;&gt;V: Install instructions and copyable original link
+  V-&gt;&gt;A: Install and reopen the link
+  A-&gt;&gt;I: Authenticate this application session
+  I--&gt;&gt;A: Account session, not room keys
+  A-&gt;&gt;V: Verify this device for encrypted history
+  V-&gt;&gt;A: Review invitation or resume the original content
+  A--&gt;&gt;V: Optional, bounded hosting invitation
+</pre></details></figure><p>Use verified HTTPS app/universal links where supported, plus a copyable link fallback. A first installation may not retain the original browser context, so explicitly keep the invitation page available and offer <strong>Copy link to reopen</strong>. Do not assume app-store installation transfers cookies or device keys.</p>
+<p>Store only the pending destination and permitted invitation context, with expiry and replay protection where a link carries a capability. Never put account tokens or decryption keys into an analytics redirect. Validate destinations against known resource types; a link must not become an arbitrary command or filesystem path. A private invitation can expire while someone installs: keep the destination visible and offer a safe way to request a new invitation.</p>
+<p>Notifications, device-key recovery, file access for local agents, and hosting are separate permissions. Declining one should not make the rest of onboarding appear broken. On desktop, acknowledge laptop battery and hotspot usage just as seriously as phone constraints.</p>
+<h2 id="6-contribute-within-the-limits-of-this-device">6. Contribute within the limits of this device</h2>
+<p>The first hosting screen can say: <strong>“Help keep this community available.”</strong> Explain what can be stored, how much space and traffic it can use, whether peers can learn a network address, and how to pause or remove copies. Show actual usage later, not an invented reputation score.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Device</th>
+<th>Proposed default</th>
+<th>Eligible contribution</th>
+<th>Never promise</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Guest browser</td>
+<td>HTTPS viewing; no uploads</td>
+<td>Optional foreground peer assistance only after consent in a later pass</td>
+<td>Background availability after the tab closes</td>
+</tr>
+<tr>
+<td>Desktop</td>
+<td>Hosting off until chosen</td>
+<td>Selected public/community content; pause on battery, metered or unknown network, low disk, cap exhaustion, or manual pause</td>
+<td>That every installed app is online, safe to consume bandwidth, or an independent backup</td>
+</tr>
+<tr>
+<td>Phone/tablet</td>
+<td>Hosting off; normal viewing, upload and sync</td>
+<td>A later opt-in experiment while foregrounded, charging, and on a user-approved unmetered network</td>
+<td>Permanent background peer serving or that Wi-Fi means unlimited data</td>
+</tr>
+<tr>
+<td>Home server</td>
+<td>Explicit enrollment and resource budget</td>
+<td>Renewable retention commitments and monitored availability</td>
+<td>Unlimited storage or trust just because it runs continuously</td>
+</tr>
+</tbody>
+</table></div>
+<p>The numeric presets in the prototype—10 GB storage, a 10 GB monthly upload budget, and a 1 Mb/s upload ceiling—are design examples. Validate them on actual hardware and networks. A monthly cap counts relay traffic and protocol overhead where measurable; show uncertainty rather than pretending the OS provides perfect usage data. If network cost cannot be determined, pause until the person approves that network.</p>
+<p>On iOS, the system schedules background processing; a task request is not a permanent listener. Apple's APIs can require external power. Android WorkManager supports charging, network, battery, and storage constraints and may stop work when constraints are no longer satisfied. Those facilities help schedule finite work; they do not guarantee always-on peer service. <a href="https://developer.apple.com/documentation/backgroundtasks/choosing-background-strategies-for-your-app">Apple background strategies</a>, <a href="https://developer.apple.com/documentation/backgroundtasks/bgprocessingtaskrequest/requiresexternalpower">Apple external-power constraint</a>, <a href="https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started/define-work">Android work constraints</a>.</p>
+<p>Use resumable native upload/download APIs for finite transfers where appropriate. Do not misuse audio, location, or push notifications to keep seeding alive. Native background notifications may also depend on platform push services; describing the product as decentralized does not remove that dependency.</p>
+<p>The contribution settings apply to both <strong>retention</strong> and <strong>serving</strong>. Pause stops new transfers immediately while preserving existing bytes until the person chooses to remove them. Withdrawal should give the network a chance to replace retained copies, but must not trap the device. If it held the last reachable copy, show that fact and preserve the user's right to stop.</p>
+<p>A friend group may agree to store encrypted copies for each other. Scope access to that circle and authenticate every transfer path. Storage eligibility does not confer decryption rights. Avoid public advertisements of private object identifiers or friend relationships. Encryption protects content, not every timing, size, or address signal.</p>
+<h2 id="7-create-and-publish-with-honest-stages">7. Create and publish with honest stages</h2>
+<p>Creation can begin in either app: take a photo, upload a short film, compose a post, or make something with an agent. Agents use the same scoped operations and receipts as the interface. Access to a local folder or private messages is separately granted; content being edited cannot grant itself more permissions.</p>
+<p>Choose the audience <strong>before</strong> processing/upload. Public videos can use an isolated server transcoder. Private attachments should be prepared and encrypted by an authorized endpoint using the chosen messaging SDK; remote processing would be a new plaintext disclosure. For the MVP, keep private video small and use the established whole-file attachment flow from 0498.</p>
+<figure class="architecture"><div class="pipeline"><span>Draft</span><span>Prepare</span><span>Store</span><span>Confirm retention</span><span>Publish</span></div><p>Public → indexing receipt · Private → encrypted delivery receipt</p><p>Offline, quota, and retention failures preserve the draft.</p><details><summary>Diagram source</summary><pre>stateDiagram-v2
+  [*] --&gt; Draft
+  Draft --&gt; Preparing: choose audience and file
+  Preparing --&gt; Waiting: offline or quota unavailable
+  Waiting --&gt; Preparing: retry with same upload identity
+  Preparing --&gt; Stored: origin verifies complete bytes
+  Stored --&gt; Protected: backup or retention policy confirmed
+  Protected --&gt; Published: explicit publish with receipt
+  Published --&gt; Indexed: public catalog consumes revision
+  Published --&gt; Delivered: private room accepts encrypted event
+  Indexed --&gt; Removed: delete or access change
+  Delivered --&gt; Removed: request removal under room rules
+</pre></details></figure><p>“Saved on this device,” “uploading,” “stored,” “published,” and “searchable” are different states. A publisher closing their laptop should not silently destroy a post that the UI called durably hosted. Reserve storage and enforce quota before accepting that promise. An origin acknowledgment alone does not prove an independent backup exists.</p>
+<p>For the public MVP, a publish receipt points to a stable content record after the origin and configured backup policy succeed. Wider indexing is asynchronous. Say <strong>Published · not yet in community search</strong> until an index confirms that revision. If quota or backup fails, keep the work as a draft and explain the next step. A future temporary, creator-seeded sharing mode can use a weaker, clearly named availability promise.</p>
+<p>After publication, the replica scheduler from 0498 prioritizes missing baseline copies, then surplus demand. Hosting popularity must not determine whose work is accepted into an index or recommended. A new creator receives an admission/retention budget rather than an instruction to become famous first.</p>
+<p>Private publication sends an encrypted room event and an encrypted attachment reference. Public catalogs, thumbnails, autocomplete, and recommendation candidates must not include it. Removing access stops future authorized reads and key distribution where the protocol supports that; it cannot revoke every copy or old key already obtained by a recipient.</p>
+<h2 id="8-search-has-scopes-not-a-magical-view-of-everything">8. Search has scopes, not a magical view of everything</h2>
+<p>The network needs discovery, but no open network can promise a complete, current index of every server, offline device, encrypted room, and deleted record. <strong>Show what was searched and how fresh it is.</strong> A remote service outage and a genuine empty result must look different.</p>
+<p>“Near me” should mean a chosen social neighborhood—my follows, my groups, and content shared with me. It must not mean that being on the same Wi-Fi, living nearby, or being a friend of a friend grants access. Physical proximity is neither identity nor consent.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Search scope</th>
+<th>Corpus and location</th>
+<th>Privacy and limitations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>On this device</td>
+<td>Locally indexed saved/followed public material and authorized decrypted items</td>
+<td>Offline; limited to what has been indexed here; private keys and plaintext stay local</td>
+</tr>
+<tr>
+<td>My communities</td>
+<td>Public catalogs of subscribed hosts; private groups only through the authorized local/device path</td>
+<td>Coverage and freshness are explicit; remote public queries can reveal interests to operators</td>
+</tr>
+<tr>
+<td>Wider public network</td>
+<td>Public catalogs crawled by one or more chosen index services</td>
+<td>Partial coverage, policy exclusions, freshness lag, possible cost; no private-message search</td>
+</tr>
+</tbody>
+</table></div>
+<p>Do not send the same query to every index as the person types. Local suggestions can be immediate. Choosing <strong>Search wider</strong> discloses the query to the selected provider; explain that boundary and preserve it when adding an AI assistant. Avoid sending private room names, private snippets, or account-wide tokens along with a public search.</p>
+<p>PeerTube already distinguishes platform-known results, an external global index, and direct URL/handle lookup. AT Protocol separates hosting from aggregated application views, feeds, and search. These are useful precedents for selectable services; neither makes indexing cost-free or end-device P2P. <a href="https://docs.joinpeertube.org/use/search">PeerTube search</a>, <a href="https://atproto.com/guides/overview">AT Protocol overview</a>.</p>
+<p>Start with the existing browser text-indexing approach for the small web prototype, evaluate SQLite FTS5 for native local indexes, and use Postgres full-text search for the initial community public catalog. Keep a provider interface so larger installations can choose another engine later. <a href="https://www.sqlite.org/fts5.html">SQLite FTS5</a>, <a href="https://www.postgresql.org/docs/current/textsearch.html">Postgres full-text search</a>.</p>
+<figure class="architecture"><div class="diagram-row"><span>On-device permitted index</span><span>Chosen community catalogs</span><span>Selected wider public providers</span></div><p>Search scope chooses the route. Results include coverage and freshness.</p><p>Private decrypted content stays in the authorized device path.</p><details><summary>Diagram source</summary><pre>flowchart TB
+  QUERY[Search box with chosen scope] --&gt; LOCAL[Local permitted index]
+  QUERY --&gt;|Explicit remote public search| ROUTER[Selected index providers]
+  PUBLIC[Public origin catalogs and changes] --&gt; INDEX[Community public index]
+  INDEX --&gt; ROUTER
+  CIPHER[Encrypted room history] --&gt; DEVICE[Authorized device decrypts]
+  DEVICE --&gt; LOCAL
+  ROUTER --&gt; MERGE[Bounded merge with coverage and freshness]
+  LOCAL --&gt; MERGE
+  MERGE --&gt; RESULTS[Results with source and availability]
+</pre></details></figure><p>An index provider should publish the hosts it covers, crawl policy, supported fields, maximum lag target, language/tokenization choices, moderation policy, query logging policy, and limits. A proposed response includes <code>provider</code>, <code>asOf</code>, <code>coverage</code>, <code>partial</code>, <code>unavailableSources</code>, and an opaque cursor alongside results. These are contracts to implement, not an existing xNet endpoint.</p>
+<p>Crawl accepted public feeds using stable IDs, revisions, checkpoints, backpressure, and deletion/access-change events. Deduplicate by canonical resource identity, not captions or filenames. Recheck authorization at fetch time. Expire cached descriptors; apply removal events locally; never expose private IDs, counts, snippets, or timing as a side channel in a public index. Public-to-private changes cannot retract prior public copies, but our indexes should stop serving them promptly.</p>
+<p>A device can exchange bounded public catalog snapshots or explicit private group updates with trusted peers. It cannot safely broadcast arbitrary private search queries to strangers. Distributing a global inverted index across volunteers adds shard placement, churn, query routing, abuse resistance, and privacy work. Defer that research until local and federated search are useful. A DHT mapping file hashes to peers is not a full-text search engine.</p>
+<h2 id="9-recommendations-people-can-understand-and-change">9. Recommendations people can understand and change</h2>
+<p>Start with <strong>Following, newest first</strong>, a finite page with a clear end. Offer <strong>Discover</strong> as a separate view using selected public communities and topics. Show why an item appeared, which service supplied candidates, and what changing that service would do.</p>
+<p>A simple first recommendation pass can gather candidates from public subscribed catalogs, filter blocked/hidden items, enforce author diversity, and reserve some candidate slots for recent work from creators the person has not seen. A local ranker can use explicit follows and chosen topics without exporting private reading history. The discovery share and ranking weights are design choices to test, not proven improvements.</p>
+<p>Availability is a useful playback signal, but it must not make under-seeded work permanently invisible. Show a safe preview and a recovery/retention state where possible; fund baseline retention separately. Do not let donated storage, subscription status, or seed ratio buy preferential ranking. A user's content preferences can guide hosting within its budget; they should not silently become a public profile of their behavior.</p>
+<p>For wider recommendation providers, default to public topics and coarse context chosen by the user. Keep private history local. Downloading public candidates and ranking on the device is one way to preserve this boundary; it uses more bandwidth and still needs a funded candidate service. “Why this?” must describe the actual implemented rule, not invented model reasoning.</p>
+<p>Moderation is a service choice with safety defaults, source transparency, reporting, blocking, and appeals. It is not a hidden universal truth. Separate public content ordering from ranking people by worth or popularity. The existing charter's restrictions on public scoreboards remain in force; this exploration does not authorize a new reputation leaderboard.</p>
+<h2 id="10-what-can-run-peer-to-peer-and-what-needs-a-host">10. What can run peer-to-peer, and what needs a host?</h2>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>P2P/local path</th>
+<th>Practical MVP dependency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open a public link</td>
+<td>Later peer assistance for active viewers</td>
+<td>Public domain, reachable metadata/player, HTTPS media fallback</td>
+</tr>
+<tr>
+<td>Sign in with an existing identity</td>
+<td>Locally retained session/keys after login</td>
+<td>That provider and application account service for initial authentication</td>
+</tr>
+<tr>
+<td>Like/comment/follow</td>
+<td>Queue local intent</td>
+<td>An authoritative service accepts and propagates the write</td>
+</tr>
+<tr>
+<td>Private chat</td>
+<td>Direct device delivery when both are available</td>
+<td>Durable encrypted mailbox/homeserver for offline recipients and recovery support</td>
+</tr>
+<tr>
+<td>Local search/recommendations</td>
+<td>On-device index and ranking</td>
+<td>Only the data already present; initial/resumed sync needs sources</td>
+</tr>
+<tr>
+<td>Community catalog</td>
+<td>Peer copies of bounded approved snapshots</td>
+<td>At least one maintained source for fresh public catalogs and write receipts</td>
+</tr>
+<tr>
+<td>Wider public discovery</td>
+<td>Technically distributable over time</td>
+<td>A funded crawler/index/API initially; possibly several federated providers</td>
+</tr>
+<tr>
+<td>Durable public media</td>
+<td>Opted-in retained copies</td>
+<td>Baseline origin, backup, monitoring, and connectivity fallback</td>
+</tr>
+</tbody>
+</table></div>
+<p>Federation does not require one company to own every role. A community can run its account service, index, and media mirror together, or choose separate operators. Standard discovery documents can advertise endpoints and capabilities. Authenticate federation, constrain remote URLs and responses, and treat every service as an independent trust boundary.</p>
+<p>When an index goes away, direct public links, local search, and existing chats should continue within their own availability limits. If the only content host goes away, changing the search provider cannot restore its bytes. If the identity provider disappears before recovery methods are set up, software cannot fabricate control of that identity. These limits belong in the UX and the recovery tests.</p>
+<h2 id="11-funding-discovery-without-charging-rent-on-relationships">11. Funding discovery without charging rent on relationships</h2>
+<p>A wider index has ongoing costs: crawling, storage, text processing, moderation, operations, and query serving. It is reasonable to sell that work. A user's own messages, existing contacts, local index, exports, and open public links should not require a paid discovery subscription.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Pays for</th>
+<th>Tradeoff</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Community donations</td>
+<td>A shared catalog and public query allowance</td>
+<td>Variable income; needs transparent budgets and sustainable limits</td>
+</tr>
+<tr>
+<td>Optional search subscription</td>
+<td>Broader coverage, frequent refresh, advanced queries, or higher API limits</td>
+<td>Must remain replaceable; an expired plan cannot lock the underlying account or local data</td>
+</tr>
+<tr>
+<td>Operator self-hosting</td>
+<td>The operator's infrastructure and labor</td>
+<td>Real operational work; requires usable deployment, export and repair tools</td>
+</tr>
+<tr>
+<td>Contributor service credits</td>
+<td>A possible future discount for accepted hosting work</td>
+<td>Fraud/accounting complexity and pressure on constrained users; defer</td>
+</tr>
+</tbody>
+</table></div>
+<p>Apply the <a title="Repository reference: ../CHARTER.md#no-ground-rent" class="local-reference">charter's Commons tests</a> before adopting any paid lane:</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Requirement for a discovery service</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Improvement</td>
+<td>Charge for maintained coverage, compute, moderation and operations; not permission to access someone's own data</td>
+</tr>
+<tr>
+<td>BATNA</td>
+<td>Publish the API and self-hostable index pipeline; preserve direct lookup, local search, export, and alternative providers without artificial degradation</td>
+</tr>
+<tr>
+<td>Vanish</td>
+<td>Accounts, source records, memberships and saved references survive our service; derived rankings can be rebuilt elsewhere, with rebuilding cost stated honestly</td>
+</tr>
+<tr>
+<td>Sleep</td>
+<td>An open-source competitor can copy the software; reliability, useful maintained coverage, support and community stewardship must justify ongoing payment</td>
+</tr>
+<tr>
+<td>Rust</td>
+<td>Not yet passed for this MVP: no proven funding lane. These refusals are on borrowed time until a donation-funded pilot or operated-search experiment sustains measured costs.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The first three are the fairness boundary; the last two force an honest business test. Donations are not guaranteed revenue. A community budget should show the cost categories and the reserves needed to keep public links available when donations dip. Charging creators for visibility or requiring seed credits to export would fail this recommendation.</p>
+<p>Before choosing a subscription price, measure a representative corpus: indexed bytes, update rate, transcription policy, query traffic, operational hours, and recovery cost. Metadata and supplied captions are cheaper to index than generating transcripts for every video. Public transcripts may be an opt-in processing feature; private transcription stays on an authorized endpoint unless separately disclosed.</p>
+<p>When a plan expires, explain the narrower coverage and offer another provider. Keep saved records and on-device search. Rate limits and deliberate feature tiers should be transparent. Paid query service can stop; deleting a person's local data to enforce payment is not part of the design.</p>
+<h2 id="12-ground-this-in-the-repository-and-ship-a-narrow-journey">12. Ground this in the repository and ship a narrow journey</h2>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Existing seam</th>
+<th>What inspection supports</th>
+<th>What it does not establish</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a title="Repository reference: 0488_%5B_%5D_INVITATION_LED_DESKTOP_ONBOARDING.md" class="local-reference">0488 onboarding exploration</a></td>
+<td>Destination-preserving invitation journey</td>
+<td>This new media/browser journey being implemented</td>
+</tr>
+<tr>
+<td><a title="Repository reference: ../../apps/electron/src/shared/onboarding.ts" class="local-reference">Shared onboarding types</a></td>
+<td>Pending invitations and a Bluesky social identity in the desktop prototype</td>
+<td>Working Google, X, or email/password adapters</td>
+</tr>
+<tr>
+<td><a title="Repository reference: ../../apps/electron/src/main/onboarding/bluesky.ts" class="local-reference">Desktop Bluesky OAuth</a></td>
+<td>SDK use, native callback handling, short-lived sign-in state</td>
+<td>Universal identity federation or private-key recovery</td>
+</tr>
+<tr>
+<td><a title="Repository reference: ../../site/src/pages/join.astro" class="local-reference">Join page</a></td>
+<td>Existing website entry point to inspect when implementing link handoff</td>
+<td>Reliable install handoff on every mobile platform</td>
+</tr>
+<tr>
+<td><a title="Repository reference: ../../packages/query/src/search/index.ts" class="local-reference">Query search index</a></td>
+<td>MiniSearch-based document indexing with moderation signals</td>
+<td>A network-wide media index or an authorization boundary</td>
+</tr>
+<tr>
+<td><a title="Repository reference: ../../packages/hub/src/services/search-indexer.ts" class="local-reference">Hub search extraction</a></td>
+<td>Searchable text extraction for database rows</td>
+<td>Public-corpus crawling, all-network coverage, or ciphertext search</td>
+</tr>
+</tbody>
+</table></div>
+<p>Build the first real journey around one public community and one private group. Web covers reading, sign-in, social actions, and small uploads. Desktop adds bounded hosting. Phone is a viewer/uploader first. Keep the wider index operated and replaceable; postponing distributed search avoids making global discovery the prerequisite for a useful friend group.</p>
+<p>Implementation checklist:</p>
+<ul>
+<li>[ ] Preserve one content/invitation destination across guest view, sign-in, install and app launch; validate expiry and unsafe redirects.</li>
+<li>[ ] Ship two verified login methods, account-link proof, session revocation, and separate encrypted-history recovery UX.</li>
+<li>[ ] Implement public save/like/comment/follow with explicit audiences, retry identities, pending/error states, and no implicit cross-posting.</li>
+<li>[ ] Add a desktop contribution screen with explicit opt-in, storage/rate/traffic caps, network approval, pause, removal, and withdrawal behavior.</li>
+<li>[ ] Keep mobile background seeding out of the first release; test finite transfers and OS interruption before any later peer experiment.</li>
+<li>[ ] Implement upload stages with actual receipts for durable storage, publication, and index visibility; preserve failed drafts.</li>
+<li>[ ] Deliver local and community search with coverage/freshness states, private/public separation, removals, and bounded direct-link resolution.</li>
+<li>[ ] Add one replaceable wider public index and a transparent local recommendation baseline.</li>
+<li>[ ] Measure the cost of maintained discovery; review all five Commons tests before adopting a paid lane.</li>
+</ul>
+<p>Validation checklist:</p>
+<ul>
+<li>[ ] An anonymous visitor can watch public content without installation, login, or peer uploads; a private link leaks no private preview metadata.</li>
+<li>[ ] Sign-in returns to the same destination; cancel/retry works; matching email alone cannot merge accounts.</li>
+<li>[ ] A new social login cannot decrypt a private room without the separate device/key ceremony.</li>
+<li>[ ] Battery, metered/unknown network, pause, storage exhaustion and transfer caps stop optional hosting without disabling normal reading.</li>
+<li>[ ] A phone forced into background and a desktop losing power produce honest pending/paused states and resumable transfers.</li>
+<li>[ ] Publication is not marked durable before the configured retention policy succeeds; private content never enters the public index.</li>
+<li>[ ] Remote queries require the selected scope; provider downtime and incomplete coverage are distinct from zero results.</li>
+<li>[ ] Expiring a discovery subscription preserves local search, own data, direct links and exports; switching providers does not transfer private tokens.</li>
+<li>[ ] Removing a host, index or login provider exercises the corresponding recovery path rather than a blanket claim that decentralization makes everything survive.</li>
+<li>[ ] Test the journey with a new creator, a phone-only reader, and someone on a metered connection; use their failures to narrow the MVP further.</li>
+</ul>
+<p>The next implementation milestone is one person opening a link, joining, participating, and publishing successfully across the two apps. Hosting and wider discovery should enrich that journey while leaving the person's choices legible and reversible.</p>
+</article>
+        </div>
+      </section>
+    </main>
+    <footer class="endnote">
+      xNet exploration 0499 · Built for local review and sharing as a single HTML file.<br />Repository
+      references are annotated here; follow them from the Markdown in the repository.
+    </footer>
+    <script>
+      const stages = [
+  'Open a link',
+  'Use your identity',
+  'Join the conversation',
+  'Take it with you',
+  'Help keep it available',
+  'Create and publish',
+  'Find your next thing',
+  'Stay in control'
+]
+
+const initialState = () => ({
+  step: 0,
+  device: 'web',
+  policy: 'open',
+  entry: 'public',
+  provider: 'Bluesky',
+  account: false,
+  verified: false,
+  providerDown: false,
+  liked: false,
+  followed: false,
+  saved: false,
+  comment: '',
+  comments: [],
+  consent: false,
+  charging: true,
+  unmetered: true,
+  foreground: true,
+  paused: false,
+  capacity: 10,
+  traffic: 10,
+  audience: 'public',
+  upload: 'draft',
+  origin: true,
+  backup: true,
+  scope: 'local',
+  query: '',
+  funding: 'donations',
+  plan: false,
+  indexOnline: true,
+  ranking: 'newest'
+})
+
+function hosting(state) {
+  if (!state.account) return { active: false, reason: 'Join before enrolling this device.' }
+  if (!state.consent) return { active: false, reason: 'Off. Hosting is a separate choice.' }
+  if (state.device === 'web')
+    return { active: false, reason: 'Web viewer. Persistent hosting needs a native device.' }
+  if (state.paused)
+    return { active: false, reason: 'Paused by you. Stored copies can remain on disk.' }
+  if (state.capacity <= 0 || state.traffic <= 0)
+    return { active: false, reason: 'Paused: the storage or transfer budget is zero.' }
+  if (!state.charging) return { active: false, reason: 'Paused to protect the battery.' }
+  if (!state.unmetered)
+    return { active: false, reason: 'Paused on a metered or unapproved network.' }
+  if (state.device === 'phone' && !state.foreground)
+    return { active: false, reason: 'Phone is in the background. No always-on peer service.' }
+  return {
+    active: true,
+    reason:
+      state.device === 'phone'
+        ? 'Could assist while open and charging. A later mobile experiment.'
+        : 'Eligible to help while this computer is running within your limits.'
+  }
+}
+
+function access(state) {
+  if (state.entry === 'private' && !(state.account && state.verified))
+    return {
+      allowed: false,
+      reason: 'Private invitation. Sign in and verify this device before reading.'
+    }
+  if (state.policy === 'required' && !hosting(state).active)
+    return {
+      allowed: false,
+      reason: 'Strict-policy comparison: viewing is blocked until this device can seed.'
+    }
+  return {
+    allowed: true,
+    reason:
+      state.entry === 'public'
+        ? 'Public content can be viewed through HTTPS.'
+        : 'This verified device can read its permitted private content.'
+  }
+}
+
+function publishBlock(state) {
+  if (!state.account) return 'Sign in before publishing.'
+  if (state.policy === 'required' && !hosting(state).active)
+    return 'The strict policy would require eligible hosting first.'
+  if (state.audience === 'private' && !state.verified)
+    return 'Verify this device before preparing an encrypted attachment.'
+  if (state.upload !== 'draft' && !state.origin)
+    return 'The origin is offline. Keep the draft and retry later.'
+  if (state.upload === 'stored' && !state.backup)
+    return 'The retention policy is not confirmed. Do not claim durable publication.'
+  if (state.upload === 'published' && state.audience === 'public' && !state.indexOnline)
+    return 'Published, but the public index is unavailable. Index visibility is still pending.'
+  return null
+}
+
+function advanceUpload(state) {
+  const blocked = publishBlock(state)
+  if (blocked) return { state, blocked }
+  const next = {
+    draft: 'prepared',
+    prepared: 'stored',
+    stored: 'published',
+    published: state.audience === 'public' ? 'indexed' : 'delivered'
+  }
+  return { state: { ...state, upload: next[state.upload] ?? state.upload }, blocked: null }
+}
+
+const catalog = [
+  {
+    id: 'rain',
+    title: 'A garden after the rain',
+    text: 'A short film about the garden.',
+    visibility: 'public',
+    local: true,
+    community: true,
+    date: 6,
+    reason: 'A community you chose',
+    author: 'Maya'
+  },
+  {
+    id: 'plans',
+    title: 'Garden picnic plans',
+    text: 'Your group conversation and shared album.',
+    visibility: 'private',
+    local: true,
+    community: true,
+    date: 7,
+    reason: 'A group this device can decrypt',
+    author: 'Garden group'
+  },
+  {
+    id: 'forest',
+    title: 'A tiny forest, made by hand',
+    text: 'A new stop-motion film from a small garden studio.',
+    visibility: 'public',
+    local: false,
+    community: true,
+    date: 8,
+    reason: 'New work from a creator you have not seen',
+    author: 'Jules'
+  },
+  {
+    id: 'repair',
+    title: 'A bicycle gets another summer',
+    text: 'A community repair workshop.',
+    visibility: 'public',
+    local: false,
+    community: false,
+    date: 5,
+    reason: 'A public topic you selected: making things',
+    author: 'Repair club'
+  },
+  {
+    id: 'seeds',
+    title: 'The seed library',
+    text: 'Sharing garden seeds with the neighborhood.',
+    visibility: 'public',
+    local: false,
+    community: false,
+    date: 9,
+    reason: 'A wider public catalog',
+    author: 'Seed library'
+  }
+]
+
+function search(state) {
+  if (!['local', 'community', 'wider'].includes(state.scope))
+    throw new Error('Unknown search scope')
+  if (state.scope !== 'local' && state.policy === 'required' && !hosting(state).active)
+    return {
+      status: 'participation',
+      results: [],
+      note: 'The strict policy blocks remote discovery while this device cannot seed. Your local index remains yours.'
+    }
+  if (state.scope !== 'local' && !state.indexOnline)
+    return {
+      status: 'offline',
+      results: [],
+      note: 'The selected public index is unavailable. This is not a zero-result search.'
+    }
+  if (state.scope === 'wider' && state.funding === 'paid' && !state.plan)
+    return {
+      status: 'subscription',
+      results: [],
+      note: 'Wider search needs this provider’s subscription. Your local index and direct links still work.'
+    }
+  const needle = state.query.trim().toLowerCase()
+  const results = catalog
+    .filter((item) => {
+      if (
+        item.visibility === 'private' &&
+        (!(state.account && state.verified) || state.scope === 'wider')
+      )
+        return false
+      if (state.scope === 'local' && !item.local) return false
+      if (state.scope === 'community' && !item.community) return false
+      return `${item.title} ${item.text}`.toLowerCase().includes(needle)
+    })
+    .sort((a, b) =>
+      state.ranking === 'discover'
+        ? Number(b.id === 'forest') - Number(a.id === 'forest') || b.date - a.date
+        : b.date - a.date
+    )
+  return {
+    status: 'ready',
+    results,
+    note:
+      state.scope === 'local'
+        ? 'Only this device’s indexed items. Private matches need this device’s keys.'
+        : state.scope === 'community'
+          ? 'Chosen public community catalogs plus permitted items already indexed locally. Coverage is partial.'
+          : 'Public-only results from the selected provider. This is never a complete index of every device.'
+  }
+}
+
+      const sourceDocument = {"filename":"0499_[_]_FROM_SHARED_LINK_TO_COMMUNITY_HOST.md","source":"---\ntitle: From a shared link to a network we help keep alive\nstatus: draft\nlast_updated: 2026-11-02\nreview: 2026-12-02\ndecider: Chris\ndoor: two-way\ntags: [onboarding, media, messaging, identity, seeding, discovery, search, funding]\n---\n\n# From a shared link to a network we help keep alive\n\n> [!TIP]\n> Let a public link work immediately. Invite people to join with a familiar identity, take their community into a native app, and contribute storage within limits they choose. Keep local discovery available to everyone; make broader public indexes replaceable services that communities can fund or users can subscribe to.\n\nThis follows [0498: Two apps, one community network](0498_[_]_TWO_APPS_AND_A_COMMUNITY_SEED_NETWORK.md). That proposal chose two interoperable web starters, durable media origins, and gradual peer assistance. This exploration follows a person through that system, including the reasons they might stop, decline a permission, or leave.\n\nThe [interactive journey](web/0499/index.html) is a concept prototype. Its identities, content, posts, permissions, uploads, and indexes are simulated locally. It does not sign anyone in, install software, publish content, move money, or seed files. The document is canonical; the website carries a guided example and the full text.\n\n**Recommendation under review, not an adopted policy:** open public reading with voluntary, prominently invited contribution. The prototype also lets us inspect a strict mandatory-seeding alternative. Revisit December 2 after testing both explanations with prospective community members. Chris decides. A public protocol or revenue policy needs an ADR and a tripwire before adoption; this draft changes neither the charter nor the existing application.\n\n## 1. Start with the thing someone came to see\n\nSomeone sends you a garden video. You tap the link, see the creator and caption, and press play. The first screen explains the content. It does not require you to understand federation, install an application, or decide how many gigabytes to donate.\n\nAn ordinary HTTPS link is the public entry point. A small server-rendered page exposes public metadata and a player, with a clear content-unavailable state. It works through HTTPS origin/mirror delivery before any peer connection. A quiet **Open in app** action sits beside **Keep watching here**. Later, saving something for offline use or returning to a group gives the installation invitation a concrete purpose.\n\nPublic link previews may include the title and thumbnail. A private invitation must not leak its title, participants, thumbnail, or transcript to social preview crawlers. Show a generic invitation card until the visitor proves the required access. An unlisted URL is not a private room: anyone who receives the URL may forward it.\n\n| Arrival                     | First screen                                                                        | Before showing private content                                      |\n| --------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------- |\n| Public post                 | Content, creator, play/read, public comments, share                                 | Nothing; HTTPS viewing is available to guests                       |\n| Private item                | Generic invitation or sign-in destination                                           | Authenticate, check membership, verify/decrypt on the device        |\n| Approval-required group     | Inviter-approved public description and request action                              | Show pending status; no history while awaiting approval             |\n| Missing or unavailable item | Distinguish removed, inaccessible, and temporarily offline where disclosure is safe | Do not reveal a private object's existence to unauthorized visitors |\n\nPublic reading has a real hosting cost. Operators can rate-limit abuse, cap preview bandwidth, and set published retention limits. That is more honest than promising that every anonymous visit can be served forever at no cost. An ordinary visitor should not become an uploader without knowing it.\n\n## 2. Should contributing be mandatory?\n\nThere are three different requirements hidden inside that question: installing a native client, accepting a future contribution policy, and actually uploading useful bytes right now. None proves the others. A desktop client may have no reachable consumers, be offline, be on a hotspot, or possess only already well-replicated files.\n\n| Policy                                             | What it gains                                            | What it costs                                                                                                            | Recommendation                                              |\n| -------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |\n| Seed before viewing                                | Strong participation norm in a closed, managed group     | Breaks public links; excludes many phones and constrained networks; easy to fake contributions; exposes network metadata | Do not use for the public network                           |\n| Native app required, help when able                | Easier contribution controls and persistent storage      | Installation wall still interrupts discovery; “when able” needs exceptions                                               | Test only for communities that choose this membership model |\n| Public viewing plus an explicit hosting invitation | Links work; contribution is understandable and revocable | Requires funded baseline hosting and active recruitment of dependable hosts                                              | **Default**                                                 |\n\nI would make contribution part of the culture and the native onboarding, with a visible **Not on this device** choice. Do not turn it into a debt meter. An upload/download ratio is a poor measure of value: a new or unpopular file may be worth retaining even when nobody requests it. People who make, curate, translate, or moderate are also contributing.\n\nA private cooperative could agree that certain members operate hosts. That policy should state retention commitments, costs, exceptions, and withdrawal procedures before admission. Keep a person's export and recovery rights outside that bargain. Never force their computer to upload after they pause it, even if the community decides to suspend some service entitlement.\n\nThe strict policy in the prototype intentionally shows its consequences: a guest browser cannot view, and a member on battery loses access when mandatory seeding pauses. This is a comparison model, not the recommended product behavior. A softer “contribute when able” requirement is closer to the voluntary model once it handles those cases honestly.\n\n## 3. Join without starting over\n\nThe person clicks **Follow** or writes a comment. Ask for an account at that moment, preserve the pending intent, and return to the same post after sign-in. Resume a draft comment, but let the person press **Post publicly** themselves. Do not turn an authentication callback into an accidental publication.\n\nUse one stable application account ID with separately verified login methods. Display names, email addresses, social handles, devices, and encryption keys are different things. Linking two providers requires proving control of both; matching email text must not silently merge accounts.\n\n| Sign-in choice     | Proposed implementation                                                                                                  | What it must not imply                                                                  |\n| ------------------ | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |\n| Bluesky            | AT Protocol OAuth using a maintained SDK; retain the DID as the provider subject and resolve the current handle          | No automatic import, follow, post, or access to private messaging keys                  |\n| Google             | OpenID Connect with validated issuer, audience, subject, state, and nonce as appropriate to the flow                     | No Gmail, contacts, or Drive access                                                     |\n| X / Twitter        | Provider adapter using its supported user authorization flow and minimum working scopes                                  | No promise of free API access, universal OIDC compatibility, or automatic cross-posting |\n| Email and password | A maintained authentication service, verified email, abuse limits, secure password storage, reset and session management | A password reset is not recovery of encrypted history                                   |\n\nGoogle documents OpenID Connect login. AT Protocol has its own OAuth profile, including distributed provider discovery and proof-of-possession behavior; it should not be treated as a generic OIDC button. X documents authorization-code flow with PKCE. Each provider needs configured redirects and an independently tested adapter. [Google OIDC](https://developers.google.com/identity/openid-connect/openid-connect), [AT OAuth patterns](https://atproto.com/guides/oauth-patterns), [X authorization code flow](https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code).\n\nImplement Bluesky and a provider-independent account option first; add Google and X behind capability checks. Do not show working-looking buttons for unconfigured providers. The journey prototype shows all four as **simulated choices**, not a claim that those integrations ship.\n\nFor native apps, authorize in the system browser with PKCE and validated callbacks. Bind the callback to a short-lived initiating transaction. Keep provider tokens out of shared URLs, logs, renderer-wide state, and ordinary exports. [OAuth for native apps, RFC 8252](https://www.rfc-editor.org/info/rfc8252/).\n\nOffer a second recovery method after the first useful interaction. If a provider closes an account or is unavailable, people with another method should still reach their application account. Explain separately how to verify a new device and restore encryption keys. Reconnecting Google or Bluesky does not recreate lost private keys.\n\n## 4. Social actions need audiences and receipts\n\nUse **Follow** for creator updates, **Support** for voluntary funding, and **Subscribe to search** for a paid service. The word “subscribe” should not ambiguously authorize payment, storage, or public social disclosure.\n\n| Action                         | Default audience                            | Behavior                                                                          |\n| ------------------------------ | ------------------------------------------- | --------------------------------------------------------------------------------- |\n| Save                           | Private to the person                       | Store a reference in their collection; download is a separate choice              |\n| Like a public post             | Clearly labeled by the platform's policy    | Make public visibility explicit; never also turn on seeding                       |\n| Comment on a public post       | Public                                      | Label the composer and final action; offer edit/delete and report/block           |\n| Follow                         | Explain whether the social record is public | Update a feed preference; no automatic upload commitment or DM access             |\n| Send in a chat                 | Named conversation                          | Resolve access before sending; offer reference, permitted copy, or request access |\n| React inside an encrypted room | That room                                   | Use the room protocol; do not forward the reaction into a public social graph     |\n\nAn optimistic UI can show a pending like or message immediately, but it needs a receipt before claiming the service accepted it. Use idempotency/event identities for retries. If a write fails, retain the draft and show the failure. Offline actions stay queued; they are not public merely because a local icon changed.\n\nWhere a public action is written to AT Protocol, its record follows that protocol's visibility and persistence rules. Do not label it private because the current Bluesky client hides a particular list. During the first MVP, retain the native record identity from whichever service owns the action, as 0498 proposes. Cross-posting is a separate consented write with a separate receipt.\n\nMessaging starts with requests, membership checks, and blocking. A public handle or a follow is not permission to open an unrestricted private channel. Defaults should keep low-stakes encouragement easy without making the recipient's inbox an unbounded queue.\n\n## 5. Install because it helps, and arrive where you left off\n\nThe installation prompt should explain a benefit the person has just asked for: keep a collection offline, get reliable desktop notifications, use a local agent, or help retain community media. Avoid repeated takeover banners.\n\n```mermaid\nsequenceDiagram\n  participant V as Visitor\n  participant W as Public website\n  participant A as Native application\n  participant I as Identity and room services\n  V->>W: Open shared content link\n  W-->>V: Public preview or generic private invitation\n  V->>W: Open in app\n  W-->>V: Install instructions and copyable original link\n  V->>A: Install and reopen the link\n  A->>I: Authenticate this application session\n  I-->>A: Account session, not room keys\n  A->>V: Verify this device for encrypted history\n  V->>A: Review invitation or resume the original content\n  A-->>V: Optional, bounded hosting invitation\n```\n\nUse verified HTTPS app/universal links where supported, plus a copyable link fallback. A first installation may not retain the original browser context, so explicitly keep the invitation page available and offer **Copy link to reopen**. Do not assume app-store installation transfers cookies or device keys.\n\nStore only the pending destination and permitted invitation context, with expiry and replay protection where a link carries a capability. Never put account tokens or decryption keys into an analytics redirect. Validate destinations against known resource types; a link must not become an arbitrary command or filesystem path. A private invitation can expire while someone installs: keep the destination visible and offer a safe way to request a new invitation.\n\nNotifications, device-key recovery, file access for local agents, and hosting are separate permissions. Declining one should not make the rest of onboarding appear broken. On desktop, acknowledge laptop battery and hotspot usage just as seriously as phone constraints.\n\n## 6. Contribute within the limits of this device\n\nThe first hosting screen can say: **“Help keep this community available.”** Explain what can be stored, how much space and traffic it can use, whether peers can learn a network address, and how to pause or remove copies. Show actual usage later, not an invented reputation score.\n\n| Device        | Proposed default                             | Eligible contribution                                                                                                      | Never promise                                                                           |\n| ------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |\n| Guest browser | HTTPS viewing; no uploads                    | Optional foreground peer assistance only after consent in a later pass                                                     | Background availability after the tab closes                                            |\n| Desktop       | Hosting off until chosen                     | Selected public/community content; pause on battery, metered or unknown network, low disk, cap exhaustion, or manual pause | That every installed app is online, safe to consume bandwidth, or an independent backup |\n| Phone/tablet  | Hosting off; normal viewing, upload and sync | A later opt-in experiment while foregrounded, charging, and on a user-approved unmetered network                           | Permanent background peer serving or that Wi-Fi means unlimited data                    |\n| Home server   | Explicit enrollment and resource budget      | Renewable retention commitments and monitored availability                                                                 | Unlimited storage or trust just because it runs continuously                            |\n\nThe numeric presets in the prototype—10 GB storage, a 10 GB monthly upload budget, and a 1 Mb/s upload ceiling—are design examples. Validate them on actual hardware and networks. A monthly cap counts relay traffic and protocol overhead where measurable; show uncertainty rather than pretending the OS provides perfect usage data. If network cost cannot be determined, pause until the person approves that network.\n\nOn iOS, the system schedules background processing; a task request is not a permanent listener. Apple's APIs can require external power. Android WorkManager supports charging, network, battery, and storage constraints and may stop work when constraints are no longer satisfied. Those facilities help schedule finite work; they do not guarantee always-on peer service. [Apple background strategies](https://developer.apple.com/documentation/backgroundtasks/choosing-background-strategies-for-your-app), [Apple external-power constraint](https://developer.apple.com/documentation/backgroundtasks/bgprocessingtaskrequest/requiresexternalpower), [Android work constraints](https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started/define-work).\n\nUse resumable native upload/download APIs for finite transfers where appropriate. Do not misuse audio, location, or push notifications to keep seeding alive. Native background notifications may also depend on platform push services; describing the product as decentralized does not remove that dependency.\n\nThe contribution settings apply to both **retention** and **serving**. Pause stops new transfers immediately while preserving existing bytes until the person chooses to remove them. Withdrawal should give the network a chance to replace retained copies, but must not trap the device. If it held the last reachable copy, show that fact and preserve the user's right to stop.\n\nA friend group may agree to store encrypted copies for each other. Scope access to that circle and authenticate every transfer path. Storage eligibility does not confer decryption rights. Avoid public advertisements of private object identifiers or friend relationships. Encryption protects content, not every timing, size, or address signal.\n\n## 7. Create and publish with honest stages\n\nCreation can begin in either app: take a photo, upload a short film, compose a post, or make something with an agent. Agents use the same scoped operations and receipts as the interface. Access to a local folder or private messages is separately granted; content being edited cannot grant itself more permissions.\n\nChoose the audience **before** processing/upload. Public videos can use an isolated server transcoder. Private attachments should be prepared and encrypted by an authorized endpoint using the chosen messaging SDK; remote processing would be a new plaintext disclosure. For the MVP, keep private video small and use the established whole-file attachment flow from 0498.\n\n```mermaid\nstateDiagram-v2\n  [*] --> Draft\n  Draft --> Preparing: choose audience and file\n  Preparing --> Waiting: offline or quota unavailable\n  Waiting --> Preparing: retry with same upload identity\n  Preparing --> Stored: origin verifies complete bytes\n  Stored --> Protected: backup or retention policy confirmed\n  Protected --> Published: explicit publish with receipt\n  Published --> Indexed: public catalog consumes revision\n  Published --> Delivered: private room accepts encrypted event\n  Indexed --> Removed: delete or access change\n  Delivered --> Removed: request removal under room rules\n```\n\n“Saved on this device,” “uploading,” “stored,” “published,” and “searchable” are different states. A publisher closing their laptop should not silently destroy a post that the UI called durably hosted. Reserve storage and enforce quota before accepting that promise. An origin acknowledgment alone does not prove an independent backup exists.\n\nFor the public MVP, a publish receipt points to a stable content record after the origin and configured backup policy succeed. Wider indexing is asynchronous. Say **Published · not yet in community search** until an index confirms that revision. If quota or backup fails, keep the work as a draft and explain the next step. A future temporary, creator-seeded sharing mode can use a weaker, clearly named availability promise.\n\nAfter publication, the replica scheduler from 0498 prioritizes missing baseline copies, then surplus demand. Hosting popularity must not determine whose work is accepted into an index or recommended. A new creator receives an admission/retention budget rather than an instruction to become famous first.\n\nPrivate publication sends an encrypted room event and an encrypted attachment reference. Public catalogs, thumbnails, autocomplete, and recommendation candidates must not include it. Removing access stops future authorized reads and key distribution where the protocol supports that; it cannot revoke every copy or old key already obtained by a recipient.\n\n## 8. Search has scopes, not a magical view of everything\n\nThe network needs discovery, but no open network can promise a complete, current index of every server, offline device, encrypted room, and deleted record. **Show what was searched and how fresh it is.** A remote service outage and a genuine empty result must look different.\n\n“Near me” should mean a chosen social neighborhood—my follows, my groups, and content shared with me. It must not mean that being on the same Wi-Fi, living nearby, or being a friend of a friend grants access. Physical proximity is neither identity nor consent.\n\n| Search scope         | Corpus and location                                                                               | Privacy and limitations                                                                      |\n| -------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |\n| On this device       | Locally indexed saved/followed public material and authorized decrypted items                     | Offline; limited to what has been indexed here; private keys and plaintext stay local        |\n| My communities       | Public catalogs of subscribed hosts; private groups only through the authorized local/device path | Coverage and freshness are explicit; remote public queries can reveal interests to operators |\n| Wider public network | Public catalogs crawled by one or more chosen index services                                      | Partial coverage, policy exclusions, freshness lag, possible cost; no private-message search |\n\nDo not send the same query to every index as the person types. Local suggestions can be immediate. Choosing **Search wider** discloses the query to the selected provider; explain that boundary and preserve it when adding an AI assistant. Avoid sending private room names, private snippets, or account-wide tokens along with a public search.\n\nPeerTube already distinguishes platform-known results, an external global index, and direct URL/handle lookup. AT Protocol separates hosting from aggregated application views, feeds, and search. These are useful precedents for selectable services; neither makes indexing cost-free or end-device P2P. [PeerTube search](https://docs.joinpeertube.org/use/search), [AT Protocol overview](https://atproto.com/guides/overview).\n\nStart with the existing browser text-indexing approach for the small web prototype, evaluate SQLite FTS5 for native local indexes, and use Postgres full-text search for the initial community public catalog. Keep a provider interface so larger installations can choose another engine later. [SQLite FTS5](https://www.sqlite.org/fts5.html), [Postgres full-text search](https://www.postgresql.org/docs/current/textsearch.html).\n\n```mermaid\nflowchart TB\n  QUERY[Search box with chosen scope] --> LOCAL[Local permitted index]\n  QUERY -->|Explicit remote public search| ROUTER[Selected index providers]\n  PUBLIC[Public origin catalogs and changes] --> INDEX[Community public index]\n  INDEX --> ROUTER\n  CIPHER[Encrypted room history] --> DEVICE[Authorized device decrypts]\n  DEVICE --> LOCAL\n  ROUTER --> MERGE[Bounded merge with coverage and freshness]\n  LOCAL --> MERGE\n  MERGE --> RESULTS[Results with source and availability]\n```\n\nAn index provider should publish the hosts it covers, crawl policy, supported fields, maximum lag target, language/tokenization choices, moderation policy, query logging policy, and limits. A proposed response includes `provider`, `asOf`, `coverage`, `partial`, `unavailableSources`, and an opaque cursor alongside results. These are contracts to implement, not an existing xNet endpoint.\n\nCrawl accepted public feeds using stable IDs, revisions, checkpoints, backpressure, and deletion/access-change events. Deduplicate by canonical resource identity, not captions or filenames. Recheck authorization at fetch time. Expire cached descriptors; apply removal events locally; never expose private IDs, counts, snippets, or timing as a side channel in a public index. Public-to-private changes cannot retract prior public copies, but our indexes should stop serving them promptly.\n\nA device can exchange bounded public catalog snapshots or explicit private group updates with trusted peers. It cannot safely broadcast arbitrary private search queries to strangers. Distributing a global inverted index across volunteers adds shard placement, churn, query routing, abuse resistance, and privacy work. Defer that research until local and federated search are useful. A DHT mapping file hashes to peers is not a full-text search engine.\n\n## 9. Recommendations people can understand and change\n\nStart with **Following, newest first**, a finite page with a clear end. Offer **Discover** as a separate view using selected public communities and topics. Show why an item appeared, which service supplied candidates, and what changing that service would do.\n\nA simple first recommendation pass can gather candidates from public subscribed catalogs, filter blocked/hidden items, enforce author diversity, and reserve some candidate slots for recent work from creators the person has not seen. A local ranker can use explicit follows and chosen topics without exporting private reading history. The discovery share and ranking weights are design choices to test, not proven improvements.\n\nAvailability is a useful playback signal, but it must not make under-seeded work permanently invisible. Show a safe preview and a recovery/retention state where possible; fund baseline retention separately. Do not let donated storage, subscription status, or seed ratio buy preferential ranking. A user's content preferences can guide hosting within its budget; they should not silently become a public profile of their behavior.\n\nFor wider recommendation providers, default to public topics and coarse context chosen by the user. Keep private history local. Downloading public candidates and ranking on the device is one way to preserve this boundary; it uses more bandwidth and still needs a funded candidate service. “Why this?” must describe the actual implemented rule, not invented model reasoning.\n\nModeration is a service choice with safety defaults, source transparency, reporting, blocking, and appeals. It is not a hidden universal truth. Separate public content ordering from ranking people by worth or popularity. The existing charter's restrictions on public scoreboards remain in force; this exploration does not authorize a new reputation leaderboard.\n\n## 10. What can run peer-to-peer, and what needs a host?\n\n| Capability                        | P2P/local path                                 | Practical MVP dependency                                                         |\n| --------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------- |\n| Open a public link                | Later peer assistance for active viewers       | Public domain, reachable metadata/player, HTTPS media fallback                   |\n| Sign in with an existing identity | Locally retained session/keys after login      | That provider and application account service for initial authentication         |\n| Like/comment/follow               | Queue local intent                             | An authoritative service accepts and propagates the write                        |\n| Private chat                      | Direct device delivery when both are available | Durable encrypted mailbox/homeserver for offline recipients and recovery support |\n| Local search/recommendations      | On-device index and ranking                    | Only the data already present; initial/resumed sync needs sources                |\n| Community catalog                 | Peer copies of bounded approved snapshots      | At least one maintained source for fresh public catalogs and write receipts      |\n| Wider public discovery            | Technically distributable over time            | A funded crawler/index/API initially; possibly several federated providers       |\n| Durable public media              | Opted-in retained copies                       | Baseline origin, backup, monitoring, and connectivity fallback                   |\n\nFederation does not require one company to own every role. A community can run its account service, index, and media mirror together, or choose separate operators. Standard discovery documents can advertise endpoints and capabilities. Authenticate federation, constrain remote URLs and responses, and treat every service as an independent trust boundary.\n\nWhen an index goes away, direct public links, local search, and existing chats should continue within their own availability limits. If the only content host goes away, changing the search provider cannot restore its bytes. If the identity provider disappears before recovery methods are set up, software cannot fabricate control of that identity. These limits belong in the UX and the recovery tests.\n\n## 11. Funding discovery without charging rent on relationships\n\nA wider index has ongoing costs: crawling, storage, text processing, moderation, operations, and query serving. It is reasonable to sell that work. A user's own messages, existing contacts, local index, exports, and open public links should not require a paid discovery subscription.\n\n| Model                        | Pays for                                                                   | Tradeoff                                                                                  |\n| ---------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |\n| Community donations          | A shared catalog and public query allowance                                | Variable income; needs transparent budgets and sustainable limits                         |\n| Optional search subscription | Broader coverage, frequent refresh, advanced queries, or higher API limits | Must remain replaceable; an expired plan cannot lock the underlying account or local data |\n| Operator self-hosting        | The operator's infrastructure and labor                                    | Real operational work; requires usable deployment, export and repair tools                |\n| Contributor service credits  | A possible future discount for accepted hosting work                       | Fraud/accounting complexity and pressure on constrained users; defer                      |\n\nApply the [charter's Commons tests](../CHARTER.md#no-ground-rent) before adopting any paid lane:\n\n| Test        | Requirement for a discovery service                                                                                                                                           |\n| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n| Improvement | Charge for maintained coverage, compute, moderation and operations; not permission to access someone's own data                                                               |\n| BATNA       | Publish the API and self-hostable index pipeline; preserve direct lookup, local search, export, and alternative providers without artificial degradation                      |\n| Vanish      | Accounts, source records, memberships and saved references survive our service; derived rankings can be rebuilt elsewhere, with rebuilding cost stated honestly               |\n| Sleep       | An open-source competitor can copy the software; reliability, useful maintained coverage, support and community stewardship must justify ongoing payment                      |\n| Rust        | Not yet passed for this MVP: no proven funding lane. These refusals are on borrowed time until a donation-funded pilot or operated-search experiment sustains measured costs. |\n\nThe first three are the fairness boundary; the last two force an honest business test. Donations are not guaranteed revenue. A community budget should show the cost categories and the reserves needed to keep public links available when donations dip. Charging creators for visibility or requiring seed credits to export would fail this recommendation.\n\nBefore choosing a subscription price, measure a representative corpus: indexed bytes, update rate, transcription policy, query traffic, operational hours, and recovery cost. Metadata and supplied captions are cheaper to index than generating transcripts for every video. Public transcripts may be an opt-in processing feature; private transcription stays on an authorized endpoint unless separately disclosed.\n\nWhen a plan expires, explain the narrower coverage and offer another provider. Keep saved records and on-device search. Rate limits and deliberate feature tiers should be transparent. Paid query service can stop; deleting a person's local data to enforce payment is not part of the design.\n\n## 12. Ground this in the repository and ship a narrow journey\n\n| Existing seam                                                                | What inspection supports                                                   | What it does not establish                                         |\n| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------ |\n| [0488 onboarding exploration](0488_[_]_INVITATION_LED_DESKTOP_ONBOARDING.md) | Destination-preserving invitation journey                                  | This new media/browser journey being implemented                   |\n| [Shared onboarding types](../../apps/electron/src/shared/onboarding.ts)      | Pending invitations and a Bluesky social identity in the desktop prototype | Working Google, X, or email/password adapters                      |\n| [Desktop Bluesky OAuth](../../apps/electron/src/main/onboarding/bluesky.ts)  | SDK use, native callback handling, short-lived sign-in state               | Universal identity federation or private-key recovery              |\n| [Join page](../../site/src/pages/join.astro)                                 | Existing website entry point to inspect when implementing link handoff     | Reliable install handoff on every mobile platform                  |\n| [Query search index](../../packages/query/src/search/index.ts)               | MiniSearch-based document indexing with moderation signals                 | A network-wide media index or an authorization boundary            |\n| [Hub search extraction](../../packages/hub/src/services/search-indexer.ts)   | Searchable text extraction for database rows                               | Public-corpus crawling, all-network coverage, or ciphertext search |\n\nBuild the first real journey around one public community and one private group. Web covers reading, sign-in, social actions, and small uploads. Desktop adds bounded hosting. Phone is a viewer/uploader first. Keep the wider index operated and replaceable; postponing distributed search avoids making global discovery the prerequisite for a useful friend group.\n\nImplementation checklist:\n\n- [ ] Preserve one content/invitation destination across guest view, sign-in, install and app launch; validate expiry and unsafe redirects.\n- [ ] Ship two verified login methods, account-link proof, session revocation, and separate encrypted-history recovery UX.\n- [ ] Implement public save/like/comment/follow with explicit audiences, retry identities, pending/error states, and no implicit cross-posting.\n- [ ] Add a desktop contribution screen with explicit opt-in, storage/rate/traffic caps, network approval, pause, removal, and withdrawal behavior.\n- [ ] Keep mobile background seeding out of the first release; test finite transfers and OS interruption before any later peer experiment.\n- [ ] Implement upload stages with actual receipts for durable storage, publication, and index visibility; preserve failed drafts.\n- [ ] Deliver local and community search with coverage/freshness states, private/public separation, removals, and bounded direct-link resolution.\n- [ ] Add one replaceable wider public index and a transparent local recommendation baseline.\n- [ ] Measure the cost of maintained discovery; review all five Commons tests before adopting a paid lane.\n\nValidation checklist:\n\n- [ ] An anonymous visitor can watch public content without installation, login, or peer uploads; a private link leaks no private preview metadata.\n- [ ] Sign-in returns to the same destination; cancel/retry works; matching email alone cannot merge accounts.\n- [ ] A new social login cannot decrypt a private room without the separate device/key ceremony.\n- [ ] Battery, metered/unknown network, pause, storage exhaustion and transfer caps stop optional hosting without disabling normal reading.\n- [ ] A phone forced into background and a desktop losing power produce honest pending/paused states and resumable transfers.\n- [ ] Publication is not marked durable before the configured retention policy succeeds; private content never enters the public index.\n- [ ] Remote queries require the selected scope; provider downtime and incomplete coverage are distinct from zero results.\n- [ ] Expiring a discovery subscription preserves local search, own data, direct links and exports; switching providers does not transfer private tokens.\n- [ ] Removing a host, index or login provider exercises the corresponding recovery path rather than a blanket claim that decentralization makes everything survive.\n- [ ] Test the journey with a new creator, a phone-only reader, and someone on a metered connection; use their failures to narrow the MVP further.\n\nThe next implementation milestone is one person opening a link, joining, participating, and publishing successfully across the two apps. Hosting and wider discovery should enrich that journey while leaving the person's choices legible and reversible.\n"};
+      // All state and fixture interactions stay in this page; no service calls are made.
+const $ = (id) => document.getElementById(id)
+const escapeHtml = (value) =>
+  String(value).replace(
+    /[&<>"']/g,
+    (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]
+  )
+let state = initialState()
+let feedback = ''
+let returnTo = null
+const notes = [
+  [
+    'Public origin or mirror',
+    'No account. No peer upload.',
+    'The original link remains the destination through sign-in and installation.'
+  ],
+  [
+    'Identity provider + account service',
+    'Login only. No imports or room keys.',
+    'A canceled callback preserves the destination and draft. Provider linking needs proof on both sides.'
+  ],
+  [
+    'Public records or encrypted room',
+    'Each action names its audience.',
+    'Social login alone does not decrypt a conversation. Verifying a full client is broader than album-only access.'
+  ],
+  [
+    'The same content reference',
+    'Native session and device verification',
+    'An install cannot be assumed to transfer cookies or keys. Keep the original link copyable.'
+  ],
+  [
+    'Approved copies on this device',
+    'Explicit, revocable hosting consent',
+    'Power, network, storage and traffic limits win. Pausing optional hosting preserves ordinary viewing.'
+  ],
+  [
+    'Draft → origin → backup → publication',
+    'Audience first; private keys stay local',
+    'A storage receipt, a publish receipt and an index receipt are separate. Failed work stays a draft.'
+  ],
+  [
+    'Local, community or wider public index',
+    'Remote search discloses a query',
+    'Coverage is partial. Private content stays in the authorized device path; wider indexes get public content only.'
+  ],
+  [
+    'Portable data + replaceable services',
+    'Control over each service separately',
+    'Canceling search does not delete local data. Stopping a host cannot conjure a replacement copy.'
+  ]
+]
+
+const checked = (value) => (value ? ' checked' : '')
+const disabled = (value) => (value ? ' disabled' : '')
+const chosen = (value) =>
+  value ? ' class="selected" aria-pressed="true"' : ' aria-pressed="false"'
+const statusBox = (text, kind = '') => `<div class="status ${kind}">${escapeHtml(text)}</div>`
+const heading = (title, text) =>
+  `<div class="kicker">Step ${state.step + 1} of 8 · simulated experience</div><h2 id="stage-title" tabindex="-1">${title}</h2><p>${text}</p>`
+const check = (id, label, value) =>
+  `<label class="check-row"><input id="${id}" type="checkbox"${checked(value)}>${label}</label>`
+const action = (id, text, primary = false, unavailable = false) =>
+  `<button data-action="${id}"${primary ? ' class="primary"' : ''}${disabled(unavailable)}>${text}</button>`
+
+function sceneContent() {
+  const permission = access(state)
+  const privateRoom = state.entry === 'private'
+  if (state.step === 0)
+    return (
+      heading(
+        'A friend sent you a link.',
+        'The content should come first. Compare a public link with a private invitation.'
+      ) +
+      `<label class="form-row" for="entry">The link opens<select id="entry"><option value="public"${state.entry === 'public' ? ' selected' : ''}>A public garden film</option><option value="private"${state.entry === 'private' ? ' selected' : ''}>A private group invitation</option></select></label>` +
+      (permission.allowed
+        ? `<div class="card"><div class="poster"><small>Illustrative artwork · no playable video</small><i class="sprout"></i><i class="sprout"></i><i class="sprout"></i></div><div class="card-body"><span class="post-meta">MAYA · ${state.entry === 'public' ? 'PUBLIC POST' : 'PERMITTED PRIVATE ITEM'}</span><h3>A garden after the rain</h3><p>A little film from this weekend. Come help us decide what to plant next.</p><span class="chip">HTTPS playback available in the proposed app</span></div></div>`
+        : `<div class="locked"><h3>${state.entry === 'private' ? 'You have a private invitation' : 'Viewing blocked by this policy'}</h3><p>${escapeHtml(permission.reason)}</p></div>`) +
+      (permission.allowed ? statusBox('Viewing never enables hosting on its own.', 'good') : '') +
+      `<div class="actions">${action('identity', 'Explore joining', true)}${action('install', 'Explore native apps')}</div>`
+    )
+
+  if (state.step === 1)
+    return (
+      heading(
+        'Bring an identity you already use.',
+        'Your original link stays with you. These buttons simulate provider choices; no credentials are requested.'
+      ) +
+      `<div class="choice-grid">${['Bluesky', 'Google', 'X / Twitter', 'Email + password'].map((p) => `<button data-provider="${p}"${chosen(state.provider === p)}>${p}</button>`).join('')}</div>` +
+      statusBox(
+        state.account
+          ? `Maya’s demo account is connected through ${state.provider}. Private device access is ${state.verified ? 'verified' : 'still separate'}.`
+          : `${state.provider} would authenticate you. Imports, posting to that provider, and private room keys are separate permissions.`,
+        state.account ? 'good' : ''
+      ) +
+      check(
+        'provider-down',
+        'Simulate this identity provider being unavailable',
+        state.providerDown
+      ) +
+      `<div class="actions">${action('signin', state.account ? 'Reconnect demo account' : 'Continue as Maya (simulation)', true)}</div><p class="notice">Production first: Bluesky plus a provider-independent account method. Google and X appear only when their adapters are configured and tested.</p>`
+    )
+
+  if (state.step === 2)
+    return (
+      heading(
+        'Make a small connection.',
+        privateRoom
+          ? 'React and reply inside the invited group. This example assumes a valid invitation; device verification alone does not create membership.'
+          : 'Save privately, follow a creator, or leave a thoughtful public comment. A like does not enable hosting.'
+      ) +
+      `<div class="actions"><button data-action="like"${chosen(state.liked)}>♡ ${privateRoom ? (state.liked ? 'Reacted in group' : 'React in group') : state.liked ? 'Liked publicly' : 'Like publicly'}</button><button data-action="follow"${chosen(state.followed)}>${privateRoom ? (state.followed ? 'Group updates on' : 'Follow group updates') : state.followed ? 'Following Maya' : 'Follow Maya'}</button><button data-action="save"${chosen(state.saved)}>${state.saved ? 'Saved privately' : 'Save privately'}</button></div>` +
+      `<label class="form-row" for="comment">${privateRoom ? 'Reply to this private group' : 'Public comment'}<textarea id="comment" placeholder="I love this little garden…">${escapeHtml(state.comment)}</textarea></label><div class="actions">${action('comment', privateRoom ? 'Send demo reply to this group' : 'Post demo comment publicly', true)}</div>` +
+      (state.comments.length
+        ? `<ul class="plain-list">${state.comments
+            .filter((c) => c.audience === state.entry)
+            .map(
+              (c) =>
+                `<li><strong>You · ${c.audience === 'private' ? 'demo private reply' : 'demo public comment'}</strong><br>${escapeHtml(c.text)}</li>`
+            )
+            .join('')}</ul>`
+        : '<p class="draft-note">Comments appear only in this local example.</p>') +
+      `<div class="card"><div class="card-body"><h3>Private group conversation</h3><p>${state.verified ? 'This simulated verified device can show the group’s permitted history.' : 'Your social login has not unlocked encrypted history.'}</p>${action('verify', state.verified ? 'Device verified in this example' : 'Simulate verifying this device', false, state.verified)}</div></div><p class="notice">This represents enrolling a full messaging client. An album-only extension would need a separately enforced, narrower grant.</p>`
+    )
+
+  if (state.step === 3)
+    return (
+      heading(
+        'A native app, for a reason.',
+        'Keep a collection offline, return to your groups, use a local agent, or help host. Stay on the web if that is enough.'
+      ) +
+      `<div class="choice-grid">${['desktop', 'phone', 'web'].map((d) => `<button data-device="${d}"${chosen(state.device === d)}>${d === 'desktop' ? 'Try desktop path' : d === 'phone' ? 'Try phone path' : 'Stay on the web'}</button>`).join('')}</div>` +
+      `<code class="link-box">https://garden.example/${state.entry === 'public' ? 'p/first-film' : 'invite/example'}</code><p class="draft-note">Example domain. This is the same destination, not a live invitation or installer.</p>` +
+      statusBox(
+        state.device === 'desktop'
+          ? 'Desktop: persistent local storage and optional hosting. Laptop power and network limits still apply.'
+          : state.device === 'phone'
+            ? 'Phone: camera, viewing, uploads and messages first. Permanent background seeding is not promised.'
+            : 'Web: reading and participating remain available. No installation is required under the recommended policy.'
+      ) +
+      `<p class="notice">Real handoff: install from a trusted distribution channel, reopen the original link, authenticate the app, and separately verify encrypted access. Nothing is installed by this prototype.</p>`
+    )
+
+  if (state.step === 4)
+    return (
+      heading(
+        'Help keep this place available.',
+        'Choose what this device can contribute. Network and battery protection apply before any transfer.'
+      ) +
+      check('consent', 'Opt into hosting selected community content (simulation)', state.consent) +
+      `<label class="form-row" for="capacity">Storage limit: <strong id="capacity-value">${state.capacity} GB</strong><input id="capacity" type="range" min="0" max="40" step="5" value="${state.capacity}"></label><label class="form-row" for="traffic">Monthly upload budget: <strong id="traffic-value">${state.traffic} GB</strong><input id="traffic" type="range" min="0" max="40" step="5" value="${state.traffic}"></label>` +
+      `<small>Illustrative ceiling: 1 Mb/s upload. No actual traffic occurs.</small>` +
+      check('charging', 'Connected to power', state.charging) +
+      check('unmetered', 'Approved, unmetered network', state.unmetered) +
+      (state.device === 'phone'
+        ? check('foreground', 'Phone app is in the foreground', state.foreground)
+        : '') +
+      check('paused', 'Pause hosting', state.paused) +
+      `<div id="hosting-result"></div><p class="notice">Public copies and approved private ciphertext have separate scopes. Storing encrypted bytes does not grant the keys. Direct peers may learn network addresses.</p>`
+    )
+
+  if (state.step === 5) {
+    const flow =
+      state.audience === 'public'
+        ? ['draft', 'prepared', 'stored', 'published', 'indexed']
+        : ['draft', 'prepared', 'stored', 'published', 'delivered']
+    const labels = {
+      draft: 'Draft',
+      prepared: state.audience === 'private' ? 'Encrypted' : 'Prepared',
+      stored: 'Stored',
+      published: 'Published',
+      indexed: 'Searchable',
+      delivered: 'Room receipt'
+    }
+    const next = {
+      draft: 'Prepare sample film',
+      prepared: 'Simulate origin storage',
+      stored: 'Publish sample with retention receipt',
+      published:
+        state.audience === 'public'
+          ? 'Simulate public index receipt'
+          : 'Simulate encrypted room receipt'
+    }
+    return (
+      heading(
+        'Make something. Choose its audience.',
+        'Follow a sample film through preparation, storage and publication. Each receipt means something different.'
+      ) +
+      `<label class="form-row" for="audience">Audience<select id="audience"><option value="public"${state.audience === 'public' ? ' selected' : ''}>Public post</option><option value="private"${state.audience === 'private' ? ' selected' : ''}>Encrypted group attachment</option></select></label><ol class="step-list">${flow.map((p, i) => `<li class="${i <= flow.indexOf(state.upload) ? 'done' : ''}">${labels[p]}</li>`).join('')}</ol>` +
+      check('origin', 'Origin is reachable', state.origin) +
+      check('backup', 'Required retention / backup is confirmed', state.backup) +
+      statusBox(
+        `Current state: ${labels[state.upload] ?? state.upload}. ${state.upload === 'published' ? 'Wider discovery or delivery still needs its own receipt.' : state.audience === 'private' ? 'Preparation and encryption happen on the authorized device; never in the public index.' : 'New content gets a baseline retention budget before popularity matters.'}`
+      ) +
+      `<div class="actions">${action('upload', next[state.upload] ?? 'Sample journey complete', true, !next[state.upload])}${action('newdraft', 'Start a new sample')}</div><p class="notice">An offline origin can delay storage; a missing backup blocks durable publication. The draft stays available. This prototype transfers no file.</p>`
+    )
+  }
+
+  if (state.step === 6)
+    return (
+      heading(
+        'Know where you are looking.',
+        'Search your device, chosen communities, or a wider public provider. Every result below is an example.'
+      ) +
+      `<label class="form-row" for="scope">Search scope<select id="scope"><option value="local"${state.scope === 'local' ? ' selected' : ''}>On this device</option><option value="community"${state.scope === 'community' ? ' selected' : ''}>My communities</option><option value="wider"${state.scope === 'wider' ? ' selected' : ''}>Wider public network</option></select></label><label class="form-row" for="query">Search the sample catalog<input id="query" type="text" value="${escapeHtml(state.query)}" placeholder="Try garden or bicycle"></label><label class="form-row" for="ranking">Order<select id="ranking"><option value="newest"${state.ranking === 'newest' ? ' selected' : ''}>Newest first</option><option value="discover"${state.ranking === 'discover' ? ' selected' : ''}>Discover · include new creators</option></select></label>` +
+      (state.scope === 'wider'
+        ? `<label class="form-row" for="funding">This provider is funded by<select id="funding"><option value="donations"${state.funding === 'donations' ? ' selected' : ''}>Community donations</option><option value="paid"${state.funding === 'paid' ? ' selected' : ''}>Optional search subscription</option><option value="selfhost"${state.funding === 'selfhost' ? ' selected' : ''}>Our own hosted index</option></select></label>${state.funding === 'paid' ? check('plan', 'Simulate an active search subscription · no payment', state.plan) : ''}`
+        : '') +
+      (state.scope !== 'local'
+        ? check('index-online', 'Selected public index is online', state.indexOnline)
+        : '') +
+      `<div class="actions">${action('search', state.scope === 'local' ? 'Search this device (demo)' : 'Send public query to selected index (demo)', true)}</div><p class="draft-note">${state.scope === 'local' ? 'This scope works offline over the data already indexed here.' : 'In the proposed app, this explicit action sends the query to the selected public provider. Private records are searched only on the authorized device.'} No queries leave this prototype.</p><div id="results"></div>`
+    )
+
+  return (
+    heading(
+      'Your choices should keep working.',
+      'Pause hosting, cancel a search service, or switch devices without losing your account or your work.'
+    ) +
+    `<div class="actions">${action('pause-exit', 'Simulate pausing hosting')}${action('cancel-plan', 'Simulate canceling paid search')}</div>` +
+    statusBox(
+      `Viewing under this policy: ${access(state).allowed ? 'available' : 'blocked'}. Local search: available over indexed, permitted data. Wider paid search: ${state.plan ? 'enabled' : 'not subscribed'}.`,
+      access(state).allowed ? 'good' : 'warn'
+    ) +
+    `<ul class="plain-list"><li><strong>Keep your data.</strong><br>Exports include records and available attachments; encrypted recovery is a separate tested procedure.</li><li><strong>Keep a way in.</strong><br>Link another login method and set up key recovery. A provider login cannot reconstruct lost keys.</li><li><strong>Choose another index.</strong><br>Direct links and your local corpus do not belong to the paid search provider.</li></ul><div class="actions">${action('local-search', 'Try local search after leaving', true)}</div><p class="notice">If the only content copy is offline, a different index cannot restore its bytes. Withdrawal must be allowed without hiding that consequence.</p>`
+  )
+}
+
+function updateNotes() {
+  const current = notes[state.step]
+  $('notes').innerHTML =
+    `<h3>Behind this moment</h3><dl><div><dt>Where it lives</dt><dd>${current[0]}</dd></div><div><dt>The permission boundary</dt><dd>${current[1]}</dd></div><div><dt>When it goes wrong</dt><dd>${current[2]}</dd></div></dl><div class="status"><strong>${state.account ? 'Demo account connected' : 'Guest visitor'}</strong>${state.verified ? 'Private device access verified' : 'Private device access not verified'}<br>${state.policy === 'open' ? 'Optional hosting policy' : 'Strict seeding comparison'}</div>`
+}
+
+function renderHosting() {
+  if (!$('hosting-result')) return
+  const result = hosting(state)
+  $('capacity-value').textContent = `${state.capacity} GB`
+  $('traffic-value').textContent = `${state.traffic} GB`
+  $('hosting-result').innerHTML =
+    statusBox(result.reason, result.active ? 'good' : '') +
+    statusBox(
+      `Viewing access: ${access(state).allowed ? 'available' : 'blocked by the selected policy or private-access requirement'}.`,
+      access(state).allowed ? 'good' : 'warn'
+    )
+}
+
+function renderResults() {
+  if (!$('results')) return
+  const result = search(state)
+  $('results').innerHTML =
+    statusBox(result.note, result.status === 'ready' ? '' : 'warn') +
+    (result.status === 'ready'
+      ? `<p class="draft-note">${result.results.length} matching example${result.results.length === 1 ? '' : 's'} · fixture snapshot, not live network coverage</p>` +
+        result.results
+          .map(
+            (r) =>
+              `<div class="result"><span class="chip">${r.visibility === 'private' ? 'Private · this device only' : 'Public'}</span><h3>${r.title}</h3><p>${r.author} · ${r.text}</p><p class="why">Why shown: ${state.ranking === 'newest' ? 'Matches this scope and query; sorted by sample date' : r.reason}.</p></div>`
+          )
+          .join('')
+      : '')
+}
+
+function render(focus = false) {
+  $('device').value = state.device
+  $('policy').value = state.policy
+  $('steps').innerHTML = stages
+    .map(
+      (title, i) =>
+        `<button data-step="${i}"${i === state.step ? ' aria-current="step"' : ''}><span>${i + 1}</span>${title}</button>`
+    )
+    .join('')
+  $('scene').innerHTML =
+    sceneContent() +
+    (feedback ? `<div class="status" role="status">${escapeHtml(feedback)}</div>` : '')
+  updateNotes()
+  renderHosting()
+  if (state.step === 6)
+    $('results').innerHTML =
+      '<p class="notice">Choose a scope, then run the example search. Changing scope clears the previous results.</p>'
+  $('back').disabled = state.step === 0
+  $('next').disabled = state.step === stages.length - 1
+  $('next').textContent = state.step === stages.length - 1 ? 'Journey complete' : 'Next step →'
+  if (focus) $('stage-title').focus()
+}
+
+function go(step) {
+  state.step = Math.max(0, Math.min(stages.length - 1, step))
+  feedback = ''
+  render(true)
+}
+function requireAccount() {
+  if (state.account) return true
+  returnTo = state.step
+  feedback = 'Sign in to participate. This draft and the original link are preserved.'
+  state.step = 1
+  render(true)
+  return false
+}
+
+$('steps').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-step]')
+  if (button) go(Number(button.dataset.step))
+})
+$('back').addEventListener('click', () => go(state.step - 1))
+$('next').addEventListener('click', () => go(state.step + 1))
+$('reset').addEventListener('click', () => {
+  state = initialState()
+  feedback = ''
+  returnTo = null
+  render(true)
+})
+for (const id of ['device', 'policy'])
+  $(id).addEventListener('change', () => {
+    state[id] = $(id).value
+    feedback = ''
+    render()
+  })
+
+$('scene').addEventListener('input', (event) => {
+  if (event.target.id === 'comment') state.comment = event.target.value
+  if (event.target.id === 'query') state.query = event.target.value
+  if (['capacity', 'traffic'].includes(event.target.id)) {
+    state[event.target.id] = Number(event.target.value)
+    renderHosting()
+  }
+})
+$('scene').addEventListener('change', (event) => {
+  const mapping = {
+    entry: 'entry',
+    'provider-down': 'providerDown',
+    consent: 'consent',
+    charging: 'charging',
+    unmetered: 'unmetered',
+    foreground: 'foreground',
+    paused: 'paused',
+    audience: 'audience',
+    origin: 'origin',
+    backup: 'backup',
+    scope: 'scope',
+    ranking: 'ranking',
+    funding: 'funding',
+    plan: 'plan',
+    'index-online': 'indexOnline'
+  }
+  const key = mapping[event.target.id]
+  if (!key) return
+  state[key] = event.target.type === 'checkbox' ? event.target.checked : event.target.value
+  if (key === 'entry') {
+    state.liked = false
+    state.followed = false
+    state.saved = false
+    state.comment = ''
+  }
+  if (key === 'audience') state.upload = 'draft'
+  feedback = ''
+  if (['consent', 'charging', 'unmetered', 'foreground', 'paused'].includes(key)) {
+    renderHosting()
+    updateNotes()
+  } else render()
+})
+$('scene').addEventListener('click', (event) => {
+  const provider = event.target.closest('[data-provider]')
+  if (provider) {
+    state.provider = provider.dataset.provider
+    state.account = false
+    state.verified = false
+    feedback = ''
+    render()
+    return
+  }
+  const device = event.target.closest('[data-device]')
+  if (device) {
+    state.device = device.dataset.device
+    feedback = 'Simulated device changed. The same destination and account state are preserved.'
+    render()
+    return
+  }
+  const button = event.target.closest('[data-action]')
+  if (!button || button.disabled) return
+  const id = button.dataset.action
+  if (id === 'identity') return go(1)
+  if (id === 'install') return go(3)
+  if (id === 'search') {
+    renderResults()
+    $('announcement').textContent = `Example search: ${search(state).status}.`
+    return
+  }
+  if (id === 'local-search') {
+    state.scope = 'local'
+    go(6)
+    renderResults()
+    return
+  }
+  feedback = ''
+  if (id === 'signin') {
+    if (state.providerDown)
+      feedback =
+        'That provider is unavailable. Your link and draft are saved. Choose another verified login method or try again.'
+    else {
+      state.account = true
+      if (returnTo !== null) {
+        state.step = returnTo
+        returnTo = null
+      }
+      feedback =
+        'Demo account connected. No provider login occurred; encrypted device access is still separate.'
+    }
+  } else if (id === 'verify') {
+    if (!requireAccount()) return
+    state.verified = true
+    feedback =
+      'Device verification simulated. This represents access for a full authorized messaging client.'
+  } else if (['like', 'follow', 'save', 'comment'].includes(id)) {
+    if (!requireAccount()) return
+    if (!access(state).allowed) feedback = access(state).reason
+    else if (id === 'comment') {
+      if (!state.comment.trim()) feedback = 'Write a comment first.'
+      else {
+        state.comments.push({ text: state.comment.trim(), audience: state.entry })
+        state.comment = ''
+        feedback =
+          'Demo response added locally for the named audience. Nothing was sent to a server.'
+      }
+    } else {
+      const key = { like: 'liked', follow: 'followed', save: 'saved' }[id]
+      state[key] = !state[key]
+      feedback = 'Local example updated. Hosting settings were not changed.'
+    }
+  } else if (id === 'upload') {
+    const result = advanceUpload(state)
+    state = result.state
+    feedback = result.blocked ?? `Simulated receipt: ${state.upload}. No file was uploaded.`
+  } else if (id === 'newdraft') state.upload = 'draft'
+  else if (id === 'pause-exit') {
+    state.paused = true
+    feedback = 'Hosting is paused. Under the recommended policy, public viewing stays available.'
+  } else if (id === 'cancel-plan') {
+    state.plan = false
+    state.funding = 'paid'
+    feedback =
+      'Search subscription cancellation simulated. Local data and direct links are unchanged.'
+  }
+  render()
+})
+
+function download(name, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+$('download-md').addEventListener('click', () =>
+  download(sourceDocument.filename, sourceDocument.source, 'text/markdown')
+)
+$('download-html').addEventListener('click', () => {
+  const portable = document.documentElement.cloneNode(true)
+  for (const id of ['scene', 'steps', 'notes', 'announcement'])
+    portable.querySelector(`#${id}`).textContent = ''
+  download(
+    'xnet-from-link-to-community.html',
+    '<!doctype html>\n' + portable.outerHTML,
+    'text/html'
+  )
+})
+render()
+
+    </script>
+  </body>
+</html>

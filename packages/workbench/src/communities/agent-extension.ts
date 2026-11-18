@@ -1,3 +1,5 @@
+import { orbitArenaSource } from './examples/orbit-arena'
+import { EXTENSION_SOURCE_LIMIT } from './extension-desktop-contract'
 export interface ChatExtensionProposal {
   title: string
   summary: string
@@ -7,6 +9,7 @@ export interface ChatPreviewNode {
   type:
     | 'stack'
     | 'grid'
+    | 'row'
     | 'card'
     | 'text'
     | 'badge'
@@ -14,6 +17,8 @@ export interface ChatPreviewNode {
     | 'input'
     | 'document'
     | 'document-editor'
+  columns?: number
+  square?: boolean
   handle?: string
   text?: string
   id?: string
@@ -31,7 +36,7 @@ export interface ChatPreviewMessage {
 export const CHAT_PREVIEW_POLICY =
   'chat-preview-v4: durable grants and document projections; scoped live React hooks; approved private task commands; no network or host APIs'
 export function readExtensionProposal(text: string): ChatExtensionProposal {
-  if (text.length > 128000) throw new Error('The proposal is too large.')
+  if (text.length > 1_000_000) throw new Error('The proposal is too large.')
   const parsed: unknown = JSON.parse(text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, ''))
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
     throw new Error('Expected an extension proposal.')
@@ -44,7 +49,7 @@ export function readExtensionProposal(text: string): ChatExtensionProposal {
     value.summary.length > 2000 ||
     typeof value.source !== 'string' ||
     !value.source.trim() ||
-    value.source.length > 24000
+    value.source.length > EXTENSION_SOURCE_LIMIT
   )
     throw new Error('Extension title, summary, or source is invalid or exceeds the preview limits.')
   if (Object.keys(value).some((key) => !['title', 'summary', 'source'].includes(key)))
@@ -62,6 +67,7 @@ export function readPreviewTree(value: unknown): ChatPreviewNode {
       ![
         'stack',
         'grid',
+        'row',
         'card',
         'text',
         'badge',
@@ -82,11 +88,23 @@ export function readPreviewTree(value: unknown): ChatPreviewNode {
             'value',
             'placeholder',
             'maxLength',
-            'handle'
+            'handle',
+            'columns',
+            'square'
           ].includes(key)
       )
     )
       throw new Error('Extension views may only contain supported text, layout, and controls.')
+    if (
+      node.columns !== undefined &&
+      (node.type !== 'grid' ||
+        !Number.isSafeInteger(node.columns) ||
+        Number(node.columns) < 1 ||
+        Number(node.columns) > 6)
+    )
+      throw new Error('Grid columns must be an integer from one to six.')
+    if (node.square !== undefined && (node.type !== 'button' || typeof node.square !== 'boolean'))
+      throw new Error('Only buttons support square sizing.')
     if (
       ['document', 'document-editor'].includes(String(node.type)) &&
       (typeof node.handle !== 'string' || !/^[a-f0-9-]{36}$/.test(node.handle))
@@ -120,7 +138,17 @@ export function readPreviewTree(value: unknown): ChatPreviewNode {
     return {
       type: node.type as ChatPreviewNode['type'],
       ...Object.fromEntries(
-        ['id', 'label', 'disabled', 'value', 'placeholder', 'maxLength', 'handle']
+        [
+          'id',
+          'label',
+          'disabled',
+          'value',
+          'placeholder',
+          'maxLength',
+          'handle',
+          'columns',
+          'square'
+        ]
           .filter((key) => node[key] !== undefined)
           .map((key) => [key, node[key]])
       ),
@@ -148,7 +176,13 @@ export default function Watchlist({ channelId }: { channelId: string }) {
     {!films.length && <p>Send “Watch: a film title” in the conversation to add it here.</p>}
   </section>
 }`
-export const extensionExamples = [
+export const extensionExamples: Array<ChatExtensionProposal & { desktopOnly?: boolean }> = [
+  {
+    title: 'Orbit arena',
+    desktopOnly: true,
+    summary: 'A four-player 3D arena. Eat, grow, and play together over Iroh.',
+    source: orbitArenaSource
+  },
   {
     title: 'Edit selected pages',
     summary: 'Edit approved private pages through the host-owned document editor.',

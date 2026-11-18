@@ -39,7 +39,26 @@ describe('chat extension validation', () => {
       )
     ).toThrow('permission')
     expect(() =>
-      readExtensionProposal(JSON.stringify({ title: 'A', summary: 'B', source: 'x'.repeat(24001) }))
+      readExtensionProposal(JSON.stringify({ title: 'A', summary: 'B', source: 'x'.repeat(200001) }))
     ).toThrow('limits')
   })
+})
+
+it('bounds layout metadata and rejects layout injection', () => {
+  expect(
+    readPreviewTree({
+      type: 'grid',
+      columns: 3,
+      children: [{ type: 'button', id: 'element-1', square: true }]
+    }).columns
+  ).toBe(3)
+  for (const value of [
+    { type: 'grid', columns: 100 },
+    { type: 'grid', columns: '3' },
+    { type: 'grid', columns: 2.5 },
+    { type: 'text', columns: 3 },
+    { type: 'grid', style: 'position:fixed' },
+    { type: 'stack', square: true }
+  ])
+    expect(() => readPreviewTree(value)).toThrow()
 })

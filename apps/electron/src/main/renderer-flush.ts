@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { BrowserWindow, ipcMain } from 'electron'
+import { ipcMain } from 'electron'
+import { workspaceWindows } from './workspace-windows'
 
 const ready = new Set<number>()
 
@@ -12,7 +13,7 @@ export function setupRendererFlush(): void {
 }
 
 /** Keep the renderer alive until it acknowledges all document writes. */
-export async function flushRenderers(windows = BrowserWindow.getAllWindows()): Promise<void> {
+export async function flushRenderers(windows = workspaceWindows()): Promise<void> {
   const results = await Promise.allSettled(
     windows.map(
       (window) =>
@@ -56,5 +57,5 @@ export async function flushRenderers(windows = BrowserWindow.getAllWindows()): P
 }
 
 export function resumeRenderers(): void {
-  for (const window of BrowserWindow.getAllWindows()) window.webContents.send('xnet:resume-editing')
+  for (const window of workspaceWindows()) window.webContents.send('xnet:resume-editing')
 }

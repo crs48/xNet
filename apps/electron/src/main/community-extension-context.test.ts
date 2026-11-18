@@ -32,7 +32,7 @@ describe('explicit extension edit context', () => {
         ...node,
         properties: { ...node.properties, manifest: { chatPreview: { channelId: 'other' } } }
       },
-      { ...node, properties: { ...node.properties, files: { 'index.tsx': 'x'.repeat(24001) } } }
+      { ...node, properties: { ...node.properties, files: { 'index.tsx': 'x'.repeat(200001) } } }
     ])
       expect(() => selectedExtensionContext(altered, 'did:key:owner', 'chat')).toThrow(
         'selected extension'

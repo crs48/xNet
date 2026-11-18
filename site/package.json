@@ -12,6 +12,7 @@
     "validate:metrics": "tsx scripts/validate-metrics.ts",
     "validate:dist": "tsx scripts/validate-dist.ts",
     "build": "pnpm validate:compare && pnpm validate:changelog && pnpm validate:plugins && pnpm validate:surveillance && pnpm validate:metrics && pnpm build:llms && astro build && pnpm validate:dist",
+    "build:preview": "XNET_BLOG_PREVIEW=1 pnpm build",
     "preview": "astro preview",
     "astro": "astro"
   },

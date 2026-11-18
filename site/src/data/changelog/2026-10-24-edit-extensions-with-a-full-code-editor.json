@@ -1,0 +1,13 @@
+{
+  "id": "2026-10-24-edit-extensions-with-a-full-code-editor",
+  "date": "October 24, 2026",
+  "title": "Edit extensions with a full code editor",
+  "summary": "Edit TypeScript with highlighting, completion, folding, find and replace, and undo. Resize the chat sidebar to give code and previews more room.",
+  "highlights": [],
+  "tags": [
+    "editor",
+    "plugins",
+    "app"
+  ],
+  "pr": 728
+}

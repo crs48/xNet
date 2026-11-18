@@ -1842,6 +1842,283 @@ fetching, arbitrary provider embeds, or durable background retries. Require
 two-device blob-delivery evidence before promising offline availability to every
 conversation member.
 
+## ADR-57: Pin approved desktop peers and isolate their text-chat records
+
+**Status:** Accepted · 2026-10-22 · local prototype
+
+The desktop uses Iroh ALPN `xnet/peer-chat/1` with a separate persistent transport
+key bound by a signature to its existing xNet DID. A version-1 `xnet://peer#…`
+invitation includes the endpoint ticket, conversation ID, expiry and random
+join secret. The inviter approves the claimed peer identity before replication.
+Transport authentication alone grants no access to the rest of the workspace.
+
+Each device projects its own private space/channel membership locally. Only
+bounded, signed ChatMessage changes authored by the pinned peer, with IDs under
+that conversation's `iroh-` namespace, cross the connection. A Lamport/hash
+cursor advances only after the receiver accepts the changes into NodeStore.
+Both hub import and export paths exclude that namespace. Disconnect revokes
+transport permission while retaining local history.
+
+The default preview relay is invite-only, persists quota/admission state, and
+forwards end-to-end encrypted traffic. It is a fallback data path, not an
+offline mailbox. Direct paths are preferred when reachable. The Railway HTTP
+deployment does not provide UDP address discovery, so cross-NAT direct rates
+remain an empirical question. The prototype does not promise public scale,
+anonymous networking, or encrypted SQLite files.
+
+**Tradeoff:** The first transport supports two-person text chats. Groups,
+attachments, agents and extensions need separate authorization and replication
+designs. Bounded traffic can delay delivery, and changes to the pinned relay or
+version-1 invitation format may require new invitations. The pinned native
+binding also needs packaging validation beyond the tested Apple Silicon host.
+
+**Tripwire:** Revisit before sharing group history, relaying media, adding offline
+mailboxes, permitting agent actions from remote peers, or publishing a stable
+cross-language wire API. Measure two-device direct/relay behavior and relay cost
+before widening the current admission/traffic limits. A failed authorization or
+hub-isolation negative control blocks release.
+
+## ADR-58: Keep desktop social authentication separate from workspace keys
+
+**Status:** Accepted · 2026-10-22 · local prototype
+
+Native Bluesky sign-in runs in Electron main through the ATProto OAuth client,
+using the system browser, PKCE, PAR and DPoP. Development uses a short-lived
+loopback callback; packaged builds use the registered `fyi.xnet:/oauth/callback`
+URI, matching the native client metadata.
+The callback is bound to one transaction, the requested handle and the provider's
+verified DID. Discovery uses bounded HTTPS requests with public DNS pinned to the
+socket; redirects never forward credentials. The renderer receives public profile
+metadata only. The initial scope is `atproto` (identity), and the temporary session
+is revoked and discarded after verification. No provider token is persisted.
+
+The verified profile is stored with the existing onboarding state. Linking a
+different account requires an explicit disconnect. Social login neither replaces
+the xNet signing key nor recovers an existing workspace. A handle typed into a
+profile remains distinct from an OAuth-verified account on this device; this
+ceremony does not publish a public provider-to-xNet binding.
+
+Development uses ATProto's localhost metadata exception. Packaged builds use
+`https://xnet.fyi/oauth/atproto-desktop-client.json`; that file must be published
+before a distributed build can use it. The current Electron runtime constrains
+the SDK version; runtime and authentication dependency upgrades need joint testing.
+
+**Tripwire:** Persistent provider access, public identity discovery, a new provider,
+or provider-driven recovery requires a separate consent, binding and revocation
+design. A failed wrong-account, state-replay or callback-host negative control
+blocks release.
+
+## ADR-59: Bound private peer groups to a signed roster and an explicit host
+
+**Status:** Accepted · 2026-10-22 · local prototype
+
+Version-2 peer invitations add one group destination to the existing one-person
+capability. The creator's pinned xNet DID is the group's authority. Each invite
+is separately approved and each recipient has a separate authenticated transport
+connection. The host signs a monotonically revised membership list, with at most
+eight active members. Membership mutations are serialized; repeated approval is
+idempotent. Other members cannot promote themselves or edit the roster.
+
+The host forwards bounded original signed text changes over encrypted Iroh links.
+Recipients verify the original author, conversation and signed roster before
+projecting local membership and applying changes to NodeStore. A separate cursor
+per author prevents a late-arriving author's lower Lamport clock from being
+skipped. Signed display names can travel with the roster; OAuth tokens and other
+workspace data cannot. Groups remain isolated from hub import and export.
+
+The host is a participant and can read the group. It must be online to deliver
+messages. A new member receives available history from current members; history
+from departed authors is not newly replicated because current NodeStore author
+permissions no longer authorize it. Removing a member stops future delivery and
+submission through the host. It does not erase previously received copies. The
+prototype supports 16 groups and 32 peer connections per profile and retains the
+existing frame, traffic and relay limits.
+
+**Tradeoff:** One host is a deliberate availability dependency, not a federated
+administrator set or a general group-key protocol. Local projections do not grant
+remote access to agents, attachments, extensions, unrelated channels or spaces.
+
+**Tripwire:** Multiple hosts, host migration, offline mailboxes, larger groups,
+departed-author history, media or extension replication requires a new authority
+and history design. Verify removal, unauthorized authors, duplicate approval,
+restart and late-author delivery before widening this prototype.
+
+## ADR-60: Keep chats uniform while signing group access and channel scope
+
+**Status:** Accepted · 2026-10-23 · local prototype
+
+A group begins with one chat. Its first additional channel makes the group a
+community in the interface; the original chat becomes General without moving
+messages. All channels currently share membership and access. A private subset
+uses a separate group. A thread is the existing flat `inReplyTo` relation within
+one channel, with bounded database reads and a virtualized timeline.
+
+Version-2 group manifests sign the access preset and channel list as well as the
+roster. Child channel IDs are namespaced under their group ID. Replication checks
+the original author and signed channel scope, and stores a cursor per channel and
+author. Version-1 manifests remain readable. An existing private history cannot
+be changed to public, or a public history made private, through an access toggle.
+
+Version-3 links sign their complete invitation policy and derive a separate
+connection for each requester. Approval links reveal no messages before host
+approval. Public links allow read-only viewing without group membership;
+posting requires joining the signed roster. Link revocation blocks new requests
+without removing existing members or erasing received history. Public readers
+still use an xNet device identity and count toward the bounded connection limit.
+This is public access through the desktop, not anonymous website hosting.
+
+The gateway's version-2 admission proof signs a maximum use count, capped at
+eight. The existing membership, rate and byte limits remain in force. Older
+relays keep single-device admissions with explicit UI feedback. Invitations
+include direct addresses alongside the trusted relay so nearby devices can
+connect when the relay is unavailable. A transport connection alone is not a
+healthy relay: the desktop checks its health endpoint separately.
+The preferred UDP port is persisted so direct routes survive restarts. A port
+collision is reported explicitly when falling back to a new port; it can require
+a fresh invitation if no other route is available.
+
+Bluesky discovery reads public profile metadata and a pinned post through its
+fixed public API origin. A published xNet link is an invitation shared by that
+profile, not a verified provider-to-xNet identity binding. The recipient still
+reviews the xNet key and membership request. No provider tokens or social writes
+are involved. Other social services can carry the same invitation link.
+
+**Tripwire:** Private channels inside a community, anonymous web readers, public
+directories, non-expiring contact addresses, or public provider identity bindings
+require a new authorization and discovery design. Failures of cross-channel,
+pre-approval, read-only, link-revocation or restart tests block rollout. Publish
+the gateway and invitation landing page separately before promising multi-device
+relay onboarding or click-to-install links on the public website.
+
+## ADR-61: Inspect extensions in disposable desktop test copies
+
+**Date:** 2026-10-23
+
+**Status:** Accepted for the local desktop prototype
+
+Generated extension drafts pass through a bounded visual and interaction review
+before being returned. The host runs the same worker sandbox and trusted view
+renderer in a separate Chromium window with no preload, workspace identity,
+personal data, persistence bridge, or external network access. It supplies actual
+screenshots, visible control bounds, and errors to the selected agent. Inline
+PNG/JPEG input is additive to the devkit turn contract; paths and remote image
+URLs are not accepted by that API.
+
+The agent can request only bounded clicks, text input, fixed viewport changes,
+reset, or a full source revision. It never receives CDP, arbitrary JavaScript,
+filesystem access, or native tools. Tests cannot grant permissions or install a
+revision. Limits are twelve decisions, three revisions, sixty-four actions, and
+the existing five-minute run deadline. Cancellation destroys the test window.
+
+Only successful rendering and observed interactions on the final revision at
+both supported widths can produce a checked report. The report records what
+happened and its limits; it is not proof of general correctness. Extensions that
+need personal data remain explicitly limited until a person grants access and
+checks those operations. Existing per-version data permissions remain in force.
+
+**Tripwire:** Testing against real user data, allowing native tools, running
+unbounded action sequences, or sharing screenshots outside the selected provider
+requires a new consent and isolation design. A mismatch between the checker and
+the live renderer, a leaked workspace bridge, or a cancelled check continuing to
+act blocks rollout.
+
+## ADR-62: Browser-rendered extensions with brokered desktop capabilities
+
+**Date:** 2026-10-23
+
+**Status:** Accepted for the local desktop prototype
+
+Desktop extensions render React DOM in a separate sandboxed `WebContentsView`.
+This supersedes ADR-61's worker/tree renderer for desktop previews and test copies;
+the previous renderer remains the non-desktop fallback. HTML, CSS, SVG, canvas,
+and browser controls do not require an expanded data grant. Dependencies are
+bundled by the host; guest code cannot install packages or run lifecycle scripts.
+
+Each running version has a fresh, non-persistent Chromium session. Node integration
+is off, context isolation and process sandboxing are on, and the preload exposes
+only a fixed message interface. Main validates the sender and its owning workspace.
+Network resources, nested frames, navigation, popups, downloads, device permissions,
+browser dialogs, and display capture are denied. WebRTC non-proxied UDP is disabled and the session
+uses a non-forwarding local proxy in addition to URL filtering and CSP. A watchdog
+closes an unresponsive surface. Closing the workspace or preview revokes its handles.
+
+The existing xNet brokers remain the authority for data. Document saves use approved
+handles, bounded plain text, revisions, and the existing durable commit checks.
+Native file APIs require a trusted user gesture and a host-owned file dialog. Read
+handles identify only a chosen file; editing requires separate consent. Writes reject
+changed/replaced or multiply-linked files. No guest-controlled path, shell, raw IPC,
+or Electron object crosses the boundary. Native access lasts only for that preview.
+
+Self-checking uses the same browser surface. Its enclosing controller has only the
+surface-management preload, and its native/data capabilities are denied. An isolated
+preload gathers control geometry; the agent receives screenshots and bounded actions.
+Tests of real private data or native grants cannot be reported as successful by this
+loop. Test authority never carries into a preview with real data.
+
+**Tripwire:** Remote dependencies, network egress, directories, persistent file grants,
+shell execution, arbitrary native APIs, or enabling agent harness tools require their
+own capability and consent design. A cross-surface request, surviving revoked handle,
+network leak, privileged preload, or preview/checker mismatch blocks rollout. This
+prototype is not a claim of zero vulnerabilities; runtime updates and independent
+security review remain release requirements.
+
+## ADR-63: Ephemeral multiplayer rooms for desktop extensions
+
+**Date:** 2026-10-24
+
+**Status:** Accepted for the local desktop prototype
+
+A sandboxed extension can request one temporary Iroh room through a narrow native
+broker. Three.js is pinned and bundled with the host. Browser network access,
+WebRTC, Node, Electron objects and arbitrary relay URLs remain unavailable to guest
+code. This adds the explicit network capability contemplated by ADR-62; it does not
+change the existing data or file grants.
+
+Hosting or joining requires a trusted user gesture followed by a native consent
+sheet. The sheet identifies the extension, discloses network-address exposure and
+public relay use, and explains that the extension can transmit data it has already
+been allowed to read. A grant belongs to this running surface, expires after one
+hour, and is revoked on leave, stop, navigation or window close. It is not restored
+with an installed extension. A test copy cannot obtain the grant.
+
+Rooms use ephemeral transport identities and `xnet/extension-room/1` ALPN. An
+invitation contains a random room ID, a 256-bit bearer secret, the SHA-256 of the
+compiled extension source, the host endpoint ticket and an expiry. The host checks
+the secret, room and source hash after QUIC authenticates the peer endpoint. These
+transport IDs do not establish a person's social identity. Anyone holding the
+invitation and matching code can join; there is no public discovery. Invitations
+are pasted into the same extension, not routed by the app's existing contact-link
+onboarding. Identical source does not guarantee compatible future runtime releases.
+
+Four players share a host-and-guests topology. Client datagrams go only to the host;
+host datagrams go to its guests. The native broker supplies sender identity, accepts
+at most 30 sends per second, limits frames to 1,000 bytes, rejects stale sequences,
+and bounds pending handshakes and accepted peers independently. Connections without
+updates or heartbeats are closed. Relay destinations come only from the pinned Iroh
+production relay map; an invitation cannot specify an arbitrary HTTP relay. Direct
+addresses are connection hints, authenticated against the ticket's endpoint key.
+The broker creates no chat records and exposes no general socket API.
+
+The example runs a host-authoritative simulation with 10 Hz snapshots and client
+inputs, then interpolates the 3D view locally. Frame loss is expected. Host cheating,
+host migration, matchmaking, cross-version play and durable scores are outside this
+prototype. Default public relays are best-effort. A relay can carry game bandwidth,
+not merely discovery traffic; the preview reports when no relay is advertised.
+The existing authenticated xNet chat relay is not reused by these ephemeral endpoints.
+
+An agent may inspect the local practice view, but the checker marks multiplayer
+verification as limited even when the agent never clicks Host. Real network tests
+require separate consenting peers. Existing xNet/file authority remains independently
+scoped and revocable.
+
+**Tripwire:** More than four players, sustained larger payloads, host migration,
+verified contact membership, persistent grants, a browser/WebRTC adapter, cross-version
+compatibility or use of the authenticated xNet relay requires another protocol and
+consent review. A fifth admitted player, unbounded handshake work, unexpected relay,
+network activity after revocation, or a visual test reported as proof of multiplayer
+blocks rollout. Adversarial review and multi-network verification remain required
+before presenting this as production-ready networking.
+
 ## ADR-64: Separate community file delivery from hosted discovery
 
 The community prototype reserves HTTPS share links for public catalog records, opaque private file handles and room invitations. A single hub can run tracker and relay roles on the same origin. Public seeder leases expire. A private lookup requires a device signature, and the serving desktop checks room membership for each private chunk. Iroh can relay chat and connection setup. The desktop sends media on a direct-only endpoint. One volume backup preserves the hub's authorities, admission state and catalog.

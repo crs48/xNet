@@ -11,8 +11,13 @@ import {
  * existing yet — the state both subsystems actually start in, since they run
  * before `createWindow()`.
  */
-const windows: Array<{ webContents: { send: (channel: string, payload: StoreRequest) => void } }> =
-  []
+const windows: Array<{
+  webContents: {
+    id: number
+    mainFrame: object
+    send: (channel: string, payload: StoreRequest) => void
+  }
+}> = []
 
 interface StoreRequest {
   id: number
@@ -30,6 +35,8 @@ const respond: ((
   response: { id: number; result?: unknown; error?: string }
 ) => void)[] = []
 
+vi.mock('./workspace-windows', () => ({ workspaceWindows: () => windows }))
+
 vi.mock('electron', () => ({
   app: { getPath: vi.fn(() => '/mock/user-data') },
   ipcMain: {
@@ -45,11 +52,16 @@ vi.mock('electron', () => ({
 function attachWindow(reply: (operation: string) => unknown): void {
   windows.push({
     webContents: {
+      id: 1,
+      mainFrame: {},
       send: (_channel, request) => {
         // Answer on a later tick, as real IPC would.
         queueMicrotask(() => {
           for (const listener of respond) {
-            listener(null, { id: request.id, result: reply(request.operation) })
+            listener(
+              { sender: windows[0].webContents, senderFrame: windows[0].webContents.mainFrame },
+              { id: request.id, result: reply(request.operation) }
+            )
           }
         })
       }
@@ -64,6 +76,22 @@ beforeEach(() => {
 })
 
 describe('sendStoreRequest', () => {
+  it('ignores responses from a preview or a subframe', async () => {
+    attachWindow(() => 'workspace')
+    const send = windows[0].webContents.send
+    windows[0].webContents.send = (channel, request) => {
+      for (const listener of respond) {
+        listener({ sender: { id: 99 }, senderFrame: null }, { id: request.id, result: 'preview' })
+        listener(
+          { sender: windows[0].webContents, senderFrame: {} },
+          { id: request.id, result: 'subframe' }
+        )
+      }
+      send(channel, request)
+    }
+    await expect(sendStoreRequest('get', {})).resolves.toBe('workspace')
+  })
+
   it('rejects when there is no window rather than resolving to a placeholder', async () => {
     await expect(sendStoreRequest('list', {})).rejects.toThrow('No window available')
   })
@@ -136,15 +164,20 @@ describe('createNodeStoreProxy searchText', () => {
     const seen: StoreRequest[] = []
     windows.push({
       webContents: {
+        id: 1,
+        mainFrame: {},
         send: (_channel, request) => {
           seen.push(request)
           queueMicrotask(() => {
             for (const listener of respond) {
-              listener(null, {
-                id: request.id,
-                result:
-                  request.operation === 'searchText' ? [{ nodeId: 'page_1', rank: -3.2 }] : null
-              })
+              listener(
+                { sender: windows[0].webContents, senderFrame: windows[0].webContents.mainFrame },
+                {
+                  id: request.id,
+                  result:
+                    request.operation === 'searchText' ? [{ nodeId: 'page_1', rank: -3.2 }] : null
+                }
+              )
             }
           })
         }

@@ -1,0 +1,353 @@
+---
+import '../../styles/playground.css'
+
+const films = [
+  { id: 'moon', title: 'Moon garden', genre: 'For the daydreamers', votes: 8, art: 'moon' },
+  { id: 'road', title: 'The long way home', genre: 'Take the scenic route', votes: 5, art: 'road' },
+  {
+    id: 'signal',
+    title: 'Soft signals',
+    genre: 'A little out of this world',
+    votes: 3,
+    art: 'signal'
+  }
+]
+---
+
+<section class="playground" id="app" aria-labelledby="playground-heading">
+  <div class="playground-intro">
+    <h2 id="playground-heading">Try it: three views of one film list.</h2>
+    <span>Interactive example</span>
+  </div>
+  <div class="demo-window" data-playground>
+    <div class="window-bar">
+      <div class="window-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      <span>Friday film club</span>
+      <span class="window-app">xNet</span>
+    </div>
+    <div class="demo-workspace">
+      <div class="demo-sidebar" role="group" aria-label="Example chat list">
+        <div class="demo-brand">
+          <img src="/favicon.svg" width="25" height="25" alt="" /> Your corner
+        </div>
+        <span class="demo-label">PINNED</span>
+        <div class="demo-chat selected"><span aria-hidden="true">✳</span> Film club <i></i></div>
+        <div class="demo-chat"><span aria-hidden="true">↗</span> Weekend plans</div>
+        <div class="demo-chat"><span aria-hidden="true">⌘</span> The side project</div>
+        <div class="demo-sidebar-bottom">
+          <span class="avatar you">Y</span> You <span class="tiny-dot"></span>
+        </div>
+      </div>
+      <div class="demo-conversation">
+        <div class="conversation-heading">
+          <div>
+            <strong>Friday film club</strong><span>You, Maya, Jules + your agent</span>
+          </div><span aria-hidden="true">•••</span>
+        </div>
+        <div class="example-messages">
+          <p class="example-day">A LITTLE IDEA, FRIDAY AFTERNOON</p>
+          <div class="example-message">
+            <span class="avatar maya">M</span><div>
+              <strong>Maya <time>16:02</time></strong><p>
+                Same problem every Friday. What are we watching?
+              </p>
+            </div>
+          </div>
+          <div class="example-message">
+            <span class="avatar you">Y</span><div>
+              <strong>You <time>16:03</time></strong><p>
+                <span class="mention">@Codex</span> turn our film list into a voting board?
+              </p>
+            </div>
+          </div>
+          <div class="example-message">
+            <span class="avatar agent" aria-hidden="true">✳</span><div>
+              <strong>Codex <span class="agent-label">AGENT</span></strong><p>
+                Here’s a board using your film list. Pick a film, then try a different view.
+              </p><div class="permission-receipt">
+                <span aria-hidden="true">✓</span> Film list access approved
+              </div>
+            </div>
+          </div>
+          <div class="example-message last-message">
+            <span class="avatar jules">J</span><div>
+              <strong>Jules <time>16:05</time></strong><p>Okay, now we need a snack planner.</p>
+            </div>
+          </div>
+        </div>
+        <div class="demo-composer" aria-hidden="true">
+          <span>The next idea starts here…</span><span>↑</span>
+        </div>
+        <p class="example-label">Example conversation · no agent is connected</p>
+      </div>
+      <section class="demo-extension" aria-label="Interactive film club example">
+        <div class="extension-heading">
+          <span class="extension-icon" aria-hidden="true">▦</span><div>
+            <strong>Tonight’s pick</strong><span>A little app for your group</span>
+          </div><span class="version-tag">v2</span>
+        </div>
+        <div class="demo-tabs" role="tablist" aria-label="Film list view">
+          {
+            ['List', 'Vote', 'Board'].map((label) => (
+              <button
+                type="button"
+                role="tab"
+                id={`demo-tab-${label.toLowerCase()}`}
+                aria-controls={`demo-${label.toLowerCase()}`}
+                aria-selected={label === 'Vote' ? 'true' : 'false'}
+                tabindex={label === 'Vote' ? 0 : -1}
+                data-view={label.toLowerCase()}
+              >
+                {label}
+              </button>
+            ))
+          }
+        </div>
+        <div
+          id="demo-vote"
+          class="demo-panel"
+          role="tabpanel"
+          aria-labelledby="demo-tab-vote"
+          tabindex="0"
+        >
+          <p class="panel-hint">One vote. Very strong opinions.</p>
+          <div class="film-grid">
+            {
+              films.map((film) => (
+                <article class="film-card">
+                  <div class:list={['film-art', film.art]} aria-hidden="true">
+                    <>
+                      <span class="poster-number">0{films.indexOf(film) + 1} / FILM CLUB</span>
+                      <span class="poster-shape" />
+                      <span class="poster-title">{film.title}</span>
+                    </>
+                  </div>
+                  <>
+                    <h3>{film.title}</h3>
+                    <p>{film.genre}</p>
+                  </>
+                  <button
+                    type="button"
+                    class="vote-button"
+                    data-vote={film.id}
+                    aria-pressed="false"
+                    aria-label={`Vote for ${film.title}`}
+                  >
+                    <>
+                      <span data-vote-label>Vote</span>
+                      <span data-vote-count>{film.votes}</span>
+                    </>
+                  </button>
+                </article>
+              ))
+            }
+          </div>
+        </div>
+        <div
+          id="demo-list"
+          class="demo-panel"
+          role="tabpanel"
+          aria-labelledby="demo-tab-list"
+          tabindex="0"
+          hidden
+        >
+          <p class="panel-hint">Your films, however you like to see them.</p>
+          <div class="film-list">
+            {
+              films.map((film) => (
+                <div class="film-list-row">
+                  <>
+                    <span class:list={['mini-poster', film.art]} aria-hidden="true" />
+                    <div>
+                      <>
+                        <strong>{film.title}</strong>
+                        <span data-list-status={film.id}>On the watchlist</span>
+                      </>
+                    </div>
+                    <span class="list-votes" data-list-votes={film.id}>
+                      {film.votes} votes
+                    </span>
+                  </>
+                </div>
+              ))
+            }
+          </div>
+          <p class="demo-data-note">
+            Votes and watch status carry across all three views. Try changing one.
+          </p>
+        </div>
+        <div
+          id="demo-board"
+          class="demo-panel"
+          role="tabpanel"
+          aria-labelledby="demo-tab-board"
+          tabindex="0"
+          hidden
+        >
+          <p class="panel-hint">Keep the good ones. Remember what you watched.</p>
+          <div class="watch-board">
+            <div>
+              <h3>Next up <span data-next-count>3</span></h3><div data-next-column>
+                {
+                  films.map((film) => (
+                    <div class="watch-card" data-film-card={film.id}>
+                      <>
+                        <span class:list={['mini-poster', film.art]} aria-hidden="true" />
+                        <strong>{film.title}</strong>
+                        <button
+                          type="button"
+                          data-watch={film.id}
+                          aria-label={`Mark ${film.title} as watched`}
+                        >
+                          Mark watched <span aria-hidden="true">↗</span>
+                        </button>
+                      </>
+                    </div>
+                  ))
+                }
+              </div><p class="empty-column" data-next-empty hidden>All caught up.</p>
+            </div>
+            <div>
+              <h3>Watched <span data-watched-count>0</span></h3><div data-watched-column></div><p
+                class="empty-column"
+                data-watched-empty
+              >
+                Your next favourite goes here.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="demo-data-footer">
+          <span><span class="tiny-dot"></span> 3 films shared across all views.</span><button
+            type="button"
+            data-reset>Reset demo</button
+          >
+        </div>
+        <p class="sr-only" role="status" data-demo-status></p>
+      </section>
+    </div>
+  </div>
+  <div class="playground-caption">
+    <p>Try a vote. Switch views. The data comes with you.</p><span
+      >Illustrative demo · changes stay on this page</span
+    >
+  </div>
+  <noscript
+    ><p class="demo-data-note">
+      Enable JavaScript to try the interactive views. This illustration uses example data.
+    </p></noscript
+  >
+</section>
+
+<script>
+  const playground = document.querySelector<HTMLElement>('[data-playground]')
+  if (playground) {
+    const films = [
+      { id: 'moon', title: 'Moon garden', votes: 8 },
+      { id: 'road', title: 'The long way home', votes: 5 },
+      { id: 'signal', title: 'Soft signals', votes: 3 }
+    ]
+    let vote: string | null = null
+    const watched = new Set<string>()
+    const tabs = [...playground.querySelectorAll<HTMLButtonElement>('[data-view]')]
+    const status = playground.querySelector<HTMLElement>('[data-demo-status]')!
+    const announce = (message: string) => {
+      status.textContent = message
+    }
+    const selectView = (tab: HTMLButtonElement) => {
+      for (const candidate of tabs) {
+        const selected = candidate === tab
+        candidate.setAttribute('aria-selected', String(selected))
+        candidate.tabIndex = selected ? 0 : -1
+        playground.querySelector<HTMLElement>(`#demo-${candidate.dataset.view}`)!.hidden = !selected
+      }
+    }
+    for (const tab of tabs) {
+      tab.addEventListener('click', () => selectView(tab))
+      tab.addEventListener('keydown', (event) => {
+        const index = tabs.indexOf(tab)
+        const target =
+          event.key === 'ArrowRight'
+            ? tabs[(index + 1) % tabs.length]
+            : event.key === 'ArrowLeft'
+              ? tabs[(index + tabs.length - 1) % tabs.length]
+              : event.key === 'Home'
+                ? tabs[0]
+                : event.key === 'End'
+                  ? tabs.at(-1)
+                  : undefined
+        if (!target) return
+        event.preventDefault()
+        selectView(target)
+        target.focus()
+      })
+    }
+    const render = () => {
+      for (const film of films) {
+        const selected = vote === film.id
+        const count = film.votes + Number(selected)
+        const button = playground.querySelector<HTMLButtonElement>(`[data-vote="${film.id}"]`)!
+        button.setAttribute('aria-pressed', String(selected))
+        button.querySelector('[data-vote-label]')!.textContent = selected ? 'Voted ✓' : 'Vote'
+        button.querySelector('[data-vote-count]')!.textContent = String(count)
+        playground.querySelector(`[data-list-votes="${film.id}"]`)!.textContent = `${count} votes`
+        playground.querySelector(`[data-list-status="${film.id}"]`)!.textContent = watched.has(
+          film.id
+        )
+          ? 'Watched ✓'
+          : 'On the watchlist'
+        const card = playground.querySelector<HTMLElement>(`[data-film-card="${film.id}"]`)!
+        const column = playground.querySelector(
+          watched.has(film.id) ? '[data-watched-column]' : '[data-next-column]'
+        )!
+        // Keep focus in place when another view updates the shared example data.
+        if (card.parentElement !== column) column.append(card)
+        const watchButton = card.querySelector<HTMLButtonElement>('[data-watch]')!
+        watchButton.textContent = watched.has(film.id) ? 'Watch again ↩' : 'Mark watched ↗'
+        watchButton.setAttribute(
+          'aria-label',
+          watched.has(film.id)
+            ? `Move ${film.title} back to the watchlist`
+            : `Mark ${film.title} as watched`
+        )
+      }
+      playground.querySelector('[data-next-count]')!.textContent = String(
+        films.length - watched.size
+      )
+      playground.querySelector('[data-watched-count]')!.textContent = String(watched.size)
+      playground.querySelector<HTMLElement>('[data-next-empty]')!.hidden =
+        watched.size !== films.length
+      playground.querySelector<HTMLElement>('[data-watched-empty]')!.hidden = watched.size !== 0
+    }
+    for (const button of playground.querySelectorAll<HTMLButtonElement>('[data-vote]')) {
+      button.addEventListener('click', () => {
+        const film = films.find((item) => item.id === button.dataset.vote)!
+        vote = vote === film.id ? null : film.id
+        render()
+        announce(
+          vote
+            ? `You voted for ${film.title}. The list view has updated too.`
+            : 'Your vote was removed.'
+        )
+      })
+    }
+    for (const button of playground.querySelectorAll<HTMLButtonElement>('[data-watch]')) {
+      button.addEventListener('click', () => {
+        const film = films.find((item) => item.id === button.dataset.watch)!
+        if (watched.has(film.id)) watched.delete(film.id)
+        else watched.add(film.id)
+        render()
+        button.focus()
+        announce(
+          `${film.title} ${watched.has(film.id) ? 'marked as watched' : 'returned to the watchlist'}. The list view has updated too.`
+        )
+      })
+    }
+    playground.querySelector('[data-reset]')!.addEventListener('click', () => {
+      vote = null
+      watched.clear()
+      render()
+      announce('Example votes and watch status reset.')
+    })
+  }
+</script>

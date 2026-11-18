@@ -2,6 +2,10 @@
   appId: 'dev.xnet.app',
   productName: 'xNet',
   copyright: 'Copyright 2024 xNet Contributors',
+  protocols: [
+    { name: 'xNet invitation', schemes: ['xnet'] },
+    { name: 'xNet sign-in', schemes: ['fyi.xnet'] }
+  ],
 
   directories: {
     output: 'dist',

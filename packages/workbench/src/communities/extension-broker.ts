@@ -382,6 +382,19 @@ export function createExtensionBroker(
     }
   }
   return {
+    async undoNeedsRemoval(id: string): Promise<boolean> {
+      check()
+      await authority.read()
+      await recover(id)
+      const receipt = receipts.get(id)
+      return (
+        !!receipt &&
+        !receipt.undone &&
+        receipt.after.some(
+          (node, index) => !receipt.before[index] || node.deleted !== receipt.before[index]!.deleted
+        )
+      )
+    },
     async request(input: unknown, signal?: AbortSignal): Promise<ExtensionMutationResult> {
       check()
       if (signal?.aborted) throw new ExtensionAccessError('cancelled', 'The request was cancelled.')

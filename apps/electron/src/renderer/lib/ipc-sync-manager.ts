@@ -24,6 +24,7 @@ import {
   type ConnectionManager
 } from '@xnetjs/react'
 import { createSyncLifecycleState } from '@xnetjs/sync'
+import { isPeerRecord } from '@xnetjs/workbench/peer-chat'
 import {
   Awareness,
   encodeAwarenessUpdate,
@@ -32,6 +33,7 @@ import {
 } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { configuredHubUrl } from './hub-url'
+import { hubStore } from './peer-sync-policy'
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 type StatusHandler = (status: ConnectionStatus) => void
@@ -113,12 +115,12 @@ export function createIPCSyncManager(): IPCSyncManager {
       getUCANToken: bsmStartOptions.ucanToken ? undefined : nodeAuth,
       ucanToken: bsmStartOptions.ucanToken
     })
-    const store = nodeStore
+    const store = hubStore(nodeStore)
     nodeProvider = new NodeStoreSyncProvider(
       store,
       identityAuthorDID,
       false,
-      (change) => !store.isDraftPrivate(change.payload.nodeId)
+      (change) => !isPeerRecord(change.payload.nodeId) && !store.isDraftPrivate(change.payload.nodeId)
     )
     nodeProvider.attach(nodeConnection)
     for (const [room, entry] of shareRooms) {
@@ -341,13 +343,14 @@ export function createIPCSyncManager(): IPCSyncManager {
       }
     },
     subscribeShareRoom(room) {
+      if (room.includes('iroh-')) return
       const existing = shareRooms.get(room)
       if (existing) {
         existing.refs += 1
         return
       }
       const provider =
-        nodeStore && nodeConnection ? new NodeStoreSyncProvider(nodeStore, room, true) : null
+        nodeStore && nodeConnection ? new NodeStoreSyncProvider(hubStore(nodeStore), room, true) : null
       shareRooms.set(room, { refs: 1, provider })
       if (provider && nodeConnection) provider.attach(nodeConnection)
     },

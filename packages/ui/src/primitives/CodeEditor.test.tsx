@@ -4,7 +4,15 @@ import { CodeEditor, codeMirrorLanguage } from './CodeEditor'
 
 describe('codeMirrorLanguage', () => {
   it('returns an extension for every supported language', () => {
-    for (const lang of ['javascript', 'typescript', 'python', 'rust', 'c', 'plaintext'] as const) {
+    for (const lang of [
+      'javascript',
+      'typescript',
+      'tsx',
+      'python',
+      'rust',
+      'c',
+      'plaintext'
+    ] as const) {
       expect(codeMirrorLanguage(lang)).toBeDefined()
     }
   })

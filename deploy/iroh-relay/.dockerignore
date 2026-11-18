@@ -1,0 +1,5 @@
+*
+!gateway.mjs
+!relay.toml
+!Dockerfile
+!entrypoint.sh

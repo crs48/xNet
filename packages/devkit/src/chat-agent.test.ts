@@ -176,6 +176,13 @@ describe('reduceStreamJsonLine', () => {
 })
 
 describe('cliStreamingChatAgent', () => {
+  it('refuses image turns in both text-only streaming entry points', async () => {
+    const agent = cliStreamingChatAgent(new FakeLineRunner([]), { command: 'claude', cwd: '/ws' })
+    const turn = { prompt: 'Inspect', images: [{ mimeType: 'image/png' as const, data: 'YWJj' }] }
+    await expect(agent.streamTurn(turn, () => {})).rejects.toThrow('image input')
+    await expect(agent.streamTurnFrames(turn, () => {})).rejects.toThrow('image input')
+  })
+
   const turnLines = [
     JSON.stringify({ type: 'system', subtype: 'init', session_id: 'sess-1' }),
     JSON.stringify({

@@ -43,6 +43,7 @@ export function agentRunLabel(run: CommunityAgentRun): string {
   if (run.status === 'failed') return 'Couldn’t finish'
   if (run.status === 'completed')
     return run.published || run.purpose === 'extension' ? 'Finished' : 'Saving the reply'
+  if (run.previewCheck?.status === 'running') return run.previewCheck.summary
   const phase = run.activity?.at(-1)?.phase
   return phase
     ? agentPhaseLabels[phase]

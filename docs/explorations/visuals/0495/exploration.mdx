@@ -1,0 +1,296 @@
+import { useState } from 'react'
+import { Meta } from '@storybook/addon-docs/blocks'
+import { Screen, Callout } from '@xnetjs/ui/exploration'
+import canonicalUrl from '../../0495_[_]_TAURI_GAME_STUDIO_WITHOUT_XNET.md?url'
+
+export function SketchThemes({ children }) {
+  const [theme, setTheme] = useState('light')
+  return (
+    <section
+      className={`${theme} sb-unstyled`}
+      style={{
+        display: 'grid',
+        gap: '24px',
+        padding: '16px',
+        background: 'hsl(var(--surface-0))',
+        color: 'hsl(var(--ink-1))'
+      }}
+    >
+      <div
+        role="group"
+        aria-label="Sketch theme"
+        style={{ display: 'flex', gap: '12px', alignItems: 'center' }}
+      >
+        <span>Sketch theme</span>
+        <button type="button" aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>
+          Light sketches
+        </button>
+        <button type="button" aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>
+          Dark sketches
+        </button>
+      </div>
+      {children}
+    </section>
+  )
+}
+
+<Meta title="Explorations/0495 Standalone Tauri studio" />
+
+# 0495 — A place to make games together
+
+<Callout tone="decision">
+  Speculative, static wireframes—not a running Tauri app. Games, people, and activity are
+  illustrative. Architecture, tradeoffs, and implementation steps live in the{' '}
+  <a href={canonicalUrl}>canonical exploration</a>.
+</Callout>
+
+<SketchThemes>
+
+## Find a game, meet its makers
+
+<div style={{ display: 'grid' }}>
+  <Screen
+    surface="desktop"
+    label="Discover · followed creators and community picks, with a clear destination for each note."
+  >
+    <div style={{ display: 'grid', gridTemplateColumns: '160px minmax(0, 1fr)' }}>
+      <nav
+        aria-label="Discovery navigation"
+        style={{
+          padding: '16px',
+          display: 'grid',
+          gap: '14px',
+          alignContent: 'start',
+          background: 'var(--wf-card)'
+        }}
+      >
+        <h2>xNet</h2>
+        <button className="primary">Discover</button>
+        <button>Chats · 2</button>
+        <button>Your games</button>
+        <hr />
+        <small>Pinned workshops</small>
+        <p>Moon Garden</p>
+        <p>Weekend jam</p>
+        <hr />
+        <small>Chris</small>
+        <small>Agent connected</small>
+      </nav>
+      <main style={{ padding: '20px', display: 'grid', gap: '16px' }}>
+        <header
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: '12px',
+            alignItems: 'center'
+          }}
+        >
+          <h1>Made by people you know</h1>
+          <button aria-label="Find games">
+            <span data-icon="search" aria-label="Search" />
+          </button>
+        </header>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <span className="wf-pill accent">Following</span>
+          <span className="wf-pill">Open playtests</span>
+          <span className="wf-pill">Community picks</span>
+        </div>
+        <article className="wf-card" style={{ display: 'grid', gap: '12px' }}>
+          <small>Nikki shared an update · Following</small>
+          <h2>Moon Garden</h2>
+          <p>A tiny garden that only grows at night. The moths finally follow the lantern.</p>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button className="primary">Play in browser</button>
+            <button>Ask to join the workshop</button>
+          </div>
+          <hr />
+          <label htmlFor="discovery-note">Send Nikki a private note</label>
+          <input
+            id="discovery-note"
+            type="text"
+            value="The lantern idea is lovely. I'd love to try making a moth!"
+            readOnly
+          />
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: '12px',
+              alignItems: 'center'
+            }}
+          >
+            <small>Arrives as a message request</small>
+            <button>Send note</button>
+          </div>
+        </article>
+        <article className="wf-card" style={{ display: 'grid', gap: '8px' }}>
+          <small>Weekend jam · Community pick</small>
+          <h3>Sidewalk Orchestra</h3>
+          <p>Turn a walk around the block into a song.</p>
+          <small>Looking for playtesters · 5-minute game</small>
+        </article>
+        <small>You're caught up with these collections.</small>
+      </main>
+    </div>
+  </Screen>
+</div>
+
+## Talk, try a change, play it together
+
+<div style={{ display: 'grid' }}>
+  <Screen
+    surface="desktop"
+    label="Private workshop · an agent experiment is ready to try; approval remains separate from publishing."
+  >
+    <div style={{ display: 'grid', gridTemplateColumns: '160px minmax(0, 1fr)' }}>
+      <nav
+        aria-label="Workshop navigation"
+        style={{
+          padding: '16px',
+          display: 'grid',
+          gap: '14px',
+          alignContent: 'start',
+          background: 'var(--wf-card)'
+        }}
+      >
+        <h2>xNet</h2>
+        <button>Discover</button>
+        <button>Chats</button>
+        <button>Your games</button>
+        <hr />
+        <small>Pinned workshops</small>
+        <button className="primary">Moon Garden</button>
+        <p>Weekend jam</p>
+        <hr />
+        <small>Nikki · Chris</small>
+        <small>Workshop connected</small>
+      </nav>
+      <main style={{ padding: '20px', display: 'grid', gap: '14px' }}>
+        <header
+          style={{
+            display: 'flex',
+            gap: '10px',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          <div>
+            <h1>Moon Garden</h1>
+            <small>Private workshop · 2 members</small>
+          </div>
+          <button>Open in Godot</button>
+        </header>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <span className="wf-pill accent">Chat</span>
+          <span className="wf-pill">Play</span>
+          <span className="wf-pill">Build</span>
+        </div>
+        <article style={{ display: 'grid', gap: '5px' }}>
+          <h3>Nikki</h3>
+          <p>Could the moth land on your hand if you stand still?</p>
+        </article>
+        <article style={{ display: 'grid', gap: '5px' }}>
+          <h3>Chris</h3>
+          <p>@Codex try that. Keep it gentle, like it's deciding whether to trust you.</p>
+        </article>
+        <article className="wf-card" style={{ display: 'grid', gap: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+            <h3>Codex · Ready to try</h3>
+            <span className="wf-pill">Chris's agent</span>
+          </div>
+          <p>The moth waits, circles once, then lands. Your shared game is unchanged.</p>
+          <small>Import checked · Landing playtest passed · Screenshot captured</small>
+          <small>Not checked: gamepad controls</small>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button className="primary">Try experiment</button>
+            <button>Review change</button>
+            <button>View evidence</button>
+          </div>
+          <small>Only Moon Garden's experiment folder and this request were shared.</small>
+        </article>
+        <div className="wf-box" style={{ display: 'grid', gap: '8px' }}>
+          <label htmlFor="workshop-reply">Message the workshop</label>
+          <input
+            id="workshop-reply"
+            type="text"
+            placeholder="Try it, leave feedback, or ask for a change…"
+            readOnly
+          />
+          <small>Private · Mention an agent to ask it to help</small>
+        </div>
+      </main>
+    </div>
+  </Screen>
+</div>
+
+## Keep the promise clear when the host is away
+
+<div style={{ display: 'grid' }}>
+  <Screen
+    surface="desktop"
+    label="Offline state · local work is durable; acceptance and collaboration wait for the workshop host."
+  >
+    <div style={{ display: 'grid', gridTemplateColumns: '160px minmax(0, 1fr)' }}>
+      <nav
+        aria-label="Offline navigation"
+        style={{
+          padding: '16px',
+          display: 'grid',
+          gap: '14px',
+          alignContent: 'start',
+          background: 'var(--wf-card)'
+        }}
+      >
+        <h2>xNet</h2>
+        <button>Discover</button>
+        <button>Chats</button>
+        <button>Your games</button>
+        <hr />
+        <small>Pinned workshops</small>
+        <button className="primary">Moon Garden</button>
+        <p>Weekend jam</p>
+        <hr />
+        <small>2 items waiting</small>
+      </nav>
+      <main style={{ padding: '20px', display: 'grid', gap: '16px', alignContent: 'start' }}>
+        <header>
+          <h1>Moon Garden</h1>
+          <small>Private workshop · Host unavailable</small>
+        </header>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <span className="wf-pill accent">Chat</span>
+          <span className="wf-pill">Play</span>
+          <span className="wf-pill">Build</span>
+        </div>
+        <section className="wf-card" style={{ display: 'grid', gap: '10px' }}>
+          <h2>Your work is saved here</h2>
+          <p>Nikki's computer hosts this workshop. We can't reach it right now.</p>
+          <p>You can read earlier messages and keep working on your own experiment.</p>
+          <button>Continue my experiment</button>
+        </section>
+        <article style={{ display: 'grid', gap: '6px' }}>
+          <h3>Chris</h3>
+          <p>I tried the landing. Could we make the pause a little longer?</p>
+          <small>Saved on this device · Waiting to sync</small>
+        </article>
+        <article className="wf-box" style={{ display: 'grid', gap: '6px' }}>
+          <h3>Playtest note</h3>
+          <p>The moth lands too quickly after I stop walking.</p>
+          <small>Screenshot saved here · Not shared yet</small>
+        </article>
+        <details>
+          <summary>About workshop availability</summary>
+          <p style={{ paddingTop: '10px' }}>
+            An always-on community host can keep the workshop reachable. Moving it needs an explicit
+            handoff and a review of who can access its data.
+          </p>
+        </details>
+        <small>
+          We'll retry when the host is reachable. Closing the app keeps your local drafts.
+        </small>
+      </main>
+    </div>
+  </Screen>
+</div>
+
+</SketchThemes>

@@ -1,5 +1,13 @@
-import { X, ArrowUpRight } from 'lucide-react'
-import { useEffect, useRef, type ReactNode, type ButtonHTMLAttributes } from 'react'
+import { Dialog, DialogContent, DialogTitle, TabsContent, Tooltip } from '@xnetjs/ui'
+import { ArrowUpRight } from 'lucide-react'
+import {
+  forwardRef,
+  useEffect,
+  useRef,
+  type ReactNode,
+  type ButtonHTMLAttributes,
+  type RefObject
+} from 'react'
 import { initials } from './model'
 export function Avatar({ name, large = false }: { name: string; large?: boolean }) {
   return (
@@ -11,63 +19,109 @@ export function Avatar({ name, large = false }: { name: string; large?: boolean 
     </span>
   )
 }
-export function IconButton({
-  label,
-  children,
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
+export const IconButton = forwardRef<
+  HTMLButtonElement,
+  ButtonHTMLAttributes<HTMLButtonElement> & { label: string }
+>(function IconButton({ label, children, ...props }, ref) {
   return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      {...props}
-      className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 ${props.className ?? ''}`}
-    >
-      {children}
-    </button>
+    <Tooltip content={label} className="community-tooltip" delayDuration={450}>
+      <button
+        ref={ref}
+        type="button"
+        aria-label={label}
+        {...props}
+        className={`chat-icon-button inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 ${props.className ?? ''}`}
+      >
+        {children}
+      </button>
+    </Tooltip>
   )
-}
+})
 export const primaryButton =
-  'inline-flex items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed'
+  'chat-button-primary inline-flex items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed'
 export const secondaryButton =
-  'inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted disabled:opacity-40'
+  'chat-button-secondary inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm hover:bg-muted disabled:opacity-40'
 export const inputClass =
   'w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring'
 export function Modal({
   title,
   children,
-  onClose
+  onClose,
+  size = 'default',
+  footer,
+  finalFocus
 }: {
+  size?: 'default' | 'wide'
+  footer?: ReactNode
+  finalFocus?: RefObject<HTMLElement | null>
   title: string
   children: ReactNode
   onClose: () => void
 }) {
-  const ref = useRef<HTMLDialogElement>(null)
-  useEffect(() => {
-    const dialog = ref.current
-    dialog?.showModal()
-    return () => dialog?.close()
-  }, [])
-  return (
-    <dialog
-      ref={ref}
-      aria-label={title}
-      onCancel={(event) => {
-        event.preventDefault()
-        onClose()
-      }}
-      className="community-modal m-auto w-[min(520px,calc(100vw-32px))] rounded-2xl border border-border bg-background p-0 text-foreground shadow-xl backdrop:bg-black/30"
-    >
-      <div className="flex items-center justify-between border-b border-border px-6 py-4">
-        <h2 className="text-base font-semibold">{title}</h2>
-        <IconButton label="Close dialog" onClick={onClose}>
-          <X size={18} />
-        </IconButton>
-      </div>
-      <div className="max-h-[75vh] overflow-y-auto p-6">{children}</div>
-    </dialog>
+  const returnFocus = useRef(
+    typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null
   )
+  const focusTarget = finalFocus ?? returnFocus
+  useEffect(() => {
+    const target = focusTarget.current
+    return () => {
+      queueMicrotask(() => {
+        if (
+          target?.isConnected &&
+          (!document.activeElement || document.activeElement === document.body)
+        )
+          target.focus({ preventScroll: true })
+      })
+    }
+  }, [focusTarget])
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    >
+      <DialogContent
+        finalFocus={focusTarget}
+        className={`community-modal ${size === 'wide' ? '!w-[min(960px,calc(100vw-32px))]' : '!w-[min(520px,calc(100vw-32px))]'} !max-w-none !max-h-[calc(100vh-32px)] !flex !flex-col !gap-0 !rounded-2xl !p-0`}
+      >
+        <div className="shrink-0 border-b border-border px-6 py-4 pr-12">
+          <DialogTitle>{title}</DialogTitle>
+        </div>
+        <div className="min-h-0 max-h-[min(75vh,720px)] overflow-y-auto p-6">{children}</div>
+        {footer && <div className="shrink-0 border-t border-border px-6 py-4">{footer}</div>}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Keep panel IDs mounted so every tab has a stable accessible relationship. */
+export function ChatTabPanels({
+  value,
+  values,
+  children,
+  className = '',
+  disabled = false
+}: {
+  value: string
+  values: readonly string[]
+  children: ReactNode
+  className?: string
+  disabled?: boolean
+}) {
+  if (disabled) return <div className={`min-h-0 ${className}`}>{children}</div>
+  return values.map((item) => (
+    <TabsContent
+      key={item}
+      value={item}
+      keepMounted
+      className={`!mt-0 min-h-0 outline-none ${className}`}
+    >
+      {item === value ? children : null}
+    </TabsContent>
+  ))
 }
 export function EmptyState({
   icon,

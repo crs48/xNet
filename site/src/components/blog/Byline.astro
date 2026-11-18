@@ -86,7 +86,7 @@ const avatarSize = compact ? 18 : 24
     ))
   }
   {
-    !compact && (
+    !compact && !post.draft && (
       <>
         <span aria-hidden="true">·</span>
         <PostHistory post={post} />
@@ -95,4 +95,4 @@ const avatarSize = compact ? 18 : 24
   }
 </div>
 
-{!compact && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+{!compact && !post.draft && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}

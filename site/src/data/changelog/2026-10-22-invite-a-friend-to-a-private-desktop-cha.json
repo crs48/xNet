@@ -1,0 +1,12 @@
+{
+  "id": "2026-10-22-invite-a-friend-to-a-private-desktop-cha",
+  "date": "October 22, 2026",
+  "title": "Invite a friend to a private desktop chat preview",
+  "summary": "Create an expiring invitation, approve your friend, and exchange text messages over encrypted peer connections with relay fallback and local history.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "sync"
+  ],
+  "pr": 728
+}

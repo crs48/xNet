@@ -19,7 +19,7 @@ import { applyQueryDescriptor, createQueryDescriptor } from '@xnetjs/data-bridge
 import { createDID } from '@xnetjs/identity'
 import { describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
-import { openExtensionAuthority } from './extension-authority'
+import { extendExtensionAuthority, openExtensionAuthority } from './extension-authority'
 import { createExtensionBroker } from './extension-broker'
 import { createExtensionDataBridge, readExtensionGrant } from './extension-data'
 import { editableDocumentText, saveExtensionDocument } from './extension-document-editing'
@@ -236,6 +236,19 @@ async function editorSetup() {
 }
 
 describe('host document edits', () => {
+  it('keeps an approved document editor working after an unrelated permission upgrade', async () => {
+    const env = await editorSetup()
+    await extendExtensionAuthority(env.bridge, env.authority, {
+      ...env.grant,
+      taskWrites: { ids: [], create: true, remove: false }
+    })
+    await env.save('After task access was added')
+    expect(editableDocumentText(env.doc)?.text).toBe('After task access was added')
+    expect((await env.authority.read()).approval.commands).toBe(1)
+    await env.authority.revoke()
+    await expect(env.save('Not allowed')).rejects.toMatchObject({ code: 'revoked' })
+    env.doc.destroy()
+  })
   it('commits attributed text and authority together, preserves CRDT history, and survives reopening', async () => {
     const env = await editorSetup()
     const initial = Y.encodeStateAsUpdate(env.doc)

@@ -11,7 +11,7 @@
  * Communication with renderers happens via MessagePort for binary efficiency.
  * Events are sent to main process for relay to the appropriate window.
  */
-
+import type { Cursor, WireChange } from '../main/peers/protocol'
 import type { ContentId, DID } from '@xnetjs/core'
 import type {
   ApplyNodeBatchResult,
@@ -190,6 +190,7 @@ export interface DataService {
   appendChange(change: SerializedNodeChange): Promise<void>
   getChanges(nodeId: string): Promise<SerializedNodeChange[]>
   getAllChanges(): Promise<SerializedNodeChange[]>
+  getPeerChanges(channel: string, author: string, cursor: Cursor): Promise<WireChange[]>
   getChangesSince(sinceLamport: number): Promise<SerializedNodeChange[]>
   getChangeByHash(hash: string): Promise<SerializedNodeChange | null>
   getLastChange(nodeId: string): Promise<SerializedNodeChange | null>
@@ -1335,6 +1336,26 @@ export function createDataService(config: DataServiceConfig): DataService {
 
     async getAllChanges(): Promise<SerializedNodeChange[]> {
       return (await requireNodeStorage().getAllChanges()).map(serializeNodeChange)
+    },
+
+    async getPeerChanges(channel, author, cursor) {
+      if (!adapter) throw new Error('Database not initialized')
+      if (!/^iroh-[a-f0-9-]{36}(?:-channel-[a-f0-9-]{36})?$/.test(channel))
+        throw new Error('Invalid peer channel')
+      const prefix = `${channel}-message-${author}-`
+      const rows = await adapter.query<{ hash: string }>(
+        `SELECT hash FROM changes WHERE node_id >= ? AND node_id < ? AND author = ?
+         AND (lamport_time > ? OR (lamport_time = ? AND hash > ?))
+         ORDER BY lamport_time ASC, hash ASC LIMIT 3`,
+        [prefix, prefix + '\uffff', author, cursor.lamport, cursor.lamport, cursor.hash]
+      )
+      return Promise.all(
+        rows.map(async ({ hash }) => {
+          const change = await requireNodeStorage().getChangeByHash(hash as ContentId)
+          if (!change) throw new Error('Peer change disappeared during synchronization')
+          return { ...change, signature: Array.from(change.signature) }
+        })
+      )
     },
 
     async getChangesSince(sinceLamport: number): Promise<SerializedNodeChange[]> {

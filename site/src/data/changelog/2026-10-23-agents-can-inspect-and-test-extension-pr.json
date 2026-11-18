@@ -1,0 +1,12 @@
+{
+  "id": "2026-10-23-agents-can-inspect-and-test-extension-pr",
+  "date": "October 23, 2026",
+  "title": "Agents can inspect and test extension previews",
+  "summary": "Extension drafts now get a bounded screenshot and interaction check, with clear results in chat. Grid layouts and square game cells render correctly, and tests run without personal data.",
+  "highlights": [],
+  "tags": [
+    "ai",
+    "plugins"
+  ],
+  "pr": 728
+}

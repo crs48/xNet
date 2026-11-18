@@ -28,7 +28,17 @@
  */
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync
+} from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -70,10 +80,42 @@ function stampKey() {
 
 function rebuild(reason) {
   console.log(`[electron] rebuilding native modules — ${reason}`)
-  execFileSync('pnpm', ['dlx', '@electron/rebuild', '-f', '-w', MODULES.join(',')], {
-    cwd: appDir,
-    stdio: 'inherit'
-  })
+  // Workspace libraries can retain another Node-only SQLite version. Rebuild
+  // exactly the native bindings this app resolves, not every workspace peer.
+  const isolated = mkdtempSync(join(tmpdir(), 'xnet-native-rebuild-'))
+  try {
+    mkdirSync(join(isolated, 'node_modules'))
+    const dependencies = {}
+    for (const name of MODULES) {
+      const local = join(appDir, 'node_modules', name)
+      const path = existsSync(local) ? local : join(repoRoot, 'node_modules', name)
+      if (!existsSync(path)) continue
+      symlinkSync(realpathSync(path), join(isolated, 'node_modules', name), 'junction')
+      dependencies[name] = versionOf(name)
+    }
+    writeFileSync(
+      join(isolated, 'package.json'),
+      JSON.stringify({ name: 'xnet-native-rebuild', version: '0.0.0', dependencies })
+    )
+    execFileSync(
+      'corepack',
+      [
+        'pnpm',
+        'dlx',
+        '@electron/rebuild',
+        '-f',
+        '--module-dir',
+        isolated,
+        '--version',
+        versionOf('electron'),
+        '--only',
+        MODULES.join(',')
+      ],
+      { cwd: appDir, stdio: 'inherit' }
+    )
+  } finally {
+    rmSync(isolated, { recursive: true, force: true })
+  }
 }
 
 if (process.argv.includes('--invalidate')) {

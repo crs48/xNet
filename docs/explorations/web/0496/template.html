@@ -1,0 +1,1116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="An exploration of portable data, public media, private messaging, and software people can reshape. A possible next foundation for xNet."
+    />
+    <title>Start small. Stay yours. — xNet exploration 0496</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f6f7;
+        --paper: #fff;
+        --ink: #202630;
+        --muted: #56616e;
+        --line: #dce1e6;
+        --accent: #2553a1;
+        --tint: #eaf0fa;
+        --code: #eef0f3;
+        --strong: #1d304c;
+      }
+      [data-theme='dark'] {
+        color-scheme: dark;
+        --bg: #14181f;
+        --paper: #1b212a;
+        --ink: #e7ebf2;
+        --muted: #a9b4c3;
+        --line: #364150;
+        --accent: #a5c6ff;
+        --tint: #25344b;
+        --code: #252d38;
+        --strong: #cfdef7;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 90px;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        line-height: 1.7;
+        font-size: 16px;
+      }
+      a {
+        color: var(--accent);
+        text-underline-offset: 4px;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button,
+      a,
+      input,
+      select,
+      summary {
+        -webkit-tap-highlight-color: transparent;
+      }
+      :focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 4px;
+      }
+      button {
+        cursor: pointer;
+      }
+      .skip {
+        position: fixed;
+        top: -100px;
+        left: 20px;
+        padding: 8px 16px;
+        background: var(--paper);
+        z-index: 100;
+      }
+      .skip:focus {
+        top: 10px;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        height: 66px;
+        background: var(--paper);
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 36px;
+        gap: 20px;
+      }
+      .brand {
+        color: var(--ink);
+        text-decoration: none;
+        font-size: 22px;
+        font-weight: 750;
+        letter-spacing: -1px;
+      }
+      .header-note {
+        font-size: 12px;
+        color: var(--muted);
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-left: 18px;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .quiet-button {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--paper);
+        color: var(--ink);
+        padding: 6px 12px;
+        font-size: 13px;
+        text-decoration: none;
+      }
+      .quiet-button:hover {
+        background: var(--code);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 235px minmax(0, 1fr);
+        max-width: 1440px;
+        margin: auto;
+      }
+      aside {
+        position: sticky;
+        top: 66px;
+        height: calc(100vh - 66px);
+        overflow: auto;
+        padding: 30px 16px 40px 24px;
+        border-right: 1px solid var(--line);
+      }
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      nav {
+        margin-top: 14px;
+      }
+      nav a {
+        display: flex;
+        gap: 10px;
+        font-size: 12px;
+        line-height: 1.45;
+        padding: 9px 8px;
+        color: var(--muted);
+        text-decoration: none;
+        border-radius: 7px;
+        margin-bottom: 2px;
+      }
+      nav a span {
+        flex: 0 0 19px;
+        font-variant-numeric: tabular-nums;
+        opacity: 0.7;
+      }
+      nav a:hover,
+      nav a[aria-current='location'] {
+        color: var(--ink);
+        background: var(--paper);
+      }
+      .aside-note {
+        margin: 25px 8px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      main {
+        min-width: 0;
+        padding: 64px clamp(22px, 5vw, 78px) 80px;
+      }
+      .hero {
+        max-width: 930px;
+        padding-bottom: 38px;
+        border-bottom: 1px solid var(--line);
+      }
+      .hero h1 {
+        font-size: clamp(48px, 6.6vw, 88px);
+        line-height: 1.02;
+        letter-spacing: -0.065em;
+        font-weight: 650;
+        margin: 22px 0;
+      }
+      .hero h1 span {
+        color: var(--accent);
+      }
+      .hero .intro {
+        font-size: 21px;
+        line-height: 1.55;
+        max-width: 690px;
+        color: var(--muted);
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 24px;
+        margin-top: 28px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .pill {
+        border: 1px solid var(--line);
+        border-radius: 100px;
+        padding: 2px 9px;
+      }
+      .premise {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 22px;
+        padding: 29px 0 40px;
+      }
+      .premise b {
+        display: block;
+        font-size: 15px;
+      }
+      .premise p {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 6px 0;
+      }
+      .explorer {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 26px;
+        margin-bottom: 48px;
+      }
+      .explorer h2 {
+        font-size: 25px;
+        letter-spacing: -0.7px;
+        margin: 4px 0 7px;
+        line-height: 1.3;
+      }
+      .explorer p {
+        color: var(--muted);
+        font-size: 14px;
+        margin: 0 0 20px;
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      label {
+        font-size: 12px;
+        font-weight: 650;
+        display: block;
+      }
+      select,
+      input {
+        width: 100%;
+        color: var(--ink);
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 9px 10px;
+        margin-top: 5px;
+        min-width: 0;
+      }
+      .scenario-flow {
+        display: flex;
+        align-items: stretch;
+        gap: 10px;
+        margin: 25px 0 20px;
+      }
+      .scenario-flow div {
+        background: var(--tint);
+        border-radius: 9px;
+        padding: 14px 12px;
+        flex: 1;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--strong);
+      }
+      .scenario-flow i {
+        align-self: center;
+        color: var(--muted);
+        font-style: normal;
+      }
+      .scenario-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px 25px;
+      }
+      .scenario-grid dt {
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-weight: 650;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+      .scenario-grid dd {
+        font-size: 13px;
+        margin: 0;
+      }
+      .scenario-note {
+        border-top: 1px solid var(--line);
+        padding-top: 15px;
+        margin: 18px 0 0 !important;
+      }
+      article {
+        max-width: 930px;
+      }
+      .chapter {
+        padding: 0 0 28px;
+        margin-bottom: 28px;
+        border-bottom: 1px solid var(--line);
+      }
+      .chapter h2 {
+        color: var(--ink);
+        font-size: 30px;
+        line-height: 1.25;
+        letter-spacing: -0.8px;
+        margin: 0 0 23px;
+      }
+      .chapter h3 {
+        font-size: 21px;
+        line-height: 1.4;
+        letter-spacing: -0.35px;
+        margin: 30px 0 12px;
+      }
+      article p,
+      article li {
+        max-width: 76ch;
+      }
+      article p {
+        margin: 16px 0;
+      }
+      article ul {
+        padding-left: 23px;
+      }
+      article li {
+        margin: 9px 0;
+      }
+      article blockquote {
+        margin: 22px 0;
+        padding: 14px 21px;
+        border-left: 3px solid var(--accent);
+        background: var(--tint);
+        border-radius: 0 10px 10px 0;
+      }
+      article blockquote p {
+        margin: 0;
+      }
+      .repo-reference {
+        color: inherit;
+        border-bottom: 1px dotted var(--muted);
+        text-decoration: none;
+        cursor: help;
+      }
+      .table-scroll {
+        overflow: auto;
+        margin: 22px 0;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        line-height: 1.6;
+        text-align: left;
+        background: var(--paper);
+      }
+      th {
+        background: var(--code);
+        font-weight: 650;
+      }
+      th,
+      td {
+        padding: 13px 14px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+        min-width: 135px;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      pre {
+        background: var(--code);
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 18px;
+        font-size: 12px;
+        line-height: 1.65;
+        overflow: auto;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 0.88em;
+      }
+      :not(pre) > code {
+        background: var(--code);
+        padding: 2px 4px;
+        border-radius: 4px;
+        overflow-wrap: anywhere;
+      }
+      .architecture {
+        margin: 24px 0;
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--paper);
+      }
+      .diagram-stack {
+        text-align: center;
+      }
+      .diagram-root {
+        background: var(--tint);
+        padding: 12px;
+        border-radius: 8px;
+        color: var(--strong);
+        font-size: 14px;
+      }
+      .diagram-arrow {
+        color: var(--muted);
+        padding: 4px;
+      }
+      .diagram-columns {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 9px;
+      }
+      .diagram-columns > div {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 9px;
+        font-size: 12px;
+      }
+      .diagram-columns b,
+      .diagram-columns span {
+        display: block;
+      }
+      .diagram-columns span {
+        color: var(--muted);
+        margin-top: 5px;
+      }
+      .diagram-stack p {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 15px auto;
+      }
+      .diagram-columns.two {
+        grid-template-columns: 1fr 1fr;
+        margin-top: 15px;
+      }
+      .diagram-pipeline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+      }
+      .diagram-pipeline span {
+        flex: 1;
+        padding: 12px;
+        background: var(--tint);
+        border-radius: 8px;
+      }
+      .diagram-pipeline i {
+        font-style: normal;
+      }
+      details {
+        font-size: 12px;
+        margin-top: 12px;
+        color: var(--muted);
+      }
+      summary {
+        cursor: pointer;
+        padding: 4px 0;
+      }
+      .message-sequence {
+        padding-left: 23px;
+        margin: 0;
+        font-size: 13px;
+      }
+      .message-sequence b {
+        display: block;
+      }
+      .message-sequence span {
+        color: var(--muted);
+      }
+      .calculator {
+        margin: 20px 0 28px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 25px;
+      }
+      .calculator h3 {
+        margin: 4px 0 8px;
+      }
+      .calculator p {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .calc-inputs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin: 22px 0;
+      }
+      .calc-results {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+      }
+      .calc-results b {
+        display: block;
+        font-weight: 600;
+        font-size: 26px;
+        letter-spacing: -1px;
+        color: var(--strong);
+      }
+      .calc-results span {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .cost-track {
+        margin: 18px 0 6px;
+        display: flex;
+        height: 7px;
+        background: var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      #storage-bar {
+        background: var(--muted);
+      }
+      #delivery-bar {
+        background: var(--accent);
+      }
+      .cost-legend {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      footer {
+        font-size: 12px;
+        color: var(--muted);
+        padding-top: 10px;
+      }
+      .mobile-contents {
+        display: none;
+      }
+      #toast {
+        position: fixed;
+        bottom: 22px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px 18px;
+        background: var(--ink);
+        color: var(--paper);
+        border-radius: 10px;
+        font-size: 13px;
+        z-index: 20;
+      }
+      #toast:empty {
+        display: none;
+      }
+      @media (max-width: 1050px) {
+        .layout {
+          grid-template-columns: 190px minmax(0, 1fr);
+        }
+        aside {
+          padding-left: 12px;
+        }
+        main {
+          padding: 40px 26px;
+        }
+        .header-note {
+          display: none;
+        }
+      }
+      @media (max-width: 760px) {
+        header {
+          padding: 0 18px;
+          height: 60px;
+        }
+        .layout {
+          display: block;
+        }
+        aside {
+          display: none;
+        }
+        main {
+          padding: 28px 19px 50px;
+        }
+        .hero h1 {
+          font-size: 58px;
+        }
+        .hero .intro {
+          font-size: 18px;
+        }
+        .premise {
+          gap: 14px;
+        }
+        .premise p {
+          font-size: 12px;
+        }
+        .explorer {
+          padding: 20px;
+        }
+        .fields,
+        .scenario-grid {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+        .scenario-flow {
+          gap: 6px;
+        }
+        .scenario-flow div {
+          padding: 10px 8px;
+          font-size: 12px;
+        }
+        .chapter h2 {
+          font-size: 26px;
+        }
+        .diagram-columns {
+          grid-template-columns: 1fr 1fr;
+        }
+        .diagram-pipeline {
+          flex-wrap: wrap;
+        }
+        .diagram-pipeline span {
+          flex-basis: 35%;
+        }
+        .calc-inputs {
+          grid-template-columns: 1fr 1fr;
+        }
+        .calc-results {
+          gap: 12px;
+        }
+        .calc-results b {
+          font-size: 23px;
+        }
+        .mobile-contents {
+          display: block;
+          margin: 20px 0;
+          font-size: 13px;
+        }
+        .mobile-contents nav {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+        }
+        #download-page {
+          display: none;
+        }
+        .architecture {
+          padding: 15px;
+        }
+      }
+      @media (max-width: 420px) {
+        .premise {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        .premise p {
+          margin-top: 2px;
+        }
+        .hero h1 {
+          font-size: 50px;
+        }
+        .calc-results {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        .calc-results > div {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+      @media print {
+        header,
+        aside,
+        .actions,
+        .mobile-contents,
+        .explorer,
+        .calculator,
+        footer {
+          display: none !important;
+        }
+        .layout {
+          display: block;
+        }
+        main {
+          padding: 0;
+        }
+        body {
+          background: #fff;
+          color: #000;
+          font-size: 11pt;
+        }
+        .hero h1 {
+          font-size: 42pt;
+        }
+        .chapter {
+          break-inside: auto;
+        }
+        table,
+        figure,
+        blockquote {
+          break-inside: avoid;
+        }
+        a {
+          color: inherit;
+        }
+        .table-scroll {
+          overflow: visible;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to exploration</a>
+    <header>
+      <div>
+        <a class="brand" href="#main" aria-label="xNet exploration home">xNet</a
+        ><span class="header-note">Field notes / 0496</span>
+      </div>
+      <div class="actions">
+        <button class="quiet-button" id="theme" aria-label="Switch to dark theme">Dark</button
+        ><button class="quiet-button" id="download-source">Markdown ↓</button
+        ><button class="quiet-button" id="download-page">Save page ↓</button>
+      </div>
+    </header>
+    <div class="layout">
+      <aside aria-label="Document navigation">
+        <div class="eyebrow">In this exploration</div>
+        <nav id="contents"><!-- NAV --></nav>
+        <p class="aside-note">
+          A proposal for the next xNet.<br />Research, not a shipped roadmap.<br /><br />02 November
+          2026<br />Decision review · 02 December
+        </p>
+      </aside>
+      <main id="main">
+        <div class="hero">
+          <div class="eyebrow">Portable social foundations</div>
+          <h1>Start small.<br /><span>Stay yours.</span></h1>
+          <p class="intro">
+            What if xNet began with the freedom to move your data, shape your tools, and choose who
+            you trust?
+          </p>
+          <div class="meta">
+            <span class="pill">Exploration · draft</span
+            ><span>Public media + private messaging</span><span>November 2, 2026</span>
+          </div>
+        </div>
+        <div class="premise">
+          <div>
+            <b>Own the data</b>
+            <p>Keep useful copies. Restore elsewhere. Preserve the relationships.</p>
+          </div>
+          <div>
+            <b>Choose the services</b>
+            <p>Hosting, discovery, and delivery can have different operators.</p>
+          </div>
+          <div>
+            <b>Shape the software</b>
+            <p>Let people and agents build views within clear permissions.</p>
+          </div>
+        </div>
+        <details class="mobile-contents">
+          <summary>Browse the chapters</summary>
+          <nav id="mobile-nav" aria-label="Mobile document navigation"></nav>
+        </details>
+        <section class="explorer" aria-labelledby="explorer-title">
+          <div class="eyebrow">Explore the architecture</div>
+          <h2 id="explorer-title">Different work. Different rules.</h2>
+          <p>
+            Change the scenario to see what belongs on the device, what needs a service, and where
+            the trust boundary sits. These are proposed designs.
+          </p>
+          <div class="fields">
+            <label for="workload"
+              >What are we building?<select id="workload">
+                <option value="media">A public image & video feed</option>
+                <option value="chat">An encrypted conversation</option>
+                <option value="document">A shared document</option>
+                <option value="agent">An agent-built collection view</option>
+              </select></label
+            ><label for="stage"
+              >Where does it run?<select id="stage">
+                <option value="local">Start on my laptop</option>
+                <option value="community" selected>A community-run service</option>
+                <option value="scale">A larger federated network</option>
+              </select></label
+            >
+          </div>
+          <div id="scenario" aria-live="polite" aria-atomic="true"></div>
+        </section>
+        <article><!-- CONTENT --></article>
+        <footer>
+          This reader runs entirely in your browser. No accounts, analytics, remote fonts, or
+          runtime network requests. Local repository references are marked with dotted underlines.
+          External source links open only when you follow them.
+        </footer>
+      </main>
+    </div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <template id="calculator-template"
+      ><section class="calculator" aria-labelledby="calculator-title">
+        <div class="eyebrow">Planning calculator · illustrative</div>
+        <h3 id="calculator-title">What does watching cost?</h3>
+        <p>
+          Public managed video example. Adjust the audience, viewing, and retained library. Rates
+          checked November 2, 2026; this is a storage + delivery subtotal, not a complete operating
+          budget.
+        </p>
+        <div class="calc-inputs">
+          <label
+            >Daily viewers<input
+              id="viewers"
+              type="number"
+              min="0"
+              max="100000000"
+              step="1"
+              value="1000" /></label
+          ><label
+            >Minutes / viewer / day<input
+              id="minutes"
+              type="number"
+              min="0"
+              max="1440"
+              step="1"
+              value="20" /></label
+          ><label
+            >Days in period<input
+              id="days"
+              type="number"
+              min="1"
+              max="31"
+              step="1"
+              value="30" /></label
+          ><label
+            >Stored video minutes<input
+              id="stored"
+              type="number"
+              min="0"
+              max="1000000000"
+              step="1"
+              value="10000" /></label
+          ><label
+            >Average bitrate · Mbps<input
+              id="bitrate"
+              type="number"
+              min="0.1"
+              max="1000"
+              step="0.1"
+              value="2"
+          /></label>
+        </div>
+        <div class="calc-results" role="status" aria-live="polite" aria-atomic="true">
+          <div><b id="delivered-result"></b><span>minutes delivered</span></div>
+          <div><b id="traffic-result"></b><span>estimated delivery traffic</span></div>
+          <div><b id="cost-result"></b><span>USD storage + delivery / period*</span></div>
+        </div>
+        <div class="cost-track" aria-hidden="true">
+          <div id="storage-bar"></div>
+          <div id="delivery-bar"></div>
+        </div>
+        <div class="cost-legend">
+          <span id="storage-label"></span><span id="delivery-label"></span>
+        </div>
+        <p>
+          *Storage is monthly capacity, rounded to 1,000-minute blocks. Delivery uses the selected
+          period. At a 30-day period this approximates a monthly subtotal. Assumes delivered minutes
+          equal watch minutes; prefetch, retries, and segment rounding can increase billing. Bitrate
+          changes traffic estimates, not this provider's minute-based pricing.
+        </p>
+        <p>
+          <a href="https://developers.cloudflare.com/stream/pricing/">Cloudflare Stream pricing</a>
+          · $5 / 1,000 stored minutes / month + $1 / 1,000 delivered minutes. Excludes the rest of
+          the application, staffing, AI, tax, and separate backups.
+        </p>
+      </section></template
+    >
+    <script>
+      /* SOURCE */
+      const workloadData = {
+        media: {
+          flow: ['Versioned public records', 'Indexes + chosen feed', 'Media origin + delivery'],
+          authority:
+            'The author publishes through their PDS; indexes and media hosts have separate roles.',
+          privacy:
+            'Public content can be copied. Private interests and drafts stay off the public repository.',
+          merge:
+            'Author-controlled updates and explicit revisions. CRDTs are optional for the draft, not required for the feed.',
+          exit: 'Export records and source media; keep protocol IDs and verify playback after a host move.'
+        },
+        chat: {
+          flow: ['Authorized endpoint', 'Ciphertext mailbox', 'Recipient devices'],
+          authority:
+            'The messaging protocol governs device keys and membership. The service routes and retains messages.',
+          privacy:
+            'Content is readable at authorized endpoints. Metadata and any agent/model disclosure need separate treatment.',
+          merge:
+            'Distinct message IDs, safe retries, and protocol-defined ordering and key transitions.',
+          exit: 'Use supported recovery and device enrollment. Test conversation history and account relocation separately.'
+        },
+        document: {
+          flow: ['Local document replica', 'Authorized sync service', 'Collaborator replicas'],
+          authority:
+            'Members can edit the document; admission and revocation have their own explicit authority.',
+          privacy:
+            'Choose host-readable or E2EE sync. A CRDT itself supplies neither permission nor encryption.',
+          merge:
+            'A bounded CRDT document can merge valid concurrent edits. Permission changes need stronger rules.',
+          exit: 'Export an editable document and its required state. Verify that another client can resume editing.'
+        },
+        agent: {
+          flow: ['Scoped data and commands', 'Isolated agent + preview', 'A versioned custom view'],
+          authority:
+            'The trusted host enforces access on every operation. The agent cannot expand its own grant.',
+          privacy:
+            'Selected data may reach the model provider. A local CLI does not imply local inference.',
+          merge:
+            'Views query existing records. Mutations use domain commands and receive explicit acceptance or rejection.',
+          exit: 'Keep source, schema requirements, and view configuration. Re-grant access explicitly on a new host.'
+        }
+      }
+      const stageData = {
+        local: {
+          media:
+            'Drafts, previews, and a local collection work here. Public reach still needs an online publication and media path.',
+          chat: 'Local history and queued sends work here. A sleeping laptop cannot provide reliable offline delivery to other people.',
+          document:
+            'Offline editing works if the chosen document model supports it. Collaboration waits for a reachable peer or sync service.',
+          agent:
+            'Use a scoped local dataset. Keep credentials outside the generated UI, and make remote model calls visible.'
+        },
+        community: {
+          media:
+            'Choose a PDS, community index, media storage, and a processing service. They may be operated by different people.',
+          chat: 'Choose an established messaging backend with durable delivery and supported E2EE clients. Name who maintains it.',
+          document:
+            'An always-on sync service improves availability. Bound documents, storage, and subscriptions; encrypted content stays opaque to the host.',
+          agent:
+            'Run the same permissioned commands against shared data. Handle rejected offline work and revoked access explicitly.'
+        },
+        scale: {
+          media:
+            'Separate ingest, index, ranking, and delivery as load demands. Moderation and provider choice remain operational responsibilities.',
+          chat: 'Partition delivery and subscriptions; page history and apply backpressure. Federation does not eliminate recovery and abuse work.',
+          document:
+            'Scale by documents and authorized subscriptions, not one world-sized replica. Measure retained history and compaction.',
+          agent:
+            'Version APIs, enforce tenant isolation and budgets, and stage migrations. Shared schemas help only when their meaning stays compatible.'
+        }
+      }
+      const scenario = document.getElementById('scenario')
+      const textElement = (tag, value) => {
+        const element = document.createElement(tag)
+        element.textContent = value
+        return element
+      }
+      function renderScenario() {
+        const kind = document.getElementById('workload').value,
+          stage = document.getElementById('stage').value,
+          entry = workloadData[kind]
+        const flow = document.createElement('div')
+        flow.className = 'scenario-flow'
+        entry.flow.forEach((label, i) => {
+          if (i) {
+            const arrow = textElement('i', '→')
+            arrow.setAttribute('aria-hidden', 'true')
+            flow.append(arrow)
+          }
+          flow.append(textElement('div', label))
+        })
+        const grid = document.createElement('dl')
+        grid.className = 'scenario-grid'
+        ;[
+          ['authority', 'Who decides'],
+          ['privacy', 'Who can read'],
+          ['merge', 'How updates work'],
+          ['exit', 'What leaving requires']
+        ].forEach(([key, label]) => {
+          const cell = document.createElement('div')
+          cell.append(textElement('dt', label), textElement('dd', entry[key]))
+          grid.append(cell)
+        })
+        const note = textElement('p', stageData[stage][kind])
+        note.className = 'scenario-note'
+        scenario.replaceChildren(flow, grid, note)
+      }
+      document.getElementById('workload').addEventListener('change', renderScenario)
+      document.getElementById('stage').addEventListener('change', renderScenario)
+      renderScenario()
+      document.getElementById('mobile-nav').innerHTML =
+        document.getElementById('contents').innerHTML
+      const economicSection = document
+        .getElementById('video-makes-the-economics-visible')
+        .closest('section')
+      economicSection
+        .querySelector('.table-scroll')
+        .after(document.getElementById('calculator-template').content.cloneNode(true))
+      const numberFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
+      const money = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 2
+      })
+      const calcInputs = ['viewers', 'minutes', 'days', 'stored', 'bitrate'].map((id) =>
+        document.getElementById(id)
+      )
+      function calculate() {
+        if (calcInputs.some((input) => input.value === '' || !input.validity.valid)) {
+          ;['delivered-result', 'traffic-result', 'cost-result'].forEach(
+            (id) => (document.getElementById(id).textContent = '—')
+          )
+          document.getElementById('storage-label').textContent =
+            'Enter valid values in every field.'
+          document.getElementById('delivery-label').textContent = ''
+          document.getElementById('storage-bar').style.width = '0'
+          document.getElementById('delivery-bar').style.width = '0'
+          return
+        }
+        const [viewers, minutes, days, stored, bitrate] = calcInputs.map((input) =>
+          Number(input.value)
+        )
+        const delivered = viewers * minutes * days,
+          gb = (delivered * 60 * bitrate) / 8 / 1000,
+          storage = Math.ceil(stored / 1000) * 5,
+          delivery = delivered / 1000,
+          total = storage + delivery
+        document.getElementById('delivered-result').textContent = numberFormat.format(delivered)
+        document.getElementById('traffic-result').textContent =
+          gb >= 1000 ? numberFormat.format(gb / 1000) + ' TB' : numberFormat.format(gb) + ' GB'
+        document.getElementById('cost-result').textContent = money.format(total)
+        document.getElementById('storage-label').textContent = 'Storage ' + money.format(storage)
+        document.getElementById('delivery-label').textContent = 'Delivery ' + money.format(delivery)
+        document.getElementById('storage-bar').style.width =
+          (total ? (storage / total) * 100 : 0) + '%'
+        document.getElementById('delivery-bar').style.width =
+          (total ? (delivery / total) * 100 : 0) + '%'
+      }
+      calcInputs.forEach((input) => input.addEventListener('input', calculate))
+      calculate()
+      document.getElementById('theme').addEventListener('click', () => {
+        const dark = document.documentElement.dataset.theme !== 'dark'
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+        const button = document.getElementById('theme')
+        button.textContent = dark ? 'Light' : 'Dark'
+        button.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme')
+      })
+      function download(name, content, type) {
+        const url = URL.createObjectURL(new Blob([content], { type }))
+        const link = document.createElement('a')
+        link.href = url
+        link.download = name
+        document.body.append(link)
+        link.click()
+        link.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 10000)
+      }
+      document
+        .getElementById('download-source')
+        .addEventListener('click', () =>
+          download(sourceDocument.filename, sourceDocument.source, 'text/markdown')
+        )
+      document.getElementById('download-page').addEventListener('click', () => {
+        const clone = document.documentElement.cloneNode(true)
+        clone.querySelector('.calculator').remove()
+        clone.querySelector('#scenario').replaceChildren()
+        clone.querySelector('#mobile-nav').replaceChildren()
+        clone.querySelector('#toast').textContent = ''
+        clone.querySelectorAll('[aria-current]').forEach((a) => a.removeAttribute('aria-current'))
+        download(
+          'xnet-portable-social-foundations.html',
+          '<!doctype html>\n' + clone.outerHTML,
+          'text/html'
+        )
+      })
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue
+            document.querySelectorAll('nav a').forEach((a) => {
+              if (a.hash === '#' + entry.target.id) a.setAttribute('aria-current', 'location')
+              else a.removeAttribute('aria-current')
+            })
+          }
+        },
+        { rootMargin: '-80px 0px -65% 0px' }
+      )
+      document.querySelectorAll('article h2').forEach((heading) => observer.observe(heading))
+    </script>
+  </body>
+</html>

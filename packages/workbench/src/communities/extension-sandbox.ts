@@ -1,5 +1,11 @@
+import type { ExtensionAccessIntent } from './extension-access-intent'
 import type { ExtensionDataset } from './extension-data'
+import type { ExtensionRequest } from './extension-protocol'
 import runtimeSource from 'virtual:xnet-extension-runtime?raw'
+import domRuntimeSource from 'virtual:xnet-extension-dom-runtime?raw'
+import { desktopExtensionHost, startDesktopExtension } from './extension-desktop-host'
+import { EXTENSION_SOURCE_LIMIT, EXTENSION_CODE_LIMIT } from './extension-desktop-contract'
+import type { ExtensionCheckAction, ExtensionCheckObservation } from './extension-check-contract'
 import { readPreviewTree, type ChatPreviewNode } from './agent-extension'
 import { createExtensionDispatcher } from './extension-dispatcher'
 import { assertExtensionMessage } from './extension-protocol'
@@ -8,32 +14,43 @@ import { assertExtensionMessage } from './extension-protocol'
 export async function compileChatExtension(
   source: string,
   signal?: AbortSignal
-): Promise<{ code: string; hash: string }> {
+): Promise<{ code: string; hash: string; access: ExtensionAccessIntent }> {
   signal?.throwIfAborted()
-  if (source.length > 24000) throw new Error('Source exceeds the 24,000-character preview limit.')
-  const code = await new Promise<string>((resolve, reject) => {
-    const worker = new Worker(new URL('./extension-compiler.worker.ts', import.meta.url), {
-      type: 'module'
-    })
-    const finish = (code?: string, error?: Error) => {
-      clearTimeout(timer)
-      signal?.removeEventListener('abort', cancel)
-      worker.terminate()
-      if (error) reject(error)
-      else if (code !== undefined) resolve(code)
+  if (source.length > EXTENSION_SOURCE_LIMIT)
+    throw new Error('Source exceeds the 200,000-character preview limit.')
+  const compiled = await new Promise<{ code: string; access: ExtensionAccessIntent }>(
+    (resolve, reject) => {
+      const worker = new Worker(new URL('./extension-compiler.worker.ts', import.meta.url), {
+        type: 'module'
+      })
+      const finish = (result?: { code: string; access: ExtensionAccessIntent }, error?: Error) => {
+        clearTimeout(timer)
+        signal?.removeEventListener('abort', cancel)
+        worker.terminate()
+        if (error) reject(error)
+        else if (result !== undefined) resolve(result)
+      }
+      const cancel = () => finish(undefined, new Error('TypeScript build stopped.'))
+      const timer = setTimeout(() => {
+        finish(undefined, new Error('TypeScript build exceeded ten seconds.'))
+      }, 10000)
+      signal?.addEventListener('abort', cancel, { once: true })
+      worker.onmessage = ({
+        data
+      }: MessageEvent<{ code?: string; error?: string; access?: ExtensionAccessIntent }>) => {
+        if (
+          typeof data.code === 'string' &&
+          data.code.length <= EXTENSION_CODE_LIMIT &&
+          data.access
+        )
+          finish({ code: data.code, access: data.access })
+        else finish(undefined, new Error(data.error ?? 'Compiler returned an invalid build.'))
+      }
+      worker.onerror = (event) => finish(undefined, new Error(event.message))
+      worker.postMessage(source)
     }
-    const cancel = () => finish(undefined, new Error('TypeScript build stopped.'))
-    const timer = setTimeout(() => {
-      finish(undefined, new Error('TypeScript build exceeded ten seconds.'))
-    }, 10000)
-    signal?.addEventListener('abort', cancel, { once: true })
-    worker.onmessage = ({ data }: MessageEvent<{ code?: string; error?: string }>) => {
-      if (typeof data.code === 'string' && data.code.length <= 100000) finish(data.code)
-      else finish(undefined, new Error(data.error ?? 'Compiler returned an invalid build.'))
-    }
-    worker.onerror = (event) => finish(undefined, new Error(event.message))
-    worker.postMessage(source)
-  })
+  )
+  const { code, access } = compiled
   const digest = await crypto.subtle.digest(
     'SHA-256',
     new TextEncoder().encode(
@@ -41,16 +58,20 @@ export async function compileChatExtension(
         source,
         code,
         compiler: '@swc/wasm-web@1.15.41',
-        runtime: runtimeSource
+        runtime: desktopExtensionHost() ? domRuntimeSource : runtimeSource
       })
     )
   )
   return {
     code,
+    access,
     hash: [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
   }
 }
 export interface ExtensionSession {
+  mount?(element: HTMLElement | null): void
+  observe?(): Promise<ExtensionCheckObservation>
+  act?(action: ExtensionCheckAction): Promise<void>
   update(dataset: ExtensionDataset): void
   invalidate(): void
   event(id: string, event: 'click' | 'input', value?: string): void
@@ -61,13 +82,24 @@ export function startChatExtension(
   dataset: ExtensionDataset,
   channelId: string,
   callbacks: {
+    title?: string
     view: (tree: ChatPreviewNode) => void
     error: (error: Error) => void
     request: (input: unknown, signal: AbortSignal) => Promise<unknown>
+    authorize?: (input: ExtensionRequest, signal: AbortSignal) => Promise<void>
+    document?: (handle: string, revision: number, text: string) => Promise<void>
   },
   signal?: AbortSignal
 ): ExtensionSession {
   signal?.throwIfAborted()
+  if (desktopExtensionHost())
+    return startDesktopExtension(
+      code,
+      dataset,
+      channelId,
+      { ...callbacks, ready: () => callbacks.view({ type: 'stack', children: [] }) },
+      signal
+    )
   const frame = document.createElement('iframe')
   frame.setAttribute('sandbox', 'allow-scripts')
   frame.setAttribute('aria-hidden', 'true')
@@ -83,7 +115,7 @@ export function startChatExtension(
   const send = (message: unknown) => {
     if (!stopped && started) channel.port1.postMessage(message)
   }
-  const dispatcher = createExtensionDispatcher(callbacks.request, send)
+  const dispatcher = createExtensionDispatcher(callbacks.request, send, callbacks.authorize)
   const stop = () => {
     if (stopped) return
     send({ type: 'stop' })

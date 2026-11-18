@@ -435,6 +435,19 @@ process.parentPort?.on('message', async (event) => {
         break
       }
 
+      case 'nodes:getPeerChanges': {
+        if (!dataService) throw new Error('Database not initialized')
+        const { channel, author, cursor } = payload as {
+          channel: string
+          author: string
+          cursor: { lamport: number; hash: string }
+        }
+        sendResponse(requestId, {
+          changes: await dataService.getPeerChanges(channel, author, cursor)
+        })
+        break
+      }
+
       case 'nodes:getChangesSince': {
         const { sinceLamport } = payload as { sinceLamport: number }
         if (dataService) {

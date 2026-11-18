@@ -59,15 +59,6 @@ export function createMenu() {
         { role: 'forceReload' },
         { role: 'toggleDevTools' },
         { type: 'separator' },
-        {
-          label: 'Toggle xNet DevTools',
-          accelerator: 'CmdOrCtrl+Shift+D',
-          click: () => {
-            const win = BrowserWindow.getFocusedWindow()
-            win?.webContents.send('devtools:toggle')
-          }
-        },
-        { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },
         { role: 'zoomOut' },

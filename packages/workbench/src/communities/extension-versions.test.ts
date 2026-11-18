@@ -5,7 +5,7 @@ import {
   encodeSharedExtension,
   readSharedExtension,
   extensionBranches,
-  sourceChangeSummary,
+  extensionComparisonBase,
   versionLineage,
   type ExtensionRevision
 } from './extension-versions'
@@ -78,7 +78,7 @@ describe('shared extension versions', () => {
         proposal.author
       )
     ).rejects.toThrow('format')
-    await expect(readSharedExtension(new Uint8Array(128001), proposal.author)).rejects.toThrow(
+    await expect(readSharedExtension(new Uint8Array(1_000_001), proposal.author)).rejects.toThrow(
       'limit'
     )
     await expect(readSharedExtension(new Uint8Array([255]), proposal.author)).rejects.toThrow()
@@ -116,13 +116,52 @@ describe('shared extension versions', () => {
     const newer = { ...older, id: 'new-local-copy', createdAt: 2 }
     expect(extensionBranches([newer, older]).map((row) => row.entry.id)).toEqual(['new-local-copy'])
   })
-  it('compares only the changed source region without inventing a line-by-line diff', () => {
-    expect(sourceChangeSummary('first\nold\nlast', 'first\nnew\nextra\nlast')).toEqual({
-      removed: 1,
-      added: 2,
-      before: 'old',
-      after: 'new\nextra'
+  it('compares branches with their actual parent, not the previous item in history', () => {
+    const root: ExtensionRevision = {
+      ...proposal,
+      id: 'local-root',
+      hash: 'build',
+      actor: 'You',
+      createdAt: 1,
+      lineage: { versionId: 'root', author: proposal.author, changeNote: 'Initial version' }
+    }
+    const child = {
+      ...root,
+      id: 'child',
+      lineage: { ...root.lineage!, versionId: 'child', parent: 'root' }
+    }
+    const sibling = { ...child, id: 'sibling', lineage: { ...child.lineage, versionId: 'sibling' } }
+    expect(extensionComparisonBase(child, [sibling, child, root])).toEqual({
+      kind: 'parent',
+      revision: root
     })
-    expect(sourceChangeSummary('same', 'same')).toMatchObject({ added: 0, removed: 0 })
+    expect(extensionComparisonBase(root, [root])).toEqual({ kind: 'initial' })
+    expect(
+      extensionComparisonBase({ ...child, lineage: undefined, base: root.id }, [root])
+    ).toEqual({ kind: 'parent', revision: root })
+  })
+  it('keeps a missing parent distinct from an initial version or a conflicting legacy base', () => {
+    const root: ExtensionRevision = {
+      ...proposal,
+      id: 'local-root',
+      hash: 'build',
+      actor: 'You',
+      createdAt: 1
+    }
+    const orphan = {
+      ...root,
+      id: 'orphan',
+      base: root.id,
+      lineage: {
+        versionId: 'orphan',
+        author: proposal.author,
+        changeNote: 'Shared version',
+        parent: 'missing'
+      }
+    }
+    expect(extensionComparisonBase(orphan, [root])).toEqual({ kind: 'missing', key: 'missing' })
+    expect(
+      extensionComparisonBase({ ...orphan, lineage: undefined, base: 'missing-local-id' }, [])
+    ).toEqual({ kind: 'missing', key: 'missing-local-id' })
   })
 })

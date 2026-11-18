@@ -11,12 +11,17 @@ export function extensionRuntimePlugin() {
     name: 'xnet-extension-runtime',
     resolveId(id: string) {
       if (id === 'virtual:xnet-extension-runtime?raw') return '\0xnet-extension-runtime'
+      if (id === 'virtual:xnet-extension-dom-runtime?raw') return '\0xnet-extension-dom-runtime'
     },
     async load(this: { addWatchFile(file: string): void }, id: string) {
-      if (id !== '\0xnet-extension-runtime') return
+      if (!['\0xnet-extension-runtime', '\0xnet-extension-dom-runtime'].includes(id)) return
       const result = await build({
         absWorkingDir: root,
-        entryPoints: [entry],
+        entryPoints: [
+          id === '\0xnet-extension-dom-runtime'
+            ? `${root}packages/workbench/src/communities/extension-dom-runtime.tsx`
+            : entry
+        ],
         bundle: true,
         write: false,
         format: 'iife',

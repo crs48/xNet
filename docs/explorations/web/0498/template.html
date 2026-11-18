@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="An xNet exploration: two interoperable apps, dependable hosting, and a fair community seed network."
+    />
+    <title>Two apps, one community network · xNet</title>
+    <style>
+      :root {
+        --bg: #fafbf9;
+        --panel: #fff;
+        --ink: #24332c;
+        --muted: #5d6e63;
+        --line: #dbe3da;
+        --soft: #eef3ed;
+        --accent: #345b42;
+        --warn: #865015;
+        --shadow: 0 3px 16px #1c332508;
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 30px;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.65 system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      a {
+        color: var(--accent);
+        text-underline-offset: 3px;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button,
+      select {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
+        color: var(--ink);
+        padding: 9px 12px;
+      }
+      button {
+        cursor: pointer;
+        box-shadow: var(--shadow);
+      }
+      button:hover {
+        background: var(--soft);
+      }
+      :focus-visible {
+        outline: 3px solid #819d3d;
+        outline-offset: 3px;
+      }
+      .skip {
+        position: absolute;
+        left: 16px;
+        top: -100px;
+        z-index: 5;
+        background: var(--panel);
+        padding: 12px;
+      }
+      .skip:focus {
+        top: 12px;
+      }
+      .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: 245px;
+        padding: 30px 24px;
+        border-right: 1px solid var(--line);
+        background: var(--bg);
+        overflow: auto;
+      }
+      .wordmark {
+        font-size: 26px;
+        font-weight: 750;
+        letter-spacing: -1px;
+        text-decoration: none;
+      }
+      .edition {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 8px 0 26px;
+      }
+      .sidebar nav {
+        display: grid;
+        gap: 4px;
+      }
+      .sidebar nav a {
+        padding: 8px 9px;
+        font-size: 13px;
+        line-height: 1.4;
+        text-decoration: none;
+        border-radius: 8px;
+        color: var(--muted);
+      }
+      .sidebar nav a:hover {
+        background: var(--soft);
+        color: var(--ink);
+      }
+      .side-actions {
+        display: grid;
+        gap: 8px;
+        margin-top: 24px;
+      }
+      .side-actions button {
+        font-size: 12px;
+        text-align: left;
+      }
+      .sidebar footer {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 24px;
+      }
+      main {
+        margin-left: 245px;
+        padding: 64px clamp(24px, 5vw, 90px) 100px;
+        max-width: 1510px;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      h1 {
+        font-size: clamp(38px, 4.8vw, 69px);
+        line-height: 1.05;
+        letter-spacing: -0.05em;
+        max-width: 780px;
+        margin: 18px 0 24px;
+        font-weight: 650;
+      }
+      .lead {
+        font-size: 20px;
+        line-height: 1.6;
+        max-width: 740px;
+        color: var(--muted);
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 24px 0 40px;
+        font-size: 12px;
+      }
+      .meta span {
+        padding: 5px 10px;
+        background: var(--soft);
+        border-radius: 20px;
+      }
+      .intro-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin: 35px 0;
+      }
+      .intro-grid > div {
+        border-top: 2px solid var(--accent);
+        padding: 20px 0;
+      }
+      .intro-grid h2 {
+        font-size: 20px;
+        margin: 0 0 8px;
+      }
+      .intro-grid p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .bridge {
+        padding: 17px 20px;
+        background: var(--soft);
+        border-radius: 12px;
+        font-size: 14px;
+        margin-bottom: 46px;
+      }
+      #simulation {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 26px;
+        box-shadow: var(--shadow);
+        margin: 0 0 62px;
+      }
+      .sim-head h2 {
+        font-size: 26px;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        margin: 8px 0 12px;
+      }
+      .sim-head p {
+        color: var(--muted);
+        font-size: 14px;
+        max-width: 680px;
+      }
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+        padding: 23px 0;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        margin-top: 22px;
+      }
+      .control {
+        display: grid;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .control input[type='range'] {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+      .control select {
+        width: 100%;
+        font-size: 13px;
+      }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 13px;
+        margin: 16px 0;
+      }
+      .check input {
+        width: 17px;
+        height: 17px;
+        accent-color: var(--accent);
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin: 20px 0;
+      }
+      .metric {
+        background: var(--soft);
+        padding: 14px;
+        border-radius: 10px;
+        font-size: 12px;
+      }
+      .metric strong {
+        display: block;
+        font-size: 27px;
+        line-height: 1.3;
+      }
+      .node-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin: 18px 0 24px;
+      }
+      .node {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+      .node strong {
+        display: block;
+        font-size: 12px;
+      }
+      .node small {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .node.offline {
+        background: var(--soft);
+      }
+      meter {
+        display: block;
+        width: 100%;
+        height: 10px;
+        margin: 7px 0;
+      }
+      .sim-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .sim-table td,
+      .sim-table th {
+        text-align: left;
+        padding: 12px 6px;
+        border-top: 1px solid var(--line);
+        vertical-align: top;
+      }
+      .sim-table th {
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .asset-name {
+        display: block;
+        font-size: 13px;
+        font-weight: 650;
+      }
+      .asset-detail {
+        color: var(--muted);
+      }
+      .badge {
+        display: inline-block;
+        border-radius: 6px;
+        background: var(--soft);
+        padding: 3px 6px;
+        margin: 2px 4px 2px 0;
+        font-size: 10px;
+      }
+      .badge.off {
+        opacity: 0.7;
+        text-decoration: line-through;
+      }
+      .unavailable {
+        color: var(--warn);
+        font-weight: 700;
+      }
+      .explanation {
+        font-size: 13px;
+        padding: 14px 16px;
+        border-left: 3px solid var(--accent);
+        background: var(--soft);
+        margin: 20px 0;
+      }
+      .sim-note {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .sim-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 18px;
+      }
+      .sim-actions button {
+        font-size: 12px;
+      }
+      .transfer-log {
+        font-size: 12px;
+        color: var(--muted);
+        padding-left: 22px;
+      }
+      article {
+        max-width: 850px;
+      }
+      article > h2 {
+        font-size: 29px;
+        line-height: 1.25;
+        letter-spacing: -0.025em;
+        margin: 70px 0 22px;
+        padding-top: 26px;
+        border-top: 1px solid var(--line);
+      }
+      article > p,
+      article > ul,
+      article > ol {
+        max-width: 76ch;
+      }
+      article li {
+        margin: 8px 0;
+      }
+      article blockquote {
+        margin: 20px 0;
+        padding: 8px 20px;
+        border-left: 3px solid var(--accent);
+        background: var(--soft);
+        border-radius: 0 10px 10px 0;
+      }
+      article blockquote p {
+        margin: 10px 0;
+      }
+      .table-wrap {
+        overflow: auto;
+        margin: 28px 0;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      article table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 13px;
+        min-width: 600px;
+      }
+      article th,
+      article td {
+        padding: 14px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      article th {
+        background: var(--soft);
+        font-weight: 600;
+      }
+      article tr:last-child td {
+        border: 0;
+      }
+      pre {
+        overflow: auto;
+        background: var(--soft);
+        padding: 20px;
+        border-radius: 12px;
+        font-size: 12px;
+        line-height: 1.7;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.87em;
+      }
+      p code,
+      td code,
+      li code {
+        background: var(--soft);
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+      .local-reference {
+        color: var(--muted);
+        text-decoration: underline dotted;
+        text-underline-offset: 4px;
+      }
+      details {
+        border: 1px solid var(--line);
+        padding: 13px 16px;
+        border-radius: 10px;
+        margin: 20px 0;
+      }
+      summary {
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 550;
+      }
+      details p {
+        font-size: 14px;
+      }
+      .architecture {
+        margin: 30px 0;
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel);
+        font-size: 13px;
+        text-align: center;
+      }
+      .architecture p {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .diagram-row {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        align-items: stretch;
+      }
+      .diagram-row > * {
+        flex: 1;
+        background: var(--soft);
+        padding: 14px 9px;
+        border-radius: 8px;
+      }
+      .diagram-row small {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .architecture details {
+        text-align: left;
+        margin-bottom: 0;
+      }
+      .sequence {
+        text-align: left;
+        padding-left: 22px;
+      }
+      .closing {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 56px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #171d19;
+          --panel: #1e2721;
+          --ink: #e5ece5;
+          --muted: #a9b9ab;
+          --line: #354339;
+          --soft: #29362d;
+          --accent: #b4d2aa;
+          --warn: #f0ba73;
+          --shadow: none;
+          color-scheme: dark;
+        }
+      }
+      @media (max-width: 1100px) {
+        .sidebar {
+          width: 210px;
+          padding: 24px 16px;
+        }
+        main {
+          margin-left: 210px;
+          padding: 40px 25px 80px;
+        }
+        .node-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 760px) {
+        .sidebar {
+          position: static;
+          width: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          padding: 18px 20px;
+        }
+        .sidebar nav,
+        .sidebar footer,
+        .edition {
+          display: none;
+        }
+        .side-actions {
+          display: flex;
+          flex-wrap: wrap;
+          margin-top: 12px;
+        }
+        .side-actions button {
+          font-size: 11px;
+        }
+        main {
+          margin: 0;
+          padding: 28px 18px 60px;
+        }
+        h1 {
+          font-size: 43px;
+        }
+        .lead {
+          font-size: 17px;
+        }
+        .intro-grid {
+          gap: 20px;
+        }
+        .intro-grid h2 {
+          font-size: 18px;
+        }
+        .intro-grid p {
+          font-size: 13px;
+        }
+        #simulation {
+          padding: 18px;
+          border-radius: 15px;
+        }
+        .controls {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        .metrics {
+          gap: 6px;
+        }
+        .metric {
+          padding: 10px;
+          font-size: 10px;
+        }
+        .metric strong {
+          font-size: 24px;
+        }
+        .sim-table {
+          min-width: 500px;
+        }
+        .sim-scroll {
+          overflow: auto;
+        }
+        article > h2 {
+          font-size: 25px;
+        }
+        .diagram-row {
+          flex-direction: column;
+        }
+        .architecture {
+          padding: 16px;
+        }
+        .bridge {
+          font-size: 13px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+      @media print {
+        .sidebar,
+        .controls,
+        .sim-actions,
+        .check {
+          display: none;
+        }
+        main {
+          margin: 0;
+          padding: 0;
+        }
+        body {
+          font-size: 11px;
+          background: white;
+          color: black;
+        }
+        article > h2 {
+          break-after: avoid;
+        }
+        .table-wrap,
+        pre {
+          overflow: visible;
+        }
+        a {
+          color: inherit;
+        }
+        .node-grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <aside class="sidebar" aria-label="Exploration navigation">
+      <a class="wordmark" href="#main" aria-label="xNet exploration home">xNet</a>
+      <p class="edition">EXPLORATION 0498 · NOV 2026</p>
+      <nav aria-label="Chapters">
+        <a href="#simulation">Try the seed network ↓</a
+        ><!-- NAV -->
+      </nav>
+      <div class="side-actions">
+        <button id="download-html">Save this website</button
+        ><button id="download-md">Download the exploration</button>
+      </div>
+      <footer>
+        A proposal for a community-owned internet.<br /><br />Research + a local simulation.<br />No
+        accounts or files are uploaded.
+      </footer>
+    </aside>
+    <main id="main">
+      <header>
+        <p class="eyebrow">From architecture to a first community</p>
+        <h1>Two apps.<br />One community network.</h1>
+        <p class="lead">
+          A place to share what you make. A place to talk about it. Open interfaces between them,
+          and a way for friends to help keep the things they care about available.
+        </p>
+        <div class="meta">
+          <span>MVP proposal</span><span>Web first</span><span>Self-hostable</span
+          ><span>Private by explicit permission</span>
+        </div>
+      </header>
+      <div class="intro-grid">
+        <div>
+          <h2>Photos & short films</h2>
+          <p>Publish, follow, collect. Bring a post into a conversation without another upload.</p>
+        </div>
+        <div>
+          <h2>Messages & small groups</h2>
+          <p>
+            Talk privately. Bring a permitted piece of the conversation back into a shared album.
+          </p>
+        </div>
+      </div>
+      <div class="bridge">
+        <strong>The shared foundation:</strong> typed references, scoped access, dependable storage,
+        and replaceable services. Community seeding adds storage and bandwidth as people opt in.
+      </div>
+      <section id="simulation" aria-labelledby="sim-title">
+        <div class="sim-head">
+          <p class="eyebrow">An interactive thought experiment</p>
+          <h2 id="sim-title">Who keeps the next copy?</h2>
+          <p>
+            A popular clip already has two copies. Three smaller public works need another. Give
+            each volunteer some space and see what gets retained first.
+          </p>
+        </div>
+        <div class="controls">
+          <label class="control" for="budget"
+            ><span>Extra space per volunteer: <strong id="budget-value">160 MB</strong></span
+            ><input id="budget" type="range" min="0" max="300" step="20" value="160" /><span
+              >Public hosts and the private circle keep separate budgets.</span
+            ></label
+          >
+          <label class="control" for="failure"
+            ><span>Availability scenario</span
+            ><select id="failure">
+              <option value="none">All hosts online</option>
+              <option value="before">Origin offline before replication</option>
+              <option value="after">Origin fails after replication</option>
+            </select></label
+          >
+        </div>
+        <label class="check"
+          ><input id="friend-online" type="checkbox" checked />Garden friend's computer is
+          online</label
+        >
+        <div class="metrics" aria-live="polite" aria-atomic="true" id="metrics"></div>
+        <div class="node-grid" id="nodes"></div>
+        <div class="sim-scroll" tabindex="0" role="region" aria-label="Simulated content copies">
+          <table class="sim-table">
+            <thead>
+              <tr>
+                <th scope="col">Content</th>
+                <th scope="col">Online copies</th>
+                <th scope="col">Stored on</th>
+              </tr>
+            </thead>
+            <tbody id="assets"></tbody>
+          </table>
+        </div>
+        <p class="explanation" id="explanation"></p>
+        <details>
+          <summary>Placement decisions</summary>
+          <ol class="transfer-log" id="transfers"></ol>
+        </details>
+        <p class="sim-note">
+          Illustrative model · 5 complete files · 4 independent operators · a target of 2 online
+          copies. Transfers are assumed to finish instantly. Changing controls starts a fresh
+          scenario; this is not a live network or a performance benchmark.
+        </p>
+        <div class="sim-actions">
+          <button id="reset">Reset scenario</button
+          ><a href="#9-a-fair-placement-rule">Read the full placement policy →</a>
+        </div>
+      </section>
+      <article aria-label="Full architecture exploration"><!-- CONTENT --></article>
+      <p class="closing">
+        xNet · Exploration 0498 · Research checked November 2, 2026.<br />Repository references are
+        annotated in this portable reader; use the Markdown in the repository to follow them.
+      </p>
+    </main>
+    <script>
+      /* MODEL */
+      /* SOURCE */
+      const $ = (id) => document.getElementById(id)
+      function render() {
+        const extraSpace = Number($('budget').value)
+        const failure = $('failure').value
+        const result = simulate({ extraSpace, failure, friendOnline: $('friend-online').checked })
+        const missing = assets.filter((a) => onlineCopies(result.nodes, a) === 0).length
+        const under = assets.filter((a) => onlineCopies(result.nodes, a) < 2).length
+        const added = result.transfers.reduce((sum, t) => sum + t.size, 0)
+        $('budget-value').textContent = `${extraSpace} MB`
+        $('metrics').innerHTML =
+          `<div class="metric"><strong>${missing}</strong>unavailable files</div><div class="metric"><strong>${under}</strong>below the copy target</div><div class="metric"><strong>${added} MB</strong>new replicas placed</div>`
+        $('nodes').innerHTML = result.nodes
+          .map(
+            (n) =>
+              `<div class="node ${n.online ? '' : 'offline'}"><strong>${n.label}</strong><small>${n.online ? 'Online' : 'Offline'} · ${n.scopes.includes('public') ? (n.id === 'origin' ? 'Origin storage' : 'Public content') : 'Private circle only'}</small><meter value="${usedSpace(n)}" min="0" max="${Math.max(1, n.capacity)}" aria-label="${n.label} stored megabytes"></meter><small>${usedSpace(n)} / ${n.capacity} MB stored</small></div>`
+          )
+          .join('')
+        $('assets').innerHTML = assets
+          .map((a) => {
+            const count = onlineCopies(result.nodes, a)
+            const all = result.nodes.filter((n) => n.copies.includes(a.id))
+            return `<tr><td><span class="asset-name">${a.name}</span><span class="asset-detail">${a.size} MB · ${a.scope === 'garden' ? 'Encrypted · Garden group' : a.fresh ? 'Public · New creator' : `Public · ${a.demand} illustrative requests`}</span></td><td class="${count === 0 ? 'unavailable' : ''}">${count === 0 ? 'Unavailable' : `${count} / 2 target`}</td><td>${all.map((n) => `<span class="badge ${n.online ? '' : 'off'}" title="${n.online ? 'Online complete copy' : 'Stored but offline'}">${n.label}${n.online ? '' : ' (offline)'}</span>`).join('')}</td></tr>`
+          })
+          .join('')
+        $('explanation').textContent = missing
+          ? `${missing} file${missing === 1 ? ' has' : 's have'} no reachable source. Bring a stored copy back online to resume delivery. Adding empty storage cannot recover offline bytes.`
+          : under
+            ? `${under} file${under === 1 ? ' is' : 's are'} below the target. Available space, allowed scope, and independent online hosts all matter. Public volunteers cannot use their spare space to join a private circle.`
+            : 'Every file has at least two independent online copies. Only surplus public capacity can now help the popular clip. New creators received their baseline first.'
+        $('transfers').innerHTML = result.transfers.length
+          ? result.transfers
+              .map(
+                (t) =>
+                  `<li>${assets.find((a) => a.id === t.asset).name} → ${result.nodes.find((n) => n.id === t.target).label} · ${t.size} MB · ${t.tier === 'baseline' ? 'baseline copy' : 'surplus demand copy'}</li>`
+              )
+              .join('')
+          : '<li>No feasible new placement under these conditions.</li>'
+      }
+      ;['budget', 'failure', 'friend-online'].forEach((id) =>
+        $(id).addEventListener('input', render)
+      )
+      $('reset').addEventListener('click', () => {
+        $('budget').value = '160'
+        $('failure').value = 'none'
+        $('friend-online').checked = true
+        render()
+      })
+      function save(name, text, type) {
+        const url = URL.createObjectURL(new Blob([text], { type }))
+        const link = document.createElement('a')
+        link.href = url
+        link.download = name
+        link.click()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+      }
+      $('download-md').addEventListener('click', () =>
+        save(sourceDocument.filename, sourceDocument.source, 'text/markdown')
+      )
+      $('download-html').addEventListener('click', () =>
+        save(
+          'xnet-two-apps-community-network.html',
+          '<!doctype html>\n' + document.documentElement.outerHTML,
+          'text/html'
+        )
+      )
+      render()
+    </script>
+  </body>
+</html>

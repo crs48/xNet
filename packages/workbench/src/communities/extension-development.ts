@@ -224,7 +224,7 @@ export async function decodeDevelopmentRecord(raw: unknown): Promise<Development
   const extension = await createExtensionVersion({
     title: string(source.title, 120),
     summary: string(source.summary, 2000),
-    source: string(source.source, 24000),
+    source: string(source.source, 200000),
     author: id(source.author),
     changeNote: string(source.changeNote, 1000),
     ...(source.parent !== undefined ? { parent: id(source.parent) } : {})

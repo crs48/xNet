@@ -2,7 +2,8 @@ import type { AgentFrame, StreamTurnRequest, StreamTurnResult } from '@xnetjs/de
 import type {
   CommunityAgentSnapshot,
   CommunityAgentDelegation,
-  CommunityAgentRuntime
+  CommunityAgentRuntime,
+  CommunityAgentExtension
 } from '@xnetjs/workbench/community-agents'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -28,6 +29,27 @@ vi.mock('electron', () => ({
       fixture.handlers.set(name, handler)
   },
   safeStorage: {}
+}))
+vi.mock('./community-extension-check', () => ({
+  checkCommunityExtension: async ({
+    extension,
+    signal
+  }: {
+    extension: CommunityAgentExtension
+    signal: AbortSignal
+  }) => {
+    signal.throwIfAborted()
+    return {
+      extension,
+      report: {
+        status: 'passed',
+        summary: 'Controls checked.',
+        steps: ['click'],
+        actions: 1,
+        revisions: 0
+      }
+    }
+  }
 }))
 vi.mock('./profile', () => ({
   get dataPath() {
@@ -304,7 +326,10 @@ describe('desktop community agent lifecycle', () => {
       expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('completed')
     )
     const run = (await invoke<CommunityAgentSnapshot>('snapshot')).runs[0]
-    expect(run.text).toBe('Preview this watchlist.')
+    expect(run.text).toBe(
+      'Preview this watchlist.\n\nPreview checked in an isolated test copy. Controls checked.'
+    )
+    expect(run.previewCheck?.status).toBe('passed')
     expect(run.extension).toEqual(extension)
     expect(run.purpose).toBe('reply')
     fixture.nodes.set('follow-up', {
@@ -354,6 +379,33 @@ describe('desktop community agent lifecycle', () => {
     await invoke('start', { ...input, messageId: 'next', contextIds: ['message'] })
     expect(fixture.turns[1].resumeSessionId).toBeUndefined()
     expect(fixture.turns[1].prompt).not.toContain('DRAFT_CANARY')
+  })
+  it('includes an explicitly open same-channel draft in message-only mode and rejects unknown drafts', async () => {
+    await invoke('bind', {
+      channelId: 'chat',
+      runtimeId: 'installed',
+      provider: 'codex',
+      context: 'question',
+      mode: 'direct',
+      enabled: true
+    })
+    const id = await invoke('start', input)
+    fixture.complete!(
+      JSON.stringify({
+        reply: 'Draft',
+        extension: { title: 'Game', summary: '', source: 'OPEN_DRAFT_CANARY' }
+      })
+    )
+    await vi.waitFor(async () =>
+      expect((await invoke<CommunityAgentSnapshot>('snapshot')).runs[0].status).toBe('completed')
+    )
+    fixture.nodes.set('next', message('next'))
+    await expect(
+      invoke('start', { ...input, messageId: 'next', extensionRunId: 'unknown' })
+    ).rejects.toThrow('selected extension draft')
+    await invoke('start', { ...input, messageId: 'next', extensionRunId: id })
+    expect(fixture.turns[1].prompt).toContain('OPEN_DRAFT_CANARY')
+    expect(fixture.turns[1].resumeSessionId).toBeUndefined()
   })
   it('resets the unified conversation session', async () => {
     await invoke('start', input)

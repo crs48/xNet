@@ -1,6 +1,8 @@
-import type { CommunityAgentPort, CommunityAgentRun } from './agent-contract'
+import type { CommunityAgentPort } from './agent-contract'
+import type { PeerChatPort } from './peer-contract'
 import { ChatMessageSchema } from '@xnetjs/data'
 import { useQuery, useXNet } from '@xnetjs/react'
+import { Tooltip } from '@xnetjs/ui'
 import {
   Bot,
   ArrowLeft,
@@ -21,13 +23,15 @@ import {
   X
 } from 'lucide-react'
 import { useDeferredValue, useEffect, useRef, useState, type ReactNode } from 'react'
-import { agentReplyContent } from './agent-activity'
 import { AgentSettings } from './AgentSettings'
 import { CallPanel } from './CallPanel'
+import { ChatInbox } from './ChatInbox'
 import { ConversationPane, type AttachmentServices } from './ConversationPane'
 import { CreateConversation, InviteDialog, ProfileDialog } from './dialogs'
 import { JoinConversation } from './JoinConversation'
 import { audienceDescription, audienceLabel, type Audience, type Section } from './model'
+import { isPeerRecord } from './peer-contract'
+import { PeerSettings, usePeers } from './PeerSettings'
 import {
   Avatar,
   EmptyState,
@@ -42,32 +46,15 @@ import { useCommunityData, type CommunityData, type Conversation } from './use-c
 import './communities.css'
 
 export interface CommunityAppProps extends AttachmentServices {
+  peers?: PeerChatPort
   agents?: CommunityAgentPort
   desktop?: boolean
+  initialConversationId?: string
   onOpenWorkspace?: () => void
   onOpenSettings?: () => void
   onAddShared?: () => void
   banner?: ReactNode
-}
-function Preview({ channelId, runs }: { channelId: string; runs: CommunityAgentRun[] }) {
-  const { data } = useQuery(ChatMessageSchema, {
-    where: { channel: channelId },
-    orderBy: { createdAt: 'desc' },
-    limit: 1
-  })
-  const message = data[0]
-  const run = runs.find((entry) => entry.replyId === message?.id)
-  return (
-    <p className="mt-1 truncate text-xs text-muted-foreground">
-      {message
-        ? message.redacted
-          ? 'Message removed'
-          : run && message.content
-            ? `${run.provider === 'codex' ? 'Codex' : 'Claude'}: ${agentReplyContent(message.content, run)}`
-            : message.content
-        : 'Start the conversation'}
-    </p>
-  )
+  profileIdentity?: ReactNode
 }
 function Details({
   channel,
@@ -101,7 +88,7 @@ function Details({
       className="absolute inset-y-0 right-0 z-20 flex w-[300px] max-w-full flex-col border-l border-border bg-background xl:static"
     >
       <header className="flex h-[78px] shrink-0 items-center justify-between border-b border-border px-5">
-        <h2 className="text-sm font-semibold">Conversation details</h2>
+        <h2 className="text-sm font-semibold">Chat details</h2>
         <IconButton label="Close details" onClick={onClose}>
           <X size={18} />
         </IconButton>
@@ -155,8 +142,9 @@ function Details({
         <section className="rounded-xl bg-muted p-3">
           <h3 className="mb-1 text-xs font-medium">Privacy in this preview</h3>
           <p className="text-xs leading-5 text-muted-foreground">
-            Messages are stored locally and use xNet’s existing access controls. End-to-end
-            encryption and secure community recovery from exploration 0478 are still pending.
+            {isPeerRecord(channel.id)
+              ? 'Only approved participants receive this chat over encrypted peer connections. Copies already received remain on each device.'
+              : 'This older workspace chat uses the existing host transport. Create a new peer chat for private communication.'}
           </p>
         </section>
         <button
@@ -292,16 +280,47 @@ function GlobalSearch({
 }
 export function CommunityApp({
   agents: agentPort,
+  peers,
   desktop,
+  initialConversationId,
   blobs,
   transfers,
   resolveLink,
   onOpenWorkspace,
   onOpenSettings,
   onAddShared,
-  banner
+  banner,
+  profileIdentity
 }: CommunityAppProps) {
-  const data = useCommunityData()
+  const peerState = usePeers(peers)
+  const [peerSettings, setPeerSettings] = useState(false)
+  const [peerGroupId, setPeerGroupId] = useState<string | undefined>()
+  useEffect(() => {
+    if (peerState?.incomingLink) setPeerSettings(true)
+  }, [peerState?.incomingLink])
+  const data = useCommunityData(peerState?.contacts, peerState?.groups)
+  const [peerProfileError, setPeerProfileError] = useState('')
+  const ownName = data.profiles.find(
+    (entry) => entry.did === data.did && entry.createdBy === data.did
+  )?.displayName
+  useEffect(() => {
+    if (!peers || !ownName) return
+    let active = true
+    void peers.setDisplayName(ownName).then(
+      () => {
+        if (active) setPeerProfileError('')
+      },
+      () => {
+        if (active)
+          setPeerProfileError(
+            'Your profile name could not be shared with your peers. Reopen xNet to retry.'
+          )
+      }
+    )
+    return () => {
+      active = false
+    }
+  }, [peers, ownName])
   const agents = useCommunityAgents(agentPort, data, { blobs, transfers })
   const [agentSettings, setAgentSettings] = useState<Conversation | true | null>(null)
   const { syncManager } = useXNet()
@@ -309,7 +328,7 @@ export function CommunityApp({
   const [selected, setSelected] = useState<string | null>(null)
   const [spaceFilter, setSpaceFilter] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
-  const [listFilter, setListFilter] = useState<'all' | 'direct' | 'groups'>('all')
+  const [listFilter, setListFilter] = useState<'all' | 'direct' | 'groups' | 'unread'>('all')
   const [details, setDetails] = useState(false)
   const [dialog, setDialog] = useState<
     'create' | 'profile' | 'search' | 'settings' | 'invite' | 'archive' | 'join' | null
@@ -328,9 +347,20 @@ export function CommunityApp({
   const initialSelection = useRef(false)
   useEffect(() => {
     if (data.loading || initialSelection.current) return
+    const destination = initialConversationId
+      ? data.channels.find(
+          (channel) =>
+            channel.id === initialConversationId ||
+            channel.id ===
+              peerState?.contacts.find((contact) => contact.invitationId === initialConversationId)
+                ?.channel
+        )
+      : data.channels[0]
+    if (!destination) return
     initialSelection.current = true
-    if (data.channels[0]) setSelected(data.channels[0].id)
-  }, [data.loading, data.channels])
+    setSelected(destination.id)
+    if (initialConversationId) setMobileOpen(true)
+  }, [data.loading, data.channels, initialConversationId, peerState?.contacts])
   useEffect(() => {
     if (!syncManager) return
     const update = () => setConnected(syncManager.status === 'connected')
@@ -348,13 +378,10 @@ export function CommunityApp({
     return () => window.removeEventListener('keydown', key)
   }, [])
   const channel = data.channels.find((entry) => entry.id === selected) ?? null
-  const community = data.spaces.find((entry) => entry.id === spaceFilter)
-  const visibleChannels = data.channels.filter(
-    (entry) =>
-      (!spaceFilter || entry.space === spaceFilter) &&
-      (listFilter === 'all' || (listFilter === 'direct') === (entry.kind === 'dm')) &&
-      (entry.name || '').toLowerCase().includes(filter.toLowerCase())
+  const selectedPeerGroup = peerState?.groups?.find(
+    (group) => group.id === channel?.id || group.channels?.some((entry) => entry.id === channel?.id)
   )
+  const community = data.spaces.find((entry) => entry.id === spaceFilter)
   const knownPeople = [
     ...new Set([
       ...data.profiles
@@ -371,6 +398,12 @@ export function CommunityApp({
     setDetails(false)
   }
   const create = (kind: typeof createKind, space?: string, person?: string) => {
+    if (peers) {
+      const group = peerState?.groups?.find((entry) => `${entry.id}-space` === space)
+      setPeerGroupId(group?.id)
+      setPeerSettings(true)
+      return
+    }
     setNewPerson(person)
     setCreateKind(kind)
     setNewChannelSpace(space)
@@ -379,11 +412,32 @@ export function CommunityApp({
   return (
     <div className="community-app flex h-full min-h-0 flex-col overflow-clip bg-background text-foreground">
       {desktop && (
-        <header className="titlebar-drag flex h-[38px] shrink-0 items-center justify-center border-b border-border text-[10px] font-medium tracking-[0.12em] text-muted-foreground">
-          Community preview
+        <header className="community-titlebar titlebar-drag flex h-9 shrink-0 items-center justify-center border-b border-border/60 text-[11px] font-medium">
+          xNet
         </header>
       )}
       {banner}
+      {peerState?.contacts
+        .filter((contact) => contact.status === 'requesting')
+        .map((contact) => (
+          <button
+            key={contact.channel}
+            className="border-b border-border bg-muted/40 px-4 py-2 text-left text-xs hover:bg-muted"
+            onClick={() => {
+              setPeerGroupId(undefined)
+              setPeerSettings(true)
+            }}
+          >
+            {contact.name} ·{' '}
+            {contact.error ? 'Connection needs attention' : 'Waiting for your friend to approve'}
+            <span className="ml-2 text-muted-foreground">View request</span>
+          </button>
+        ))}
+      {peerProfileError && (
+        <p role="alert" className="p-3 text-sm text-destructive">
+          {peerProfileError}
+        </p>
+      )}
       {agents.error && (
         <div
           role="alert"
@@ -412,7 +466,7 @@ export function CommunityApp({
       <div className="relative flex min-h-0 flex-1">
         <nav
           aria-label="Main navigation"
-          className={`${mobileOpen ? 'hidden md:flex' : 'flex'} w-[76px] shrink-0 flex-col items-center border-r border-border bg-muted/30 py-5`}
+          className={`${mobileOpen ? 'hidden md:flex' : 'flex'} w-[54px] shrink-0 flex-col items-center border-r border-border/60 bg-muted/60 py-4`}
         >
           <button
             aria-label="xNet home"
@@ -421,91 +475,116 @@ export function CommunityApp({
               setSpaceFilter(null)
               setMobileOpen(false)
             }}
-            className="mb-9 flex h-10 w-10 items-center justify-center rounded-xl bg-foreground text-background"
+            className="relative mb-5 flex h-8 w-8 items-center justify-center rounded-xl text-background"
           >
-            <span aria-hidden="true" className="community-brand-mark h-7 w-7" />
+            <svg
+              aria-hidden="true"
+              focusable="false"
+              viewBox="0 0 64 64"
+              className="pointer-events-none absolute inset-0 h-full w-full fill-foreground drop-shadow-sm"
+            >
+              <path d="M32 0C60 0 64 4 64 32S60 64 32 64S0 60 0 32S4 0 32 0Z" />
+            </svg>
+            <span aria-hidden="true" className="community-brand-mark relative h-5 w-5" />
           </button>
           {(
             [
-              { key: 'messages', label: 'Messages', icon: MessageCircle },
+              { key: 'messages', label: 'Chats', icon: MessageCircle },
               { key: 'people', label: 'People', icon: Users },
               { key: 'communities', label: 'Communities', icon: Building2 }
             ] as const
           ).map(({ key, label, icon: Icon }) => (
-            <button
+            <IconButton
               key={key}
+              label={label}
               aria-current={section === key ? 'page' : undefined}
               onClick={() => {
                 setSection(key)
                 setMobileOpen(false)
                 setSpaceFilter(null)
               }}
-              className={`mb-4 flex w-[64px] flex-col items-center gap-1.5 rounded-xl py-2.5 text-[9px] font-medium ${section === key ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`mb-2 !h-9 !w-9 ${section === key ? '!bg-white !text-foreground shadow-sm' : ''}`}
             >
-              <Icon size={20} strokeWidth={1.7} />
-              {label}
-            </button>
+              <Icon size={19} strokeWidth={1.7} />
+            </IconButton>
           ))}
           <div className="flex-1" />
           <IconButton label="Settings" onClick={() => setDialog('settings')}>
             <Settings size={20} />
           </IconButton>
-          <button
-            aria-label="Your profile"
-            title="Your profile"
-            onClick={() => setDialog('profile')}
-            className="mt-4"
-          >
-            <Avatar name={data.did ? data.nameFor(data.did) : 'You'} />
-          </button>
+          <Tooltip content="Your profile" className="community-tooltip">
+            <button aria-label="Your profile" onClick={() => setDialog('profile')} className="mt-4">
+              <Avatar name={data.did ? data.nameFor(data.did) : 'You'} />
+            </button>
+          </Tooltip>
         </nav>
         <aside
           aria-label="Conversation navigation"
-          className={`${mobileOpen ? 'hidden md:flex' : 'flex'} min-w-0 flex-1 flex-col border-r border-border bg-background md:w-[300px] md:flex-none`}
+          className={`${mobileOpen ? 'hidden md:flex' : 'flex'} community-sidebar min-w-0 flex-1 flex-col border-r border-border/60 md:w-[264px] md:flex-none`}
         >
-          <header className="flex h-[78px] shrink-0 items-center justify-between px-5">
+          <header className="flex h-[68px] shrink-0 items-center justify-between px-4">
             <div className="min-w-0">
-              <span role="img" aria-label="xNet" className="community-brand-wordmark h-6" />
+              <span role="img" aria-label="xNet" className="community-brand-wordmark h-5" />
               <h1 className="mt-1 truncate text-sm font-semibold tracking-tight">
                 {community?.name ||
-                  { messages: 'Messages', people: 'People', communities: 'Communities' }[section]}
+                  { messages: 'Chats', people: 'People', communities: 'Communities' }[section]}
               </h1>
             </div>
             <IconButton
-              label={section === 'communities' ? 'New community' : 'New conversation'}
+              label="New chat"
               onClick={() => create(section === 'communities' ? 'community' : 'group')}
             >
               <Plus size={20} />
             </IconButton>
           </header>
           <div className="px-4">
+            {peers && (
+              <button
+                onClick={() => {
+                  setPeerGroupId(undefined)
+                  setPeerSettings(true)
+                }}
+                className="mb-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs hover:bg-muted"
+              >
+                <Users size={16} />
+                People & invitations
+                {peerState?.contacts.some((c) => c.status === 'pending') && (
+                  <span className="ml-auto">Approval needed</span>
+                )}
+              </button>
+            )}
             <button
               onClick={() => setAgentSettings(true)}
-              className="mb-3 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs hover:bg-muted"
+              className="mb-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs hover:bg-muted"
             >
               <Bot size={16} />
-              Your agents<span className="ml-auto text-muted-foreground">Connect</span>
+              Your agents
+              <span className="ml-auto text-muted-foreground">
+                {agents.snapshot.runtimes.some((runtime) => runtime.state === 'ready')
+                  ? 'Ready'
+                  : 'Connect'}
+              </span>
             </button>
             <button
               onClick={() => setDialog('search')}
-              className="mb-4 flex w-full items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
+              className="chat-button-secondary mb-3 flex w-full items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
             >
               <Search size={14} />
-              <span className="flex-1 text-left">Search anything</span>
+              <span className="flex-1 text-left">Search messages</span>
               <kbd className="rounded border border-border px-1 text-[10px]">⌘ K</kbd>
             </button>
           </div>
           {section === 'messages' && (
             <>
               <div className="mb-3 flex gap-1 px-4">
-                {(['all', 'direct', 'groups'] as const).map((value) => (
+                {(['all', 'direct', 'groups', 'unread'] as const).map((value) => (
                   <button
                     key={value}
                     aria-pressed={listFilter === value}
                     onClick={() => setListFilter(value)}
-                    className={`rounded-md px-3 py-1.5 text-xs ${listFilter === value ? 'bg-foreground font-medium text-background' : 'text-muted-foreground hover:bg-muted'}`}
+                    className={`rounded-lg px-2.5 py-1.5 text-[11px] ${listFilter === value ? 'bg-white font-medium text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
                   >
-                    {{ all: 'All', direct: 'Direct', groups: 'Groups' }[value]}
+                    {{ all: 'All', direct: 'Direct', groups: 'Groups', unread: 'Unread' }[value]}
                   </button>
                 ))}
               </div>
@@ -525,37 +604,19 @@ export function CommunityApp({
                 id="conversation-filter"
                 value={filter}
                 onChange={(event) => setFilter(event.target.value)}
-                placeholder="Filter conversations…"
-                className="mx-4 mb-3 rounded-md bg-transparent px-1 py-1 text-xs outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-ring"
+                placeholder="Find a chat…"
+                className="mx-4 mb-1 rounded-lg border border-transparent bg-transparent px-2 py-2 text-xs outline-none placeholder:text-muted-foreground focus:border-border focus:bg-background focus:ring-1 focus:ring-ring"
               />
-              <div className="min-h-0 flex-1 overflow-y-auto px-2">
-                {visibleChannels.map((entry) => (
-                  <button
-                    key={entry.id}
-                    onClick={() => open(entry.id)}
-                    aria-current={selected === entry.id ? 'true' : undefined}
-                    className={`mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left ${selected === entry.id ? 'bg-muted' : 'hover:bg-muted/60'}`}
-                  >
-                    <Avatar name={entry.name || 'Conversation'} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium">
-                          {entry.kind !== 'dm' && (
-                            <span className="mr-1 text-muted-foreground">#</span>
-                          )}
-                          {entry.name || 'Conversation'}
-                        </span>
-                      </div>
-                      <Preview channelId={entry.id} runs={agents.snapshot.runs} />
-                    </div>
-                  </button>
-                ))}
-                {!data.loading && !visibleChannels.length && (
-                  <p className="px-4 py-8 text-center text-sm leading-6 text-muted-foreground">
-                    {filter ? 'No matching conversations.' : 'Your conversations will live here.'}
-                  </p>
-                )}
-              </div>
+              <ChatInbox
+                data={data}
+                runs={agents.snapshot.runs}
+                peers={peerState}
+                selected={selected}
+                filter={filter}
+                kind={listFilter}
+                space={spaceFilter}
+                onOpen={open}
+              />
               {community && (
                 <button
                   className={`${secondaryButton} mx-4 mb-4`}
@@ -590,8 +651,8 @@ export function CommunityApp({
               ))}
               {!knownPeople.length && (
                 <p className="p-4 text-sm leading-6 text-muted-foreground">
-                  People from your conversations appear here. Start a direct message with someone’s
-                  xNet identity.
+                  People from your chats appear here. Find someone by a shared link or Bluesky
+                  handle.
                 </p>
               )}
               <button onClick={() => create('dm')} className={`${secondaryButton} !mt-4 w-full`}>
@@ -639,7 +700,7 @@ export function CommunityApp({
                 className={`${secondaryButton} !mt-4 w-full`}
               >
                 <Plus size={15} />
-                Create a community
+                Create a group
               </button>
             </div>
           )}
@@ -649,27 +710,82 @@ export function CommunityApp({
               be shown.
             </p>
           )}
-          <div className="mt-auto flex items-center gap-2 border-t border-border px-5 py-4 text-[11px] text-muted-foreground">
+          <div className="mt-auto flex items-center gap-2 border-t border-border/60 px-4 py-3 text-[11px] text-muted-foreground">
             <span
               className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-foreground' : 'border border-foreground'}`}
             />
-            {connected ? 'Host connected' : 'Working locally'}
-            <span className="ml-auto">Preview</span>
+            {connected ? 'Workspace connected' : 'Saved on this device'}
+            <span className="ml-auto text-[10px]">Preview</span>
           </div>
         </aside>
+        {peerSettings && peers && (
+          <PeerSettings
+            port={peers}
+            state={peerState}
+            initialGroupId={peerGroupId}
+            onProfile={() => {
+              setPeerSettings(false)
+              setDialog('profile')
+            }}
+            onClose={() => setPeerSettings(false)}
+            onOpen={(channel) => {
+              setSelected(channel)
+              setSection('messages')
+              setMobileOpen(true)
+              setPeerSettings(false)
+            }}
+          />
+        )}
         <main
-          className={`${mobileOpen ? 'flex' : 'hidden md:flex'} relative min-h-0 min-w-0 flex-1`}
+          className={`${mobileOpen ? 'flex' : 'hidden md:flex'} community-main relative min-h-0 min-w-0 flex-1 bg-background`}
         >
           {channel ? (
             <ConversationPane
               agents={agents}
+              peer={
+                selectedPeerGroup?.hosting
+                  ? {
+                      status: 'approved',
+                      hosting: true,
+                      access: selectedPeerGroup.access,
+                      queued: peerState?.contacts.some(
+                        (contact) => contact.groupId === selectedPeerGroup.id && contact.queued
+                      )
+                    }
+                  : (() => {
+                      const contact =
+                        peerState?.contacts.find(
+                          (entry) =>
+                            (entry.groupId ?? entry.channel) ===
+                              (selectedPeerGroup?.id ?? channel.id) && entry.status !== 'blocked'
+                        ) ??
+                        peerState?.contacts.find(
+                          (entry) =>
+                            (entry.groupId ?? entry.channel) ===
+                            (selectedPeerGroup?.id ?? channel.id)
+                        )
+                      return contact ? { ...contact, access: selectedPeerGroup?.access } : undefined
+                    })()
+              }
+              onJoinPublic={
+                selectedPeerGroup && peers
+                  ? () => peers.joinPublic(selectedPeerGroup.id)
+                  : undefined
+              }
               onAgentSettings={() => setAgentSettings(channel!)}
               key={channel.id}
               channel={channel}
               data={data}
-              services={{ blobs, transfers, resolveLink }}
+              services={
+                isPeerRecord(channel.id) ? { blobs: null } : { blobs, transfers, resolveLink }
+              }
               onBack={() => setMobileOpen(false)}
-              onDetails={() => setDetails(!details)}
+              onDetails={() => {
+                if (selectedPeerGroup) {
+                  setPeerGroupId(selectedPeerGroup.id)
+                  setPeerSettings(true)
+                } else setDetails(!details)
+              }}
               onCall={(video) => {
                 if (!activeCall) setActiveCall({ channel, video })
                 else setError('Leave your current call before starting another.')
@@ -683,7 +799,7 @@ export function CommunityApp({
             >
               <button onClick={() => create('group')} className={primaryButton}>
                 <Plus size={16} />
-                Start a conversation
+                New chat
               </button>
               <button
                 onClick={() => setDialog('profile')}
@@ -699,7 +815,11 @@ export function CommunityApp({
               channel={channel}
               data={data}
               onClose={() => setDetails(false)}
-              onInvite={() => setDialog('invite')}
+              onInvite={() =>
+                isPeerRecord(channel.id)
+                  ? (setPeerGroupId(selectedPeerGroup?.id), setPeerSettings(true))
+                  : setDialog('invite')
+              }
               onArchive={() => setDialog('archive')}
             />
           )}
@@ -727,7 +847,9 @@ export function CommunityApp({
         />
       )}
       {dialog === 'join' && <JoinConversation onOpen={open} onClose={() => setDialog(null)} />}
-      {dialog === 'profile' && <ProfileDialog data={data} onClose={() => setDialog(null)} />}
+      {dialog === 'profile' && (
+        <ProfileDialog data={data} identity={profileIdentity} onClose={() => setDialog(null)} />
+      )}
       {dialog === 'search' && (
         <GlobalSearch data={data} onOpen={open} onClose={() => setDialog(null)} />
       )}

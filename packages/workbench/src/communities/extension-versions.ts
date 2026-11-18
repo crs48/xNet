@@ -2,7 +2,7 @@ import type { ChatExtensionProposal } from './agent-extension'
 import { readExtensionProposal } from './agent-extension'
 
 export const EXTENSION_SHARE_MIME = 'application/vnd.xnet.chat-extension+json'
-export const EXTENSION_SHARE_LIMIT = 128000
+export const EXTENSION_SHARE_LIMIT = 1_000_000
 export interface ExtensionLineage {
   versionId: string
   author: string
@@ -146,22 +146,15 @@ export function extensionBranches(history: ExtensionRevision[]) {
   unique.forEach((entry) => visit(entry, 0))
   return rows
 }
-export function sourceChangeSummary(before: string, after: string) {
-  const a = before.split('\n'),
-    b = after.split('\n')
-  let start = 0,
-    end = 0
-  while (start < a.length && start < b.length && a[start] === b[start]) start++
-  while (
-    end < a.length - start &&
-    end < b.length - start &&
-    a[a.length - 1 - end] === b[b.length - 1 - end]
-  )
-    end++
-  return {
-    removed: a.length - start - end,
-    added: b.length - start - end,
-    before: a.slice(start, a.length - end).join('\n'),
-    after: b.slice(start, b.length - end).join('\n')
-  }
+export function extensionComparisonBase(
+  revision: ExtensionRevision,
+  history: readonly ExtensionRevision[]
+):
+  | { kind: 'initial' }
+  | { kind: 'parent'; revision: ExtensionRevision }
+  | { kind: 'missing'; key: string } {
+  const key = revision.lineage?.parent ?? revision.base
+  if (!key) return { kind: 'initial' }
+  const parent = history.find((entry) => revisionKey(entry) === key || entry.id === key)
+  return parent ? { kind: 'parent', revision: parent } : { kind: 'missing', key }
 }

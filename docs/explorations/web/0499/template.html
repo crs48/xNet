@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Explore a complete xNet journey: shared links, identity, participation, native apps, community hosting, publishing and discovery."
+    />
+    <title>From a link to a shared network · xNet</title>
+    <style>
+      :root {
+        --bg: #f7f8fa;
+        --paper: #fff;
+        --ink: #242a33;
+        --muted: #657080;
+        --line: #dfe4eb;
+        --soft: #f0f3f7;
+        --accent: #435b83;
+        --accent-soft: #eaf0fa;
+        --good: #315e4a;
+        --good-bg: #eaf4ee;
+        --warn: #8b541c;
+        --warn-bg: #fff3e3;
+        --shadow: 0 3px 18px #26344d07;
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--bg);
+        font:
+          16px/1.65 system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      html {
+        scroll-padding-top: 28px;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+      button,
+      a {
+        touch-action: manipulation;
+      }
+      a {
+        color: var(--accent);
+        text-underline-offset: 4px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button,
+      select,
+      input[type='text'],
+      textarea {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+        padding: 10px 13px;
+      }
+      button:hover {
+        background: var(--soft);
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+      .primary {
+        background: var(--ink);
+        color: var(--paper);
+        border-color: var(--ink);
+      }
+      .primary:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .selected {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      :focus-visible {
+        outline: 3px solid #7793be;
+        outline-offset: 3px;
+      }
+      .skip {
+        position: absolute;
+        top: -100px;
+        left: 20px;
+        background: var(--paper);
+        padding: 14px;
+        z-index: 10;
+      }
+      .skip:focus {
+        top: 10px;
+      }
+      .top {
+        max-width: 1360px;
+        margin: auto;
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        padding: 24px 38px;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        font-size: 26px;
+        font-weight: 750;
+        letter-spacing: -1px;
+        text-decoration: none;
+        color: var(--ink);
+      }
+      .top small {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .top nav {
+        margin-left: auto;
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        font-size: 12px;
+      }
+      .top button {
+        font-size: 12px;
+        padding: 7px 11px;
+      }
+      .hero {
+        max-width: 1180px;
+        padding: 60px 30px 40px;
+        margin: auto;
+      }
+      .eyebrow {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      h1 {
+        font-size: clamp(38px, 5vw, 64px);
+        line-height: 1.08;
+        letter-spacing: -0.045em;
+        font-weight: 640;
+        margin: 18px 0 22px;
+        max-width: 900px;
+      }
+      .hero p.lead {
+        font-size: 20px;
+        max-width: 800px;
+        color: var(--muted);
+      }
+      .summary-line {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 26px;
+      }
+      .summary-line span {
+        border-left: 2px solid var(--line);
+        padding-left: 12px;
+      }
+      #journey {
+        max-width: 1300px;
+        margin: 0 auto 70px;
+        padding: 0 30px;
+      }
+      .journey-shell {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        overflow: hidden;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+      .toolbar {
+        padding: 18px 22px;
+        background: var(--soft);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .toolbar label {
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .toolbar select {
+        font-size: 12px;
+        padding: 7px 10px;
+        max-width: 240px;
+      }
+      .demo-tag {
+        font-size: 11px;
+        color: var(--muted);
+        max-width: 210px;
+        line-height: 1.5;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 218px minmax(0, 1fr) 245px;
+      }
+      .steps {
+        border-right: 1px solid var(--line);
+        padding: 16px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .steps button {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        border-color: transparent;
+        text-align: left;
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 11px 9px;
+        background: transparent;
+      }
+      .steps button span {
+        font-size: 10px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+      }
+      .steps button[aria-current='step'] {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .steps button[aria-current='step'] span {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      .stage {
+        min-width: 0;
+        padding: 28px;
+      }
+      .stage h2 {
+        font-size: 25px;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        margin: 6px 0 12px;
+      }
+      .stage > p {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 0 0 22px;
+      }
+      .stage small {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .stage .kicker {
+        font-size: 10px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+      }
+      .side-note {
+        border-left: 1px solid var(--line);
+        background: var(--bg);
+        padding: 25px 20px;
+        font-size: 12px;
+      }
+      .side-note h3 {
+        font-size: 13px;
+        margin: 0 0 12px;
+      }
+      .side-note dl {
+        margin: 0;
+      }
+      .side-note dt {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 600;
+        color: var(--muted);
+        margin: 22px 0 5px;
+      }
+      .side-note dd {
+        margin: 0;
+        line-height: 1.6;
+      }
+      .side-note .status {
+        font-size: 12px;
+        margin-top: 24px;
+      }
+      .journey-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-top: 1px solid var(--line);
+        padding: 16px 22px;
+        font-size: 12px;
+      }
+      .journey-footer button {
+        font-size: 12px;
+      }
+      .footer-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .journey-footer a {
+        font-size: 12px;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+        margin: 16px 0;
+      }
+      .card-body {
+        padding: 17px;
+      }
+      .card-body h3 {
+        margin: 0 0 5px;
+        font-size: 19px;
+        letter-spacing: -0.02em;
+      }
+      .card-body p {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 8px 0;
+      }
+      .poster {
+        height: 160px;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(160deg, #dbe8e2 0%, #e9efdd 60%, #b9ccc0 60%);
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-evenly;
+        padding: 16px 28px;
+      }
+      .sprout {
+        height: 80px;
+        width: 4px;
+        background: #68836e;
+        border-radius: 3px;
+        position: relative;
+        transform: rotate(-5deg);
+      }
+      .sprout:before,
+      .sprout:after {
+        content: '';
+        position: absolute;
+        width: 29px;
+        height: 18px;
+        background: #7d9b75;
+        border-radius: 30px 3px 30px 3px;
+        top: 24px;
+        left: -27px;
+        transform: rotate(8deg);
+      }
+      .sprout:after {
+        top: 7px;
+        left: 2px;
+        transform: rotate(-5deg);
+        background: #91ac86;
+      }
+      .sprout:nth-child(2) {
+        height: 110px;
+        transform: rotate(7deg);
+      }
+      .sprout:nth-child(3) {
+        height: 65px;
+      }
+      .poster > small {
+        position: absolute;
+        top: 12px;
+        left: 14px;
+        font-size: 10px;
+        color: #42614d;
+        background: #ffffff9e;
+        padding: 3px 7px;
+        border-radius: 5px;
+      }
+      .post-meta {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 18px 0;
+      }
+      .actions button {
+        font-size: 12px;
+      }
+      .status {
+        border-radius: 9px;
+        padding: 12px 14px;
+        background: var(--soft);
+        font-size: 13px;
+        margin: 16px 0;
+        line-height: 1.55;
+      }
+      .status.good {
+        background: var(--good-bg);
+        color: var(--good);
+      }
+      .status.warn {
+        background: var(--warn-bg);
+        color: var(--warn);
+      }
+      .status strong {
+        display: block;
+      }
+      .notice {
+        font-size: 12px;
+        color: var(--muted);
+        border-left: 2px solid var(--line);
+        padding-left: 12px;
+        margin: 18px 0;
+      }
+      .choice-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+        margin: 14px 0;
+      }
+      .choice-grid button {
+        text-align: left;
+        font-size: 13px;
+      }
+      .form-row {
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+        margin: 15px 0;
+      }
+      .form-row input,
+      .form-row select,
+      .form-row textarea {
+        width: 100%;
+        min-width: 0;
+      }
+      .check-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        font-size: 12px;
+        margin: 13px 0;
+      }
+      .check-row input {
+        width: 16px;
+        height: 16px;
+        margin-top: 3px;
+        flex-shrink: 0;
+        accent-color: var(--accent);
+      }
+      input[type='range'] {
+        accent-color: var(--accent);
+        width: 100%;
+      }
+      .chip {
+        display: inline-block;
+        font-size: 10px;
+        background: var(--soft);
+        color: var(--muted);
+        border: 1px solid var(--line);
+        padding: 3px 7px;
+        border-radius: 20px;
+        margin: 3px 4px 3px 0;
+      }
+      .plain-list {
+        padding: 0;
+        list-style: none;
+        margin: 16px 0;
+      }
+      .plain-list li {
+        font-size: 13px;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .step-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 0;
+        list-style: none;
+        margin: 18px 0;
+      }
+      .step-list li {
+        font-size: 10px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        background: var(--soft);
+        color: var(--muted);
+      }
+      .step-list li.done {
+        background: var(--good-bg);
+        color: var(--good);
+      }
+      .result {
+        padding: 14px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .result h3 {
+        font-size: 14px;
+        line-height: 1.35;
+        margin: 0 0 6px;
+      }
+      .result p {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 4px 0;
+      }
+      .result .why {
+        font-size: 11px;
+        color: var(--accent);
+      }
+      .locked {
+        padding: 25px;
+        background: var(--soft);
+        border-radius: 10px;
+        text-align: center;
+      }
+      .locked h3 {
+        font-size: 17px;
+      }
+      .locked p {
+        font-size: 13px;
+      }
+      .link-box {
+        display: block;
+        word-break: break-all;
+        padding: 12px;
+        background: var(--soft);
+        border-radius: 7px;
+        font-size: 11px;
+        margin: 14px 0;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 70px;
+      }
+      .draft-note {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .mobile-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+      }
+      #report {
+        max-width: 1180px;
+        margin: auto;
+        padding: 0 30px 90px;
+      }
+      .report-title {
+        border-top: 1px solid var(--line);
+        padding-top: 36px;
+        margin-bottom: 30px;
+      }
+      .report-title h2 {
+        font-size: 32px;
+        letter-spacing: -0.03em;
+        margin: 8px 0;
+      }
+      .report-title p {
+        color: var(--muted);
+        max-width: 730px;
+      }
+      .report-layout {
+        display: grid;
+        grid-template-columns: 210px minmax(0, 1fr);
+        gap: 45px;
+      }
+      .report-nav {
+        align-self: start;
+        position: sticky;
+        top: 24px;
+        display: grid;
+        gap: 8px;
+      }
+      .report-nav a {
+        font-size: 12px;
+        line-height: 1.5;
+        text-decoration: none;
+        padding: 7px 0;
+        color: var(--muted);
+      }
+      .report-nav a:hover {
+        color: var(--accent);
+      }
+      article {
+        min-width: 0;
+        max-width: 850px;
+      }
+      article > h2 {
+        font-size: 27px;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        margin: 54px 0 20px;
+        border-top: 1px solid var(--line);
+        padding-top: 24px;
+      }
+      article p,
+      article li {
+        font-size: 15px;
+      }
+      article li {
+        margin: 9px 0;
+      }
+      article blockquote {
+        background: var(--accent-soft);
+        margin: 0 0 24px;
+        border-left: 3px solid var(--accent);
+        padding: 9px 20px;
+        border-radius: 0 10px 10px 0;
+      }
+      article blockquote p {
+        font-size: 15px;
+      }
+      .table-wrap {
+        overflow: auto;
+        margin: 25px 0;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      table {
+        border-collapse: collapse;
+        font-size: 12px;
+        width: 100%;
+        min-width: 580px;
+      }
+      th,
+      td {
+        padding: 13px;
+        vertical-align: top;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        background: var(--soft);
+        font-weight: 650;
+      }
+      tr:last-child td {
+        border: 0;
+      }
+      pre {
+        background: var(--soft);
+        padding: 17px;
+        border-radius: 10px;
+        overflow: auto;
+        font-size: 12px;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 0.88em;
+      }
+      p code,
+      li code,
+      td code {
+        background: var(--soft);
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+      .local-reference {
+        color: var(--muted);
+        text-decoration: underline dotted;
+      }
+      .architecture {
+        background: var(--paper);
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        margin: 28px 0;
+        text-align: center;
+        font-size: 13px;
+      }
+      .architecture p {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .architecture ol {
+        text-align: left;
+      }
+      .architecture li {
+        font-size: 13px;
+      }
+      .diagram-row,
+      .pipeline {
+        display: flex;
+        gap: 8px;
+      }
+      .diagram-row span,
+      .pipeline span {
+        background: var(--soft);
+        border-radius: 7px;
+        padding: 12px;
+        flex: 1;
+        font-size: 12px;
+      }
+      .pipeline {
+        flex-wrap: wrap;
+      }
+      .pipeline span {
+        min-width: 80px;
+      }
+      details {
+        padding: 12px 15px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        margin: 20px 0;
+        text-align: left;
+      }
+      summary {
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .endnote {
+        max-width: 1180px;
+        margin: auto;
+        padding: 0 30px 40px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #171b21;
+          --paper: #1d232c;
+          --ink: #e5eaf2;
+          --muted: #a6b2c3;
+          --line: #35404e;
+          --soft: #293341;
+          --accent: #b5cbee;
+          --accent-soft: #2b3b52;
+          --good: #bad9c9;
+          --good-bg: #273e34;
+          --warn: #efd1a9;
+          --warn-bg: #443625;
+          --shadow: none;
+          color-scheme: dark;
+        }
+        .primary {
+          background: #dce5f3;
+          color: #18212d;
+          border-color: #dce5f3;
+        }
+        .primary:hover {
+          color: #18212d;
+        }
+        .steps button[aria-current='step'] span {
+          color: #172031;
+        }
+      }
+      @media (max-width: 1100px) {
+        .layout {
+          grid-template-columns: 190px minmax(0, 1fr);
+        }
+        .side-note {
+          grid-column: 1/-1;
+          border-left: 0;
+          border-top: 1px solid var(--line);
+          padding: 20px;
+        }
+        .side-note dl {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+        }
+        .side-note dt {
+          margin-top: 0;
+        }
+        .side-note .status {
+          margin-bottom: 0;
+        }
+        .stage {
+          padding: 24px;
+        }
+        .toolbar {
+          flex-wrap: wrap;
+        }
+        .demo-tag {
+          max-width: none;
+        }
+      }
+      @media (max-width: 760px) {
+        .top {
+          padding: 17px 18px;
+          gap: 13px;
+          flex-wrap: wrap;
+        }
+        .top nav {
+          gap: 10px;
+        }
+        .top small {
+          display: none;
+        }
+        .top nav a {
+          font-size: 11px;
+        }
+        .top button {
+          font-size: 10px;
+        }
+        .hero {
+          padding: 35px 20px 26px;
+        }
+        .hero p.lead {
+          font-size: 17px;
+        }
+        h1 {
+          font-size: 40px;
+        }
+        #journey {
+          padding: 0 12px;
+        }
+        .toolbar {
+          padding: 15px;
+        }
+        .toolbar label {
+          width: 100%;
+          justify-content: space-between;
+        }
+        .toolbar select {
+          max-width: 220px;
+        }
+        .layout {
+          display: block;
+        }
+        .steps {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          gap: 3px;
+          padding: 10px;
+        }
+        .steps button {
+          font-size: 11px;
+          padding: 8px 5px;
+          gap: 7px;
+        }
+        .steps button span {
+          width: 21px;
+          height: 21px;
+        }
+        .stage {
+          padding: 22px 18px;
+        }
+        .stage h2 {
+          font-size: 24px;
+        }
+        .side-note dl {
+          display: block;
+        }
+        .side-note dt {
+          margin-top: 18px;
+        }
+        .side-note h3 {
+          margin-bottom: 4px;
+        }
+        .journey-footer {
+          padding: 14px;
+          flex-wrap: wrap;
+        }
+        .journey-footer > a {
+          display: none;
+        }
+        .journey-footer button {
+          font-size: 11px;
+        }
+        .report-layout {
+          display: block;
+        }
+        .report-nav {
+          position: static;
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
+          margin: 20px 0 35px;
+        }
+        .report-nav a {
+          font-size: 11px;
+        }
+        #report {
+          padding: 0 20px 50px;
+        }
+        article > h2 {
+          font-size: 24px;
+        }
+        .diagram-row {
+          flex-direction: column;
+        }
+        .top nav {
+          margin-left: auto;
+        }
+        .poster {
+          height: 140px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto;
+        }
+      }
+      @media print {
+        .top nav,
+        .toolbar,
+        .steps,
+        .journey-footer,
+        .report-nav {
+          display: none;
+        }
+        .layout,
+        .report-layout {
+          display: block;
+        }
+        .side-note {
+          border: 0;
+        }
+        .hero,
+        #journey,
+        #report {
+          padding: 0;
+        }
+        .hero {
+          margin-bottom: 30px;
+        }
+        body {
+          background: white;
+          color: black;
+        }
+        .table-wrap {
+          overflow: visible;
+        }
+        article h2 {
+          break-after: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#journey">Skip to the interactive journey</a>
+    <header class="top">
+      <a class="brand" href="#top">xNet</a><small>FIELD GUIDE / 0499</small>
+      <nav aria-label="Page navigation">
+        <a href="#journey">Try the journey</a><a href="#report">Read the exploration</a
+        ><button id="download-html">Save website</button>
+      </nav>
+    </header>
+    <main id="top">
+      <section class="hero">
+        <p class="eyebrow">A link is the beginning</p>
+        <h1>From a shared link<br />to a shared network.</h1>
+        <p class="lead">
+          You came to watch something a friend made. What makes you stay, join in, create something
+          yourself—and eventually help keep this place available?
+        </p>
+        <div class="summary-line">
+          <span>Open public links</span><span>Familiar identities</span
+          ><span>Bounded contribution</span><span>Discovery you can choose</span>
+        </div>
+      </section>
+      <section id="journey" aria-label="Interactive user journey">
+        <div class="journey-shell">
+          <div class="toolbar">
+            <div class="demo-tag">
+              <strong>LOCAL CONCEPT PROTOTYPE</strong><br />Example content. No real sign-in,
+              uploads, payments, or peer connections.
+            </div>
+            <label for="device"
+              >Device<select id="device">
+                <option value="web">Web browser</option>
+                <option value="desktop">Desktop app</option>
+                <option value="phone">Phone app</option>
+              </select></label
+            ><label for="policy"
+              >Access policy<select id="policy">
+                <option value="open">Open viewing · optional hosting</option>
+                <option value="required">Compare mandatory seeding</option>
+              </select></label
+            >
+          </div>
+          <div class="layout">
+            <nav class="steps" id="steps" aria-label="Journey steps"></nav>
+            <section class="stage" id="scene" aria-label="Current journey step"></section>
+            <aside class="side-note" id="notes" aria-label="How this step works"></aside>
+          </div>
+          <div class="journey-footer">
+            <button id="reset">Reset example</button
+            ><a href="#report">Explore the architecture ↓</a>
+            <div class="footer-actions">
+              <button id="back">← Back</button
+              ><button id="next" class="primary">Next step →</button>
+            </div>
+          </div>
+        </div>
+        <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+      </section>
+      <section id="report">
+        <div class="report-title">
+          <p class="eyebrow">The full exploration</p>
+          <h2>Design the invitation and the obligations together.</h2>
+          <p>
+            The proposed journey, the tradeoffs behind it, and an implementation path. Research
+            checked November 2, 2026. These are proposals, not claims about a running network.
+          </p>
+          <button id="download-md">Download the Markdown</button>
+        </div>
+        <div class="report-layout">
+          <nav class="report-nav" aria-label="Exploration chapters"><!-- NAV --></nav>
+          <article><!-- CONTENT --></article>
+        </div>
+      </section>
+    </main>
+    <footer class="endnote">
+      xNet exploration 0499 · Built for local review and sharing as a single HTML file.<br />Repository
+      references are annotated here; follow them from the Markdown in the repository.
+    </footer>
+    <script>
+      /* MODEL */
+      /* SOURCE */
+      /* APP */
+    </script>
+  </body>
+</html>

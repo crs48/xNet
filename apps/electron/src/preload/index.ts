@@ -1,7 +1,9 @@
+import { exposeExtensionHost } from './extension-host'
 /**
  * Preload script - exposes xNet API to renderer
  */
 import type { CloudConnectPayload } from '../main/deep-link'
+import type { StoreOperation } from '../main/peers/service'
 import type { DesktopSettings, SettingsRecovery } from '../shared/desktop-settings'
 import type {
   CaptureInput,
@@ -13,6 +15,7 @@ import type {
 } from '../shared/library'
 import type { LibraryGraphDetail } from '../shared/library-graph'
 import type { SerializedNodeBatch } from '../shared/node-batch'
+import type { DesktopOnboardingPort } from '../shared/onboarding'
 import type { CheckpointManifest } from '../shared/recovery'
 import type {
   SocialImportArchivePreview,
@@ -25,6 +28,7 @@ import type { ApplyNodeBatchResult } from '@xnetjs/data'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import type { ChatLinkResolution } from '@xnetjs/workbench/chat-media'
 import type { CommunityAgentPort } from '@xnetjs/workbench/community-agents'
+import type { PeerChatPort } from '@xnetjs/workbench/peer-chat'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // Expose xNet API to renderer
@@ -122,12 +126,6 @@ contextBridge.exposeInMainWorld('xnet', {
   onNewPage: (callback: () => void) => {
     ipcRenderer.on('menu:new-page', callback)
     return () => ipcRenderer.removeListener('menu:new-page', callback)
-  },
-
-  // DevTools toggle from menu
-  onDevToolsToggle: (callback: () => void) => {
-    ipcRenderer.on('devtools:toggle', callback)
-    return () => ipcRenderer.removeListener('devtools:toggle', callback)
   },
 
   onSharePayload: (callback: (payload: string) => void) => {
@@ -675,7 +673,6 @@ export interface XNetAPI {
   getSeedPhrase(): Promise<{ mnemonic: string | null }>
   clearSeedPhrase(): Promise<{ ok: true }>
   onNewPage(callback: () => void): () => void
-  onDevToolsToggle(callback: () => void): () => void
   onSharePayload(callback: (payload: string) => void): () => void
   onCloudConnect(callback: (data: CloudConnectPayload) => void): () => void
 }
@@ -896,6 +893,10 @@ if (process.env.NODE_ENV === 'development') {
 
 declare global {
   interface Window {
+    xnetOnboarding: DesktopOnboardingPort
+    xnetPeers: PeerChatPort & {
+      onStore: (handler: (operation: StoreOperation) => Promise<void>) => () => void
+    }
     xnetCommunityAgents: CommunityAgentPort
     xnet: XNetAPI
     xnetStorybook?: XNetStorybookAPI
@@ -931,3 +932,67 @@ const communityAgents: CommunityAgentPort = {
   }
 }
 contextBridge.exposeInMainWorld('xnetCommunityAgents', communityAgents)
+
+const peers: Window['xnetPeers'] = {
+  snapshot: () => ipcRenderer.invoke('xnet:peers:snapshot'),
+  enable: () => ipcRenderer.invoke('xnet:peers:enable'),
+  createInvite: (name) => ipcRenderer.invoke('xnet:peers:createInvite', name),
+  inspectInvite: (link) => ipcRenderer.invoke('xnet:peers:inspectInvite', link),
+  join: (link) => ipcRenderer.invoke('xnet:peers:join', link),
+  approve: (channel) => ipcRenderer.invoke('xnet:peers:approve', channel),
+  block: (channel) => ipcRenderer.invoke('xnet:peers:block', channel),
+  setDisplayName: (name) => ipcRenderer.invoke('xnet:peers:setDisplayName', name),
+  createGroup: (name) => ipcRenderer.invoke('xnet:peers:createGroup', name),
+  inviteToGroup: (id) => ipcRenderer.invoke('xnet:peers:inviteToGroup', id),
+  createChatGroup: (input) => ipcRenderer.invoke('xnet:peers:createChatGroup', input),
+  addChannel: (input) => ipcRenderer.invoke('xnet:peers:addChannel', input),
+  setGroupAccess: (input) => ipcRenderer.invoke('xnet:peers:setGroupAccess', input),
+  revokeLink: (id) => ipcRenderer.invoke('xnet:peers:revokeLink', id),
+  joinPublic: (id) => ipcRenderer.invoke('xnet:peers:joinPublic', id),
+  contactLink: () => ipcRenderer.invoke('xnet:peers:contactLink'),
+  discover: (handle) => ipcRenderer.invoke('xnet:peers:discover', handle),
+  subscribe: (listener) => {
+    const callback = () => listener()
+    ipcRenderer.on('xnet:peers:changed', callback)
+    return () => ipcRenderer.removeListener('xnet:peers:changed', callback)
+  },
+  onStore: (handler) => {
+    const callback = (
+      _event: Electron.IpcRendererEvent,
+      request: { id: number; operation: StoreOperation }
+    ) => {
+      void handler(request.operation)
+        .then(
+          () => ipcRenderer.invoke('xnet:peers:store-response', { id: request.id }),
+          (error) =>
+            ipcRenderer.invoke('xnet:peers:store-response', {
+              id: request.id,
+              error: String(error)
+            })
+        )
+        .catch((error) => console.error('Peer acknowledgement failed', error))
+    }
+    ipcRenderer.on('xnet:peers:store', callback)
+    return () => ipcRenderer.removeListener('xnet:peers:store', callback)
+  }
+}
+contextBridge.exposeInMainWorld('xnetPeers', peers)
+
+const onboarding: DesktopOnboardingPort = {
+  snapshot: () => ipcRenderer.invoke('xnet:onboarding:snapshot'),
+  saveInvitation: (link) => ipcRenderer.invoke('xnet:onboarding:saveInvitation', link),
+  dismissInvitation: (id) => ipcRenderer.invoke('xnet:onboarding:dismissInvitation', id),
+  requestConnection: (id) => ipcRenderer.invoke('xnet:onboarding:requestConnection', id),
+  complete: () => ipcRenderer.invoke('xnet:onboarding:complete'),
+  signInBluesky: (handle) => ipcRenderer.invoke('xnet:onboarding:signInBluesky', handle),
+  cancelSignIn: () => ipcRenderer.invoke('xnet:onboarding:cancelSignIn'),
+  unlinkBluesky: () => ipcRenderer.invoke('xnet:onboarding:unlinkBluesky'),
+  subscribe: (listener) => {
+    const callback = () => listener()
+    ipcRenderer.on('xnet:onboarding:changed', callback)
+    return () => ipcRenderer.removeListener('xnet:onboarding:changed', callback)
+  }
+}
+contextBridge.exposeInMainWorld('xnetOnboarding', onboarding)
+
+exposeExtensionHost()

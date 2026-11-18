@@ -1,0 +1,1479 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="An xNet exploration: two interoperable apps, dependable hosting, and a fair community seed network."
+    />
+    <title>Two apps, one community network · xNet</title>
+    <style>
+      :root {
+        --bg: #fafbf9;
+        --panel: #fff;
+        --ink: #24332c;
+        --muted: #5d6e63;
+        --line: #dbe3da;
+        --soft: #eef3ed;
+        --accent: #345b42;
+        --warn: #865015;
+        --shadow: 0 3px 16px #1c332508;
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 30px;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.65 system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      a {
+        color: var(--accent);
+        text-underline-offset: 3px;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button,
+      select {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
+        color: var(--ink);
+        padding: 9px 12px;
+      }
+      button {
+        cursor: pointer;
+        box-shadow: var(--shadow);
+      }
+      button:hover {
+        background: var(--soft);
+      }
+      :focus-visible {
+        outline: 3px solid #819d3d;
+        outline-offset: 3px;
+      }
+      .skip {
+        position: absolute;
+        left: 16px;
+        top: -100px;
+        z-index: 5;
+        background: var(--panel);
+        padding: 12px;
+      }
+      .skip:focus {
+        top: 12px;
+      }
+      .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: 245px;
+        padding: 30px 24px;
+        border-right: 1px solid var(--line);
+        background: var(--bg);
+        overflow: auto;
+      }
+      .wordmark {
+        font-size: 26px;
+        font-weight: 750;
+        letter-spacing: -1px;
+        text-decoration: none;
+      }
+      .edition {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 8px 0 26px;
+      }
+      .sidebar nav {
+        display: grid;
+        gap: 4px;
+      }
+      .sidebar nav a {
+        padding: 8px 9px;
+        font-size: 13px;
+        line-height: 1.4;
+        text-decoration: none;
+        border-radius: 8px;
+        color: var(--muted);
+      }
+      .sidebar nav a:hover {
+        background: var(--soft);
+        color: var(--ink);
+      }
+      .side-actions {
+        display: grid;
+        gap: 8px;
+        margin-top: 24px;
+      }
+      .side-actions button {
+        font-size: 12px;
+        text-align: left;
+      }
+      .sidebar footer {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 24px;
+      }
+      main {
+        margin-left: 245px;
+        padding: 64px clamp(24px, 5vw, 90px) 100px;
+        max-width: 1510px;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      h1 {
+        font-size: clamp(38px, 4.8vw, 69px);
+        line-height: 1.05;
+        letter-spacing: -0.05em;
+        max-width: 780px;
+        margin: 18px 0 24px;
+        font-weight: 650;
+      }
+      .lead {
+        font-size: 20px;
+        line-height: 1.6;
+        max-width: 740px;
+        color: var(--muted);
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 24px 0 40px;
+        font-size: 12px;
+      }
+      .meta span {
+        padding: 5px 10px;
+        background: var(--soft);
+        border-radius: 20px;
+      }
+      .intro-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin: 35px 0;
+      }
+      .intro-grid > div {
+        border-top: 2px solid var(--accent);
+        padding: 20px 0;
+      }
+      .intro-grid h2 {
+        font-size: 20px;
+        margin: 0 0 8px;
+      }
+      .intro-grid p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .bridge {
+        padding: 17px 20px;
+        background: var(--soft);
+        border-radius: 12px;
+        font-size: 14px;
+        margin-bottom: 46px;
+      }
+      #simulation {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 26px;
+        box-shadow: var(--shadow);
+        margin: 0 0 62px;
+      }
+      .sim-head h2 {
+        font-size: 26px;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        margin: 8px 0 12px;
+      }
+      .sim-head p {
+        color: var(--muted);
+        font-size: 14px;
+        max-width: 680px;
+      }
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+        padding: 23px 0;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        margin-top: 22px;
+      }
+      .control {
+        display: grid;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .control input[type='range'] {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+      .control select {
+        width: 100%;
+        font-size: 13px;
+      }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 13px;
+        margin: 16px 0;
+      }
+      .check input {
+        width: 17px;
+        height: 17px;
+        accent-color: var(--accent);
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin: 20px 0;
+      }
+      .metric {
+        background: var(--soft);
+        padding: 14px;
+        border-radius: 10px;
+        font-size: 12px;
+      }
+      .metric strong {
+        display: block;
+        font-size: 27px;
+        line-height: 1.3;
+      }
+      .node-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin: 18px 0 24px;
+      }
+      .node {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+      .node strong {
+        display: block;
+        font-size: 12px;
+      }
+      .node small {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .node.offline {
+        background: var(--soft);
+      }
+      meter {
+        display: block;
+        width: 100%;
+        height: 10px;
+        margin: 7px 0;
+      }
+      .sim-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .sim-table td,
+      .sim-table th {
+        text-align: left;
+        padding: 12px 6px;
+        border-top: 1px solid var(--line);
+        vertical-align: top;
+      }
+      .sim-table th {
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .asset-name {
+        display: block;
+        font-size: 13px;
+        font-weight: 650;
+      }
+      .asset-detail {
+        color: var(--muted);
+      }
+      .badge {
+        display: inline-block;
+        border-radius: 6px;
+        background: var(--soft);
+        padding: 3px 6px;
+        margin: 2px 4px 2px 0;
+        font-size: 10px;
+      }
+      .badge.off {
+        opacity: 0.7;
+        text-decoration: line-through;
+      }
+      .unavailable {
+        color: var(--warn);
+        font-weight: 700;
+      }
+      .explanation {
+        font-size: 13px;
+        padding: 14px 16px;
+        border-left: 3px solid var(--accent);
+        background: var(--soft);
+        margin: 20px 0;
+      }
+      .sim-note {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .sim-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 18px;
+      }
+      .sim-actions button {
+        font-size: 12px;
+      }
+      .transfer-log {
+        font-size: 12px;
+        color: var(--muted);
+        padding-left: 22px;
+      }
+      article {
+        max-width: 850px;
+      }
+      article > h2 {
+        font-size: 29px;
+        line-height: 1.25;
+        letter-spacing: -0.025em;
+        margin: 70px 0 22px;
+        padding-top: 26px;
+        border-top: 1px solid var(--line);
+      }
+      article > p,
+      article > ul,
+      article > ol {
+        max-width: 76ch;
+      }
+      article li {
+        margin: 8px 0;
+      }
+      article blockquote {
+        margin: 20px 0;
+        padding: 8px 20px;
+        border-left: 3px solid var(--accent);
+        background: var(--soft);
+        border-radius: 0 10px 10px 0;
+      }
+      article blockquote p {
+        margin: 10px 0;
+      }
+      .table-wrap {
+        overflow: auto;
+        margin: 28px 0;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      article table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 13px;
+        min-width: 600px;
+      }
+      article th,
+      article td {
+        padding: 14px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      article th {
+        background: var(--soft);
+        font-weight: 600;
+      }
+      article tr:last-child td {
+        border: 0;
+      }
+      pre {
+        overflow: auto;
+        background: var(--soft);
+        padding: 20px;
+        border-radius: 12px;
+        font-size: 12px;
+        line-height: 1.7;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.87em;
+      }
+      p code,
+      td code,
+      li code {
+        background: var(--soft);
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+      .local-reference {
+        color: var(--muted);
+        text-decoration: underline dotted;
+        text-underline-offset: 4px;
+      }
+      details {
+        border: 1px solid var(--line);
+        padding: 13px 16px;
+        border-radius: 10px;
+        margin: 20px 0;
+      }
+      summary {
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 550;
+      }
+      details p {
+        font-size: 14px;
+      }
+      .architecture {
+        margin: 30px 0;
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel);
+        font-size: 13px;
+        text-align: center;
+      }
+      .architecture p {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .diagram-row {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        align-items: stretch;
+      }
+      .diagram-row > * {
+        flex: 1;
+        background: var(--soft);
+        padding: 14px 9px;
+        border-radius: 8px;
+      }
+      .diagram-row small {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .architecture details {
+        text-align: left;
+        margin-bottom: 0;
+      }
+      .sequence {
+        text-align: left;
+        padding-left: 22px;
+      }
+      .closing {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 56px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #171d19;
+          --panel: #1e2721;
+          --ink: #e5ece5;
+          --muted: #a9b9ab;
+          --line: #354339;
+          --soft: #29362d;
+          --accent: #b4d2aa;
+          --warn: #f0ba73;
+          --shadow: none;
+          color-scheme: dark;
+        }
+      }
+      @media (max-width: 1100px) {
+        .sidebar {
+          width: 210px;
+          padding: 24px 16px;
+        }
+        main {
+          margin-left: 210px;
+          padding: 40px 25px 80px;
+        }
+        .node-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 760px) {
+        .sidebar {
+          position: static;
+          width: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          padding: 18px 20px;
+        }
+        .sidebar nav,
+        .sidebar footer,
+        .edition {
+          display: none;
+        }
+        .side-actions {
+          display: flex;
+          flex-wrap: wrap;
+          margin-top: 12px;
+        }
+        .side-actions button {
+          font-size: 11px;
+        }
+        main {
+          margin: 0;
+          padding: 28px 18px 60px;
+        }
+        h1 {
+          font-size: 43px;
+        }
+        .lead {
+          font-size: 17px;
+        }
+        .intro-grid {
+          gap: 20px;
+        }
+        .intro-grid h2 {
+          font-size: 18px;
+        }
+        .intro-grid p {
+          font-size: 13px;
+        }
+        #simulation {
+          padding: 18px;
+          border-radius: 15px;
+        }
+        .controls {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        .metrics {
+          gap: 6px;
+        }
+        .metric {
+          padding: 10px;
+          font-size: 10px;
+        }
+        .metric strong {
+          font-size: 24px;
+        }
+        .sim-table {
+          min-width: 500px;
+        }
+        .sim-scroll {
+          overflow: auto;
+        }
+        article > h2 {
+          font-size: 25px;
+        }
+        .diagram-row {
+          flex-direction: column;
+        }
+        .architecture {
+          padding: 16px;
+        }
+        .bridge {
+          font-size: 13px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+      @media print {
+        .sidebar,
+        .controls,
+        .sim-actions,
+        .check {
+          display: none;
+        }
+        main {
+          margin: 0;
+          padding: 0;
+        }
+        body {
+          font-size: 11px;
+          background: white;
+          color: black;
+        }
+        article > h2 {
+          break-after: avoid;
+        }
+        .table-wrap,
+        pre {
+          overflow: visible;
+        }
+        a {
+          color: inherit;
+        }
+        .node-grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <aside class="sidebar" aria-label="Exploration navigation">
+      <a class="wordmark" href="#main" aria-label="xNet exploration home">xNet</a>
+      <p class="edition">EXPLORATION 0498 · NOV 2026</p>
+      <nav aria-label="Chapters">
+        <a href="#simulation">Try the seed network ↓</a
+        ><a href="#1-the-first-experience-worth-shipping">1. The first experience worth shipping</a>
+<a href="#2-what-we-already-have-and-what-remains-missing">2. What we already have, and what remains missing</a>
+<a href="#3-choose-existing-systems-where-they-save-the-most-work">3. Choose existing systems where they save the most work</a>
+<a href="#4-a-shared-graph-of-references">4. A shared graph of references</a>
+<a href="#5-private-interoperability-without-a-hidden-back-door">5. Private interoperability without a hidden back door</a>
+<a href="#6-what-adding-a-node-actually-adds">6. What adding a node actually adds</a>
+<a href="#7-delivery-starts-dependable-then-becomes-cooperative">7. Delivery starts dependable, then becomes cooperative</a>
+<a href="#8-seeding-for-friends-with-explicit-consent">8. Seeding for friends, with explicit consent</a>
+<a href="#9-a-fair-placement-rule">9. A fair placement rule</a>
+<a href="#10-security-work-that-the-mvp-cannot-skip">10. Security work that the MVP cannot skip</a>
+<a href="#11-cost-and-performance-before-promises">11. Cost and performance, before promises</a>
+<a href="#12-a-sequence-we-can-actually-implement">12. A sequence we can actually implement</a>
+      </nav>
+      <div class="side-actions">
+        <button id="download-html">Save this website</button
+        ><button id="download-md">Download the exploration</button>
+      </div>
+      <footer>
+        A proposal for a community-owned internet.<br /><br />Research + a local simulation.<br />No
+        accounts or files are uploaded.
+      </footer>
+    </aside>
+    <main id="main">
+      <header>
+        <p class="eyebrow">From architecture to a first community</p>
+        <h1>Two apps.<br />One community network.</h1>
+        <p class="lead">
+          A place to share what you make. A place to talk about it. Open interfaces between them,
+          and a way for friends to help keep the things they care about available.
+        </p>
+        <div class="meta">
+          <span>MVP proposal</span><span>Web first</span><span>Self-hostable</span
+          ><span>Private by explicit permission</span>
+        </div>
+      </header>
+      <div class="intro-grid">
+        <div>
+          <h2>Photos & short films</h2>
+          <p>Publish, follow, collect. Bring a post into a conversation without another upload.</p>
+        </div>
+        <div>
+          <h2>Messages & small groups</h2>
+          <p>
+            Talk privately. Bring a permitted piece of the conversation back into a shared album.
+          </p>
+        </div>
+      </div>
+      <div class="bridge">
+        <strong>The shared foundation:</strong> typed references, scoped access, dependable storage,
+        and replaceable services. Community seeding adds storage and bandwidth as people opt in.
+      </div>
+      <section id="simulation" aria-labelledby="sim-title">
+        <div class="sim-head">
+          <p class="eyebrow">An interactive thought experiment</p>
+          <h2 id="sim-title">Who keeps the next copy?</h2>
+          <p>
+            A popular clip already has two copies. Three smaller public works need another. Give
+            each volunteer some space and see what gets retained first.
+          </p>
+        </div>
+        <div class="controls">
+          <label class="control" for="budget"
+            ><span>Extra space per volunteer: <strong id="budget-value">160 MB</strong></span
+            ><input id="budget" type="range" min="0" max="300" step="20" value="160" /><span
+              >Public hosts and the private circle keep separate budgets.</span
+            ></label
+          >
+          <label class="control" for="failure"
+            ><span>Availability scenario</span
+            ><select id="failure">
+              <option value="none">All hosts online</option>
+              <option value="before">Origin offline before replication</option>
+              <option value="after">Origin fails after replication</option>
+            </select></label
+          >
+        </div>
+        <label class="check"
+          ><input id="friend-online" type="checkbox" checked />Garden friend's computer is
+          online</label
+        >
+        <div class="metrics" aria-live="polite" aria-atomic="true" id="metrics"></div>
+        <div class="node-grid" id="nodes"></div>
+        <div class="sim-scroll" tabindex="0" role="region" aria-label="Simulated content copies">
+          <table class="sim-table">
+            <thead>
+              <tr>
+                <th scope="col">Content</th>
+                <th scope="col">Online copies</th>
+                <th scope="col">Stored on</th>
+              </tr>
+            </thead>
+            <tbody id="assets"></tbody>
+          </table>
+        </div>
+        <p class="explanation" id="explanation"></p>
+        <details>
+          <summary>Placement decisions</summary>
+          <ol class="transfer-log" id="transfers"></ol>
+        </details>
+        <p class="sim-note">
+          Illustrative model · 5 complete files · 4 independent operators · a target of 2 online
+          copies. Transfers are assumed to finish instantly. Changing controls starts a fresh
+          scenario; this is not a live network or a performance benchmark.
+        </p>
+        <div class="sim-actions">
+          <button id="reset">Reset scenario</button
+          ><a href="#9-a-fair-placement-rule">Read the full placement policy →</a>
+        </div>
+      </section>
+      <article aria-label="Full architecture exploration"><blockquote>
+<p>Ship a photo/video app and an encrypted messaging app around one useful loop: publish, share, discuss, collect. Give them a small shared API contract. Start media delivery with durable hosts, then let communities contribute explicitly budgeted replicas and peer bandwidth. Reserve replication capacity for content that has few copies, including new work.</p>
+</blockquote>
+<p>This extends <a title="Repository reference: 0496_%5B_%5D_PORTABLE_SOCIAL_FOUNDATIONS.md" class="local-reference">0496: Portable social foundations</a> and <a title="Repository reference: 0497_%5B_%5D_RUST_RUNTIME_AND_PORTABLE_APPLICATION_API.md" class="local-reference">0497: A small Rust runtime that can grow</a>. It turns their architecture into two starter products and a path toward community hosting.</p>
+<p><strong>Status:</strong> a researched proposal and an <a href="#simulation">interactive companion</a>, not a deployed network. API examples, targets, and placement rules below are proposed. The companion simulates placement; it does not upload files or connect peers. Revisit December 2 after the first two-host integration experiment, before committing to a public protocol. Chris decides whether to keep the adapters or own more infrastructure. Accepted wire formats and public APIs would need an ADR with a tripwire.</p>
+<h2 id="1-the-first-experience-worth-shipping">1. The first experience worth shipping</h2>
+<p>Maya posts a short film from a community garden. Leo sees it in his chosen feed, shares it into the gardening group, and discusses the next workday. Someone adds a frame and a caption to the group's private album. Maya can find that album from the media app because she belongs to the group. Neither app asks her to download and upload the same file again.</p>
+<p>The media app and messaging app can live on different domains with different operators. Their clients resolve references, authenticate to the service that owns a resource, and ask for the access they need. Public information works without connecting a personal account. Private information works only within the approved scope and, where encrypted, on a device with the necessary keys.</p>
+<p>Later, Leo gives the community 10 GB of storage and a modest upload budget from an always-on computer. It keeps selected public films available and can store encrypted copies of the group's album. Leo can pause or withdraw that contribution. Being a community member does not require being a server operator.</p>
+<p>That is the product to test. A universal replicated database, a worldwide recommendation engine, live broadcasting, and an open compute marketplace can wait.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Starter</th>
+<th>Ship in the first release</th>
+<th>Deliberately defer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Media</td>
+<td>Profiles; images and short video; following and community feeds; public posts; encrypted group albums; collections; share-to-chat; export</td>
+<td>Livestreams, algorithm marketplace, private adaptive video streaming, unlimited uploads</td>
+</tr>
+<tr>
+<td>Messaging</td>
+<td>Encrypted DMs and invitation-only groups; offline delivery; verified device enrollment; recovery; attachments and media cards; requests/blocking</td>
+<td>Public room search, calls, enormous communities, arbitrary bots reading conversations</td>
+</tr>
+<tr>
+<td>Shared experience</td>
+<td>Account links; typed references; scoped access; freshness and permission states; account export</td>
+<td>Universal cross-server joins, automatic access to an entire digital life</td>
+</tr>
+<tr>
+<td>Hosting</td>
+<td>A documented self-host setup, backup/restore, quotas, one independently operated mirror experiment</td>
+<td>Permissionless storage enrollment and automatic database sharding</td>
+</tr>
+</tbody>
+</table></div>
+<p>Use provisional upload limits of <strong>30 MB per image and 100 MB / two minutes per video</strong> during the prototype. These are admission limits to test, not evidence of capacity or a permanent product policy. Private video starts as a supported file attachment with download-before-play behavior where required. Give unsupported codecs an honest error. Public playback gets one modest baseline rendition before adding resolution choices.</p>
+<p>Web comes first. Keep the application protocol independent of React and the browser. A desktop shell later adds durable seeding and local agents; mobile adds camera upload, device keys, notifications, and foreground opportunistic transfer. Do not promise permanent background seeding from phones.</p>
+<h2 id="2-what-we-already-have-and-what-remains-missing">2. What we already have, and what remains missing</h2>
+<p>Repository inspection is from the local <code>codex/chat-first-redesign</code> worktree. Existing prototype code is not evidence that a new browser network works.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Status</th>
+<th>Evidence and implication</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Desktop peer connections</td>
+<td>🚧 Prototype</td>
+<td><a title="Repository reference: ../../apps/electron/src/main/peers/service.ts" class="local-reference">Peer service</a> uses <code>@number0/iroh</code>, invitation/contact state, streams, and group synchronization. Useful native integration experience; not a browser media swarm</td>
+</tr>
+<tr>
+<td>Invitation and transport rules</td>
+<td>🚧 Prototype</td>
+<td><a title="Repository reference: ../../apps/electron/src/main/peers/protocol.ts" class="local-reference">Peer protocol</a> validates invitations and relay origins. Preserve explicit admission rather than treating every discoverable peer as trusted</td>
+</tr>
+<tr>
+<td>Content addressing</td>
+<td>✅ Code present</td>
+<td><a title="Repository reference: ../../packages/storage/src/blob-store.ts" class="local-reference">BlobStore</a> computes content IDs and exposes verification. Its <code>get</code> delegates to storage; the existence of a verification method does not prove every untrusted read verifies</td>
+</tr>
+<tr>
+<td>File chunks</td>
+<td>✅ Code present</td>
+<td><a title="Repository reference: ../../packages/storage/src/chunk-manager.ts" class="local-reference">ChunkManager</a> records ordered chunks and distinguishes raw manifests from reassembled files. Its full-buffer APIs are not yet a bounded streaming video API</td>
+</tr>
+<tr>
+<td>Permission concepts</td>
+<td>🚧 Prototype</td>
+<td><a title="Repository reference: ../../packages/workbench/src/communities/extension-authority.ts" class="local-reference">Extension authority</a> is useful precedent for scope and revocation. Extension permission is not a replacement for remote resource authorization</td>
+</tr>
+<tr>
+<td>Portable data</td>
+<td>✅ Code present</td>
+<td><a title="Repository reference: ../../packages/data/src/portability/types.ts" class="local-reference">Archive types</a> provide a place to preserve export fidelity. A new media/chat adapter still needs its own tested export and recovery path</td>
+</tr>
+<tr>
+<td>Durable media fleet</td>
+<td>❌ Not established here</td>
+<td>No verified replica placement, private swarm protocol, browser/native interoperability, or availability guarantee is demonstrated by this exploration</td>
+</tr>
+</tbody>
+</table></div>
+<p>Retain useful ideas from xNet: stable references, inspectable schemas, explicit grants, portability, and content integrity. Use ordinary transactions for authoritative catalog and quota state. CRDTs remain an option for a shared collection or collaboratively edited description; they do not solve media availability or encryption key distribution. This proposal does not silently change the <a title="Repository reference: ../CHARTER.md" class="local-reference">charter</a>.</p>
+<h2 id="3-choose-existing-systems-where-they-save-the-most-work">3. Choose existing systems where they save the most work</h2>
+<p>PeerTube is particularly relevant. Its recommended playback path is HLS with WebRTC peer assistance, including adaptive playback and redundancy. That is more specific than saying it is a conventional BitTorrent website. Its architecture also describes operator-selected caches and announcements of cached files. <a href="https://docs.joinpeertube.org/admin/configuration">PeerTube configuration</a>, <a href="https://docs.joinpeertube.org/contribute/architecture">PeerTube architecture</a>.</p>
+<p>WebTorrent's browser peers use WebRTC; a normal TCP torrent client is not automatically a browser peer. HTTPS web seeds can supply missing content. This is useful precedent for fallback delivery, not a reason to assume every transport can join the same swarm. <a href="https://webtorrent.io/faq">WebTorrent FAQ</a>.</p>
+<p>Matrix already specifies encrypted rooms and attachment envelopes. The first messaging release should use an established SDK and homeserver, including their device verification and recovery behavior. Build the integration UX rather than a new encryption protocol. <a href="https://github.com/matrix-org/matrix-spec/blob/main/content/client-server-api/modules/end_to_end_encryption.md">Matrix encryption specification</a>, <a href="https://github.com/matrix-org/matrix-encrypt-attachment/blob/main/README.md">attachment encryption implementation</a>.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Benefit</th>
+<th>Cost</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PeerTube + Matrix, with thin application adapters</td>
+<td>Existing public video pipeline and encrypted messaging</td>
+<td>Several services, identity linking, adapter UX, upstream upgrades</td>
+<td><strong>Start here</strong></td>
+</tr>
+<tr>
+<td>Rust catalog + custom video delivery + Matrix</td>
+<td>More control over media semantics</td>
+<td>Own upload processing, streaming, peer delivery, moderation, and operational failures</td>
+<td>Reconsider after the first integration test</td>
+</tr>
+<tr>
+<td>One new Rust stack for media, messaging, crypto, and mesh</td>
+<td>A consistent implementation language</td>
+<td>Largest security and delivery burden before anyone benefits</td>
+<td>Defer</td>
+</tr>
+<tr>
+<td>Entirely volunteer P2P, no durable host</td>
+<td>Minimal operator footprint when peers are available</td>
+<td>Offline gaps, key recovery, discovery, mobile suspension, unpredictable retention</td>
+<td>An optional mode with weaker guarantees, not the default</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Recommended implementation:</strong> two small TypeScript web clients; a Rust integration API for profiles, public image/post metadata, collections, and resource resolution; Postgres for its hosted state; PeerTube for public video; Matrix for private messages and private album attachments. Use the SDK's local device store for decrypted private indexes. Keep NodeStore out of this new MVP's critical path unless a measured requirement justifies it.</p>
+<p>PeerTube owns its video records; Matrix owns room events; the Rust API owns its catalog records. Adapters retain native identifiers. Do not create competing authoritative copies of the same record. A public post can refer to a PeerTube video; a private album can be a projection of encrypted room events. The media app must enroll as an authorized Matrix client to display that album.</p>
+<p>This is several services, not the single Rust binary imagined in 0497. The Rust layer should remain small enough to remove. If it merely forwards requests without adding useful policy or schemas, use a TypeScript adapter for the first experiment instead. Shipping the two-app loop matters more than language uniformity.</p>
+<p>Use upstream-supported self-host configurations on ordinary Linux hosts. Keep storage behind a filesystem/object-store interface and avoid requiring a particular cloud. Postgres-backed services can share a machine initially but keep separate databases and credentials. A later Kubernetes package should follow demonstrated demand; it is not required to try the product.</p>
+<p>Bluesky linking and a public-post adapter are sensible next additions. Custom application records do not automatically appear in the Bluesky app. Do not make implementing AT Protocol, ActivityPub, and a new federation protocol all at once a condition of the first release.</p>
+<h2 id="4-a-shared-graph-of-references">4. A shared graph of references</h2>
+<p>The apps should feel like they share a graph. The implementation can be much smaller: <strong>typed resources owned by named services, connected by explicit references</strong>.</p>
+<figure class="architecture"><div class="diagram-row"><b>Media client</b><b>Chat client</b></div><p>↓ Typed references · scoped API clients ↓</p><div class="diagram-row"><span>Rust catalog<br><small>Postgres + public images</small></span><span>PeerTube<br><small>Public video + mirrors</small></span><span>Matrix<br><small>Encrypted events + attachments</small></span></div><p>Private plaintext stays on an authorized device.</p><details><summary>Diagram source</summary><pre>flowchart TB
+  MEDIA[Media web client] --&gt; RESOLVE[Typed references and scoped API clients]
+  CHAT[Chat web client] --&gt; RESOLVE
+  RESOLVE --&gt; CATALOG[Rust catalog API]
+  RESOLVE --&gt; VIDEO[PeerTube public video API]
+  RESOLVE --&gt; MATRIX[Matrix SDK and homeserver]
+  CATALOG --&gt; SQL[Postgres and public image storage]
+  VIDEO --&gt; ORIGIN[Origin and approved media mirrors]
+  MATRIX --&gt; CIPHER[Encrypted events and attachments]
+  CIPHER --&gt; DEVICE[Decrypt on an authorized device]
+</pre></details></figure><p>Start with <code>Profile</code>, <code>Post</code>, <code>MediaAsset</code>, <code>Collection</code>, <code>ConversationRef</code>, and <code>ShareIntent</code>. Avoid inventing a universal <code>Message</code> object that loses encryption, event identity, sender provenance, or room semantics in translation. A reference describes how to resolve the native object; it is not a capability to read it.</p>
+<p>Proposed public response:</p>
+<pre><code class="language-json">{
+  &quot;schema&quot;: &quot;xnet.media-ref.v1&quot;,
+  &quot;id&quot;: &quot;https://garden.example/resources/film-7&quot;,
+  &quot;authority&quot;: &quot;https://garden.example&quot;,
+  &quot;kind&quot;: &quot;video&quot;,
+  &quot;visibility&quot;: &quot;public&quot;,
+  &quot;revision&quot;: &quot;r17&quot;,
+  &quot;nativeRef&quot;: {
+    &quot;system&quot;: &quot;peertube&quot;,
+    &quot;url&quot;: &quot;https://video.garden.example/videos/watch/example-id&quot;
+  },
+  &quot;links&quot;: {
+    &quot;self&quot;: &quot;https://garden.example/api/v1/resources/film-7&quot;,
+    &quot;author&quot;: &quot;https://garden.example/api/v1/profiles/maya&quot;
+  }
+}
+</code></pre>
+<p>These illustrative URLs are not live services. The logical ID is separate from a rendition's content hash and its current download locations. Replacing a caption increments the record revision; transcoding creates new bytes and hashes. A content hash proves byte identity, not authorship, permission, safety, or continued availability.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Proposed operation</th>
+<th>Contract</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /api/v1/capabilities</code></td>
+<td>Supported schema versions, bounded query features, authentication methods; no private inventory</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/resources/{id}</code></td>
+<td>Public projection or caller-authorized projection; revision and visibility included</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/collections/{id}/items?cursor=…&amp;limit=50</code></td>
+<td>Opaque cursor, stable ordering, hard page limit, visible freshness</td>
+</tr>
+<tr>
+<td><code>POST /api/v1/share-intents</code></td>
+<td>Resolve a destination and scope before sending; idempotency key prevents duplicate side effects</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/changes?cursor=…</code></td>
+<td>Authorized resumable updates with documented cursor expiry and snapshot recovery</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/exports/{id}</code></td>
+<td>Explicit export job with scope, format, completeness, and attachment availability</td>
+</tr>
+</tbody>
+</table></div>
+<p>Authorization applies at the owning service on every read and write. Tokens need audience, scope, expiry, and revocation behavior. Use existing OAuth/OIDC implementations; an OAuth login is not proof that two accounts belong together until both sides have been authenticated. Do not put reusable bearer tokens in share URLs or logs.</p>
+<p>Public indexes contain public projections only, with source revision, deletion markers, and a freshness timestamp. Fetch from a configured set of services, enforce timeouts and response-size limits, then merge bounded result sets. A global distributed join is outside the MVP. Stale indexes should produce an unavailable/changed state, not resurrect removed records.</p>
+<p>Untrusted references are also a network boundary: resolution must reject private-network targets, redirects into internal services, DNS rebinding, and oversized responses. Downloads belong on a media origin with restrictive content handling, not an origin that can execute script with account cookies.</p>
+<h2 id="5-private-interoperability-without-a-hidden-back-door">5. Private interoperability without a hidden back door</h2>
+<p>“Connect my account” can authorize an app to read selected data. It cannot make a server decrypt material whose keys exist only on a device.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Unconnected app</th>
+<th>Connected service backend</th>
+<th>Authorized client device</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public post</td>
+<td>Query public API</td>
+<td>Same public API</td>
+<td>Read/cache</td>
+</tr>
+<tr>
+<td>Private server-readable metadata</td>
+<td>No</td>
+<td>Scoped grant, where the source actually supports it</td>
+<td>Scoped grant</td>
+</tr>
+<tr>
+<td>Encrypted conversation or album</td>
+<td>No</td>
+<td>Ciphertext and permitted envelope metadata only</td>
+<td>Decrypt with explicit account/device enrollment and keys</td>
+</tr>
+<tr>
+<td>Another participant's unshared content</td>
+<td>No</td>
+<td>No new rights</td>
+<td>No new rights from linking an account</td>
+</tr>
+</tbody>
+</table></div>
+<p>A first permission screen can offer <strong>“Connect your encrypted messaging account on this device.”</strong> Explain the actual breadth of access and use the messaging SDK's verification flow. Browsers on separate origins do not share a magic keychain. Avoid passing room keys through URL parameters or an application backend.</p>
+<p><strong>A normal Matrix client login is not a room-scoped permission grant.</strong> Do not display “only this album” while handing the media app a general account token or access to the account's key backup. For the first two trusted clients, make full account enrollment explicit. For a separately installed extension that needs just one album, a later design can use a distinct application identity admitted to selected rooms, or a capability broker on an already trusted device. That identity must have no general account token or key-backup access. The broker needs its own enforced scope. Narrow filtering in the UI alone is not an access boundary.</p>
+<p>For selected sharing, offer <strong>Share link</strong>, <strong>Share a copy</strong>, or <strong>Ask for access</strong> according to the resource's policy. Public-to-private sharing can send a reference. Private-to-public publishing needs a separate, unmistakable action and a review of the content being disclosed. Authorization to read a private group is not permission to expose that group to the world.</p>
+<figure class="architecture"><ol class="sequence"><li>Open a private album in the media app.</li><li>Approve account access and verify this device.</li><li>The SDK fetches authorized ciphertext and decrypts locally.</li><li>Choose an item and confirm its destination before sharing.</li><li>The SDK sends an encrypted event with a retry identity.</li></ol><details><summary>Diagram source</summary><pre>sequenceDiagram
+  participant U as Person
+  participant M as Media client
+  participant D as Verified device SDK
+  participant H as Messaging homeserver
+  U-&gt;&gt;M: Open a private group album
+  M-&gt;&gt;U: Request account and device access
+  U-&gt;&gt;D: Approve and verify device
+  D-&gt;&gt;H: Fetch authorized encrypted events
+  H--&gt;&gt;D: Ciphertext and attachment references
+  D--&gt;&gt;M: Decrypted permitted items on this device
+  U-&gt;&gt;M: Share selected item to another group
+  M-&gt;&gt;U: Confirm audience and copy or reference
+  D-&gt;&gt;H: Submit encrypted event with retry identity
+</pre></details></figure><p>Search private data locally after decryption. Sending it to a remote agent is another disclosure requiring its own permission. Agent tools should expose typed operations and truthful receipts, not raw database credentials. A <code>share</code> dry run can show destination, scope, and whether new plaintext leaves the device before any actual send.</p>
+<p>Revocation prevents future authorized service access and should invalidate local grants. It cannot erase a recipient's prior screenshots, keys, exported files, or independently kept copies. Group membership changes need the chosen messaging protocol's key rotation rules. Rotating only a wrapping key does not revoke an old key someone retained.</p>
+<h2 id="6-what-adding-a-node-actually-adds">6. What adding a node actually adds</h2>
+<p>The proposed network has several roles. Name the role in both configuration and the UI so “add capacity” means something measurable.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Adds</th>
+<th>Does not automatically add</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public media mirror</td>
+<td>Storage, geographic proximity, download bandwidth, redundancy</td>
+<td>Database write throughput or new authority over posts</td>
+</tr>
+<tr>
+<td>Private ciphertext seed</td>
+<td>Copies and delivery of approved encrypted bytes</td>
+<td>Decryption rights or group membership</td>
+</tr>
+<tr>
+<td>Application host</td>
+<td>Accounts and writes for its own users/community</td>
+<td>A shared multiwriter database with every other host</td>
+</tr>
+<tr>
+<td>Public indexer</td>
+<td>Search and feed coverage</td>
+<td>Canonical ownership or private search access</td>
+</tr>
+<tr>
+<td>Messaging homeserver/mailbox</td>
+<td>Durable encrypted queues and supported federation</td>
+<td>The ability to decrypt room contents</td>
+</tr>
+<tr>
+<td>Relay</td>
+<td>Connectivity through difficult networks</td>
+<td>Offline storage or free bandwidth</td>
+</tr>
+</tbody>
+</table></div>
+<p>A central bootstrap directory is reasonable for the initial community. Make its responses cacheable, exportable, and replaceable with configured alternatives. Keep data ownership and encryption independent from it. Existing references and direct service URLs should continue to work during a directory outage; discovering brand-new peers may not.</p>
+<p>Do not put all public originals, private indexes, identity, and availability claims behind one supposed “cache.” Those have different trust and retention requirements. A central public search cache may be rebuilt; an irreplaceable original cannot.</p>
+<h2 id="7-delivery-starts-dependable-then-becomes-cooperative">7. Delivery starts dependable, then becomes cooperative</h2>
+<p>Use three layers:</p>
+<ol>
+<li><strong>Durable origin:</strong> accepts uploads within a stated retention/quota policy; has backups and a tested recovery procedure.</li>
+<li><strong>Approved mirrors:</strong> opt into specified content, keep complete copies under renewable retention commitments, and can be monitored.</li>
+<li><strong>Opportunistic peers:</strong> viewers or desktop users contribute bytes while available. They improve delivery without being counted as permanent storage.</li>
+</ol>
+<figure class="architecture"><div class="diagram-row"><span>Creator</span><span>→ Durable origin →</span><span>Backup + approved mirror</span></div><p>Origin / mirror → Viewer ↔ Opted-in peer</p><p>Replaceable discovery gives peer hints. It holds no decryption keys.</p><details><summary>Diagram source</summary><pre>flowchart LR
+  AUTHOR[Creator] --&gt; ORIGIN[Durable origin]
+  ORIGIN --&gt; BACKUP[Independent backup]
+  ORIGIN --&gt; MIRROR[Approved mirror]
+  ORIGIN --&gt; VIEWER[Viewer]
+  MIRROR --&gt; VIEWER
+  PEER[Opted-in peer] &lt;--&gt; VIEWER
+  TRACKER[Replaceable peer discovery] -. peer hints .-&gt; VIEWER
+  TRACKER -. peer hints .-&gt; PEER
+</pre></details></figure><p><strong>One online seeder is a target, not a guarantee a volunteer network can make.</strong> Machines sleep; families share power and internet failures; people uninstall apps. One online copy also says little about durability. Before accepting responsibility for a public upload, reserve origin storage and a backup. Before advertising mirror failover, confirm a complete playable copy on a second independent online host.</p>
+<p>An availability probe must check the manifest, initialization data, required segments, and at least one supported full rendition. A thousand peers with the same first ten seconds do not constitute a complete copy. Originals and higher resolutions have separate retention policies.</p>
+<p>Test an origin outage with a <strong>cold client</strong> that has never opened the post, too. A second copy of the video is insufficient if its only manifest or download-location API disappeared with the origin. Approved mirrors need the relevant public descriptors and manifests, and the resolver needs a bounded-lived mirror list it can verify. Existing PeerTube redundancy is a starting point; complete application failover still has to be demonstrated.</p>
+<p>When no copy is reachable, show “Temporarily unavailable” and the last verified availability time. Do not spin forever. When capacity is exhausted, limit new uploads, request more capacity, or offer an explicit shorter retention tier. Never promise indefinite hosting based on hoped-for future volunteers.</p>
+<p>For the first public-video peer experiment, use PeerTube's existing HLS/WebRTC path and redundancy facilities. Observe whether peers actually reduce origin egress. Keep image delivery on HTTPS initially. Native Iroh blob transfer is a later experiment for explicitly pinned files; <code>iroh-blobs</code> is a separate protocol with verified content transfer, not a WebRTC torrent peer. <a href="https://github.com/n0-computer/iroh-blobs">Iroh blobs repository</a>.</p>
+<p>Browser/native compatibility needs either a compatible WebRTC participant or an HTTPS gateway serving the same verified bytes. Merely using hashes on both sides does not align chunk formats or protocols. Gate the native bridge on a real browser-to-native transfer test, including fallback. Do not require an experimental browser Iroh path to launch.</p>
+<p>Browsers can suspend/discard pages, and storage is subject to quota and eviction. Requesting persistent storage is not an always-running service. Treat a web viewer as temporary assistance; a user-controlled desktop daemon or home server is the credible durable contribution. <a href="https://developer.chrome.com/docs/web-platform/page-lifecycle-api">Chrome lifecycle documentation</a>, <a href="https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria">MDN storage limits</a>.</p>
+<h2 id="8-seeding-for-friends-with-explicit-consent">8. Seeding for friends, with explicit consent</h2>
+<p>Private seeding serves <strong>ciphertext</strong>, with filenames, captions, thumbnails, and sensitive manifests inside the encrypted envelope. Begin with whole-file encrypted attachments using the established messaging implementation. Streaming encrypted multi-rendition video needs a reviewed chunk-authentication and key-distribution design; do not invent it as a shortcut in this MVP.</p>
+<p>A private seed request should name the approved circle, byte budget, expiry, and ciphertext object. Authenticate discovery and download requests; avoid public trackers or global DHT advertisements for private objects. Use ciphertext-derived identifiers, not a public plaintext hash that lets strangers correlate a known file. A download ticket, provider endpoint ID, or content hash alone is not the authorization model.</p>
+<p>Private seeders can learn that devices communicate, object sizes, timing, and possibly group relationships. Encrypting bytes does not hide this metadata. Direct peer connections can reveal network addresses; provide an HTTPS-only option and explain the difference before enabling peer uploads. PeerTube explicitly documents IP exposure through P2P. <a href="https://docs.joinpeertube.org/admin/privacy-guide">PeerTube privacy guide</a>.</p>
+<p>Public “like” and “follow” stay social actions. Separately, someone can enable <strong>Help host this community</strong> and choose:</p>
+<ul>
+<li>Storage limit, upload rate, monthly transfer cap, and allowed networks.</li>
+<li>Public content, selected private circles, or both.</li>
+<li>“Prefer people I follow,” subject to a reserved pool for less-replicated community content.</li>
+<li>Pause on battery/metered connections, inspect what is stored, remove it, or stop hosting.</li>
+</ul>
+<p>No covert uploading on a like. Do not expose a person's private seed inventory as a public activity feed. A seeding ratio is optional personal information, not a condition of reading or membership; upload accounting is easy to game and can penalize people with expensive or unreliable internet.</p>
+<h2 id="9-a-fair-placement-rule">9. A fair placement rule</h2>
+<p>Separate <strong>which content deserves another complete replica</strong> from <strong>which piece a player downloads next</strong>. Playback needs deadlines and useful pieces. Fleet placement needs durability, scarce capacity, and an admission policy. A piece-selection algorithm cannot ensure that an unknown creator gets a second complete copy.</p>
+<p>For each admitted asset, track complete copies, recently reachable copies, independent operators, retention expiry, size, and scope. Keep eligibility local: a node can decline a category, circle, size, or content item. The coordinator proposes work; it cannot compel storage.</p>
+<p>Use this ordering for a bounded maintenance budget:</p>
+<ol>
+<li><strong>Repair urgent gaps:</strong> admitted objects below the online availability floor, provided a source is reachable. If all copies are offline, flag an incident; scheduling cannot invent bytes.</li>
+<li><strong>Build the durability floor:</strong> a second independent retained copy for objects that lack one. Reserve capacity for new uploads at admission, including creators without followers.</li>
+<li><strong>Serve measured demand:</strong> extra replicas for popular content only after repair/new-content reservations. Demand queues need their own bounded bandwidth so a viral event does not prevent repairs indefinitely.</li>
+</ol>
+<p>Within a tier, prefer larger replica deficits and longer waiting time; use content size and available bandwidth for feasibility. Apply per-account/community admission quotas so flooding “new content” cannot consume the entire reserve. A size-aware scheduler needs aging or reserved large-object slots to avoid starving larger valid uploads.</p>
+<p>Preferences for followed creators are a tie-breaker within an eligible budget. They do not override another object's missing baseline copy. Nor should public fairness use the private circle's reserved capacity: resources have owners and purposes.</p>
+<p>Retained copies and <em>currently online</em> copies must be separate counts. A temporarily offline mirror should not trigger deletion of its useful copy or an endless reshuffle. Use renewal deadlines, cooldowns, hysteresis, and a maximum repair rate. Count independent operators conservatively; ten Sybil identities on one machine are not ten failure domains. Availability samples are observations, not cryptographic proofs of durable storage.</p>
+<p>The <a href="#simulation">companion simulator</a> demonstrates a smaller deterministic rule: public/private eligibility, complete copies, distinct operators, finite storage, zero-copy incidents, and prioritizing deficits before demand. It recomputes a placement snapshot. It does <strong>not</strong> model transfer completion, lease renewal, Byzantine peers, topology, churn probabilities, playback, or real performance.</p>
+<details>
+<summary>Why not a fully permissionless storage economy immediately?</summary>
+<p>Paying or rewarding uploads introduces false accounting, self-downloads, collusion, unwanted content placement, identity abuse, and disputes over who retained what. Open source does not require open admission to every storage pool. Start with communities enrolling known operators and choosing what to retain. Reconsider broader admission only after quotas, monitoring, withdrawal, moderation, and recovery work. This proposal introduces no token or paid reputation system.</p>
+</details>
+<h2 id="10-security-work-that-the-mvp-cannot-skip">10. Security work that the MVP cannot skip</h2>
+<p>The safest first contribution is serving bounded, verified bytes. Volunteer transcoding or arbitrary agent execution would expose a much larger surface.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Boundary</th>
+<th>Required behavior</th>
+<th>Adversarial check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Upload and decode</td>
+<td>Quotas before allocation; isolated patched media workers; no ambient credentials; CPU, memory, time, and output bounds</td>
+<td>Malformed image/video, decompression bomb, worker timeout</td>
+</tr>
+<tr>
+<td>Peer download</td>
+<td>Verify content against the expected authenticated manifest before use; limit outstanding requests and memory</td>
+<td>Wrong chunks, truncated files, forged manifest, repeated slow peers</td>
+</tr>
+<tr>
+<td>Seed admission</td>
+<td>Pull approved objects; deny unsolicited pushes; cap disk, bytes, peers, and requests</td>
+<td>Stranger fills disk or bypasses policy with another request type</td>
+</tr>
+<tr>
+<td>Private access</td>
+<td>Gate all fetch paths, batch APIs, metadata queries, and discovery; separate decrypting clients from seeders</td>
+<td>Nonmember guesses hash; revoked ticket; unauthorized batch request</td>
+</tr>
+<tr>
+<td>Host resolver</td>
+<td>Prevent SSRF and unbounded federation fetches; validate remote schema/version</td>
+<td>Internal-network URL, redirect loop, oversized JSON</td>
+</tr>
+<tr>
+<td>Browser content</td>
+<td>Strict script isolation, escaping, safe media headers, dependency updates</td>
+<td>Uploaded HTML/SVG or profile text tries to run in the account origin</td>
+</tr>
+<tr>
+<td>Agent access</td>
+<td>Scoped operations and separate disclosure consent; untrusted content never grants permissions</td>
+<td>A caption instructs the agent to export private chat</td>
+</tr>
+</tbody>
+</table></div>
+<p>There is a timely upstream example: the October 8, 2026 <code>iroh-blobs</code> advisory describes unauthorized pushes that could fill provider disks and notes that <code>get_many</code> and <code>observe</code> need their own authorization handling. A prospective implementation must select a patched release, reject unknown request types, and test every mode. This is a candidate-dependency requirement, <strong>not a finding that the current desktop transport has this vulnerability</strong>. <a href="https://www.iroh.computer/blog/iroh-blobs-push-fix">Upstream advisory and fixed versions</a>.</p>
+<p>A relay can carry the whole transfer when direct connectivity fails. It needs admission, rate limits, monitoring, and an egress budget; it is not just a cheap lookup table. Iroh's own relay guidance makes this bandwidth and authentication distinction. Self-hosting remains possible without adopting its managed service. <a href="https://www.iroh.computer/blog/authenticated-relays">Iroh relay authentication</a>.</p>
+<p>Public mirrors choose which communities/content to accept and need report, stop-serving, deletion, and cache-expiry behavior. Private hosts can enforce storage and abuse limits but cannot promise to inspect encrypted content. Keep user-initiated reports separate from hidden server-side decryption. Deletion propagates as a request and local policy action, not a promise that the internet forgets a public file.</p>
+<h2 id="11-cost-and-performance-before-promises">11. Cost and performance, before promises</h2>
+<p>Peer assistance moves costs; it does not eliminate them. Public transcoding, originals, backups, quiet videos with no concurrent viewers, and relay fallback still require provisioned resources. Private E2EE media cannot be sent through ordinary server transcoding without giving that service plaintext.</p>
+<p>Use the following planning quantities, measured separately:</p>
+<pre><code class="language-text">retained bytes = originals + playable renditions + thumbnails + backups + mirrors
+origin egress = viewer fallback + replica placement/repair + API/media overhead
+relay egress = relayed peer traffic (account for the provider's billing direction)
+steady delivery load = concurrent viewers × average playback bitrate
+</code></pre>
+<p>An illustrative 100 viewers at 2 Mb/s is 200 Mb/s and approximately 90 GB per hour of outgoing payload. If peers deliver 60% directly, viewer-origin payload falls to about 36 GB/hour. Add replica transfers, overhead, and any charged relay traffic before claiming savings. These are arithmetic examples, not measured hit rates or hosting quotes. A quiet network may get little benefit from viewer-to-viewer transfer.</p>
+<p>Initial acceptance targets, subject to measurement on named hardware and network conditions:</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Experiment</th>
+<th>Candidate pass condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public feed API</td>
+<td>p95 under 200 ms at 50 requests/s over 100,000 indexed public posts; bounded page size, no cross-server join</td>
+</tr>
+<tr>
+<td>Chat reconnect</td>
+<td>100 queued messages arrive exactly once in the displayed history after reconnect, using retry/event identity</td>
+</tr>
+<tr>
+<td>Public playback</td>
+<td>First frame within 3 seconds on a 20 Mb/s test connection with a warm baseline rendition</td>
+</tr>
+<tr>
+<td>Mirror failure</td>
+<td>With a second complete reachable copy, stopping the origin still permits playback after bounded retry</td>
+</tr>
+<tr>
+<td>Peer benefit</td>
+<td>At 20 simultaneous viewers, target at least 20% lower total paid-server egress than HTTPS-only playback, including relay and repair traffic; maintain the 3-second p95 startup target</td>
+</tr>
+<tr>
+<td>Resource discipline</td>
+<td>No seeding exceeds configured disk/uplink limits; cancellation releases work; oversized inputs fail before unbounded allocation</td>
+</tr>
+</tbody>
+</table></div>
+<p>The API and playback targets do not cover every workload or imply global scale. Track errors and queue age alongside latency. Use Postgres indexes, bounded concurrency, and streaming before considering a distributed SQL migration. Additional media nodes cannot repair an overloaded catalog database.</p>
+<h2 id="12-a-sequence-we-can-actually-implement">12. A sequence we can actually implement</h2>
+<p><strong>First technical milestone: two separately hosted clients complete the garden loop, with no shared database access and no P2P dependency.</strong> This proves the interoperability that makes the product useful. Then prove cooperative delivery as a distinct milestone.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Comparison table"><table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Build</th>
+<th>Evidence required to advance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. Two-app loop</td>
+<td>Media client, chat client, public reference resolver, encrypted group album, explicit sharing</td>
+<td>Different origins and service credentials; public lookup works without login; authorized private lookup works on a verified device; strangers cannot read it</td>
+</tr>
+<tr>
+<td>B. Self-host and recover</td>
+<td>Reproducible setup, quotas, backup/export/restore, second operator</td>
+<td>Restore on another host; reopen media; document separate recovery of encrypted history and device keys</td>
+</tr>
+<tr>
+<td>C. Public cooperative delivery</td>
+<td>PeerTube mirror and browser peer playback; origin fallback; contribution controls</td>
+<td>Stop origin and one peer separately; corrupt a transfer; measure bandwidth paths and failure states</td>
+</tr>
+<tr>
+<td>D. Durable community seeding</td>
+<td>Enrolled always-on nodes, complete-copy inventory, quotas, placement leases, repair queue</td>
+<td>New creators receive baseline replicas before surplus popular replicas; stop/withdraw a host without silently losing retained content</td>
+</tr>
+<tr>
+<td>E. Private/native experiment</td>
+<td>Ciphertext-only friend seeding; native daemon; compatible browser delivery adapter</td>
+<td>Nonmember/expired/revoked access denied on every path; no key exposure; successful real browser/native fallback and withdrawal</td>
+</tr>
+</tbody>
+</table></div>
+<p>The first three stages can use upstream components. D and E are a new xNet storage coordination project and should earn their complexity through evidence. Do not label the website simulator as their implementation.</p>
+<p>Implementation checklist:</p>
+<ul>
+<li>[ ] Define the six initial resource/reference schemas and authority rules; validate examples and compatibility errors.</li>
+<li>[ ] Build two web starters over the chosen PeerTube/Matrix adapters; preserve native IDs and supported device/recovery UX.</li>
+<li>[ ] Implement scoped public/private resolution, explicit share intents, bounded indexing, and truthful availability states.</li>
+<li>[ ] Complete one public post → private discussion → permitted collection loop across separate origins.</li>
+<li>[ ] Package an upstream-supported self-host deployment, quotas, health checks, backup, export, and restore instructions.</li>
+<li>[ ] Add and measure one independent public mirror and opt-in browser peer playback.</li>
+<li>[ ] Implement a bounded replica coordinator only after the mirror experiment passes; separate private/public budgets and retained/online inventory.</li>
+<li>[ ] Prototype private ciphertext seeding and native/browser bridging behind an explicit experiment flag.</li>
+<li>[ ] Write ADRs and tripwires before stabilizing a public cross-service or seed protocol.</li>
+</ul>
+<p>Validation checklist:</p>
+<ul>
+<li>[ ] Reload both clients, reconnect after interruption, and confirm references, permissions, and chat retry behavior survive.</li>
+<li>[ ] Verify account linking grants no unexpected room keys, history access, publishing rights, or agent disclosure; reject claims of album-only access backed by a full-account token.</li>
+<li>[ ] Confirm a stale public index cannot bypass current authorization or display removed private content.</li>
+<li>[ ] Restore from backup with the original host absent; separately exercise encrypted key/history recovery.</li>
+<li>[ ] Test zero reachable copies, partial-only copies, insufficient capacity, duplicate operator identities, and exhausted public/private budgets.</li>
+<li>[ ] Attempt corrupt chunks, unsolicited writes, unauthorized batch reads, SSRF, malformed media, and content-triggered agent exfiltration.</li>
+<li>[ ] Test browser tab closure/storage eviction, metered-network pause, mobile suspension, and native daemon shutdown.</li>
+<li>[ ] Record latency, media startup, queue age, memory, disk, direct/relay bytes, and repair overhead under the stated workload.</li>
+<li>[ ] Try the complete flow with a friend who did not help build it; revise confusing consent and failure states before expanding scope.</li>
+</ul>
+<p>The next coding pass should deliver Stage A, including the negative permission cases. That gives us two small applications worth using and a concrete seam for the network to grow around. The mesh then earns its place by keeping that community's media available and reducing delivery costs.</p>
+</article>
+      <p class="closing">
+        xNet · Exploration 0498 · Research checked November 2, 2026.<br />Repository references are
+        annotated in this portable reader; use the Markdown in the repository to follow them.
+      </p>
+    </main>
+    <script>
+      // A placement model, not a network implementation. Capacities use decimal MB.
+const assets = [
+  { id: 'film', name: 'A first garden film', size: 60, scope: 'public', demand: 8, fresh: true },
+  { id: 'viral', name: 'The popular clip', size: 120, scope: 'public', demand: 900, fresh: false },
+  { id: 'notes', name: 'Field notes', size: 40, scope: 'public', demand: 24, fresh: false },
+  { id: 'animation', name: 'A tiny animation', size: 80, scope: 'public', demand: 6, fresh: true },
+  { id: 'picnic', name: 'Our private picnic', size: 80, scope: 'garden', demand: 5, fresh: false }
+]
+
+const usedSpace = (node) =>
+  assets.filter((a) => node.copies.includes(a.id)).reduce((sum, a) => sum + a.size, 0)
+const holders = (nodes, asset) =>
+  nodes.filter((n) => n.online && n.copies.includes(asset.id))
+const onlineCopies = (nodes, asset) =>
+  new Set(holders(nodes, asset).map((n) => n.operator)).size
+
+function initialNodes(extraSpace = 160, friendOnline = true) {
+  if (!Number.isFinite(extraSpace) || extraSpace < 0)
+    throw new Error('Storage budget must be nonnegative.')
+  return [
+    {
+      id: 'origin',
+      label: 'Your origin',
+      operator: 'you',
+      online: true,
+      capacity: 380,
+      scopes: ['public', 'garden'],
+      accepts: false,
+      copies: assets.map((a) => a.id)
+    },
+    {
+      id: 'mirror',
+      label: 'Community mirror',
+      operator: 'community',
+      online: true,
+      capacity: 120 + extraSpace,
+      scopes: ['public'],
+      accepts: true,
+      copies: ['viral']
+    },
+    {
+      id: 'neighbor',
+      label: 'A new volunteer',
+      operator: 'neighbor',
+      online: true,
+      capacity: extraSpace,
+      scopes: ['public'],
+      accepts: true,
+      copies: []
+    },
+    {
+      id: 'friend',
+      label: 'Garden friend',
+      operator: 'friend',
+      online: friendOnline,
+      capacity: 80 + extraSpace,
+      scopes: ['garden'],
+      accepts: true,
+      copies: ['picnic']
+    }
+  ]
+}
+
+function placeReplicas(input) {
+  let nodes = input.map((node) => ({ ...node, copies: [...node.copies] }))
+  const transfers = []
+  const placeOne = (asset, tier) => {
+    const sources = holders(nodes, asset)
+    if (!sources.length) return false
+    const operators = new Set(sources.map((node) => node.operator))
+    const candidates = nodes
+      .filter(
+        (node) =>
+          node.online &&
+          node.accepts &&
+          node.scopes.includes(asset.scope) &&
+          !node.copies.includes(asset.id) &&
+          !operators.has(node.operator) &&
+          node.capacity - usedSpace(node) >= asset.size
+      )
+      .sort(
+        (a, b) =>
+          b.capacity - usedSpace(b) - (a.capacity - usedSpace(a)) || a.id.localeCompare(b.id)
+      )
+    if (!candidates.length) return false
+    const target = candidates[0]
+    nodes = nodes.map((node) =>
+      node.id === target.id ? { ...node, copies: [...node.copies, asset.id] } : node
+    )
+    transfers.push({ asset: asset.id, target: target.id, size: asset.size, tier })
+    return true
+  }
+
+  // A complete-copy floor precedes demand within this finite snapshot.
+  // Source absence remains an incident; no scheduler can manufacture lost bytes.
+  const ordered = [...assets].sort(
+    (a, b) =>
+      onlineCopies(nodes, a) - onlineCopies(nodes, b) ||
+      Number(b.fresh) - Number(a.fresh) ||
+      a.id.localeCompare(b.id)
+  )
+  for (const asset of ordered) {
+    while (onlineCopies(nodes, asset) < 2 && placeOne(asset, 'baseline')) {}
+  }
+  // Demand copies use surplus public capacity only when every public floor is met.
+  const publicFloorMet = assets
+    .filter((a) => a.scope === 'public')
+    .every((a) => onlineCopies(nodes, a) >= 2)
+  if (publicFloorMet) {
+    for (const asset of assets.filter((a) => a.scope === 'public' && a.demand >= 100)) {
+      while (onlineCopies(nodes, asset) < 3 && placeOne(asset, 'demand')) {}
+    }
+  }
+  return { nodes, transfers }
+}
+
+function simulate({ extraSpace = 160, failure = 'none', friendOnline = true } = {}) {
+  if (!['none', 'before', 'after'].includes(failure)) throw new Error('Unknown failure scenario.')
+  let nodes = initialNodes(extraSpace, friendOnline)
+  if (failure === 'before')
+    nodes = nodes.map((n) => (n.id === 'origin' ? { ...n, online: false } : n))
+  const placed = placeReplicas(nodes)
+  if (failure !== 'after') return placed
+  return {
+    ...placed,
+    nodes: placed.nodes.map((n) => (n.id === 'origin' ? { ...n, online: false } : n))
+  }
+}
+
+      const sourceDocument = {"filename":"0498_[_]_TWO_APPS_AND_A_COMMUNITY_SEED_NETWORK.md","source":"---\ntitle: Two apps, one community network\nstatus: draft\nlast_updated: 2026-11-02\nreview: 2026-12-02\ndecider: Chris\ndoor: two-way\ntags: [mvp, media, messaging, interoperability, peer-to-peer, rust, self-hosting]\n---\n\n# Two apps, one community network\n\n> [!TIP]\n> Ship a photo/video app and an encrypted messaging app around one useful loop: publish, share, discuss, collect. Give them a small shared API contract. Start media delivery with durable hosts, then let communities contribute explicitly budgeted replicas and peer bandwidth. Reserve replication capacity for content that has few copies, including new work.\n\nThis extends [0496: Portable social foundations](0496_[_]_PORTABLE_SOCIAL_FOUNDATIONS.md) and [0497: A small Rust runtime that can grow](0497_[_]_RUST_RUNTIME_AND_PORTABLE_APPLICATION_API.md). It turns their architecture into two starter products and a path toward community hosting.\n\n**Status:** a researched proposal and an [interactive companion](web/0498/index.html), not a deployed network. API examples, targets, and placement rules below are proposed. The companion simulates placement; it does not upload files or connect peers. Revisit December 2 after the first two-host integration experiment, before committing to a public protocol. Chris decides whether to keep the adapters or own more infrastructure. Accepted wire formats and public APIs would need an ADR with a tripwire.\n\n## 1. The first experience worth shipping\n\nMaya posts a short film from a community garden. Leo sees it in his chosen feed, shares it into the gardening group, and discusses the next workday. Someone adds a frame and a caption to the group's private album. Maya can find that album from the media app because she belongs to the group. Neither app asks her to download and upload the same file again.\n\nThe media app and messaging app can live on different domains with different operators. Their clients resolve references, authenticate to the service that owns a resource, and ask for the access they need. Public information works without connecting a personal account. Private information works only within the approved scope and, where encrypted, on a device with the necessary keys.\n\nLater, Leo gives the community 10 GB of storage and a modest upload budget from an always-on computer. It keeps selected public films available and can store encrypted copies of the group's album. Leo can pause or withdraw that contribution. Being a community member does not require being a server operator.\n\nThat is the product to test. A universal replicated database, a worldwide recommendation engine, live broadcasting, and an open compute marketplace can wait.\n\n| Starter           | Ship in the first release                                                                                                                        | Deliberately defer                                                                      |\n| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |\n| Media             | Profiles; images and short video; following and community feeds; public posts; encrypted group albums; collections; share-to-chat; export        | Livestreams, algorithm marketplace, private adaptive video streaming, unlimited uploads |\n| Messaging         | Encrypted DMs and invitation-only groups; offline delivery; verified device enrollment; recovery; attachments and media cards; requests/blocking | Public room search, calls, enormous communities, arbitrary bots reading conversations   |\n| Shared experience | Account links; typed references; scoped access; freshness and permission states; account export                                                  | Universal cross-server joins, automatic access to an entire digital life                |\n| Hosting           | A documented self-host setup, backup/restore, quotas, one independently operated mirror experiment                                               | Permissionless storage enrollment and automatic database sharding                       |\n\nUse provisional upload limits of **30 MB per image and 100 MB / two minutes per video** during the prototype. These are admission limits to test, not evidence of capacity or a permanent product policy. Private video starts as a supported file attachment with download-before-play behavior where required. Give unsupported codecs an honest error. Public playback gets one modest baseline rendition before adding resolution choices.\n\nWeb comes first. Keep the application protocol independent of React and the browser. A desktop shell later adds durable seeding and local agents; mobile adds camera upload, device keys, notifications, and foreground opportunistic transfer. Do not promise permanent background seeding from phones.\n\n## 2. What we already have, and what remains missing\n\nRepository inspection is from the local `codex/chat-first-redesign` worktree. Existing prototype code is not evidence that a new browser network works.\n\n| Area                           | Status                  | Evidence and implication                                                                                                                                                                                                 |\n| ------------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |\n| Desktop peer connections       | 🚧 Prototype            | [Peer service](../../apps/electron/src/main/peers/service.ts) uses `@number0/iroh`, invitation/contact state, streams, and group synchronization. Useful native integration experience; not a browser media swarm        |\n| Invitation and transport rules | 🚧 Prototype            | [Peer protocol](../../apps/electron/src/main/peers/protocol.ts) validates invitations and relay origins. Preserve explicit admission rather than treating every discoverable peer as trusted                             |\n| Content addressing             | ✅ Code present         | [BlobStore](../../packages/storage/src/blob-store.ts) computes content IDs and exposes verification. Its `get` delegates to storage; the existence of a verification method does not prove every untrusted read verifies |\n| File chunks                    | ✅ Code present         | [ChunkManager](../../packages/storage/src/chunk-manager.ts) records ordered chunks and distinguishes raw manifests from reassembled files. Its full-buffer APIs are not yet a bounded streaming video API                |\n| Permission concepts            | 🚧 Prototype            | [Extension authority](../../packages/workbench/src/communities/extension-authority.ts) is useful precedent for scope and revocation. Extension permission is not a replacement for remote resource authorization         |\n| Portable data                  | ✅ Code present         | [Archive types](../../packages/data/src/portability/types.ts) provide a place to preserve export fidelity. A new media/chat adapter still needs its own tested export and recovery path                                  |\n| Durable media fleet            | ❌ Not established here | No verified replica placement, private swarm protocol, browser/native interoperability, or availability guarantee is demonstrated by this exploration                                                                    |\n\nRetain useful ideas from xNet: stable references, inspectable schemas, explicit grants, portability, and content integrity. Use ordinary transactions for authoritative catalog and quota state. CRDTs remain an option for a shared collection or collaboratively edited description; they do not solve media availability or encryption key distribution. This proposal does not silently change the [charter](../CHARTER.md).\n\n## 3. Choose existing systems where they save the most work\n\nPeerTube is particularly relevant. Its recommended playback path is HLS with WebRTC peer assistance, including adaptive playback and redundancy. That is more specific than saying it is a conventional BitTorrent website. Its architecture also describes operator-selected caches and announcements of cached files. [PeerTube configuration](https://docs.joinpeertube.org/admin/configuration), [PeerTube architecture](https://docs.joinpeertube.org/contribute/architecture).\n\nWebTorrent's browser peers use WebRTC; a normal TCP torrent client is not automatically a browser peer. HTTPS web seeds can supply missing content. This is useful precedent for fallback delivery, not a reason to assume every transport can join the same swarm. [WebTorrent FAQ](https://webtorrent.io/faq).\n\nMatrix already specifies encrypted rooms and attachment envelopes. The first messaging release should use an established SDK and homeserver, including their device verification and recovery behavior. Build the integration UX rather than a new encryption protocol. [Matrix encryption specification](https://github.com/matrix-org/matrix-spec/blob/main/content/client-server-api/modules/end_to_end_encryption.md), [attachment encryption implementation](https://github.com/matrix-org/matrix-encrypt-attachment/blob/main/README.md).\n\n| Approach                                                  | Benefit                                                | Cost                                                                                  | Decision                                                 |\n| --------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------- |\n| PeerTube + Matrix, with thin application adapters         | Existing public video pipeline and encrypted messaging | Several services, identity linking, adapter UX, upstream upgrades                     | **Start here**                                           |\n| Rust catalog + custom video delivery + Matrix             | More control over media semantics                      | Own upload processing, streaming, peer delivery, moderation, and operational failures | Reconsider after the first integration test              |\n| One new Rust stack for media, messaging, crypto, and mesh | A consistent implementation language                   | Largest security and delivery burden before anyone benefits                           | Defer                                                    |\n| Entirely volunteer P2P, no durable host                   | Minimal operator footprint when peers are available    | Offline gaps, key recovery, discovery, mobile suspension, unpredictable retention     | An optional mode with weaker guarantees, not the default |\n\n**Recommended implementation:** two small TypeScript web clients; a Rust integration API for profiles, public image/post metadata, collections, and resource resolution; Postgres for its hosted state; PeerTube for public video; Matrix for private messages and private album attachments. Use the SDK's local device store for decrypted private indexes. Keep NodeStore out of this new MVP's critical path unless a measured requirement justifies it.\n\nPeerTube owns its video records; Matrix owns room events; the Rust API owns its catalog records. Adapters retain native identifiers. Do not create competing authoritative copies of the same record. A public post can refer to a PeerTube video; a private album can be a projection of encrypted room events. The media app must enroll as an authorized Matrix client to display that album.\n\nThis is several services, not the single Rust binary imagined in 0497. The Rust layer should remain small enough to remove. If it merely forwards requests without adding useful policy or schemas, use a TypeScript adapter for the first experiment instead. Shipping the two-app loop matters more than language uniformity.\n\nUse upstream-supported self-host configurations on ordinary Linux hosts. Keep storage behind a filesystem/object-store interface and avoid requiring a particular cloud. Postgres-backed services can share a machine initially but keep separate databases and credentials. A later Kubernetes package should follow demonstrated demand; it is not required to try the product.\n\nBluesky linking and a public-post adapter are sensible next additions. Custom application records do not automatically appear in the Bluesky app. Do not make implementing AT Protocol, ActivityPub, and a new federation protocol all at once a condition of the first release.\n\n## 4. A shared graph of references\n\nThe apps should feel like they share a graph. The implementation can be much smaller: **typed resources owned by named services, connected by explicit references**.\n\n```mermaid\nflowchart TB\n  MEDIA[Media web client] --> RESOLVE[Typed references and scoped API clients]\n  CHAT[Chat web client] --> RESOLVE\n  RESOLVE --> CATALOG[Rust catalog API]\n  RESOLVE --> VIDEO[PeerTube public video API]\n  RESOLVE --> MATRIX[Matrix SDK and homeserver]\n  CATALOG --> SQL[Postgres and public image storage]\n  VIDEO --> ORIGIN[Origin and approved media mirrors]\n  MATRIX --> CIPHER[Encrypted events and attachments]\n  CIPHER --> DEVICE[Decrypt on an authorized device]\n```\n\nStart with `Profile`, `Post`, `MediaAsset`, `Collection`, `ConversationRef`, and `ShareIntent`. Avoid inventing a universal `Message` object that loses encryption, event identity, sender provenance, or room semantics in translation. A reference describes how to resolve the native object; it is not a capability to read it.\n\nProposed public response:\n\n```json\n{\n  \"schema\": \"xnet.media-ref.v1\",\n  \"id\": \"https://garden.example/resources/film-7\",\n  \"authority\": \"https://garden.example\",\n  \"kind\": \"video\",\n  \"visibility\": \"public\",\n  \"revision\": \"r17\",\n  \"nativeRef\": {\n    \"system\": \"peertube\",\n    \"url\": \"https://video.garden.example/videos/watch/example-id\"\n  },\n  \"links\": {\n    \"self\": \"https://garden.example/api/v1/resources/film-7\",\n    \"author\": \"https://garden.example/api/v1/profiles/maya\"\n  }\n}\n```\n\nThese illustrative URLs are not live services. The logical ID is separate from a rendition's content hash and its current download locations. Replacing a caption increments the record revision; transcoding creates new bytes and hashes. A content hash proves byte identity, not authorship, permission, safety, or continued availability.\n\n| Proposed operation                                     | Contract                                                                                        |\n| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |\n| `GET /api/v1/capabilities`                             | Supported schema versions, bounded query features, authentication methods; no private inventory |\n| `GET /api/v1/resources/{id}`                           | Public projection or caller-authorized projection; revision and visibility included             |\n| `GET /api/v1/collections/{id}/items?cursor=…&limit=50` | Opaque cursor, stable ordering, hard page limit, visible freshness                              |\n| `POST /api/v1/share-intents`                           | Resolve a destination and scope before sending; idempotency key prevents duplicate side effects |\n| `GET /api/v1/changes?cursor=…`                         | Authorized resumable updates with documented cursor expiry and snapshot recovery                |\n| `GET /api/v1/exports/{id}`                             | Explicit export job with scope, format, completeness, and attachment availability               |\n\nAuthorization applies at the owning service on every read and write. Tokens need audience, scope, expiry, and revocation behavior. Use existing OAuth/OIDC implementations; an OAuth login is not proof that two accounts belong together until both sides have been authenticated. Do not put reusable bearer tokens in share URLs or logs.\n\nPublic indexes contain public projections only, with source revision, deletion markers, and a freshness timestamp. Fetch from a configured set of services, enforce timeouts and response-size limits, then merge bounded result sets. A global distributed join is outside the MVP. Stale indexes should produce an unavailable/changed state, not resurrect removed records.\n\nUntrusted references are also a network boundary: resolution must reject private-network targets, redirects into internal services, DNS rebinding, and oversized responses. Downloads belong on a media origin with restrictive content handling, not an origin that can execute script with account cookies.\n\n## 5. Private interoperability without a hidden back door\n\n“Connect my account” can authorize an app to read selected data. It cannot make a server decrypt material whose keys exist only on a device.\n\n| Data                                   | Unconnected app  | Connected service backend                           | Authorized client device                                 |\n| -------------------------------------- | ---------------- | --------------------------------------------------- | -------------------------------------------------------- |\n| Public post                            | Query public API | Same public API                                     | Read/cache                                               |\n| Private server-readable metadata       | No               | Scoped grant, where the source actually supports it | Scoped grant                                             |\n| Encrypted conversation or album        | No               | Ciphertext and permitted envelope metadata only     | Decrypt with explicit account/device enrollment and keys |\n| Another participant's unshared content | No               | No new rights                                       | No new rights from linking an account                    |\n\nA first permission screen can offer **“Connect your encrypted messaging account on this device.”** Explain the actual breadth of access and use the messaging SDK's verification flow. Browsers on separate origins do not share a magic keychain. Avoid passing room keys through URL parameters or an application backend.\n\n**A normal Matrix client login is not a room-scoped permission grant.** Do not display “only this album” while handing the media app a general account token or access to the account's key backup. For the first two trusted clients, make full account enrollment explicit. For a separately installed extension that needs just one album, a later design can use a distinct application identity admitted to selected rooms, or a capability broker on an already trusted device. That identity must have no general account token or key-backup access. The broker needs its own enforced scope. Narrow filtering in the UI alone is not an access boundary.\n\nFor selected sharing, offer **Share link**, **Share a copy**, or **Ask for access** according to the resource's policy. Public-to-private sharing can send a reference. Private-to-public publishing needs a separate, unmistakable action and a review of the content being disclosed. Authorization to read a private group is not permission to expose that group to the world.\n\n```mermaid\nsequenceDiagram\n  participant U as Person\n  participant M as Media client\n  participant D as Verified device SDK\n  participant H as Messaging homeserver\n  U->>M: Open a private group album\n  M->>U: Request account and device access\n  U->>D: Approve and verify device\n  D->>H: Fetch authorized encrypted events\n  H-->>D: Ciphertext and attachment references\n  D-->>M: Decrypted permitted items on this device\n  U->>M: Share selected item to another group\n  M->>U: Confirm audience and copy or reference\n  D->>H: Submit encrypted event with retry identity\n```\n\nSearch private data locally after decryption. Sending it to a remote agent is another disclosure requiring its own permission. Agent tools should expose typed operations and truthful receipts, not raw database credentials. A `share` dry run can show destination, scope, and whether new plaintext leaves the device before any actual send.\n\nRevocation prevents future authorized service access and should invalidate local grants. It cannot erase a recipient's prior screenshots, keys, exported files, or independently kept copies. Group membership changes need the chosen messaging protocol's key rotation rules. Rotating only a wrapping key does not revoke an old key someone retained.\n\n## 6. What adding a node actually adds\n\nThe proposed network has several roles. Name the role in both configuration and the UI so “add capacity” means something measurable.\n\n| Role                         | Adds                                                          | Does not automatically add                            |\n| ---------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |\n| Public media mirror          | Storage, geographic proximity, download bandwidth, redundancy | Database write throughput or new authority over posts |\n| Private ciphertext seed      | Copies and delivery of approved encrypted bytes               | Decryption rights or group membership                 |\n| Application host             | Accounts and writes for its own users/community               | A shared multiwriter database with every other host   |\n| Public indexer               | Search and feed coverage                                      | Canonical ownership or private search access          |\n| Messaging homeserver/mailbox | Durable encrypted queues and supported federation             | The ability to decrypt room contents                  |\n| Relay                        | Connectivity through difficult networks                       | Offline storage or free bandwidth                     |\n\nA central bootstrap directory is reasonable for the initial community. Make its responses cacheable, exportable, and replaceable with configured alternatives. Keep data ownership and encryption independent from it. Existing references and direct service URLs should continue to work during a directory outage; discovering brand-new peers may not.\n\nDo not put all public originals, private indexes, identity, and availability claims behind one supposed “cache.” Those have different trust and retention requirements. A central public search cache may be rebuilt; an irreplaceable original cannot.\n\n## 7. Delivery starts dependable, then becomes cooperative\n\nUse three layers:\n\n1. **Durable origin:** accepts uploads within a stated retention/quota policy; has backups and a tested recovery procedure.\n2. **Approved mirrors:** opt into specified content, keep complete copies under renewable retention commitments, and can be monitored.\n3. **Opportunistic peers:** viewers or desktop users contribute bytes while available. They improve delivery without being counted as permanent storage.\n\n```mermaid\nflowchart LR\n  AUTHOR[Creator] --> ORIGIN[Durable origin]\n  ORIGIN --> BACKUP[Independent backup]\n  ORIGIN --> MIRROR[Approved mirror]\n  ORIGIN --> VIEWER[Viewer]\n  MIRROR --> VIEWER\n  PEER[Opted-in peer] \u003c--> VIEWER\n  TRACKER[Replaceable peer discovery] -. peer hints .-> VIEWER\n  TRACKER -. peer hints .-> PEER\n```\n\n**One online seeder is a target, not a guarantee a volunteer network can make.** Machines sleep; families share power and internet failures; people uninstall apps. One online copy also says little about durability. Before accepting responsibility for a public upload, reserve origin storage and a backup. Before advertising mirror failover, confirm a complete playable copy on a second independent online host.\n\nAn availability probe must check the manifest, initialization data, required segments, and at least one supported full rendition. A thousand peers with the same first ten seconds do not constitute a complete copy. Originals and higher resolutions have separate retention policies.\n\nTest an origin outage with a **cold client** that has never opened the post, too. A second copy of the video is insufficient if its only manifest or download-location API disappeared with the origin. Approved mirrors need the relevant public descriptors and manifests, and the resolver needs a bounded-lived mirror list it can verify. Existing PeerTube redundancy is a starting point; complete application failover still has to be demonstrated.\n\nWhen no copy is reachable, show “Temporarily unavailable” and the last verified availability time. Do not spin forever. When capacity is exhausted, limit new uploads, request more capacity, or offer an explicit shorter retention tier. Never promise indefinite hosting based on hoped-for future volunteers.\n\nFor the first public-video peer experiment, use PeerTube's existing HLS/WebRTC path and redundancy facilities. Observe whether peers actually reduce origin egress. Keep image delivery on HTTPS initially. Native Iroh blob transfer is a later experiment for explicitly pinned files; `iroh-blobs` is a separate protocol with verified content transfer, not a WebRTC torrent peer. [Iroh blobs repository](https://github.com/n0-computer/iroh-blobs).\n\nBrowser/native compatibility needs either a compatible WebRTC participant or an HTTPS gateway serving the same verified bytes. Merely using hashes on both sides does not align chunk formats or protocols. Gate the native bridge on a real browser-to-native transfer test, including fallback. Do not require an experimental browser Iroh path to launch.\n\nBrowsers can suspend/discard pages, and storage is subject to quota and eviction. Requesting persistent storage is not an always-running service. Treat a web viewer as temporary assistance; a user-controlled desktop daemon or home server is the credible durable contribution. [Chrome lifecycle documentation](https://developer.chrome.com/docs/web-platform/page-lifecycle-api), [MDN storage limits](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria).\n\n## 8. Seeding for friends, with explicit consent\n\nPrivate seeding serves **ciphertext**, with filenames, captions, thumbnails, and sensitive manifests inside the encrypted envelope. Begin with whole-file encrypted attachments using the established messaging implementation. Streaming encrypted multi-rendition video needs a reviewed chunk-authentication and key-distribution design; do not invent it as a shortcut in this MVP.\n\nA private seed request should name the approved circle, byte budget, expiry, and ciphertext object. Authenticate discovery and download requests; avoid public trackers or global DHT advertisements for private objects. Use ciphertext-derived identifiers, not a public plaintext hash that lets strangers correlate a known file. A download ticket, provider endpoint ID, or content hash alone is not the authorization model.\n\nPrivate seeders can learn that devices communicate, object sizes, timing, and possibly group relationships. Encrypting bytes does not hide this metadata. Direct peer connections can reveal network addresses; provide an HTTPS-only option and explain the difference before enabling peer uploads. PeerTube explicitly documents IP exposure through P2P. [PeerTube privacy guide](https://docs.joinpeertube.org/admin/privacy-guide).\n\nPublic “like” and “follow” stay social actions. Separately, someone can enable **Help host this community** and choose:\n\n- Storage limit, upload rate, monthly transfer cap, and allowed networks.\n- Public content, selected private circles, or both.\n- “Prefer people I follow,” subject to a reserved pool for less-replicated community content.\n- Pause on battery/metered connections, inspect what is stored, remove it, or stop hosting.\n\nNo covert uploading on a like. Do not expose a person's private seed inventory as a public activity feed. A seeding ratio is optional personal information, not a condition of reading or membership; upload accounting is easy to game and can penalize people with expensive or unreliable internet.\n\n## 9. A fair placement rule\n\nSeparate **which content deserves another complete replica** from **which piece a player downloads next**. Playback needs deadlines and useful pieces. Fleet placement needs durability, scarce capacity, and an admission policy. A piece-selection algorithm cannot ensure that an unknown creator gets a second complete copy.\n\nFor each admitted asset, track complete copies, recently reachable copies, independent operators, retention expiry, size, and scope. Keep eligibility local: a node can decline a category, circle, size, or content item. The coordinator proposes work; it cannot compel storage.\n\nUse this ordering for a bounded maintenance budget:\n\n1. **Repair urgent gaps:** admitted objects below the online availability floor, provided a source is reachable. If all copies are offline, flag an incident; scheduling cannot invent bytes.\n2. **Build the durability floor:** a second independent retained copy for objects that lack one. Reserve capacity for new uploads at admission, including creators without followers.\n3. **Serve measured demand:** extra replicas for popular content only after repair/new-content reservations. Demand queues need their own bounded bandwidth so a viral event does not prevent repairs indefinitely.\n\nWithin a tier, prefer larger replica deficits and longer waiting time; use content size and available bandwidth for feasibility. Apply per-account/community admission quotas so flooding “new content” cannot consume the entire reserve. A size-aware scheduler needs aging or reserved large-object slots to avoid starving larger valid uploads.\n\nPreferences for followed creators are a tie-breaker within an eligible budget. They do not override another object's missing baseline copy. Nor should public fairness use the private circle's reserved capacity: resources have owners and purposes.\n\nRetained copies and _currently online_ copies must be separate counts. A temporarily offline mirror should not trigger deletion of its useful copy or an endless reshuffle. Use renewal deadlines, cooldowns, hysteresis, and a maximum repair rate. Count independent operators conservatively; ten Sybil identities on one machine are not ten failure domains. Availability samples are observations, not cryptographic proofs of durable storage.\n\nThe [companion simulator](web/0498/index.html) demonstrates a smaller deterministic rule: public/private eligibility, complete copies, distinct operators, finite storage, zero-copy incidents, and prioritizing deficits before demand. It recomputes a placement snapshot. It does **not** model transfer completion, lease renewal, Byzantine peers, topology, churn probabilities, playback, or real performance.\n\n\u003cdetails>\n\u003csummary>Why not a fully permissionless storage economy immediately?\u003c/summary>\n\nPaying or rewarding uploads introduces false accounting, self-downloads, collusion, unwanted content placement, identity abuse, and disputes over who retained what. Open source does not require open admission to every storage pool. Start with communities enrolling known operators and choosing what to retain. Reconsider broader admission only after quotas, monitoring, withdrawal, moderation, and recovery work. This proposal introduces no token or paid reputation system.\n\n\u003c/details>\n\n## 10. Security work that the MVP cannot skip\n\nThe safest first contribution is serving bounded, verified bytes. Volunteer transcoding or arbitrary agent execution would expose a much larger surface.\n\n| Boundary          | Required behavior                                                                                                      | Adversarial check                                                    |\n| ----------------- | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |\n| Upload and decode | Quotas before allocation; isolated patched media workers; no ambient credentials; CPU, memory, time, and output bounds | Malformed image/video, decompression bomb, worker timeout            |\n| Peer download     | Verify content against the expected authenticated manifest before use; limit outstanding requests and memory           | Wrong chunks, truncated files, forged manifest, repeated slow peers  |\n| Seed admission    | Pull approved objects; deny unsolicited pushes; cap disk, bytes, peers, and requests                                   | Stranger fills disk or bypasses policy with another request type     |\n| Private access    | Gate all fetch paths, batch APIs, metadata queries, and discovery; separate decrypting clients from seeders            | Nonmember guesses hash; revoked ticket; unauthorized batch request   |\n| Host resolver     | Prevent SSRF and unbounded federation fetches; validate remote schema/version                                          | Internal-network URL, redirect loop, oversized JSON                  |\n| Browser content   | Strict script isolation, escaping, safe media headers, dependency updates                                              | Uploaded HTML/SVG or profile text tries to run in the account origin |\n| Agent access      | Scoped operations and separate disclosure consent; untrusted content never grants permissions                          | A caption instructs the agent to export private chat                 |\n\nThere is a timely upstream example: the October 8, 2026 `iroh-blobs` advisory describes unauthorized pushes that could fill provider disks and notes that `get_many` and `observe` need their own authorization handling. A prospective implementation must select a patched release, reject unknown request types, and test every mode. This is a candidate-dependency requirement, **not a finding that the current desktop transport has this vulnerability**. [Upstream advisory and fixed versions](https://www.iroh.computer/blog/iroh-blobs-push-fix).\n\nA relay can carry the whole transfer when direct connectivity fails. It needs admission, rate limits, monitoring, and an egress budget; it is not just a cheap lookup table. Iroh's own relay guidance makes this bandwidth and authentication distinction. Self-hosting remains possible without adopting its managed service. [Iroh relay authentication](https://www.iroh.computer/blog/authenticated-relays).\n\nPublic mirrors choose which communities/content to accept and need report, stop-serving, deletion, and cache-expiry behavior. Private hosts can enforce storage and abuse limits but cannot promise to inspect encrypted content. Keep user-initiated reports separate from hidden server-side decryption. Deletion propagates as a request and local policy action, not a promise that the internet forgets a public file.\n\n## 11. Cost and performance, before promises\n\nPeer assistance moves costs; it does not eliminate them. Public transcoding, originals, backups, quiet videos with no concurrent viewers, and relay fallback still require provisioned resources. Private E2EE media cannot be sent through ordinary server transcoding without giving that service plaintext.\n\nUse the following planning quantities, measured separately:\n\n```text\nretained bytes = originals + playable renditions + thumbnails + backups + mirrors\norigin egress = viewer fallback + replica placement/repair + API/media overhead\nrelay egress = relayed peer traffic (account for the provider's billing direction)\nsteady delivery load = concurrent viewers × average playback bitrate\n```\n\nAn illustrative 100 viewers at 2 Mb/s is 200 Mb/s and approximately 90 GB per hour of outgoing payload. If peers deliver 60% directly, viewer-origin payload falls to about 36 GB/hour. Add replica transfers, overhead, and any charged relay traffic before claiming savings. These are arithmetic examples, not measured hit rates or hosting quotes. A quiet network may get little benefit from viewer-to-viewer transfer.\n\nInitial acceptance targets, subject to measurement on named hardware and network conditions:\n\n| Experiment          | Candidate pass condition                                                                                                                                                              |\n| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n| Public feed API     | p95 under 200 ms at 50 requests/s over 100,000 indexed public posts; bounded page size, no cross-server join                                                                          |\n| Chat reconnect      | 100 queued messages arrive exactly once in the displayed history after reconnect, using retry/event identity                                                                          |\n| Public playback     | First frame within 3 seconds on a 20 Mb/s test connection with a warm baseline rendition                                                                                              |\n| Mirror failure      | With a second complete reachable copy, stopping the origin still permits playback after bounded retry                                                                                 |\n| Peer benefit        | At 20 simultaneous viewers, target at least 20% lower total paid-server egress than HTTPS-only playback, including relay and repair traffic; maintain the 3-second p95 startup target |\n| Resource discipline | No seeding exceeds configured disk/uplink limits; cancellation releases work; oversized inputs fail before unbounded allocation                                                       |\n\nThe API and playback targets do not cover every workload or imply global scale. Track errors and queue age alongside latency. Use Postgres indexes, bounded concurrency, and streaming before considering a distributed SQL migration. Additional media nodes cannot repair an overloaded catalog database.\n\n## 12. A sequence we can actually implement\n\n**First technical milestone: two separately hosted clients complete the garden loop, with no shared database access and no P2P dependency.** This proves the interoperability that makes the product useful. Then prove cooperative delivery as a distinct milestone.\n\n| Stage                          | Build                                                                                         | Evidence required to advance                                                                                                                                 |\n| ------------------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |\n| A. Two-app loop                | Media client, chat client, public reference resolver, encrypted group album, explicit sharing | Different origins and service credentials; public lookup works without login; authorized private lookup works on a verified device; strangers cannot read it |\n| B. Self-host and recover       | Reproducible setup, quotas, backup/export/restore, second operator                            | Restore on another host; reopen media; document separate recovery of encrypted history and device keys                                                       |\n| C. Public cooperative delivery | PeerTube mirror and browser peer playback; origin fallback; contribution controls             | Stop origin and one peer separately; corrupt a transfer; measure bandwidth paths and failure states                                                          |\n| D. Durable community seeding   | Enrolled always-on nodes, complete-copy inventory, quotas, placement leases, repair queue     | New creators receive baseline replicas before surplus popular replicas; stop/withdraw a host without silently losing retained content                        |\n| E. Private/native experiment   | Ciphertext-only friend seeding; native daemon; compatible browser delivery adapter            | Nonmember/expired/revoked access denied on every path; no key exposure; successful real browser/native fallback and withdrawal                               |\n\nThe first three stages can use upstream components. D and E are a new xNet storage coordination project and should earn their complexity through evidence. Do not label the website simulator as their implementation.\n\nImplementation checklist:\n\n- [ ] Define the six initial resource/reference schemas and authority rules; validate examples and compatibility errors.\n- [ ] Build two web starters over the chosen PeerTube/Matrix adapters; preserve native IDs and supported device/recovery UX.\n- [ ] Implement scoped public/private resolution, explicit share intents, bounded indexing, and truthful availability states.\n- [ ] Complete one public post → private discussion → permitted collection loop across separate origins.\n- [ ] Package an upstream-supported self-host deployment, quotas, health checks, backup, export, and restore instructions.\n- [ ] Add and measure one independent public mirror and opt-in browser peer playback.\n- [ ] Implement a bounded replica coordinator only after the mirror experiment passes; separate private/public budgets and retained/online inventory.\n- [ ] Prototype private ciphertext seeding and native/browser bridging behind an explicit experiment flag.\n- [ ] Write ADRs and tripwires before stabilizing a public cross-service or seed protocol.\n\nValidation checklist:\n\n- [ ] Reload both clients, reconnect after interruption, and confirm references, permissions, and chat retry behavior survive.\n- [ ] Verify account linking grants no unexpected room keys, history access, publishing rights, or agent disclosure; reject claims of album-only access backed by a full-account token.\n- [ ] Confirm a stale public index cannot bypass current authorization or display removed private content.\n- [ ] Restore from backup with the original host absent; separately exercise encrypted key/history recovery.\n- [ ] Test zero reachable copies, partial-only copies, insufficient capacity, duplicate operator identities, and exhausted public/private budgets.\n- [ ] Attempt corrupt chunks, unsolicited writes, unauthorized batch reads, SSRF, malformed media, and content-triggered agent exfiltration.\n- [ ] Test browser tab closure/storage eviction, metered-network pause, mobile suspension, and native daemon shutdown.\n- [ ] Record latency, media startup, queue age, memory, disk, direct/relay bytes, and repair overhead under the stated workload.\n- [ ] Try the complete flow with a friend who did not help build it; revise confusing consent and failure states before expanding scope.\n\nThe next coding pass should deliver Stage A, including the negative permission cases. That gives us two small applications worth using and a concrete seam for the network to grow around. The mesh then earns its place by keeping that community's media available and reducing delivery costs.\n"};
+      const $ = (id) => document.getElementById(id)
+      function render() {
+        const extraSpace = Number($('budget').value)
+        const failure = $('failure').value
+        const result = simulate({ extraSpace, failure, friendOnline: $('friend-online').checked })
+        const missing = assets.filter((a) => onlineCopies(result.nodes, a) === 0).length
+        const under = assets.filter((a) => onlineCopies(result.nodes, a) < 2).length
+        const added = result.transfers.reduce((sum, t) => sum + t.size, 0)
+        $('budget-value').textContent = `${extraSpace} MB`
+        $('metrics').innerHTML =
+          `<div class="metric"><strong>${missing}</strong>unavailable files</div><div class="metric"><strong>${under}</strong>below the copy target</div><div class="metric"><strong>${added} MB</strong>new replicas placed</div>`
+        $('nodes').innerHTML = result.nodes
+          .map(
+            (n) =>
+              `<div class="node ${n.online ? '' : 'offline'}"><strong>${n.label}</strong><small>${n.online ? 'Online' : 'Offline'} · ${n.scopes.includes('public') ? (n.id === 'origin' ? 'Origin storage' : 'Public content') : 'Private circle only'}</small><meter value="${usedSpace(n)}" min="0" max="${Math.max(1, n.capacity)}" aria-label="${n.label} stored megabytes"></meter><small>${usedSpace(n)} / ${n.capacity} MB stored</small></div>`
+          )
+          .join('')
+        $('assets').innerHTML = assets
+          .map((a) => {
+            const count = onlineCopies(result.nodes, a)
+            const all = result.nodes.filter((n) => n.copies.includes(a.id))
+            return `<tr><td><span class="asset-name">${a.name}</span><span class="asset-detail">${a.size} MB · ${a.scope === 'garden' ? 'Encrypted · Garden group' : a.fresh ? 'Public · New creator' : `Public · ${a.demand} illustrative requests`}</span></td><td class="${count === 0 ? 'unavailable' : ''}">${count === 0 ? 'Unavailable' : `${count} / 2 target`}</td><td>${all.map((n) => `<span class="badge ${n.online ? '' : 'off'}" title="${n.online ? 'Online complete copy' : 'Stored but offline'}">${n.label}${n.online ? '' : ' (offline)'}</span>`).join('')}</td></tr>`
+          })
+          .join('')
+        $('explanation').textContent = missing
+          ? `${missing} file${missing === 1 ? ' has' : 's have'} no reachable source. Bring a stored copy back online to resume delivery. Adding empty storage cannot recover offline bytes.`
+          : under
+            ? `${under} file${under === 1 ? ' is' : 's are'} below the target. Available space, allowed scope, and independent online hosts all matter. Public volunteers cannot use their spare space to join a private circle.`
+            : 'Every file has at least two independent online copies. Only surplus public capacity can now help the popular clip. New creators received their baseline first.'
+        $('transfers').innerHTML = result.transfers.length
+          ? result.transfers
+              .map(
+                (t) =>
+                  `<li>${assets.find((a) => a.id === t.asset).name} → ${result.nodes.find((n) => n.id === t.target).label} · ${t.size} MB · ${t.tier === 'baseline' ? 'baseline copy' : 'surplus demand copy'}</li>`
+              )
+              .join('')
+          : '<li>No feasible new placement under these conditions.</li>'
+      }
+      ;['budget', 'failure', 'friend-online'].forEach((id) =>
+        $(id).addEventListener('input', render)
+      )
+      $('reset').addEventListener('click', () => {
+        $('budget').value = '160'
+        $('failure').value = 'none'
+        $('friend-online').checked = true
+        render()
+      })
+      function save(name, text, type) {
+        const url = URL.createObjectURL(new Blob([text], { type }))
+        const link = document.createElement('a')
+        link.href = url
+        link.download = name
+        link.click()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+      }
+      $('download-md').addEventListener('click', () =>
+        save(sourceDocument.filename, sourceDocument.source, 'text/markdown')
+      )
+      $('download-html').addEventListener('click', () =>
+        save(
+          'xnet-two-apps-community-network.html',
+          '<!doctype html>\n' + document.documentElement.outerHTML,
+          'text/html'
+        )
+      )
+      render()
+    </script>
+  </body>
+</html>

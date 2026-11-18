@@ -8,7 +8,6 @@ import {
   type FrameStats
 } from '@xnetjs/canvas'
 import { BlobService, CanvasSchema, PageSchema, schemaRegistry, type SchemaIRI } from '@xnetjs/data'
-import { XNetDevToolsProvider, useDevTools } from '@xnetjs/devtools'
 import { BlobProvider } from '@xnetjs/editor/react'
 import { identityFromPrivateKey } from '@xnetjs/identity'
 import { XNetProvider } from '@xnetjs/react'
@@ -215,7 +214,6 @@ declare global {
     __xnetLastCloudConnect?: unknown
     __xnetDeepLinkObserverInstalled?: boolean
     __xnetRoot?: Root
-    __xnetDevToolsToggleCleanup?: (() => void) | null
   }
 }
 
@@ -714,21 +712,6 @@ function createSyncTestHarness(syncManager: IPCSyncManager): SyncTestHarness {
 }
 
 /**
- * Component that instruments the sync manager with devtools.
- * Must be rendered inside XNetDevToolsProvider to access the event bus.
- */
-function SyncInstrumentation({ syncManager }: { syncManager: IPCSyncManager }) {
-  const { eventBus } = useDevTools()
-
-  useEffect(() => {
-    if (!eventBus) return
-    return syncManager.instrument(eventBus)
-  }, [eventBus, syncManager])
-
-  return null
-}
-
-/**
  * SEC-03: Component that connects Local API store requests to the NodeStore.
  *
  * This replaces the vulnerable executeJavaScript approach in local-api.ts.
@@ -912,12 +895,6 @@ async function init() {
     removeResume()
   })
 
-  // Listen for devtools toggle from main process menu.
-  // Keep only one active listener across HMR reloads.
-  window.__xnetDevToolsToggleCleanup?.()
-  window.__xnetDevToolsToggleCleanup = window.xnet.onDevToolsToggle(() => {
-    window.dispatchEvent(new CustomEvent('xnet-devtools-toggle'))
-  })
   window.__xnetCanvasTestHarness = createCanvasTestHarness(ipcSyncManager)
   window.__xnetSyncTestHarness = createSyncTestHarness(ipcSyncManager)
   window.__xnetSchemaIds = { page: PageSchema._schemaId, canvas: CanvasSchema._schemaId }
@@ -963,19 +940,12 @@ async function init() {
             }}
           >
             <BlobProvider blobService={blobService}>
-              <XNetDevToolsProvider
-                telemetryCollector={telemetryCollector}
-                consentManager={consentManager}
-                fabInitialOffset={{ x: 16, y: 220 }}
-              >
-                <SyncInstrumentation syncManager={ipcSyncManager} />
-                <LocalAPIStoreHandler />
-                {/* Inside the providers so the fallback keeps app chrome and
+              <LocalAPIStoreHandler />
+              {/* Inside the providers so the fallback keeps app chrome and
                     theme; a shell crash must not take the window with it. */}
-                <ShellErrorBoundary>
-                  <App />
-                </ShellErrorBoundary>
-              </XNetDevToolsProvider>
+              <ShellErrorBoundary>
+                <App />
+              </ShellErrorBoundary>
             </BlobProvider>
           </XNetProvider>
         </TelemetryProvider>
@@ -983,7 +953,7 @@ async function init() {
     </React.StrictMode>
   )
 
-  // Report startup performance (deferred to ensure devtools instrumentation is mounted)
+  // Defer startup reporting until after the initial render.
   const startupDuration = performance.now() - startTime
   setTimeout(() => {
     telemetryCollector.reportPerformance('app.startup', startupDuration, 'renderer')
@@ -996,7 +966,5 @@ if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     window.__xnetCanvasTestHarness = null
     window.__xnetSyncTestHarness = null
-    window.__xnetDevToolsToggleCleanup?.()
-    window.__xnetDevToolsToggleCleanup = null
   })
 }

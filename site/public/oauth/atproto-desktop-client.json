@@ -1,0 +1,13 @@
+{
+  "client_id": "https://xnet.fyi/oauth/atproto-desktop-client.json",
+  "client_name": "xNet Desktop",
+  "client_uri": "https://xnet.fyi",
+  "logo_uri": "https://xnet.fyi/favicon.svg",
+  "application_type": "native",
+  "redirect_uris": ["fyi.xnet:/oauth/callback"],
+  "grant_types": ["authorization_code", "refresh_token"],
+  "response_types": ["code"],
+  "scope": "atproto",
+  "token_endpoint_auth_method": "none",
+  "dpop_bound_access_tokens": true
+}

@@ -22,7 +22,10 @@ import { AddSharedDialog } from './components/AddSharedDialog'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { CanvasView } from './components/CanvasView'
 import { ConnectHubDialog } from './components/ConnectHubDialog'
+import { DesktopEntry } from './components/DesktopEntry'
+import { DesktopSocialIdentity } from './components/DesktopSocialIdentity'
 import { setPersistedHubUrl } from './lib/hub-url'
+import { usePeerStore } from './lib/peer-store'
 import { useNativeNodeChanges } from './lib/use-native-node-changes'
 import { useDesktopPlatformPort } from './shell/desktop-platform'
 import { registerDesktopHostedViews } from './shell/hosted-views'
@@ -376,6 +379,7 @@ export function LegacyWorkspace({
 
 /** Chat is the default; the previous workspace remains an explicit secondary surface. */
 export function App(): React.ReactElement {
+  usePeerStore()
   const { store, isReady } = useNodeStore()
   const { getHubAuthToken } = useXNet()
   useEffect(() => {
@@ -389,6 +393,7 @@ export function App(): React.ReactElement {
   const nativeChangeError = useNativeNodeChanges(!workspace)
   const [sharePayload, setSharePayload] = useState('')
   const [captureUrl, setCaptureUrl] = useState<string>()
+  const [invitedConversation, setInvitedConversation] = useState<string>()
   const [connectRequest, setConnectRequest] = useState<ConnectHubRequest | null>(null)
   const [recovery, setRecovery] = useState<string | null>(null)
   useEffect(() => {
@@ -447,27 +452,35 @@ export function App(): React.ReactElement {
     )
   return (
     <>
-      <CommunityApp
-        agents={window.xnetCommunityAgents}
-        desktop
-        blobs={blobs}
-        transfers={transfers}
-        resolveLink={window.xnet.resolveChatLink}
-        onOpenWorkspace={() => setWorkspace(true)}
+      <DesktopEntry
         onOpenSettings={() => setSettings(true)}
-        banner={
-          nativeChangeError || recovery ? (
-            <p role="alert" className="p-3 text-sm">
-              {nativeChangeError || recovery}
-              {recovery && (
-                <button className="ml-3 underline" onClick={() => setSettings(true)}>
-                  Open recovery settings
-                </button>
-              )}
-            </p>
-          ) : undefined
-        }
-      />
+        onOpenConversation={setInvitedConversation}
+      >
+        <CommunityApp
+          profileIdentity={<DesktopSocialIdentity />}
+          agents={window.xnetCommunityAgents}
+          peers={window.xnetPeers}
+          initialConversationId={invitedConversation}
+          desktop
+          blobs={blobs}
+          transfers={transfers}
+          resolveLink={window.xnet.resolveChatLink}
+          onOpenWorkspace={() => setWorkspace(true)}
+          onOpenSettings={() => setSettings(true)}
+          banner={
+            nativeChangeError || recovery ? (
+              <p role="alert" className="p-3 text-sm">
+                {nativeChangeError || recovery}
+                {recovery && (
+                  <button className="ml-3 underline" onClick={() => setSettings(true)}>
+                    Open recovery settings
+                  </button>
+                )}
+              </p>
+            ) : undefined
+          }
+        />
+      </DesktopEntry>
       <ConnectHubDialog
         request={connectRequest}
         onCancel={() => setConnectRequest(null)}

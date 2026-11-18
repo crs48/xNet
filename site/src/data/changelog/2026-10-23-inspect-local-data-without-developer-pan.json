@@ -1,0 +1,11 @@
+{
+  "id": "2026-10-23-inspect-local-data-without-developer-pan",
+  "date": "October 23, 2026",
+  "title": "Inspect local data without developer panels",
+  "summary": "The desktop app now keeps developer panels out of chat. Open Settings, Data, then the read-only node table to browse local records, inspect their properties, and find a node by ID.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ],
+  "pr": 728
+}

@@ -3,7 +3,7 @@ import type { CommunityData, Conversation } from './use-community-data'
 import { ChannelSchema } from '@xnetjs/data'
 import { Bot, RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Modal, primaryButton, secondaryButton, inputClass } from './primitives'
+import { Modal, primaryButton, secondaryButton } from './primitives'
 export function AgentSettings({
   agents,
   data,
@@ -46,12 +46,49 @@ export function AgentSettings({
   }, [agents.port, agents.snapshot.runtimes.length, perform])
   const runtime = agents.snapshot.runtimes.find((entry) => entry.id === selected)
   return (
-    <Modal title={channel ? `Agent in ${channel.name}` : 'Your agents'} onClose={onClose}>
-      <div className="space-y-5">
+    <Modal
+      title={channel ? `Agent in ${channel.name}` : 'Your agents'}
+      onClose={onClose}
+      footer={
+        agents.port ? (
+          <button
+            disabled={busy || runtime?.state !== 'ready'}
+            className={`${primaryButton} w-full`}
+            onClick={() =>
+              void perform(async () => {
+                if (!runtime || !data.bridge || !data.did)
+                  throw new Error('The local store is still loading.')
+                const target =
+                  channel ??
+                  (await data.bridge.create(ChannelSchema, {
+                    name: runtime.provider === 'codex' ? 'Codex' : 'Claude',
+                    kind: 'dm',
+                    members: [data.did],
+                    visibility: 'private',
+                    topic: 'Your agent, running on this device.'
+                  }))
+                await agents.port!.bind({
+                  channelId: target.id,
+                  runtimeId: runtime.id,
+                  provider: runtime.provider,
+                  context,
+                  mode: channel ? (binding?.mode ?? 'mentions') : 'direct',
+                  enabled: true
+                })
+                onOpen(target.id)
+                onClose()
+              })
+            }
+          >
+            {channel ? 'Enable agent in this conversation' : 'Start an agent conversation'}
+          </button>
+        ) : undefined
+      }
+    >
+      <div className="space-y-4">
         <p className="text-sm leading-6 text-muted-foreground">
-          Connect an agent installed on this computer. It uses your existing provider login and a
-          dedicated conversation. Your selected text goes to the provider; running the bridge
-          locally does not make the model local.
+          Chat with Codex or Claude using the account already on your computer. Choose what text to
+          share with its provider.
         </p>
         {!agents.port ? (
           <p>Open the desktop app to connect Codex or Claude.</p>
@@ -66,31 +103,39 @@ export function AgentSettings({
               {busy ? 'Checking…' : 'Find installed agents'}
             </button>
             <div className="space-y-2">
-              {agents.snapshot.runtimes.map((entry) => (
-                <button
-                  key={entry.id}
-                  disabled={busy || entry.state === 'unsupported'}
-                  onClick={() => setSelected(entry.id)}
-                  aria-pressed={selected === entry.id}
-                  className={`w-full rounded-xl border p-3 text-left ${selected === entry.id ? 'border-foreground' : 'border-border'} disabled:opacity-50`}
-                >
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Bot size={16} />
-                    {entry.provider === 'codex' ? 'Codex' : 'Claude'}
-                    <span className="ml-auto text-xs font-normal">
-                      {entry.state.replaceAll('-', ' ')}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs">{entry.version}</p>
-                  <p className="mt-1 break-all text-[10px] text-muted-foreground">{entry.path}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">{entry.detail}</p>
-                </button>
-              ))}
-              {!busy && !agents.snapshot.runtimes.length && (
-                <p className="text-sm">
-                  No installed agents found. Install and sign in to Codex, then check again.
-                </p>
-              )}
+              {agents.snapshot.runtimes
+                .filter((entry) => entry.state !== 'unsupported')
+                .map((entry) => (
+                  <button
+                    key={entry.id}
+                    disabled={busy || entry.state === 'unsupported'}
+                    onClick={() => setSelected(entry.id)}
+                    aria-pressed={selected === entry.id}
+                    className={`w-full rounded-xl border p-3 text-left transition-colors ${selected === entry.id ? 'border-foreground/30 bg-muted shadow-sm' : 'border-border hover:bg-muted/50'} disabled:opacity-50`}
+                  >
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <Bot size={16} />
+                      {entry.provider === 'codex' ? 'Codex' : 'Claude'}
+                      <span className="ml-auto text-xs font-normal">
+                        {entry.state.replaceAll('-', ' ')}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {entry.state === 'ready'
+                        ? 'Connected on this device.'
+                        : entry.state === 'available'
+                          ? 'Use the login already on this device.'
+                          : entry.detail}
+                    </p>
+                  </button>
+                ))}
+              {!busy &&
+                !agents.snapshot.runtimes.some((entry) => entry.state !== 'unsupported') && (
+                  <p className="text-sm">
+                    No supported agents found. Install and sign in to Codex or Claude Code, then
+                    check again.
+                  </p>
+                )}
             </div>
             {runtime && runtime.state !== 'ready' && (
               <button
@@ -106,55 +151,64 @@ export function AgentSettings({
                 Connect {runtime.provider === 'codex' ? 'Codex' : 'Claude'}
               </button>
             )}
-            <label className="block text-sm">
-              Context sent to the provider
-              <select
-                aria-label="Agent context"
-                className={`${inputClass} mt-2`}
-                value={context}
-                onChange={(event) => setContext(event.target.value as 'question' | 'recent')}
-              >
-                <option value="question">This message only · fresh context each time</option>
-                <option value="recent">Recent chat + remembered agent conversation</option>
-              </select>
-            </label>
+            <fieldset className="space-y-2">
+              <legend className="mb-2 text-sm font-medium">What can the agent read?</legend>
+              {(
+                [
+                  ['question', 'Just this message', 'Start fresh with each request.'],
+                  [
+                    'recent',
+                    'Recent conversation',
+                    'Include recent text and remember this agent conversation.'
+                  ]
+                ] as const
+              ).map(([value, title, detail]) => (
+                <label
+                  key={value}
+                  className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 hover:bg-muted/50"
+                >
+                  <input
+                    type="radio"
+                    name="agent-context"
+                    value={value}
+                    checked={context === value}
+                    onChange={() => setContext(value)}
+                    className="mt-0.5 accent-black"
+                  />
+                  <span className="text-sm">
+                    {title}
+                    <span className="mt-1 block text-xs text-muted-foreground">{detail}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
             <p className="text-xs leading-5 text-muted-foreground">
-              Recent context includes up to 30 loaded messages, capped at 24,000 characters.
-              Attachments are excluded. Ordinary chat invokes your runtime only for you. In Build
-              together, you can separately allow named collaborators to request work with fresh
-              project context. This remains a community security preview.
+              Selected text and extension drafts are sent to the provider. Extensions are tested
+              with screenshots in a disposable copy without personal data. Chat attachments are
+              excluded. Only you can invoke your agent here; collaborating on an extension requires
+              a separate grant.
             </p>
-            <button
-              disabled={busy || runtime?.state !== 'ready'}
-              className={primaryButton}
-              onClick={() =>
-                void perform(async () => {
-                  if (!runtime || !data.bridge || !data.did)
-                    throw new Error('The local store is still loading.')
-                  const target =
-                    channel ??
-                    (await data.bridge.create(ChannelSchema, {
-                      name: runtime.provider === 'codex' ? 'Codex' : 'Claude',
-                      kind: 'dm',
-                      members: [data.did],
-                      visibility: 'private',
-                      topic: 'Your agent, running on this device.'
-                    }))
-                  await agents.port!.bind({
-                    channelId: target.id,
-                    runtimeId: runtime.id,
-                    provider: runtime.provider,
-                    context,
-                    mode: channel ? (binding?.mode ?? 'mentions') : 'direct',
-                    enabled: true
-                  })
-                  onOpen(target.id)
-                  onClose()
-                })
-              }
-            >
-              {channel ? 'Enable agent in this conversation' : 'Start an agent conversation'}
-            </button>
+            <details className="rounded-lg border border-border text-xs text-muted-foreground">
+              <summary className="cursor-pointer px-3 py-2">
+                Connection &amp; privacy details
+              </summary>
+              <div className="space-y-3 border-t border-border p-3 leading-5">
+                <p>
+                  Recent context includes up to 30 loaded messages and 24,000 characters. Connecting
+                  locally does not run the model on this device. This is a security preview.
+                </p>
+                {agents.snapshot.runtimes.map((entry) => (
+                  <div key={entry.id}>
+                    <p className="font-medium text-foreground">
+                      {entry.provider === 'codex' ? 'Codex' : 'Claude'} ·{' '}
+                      {entry.state.replaceAll('-', ' ')} · {entry.version}
+                    </p>
+                    <p className="break-all">{entry.path}</p>
+                    <p>{entry.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </details>
             {binding?.enabled && (
               <button
                 className={secondaryButton}

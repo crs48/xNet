@@ -11773,6 +11773,619 @@ stops future reads but cannot erase content already delivered to a device.
 multiple readers, or native clients consuming a stable protocol. Revisit the
 capability and ownership design before extending this experimental transport.
 
+## ADR-48: Render chat extensions against explicitly granted xNet records
+
+**Status:** Accepted · 2026-10-19 · chat prototype
+
+**Context:** The chat extension prototype accepted message strings and returned a
+layout tree. Extensions need real xNet hooks without inheriting the host's entire
+store, identity, or network access.
+
+**Decision:** Add `@xnetjs/react/queries`, exposing the existing `useQuery` and a
+`DataBridgeProvider` for hosts that already own their bridge. This provider is a
+context boundary, not an authorization mechanism. Existing `XNetProvider` consumers
+continue to use the same context.
+
+Chat extensions run pinned React, xNet schemas, `useQuery`, and selected UI primitives
+in a terminable worker inside an opaque-origin iframe. The host resolves explicit
+read grants before sending bounded record snapshots. Grants are local to the owner,
+conversation, and source/compiler/runtime hash. Selected conversations include future
+messages; personal tasks and pages require individual record selection. Relations
+never confer access to their targets. The first implementation permits Channel,
+ChatMessage, Task, and Page properties, with no document bodies, writes, identity
+APIs, arbitrary imports, or network. Updates rerender the view; revocation cancels
+rendering, unsubscribes, clears the view, and removes the saved grant.
+
+The worker uses React server rendering and converts inert markup into a validated
+text/layout tree. The host never evaluates extension code or inserts its HTML.
+CSP denies network in the opaque frame and worker. Runtime compilation requires
+eval only inside that isolated worker, never in the host renderer.
+
+**Tradeoff:** These are read-only views, not interactive React applications: effects,
+event handlers, document editors, custom schemas, and mutation hooks are not supported.
+Limits fail explicitly instead of presenting truncated data as complete: 200 records
+per selection, 500 total, 256 KB of input, and a two-second rendering deadline.
+Revocation stops future delivery but cannot erase previously observed content.
+
+**Tripwire:** An extension needs mutations, interactive state, custom schemas, larger
+collections, network access, or shared installations. Revisit the capability protocol
+and runtime before expanding privileges or relaxing isolation and resource limits.
+
+## ADR-49: Guard extension edits at the storage boundary
+
+**Status:** Accepted · 2026-10-19 · local chat prototype; extension protocol experimental
+
+**Context:** ADR-48's tripwire was reached: extensions need real React state,
+events, and mutation hooks. Checking a grant in the renderer does not protect
+against a record being changed while a write is awaiting storage.
+
+**Decision:** Add optional snapshot preconditions and an absolute deadline to
+NodeStore and DataBridge transactions. Every touched ID must have a condition;
+callers also include records on which their authorization decision depends.
+An adapter must explicitly support conditional batches. Unsupported adapters,
+including encrypted paths without atomic support, reject the command. Memory
+and native Electron compare snapshots before applying changes; SQLite compares
+fixed record/property rows inside the write transaction. Electron conditional
+batches never use the chunked bulk-import path. Ordinary transactions retain
+their existing behavior. Guarded deletes return committed tombstones.
+
+The local chat prototype uses a persistent React worker, Remote DOM's polyfill,
+and a closed text/layout/button/text-input receiver. It reuses actual `useQuery`
+and `useMutate` through a narrow DataBridge. The host binds a command channel to
+the current owner, artifact grant, and runtime session. Requests cannot choose
+these values. Private task writes require separate approval; editable fields
+are title, status, completion, priority, and due date. No relation, ownership,
+visibility, or shared-container changes are permitted. New tasks are private.
+Undo compares the committed receipt snapshot and fails on later edits.
+
+**Tradeoff:** This is not the full API contract proposed in exploration 0481.
+Receipts and replay protection are session-local. Revocation immediately stops
+admitting commands and delivering data, then drains previously accepted commits
+before reporting completion. It cannot recall committed edits or previously
+observed data. Grants remain local device preferences; no remote delegation is
+implemented. A worker can be terminated but has no hard heap isolation.
+Documents, network, agents, schemas, files, and native access remain unavailable.
+
+**Tripwire:** Before permitting shared destinations, durable background execution,
+remote installations, raw document updates, or arbitrary third-party code, move
+all relevant grant/dependency state to the authoritative commit boundary and
+obtain an independent review. Do not extrapolate the private-task checks to
+community permissions or claim the entire 0481 security model is implemented.
+
+## ADR-50: Couple local extension grants and receipts to conditional commits
+
+**Status:** Accepted · 2026-10-19 · local prototype; extension SDK remains experimental
+
+**Context:** ADR-49's session approvals and receipts could not survive a restart or
+prevent another session from committing against a revoked approval. Documents
+also need a separate read boundary from page properties.
+
+**Decision:** Extend conditional transactions with bounded compare-and-swap
+entries in device-local app state and an optional absent-key durable receipt.
+The storage owner records the result and change heads alongside node writes in
+one atomic commit. Adapters opt into this feature explicitly. Empty node batches
+still execute their local-state checks and writes. Neither grants nor receipts
+are synced as ordinary records, and the untrusted bridge exposes no local-state
+reader or writer.
+
+An extension approval binds owner, conversation, artifact hash, and a fresh epoch.
+Revocation persists an inactive record; reopening or reverting source cannot
+reactivate that epoch. Commands bind their identifier and payload to that approval;
+a lost response can be recovered without repeating the effect. Created task scope
+and the last receipt persist. A new approval creates a new epoch. Host permission
+reads distinguish absence from unavailable or corrupt storage. Previous localStorage
+approvals are not imported automatically.
+
+Document text has a separate exact-page read grant, with opaque session handles.
+The host projects current visible text from acquired documents, omitting resource
+attributes, nested embeds, and deleted history. The extension receives no Y.Doc,
+awareness object, editor plugin context, or document persistence method. Raw updates
+and document editing require a further authority-aware commit path.
+
+**Tradeoff:** This establishes device-local authority, not cross-device revocation
+or independent security certification. Foreground sessions recheck before data
+and results are delivered and poll for idle cross-window revocation. Revocation
+cannot erase already observed text. Browser workers still lack hard heap isolation.
+A grant permits at most 1,000 committed commands before a new approval; old receipt
+keys remain bound to their retired epoch. Storage rollback by a device owner is
+outside this model.
+
+**Tripwire:** Before document writes, shared destinations, background jobs, or remote
+delegation, extend the same commit boundary to document versions and every relevant
+membership/disclosure dependency. A public stable SDK requires an independent review.
+
+## ADR-51: Commit scoped document edits through a durable local overlay
+
+**Status:** Accepted · 2026-10-20 · local prototype; extension SDK remains experimental
+
+**Context:** Checking a grant and then saving a renderer Yjs snapshot leaves a gap
+between authority and persistence. An older background snapshot can also replace
+accepted content. ADR-50's document-write tripwire requires a shared commit boundary.
+
+**Decision:** The first editable document handle renders a host-owned plain-paragraph
+editor. The guest receives an opaque handle and a current text projection, never a
+Y.Doc or arbitrary update RPC. Saving prepares a clone and atomically compares the
+exact page, private folder ancestry, active approval and current local overlay.
+The same transaction commits the overlay, command count and attributed receipt.
+Only accepted deltas enter the live document. A changed draft revision is a conflict;
+concurrent CRDT changes merge without treating client IDs as authenticated authorship.
+
+The versioned `document-overlay:v1:<encoded-node-id>` device-local record stores a
+bounded full Yjs state. Memory and SQLite reads merge it with the base snapshot;
+marked document writes merge prior, incoming and overlay state. The Electron data
+owner hydrates acquired documents from this path and forwards accepted changes to
+open renderers. Physical deletion removes the overlay. The data store subpath
+exports the bounded encoding/merge/key helpers and structural snapshot comparator;
+the untrusted extension loader does not expose those exports.
+
+Folder/space grants select at most ten roots and 100 nested containers. Fresh
+ancestry and deterministic owner-issued membership evidence constrain queries;
+expiry and reparenting invalidate authority. Page text and private writes still need
+exact-record grants. Private folder edits compare all ancestry evidence in the
+committing transaction. Shared destinations remain denied.
+
+**Tradeoff:** This is a conservative editor, not the general xNet editor contract.
+Formatting and embeds remain read-only. Overlays retain CRDT history and stop at
+128,000 bytes; there is no automatic compaction or document undo yet. Authority and
+receipts are device-local. This adds neither remote revocation nor cryptographic
+attribution of Yjs clients. Membership validation intentionally accepts fewer edges
+than the core resolver, including an additional expiry check.
+
+**Tripwire:** Before rich editor commands, shared document writes, raw updates,
+overlay compaction, or a stable public SDK, prove the same atomic authority boundary,
+concurrent-edit preservation and restart behavior for that path, and independently
+review disclosure and resource limits. Revisit the overlay design when measured
+history size blocks ordinary approved editing.
+
+## ADR-52: Report observed agent phases in the local chat journal
+
+**Status:** Accepted · 2026-10-20 · local prototype
+
+**Context:** A streamed conversational reply can finish before the provider emits
+its extension source. A generic “replying” label hides that work, while generated
+progress prose could claim actions the host has never observed.
+
+**Decision:** Add optional timestamped `activity` entries to the desktop
+`CommunityAgentRun` contract. The host records connection, provider waiting,
+reply streaming, extension generation and response validation once per phase.
+Terminal state and publication remain authoritative. Old journals without this
+metadata show their existing status without inventing a historical timeline.
+The metadata remains device-local and carries no reasoning, source, tool payloads,
+provider session IDs or credentials. The chat uses one compact current status
+and optional details; completion leaves a receipt on the existing answer.
+
+**Tradeoff:** This is a coarse timeline, not a measure of percent complete. Buffered
+provider responses can omit intermediate phases. Validation does not imply an
+extension has been compiled, tested, installed or granted data access.
+
+**Tripwire:** Revisit the vocabulary and retention bounds before adding executable
+tools, concurrent tasks, remote agent activity or a stable external activity API.
+Every new reported action must have an observable host event and a tested terminal
+state; provider-generated progress text alone is insufficient evidence.
+
+## ADR-53: Share immutable chat extension source with explicit remix ancestry
+
+**Status:** Accepted · 2026-10-20 · local prototype
+
+**Context:** Device-local agent drafts cannot be reviewed by another conversation
+member. A flat build history also loses which version a person intended to edit.
+
+**Decision:** Share a bounded JSON attachment through the existing signed chat
+message and blob paths. Format `xnet-chat-extension`, version `1`, carries one
+source snapshot, title, summary, author, parent fingerprint and change note.
+The SHA-256 version fingerprint covers those fields in a fixed key order, with
+an absent parent encoded as null. The attachment MIME type is
+`application/vnd.xnet.chat-extension+json`. Readers reject unknown fields, versions,
+invalid UTF-8, content mismatches and payloads over 128,000 bytes. Source retains
+the 24,000-character preview limit. The author must match the signed message's
+creator; forwarding an unchanged third-party snapshot as your own is rejected.
+
+Recipients explicitly review the source and save a private PluginSource copy.
+They choose their own data permissions. Approval identity hashes the compiled build
+and the version fingerprint together; identical code from another author cannot
+reuse a grant. Legacy versions without lineage retain their build-bound grants.
+Sharing never includes grants, runtime
+credentials, document projections or task records. Installing stays device-local.
+Remixing creates a new source version, attributed to the editor and linked to its
+selected parent; existing versions remain unchanged through this UI. Missing
+ancestors are labeled unavailable, never reconstructed from claims. A parent link
+records claimed derivation, not independent proof of how code was written.
+
+The optional desktop agent request `extensionRevisionId` selects a reviewed,
+owned source record in the same conversation. The host validates and reads that
+record, includes its bounded source as untrusted context, and records optional
+`baseRevisionId` and `baseVersionId` on the run. It takes precedence over automatic
+recent-draft context. Old requests and journals remain supported.
+
+**Tradeoff:** This is a single-parent history without merges or dependency bundles.
+Legacy builds retain their local node references. Receiving a child does not fetch
+missing ancestors. Saved shares do not prove delivery, and source can contain
+private literals even though data grants are excluded; the share confirmation asks
+the user to review source. Branch browsing covers the latest 200 local copies and
+reports truncation. Host resource limits and consent still apply to every build.
+
+**Tripwire:** Revisit this format before publishing a stable extension ecosystem,
+supporting forwarded third-party signatures, merges, multi-file packages, automatic
+ancestor retrieval, or cloud catalogs. Require independent attribution review and
+two-device delivery tests before claiming interoperable distribution.
+
+## ADR-54: Keep shared extension development in authenticated chat records
+
+**Status:** Accepted · 2026-10-22 · local prototype
+
+**Context:** Sharing source copies does not give collaborators a common project,
+execution policy, or the conversation that produced a particular version.
+
+**Decision:** Add optional indexed development fields to ChatMessage. A version-1
+JSON envelope carries a closed project, feedback, host offer, request, attempt, version,
+withdrawal, or acceptance record. Each record's node ID binds its author, channel,
+visible text, and canonical payload through SHA-256. Consumers verify the envelope,
+identity, bounds, and relationships before using it. Redaction remains a message
+operation. Changing hashed fields invalidates the record rather than rewriting a
+previously accepted version. The existing source-attachment version-1 format stays
+unchanged; project records separately carry up to four parent version-record IDs.
+
+Only a device owner can grant use of their runtime. Device-local delegation names
+one project and channel, requesters, an epoch, expiry, and request budget. Signed
+peer requests must match that grant and current contributor membership. The host
+serializes its queue, checks scope before dispatch and publication, and starts each
+shared provider turn with fresh explicit context. Queued work survives restart but
+requires a ready runtime; interrupted work requires an explicit retry. Host offers
+advertise permission but never create it. Credentials and provider sessions stay local.
+
+New requests carry ordered message IDs and revision digests frozen at submission.
+The host rejects changed, removed, unfrozen, or cross-project context. The original
+request stays immutable; withdrawing it and sending a new one records the revision.
+
+Versions retain their source fingerprint, attributed request/attempt, parent IDs,
+and reported message revisions. The history viewer checks current source-message
+availability and redaction before displaying retained text. Published snapshots are
+copies received by the conversation's existing audience: they cannot promise erasure
+from other devices or cryptographic proof of provider execution. Future changes to
+history retention must account for these already distributed copies. Sharing source
+outside the project excludes its development history and local data grants.
+
+Project creators accept versions through append-only acceptance records referencing
+previously observed acceptances. Concurrent heads remain visible until explicitly
+resolved. A host's queue is local serialization, not a distributed lock or an
+exactly-once guarantee across disconnected hosts.
+
+**Tradeoff:** This prototype supports top-level community membership and bounded
+single-file extensions. It does not silently grant agent tool execution, shared-data
+writes, installation, or inherited-community authority. Retained transcripts are
+reported provenance; opaque model internals are outside the record.
+
+**Tripwire:** Revisit before publishing a stable shared-development API, broadening
+membership inheritance, adding automatic private-context inclusion, requiring hard
+history erasure, or claiming distributed exactly-once execution. Require two-client
+transport, conflicting-head, restart, and revocation evidence before release.
+
+### ADR 55: Community dependency rooms for collaboration (prototype)
+
+**Date:** 2026-10-22. **Status:** Prototype.
+
+A channel share room does not carry the community and membership records needed
+by a second client's authorization evaluator. Add `xnet-community-<spaceId>` as
+a subscribe-only dependency room. It carries signed Space and SpaceMembership
+changes, never arbitrary child content. Existing publish-wrapped node changes
+and per-room sequence cursors are unchanged.
+
+The first implementation supports top-level circles whose creator manages the
+roster. Authenticated hosts require a current creator-issued membership and
+reject a self-issued wildcard as sufficient permission to read the roster.
+The creator comes from the ownership index pinned at first verified creation,
+not an author selected by the lowest Lamport clock. Client writes and clears to
+the dependency room are rejected; only the relay indexes its signed records.
+Explicit anonymous development hosts retain their existing open-relay semantics.
+A membership expiry or removal affects future reads after it is observed;
+already received records cannot be recalled. This does not complete 0478's
+private-community encryption or general inherited membership model.
+
+**Tripwire:** Nested communities, delegated roster administrators, or a roster
+larger than 2,000 people requires a reviewed dependency and authorization design
+before expanding this protocol.
+
+## ADR-56: Store chat preview assets as file references
+
+**Status:** Accepted · 2026-10-22 · local prototype
+
+The optional `image` and `media` fields on `MessageLinkPreview` carry existing
+`FileRef` values. The sender resolves metadata and uploads preview bytes through
+the existing blob service. Readers render those stored references. Existing
+`imageUrl` records remain compatible; the desktop chat does not hotlink them.
+
+Desktop resolution checks DNS and every redirect, pins the checked address to
+the socket, and limits time, bytes, concurrent requests, and URLs per message.
+Sending text does not wait for a preview. YouTube embeds load only after a click
+and contact YouTube directly; they are not offline video copies. Readers validate
+preview fields and never execute arbitrary provider HTML.
+
+**Tradeoff:** Snapshots can become stale and consume blob storage. Images and
+files share the conversation's current attachment permissions and retention
+limitations. A preview is untrusted presentation, not proof of a site's identity.
+
+**Tripwire:** Revisit before adding authenticated unfurling, automatic recipient
+fetching, arbitrary provider embeds, or durable background retries. Require
+two-device blob-delivery evidence before promising offline availability to every
+conversation member.
+
+## ADR-57: Pin approved desktop peers and isolate their text-chat records
+
+**Status:** Accepted · 2026-10-22 · local prototype
+
+The desktop uses Iroh ALPN `xnet/peer-chat/1` with a separate persistent transport
+key bound by a signature to its existing xNet DID. A version-1 `xnet://peer#…`
+invitation includes the endpoint ticket, conversation ID, expiry and random
+join secret. The inviter approves the claimed peer identity before replication.
+Transport authentication alone grants no access to the rest of the workspace.
+
+Each device projects its own private space/channel membership locally. Only
+bounded, signed ChatMessage changes authored by the pinned peer, with IDs under
+that conversation's `iroh-` namespace, cross the connection. A Lamport/hash
+cursor advances only after the receiver accepts the changes into NodeStore.
+Both hub import and export paths exclude that namespace. Disconnect revokes
+transport permission while retaining local history.
+
+The default preview relay is invite-only, persists quota/admission state, and
+forwards end-to-end encrypted traffic. It is a fallback data path, not an
+offline mailbox. Direct paths are preferred when reachable. The Railway HTTP
+deployment does not provide UDP address discovery, so cross-NAT direct rates
+remain an empirical question. The prototype does not promise public scale,
+anonymous networking, or encrypted SQLite files.
+
+**Tradeoff:** The first transport supports two-person text chats. Groups,
+attachments, agents and extensions need separate authorization and replication
+designs. Bounded traffic can delay delivery, and changes to the pinned relay or
+version-1 invitation format may require new invitations. The pinned native
+binding also needs packaging validation beyond the tested Apple Silicon host.
+
+**Tripwire:** Revisit before sharing group history, relaying media, adding offline
+mailboxes, permitting agent actions from remote peers, or publishing a stable
+cross-language wire API. Measure two-device direct/relay behavior and relay cost
+before widening the current admission/traffic limits. A failed authorization or
+hub-isolation negative control blocks release.
+
+## ADR-58: Keep desktop social authentication separate from workspace keys
+
+**Status:** Accepted · 2026-10-22 · local prototype
+
+Native Bluesky sign-in runs in Electron main through the ATProto OAuth client,
+using the system browser, PKCE, PAR and DPoP. Development uses a short-lived
+loopback callback; packaged builds use the registered `fyi.xnet:/oauth/callback`
+URI, matching the native client metadata.
+The callback is bound to one transaction, the requested handle and the provider's
+verified DID. Discovery uses bounded HTTPS requests with public DNS pinned to the
+socket; redirects never forward credentials. The renderer receives public profile
+metadata only. The initial scope is `atproto` (identity), and the temporary session
+is revoked and discarded after verification. No provider token is persisted.
+
+The verified profile is stored with the existing onboarding state. Linking a
+different account requires an explicit disconnect. Social login neither replaces
+the xNet signing key nor recovers an existing workspace. A handle typed into a
+profile remains distinct from an OAuth-verified account on this device; this
+ceremony does not publish a public provider-to-xNet binding.
+
+Development uses ATProto's localhost metadata exception. Packaged builds use
+`https://xnet.fyi/oauth/atproto-desktop-client.json`; that file must be published
+before a distributed build can use it. The current Electron runtime constrains
+the SDK version; runtime and authentication dependency upgrades need joint testing.
+
+**Tripwire:** Persistent provider access, public identity discovery, a new provider,
+or provider-driven recovery requires a separate consent, binding and revocation
+design. A failed wrong-account, state-replay or callback-host negative control
+blocks release.
+
+## ADR-59: Bound private peer groups to a signed roster and an explicit host
+
+**Status:** Accepted · 2026-10-22 · local prototype
+
+Version-2 peer invitations add one group destination to the existing one-person
+capability. The creator's pinned xNet DID is the group's authority. Each invite
+is separately approved and each recipient has a separate authenticated transport
+connection. The host signs a monotonically revised membership list, with at most
+eight active members. Membership mutations are serialized; repeated approval is
+idempotent. Other members cannot promote themselves or edit the roster.
+
+The host forwards bounded original signed text changes over encrypted Iroh links.
+Recipients verify the original author, conversation and signed roster before
+projecting local membership and applying changes to NodeStore. A separate cursor
+per author prevents a late-arriving author's lower Lamport clock from being
+skipped. Signed display names can travel with the roster; OAuth tokens and other
+workspace data cannot. Groups remain isolated from hub import and export.
+
+The host is a participant and can read the group. It must be online to deliver
+messages. A new member receives available history from current members; history
+from departed authors is not newly replicated because current NodeStore author
+permissions no longer authorize it. Removing a member stops future delivery and
+submission through the host. It does not erase previously received copies. The
+prototype supports 16 groups and 32 peer connections per profile and retains the
+existing frame, traffic and relay limits.
+
+**Tradeoff:** One host is a deliberate availability dependency, not a federated
+administrator set or a general group-key protocol. Local projections do not grant
+remote access to agents, attachments, extensions, unrelated channels or spaces.
+
+**Tripwire:** Multiple hosts, host migration, offline mailboxes, larger groups,
+departed-author history, media or extension replication requires a new authority
+and history design. Verify removal, unauthorized authors, duplicate approval,
+restart and late-author delivery before widening this prototype.
+
+## ADR-60: Keep chats uniform while signing group access and channel scope
+
+**Status:** Accepted · 2026-10-23 · local prototype
+
+A group begins with one chat. Its first additional channel makes the group a
+community in the interface; the original chat becomes General without moving
+messages. All channels currently share membership and access. A private subset
+uses a separate group. A thread is the existing flat `inReplyTo` relation within
+one channel, with bounded database reads and a virtualized timeline.
+
+Version-2 group manifests sign the access preset and channel list as well as the
+roster. Child channel IDs are namespaced under their group ID. Replication checks
+the original author and signed channel scope, and stores a cursor per channel and
+author. Version-1 manifests remain readable. An existing private history cannot
+be changed to public, or a public history made private, through an access toggle.
+
+Version-3 links sign their complete invitation policy and derive a separate
+connection for each requester. Approval links reveal no messages before host
+approval. Public links allow read-only viewing without group membership;
+posting requires joining the signed roster. Link revocation blocks new requests
+without removing existing members or erasing received history. Public readers
+still use an xNet device identity and count toward the bounded connection limit.
+This is public access through the desktop, not anonymous website hosting.
+
+The gateway's version-2 admission proof signs a maximum use count, capped at
+eight. The existing membership, rate and byte limits remain in force. Older
+relays keep single-device admissions with explicit UI feedback. Invitations
+include direct addresses alongside the trusted relay so nearby devices can
+connect when the relay is unavailable. A transport connection alone is not a
+healthy relay: the desktop checks its health endpoint separately.
+The preferred UDP port is persisted so direct routes survive restarts. A port
+collision is reported explicitly when falling back to a new port; it can require
+a fresh invitation if no other route is available.
+
+Bluesky discovery reads public profile metadata and a pinned post through its
+fixed public API origin. A published xNet link is an invitation shared by that
+profile, not a verified provider-to-xNet identity binding. The recipient still
+reviews the xNet key and membership request. No provider tokens or social writes
+are involved. Other social services can carry the same invitation link.
+
+**Tripwire:** Private channels inside a community, anonymous web readers, public
+directories, non-expiring contact addresses, or public provider identity bindings
+require a new authorization and discovery design. Failures of cross-channel,
+pre-approval, read-only, link-revocation or restart tests block rollout. Publish
+the gateway and invitation landing page separately before promising multi-device
+relay onboarding or click-to-install links on the public website.
+
+## ADR-61: Inspect extensions in disposable desktop test copies
+
+**Date:** 2026-10-23
+
+**Status:** Accepted for the local desktop prototype
+
+Generated extension drafts pass through a bounded visual and interaction review
+before being returned. The host runs the same worker sandbox and trusted view
+renderer in a separate Chromium window with no preload, workspace identity,
+personal data, persistence bridge, or external network access. It supplies actual
+screenshots, visible control bounds, and errors to the selected agent. Inline
+PNG/JPEG input is additive to the devkit turn contract; paths and remote image
+URLs are not accepted by that API.
+
+The agent can request only bounded clicks, text input, fixed viewport changes,
+reset, or a full source revision. It never receives CDP, arbitrary JavaScript,
+filesystem access, or native tools. Tests cannot grant permissions or install a
+revision. Limits are twelve decisions, three revisions, sixty-four actions, and
+the existing five-minute run deadline. Cancellation destroys the test window.
+
+Only successful rendering and observed interactions on the final revision at
+both supported widths can produce a checked report. The report records what
+happened and its limits; it is not proof of general correctness. Extensions that
+need personal data remain explicitly limited until a person grants access and
+checks those operations. Existing per-version data permissions remain in force.
+
+**Tripwire:** Testing against real user data, allowing native tools, running
+unbounded action sequences, or sharing screenshots outside the selected provider
+requires a new consent and isolation design. A mismatch between the checker and
+the live renderer, a leaked workspace bridge, or a cancelled check continuing to
+act blocks rollout.
+
+## ADR-62: Browser-rendered extensions with brokered desktop capabilities
+
+**Date:** 2026-10-23
+
+**Status:** Accepted for the local desktop prototype
+
+Desktop extensions render React DOM in a separate sandboxed `WebContentsView`.
+This supersedes ADR-61's worker/tree renderer for desktop previews and test copies;
+the previous renderer remains the non-desktop fallback. HTML, CSS, SVG, canvas,
+and browser controls do not require an expanded data grant. Dependencies are
+bundled by the host; guest code cannot install packages or run lifecycle scripts.
+
+Each running version has a fresh, non-persistent Chromium session. Node integration
+is off, context isolation and process sandboxing are on, and the preload exposes
+only a fixed message interface. Main validates the sender and its owning workspace.
+Network resources, nested frames, navigation, popups, downloads, device permissions,
+browser dialogs, and display capture are denied. WebRTC non-proxied UDP is disabled and the session
+uses a non-forwarding local proxy in addition to URL filtering and CSP. A watchdog
+closes an unresponsive surface. Closing the workspace or preview revokes its handles.
+
+The existing xNet brokers remain the authority for data. Document saves use approved
+handles, bounded plain text, revisions, and the existing durable commit checks.
+Native file APIs require a trusted user gesture and a host-owned file dialog. Read
+handles identify only a chosen file; editing requires separate consent. Writes reject
+changed/replaced or multiply-linked files. No guest-controlled path, shell, raw IPC,
+or Electron object crosses the boundary. Native access lasts only for that preview.
+
+Self-checking uses the same browser surface. Its enclosing controller has only the
+surface-management preload, and its native/data capabilities are denied. An isolated
+preload gathers control geometry; the agent receives screenshots and bounded actions.
+Tests of real private data or native grants cannot be reported as successful by this
+loop. Test authority never carries into a preview with real data.
+
+**Tripwire:** Remote dependencies, network egress, directories, persistent file grants,
+shell execution, arbitrary native APIs, or enabling agent harness tools require their
+own capability and consent design. A cross-surface request, surviving revoked handle,
+network leak, privileged preload, or preview/checker mismatch blocks rollout. This
+prototype is not a claim of zero vulnerabilities; runtime updates and independent
+security review remain release requirements.
+
+## ADR-63: Ephemeral multiplayer rooms for desktop extensions
+
+**Date:** 2026-10-24
+
+**Status:** Accepted for the local desktop prototype
+
+A sandboxed extension can request one temporary Iroh room through a narrow native
+broker. Three.js is pinned and bundled with the host. Browser network access,
+WebRTC, Node, Electron objects and arbitrary relay URLs remain unavailable to guest
+code. This adds the explicit network capability contemplated by ADR-62; it does not
+change the existing data or file grants.
+
+Hosting or joining requires a trusted user gesture followed by a native consent
+sheet. The sheet identifies the extension, discloses network-address exposure and
+public relay use, and explains that the extension can transmit data it has already
+been allowed to read. A grant belongs to this running surface, expires after one
+hour, and is revoked on leave, stop, navigation or window close. It is not restored
+with an installed extension. A test copy cannot obtain the grant.
+
+Rooms use ephemeral transport identities and `xnet/extension-room/1` ALPN. An
+invitation contains a random room ID, a 256-bit bearer secret, the SHA-256 of the
+compiled extension source, the host endpoint ticket and an expiry. The host checks
+the secret, room and source hash after QUIC authenticates the peer endpoint. These
+transport IDs do not establish a person's social identity. Anyone holding the
+invitation and matching code can join; there is no public discovery. Invitations
+are pasted into the same extension, not routed by the app's existing contact-link
+onboarding. Identical source does not guarantee compatible future runtime releases.
+
+Four players share a host-and-guests topology. Client datagrams go only to the host;
+host datagrams go to its guests. The native broker supplies sender identity, accepts
+at most 30 sends per second, limits frames to 1,000 bytes, rejects stale sequences,
+and bounds pending handshakes and accepted peers independently. Connections without
+updates or heartbeats are closed. Relay destinations come only from the pinned Iroh
+production relay map; an invitation cannot specify an arbitrary HTTP relay. Direct
+addresses are connection hints, authenticated against the ticket's endpoint key.
+The broker creates no chat records and exposes no general socket API.
+
+The example runs a host-authoritative simulation with 10 Hz snapshots and client
+inputs, then interpolates the 3D view locally. Frame loss is expected. Host cheating,
+host migration, matchmaking, cross-version play and durable scores are outside this
+prototype. Default public relays are best-effort. A relay can carry game bandwidth,
+not merely discovery traffic; the preview reports when no relay is advertised.
+The existing authenticated xNet chat relay is not reused by these ephemeral endpoints.
+
+An agent may inspect the local practice view, but the checker marks multiplayer
+verification as limited even when the agent never clicks Host. Real network tests
+require separate consenting peers. Existing xNet/file authority remains independently
+scoped and revocable.
+
+**Tripwire:** More than four players, sustained larger payloads, host migration,
+verified contact membership, persistent grants, a browser/WebRTC adapter, cross-version
+compatibility or use of the authenticated xNet relay requires another protocol and
+consent review. A fifth admitted player, unbounded handshake work, unexpected relay,
+network activity after revocation, or a visual test reported as proof of multiplayer
+blocks rollout. Adversarial review and multi-network verification remain required
+before presenting this as production-ready networking.
+
 ---
 
 ## Package Graph

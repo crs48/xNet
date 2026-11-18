@@ -5,7 +5,7 @@ import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { MemoryNodeStorageAdapter, NodeStore, TaskSchema } from '@xnetjs/data'
 import { createDID } from '@xnetjs/identity'
 import { describe, expect, it, vi } from 'vitest'
-import { openExtensionAuthority } from './extension-authority'
+import { extendExtensionAuthority, openExtensionAuthority } from './extension-authority'
 import { createExtensionBroker } from './extension-broker'
 async function approvedBroker(bridge: DataBridge, grant: ExtensionGrant, current: () => boolean) {
   const saved = await openExtensionAuthority(bridge, grant.owner, 'test-channel', grant.hash, grant)
@@ -55,6 +55,70 @@ const command = (operations: unknown[], id = crypto.randomUUID()) => ({
   operations
 })
 describe('host extension command broker', () => {
+  it('preserves created tasks, command limits and undo when upgrading durable access', async () => {
+    const { bridge, grant, store } = await setup()
+    const original = { ...grant, taskWrites: { ids: [], create: true, remove: false } }
+    const saved = (await openExtensionAuthority(
+      bridge,
+      grant.owner,
+      'upgrade',
+      grant.hash,
+      original
+    ))!
+    const first = createExtensionBroker(bridge, original, () => true, saved.authority)
+    const created = await first.request(
+      command([
+        {
+          type: 'create',
+          schemaId: TaskSchema._schemaId,
+          properties: { title: 'Survives upgrade' }
+        }
+      ])
+    )
+    const before = (await saved.authority.read()).approval
+    expect(await first.undoNeedsRemoval(created.receipt)).toBe(true)
+    expect(await first.undoNeedsRemoval('missing')).toBe(false)
+    const expanded = { ...original, taskWrites: { ...original.taskWrites, remove: true } }
+    await first.revoke()
+    await extendExtensionAuthority(bridge, saved.authority, expanded)
+    const reopened = (await openExtensionAuthority(bridge, grant.owner, 'upgrade', grant.hash))!
+    expect(reopened.approval).toMatchObject({
+      created: before.created,
+      commands: before.commands,
+      lastReceipt: before.lastReceipt,
+      epoch: before.epoch
+    })
+    const next = createExtensionBroker(
+      bridge,
+      expanded,
+      () => true,
+      reopened.authority,
+      reopened.approval.created
+    )
+    await next.request(command([{ type: 'delete', nodeId: created.results[0]!.id }]))
+    expect((await store.get(created.results[0]!.id))?.deleted).toBe(true)
+    await expect(
+      extendExtensionAuthority(bridge, reopened.authority, original)
+    ).rejects.toMatchObject({ code: 'denied' })
+    await reopened.authority.revoke()
+    await expect(
+      extendExtensionAuthority(bridge, reopened.authority, expanded)
+    ).rejects.toMatchObject({ code: 'revoked' })
+    const reapproved = (await openExtensionAuthority(
+      bridge,
+      grant.owner,
+      'upgrade',
+      grant.hash,
+      original
+    ))!
+    expect(reapproved.approval.created).toEqual(before.created)
+    expect(reapproved.approval.epoch).not.toBe(before.epoch)
+    const noTasks = (await openExtensionAuthority(bridge, grant.owner, 'upgrade', grant.hash, {
+      ...original,
+      taskWrites: undefined
+    }))!
+    expect(noTasks.approval.created).toEqual([])
+  })
   it('uses real conditional writes, replay receipts, and conflict-safe undo', async () => {
     const { store, broker } = await setup()
     const request = command([{ type: 'update', nodeId: 'allowed', properties: { status: 'done' } }])

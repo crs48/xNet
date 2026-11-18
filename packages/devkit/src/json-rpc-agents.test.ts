@@ -182,6 +182,36 @@ describe('Codex app-server v2 (0480)', () => {
       expect(start.params.config['features.shell_tool']).toBe(false)
     }
   })
+  it('passes inline screenshot evidence without enabling tools or local image reads', async () => {
+    const fake = fakeAgent(script())
+    await codexAppServerChatAgent(fake.runner, { cwd: '/tmp' }).streamTurn(
+      { prompt: 'Inspect', images: [{ mimeType: 'image/png', data: 'YWJj' }] },
+      () => {}
+    )
+    const start = fake.written
+      .map((line) => JSON.parse(line))
+      .find((value) => value.method === 'turn/start')
+    expect(start.params.input).toEqual([
+      { type: 'text', text: 'Inspect' },
+      { type: 'image', url: 'data:image/png;base64,YWJj' }
+    ])
+  })
+  it('rejects image URLs and oversized payloads before spawning a provider', async () => {
+    for (const data of [
+      'file:///etc/passwd',
+      'https://example.com/image.png',
+      'A'.repeat(4_000_001)
+    ]) {
+      const fake = fakeAgent(script())
+      await expect(
+        codexAppServerChatAgent(fake.runner, { cwd: '/tmp' }).streamTurn(
+          { prompt: 'Inspect', images: [{ mimeType: 'image/png', data }] },
+          () => {}
+        )
+      ).rejects.toThrow('image input')
+      expect(fake.written).toEqual([])
+    }
+  })
   it('maps current event names and preserves the legacy folding helper', () => {
     expect(foldCodexNotification('item/agentMessage/delta', { delta: 'hello' })).toEqual([
       { type: 'delta', text: 'hello' }
@@ -256,6 +286,17 @@ describe('Codex app-server v2 (0480)', () => {
 })
 
 describe('ACP folding (exploration 0416)', () => {
+  it('rejects unsupported image evidence rather than silently dropping it', async () => {
+    const fake = fakeAgent({})
+    await expect(
+      acpChatAgent(fake.runner, { cwd: '/tmp' }).streamTurn(
+        { prompt: 'Inspect', images: [{ mimeType: 'image/png', data: 'YWJj' }] },
+        () => {}
+      )
+    ).rejects.toThrow('image input')
+    expect(fake.written).toEqual([])
+  })
+
   it('maps message chunks and tool calls', () => {
     expect(
       foldAcpUpdate({

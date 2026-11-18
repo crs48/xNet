@@ -18,6 +18,7 @@ export {
   type CodeEditorProps,
   type CodeEditorLanguage
 } from './primitives/CodeEditor'
+export { CodeDiffViewer } from './primitives/CodeDiffViewer'
 export { Input, type InputProps } from './primitives/Input'
 export {
   Select,

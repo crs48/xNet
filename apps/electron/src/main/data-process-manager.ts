@@ -643,3 +643,17 @@ export function setupDataProcessIPC(getMainWindow: () => BrowserWindow | null): 
 export function isDataProcessReady(): boolean {
   return isReady
 }
+
+/** Main-process only: bounded, author-scoped peer replication page. */
+export async function getPeerChanges(
+  channel: string,
+  author: string,
+  cursor: import('./peers/protocol').Cursor
+): Promise<import('./peers/protocol').WireChange[]> {
+  const result = (await sendRequest('nodes:getPeerChanges', { channel, author, cursor })) as {
+    changes?: import('./peers/protocol').WireChange[]
+  }
+  if (!Array.isArray(result.changes))
+    throw new Error('Database returned an invalid peer change page.')
+  return result.changes
+}

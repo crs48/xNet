@@ -4,8 +4,12 @@ import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
 import BlogArt from '../../components/blog/BlogArt.astro'
 import Byline from '../../components/blog/Byline.astro'
-import { publishedPosts, formatPostDate } from '../../data/blog'
-const posts = publishedPosts()
+import { allPosts, publishedPosts, formatPostDate } from '../../data/blog'
+const published = publishedPosts()
+// Local previews show new essays where readers expect them, without publishing
+// them to the RSS feed or assigning a publication date before deployment.
+const showDrafts = import.meta.env.DEV || process.env.XNET_BLOG_PREVIEW === '1'
+const posts = showDrafts ? [...allPosts().filter((post) => post.draft), ...published] : published
 const tags = [
   'all',
   'philosophy',
@@ -28,9 +32,7 @@ const tags = [
       <div class="m-wrap">
         <div class="flex items-center justify-between gap-4">
           <h1 class="m-title">Blog</h1>
-          <a class="m-button secondary" href="/blog/rss.xml">
-            RSS ↗
-          </a>
+          <a class="m-button secondary" href="/blog/rss.xml"> RSS ↗ </a>
         </div>
         <p class="m-lede">
           Field notes on owning your data, building open tools, and the kind of internet we want to
@@ -48,54 +50,67 @@ const tags = [
           </label>
         </div>
         <div class="journal-filters" aria-label="Filter essays by topic">
-          {tags.map((tag) => (
-            <button data-topic={tag} aria-pressed={tag === 'all'}>
-              {tag === 'all' ? 'All subjects' : tag}
-            </button>
-          ))}
+          {
+            tags.map((tag) => (
+              <button data-topic={tag} aria-pressed={tag === 'all'}>
+                {tag === 'all' ? 'All subjects' : tag}
+              </button>
+            ))
+          }
         </div>
         <div class="journal-grid">
-          {posts.map((post, i) => (
-            <article
-              class="journal-entry"
-              data-essay
-              data-search={`${post.title} ${post.description}`.toLowerCase()}
-              data-tags={post.tags.join(' ')}
-            >
-              <a class="journal-art" href={`/blog/${post.slug}`}>
-                <BlogArt
-                  slug={post.slug}
-                  class="h-full w-full object-cover"
-                  sizes="(max-width: 500px) 80px, 120px"
-                />
-              </a>
-              <div class="min-w-0">
-                <p class="text-xs text-gray-500">
-                  {i === 0 && (
-                    <span class="mr-2 font-semibold text-indigo-600 dark:text-indigo-400">
-                      Latest
-                    </span>
-                  )}
-                  <time datetime={post.pubDate}>{formatPostDate(post.pubDate)}</time> ·{' '}
-                  {post.readingMinutes} min
-                </p>
-                <h3 class="mt-2 text-lg font-semibold leading-snug">
-                  <a
-                    class="hover:text-indigo-600 dark:hover:text-indigo-400"
-                    href={`/blog/${post.slug}`}
-                  >
-                    {post.title}
-                  </a>
-                </h3>
-                <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                  {post.description}
-                </p>
-                <div class="mt-3 text-xs">
-                  <Byline post={post} compact />
+          {
+            posts.map((post) => (
+              <article
+                class="journal-entry"
+                data-essay
+                data-search={`${post.title} ${post.description}`.toLowerCase()}
+                data-tags={post.tags.join(' ')}
+              >
+                <a class="journal-art" href={`/blog/${post.slug}`}>
+                  <BlogArt
+                    slug={post.slug}
+                    class="h-full w-full object-cover"
+                    sizes="(max-width: 500px) 80px, 120px"
+                  />
+                </a>
+                <div class="min-w-0">
+                  <p class="text-xs text-gray-500">
+                    {post.draft && (
+                      <span class="mr-2 font-semibold text-indigo-600 dark:text-indigo-400">
+                        Preview
+                      </span>
+                    )}
+                    {post.slug === published[0]?.slug && (
+                      <span class="mr-2 font-semibold text-indigo-600 dark:text-indigo-400">
+                        Latest
+                      </span>
+                    )}
+                    {!post.draft && (
+                      <>
+                        <time datetime={post.pubDate}>{formatPostDate(post.pubDate)}</time> ·{' '}
+                      </>
+                    )}
+                    {post.readingMinutes} min
+                  </p>
+                  <h3 class="mt-2 text-lg font-semibold leading-snug">
+                    <a
+                      class="hover:text-indigo-600 dark:hover:text-indigo-400"
+                      href={`/blog/${post.slug}`}
+                    >
+                      {post.title}
+                    </a>
+                  </h3>
+                  <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                    {post.description}
+                  </p>
+                  <div class="mt-3 text-xs">
+                    <Byline post={post} compact />
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))
+          }
         </div>
         <p id="essay-empty" class="m-copy mt-8" role="status" hidden>
           No essays match that search. Try another word or subject.

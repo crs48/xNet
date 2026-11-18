@@ -18,7 +18,7 @@ export function selectedExtensionContext(
     node.schemaId !== 'xnet://xnet.fyi/PluginSource@1.0.0' ||
     info?.channelId !== channelId ||
     typeof source !== 'string' ||
-    source.length > 24000 ||
+    source.length > 200000 ||
     !source.trim() ||
     typeof node.properties.name !== 'string' ||
     node.properties.name.length > 120 ||

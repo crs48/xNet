@@ -1,0 +1,12 @@
+{
+  "id": "2026-10-24-compare-code-across-extension-versions",
+  "date": "October 24, 2026",
+  "title": "Compare code across extension versions",
+  "summary": "View highlighted code changes between saved extension versions, compare branches, and inspect shared development history without running the code.",
+  "highlights": [],
+  "tags": [
+    "plugins",
+    "editor"
+  ],
+  "pr": 728
+}

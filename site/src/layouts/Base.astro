@@ -8,9 +8,10 @@ interface Props {
   /** Social-card image (absolute site path or https URL); defaults to the workbench screenshot. */
   image?: string
   imageAlt?: string
+  theme?: 'system' | 'light' | 'dark'
 }
 
-const { title, description, image, imageAlt } = Astro.props
+const { title, description, image, imageAlt, theme = 'system' } = Astro.props
 
 // Cookieless, privacy-preserving analytics (exploration 0210). Off unless
 // PUBLIC_ANALYTICS_DOMAIN is set at build time (e.g. in the deploy workflow), so
@@ -30,7 +31,7 @@ const ogImageAlt = imageAlt ?? (image ? undefined : 'The xNet workbench')
 ---
 
 <!doctype html>
-<html lang="en" class="dark scroll-smooth">
+<html lang="en" class:list={['scroll-smooth', { dark: theme !== 'light' }]}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -135,8 +136,9 @@ const ogImageAlt = imageAlt ?? (image ? undefined : 'The xNet workbench')
       }
     </style>
     <!-- Inline script to prevent flash: read localStorage, fallback to system preference -->
-    <script is:inline>
+    <script is:inline data-theme={theme}>
       ;(function () {
+        if (document.currentScript.dataset.theme !== 'system') return
         var storedTheme = localStorage.getItem('xnet-lp-theme')
         var theme =
           storedTheme ||
@@ -149,11 +151,13 @@ const ogImageAlt = imageAlt ?? (image ? undefined : 'The xNet workbench')
     {analyticsDomain && <script is:inline defer data-domain={analyticsDomain} src={analyticsSrc} />}
   </head>
   <body class="marketing-site antialiased font-sans leading-relaxed">
-    {import.meta.env.PUBLIC_DESIGN_PREVIEW === 'true' && (
-      <aside class="design-preview-note">
-        Design preview · October 2026 <span>Local review only</span>
-      </aside>
-    )}
+    {
+      import.meta.env.PUBLIC_DESIGN_PREVIEW === 'true' && (
+        <aside class="design-preview-note">
+          Design preview · October 2026 <span>Local review only</span>
+        </aside>
+      )
+    }
     <slot />
     <script>
       // Intersection Observer for scroll animations

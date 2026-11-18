@@ -92,6 +92,7 @@ const workspaceAliases = {
   '@xnetjs/vectors': new URL('./packages/vectors/src/index.ts', import.meta.url).pathname,
   '@xnetjs/views': new URL('./packages/views/src/index.ts', import.meta.url).pathname,
   // Subpath alias MUST precede the bare '@xnetjs/workbench' (Vite uses first match).
+  '@xnetjs/workbench/peer-chat': new URL('./packages/workbench/src/communities/peer-contract.ts', import.meta.url).pathname,
   '@xnetjs/workbench/ai': new URL('./packages/workbench/src/views/ai.ts', import.meta.url).pathname,
   '@xnetjs/workbench/extension-development': new URL(
     './packages/workbench/src/communities/extension-development.ts',

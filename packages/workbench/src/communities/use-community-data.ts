@@ -15,7 +15,11 @@ import {
 } from '@xnetjs/react'
 import { useEffect, useMemo } from 'react'
 import { shortDid, type Did } from './model'
-export function useCommunityData() {
+import { isPeerRecord, type PeerContact, type PeerGroup } from './peer-contract'
+export function useCommunityData(
+  peerContacts: readonly PeerContact[] = [],
+  peerGroups: readonly PeerGroup[] = []
+) {
   const { did } = useIdentity()
   const { syncManager } = useXNet()
   const bridge = useDataBridge()
@@ -32,9 +36,13 @@ export function useCommunityData() {
   const spaces = spaceQuery.data.filter((s) => !s.archived)
   const members = memberQuery.data
   const nameFor = (who: string | undefined) =>
+    (who ? peerGroups.find((group) => group.names?.[who])?.names?.[who] : undefined) ||
+    peerContacts.find((contact) => contact.status === 'approved' && contact.binding.did === who)
+      ?.displayName ||
     profiles.find((p) => p.did === who && p.createdBy === who)?.displayName ||
     (who === did ? 'You' : shortDid(who ?? 'Unknown'))
   const roomKey = channels
+    .filter((channel) => !isPeerRecord(channel.id))
     .flatMap((channel) => [
       channelShareRoom(channel.id),
       ...(channel.space ? ['xnet-community-' + channel.space] : [])

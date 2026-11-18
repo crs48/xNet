@@ -1,5 +1,6 @@
 import type { ExtensionGrant } from './extension-data'
 import type { DataBridge } from '@xnetjs/data-bridge'
+import { containsExtensionAccess } from './extension-access'
 import { readExtensionGrant } from './extension-data'
 import { ExtensionAccessError } from './extension-protocol'
 
@@ -34,6 +35,35 @@ const unavailable = () =>
     'unsupported',
     'Durable extension permissions are unavailable on this host.'
   )
+
+/** Compare-and-swap the exact active approval; retain created data, receipts and command limits. */
+export async function extendExtensionAuthority(
+  bridge: DataBridge,
+  authority: ExtensionAuthority,
+  grant: ExtensionGrant
+): Promise<void> {
+  if (!bridge.transaction) throw unavailable()
+  const state = await authority.read()
+  const previous = state.approval.grant
+  const next = readExtensionGrant(JSON.stringify(grant), previous.owner, previous.hash)
+  if (!containsExtensionAccess(next, previous))
+    throw new ExtensionAccessError(
+      'denied',
+      'Reduced access requires stopping the extension first.'
+    )
+  await bridge.transaction([], {
+    nodes: [],
+    deadline: Date.now() + 5000,
+    localState: [
+      {
+        key: authority.key,
+        expected: state.raw,
+        value: JSON.stringify({ ...state.approval, grant: next })
+      }
+    ]
+  })
+  listeners.get(authority.key)?.forEach((notify) => notify())
+}
 export async function extensionAuthorityKey(
   owner: string,
   channelId: string,
@@ -82,12 +112,14 @@ export async function openExtensionAuthority(
   let raw = await bridge.getLocalState(key)
   let approval = raw === null ? null : decode(raw, owner, channelId, hash)
   if (approve) {
+    const created =
+      approve.taskWrites?.create && approval?.grant.taskWrites?.create ? approval.created : []
     approval = {
       version: 2,
       epoch: crypto.randomUUID(),
       channelId,
       active: true,
-      created: [],
+      created,
       commands: 0,
       lastReceipt: null,
       grant: readExtensionGrant(JSON.stringify(approve), owner, hash)

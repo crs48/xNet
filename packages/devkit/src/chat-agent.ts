@@ -127,6 +127,8 @@ export function openAiChatAgent(options: OpenAiChatAgentOptions): ChatAgent {
 /** One planned agent turn: the prompt to send, and the session to continue. */
 export interface StreamTurnRequest {
   prompt: string
+  /** Inline PNG/JPEG evidence for multimodal adapters (currently Codex app-server). No remote URLs. */
+  images?: Array<{ mimeType: 'image/png' | 'image/jpeg'; data: string }>
   /** Abort an in-flight turn (supported by the Codex app-server adapter). */
   signal?: AbortSignal
   /** Optional structured response schema (Codex app-server). */
@@ -286,6 +288,8 @@ export function cliStreamingChatAgent(
   const idleTimeoutMs = options.idleTimeoutMs ?? 180_000
   return {
     async streamTurnFrames(turn, onFrame) {
+      if (turn.images?.length)
+        throw new Error('This streaming adapter does not support image input.')
       const args = buildStreamingAgentArgs(turn.prompt, {
         ...options.launch,
         ...(turn.resumeSessionId ? { resumeSessionId: turn.resumeSessionId } : {})
@@ -307,6 +311,8 @@ export function cliStreamingChatAgent(
       }
     },
     async streamTurn(turn, onDelta) {
+      if (turn.images?.length)
+        throw new Error('This streaming adapter does not support image input.')
       // Kept on the original delta reducer (not re-expressed via frames): the
       // OpenAI-compatible endpoint depends on its exact behaviour, including
       // the `result`-only text fallback, which the frame reducer folds into

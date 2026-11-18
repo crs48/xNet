@@ -213,7 +213,15 @@ export function CreateConversation({
   )
 }
 
-export function ProfileDialog({ data, onClose }: { data: CommunityData; onClose: () => void }) {
+export function ProfileDialog({
+  data,
+  onClose,
+  identity
+}: {
+  data: CommunityData
+  onClose: () => void
+  identity?: import('react').ReactNode
+}) {
   const { data: actors } = useQuery(SocialActorSchema, { where: { isSelf: true }, limit: 100 })
   const [name, setName] = useState(
     data.profiles.find((profile) => profile.did === data.did)?.displayName ?? ''
@@ -241,6 +249,7 @@ export function ProfileDialog({ data, onClose }: { data: CommunityData; onClose:
   )
   return (
     <Modal title="Your profile" onClose={onClose}>
+      {identity}
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Avatar name={name || 'You'} large />

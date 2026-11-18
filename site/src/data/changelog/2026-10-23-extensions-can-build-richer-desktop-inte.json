@@ -1,0 +1,13 @@
+{
+  "id": "2026-10-23-extensions-can-build-richer-desktop-inte",
+  "date": "October 23, 2026",
+  "title": "Extensions can build richer desktop interfaces",
+  "summary": "Create custom React layouts, games, SVG and canvas views, with visual checks and permission prompts for reading, editing, or exporting chosen files.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "ai",
+    "plugins"
+  ],
+  "pr": 728
+}

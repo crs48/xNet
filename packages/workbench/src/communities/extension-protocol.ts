@@ -8,6 +8,7 @@ export class ExtensionAccessError extends TaggedError<'ExtensionAccessError'> {
     message: string
   ) {
     super(message)
+    this.name = 'ExtensionAccessError'
   }
 }
 export const EXTENSION_ERROR_CODES = [

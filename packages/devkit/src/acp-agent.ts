@@ -110,6 +110,7 @@ export function acpChatAgent(runner: DuplexRunner, options: AcpAgentOptions): Fr
     turn: StreamTurnRequest,
     onFrame: (frame: AgentFrame) => void
   ): Promise<StreamTurnResult> {
+    if (turn.images?.length) throw new Error('This ACP adapter does not support image input.')
     const proc = runner.spawn(command, args, { cwd, idleTimeoutMs })
 
     let finalText = ''

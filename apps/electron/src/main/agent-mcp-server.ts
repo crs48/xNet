@@ -25,13 +25,14 @@ import {
   type McpHttpServerHandle,
   type MCPServer
 } from '@xnetjs/plugins/node'
-import { BrowserWindow, ipcMain } from 'electron'
+import { ipcMain } from 'electron'
 import {
   createNodeStoreProxy,
   createSchemaRegistryProxy,
   setupStoreResponseHandler,
   type SchemaRegistryProxy
 } from './renderer-store-proxy'
+import { workspaceWindows } from './workspace-windows'
 
 /** Renderer-facing channels for the parked-approval ceremony (0414). */
 export const AGENT_APPROVAL_CHANNELS = {
@@ -42,7 +43,7 @@ export const AGENT_APPROVAL_CHANNELS = {
 } as const
 
 const broadcastApprovals = (parked: ParkedApproval[]): void => {
-  for (const window of BrowserWindow.getAllWindows()) {
+  for (const window of workspaceWindows()) {
     if (!window.isDestroyed()) window.webContents.send(AGENT_APPROVAL_CHANNELS.changed, parked)
   }
 }

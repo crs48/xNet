@@ -1,3 +1,4 @@
+import { setupExtensionSurfaceIPC } from './extension-surfaces'
 /**
  * Electron main process entry point
  */
@@ -30,6 +31,14 @@ import { configureLibrary, setupLibraryIPC } from './library-ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { setupMeetingCaptureIPC } from './meeting-capture-ipc'
 import { createMenu } from './menu'
+import {
+  initializeDesktopOnboarding,
+  receiveDesktopInvitation,
+  receiveDesktopSignInCallback,
+  setupDesktopOnboarding,
+  stopDesktopSignIn
+} from './onboarding/ipc'
+import { setupPeerChat, stopPeerChat } from './peers/ipc'
 import { dataPath, profile } from './profile'
 import { createQuitBarrier } from './quit-barrier'
 import { setupRecordingCaptureIPC, shutdownRecordingCapture } from './recording-capture-ipc'
@@ -41,6 +50,7 @@ import { setupSpatialLibraryIPC, stopSpatialLibrary } from './spatial-library-ip
 import { showStartupRecovery } from './startup-recovery'
 import { setupStorybookIPC, stopStorybook } from './storybook-ipc'
 import { hasDownloadedUpdate, initAutoUpdater, installDownloadedUpdate } from './updater'
+import { registerWorkspaceWindow, workspaceWindows } from './workspace-windows'
 
 // Capture main-process console output for the renderer console (0413). First
 // statement after the imports so a failure during early module init is still
@@ -78,6 +88,8 @@ let workspaceReady = false
 let writersStopped = false
 
 async function stopWorkspaceWriters(): Promise<void> {
+  stopDesktopSignIn()
+  await stopPeerChat()
   await shutdownRecordingCapture()
   stopCommunityAgents()
   await stopAgentBridge()
@@ -110,7 +122,7 @@ async function restartWorkspaceWriters(): Promise<void> {
     await startLocalAPI()
     await startAgentBridge()
   }
-  for (const window of BrowserWindow.getAllWindows()) {
+  for (const window of workspaceWindows()) {
     window.reload()
   }
 }
@@ -243,6 +255,23 @@ function deliverCloudConnect(payload: CloudConnectPayload): void {
 }
 
 function handleDeepLink(rawUrl: string): void {
+  if (rawUrl.startsWith('fyi.xnet:')) {
+    void receiveDesktopSignInCallback(rawUrl).catch(() => {
+      dialog.showErrorBox(
+        'Bluesky sign-in',
+        'This sign-in could not be completed. Open xNet and start again; your invitation is still saved.'
+      )
+    })
+    return
+  }
+  if (rawUrl.startsWith('xnet://peer')) {
+    try {
+      receiveDesktopInvitation(rawUrl)
+    } catch (error) {
+      dialog.showErrorBox('Peer invitation', String(error))
+    }
+    return
+  }
   // Legacy share links: xnet://share?... (parsed + validated inline below).
   const payload = parseSharePayloadFromDeepLink(rawUrl)
   if (payload) {
@@ -293,7 +322,9 @@ if (!hasSingleInstanceLock) {
 }
 
 app.on('second-instance', (_event, argv) => {
-  const deepLinkArg = argv.find((value) => value.startsWith(`${DEEP_LINK_PROTOCOL}://`))
+  const deepLinkArg = argv.find(
+    (value) => value.startsWith(`${DEEP_LINK_PROTOCOL}://`) || value.startsWith('fyi.xnet:')
+  )
   if (deepLinkArg) {
     handleDeepLink(deepLinkArg)
   }
@@ -337,6 +368,8 @@ async function createWindow() {
     }
   })
 
+  registerWorkspaceWindow(mainWindow)
+
   // E2E: a test can pin the renderer's hub at boot (avoiding a post-boot
   // repoint race) by setting XNET_HUB_URL; it's forwarded as a `?hub=` query the
   // renderer reads in `configuredHubUrl()`.
@@ -347,9 +380,6 @@ async function createWindow() {
     const port = process.env.VITE_PORT || '5177'
     const query = hubOverride ? `?hub=${encodeURIComponent(hubOverride)}` : ''
     mainWindow.loadURL(`http://localhost:${port}/${query}`)
-    if (process.env.XNET_TEST_BYPASS !== 'true') {
-      mainWindow.webContents.openDevTools()
-    }
   } else {
     mainWindow.loadFile(
       join(__dirname, '../renderer/index.html'),
@@ -445,17 +475,19 @@ app
   .then(async () => {
     bootTrace('whenReady fired')
     app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL)
+    if (app.isPackaged) app.setAsDefaultProtocolClient('fyi.xnet')
 
+    await recoverPendingRestore(dataPath, recoveryPath, {
+      allowTestIdentity: process.env.XNET_TEST_BYPASS === 'true'
+    })
+    initializeDesktopOnboarding((error) => dialog.showErrorBox('Saved invitation', String(error)))
     for (const arg of process.argv) {
-      if (arg.startsWith(`${DEEP_LINK_PROTOCOL}://`)) {
+      if (arg.startsWith(`${DEEP_LINK_PROTOCOL}://`) || arg.startsWith('fyi.xnet:')) {
         handleDeepLink(arg)
         break
       }
     }
 
-    await recoverPendingRestore(dataPath, recoveryPath, {
-      allowTestIdentity: process.env.XNET_TEST_BYPASS === 'true'
-    })
     requireCompatibleDatabase(join(dataPath, 'library.db'), 'library')
     await readDesktopSettings(dataPath, safeStorage)
     await prepareWorkspaceUpgrade({
@@ -524,7 +556,10 @@ app
     // Setup agent bridge IPC handlers (drives the user's claude/codex CLI)
     setupAgentBridgeIPC()
     setupCommunityAgentIPC(() => mainWindow)
+    setupExtensionSurfaceIPC()
     setupChatMediaIPC(() => mainWindow)
+    setupPeerChat(() => mainWindow)
+    setupDesktopOnboarding(() => mainWindow)
 
     // Setup dev-only Storybook IPC handlers
     if (process.env.NODE_ENV === 'development') {
@@ -557,7 +592,7 @@ app
     }
 
     app.on('activate', async () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
+      if (workspaceWindows().length === 0) {
         await createWindow()
       }
     })

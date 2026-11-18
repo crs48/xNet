@@ -1,27 +1,416 @@
 ---
+import { Code } from 'astro:components'
 import Base from '../layouts/Base.astro'
-import Nav from '../components/sections/Nav.astro'
-import Hero from '../components/sections/Hero.astro'
-import TheApp from '../components/sections/TheApp.astro'
-import ForDevelopers from '../components/sections/ForDevelopers.astro'
-import HumaneByDesign from '../components/sections/HumaneByDesign.astro'
-import Roadmap from '../components/sections/Roadmap.astro'
-import GetStarted from '../components/sections/GetStarted.astro'
-import Footer from '../components/sections/Footer.astro'
+import BrandWordmark from '../components/BrandWordmark.astro'
+import Playground from '../components/home/Playground.astro'
+import '../styles/home.css'
+
+const codeTheme = {
+  name: 'xnet-light',
+  type: 'light' as const,
+  colors: { 'editor.background': '#ffffff', 'editor.foreground': '#344155' },
+  tokenColors: [
+    { scope: ['comment'], settings: { foreground: '#616c7c' } },
+    { scope: ['keyword', 'storage'], settings: { foreground: '#67409b' } },
+    { scope: ['string'], settings: { foreground: '#356447' } },
+    { scope: ['entity.name.function', 'support.function'], settings: { foreground: '#385c9b' } },
+    { scope: ['constant', 'entity.name.type'], settings: { foreground: '#815828' } }
+  ]
+}
+
+const schemaCode = `import { defineSchema, text, checkbox } from '@xnetjs/data'
+
+export const Task = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://our-group/',
+  properties: {
+    title: text({ required: true }),
+    done: checkbox({ default: false })
+  }
+})`
+
+const viewCode = `import { useQuery, useMutate } from '@xnetjs/react'
+import { Task } from './schema'
+
+export function TaskList() {
+  const { data: tasks } = useQuery(Task)
+  const { update } = useMutate()
+
+  return tasks.map(task => (
+    <label key={task.id}>
+      <input type="checkbox" checked={task.done}
+        onChange={() => update(Task, task.id, {
+          done: !task.done
+        })} />
+      {task.title}
+    </label>
+  ))
+}`
+
+const foundations = [
+  {
+    name: 'Typed, connected records',
+    mechanism: 'Schemas + nodes + relations',
+    text: 'A node is a record with a stable ID. Schemas describe its fields; relations connect it to other records. Tools that agree on a schema can use the same data.',
+    href: '/docs/concepts/data-model/',
+    link: 'The data model'
+  },
+  {
+    name: 'Changes that converge',
+    mechanism: 'Yjs + field-level merge rules',
+    text: 'Rich text uses Yjs CRDTs to merge concurrent edits. Structured records merge field by field. Edits to the same field use logical clocks to choose a deterministic winner.',
+    href: '/docs/architecture/overview/',
+    link: 'Sync architecture'
+  },
+  {
+    name: 'Verifiable history',
+    mechanism: 'Signed, hash-linked changes',
+    text: 'Structured changes carry an author’s signature and a link to earlier history. This lets peers verify authorship and detect altered records. It does not prove that a claim is true.',
+    href: '/docs/concepts/data-model/#changet',
+    link: 'The change format'
+  },
+  {
+    name: 'Sharing with boundaries',
+    mechanism: 'Identity + authorization',
+    text: 'Sharing data and granting write access are separate decisions. The desktop extension host checks scoped grants before exposing data or native capabilities.',
+    href: '/docs/architecture/overview/',
+    link: 'How the layers fit'
+  }
+]
 ---
 
 <Base
-  title="xNet — A workspace you own"
-  description="Documents, databases, canvases, and a personal library. A local-first workspace with open building blocks for your own tools."
+  title="xNet — Your data should outlast your apps"
+  description="An open, local-first foundation for software you can shape. Shared data, peer-to-peer collaboration, and tools you can build with friends and AI agents."
+  theme="light"
+  image="/og/home.png"
+  imageAlt="xNet: your data should outlast your apps. An open, local-first foundation."
 >
-  <Nav />
-  <main id="main-content">
-    <Hero />
-    <TheApp />
-    <ForDevelopers />
-    <HumaneByDesign />
-    <Roadmap />
-    <GetStarted />
-  </main>
-  <Footer />
+  <div class="home">
+    <a class="home-skip" href="#main-content">Skip to content</a>
+    <header class="home-nav">
+      <nav class="home-wrap" aria-label="Main navigation">
+        <a class="home-brand" href="/" aria-label="xNet home"><BrandWordmark /></a>
+        <div class="home-nav-links">
+          <a href="#vision">Vision</a><a href="#desktop">Desktop</a><a href="#developers"
+            >Developers</a
+          ><a href="/blog">Writing</a>
+        </div>
+        <a class="home-button small" href="/docs/introduction/"
+          >Read the docs <span aria-hidden="true">↗</span></a
+        >
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="home-hero home-wrap" aria-labelledby="hero-heading">
+        <div class="hero-copy">
+          <p class="home-eyebrow">
+            <span class="status-dot" aria-hidden="true"></span> Open source · Local-first · In development
+          </p>
+          <h1 id="hero-heading">Your data should<br />outlast your apps.</h1>
+          <p class="hero-description">
+            xNet is an open foundation for software you can shape. Keep your data on your devices.
+            Share it with people you choose. Build tools around it, together.
+          </p>
+          <p class="hero-detail">
+            We’re starting with a desktop app for conversations and tools you can make with your
+            friends and AI agents. Underneath is a shared data model that those tools can build on.
+          </p>
+          <div class="hero-actions">
+            <a class="home-button primary" href="#desktop"
+              >Explore the desktop app <span aria-hidden="true">↓</span></a
+            ><a class="home-text-link" href="https://github.com/crs48/xNet"
+              >View the source <span aria-hidden="true">↗</span></a
+            >
+          </div>
+        </div>
+        <figure class="system-figure">
+          <div class="figure-heading"><span>THE BASIC IDEA</span><span>01 / SYSTEM</span></div>
+          <div class="surface-row">
+            <div><span aria-hidden="true">↗</span> A chat</div><div>
+              <span aria-hidden="true">▤</span> A planner
+            </div><div><span aria-hidden="true">⌘</span> Your app</div>
+          </div>
+          <div class="connectors" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="sdk-layer">
+            <span>Shared interfaces</span><code>schemas · queries · permissions</code>
+          </div>
+          <div class="connector" aria-hidden="true"></div>
+          <div class="data-layer">
+            <div>
+              <img src="/favicon.svg" width="27" height="27" alt="" /><strong>Your data</strong
+              ><span>On your device</span>
+            </div><div class="record-row">
+              <span>Tasks</span><span>Messages</span><span>Documents</span>
+            </div><p>Stable IDs · signed changes · local storage</p>
+          </div>
+          <div class="peer-link"><span aria-hidden="true">↕</span> Sync what you choose</div>
+          <div class="peer-row"><span>Your other devices</span><span>Your collaborators</span></div>
+          <figcaption>Tools share a foundation. You decide what they can access.</figcaption>
+        </figure>
+      </section>
+
+      <nav class="home-wrap entry-points" aria-label="Explore xNet">
+        <a href="#desktop"
+          ><span class="entry-number">01 / THE APP</span><strong
+            >A place to build together <span aria-hidden="true">↗</span></strong
+          ><p>Desktop chat, local agents, and extensions you can inspect and change.</p></a
+        >
+        <a href="#developers"
+          ><span class="entry-number">02 / THE SDK</span><strong
+            >Bring your own interface <span aria-hidden="true">↗</span></strong
+          ><p>TypeScript schemas and React hooks for working with shared, local data.</p></a
+        >
+        <a href="#foundations"
+          ><span class="entry-number">03 / THE PROTOCOL</span><strong
+            >Understand the foundation <span aria-hidden="true">↗</span></strong
+          ><p>Open formats for identity, changes, and sync. Read how the pieces fit.</p></a
+        >
+      </nav>
+
+      <section id="vision" class="home-section home-wrap split-section">
+        <div>
+          <p class="home-eyebrow">01 / Why this exists</p><h2>
+            Build on your data.<br />Keep what you make.
+          </h2>
+        </div>
+        <div class="prose-column">
+          <p>
+            Every new app tends to bring another database, another account, and another copy of your
+            contacts. Even when you can export the data, the relationships between it are often
+            lost.
+          </p><p>
+            We want personal software to grow around data you already have. A reading list, a group
+            chat, and a tool your friend made should be able to work with the same records, when you
+            allow it.
+          </p><p>
+            AI makes it easier to write an interface. xNet’s job is to give that interface a common
+            foundation: data it can understand, changes it can sync, and permissions it must
+            respect.
+          </p><a class="home-text-link" href="/why"
+            >Read the longer vision <span aria-hidden="true">→</span></a
+          >
+        </div>
+      </section>
+
+      <section id="desktop" class="desktop-section">
+        <div class="home-wrap">
+          <div class="section-intro">
+            <div>
+              <p class="home-eyebrow">02 / The desktop app</p><h2>
+                A conversation can become a tool.
+              </h2>
+            </div><span class="prototype-badge">Current focus: desktop prototype</span>
+          </div>
+          <p class="section-deck">
+            Start with a private conversation or a group. Connect your local Codex or Claude Code
+            setup, describe what you need, and work on an extension in the same place.
+          </p>
+          <div class="desktop-features">
+            <article>
+              <h3>Talk and share</h3><p>
+                Direct messages, groups, channels, threads, and rich media, with peer-to-peer
+                transport built on Iroh.
+              </p>
+            </article><article>
+              <h3>Build in the conversation</h3><p>
+                Agents can make React interfaces, preview their work, and ask for access to the data
+                an extension needs.
+              </p>
+            </article><article>
+              <h3>Keep a visible history</h3><p>
+                Edit a version, compare its code, or try a friend’s version. Development
+                conversations stay connected to the work.
+              </p>
+            </article>
+          </div>
+          <Playground />
+          <p class="prototype-note">
+            Try the example above with sample data. The desktop redesign is being prototyped;
+            published downloads may have an earlier interface. <a href="/download"
+              >See desktop releases →</a
+            >
+          </p>
+        </div>
+      </section>
+
+      <section id="developers" class="home-section home-wrap">
+        <div class="section-intro">
+          <div>
+            <p class="home-eyebrow">03 / For developers and agents</p><h2>
+              Small interfaces. A common data model.
+            </h2>
+          </div><a class="home-text-link" href="/docs/quickstart/"
+            >SDK quick start <span aria-hidden="true">↗</span></a
+          >
+        </div>
+        <p class="section-deck">
+          Define the shape of your data in TypeScript. Read and update it through React hooks. A
+          list, a board, and an agent can work with the same task IDs instead of keeping separate
+          copies.
+        </p>
+        <div class="code-examples">
+          <figure class="code-panel">
+            <figcaption>
+              <span><i aria-hidden="true">TS</i> schema.ts</span><span>Define the record</span>
+            </figcaption><Code code={schemaCode} lang="ts" theme={codeTheme} />
+          </figure>
+          <figure class="code-panel">
+            <figcaption>
+              <span><i aria-hidden="true">TSX</i> TaskList.tsx</span><span>Choose the view</span>
+            </figcaption><Code code={viewCode} lang="tsx" theme={codeTheme} />
+          </figure>
+        </div>
+        <div class="code-notes">
+          <p>
+            SDK excerpt. The app supplies an <code>XNetProvider</code>, identity, and storage setup.
+            Sandboxed extensions use the host’s permission-scoped APIs.
+          </p><a href="/docs/guides/agent-interfaces/">Agent interfaces guide →</a>
+        </div>
+        <div class="developer-principle">
+          <strong>Composability needs an agreement.</strong><p>
+            Shared schemas, stable IDs, and explicit permissions are the connecting pieces. Existing
+            apps need an import or integration; xNet cannot make unrelated data formats compatible
+            by itself.
+          </p>
+        </div>
+      </section>
+
+      <section id="foundations" class="foundation-section">
+        <div class="home-wrap">
+          <div class="section-intro">
+            <div>
+              <p class="home-eyebrow">04 / Under the hood</p><h2>What the foundation provides.</h2>
+            </div><a class="home-text-link" href="/docs/protocol/overview/"
+              >Read the protocol <span aria-hidden="true">↗</span></a
+            >
+          </div>
+          <div class="foundation-list">
+            {
+              foundations.map((item, index) => (
+                <article>
+                  <>
+                    <span class="foundation-number">0{index + 1}</span>
+                    <div>
+                      <>
+                        <h3>{item.name}</h3>
+                        <code>{item.mechanism}</code>
+                      </>
+                    </div>
+                    <div>
+                      <>
+                        <p>{item.text}</p>
+                        <a href={item.href}>{item.link} →</a>
+                      </>
+                    </div>
+                  </>
+                </article>
+              ))
+            }
+          </div>
+          <div class="sqlite-note">
+            <h3>Why more than SQLite?</h3><p>
+              SQLite handles local storage. xNet adds conventions for identity, permissions, shared
+              schemas, and syncing changes between people and devices. If your app only needs a
+              local database, SQLite may be all you need.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="boundaries" class="home-section home-wrap split-section">
+        <div>
+          <p class="home-eyebrow">05 / Ownership in practice</p><h2>
+            Make the choices<br />visible.
+          </h2><p class="side-note">
+            Local-first means local work doesn’t depend on a round trip to a server. It still comes
+            with responsibilities.
+          </p><a class="home-text-link" href="/commitments"
+            >Our commitments <span aria-hidden="true">↗</span></a
+          >
+        </div>
+        <div class="boundary-list">
+          <article>
+            <h3>Peers when possible. Relays when needed.</h3><p>
+              Direct connections depend on the network. Relays help devices connect and may carry
+              traffic; they have bandwidth costs. Always-on availability and durable backups need
+              storage somewhere.
+            </p>
+          </article><article>
+            <h3>Permission for a purpose.</h3><p>
+              Extensions request access to specific data and capabilities. Access to local files is
+              opt-in. Connecting a local coding agent can still send approved context to its model
+              provider.
+            </p>
+          </article><article>
+            <h3>Open source, still in development.</h3><p>
+              You can inspect the code and formats. The desktop experience, interoperability, and
+              permission UX are still evolving. The long-term goal is an ecosystem of compatible
+              apps; that ecosystem is ours to build.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="reading-section home-wrap" aria-labelledby="reading-heading">
+        <div class="section-intro">
+          <div>
+            <p class="home-eyebrow">06 / The ideas behind it</p><h2 id="reading-heading">
+              An internet we can keep shaping.
+            </h2>
+          </div><a class="home-text-link" href="/blog"
+            >All writing <span aria-hidden="true">→</span></a
+          >
+        </div>
+        <div class="reading-grid">
+          <a class="reading-card" href="/blog/clutch-power"
+            ><span class="reading-index">01 / COMPOSABILITY</span><h3>
+              Clutch Power <span aria-hidden="true">↗</span>
+            </h3><p>What makes internet building blocks fit together, and come apart again?</p></a
+          ><a class="reading-card" href="/blog/data-should-work-like-soil"
+            ><span class="reading-index">02 / SHARED FOUNDATIONS</span><h3>
+              Data Should Work Like Soil <span aria-hidden="true">↗</span>
+            </h3><p>A shared foundation where different tools and communities can grow.</p></a
+          ><a class="reading-card" href="https://www.inkandswitch.com/essay/malleable-software/"
+            ><span class="reading-index">03 / INK & SWITCH</span><h3>
+              Malleable Software <span aria-hidden="true">↗</span>
+            </h3><p>
+              Research on software people can adapt to their own needs, at the point of use.
+            </p></a
+          >
+        </div>
+      </section>
+
+      <section class="closing-section home-wrap">
+        <div>
+          <p class="home-eyebrow">An open project</p><h2>Help build the common ground.</h2><p>
+            Try a small project, inspect the code, or help shape the interfaces other tools will
+            use.
+          </p>
+        </div><div class="closing-actions">
+          <a class="home-button primary" href="/docs/quickstart/"
+            >Build with xNet <span aria-hidden="true">↗</span></a
+          ><a class="home-button" href="https://github.com/crs48/xNet"
+            >Explore on GitHub <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      </section>
+    </main>
+    <footer class="home-footer home-wrap">
+      <div class="footer-top">
+        <a class="home-brand" href="/" aria-label="xNet home"><BrandWordmark /></a><span
+          >An open foundation for personal software.</span
+        ><nav aria-label="Footer">
+          <a href="/docs/introduction/">Docs</a><a href="/blog">Blog</a><a href="/changelog"
+            >Changelog</a
+          ><a href="https://github.com/crs48/xNet">GitHub</a>
+        </nav>
+      </div><div class="footer-fine">
+        <span>Open source. Built in public.</span><div>
+          <a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/blog/rss.xml">RSS</a>
+        </div>
+      </div>
+    </footer>
+  </div>
 </Base>

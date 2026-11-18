@@ -34,18 +34,20 @@ export function setupLibraryIPC(getWindow: () => BrowserWindow | null): void {
   let returnToPreviousApp = false
   const accelerator = 'CommandOrControl+Shift+L'
   const shortcutRegistered = globalShortcut.register(accelerator, () => {
-    returnToPreviousApp = BrowserWindow.getFocusedWindow() === null
-    const text = clipboard.readText().trim()
-    captureIntent = { url: /^https?:\/\/\S+$/i.test(text) && text.length <= 500 ? text : '' }
-    const window = getWindow()
-    if (!window || window.isDestroyed()) {
-      app.emit('activate')
-      return
-    }
-    if (window.isMinimized()) window.restore()
-    window.show()
-    window.focus()
-    window.webContents.send('xnet:library:capture-ready')
+    void (async () => {
+      returnToPreviousApp = BrowserWindow.getFocusedWindow() === null
+      const text = (await clipboard.readText()).trim()
+      captureIntent = { url: /^https?:\/\/\S+$/i.test(text) && text.length <= 500 ? text : '' }
+      const window = getWindow()
+      if (!window || window.isDestroyed()) {
+        app.emit('activate')
+        return
+      }
+      if (window.isMinimized()) window.restore()
+      window.show()
+      window.focus()
+      window.webContents.send('xnet:library:capture-ready')
+    })().catch((error) => console.error('[library] Clipboard capture failed', error))
   })
   app.once('will-quit', () => {
     if (shortcutRegistered) globalShortcut.unregister(accelerator)

@@ -1,0 +1,11 @@
+/* Keep Storybook's documentation text rules out of the interactive wireframe. */
+.onboarding-exploration .wf-root :is(h1, h2, h3, p) {
+  color: inherit;
+}
+.onboarding-exploration .wf-root .wf-muted {
+  color: var(--wf-muted);
+}
+.onboarding-exploration > fieldset select {
+  color: inherit;
+  background: hsl(var(--surface-1));
+}

@@ -31,6 +31,10 @@ const modules: Record<string, unknown> = {
   '@xnetjs/react/queries': { useQuery, useMutate },
   '@xnetjs/extensions/react': { useQuery, useMutate, useDocument, useDocumentIds },
   '@xnetjs/extensions/ui': {
+    Grid: ({ columns = 2, children }: React.PropsWithChildren<{ columns?: number }>) => (
+      <div data-xnet-columns={columns}>{children}</div>
+    ),
+    Row: ({ children }: React.PropsWithChildren) => <div data-xnet-row="true">{children}</div>,
     DocumentEditor: ({ handle }: { handle: string }) => <div data-xnet-document-editor={handle} />,
     DocumentView: ({ handle }: { handle: string }) => <div data-xnet-document={handle} />
   },
@@ -90,6 +94,8 @@ function tree(): ChatPreviewNode {
       (attribute) =>
         ![
           'class',
+          'data-xnet-columns',
+          'data-xnet-row',
           'aria-label',
           'role',
           'type',
@@ -110,7 +116,23 @@ function tree(): ChatPreviewNode {
       if (tag !== 'div' || node.childNodes.length) throw new Error('Invalid document control.')
       return { type: 'document', handle: element.getAttribute('data-xnet-document')! }
     }
-    const type = tags[tag]
+    const classes = (element.getAttribute('class') ?? '').split(/\s+/)
+    const grid = classes.includes('grid')
+      ? classes.find((value) => /^grid-cols-[1-6]$/.test(value))
+      : undefined
+    const columns = element.hasAttribute('data-xnet-columns')
+      ? Number(element.getAttribute('data-xnet-columns'))
+      : grid
+        ? Number(grid.at(-1))
+        : undefined
+    const type =
+      tags[tag] === 'stack' && columns !== undefined
+        ? 'grid'
+        : tags[tag] === 'stack' &&
+            (element.hasAttribute('data-xnet-row') ||
+              (classes.includes('flex') && classes.includes('flex-row')))
+          ? 'row'
+          : tags[tag]
     let id = ids.get(node)
     if (!id) {
       id = `element-${++serial}`
@@ -119,6 +141,8 @@ function tree(): ChatPreviewNode {
     elements.set(id, element)
     return {
       type,
+      ...(columns !== undefined ? { columns } : {}),
+      ...(type === 'button' && classes.includes('aspect-square') ? { square: true } : {}),
       ...(type === 'button' || type === 'input'
         ? {
             id,

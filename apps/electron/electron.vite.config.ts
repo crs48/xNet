@@ -1,3 +1,4 @@
+import { standaloneSandboxPreloads } from '../../scripts/vite-sandbox-preloads'
 import type { Plugin } from 'vite'
 import { resolve } from 'path'
 import react from '@vitejs/plugin-react'
@@ -48,6 +49,7 @@ const betterSqlite3Path = resolve(localNodeModules, 'better-sqlite3')
 export default defineConfig({
   main: {
     plugins: [
+      extensionRuntimePlugin(),
       externalizeDepsPlugin({
         exclude: xnetPackages
       })
@@ -84,9 +86,21 @@ export default defineConfig({
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [
+      standaloneSandboxPreloads(
+        ['index', 'extension-guest', 'extension-check'].map((name) =>
+          resolve(__dirname, `src/preload/${name}.ts`)
+        )
+      ),
+      externalizeDepsPlugin()
+    ],
     build: {
       rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'src/preload/index.ts'),
+          'extension-guest': resolve(__dirname, 'src/preload/extension-guest.ts'),
+          'extension-check': resolve(__dirname, 'src/preload/extension-check.ts')
+        },
         output: {
           // Must be CJS for sandboxed preload scripts
           format: 'cjs'
@@ -96,6 +110,15 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
+    resolve: {
+      // Shared workbench hooks remain safe without mounting desktop diagnostics.
+      alias: [
+        {
+          find: /^@xnetjs\/devtools$/,
+          replacement: resolve(__dirname, '../../packages/devtools/src/index.ts')
+        }
+      ]
+    },
     server: {
       port: rendererPort,
       // Fail rather than relocate (0413). Vite's default is to increment, so a
@@ -106,7 +129,10 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        input: resolve(__dirname, 'src/renderer/index.html'),
+        input: {
+          index: resolve(__dirname, 'src/renderer/index.html'),
+          'extension-check': resolve(__dirname, 'src/renderer/extension-check.html')
+        },
         external: [
           'web-worker',
           'mermaid', // Optional peer dependency - dynamically imported in @xnetjs/canvas

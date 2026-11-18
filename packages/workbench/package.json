@@ -29,6 +29,10 @@
     "./community-agents": {
       "types": "./src/communities/agent-contract.ts",
       "import": "./src/communities/agent-contract.ts"
+    },
+    "./peer-chat": {
+      "types": "./src/communities/peer-contract.ts",
+      "import": "./src/communities/peer-contract.ts"
     }
   },
   "scripts": {
@@ -46,6 +50,7 @@
     "@xnetjs/brain": "workspace:*",
     "@xnetjs/canvas": "workspace:*",
     "@xnetjs/comms": "workspace:*",
+    "@xnetjs/core": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/data-bridge": "workspace:*",
     "@xnetjs/devtools": "workspace:*",
@@ -62,9 +67,9 @@
     "motion": "^12.43.0",
     "parse5": "7.3.0",
     "react-resizable-panels": "^4.4.1",
+    "three": "0.186.1",
     "yjs": "^13.6.24",
-    "zustand": "^5.0.14",
-    "@xnetjs/core": "workspace:*"
+    "zustand": "^5.0.14"
   },
   "peerDependencies": {
     "react": "^18.0.0"
@@ -73,6 +78,7 @@
     "@testing-library/react": "^16.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.7",
+    "@types/three": "0.186.0",
     "react": "^18.3.1",
     "react-dom": "18.3.1",
     "tsup": "^8.0.0",

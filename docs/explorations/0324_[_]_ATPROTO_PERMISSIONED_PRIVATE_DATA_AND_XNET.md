@@ -1,5 +1,8 @@
 # ATProto Permissioned Private Data ("Spaces") And How It Intersects With xNet
 
+> [!NOTE]
+> **Research update, October 27, 2026:** AT Protocol launched its [Spaces alpha on August 20](https://atproto.com/blog/atproto-spaces-alpha) and published [updated developer goals on October 14](https://atproto.com/blog/devex-goals-for-spaces). The pre-alpha status below is historical. [0494](./0494_[_]_XNET_PRIMITIVES_FOR_COMMUNITY_GAME_MAKING.md) considers this newer alternative when evaluating xNet's community primitives. Older security observations below also need current route-level verification before reuse.
+
 > **Namespace note (0372/0389).** This document was written when the xNet
 > lexicon namespace was `net.x.*`. That namespace was **squatting** — `x.net`
 > belongs to IANA and can never be claimed — so exploration 0372 moved it to

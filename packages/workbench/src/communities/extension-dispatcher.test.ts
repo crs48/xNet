@@ -9,6 +9,64 @@ const flush = async () => {
 }
 afterEach(() => vi.useRealTimers())
 describe('host-bound extension dispatcher', () => {
+  it('waits for consent before starting the operation deadline and never executes a refused request', async () => {
+    vi.useFakeTimers()
+    const host = vi.fn(async () => 'saved'),
+      send = vi.fn()
+    let consent!: () => void
+    const dispatcher = createExtensionDispatcher(
+      host,
+      send,
+      () =>
+        new Promise((resolve) => {
+          consent = resolve
+        })
+    )
+    dispatcher.dispatch(command())
+    await flush()
+    await vi.advanceTimersByTimeAsync(20_000)
+    expect(host).not.toHaveBeenCalled()
+    expect(send).not.toHaveBeenCalled()
+    consent()
+    await flush()
+    expect(host).toHaveBeenCalledTimes(1)
+    expect(send).toHaveBeenCalledExactlyOnceWith({ type: 'result', id: 'one', result: 'saved' })
+    const denied = createExtensionDispatcher(host, send, async () => {
+      throw new ExtensionAccessError('denied', 'Not allowed.')
+    })
+    denied.dispatch(command('denied'))
+    await flush()
+    expect(host).toHaveBeenCalledTimes(1)
+    expect(send).toHaveBeenLastCalledWith(
+      expect.objectContaining({ error: expect.objectContaining({ code: 'denied' }) })
+    )
+    dispatcher.stop()
+    denied.stop()
+  })
+  it('cancels unanswered or closed consent prompts without executing late approvals', async () => {
+    vi.useFakeTimers()
+    for (const stop of [true, false]) {
+      const host = vi.fn(async () => 'saved'),
+        send = vi.fn()
+      let consent!: () => void, signal!: AbortSignal
+      const dispatcher = createExtensionDispatcher(host, send, (_, current) => {
+        signal = current
+        return new Promise((resolve) => {
+          consent = resolve
+        })
+      })
+      dispatcher.dispatch(command())
+      await flush()
+      if (stop) dispatcher.stop()
+      else await vi.advanceTimersByTimeAsync(120_000)
+      expect(signal.aborted).toBe(true)
+      consent()
+      await flush()
+      expect(host).not.toHaveBeenCalled()
+      expect(send).toHaveBeenCalledTimes(stop ? 0 : 1)
+      dispatcher.stop()
+    }
+  })
   it('stops pending requests, drops late responses, and refuses admission after stop', async () => {
     let finish!: (value: unknown) => void
     let signal!: AbortSignal

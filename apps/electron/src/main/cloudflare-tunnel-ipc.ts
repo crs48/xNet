@@ -2,12 +2,13 @@
  * IPC wiring for Cloudflare tunnel lifecycle events.
  */
 
-import { BrowserWindow, ipcMain } from 'electron'
+import { ipcMain } from 'electron'
 import {
   getCloudflareTunnelManager,
   type TunnelStartOptions,
   type TunnelStatus
 } from './cloudflare-tunnel-manager'
+import { workspaceWindows } from './workspace-windows'
 
 const TUNNEL_HEALTH_CHANNEL = 'xnet:tunnel:health'
 
@@ -15,7 +16,7 @@ export function setupCloudflareTunnelIPC(): () => void {
   const manager = getCloudflareTunnelManager()
 
   const unsubscribe = manager.onStatus((status) => {
-    BrowserWindow.getAllWindows().forEach((window) => {
+    workspaceWindows().forEach((window) => {
       if (!window.isDestroyed()) {
         window.webContents.send(TUNNEL_HEALTH_CHANNEL, status)
       }

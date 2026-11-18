@@ -1,0 +1,13 @@
+{
+  "id": "2026-10-23-extensions-ask-for-the-access-they-need",
+  "date": "October 23, 2026",
+  "title": "Extensions ask for the access they need",
+  "summary": "Approve a clear request for an extension’s data and editing needs, with additional access prompted as you use it.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "ai",
+    "plugins"
+  ],
+  "pr": 728
+}

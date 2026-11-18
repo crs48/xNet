@@ -87,6 +87,26 @@ function start(source: string, initial?: ExtensionDataset) {
 const find = (tree: ChatPreviewNode, type: string): ChatPreviewNode | undefined =>
   tree.type === type ? tree : tree.children?.map((node) => find(node, type)).find(Boolean)
 describe('persistent React extension runtime', () => {
+  it('preserves explicit grids, rows, and square cells across the worker boundary', async () => {
+    const { wait } = start(
+      `import {Grid, Row} from '@xnetjs/extensions/ui'; export default function Test(){return <section><Grid columns={3}>{Array.from({length:9}, (_,i)=><button key={i} className="aspect-square" aria-label={'Cell '+i}>·</button>)}</Grid><Row><button>Reset</button></Row></section>}`
+    )
+    const view = await wait((m) => m.type === 'view')
+    const grid = find(view.tree as ChatPreviewNode, 'grid')!
+    expect(grid.columns).toBe(3)
+    expect(grid.children).toHaveLength(9)
+    expect(grid.children?.every((child) => child.square && child.type === 'button')).toBe(true)
+    expect(find(view.tree as ChatPreviewNode, 'row')).toBeDefined()
+  })
+  it('recognizes bounded legacy grid classes without passing arbitrary CSS to the host', async () => {
+    const { wait } = start(
+      `export default function Test(){return <div className="grid grid-cols-3 fixed z-50"><button className="aspect-square">X</button></div>}`
+    )
+    const view = await wait((m) => m.type === 'view')
+    expect(find(view.tree as ChatPreviewNode, 'grid')?.columns).toBe(3)
+    expect(JSON.stringify(view.tree)).not.toContain('fixed')
+  })
+
   it('renders generated navigation layouts as inert host stacks', async () => {
     const { wait } = start(
       `export default function Test(){return <section><header><h2>Browser</h2></header><nav aria-label="Message pages"><button>Next page</button></nav><footer>Page 1</footer></section>}`

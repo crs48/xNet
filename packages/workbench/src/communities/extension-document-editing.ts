@@ -4,6 +4,7 @@ import type { DataBridge } from '@xnetjs/data-bridge'
 import { PageSchema } from '@xnetjs/data'
 import { documentOverlayKey, encodeDocumentOverlay, mergeDocumentOverlay } from '@xnetjs/data/store'
 import * as Y from 'yjs'
+import { containsExtensionAccess } from './extension-access'
 import { privateExtensionDestination } from './extension-containers'
 import { ExtensionAccessError } from './extension-protocol'
 
@@ -78,7 +79,7 @@ export async function saveExtensionDocument(
     throw new ExtensionAccessError('denied', 'The selected page is unavailable.')
   const scope = await privateExtensionDestination(bridge, grant, before, signal)
   const state = await authority.read()
-  if (JSON.stringify(state.approval.grant) !== JSON.stringify(grant))
+  if (!containsExtensionAccess(state.approval.grant, grant))
     throw new ExtensionAccessError('revoked', 'Document permissions changed.')
   if (state.approval.commands >= 1000)
     throw new ExtensionAccessError('quota', 'Review permissions before making more edits.')

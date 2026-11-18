@@ -1,8 +1,8 @@
 import type { ChatHistory } from './use-chat-history'
 import type { ReactNode } from 'react'
-import { useVirtualizer } from '@tanstack/react-virtual'
+import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual'
 import { ArrowDown, Loader2 } from 'lucide-react'
-import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { secondaryButton } from './primitives'
 
 const HEADER_HEIGHT = 64
@@ -11,12 +11,16 @@ export function VirtualChatTimeline({
   history,
   renderMessage,
   empty,
-  activity
+  activity,
+  selfDid,
+  label = 'Conversation messages'
 }: {
   history: ChatHistory
   renderMessage: (message: ChatHistory['messages'][number], index: number) => ReactNode
   empty: ReactNode
   activity: ReactNode
+  selfDid?: string | null
+  label?: string
 }) {
   const viewport = useRef<HTMLDivElement>(null)
   const following = useRef(true)
@@ -26,6 +30,35 @@ export function VirtualChatTimeline({
   const lastJump = useRef(history.latestRequest)
   const [atBottom, setAtBottom] = useState(true)
   const { messages, offset, loading, error, text } = history
+  const [focusedId, setFocusedId] = useState<string | null>(null)
+  const focusedIndex = messages.findIndex((message) => message.id === focusedId)
+  useLayoutEffect(() => {
+    if (focusedId && focusedIndex < 0) {
+      // A bounded history window can evict a focused row after new messages arrive.
+      if (document.activeElement === document.body) viewport.current?.focus({ preventScroll: true })
+      setFocusedId(null)
+    }
+  }, [focusedId, focusedIndex])
+  const [announcement, setAnnouncement] = useState<{ id: string; text: string } | null>(null)
+  const previousLatest = useRef<{ scope: string; id?: string }>({ scope: '' })
+  const latestId = messages.at(-1)?.id
+  const latestAuthor = messages.at(-1)?.createdBy
+  useEffect(() => {
+    if (loading || error || offset || text) return
+    if (
+      previousLatest.current.scope === history.scope &&
+      previousLatest.current.id &&
+      latestId &&
+      latestId !== previousLatest.current.id &&
+      latestAuthor !== selfDid
+    ) {
+      setAnnouncement({
+        id: latestId,
+        text: label === 'Thread replies' ? 'New reply in this thread.' : 'New message in this chat.'
+      })
+    }
+    previousLatest.current = { scope: history.scope, id: latestId }
+  }, [history.scope, latestId, latestAuthor, loading, error, offset, text, selfDid, label])
   const getItemKey = useCallback(
     (index: number) => messages[index]?.id ?? 'chat-activity',
     [messages]
@@ -38,13 +71,22 @@ export function VirtualChatTimeline({
     overscan: 6,
     scrollMargin: HEADER_HEIGHT,
     anchorTo: 'end',
-    scrollEndThreshold: 80
+    scrollEndThreshold: 80,
+    rangeExtractor: useCallback(
+      (range: Parameters<typeof defaultRangeExtractor>[0]) => {
+        const indexes = defaultRangeExtractor(range)
+        return focusedIndex < 0 || indexes.includes(focusedIndex)
+          ? indexes
+          : [...indexes, focusedIndex].sort((a, b) => a - b)
+      },
+      [focusedIndex]
+    )
   })
   useLayoutEffect(() => {
     if (loading || error) return
     const jump = !initialized.current || lastJump.current !== history.latestRequest
     const inspecting = viewport.current?.querySelector('[data-agent-activity][open]')
-    if (jump || (following.current && offset === 0 && !text && !inspecting)) {
+    if (jump || (following.current && offset === 0 && !text && !inspecting && !focusedId)) {
       userScrolling.current = false
       if (text && !initialized.current) virtualizer.scrollToOffset(0)
       else virtualizer.scrollToEnd()
@@ -52,7 +94,17 @@ export function VirtualChatTimeline({
     }
     initialized.current = true
     lastJump.current = history.latestRequest
-  }, [messages, activity, loading, error, offset, text, history.latestRequest, virtualizer])
+  }, [
+    messages,
+    activity,
+    loading,
+    error,
+    offset,
+    text,
+    history.latestRequest,
+    virtualizer,
+    focusedId
+  ])
 
   // TanStack retains measured heights by key. Discard evicted history so even
   // the measurement cache stays bounded as someone scrolls through years of chat.
@@ -64,17 +116,22 @@ export function VirtualChatTimeline({
   }, [messages, virtualizer])
 
   const older = () => {
+    if (focusedId) viewport.current?.focus({ preventScroll: true })
     userScrolling.current = false
     following.current = false
     history.older()
   }
   const newer = () => {
+    if (focusedId) viewport.current?.focus({ preventScroll: true })
     userScrolling.current = false
     following.current = false
     history.newer()
   }
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
+      <div role="status" aria-atomic="true" className="sr-only">
+        {announcement && <span key={announcement.id}>{announcement.text}</span>}
+      </div>
       {error && (
         <div role="alert" className="flex items-center gap-3 px-6 py-2 text-sm">
           Could not load messages: {error.message}
@@ -88,10 +145,18 @@ export function VirtualChatTimeline({
         data-chat-scroll
         data-chat-window-size={messages.length}
         data-chat-window-offset={offset}
-        aria-label={text ? 'Message search results' : 'Conversation messages'}
+        role="region"
+        aria-label={text ? 'Message search results' : label}
         aria-busy={loading}
         tabIndex={0}
         className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none]"
+        onFocusCapture={(event) => {
+          const row = (event.target as HTMLElement).closest<HTMLElement>('[data-message-id]')
+          setFocusedId(row?.dataset.messageId ?? null)
+        }}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setFocusedId(null)
+        }}
         onWheel={() => {
           userScrolling.current = true
         }}
@@ -138,11 +203,18 @@ export function VirtualChatTimeline({
           ) : null}
         </div>
         {!loading && !error && !messages.length && empty}
-        <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+        <div
+          role="list"
+          aria-label="Messages in this window"
+          className="relative w-full"
+          style={{ height: virtualizer.getTotalSize() }}
+        >
           {virtualizer.getVirtualItems().map((row) => (
             <div
               key={row.key}
               data-index={row.index}
+              role="listitem"
+              data-message-id={messages[row.index]?.id}
               ref={virtualizer.measureElement}
               className="absolute left-0 top-0 flow-root w-full"
               style={{ transform: `translateY(${row.start - HEADER_HEIGHT}px)` }}

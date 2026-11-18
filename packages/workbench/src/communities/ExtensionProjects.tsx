@@ -3,6 +3,7 @@ import type { CommunityAgents } from './use-community-agents'
 import type { CommunityData, Conversation } from './use-community-data'
 import { ChatMessageSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
+import { CodeDiffViewer } from '@xnetjs/ui'
 import { GitBranch, History, Bot, Plus, Send } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import {
@@ -14,7 +15,6 @@ import {
   type DevelopmentEntry,
   type DevelopmentRecord
 } from './extension-development'
-import { sourceChangeSummary } from './extension-versions'
 import { inputClass, primaryButton, secondaryButton } from './primitives'
 import { useDevelopmentRecords } from './use-development-records'
 
@@ -939,28 +939,46 @@ function VersionHistory({
       )}
       {parents.map((parent) => {
         if (parent.record.kind !== 'version' || version.record.kind !== 'version') return null
-        const diff = sourceChangeSummary(
-          parent.record.extension.source,
-          version.record.extension.source
-        )
         return (
-          <details key={parent.id}>
-            <summary className="cursor-pointer">
-              Source changes from {parent.record.extension.title} (+{diff.added} / −{diff.removed}{' '}
-              lines)
-            </summary>
-            <p className="my-2">Changed section before</p>
-            <pre className="max-h-60 overflow-auto rounded bg-muted p-2">
-              {diff.before || '(no removed lines)'}
-            </pre>
-            <p className="my-2">Changed section after</p>
-            <pre className="max-h-60 overflow-auto rounded bg-muted p-2">
-              {diff.after || '(no added lines)'}
-            </pre>
-          </details>
+          <DevelopmentSourceDiff
+            key={parent.id}
+            label={`Code changes from ${parent.record.extension.title} · ${parent.record.extension.versionId.slice(0, 8)}`}
+            before={parent.record.extension.source}
+            after={version.record.extension.source}
+          />
         )
       })}
+      {version.record.kind === 'version' && !version.record.parents.length && (
+        <DevelopmentSourceDiff
+          label="Code changes · initial version"
+          before=""
+          after={version.record.extension.source}
+        />
+      )}
+      {version.record.kind === 'version' && parents.length < version.record.parents.length && (
+        <p className="text-muted-foreground">
+          Some parent source is unavailable. Load earlier history to compare those versions.
+        </p>
+      )}
       {error && <p role="alert">{error}</p>}
     </article>
+  )
+}
+
+function DevelopmentSourceDiff({
+  label,
+  before,
+  after
+}: {
+  label: string
+  before: string
+  after: string
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <details onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className="cursor-pointer">{label}</summary>
+      {open && <CodeDiffViewer before={before} after={after} className="mt-3 h-[420px]" />}
+    </details>
   )
 }

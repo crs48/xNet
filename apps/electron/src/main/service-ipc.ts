@@ -10,7 +10,8 @@ import {
   type ServiceDefinition,
   type ServiceStatus
 } from '@xnetjs/plugins/node'
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain } from 'electron'
+import { workspaceWindows } from './workspace-windows'
 
 // ─── Process Manager Instance ────────────────────────────────────────────────
 
@@ -25,14 +26,14 @@ export function getProcessManager(): ProcessManager {
 
     // Forward status events to all renderer windows
     processManager.on('service:status', (event) => {
-      BrowserWindow.getAllWindows().forEach((win) => {
+      workspaceWindows().forEach((win) => {
         win.webContents.send(SERVICE_IPC_CHANNELS.STATUS_UPDATE, event)
       })
     })
 
     // Forward output events to all renderer windows
     processManager.on('service:output', (event) => {
-      BrowserWindow.getAllWindows().forEach((win) => {
+      workspaceWindows().forEach((win) => {
         win.webContents.send(SERVICE_IPC_CHANNELS.OUTPUT, event)
       })
     })
